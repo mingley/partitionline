@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "phase": "mutable-source-preparation",
+  "immutable_qualification": "pending source freeze push and full final QA/live",
+  "base_tip": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "write_set": [
+    "src/share.rs",
+    "src/protocol/share.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs"
+  ],
+  "root_integration_set": [
+    "src/consumer.rs",
+    "src/lib.rs"
+  ],
+  "sha256": {
+    "src/share.rs": "9bfa6abf28acaac829c77fd54f207e6e8350e38a083abe0fb8912cd88191dab2",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "97f5916e6b78529d2c1a1167914018dd9471b50246ed570b6e75f159cba5e4c8",
+    "tests/share_semantics.rs": "479b9a0341fe70468063f364f05dbbc868ccd6dee194533d67ef7748f984c011",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "results": {
+    "socket_semantics": "14 passed, 1 live ignored",
+    "wire_oracles": "39 passed, 1 existing live ignored",
+    "existing_full_surface_share": "27 passed",
+    "strict_all_features_clippy": "passed"
+  },
+  "limitations": [
+    "Preparation is not immutable final qualification.",
+    "Actual current share delivery/Renew/RecordLimit/expiry proof must pass fresh pinned Docker; native Java capability probe is supplemental.",
+    "Byte bounds cover logical decoded and retained record/acquisition storage, not process RSS or codec scratch. Held records.rs/buf.rs unchanged."
+  ]
+}

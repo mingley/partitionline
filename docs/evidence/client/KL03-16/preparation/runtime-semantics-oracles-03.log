@@ -1,0 +1,9 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> tests/share_semantics.rs:571:46
+    |
+571 | ...   eprintln!("SHARE_V2_LIVE_REPORT {}", serde_json::json!({"schema_version":1,"source_sha":source,"reference":reference,"bootstr...
+    |                                            ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `partitionline` (test "share_semantics") due to 1 previous error

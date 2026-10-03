@@ -2331,23 +2331,6 @@ impl Consumer {
         let _ = self.conns.remove(&node);
     }
 
-    pub(crate) async fn roundtrip_node(
-        &mut self,
-        node: i32,
-        api_key: i16,
-        api_version: i16,
-        encode_body: impl Fn(&mut bytes::BytesMut) -> Result<()>,
-        timeout: Duration,
-    ) -> Result<Bytes> {
-        self.connect_node(node).await?;
-        let conn = self
-            .conns
-            .get_mut(&node)
-            .ok_or_else(|| Error::protocol("missing node conn"))?;
-        conn.roundtrip(api_key, api_version, encode_body, timeout)
-            .await
-    }
-
     async fn connect_node(&mut self, node: i32) -> Result<()> {
         if self
             .conns

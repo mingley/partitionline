@@ -189,11 +189,14 @@ use partitionline::protocol::sasl::{
 };
 use partitionline::protocol::scram;
 use partitionline::protocol::share::{
-    decode_share_acknowledge_request, decode_share_fetch_request,
+    decode_share_acknowledge_request_with_renew, decode_share_fetch_request_with_options,
     decode_share_group_heartbeat_request, encode_share_acknowledge_response,
-    encode_share_fetch_error, encode_share_fetch_response, encode_share_group_heartbeat_response,
-    AcknowledgementBatch, AcquiredRange, ShareFetchedPartition, ShareFetchedTopic,
-    ShareGroupHeartbeatResponse, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
+    encode_share_acknowledge_topics_response_with_lock_timeout, encode_share_fetch_error,
+    encode_share_fetch_response_with_acquisition_lock_timeout,
+    encode_share_group_heartbeat_response, AcknowledgementBatch, AcquiredRange,
+    ShareAcknowledgeResponsePartition, ShareAcknowledgeResponseTopic, ShareFetchedPartition,
+    ShareFetchedTopic, ShareGroupHeartbeatResponse, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
+    ACK_RELEASE, ACK_RENEW,
 };
 use partitionline::protocol::txn::{
     decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
@@ -261,6 +264,14 @@ type FetchSessionRequest = (
     Vec<FetchTopic>,
     Vec<ForgottenTopic>,
 );
+
+type MockShareRecordKey = (String, String, i32, i64);
+
+struct MockShareLock {
+    owner: String,
+    node: i32,
+    expires_ms: u64,
+}
 
 struct State {
     /// Current TLS acceptor for TLS mocks; swapped by rotation (KL06-05).
@@ -597,9 +608,21 @@ struct State {
     share_heartbeat_interval_ms: i32,
     share_fetch_calls: u32,
     share_ack_calls: u32,
-    share_accepted: HashSet<(String, i32, i64)>,
-    share_acquired: HashMap<(String, i32, i64), String>,
-    share_epochs: HashMap<String, i32>,
+    share_accepted: HashSet<MockShareRecordKey>,
+    share_acquired: HashMap<MockShareRecordKey, MockShareLock>,
+    share_deliveries: HashMap<MockShareRecordKey, i16>,
+    share_epochs: HashMap<(String, String, i32), i32>,
+    share_clock_ms: u64,
+    share_lock_timeout_ms: i32,
+    share_ack_faults: HashMap<(String, i32), VecDeque<i16>>,
+    share_session_faults: HashMap<i32, VecDeque<i16>>,
+    share_ack_session_faults: HashMap<i32, VecDeque<i16>>,
+    share_fetch_raw_once: Option<Vec<u8>>,
+    share_ack_attempts: Vec<(String, i32, i64, i64)>,
+    share_fetch_versions_by_node: HashMap<i32, i16>,
+    share_fetch_history: Vec<(i32, i32)>,
+    last_share_acquire_mode: i8,
+    last_share_renew_ack: bool,
     last_share_fetch_epoch: Option<i32>,
     last_share_fetch_version: Option<i16>,
     last_share_ack_epoch: Option<i32>,
@@ -1051,7 +1074,19 @@ fn new_state(
         share_ack_calls: 0,
         share_accepted: HashSet::new(),
         share_acquired: HashMap::new(),
+        share_deliveries: HashMap::new(),
         share_epochs: HashMap::new(),
+        share_clock_ms: 0,
+        share_lock_timeout_ms: 15_000,
+        share_ack_faults: HashMap::new(),
+        share_session_faults: HashMap::new(),
+        share_ack_session_faults: HashMap::new(),
+        share_fetch_raw_once: None,
+        share_ack_attempts: Vec::new(),
+        share_fetch_versions_by_node: HashMap::new(),
+        share_fetch_history: Vec::new(),
+        last_share_acquire_mode: 0,
+        last_share_renew_ack: false,
         last_share_fetch_epoch: None,
         last_share_fetch_version: None,
         last_share_ack_epoch: None,
@@ -2129,10 +2164,87 @@ impl Mock {
         self.state.lock().produce_batches.clone()
     }
 
+    pub fn advance_share_clock(&self, millis: u64) {
+        let mut state = self.state.lock();
+        state.share_clock_ms = state.share_clock_ms.saturating_add(millis);
+        expire_share_locks(&mut state);
+    }
+
+    pub fn set_share_lock_timeout(&self, millis: i32) {
+        self.state.lock().share_lock_timeout_ms = millis;
+    }
+
+    pub fn fail_share_ack_once(&self, topic: &str, partition: i32, code: i16) {
+        self.state
+            .lock()
+            .share_ack_faults
+            .entry((topic.into(), partition))
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn fail_share_session_once(&self, node: i32, code: i16) {
+        self.state
+            .lock()
+            .share_session_faults
+            .entry(node)
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn fail_share_ack_session_once(&self, node: i32, code: i16) {
+        self.state
+            .lock()
+            .share_ack_session_faults
+            .entry(node)
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn inject_share_fetch_response_once(&self, bytes: &[u8]) {
+        self.state.lock().share_fetch_raw_once = Some(bytes.to_vec());
+    }
+
+    pub fn share_ack_attempts(&self) -> Vec<(String, i32, i64, i64)> {
+        self.state.lock().share_ack_attempts.clone()
+    }
+
+    pub fn share_fetch_history(&self) -> Vec<(i32, i32)> {
+        self.state.lock().share_fetch_history.clone()
+    }
+
+    pub fn share_fetch_version_on(&self, node: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .share_fetch_versions_by_node
+            .get(&node)
+            .copied()
+    }
+
+    pub fn last_share_acquire_mode(&self) -> i8 {
+        self.state.lock().last_share_acquire_mode
+    }
+
+    pub fn last_share_renew_ack(&self) -> bool {
+        self.state.lock().last_share_renew_ack
+    }
+
+    pub fn share_accepted(&self, group: &str, topic: &str, partition: i32, offset: i64) -> bool {
+        self.state
+            .lock()
+            .share_accepted
+            .contains(&(group.into(), topic.into(), partition, offset))
+    }
+
     pub fn set_partition_leader(&self, topic: &str, partition: i32, node_id: i32) {
         let mut st = self.state.lock();
+        let previous = share_partition_leader(&st, topic, partition);
         st.partition_leaders
             .insert((topic.to_string(), partition), node_id);
+        if previous != node_id {
+            st.share_acquired
+                .retain(|(_, t, p, _), _| t != topic || *p != partition);
+        }
         let slot = st
             .partition_epochs
             .entry((topic.to_string(), partition))
@@ -4141,40 +4253,76 @@ fn delete_topic_result(st: &mut State, version: i16, t: DeleteTopicState) -> Top
     }
 }
 
+fn expire_share_locks(st: &mut State) {
+    let now = st.share_clock_ms;
+    st.share_acquired.retain(|_, lock| lock.expires_ms > now);
+}
+
 fn apply_share_acks(
     st: &mut State,
+    group_id: &str,
     member_id: &str,
     topic: &str,
     partition: i32,
     batches: &[AcknowledgementBatch],
-) {
+) -> i16 {
+    expire_share_locks(st);
+    // A partition's invalid acknowledgements do not roll back successful
+    // neighbours. Validate this partition before applying its own changes.
+    let mut changes = Vec::new();
     for b in batches {
+        st.share_ack_attempts
+            .push((topic.into(), partition, b.first_offset, b.last_offset));
+        if b.first_offset < 0 || b.last_offset < b.first_offset || b.types.is_empty() {
+            return error::INVALID_REQUEST;
+        }
         let mut off = b.first_offset;
-        while off <= b.last_offset {
+        loop {
             let ty = if b.types.len() == 1 {
-                b.types.first().copied().unwrap_or(0)
+                b.types[0]
             } else {
                 let i = usize::try_from(off.saturating_sub(b.first_offset)).unwrap_or(usize::MAX);
                 match b.types.get(i).copied() {
                     Some(t) => t,
-                    None => break,
+                    None => return error::INVALID_REQUEST,
                 }
             };
-            let k = (topic.to_string(), partition, off);
-            let owned = st
-                .share_acquired
-                .get(&k)
-                .map(|m| m == member_id)
-                .unwrap_or(false);
-            if owned {
-                let _ = st.share_acquired.remove(&k);
-                if ty == ACK_ACCEPT || ty == ACK_REJECT {
-                    let _ = st.share_accepted.insert(k);
+            if ty != 0 {
+                let key = (group_id.to_string(), topic.to_string(), partition, off);
+                if !matches!(ty, ACK_ACCEPT | ACK_RELEASE | ACK_REJECT | ACK_RENEW) {
+                    return error::INVALID_REQUEST;
                 }
+                if !st
+                    .share_acquired
+                    .get(&key)
+                    .is_some_and(|lock| lock.owner == member_id)
+                {
+                    return error::INVALID_RECORD_STATE;
+                }
+                changes.push((key, ty));
             }
-            off = off.saturating_add(1);
+            if off == b.last_offset {
+                break;
+            }
+            off += 1;
         }
     }
+    for (key, ty) in changes {
+        if ty == ACK_RENEW {
+            let expiry = st
+                .share_clock_ms
+                .saturating_add(u64::try_from(st.share_lock_timeout_ms).unwrap_or(0));
+            if let Some(lock) = st.share_acquired.get_mut(&key) {
+                lock.expires_ms = expiry;
+            }
+        } else {
+            let _ = st.share_acquired.remove(&key);
+            if ty == ACK_ACCEPT || ty == ACK_REJECT {
+                let _ = st.share_accepted.insert(key);
+            }
+        }
+    }
+    0
 }
 
 /// KIP-932 share session epoch. Returns 0 or a broker error.
@@ -4191,25 +4339,33 @@ fn share_wrong_leader(st: &State, node_id: i32, tps: &[(String, i32)]) -> bool {
         .any(|(topic, p)| share_partition_leader(st, topic, *p) != node_id)
 }
 
-fn share_session_step(st: &mut State, member_id: &str, epoch: i32) -> i16 {
+fn share_session_step(
+    st: &mut State,
+    group_id: &str,
+    member_id: &str,
+    node: i32,
+    epoch: i32,
+) -> i16 {
+    let key = (group_id.to_string(), member_id.to_string(), node);
     match epoch {
         0 => {
-            st.share_acquired.retain(|_, owner| owner != member_id);
-            let _ = st.share_epochs.insert(member_id.to_string(), 1);
+            let _ = st.share_epochs.insert(key, 1);
             0
         }
         -1 => {
-            if st.share_epochs.remove(member_id).is_some() {
-                st.share_acquired.retain(|_, owner| owner != member_id);
+            if st.share_epochs.remove(&key).is_some() {
+                st.share_acquired.retain(|(group, _, _, _), lock| {
+                    group != group_id || lock.owner != member_id || lock.node != node
+                });
                 0
             } else {
                 error::SHARE_SESSION_NOT_FOUND
             }
         }
-        e if e > 0 => match st.share_epochs.get(member_id).copied() {
+        e if e > 0 => match st.share_epochs.get(&key).copied() {
             Some(expected) if expected == e => {
-                let next = e.saturating_add(1);
-                let _ = st.share_epochs.insert(member_id.to_string(), next);
+                let next = if e == i32::MAX { 1 } else { e + 1 };
+                let _ = st.share_epochs.insert(key, next);
                 0
             }
             Some(_) => error::INVALID_SHARE_SESSION_EPOCH,
@@ -7351,10 +7507,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SHARE_FETCH => {
                 let version = header.api_version;
-                let (_gid, member_id, epoch, max_records, topics, ..) =
-                    decode_share_fetch_request(&mut frame, version).unwrap();
+                let (group_id, member_id, epoch, max_records, topics, _, _, _, _, _, options) =
+                    decode_share_fetch_request_with_options(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_fetch_version = Some(version);
+                st.last_share_acquire_mode = options.acquire_mode;
+                st.share_fetch_versions_by_node.insert(node_id, version);
                 let tps: Vec<(String, i32)> = topics
                     .iter()
                     .flat_map(|t| {
@@ -7366,66 +7524,86 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .collect();
                 st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
                 st.last_share_fetch_epoch = Some(epoch);
-                if !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
+                st.share_fetch_history.push((node_id, epoch));
+                let injected_error = st
+                    .share_session_faults
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(code) = injected_error {
+                    encode_share_fetch_error(&mut body, version, code).unwrap();
+                } else if !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
                     st.share_fetch_not_leader = st.share_fetch_not_leader.saturating_add(1);
                     encode_share_fetch_error(&mut body, version, error::NOT_LEADER_OR_FOLLOWER)
                         .unwrap();
                 } else {
                     st.last_share_fetch_node = Some(node_id);
-                    let sess = share_session_step(&mut st, &member_id, epoch);
+                    let sess = share_session_step(&mut st, &group_id, &member_id, node_id, epoch);
                     if sess != 0 {
                         encode_share_fetch_error(&mut body, version, sess).unwrap();
+                    } else if let Some(raw) = st.share_fetch_raw_once.take() {
+                        body.extend_from_slice(&raw);
                     } else {
+                        expire_share_locks(&mut st);
                         let cap = if version >= 1 {
                             usize::try_from(max_records.max(0)).unwrap_or(0)
                         } else {
                             16
                         };
+                        let mut remaining = cap;
                         let mut fetched = Vec::new();
                         for t in topics {
                             let name = topic_name_for_id(&st, t.topic_id);
                             let mut parts = Vec::new();
                             for p in t.partitions {
-                                apply_share_acks(
+                                let acknowledge_error_code = apply_share_acks(
                                     &mut st,
+                                    &group_id,
                                     &member_id,
                                     &name,
                                     p.partition,
                                     &p.acknowledgements,
                                 );
-                                let key = (name.clone(), p.partition);
-                                let recs = st.log.get(&key).cloned().unwrap_or_default();
-                                let recs: Vec<_> = recs
-                                    .into_iter()
-                                    .filter(|r| {
-                                        let k = (name.clone(), p.partition, r.offset);
-                                        !st.share_accepted.contains(&k)
-                                            && match st.share_acquired.get(&k) {
-                                                None => true,
-                                                Some(owner) => owner == &member_id,
-                                            }
-                                    })
-                                    .collect();
+                                let recs = st
+                                    .log
+                                    .get(&(name.clone(), p.partition))
+                                    .cloned()
+                                    .unwrap_or_default();
                                 let mut acquired = Vec::new();
                                 let mut taken = Vec::new();
                                 for r in recs {
-                                    if taken.len() >= cap {
+                                    if remaining == 0 {
                                         break;
                                     }
-                                    let k = (name.clone(), p.partition, r.offset);
-                                    if let std::collections::hash_map::Entry::Vacant(e) =
-                                        st.share_acquired.entry(k)
+                                    let key =
+                                        (group_id.clone(), name.clone(), p.partition, r.offset);
+                                    if st.share_accepted.contains(&key)
+                                        || st.share_acquired.contains_key(&key)
                                     {
-                                        e.insert(member_id.clone());
-                                        acquired.push(AcquiredRange {
-                                            first_offset: r.offset,
-                                            last_offset: r.offset,
-                                            delivery_count: 1,
-                                        });
-                                        taken.push(r);
+                                        continue;
                                     }
+                                    let count = st.share_deliveries.entry(key.clone()).or_insert(0);
+                                    *count = count.saturating_add(1);
+                                    let delivery_count = *count;
+                                    let expiry = st.share_clock_ms.saturating_add(
+                                        u64::try_from(st.share_lock_timeout_ms).unwrap_or(0),
+                                    );
+                                    st.share_acquired.insert(
+                                        key,
+                                        MockShareLock {
+                                            owner: member_id.clone(),
+                                            node: node_id,
+                                            expires_ms: expiry,
+                                        },
+                                    );
+                                    acquired.push(AcquiredRange {
+                                        first_offset: r.offset,
+                                        last_offset: r.offset,
+                                        delivery_count,
+                                    });
+                                    taken.push(r);
+                                    remaining -= 1;
                                 }
-                                let epoch = st
+                                let leader_epoch = st
                                     .partition_epochs
                                     .get(&(name.clone(), p.partition))
                                     .copied()
@@ -7434,11 +7612,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     partition: p.partition,
                                     error_code: 0,
                                     error_message: None,
-                                    acknowledge_error_code: 0,
+                                    acknowledge_error_code,
                                     acknowledge_error_message: None,
-                                    current_leader_id: 0,
-                                    current_leader_epoch: 0,
-                                    records: share_record_batches(taken, epoch),
+                                    current_leader_id: node_id,
+                                    current_leader_epoch: leader_epoch,
+                                    records: share_record_batches(taken, leader_epoch),
                                     acquired,
                                 });
                             }
@@ -7447,42 +7625,91 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 partitions: parts,
                             });
                         }
-                        encode_share_fetch_response(&mut body, version, &fetched).unwrap();
+                        encode_share_fetch_response_with_acquisition_lock_timeout(
+                            &mut body,
+                            version,
+                            &fetched,
+                            st.share_lock_timeout_ms,
+                        )
+                        .unwrap();
                     }
                 }
             }
             SHARE_ACKNOWLEDGE => {
                 let version = header.api_version;
-                let (_gid, member_id, epoch, acks) =
-                    decode_share_acknowledge_request(&mut frame, version).unwrap();
+                let (group_id, member_id, epoch, acks, is_renew_ack) =
+                    decode_share_acknowledge_request_with_renew(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_ack_version = Some(version);
-                let tps: Vec<(String, i32)> = acks
-                    .iter()
-                    .map(|(tid, p, _)| (topic_name_for_id(&st, *tid), *p))
-                    .collect();
+                st.last_share_renew_ack = is_renew_ack;
                 st.share_ack_calls = st.share_ack_calls.saturating_add(1);
                 st.last_share_ack_epoch = Some(epoch);
                 st.last_share_ack_partitions = acks.len();
-                if epoch != -1 && !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
-                    encode_share_acknowledge_response(
+                st.last_share_ack_node = Some(node_id);
+                let injected = st
+                    .share_ack_session_faults
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                let sess = injected.unwrap_or_else(|| {
+                    share_session_step(&mut st, &group_id, &member_id, node_id, epoch)
+                });
+                if sess != 0 {
+                    encode_share_acknowledge_response(&mut body, version, sess).unwrap();
+                } else {
+                    let mut response_topics: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
+                    for (tid, partition, batches) in acks {
+                        let name = topic_name_for_id(&st, tid);
+                        let injected = st
+                            .share_ack_faults
+                            .get_mut(&(name.clone(), partition))
+                            .and_then(VecDeque::pop_front);
+                        let code = if let Some(code) = injected {
+                            for batch in &batches {
+                                st.share_ack_attempts.push((
+                                    name.clone(),
+                                    partition,
+                                    batch.first_offset,
+                                    batch.last_offset,
+                                ));
+                            }
+                            code
+                        } else if share_partition_leader(&st, &name, partition) != node_id {
+                            error::NOT_LEADER_OR_FOLLOWER
+                        } else {
+                            apply_share_acks(
+                                &mut st, &group_id, &member_id, &name, partition, &batches,
+                            )
+                        };
+                        let mut part =
+                            ShareAcknowledgeResponsePartition::partition_response(partition, code);
+                        part.current_leader_id = share_partition_leader(&st, &name, partition);
+                        part.current_leader_epoch = st
+                            .partition_epochs
+                            .get(&(name, partition))
+                            .copied()
+                            .unwrap_or(0);
+                        match response_topics
+                            .iter_mut()
+                            .find(|topic| topic.topic_id == tid)
+                        {
+                            Some(topic) => topic.partitions.push(part),
+                            None => response_topics.push(ShareAcknowledgeResponseTopic {
+                                topic_id: tid,
+                                partitions: vec![part],
+                            }),
+                        }
+                    }
+                    encode_share_acknowledge_topics_response_with_lock_timeout(
                         &mut body,
                         version,
-                        error::NOT_LEADER_OR_FOLLOWER,
+                        0,
+                        &response_topics,
+                        &[],
+                        0,
+                        None,
+                        st.share_lock_timeout_ms,
                     )
                     .unwrap();
-                } else {
-                    st.last_share_ack_node = Some(node_id);
-                    let sess = share_session_step(&mut st, &member_id, epoch);
-                    if sess != 0 {
-                        encode_share_acknowledge_response(&mut body, version, sess).unwrap();
-                    } else {
-                        for (tid, partition, batches) in acks {
-                            let name = topic_name_for_id(&st, tid);
-                            apply_share_acks(&mut st, &member_id, &name, partition, &batches);
-                        }
-                        encode_share_acknowledge_response(&mut body, version, 0).unwrap();
-                    }
                 }
             }
             CONSUMER_GROUP_HEARTBEAT => {

@@ -1,0 +1,12 @@
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+error: this lint expectation is unfulfilled
+ --> tests/share_semantics.rs:9:5
+  |
+9 |     clippy::indexing_slicing,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: assertions inspect trusted socket fixtures
+  = note: `-D unfulfilled-lint-expectations` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unfulfilled_lint_expectations)]`
+
+error: could not compile `partitionline` (test "share_semantics") due to 1 previous error

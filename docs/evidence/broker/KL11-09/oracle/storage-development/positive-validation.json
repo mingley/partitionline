@@ -1,0 +1,2940 @@
+{
+  "scope": "Independent selected file/seed/checkpoint verification on actual finite process-publication captures; no Rust imports, power-loss, retention, global bounds or performance claim.",
+  "histories": 33,
+  "states": 66,
+  "fixture_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28",
+  "checker_sha256": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+  "passed": true,
+  "results": [
+    {
+      "kind": "roll-error",
+      "phase": "DirectorySynced",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "DirectorySynced",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "DirectorySynced",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "IndexRenamed",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "IndexRenamed",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "IndexRenamed",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "IndexSynced",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "IndexSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek.tmp": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "IndexSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "IndexWritten",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "IndexWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek.tmp": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "IndexWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "ManifestRenamed",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "ManifestRenamed",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "ManifestRenamed",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "ManifestSynced",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "ManifestSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+          "manifest.tmp": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "ManifestSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "ManifestWritten",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "ManifestWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+          "manifest.tmp": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "ManifestWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-error",
+      "phase": "NewActiveSynced",
+      "interrupted": {
+        "kind": "roll-error",
+        "stage": "interrupted",
+        "phase": "NewActiveSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-error",
+        "stage": "recovered",
+        "phase": "NewActiveSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "DirectorySynced",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "DirectorySynced",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "DirectorySynced",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "IndexRenamed",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "IndexRenamed",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "IndexRenamed",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "IndexSynced",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "IndexSynced",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek.tmp": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "IndexSynced",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "IndexWritten",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "IndexWritten",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek.tmp": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "IndexWritten",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "ManifestRenamed",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "ManifestRenamed",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "ManifestRenamed",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "ManifestSynced",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "ManifestSynced",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+          "manifest.tmp": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "ManifestSynced",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "ManifestWritten",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "ManifestWritten",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+          "manifest.tmp": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "ManifestWritten",
+        "revision": 1,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "replace-error",
+      "phase": "OldDataRemoved",
+      "interrupted": {
+        "kind": "replace-error",
+        "stage": "interrupted",
+        "phase": "OldDataRemoved",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      },
+      "recovered": {
+        "kind": "replace-error",
+        "stage": "recovered",
+        "phase": "OldDataRemoved",
+        "revision": 2,
+        "acknowledged_end": 2,
+        "selected_end": 2,
+        "manifest_sha256": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 2,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000002.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+          "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+          "manifest": "3b6b902a56a642232281a231fbf1c019fe57edaf62a0460618802aaca797301d"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "DirectorySynced",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "DirectorySynced",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "DirectorySynced",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "IndexRenamed",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "IndexRenamed",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "IndexRenamed",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "IndexSynced",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "IndexSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek.tmp": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "IndexSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "IndexWritten",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "IndexWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek.tmp": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "IndexWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "ManifestRenamed",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "ManifestRenamed",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "ManifestRenamed",
+        "revision": 1,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 1,
+              "generation": 0,
+              "bytes": 130,
+              "entries": 1,
+              "max_time": 1000,
+              "fingerprint": 348689905
+            },
+            "journal_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "index": {
+              "sha256": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+              "checkpoints": 1
+            }
+          }
+        ],
+        "active_sha256": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "ManifestSynced",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "ManifestSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+          "manifest.tmp": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "ManifestSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "ManifestWritten",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "ManifestWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+          "manifest.tmp": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "ManifestWritten",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "roll-exit",
+      "phase": "NewActiveSynced",
+      "interrupted": {
+        "kind": "roll-exit",
+        "stage": "interrupted",
+        "phase": "NewActiveSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+          "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      },
+      "recovered": {
+        "kind": "roll-exit",
+        "stage": "recovered",
+        "phase": "NewActiveSynced",
+        "revision": 0,
+        "acknowledged_end": 1,
+        "selected_end": 1,
+        "manifest_sha256": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883",
+        "sealed": [],
+        "active_sha256": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "manifest": "23b05d6a2941e498ef8785b12e2206cd458bdfea11e3f6f40519ee021224e883"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "CopyEntrySynced",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "CopyEntrySynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "CopyEntrySynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "DirectorySynced",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "DirectorySynced",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "DirectorySynced",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "IndexRenamed",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "IndexRenamed",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "IndexRenamed",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "IndexSynced",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "IndexSynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek.tmp": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "IndexSynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "IndexWritten",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "IndexWritten",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek.tmp": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "IndexWritten",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "ManifestRenamed",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "ManifestRenamed",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "ManifestRenamed",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "ManifestSynced",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "ManifestSynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+          "manifest.tmp": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "ManifestSynced",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "ManifestWritten",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "ManifestWritten",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+          "manifest.tmp": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "ManifestWritten",
+        "revision": 1,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 0,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "2556a4eb8e61f12603afc12098e7e0422c641e5560bfd2218aed3265eae65ab5"
+        }
+      }
+    },
+    {
+      "kind": "replace-exit",
+      "phase": "OldDataRemoved",
+      "interrupted": {
+        "kind": "replace-exit",
+        "stage": "interrupted",
+        "phase": "OldDataRemoved",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000000.seek": "8c9b029a9b985d2093d66b6e69b7831ca86d4a3218f980b53c258cdafcd379e4",
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      },
+      "recovered": {
+        "kind": "replace-exit",
+        "stage": "recovered",
+        "phase": "OldDataRemoved",
+        "revision": 2,
+        "acknowledged_end": 4,
+        "selected_end": 4,
+        "manifest_sha256": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099",
+        "sealed": [
+          {
+            "descriptor": {
+              "base": 0,
+              "end": 3,
+              "generation": 2,
+              "bytes": 342,
+              "entries": 3,
+              "max_time": 1000,
+              "fingerprint": 156704087
+            },
+            "journal_sha256": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+            "index": {
+              "sha256": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+              "checkpoints": 2
+            }
+          }
+        ],
+        "active_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "seed_payload_receipts": [
+          {
+            "offset": 0,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+          },
+          {
+            "offset": 1,
+            "position": 130,
+            "prefix_max": 1000,
+            "payload_sha256": "5255c5b6e6e0fa8dad4101c7c3e6696294f6f4a489407c733266a88a72fec7bc"
+          },
+          {
+            "offset": 2,
+            "position": 236,
+            "prefix_max": 1000,
+            "payload_sha256": "715c6f688692e5201c2b6e2d83e273e6dd07341229da486313dbc6285386a0ea"
+          },
+          {
+            "offset": 3,
+            "position": 24,
+            "prefix_max": -9223372036854775808,
+            "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+          }
+        ],
+        "all_file_hashes": {
+          "0000000000000000-0000000000000002.journal": "a018644053932045fdcfc133b4b28d1fc311fec60a1ff2db1c9081d6e1c9f31d",
+          "0000000000000000-0000000000000002.seek": "d7736c892ffe116d409a71ebf0fa5f15d79cadcc821cdc6a6f185c8605386d5a",
+          "0000000000000003-0000000000000001.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+          "manifest": "017e944c5099e9d09801c4be0b3b1b899b5a9d6b8b5de9e12b0c6fd1c47d3099"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Clean selected journal boundaries only; active torn-tail repair is separately tested by Rust and not inferred here.",
+    "Derived checkpoint positions/prefix maxima are verified; configured interval and resource-constructor envelopes are separate contracts.",
+    "Known unreferenced staging generations are hash-retained, not promoted to committed authority."
+  ]
+}

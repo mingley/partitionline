@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_freeze_candidate": "docs/evidence/client/KL03-16/preparation/source-freeze-candidate.json",
+  "docker_current_image": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+  "required_live_test": "live_current_v2_share_delivery_renew_release_expiry_accept",
+  "state": "not yet run on immutable final source",
+  "future_requirements": [
+    "Full stable/MSRV1.85 default/all-features matrix from clean immutable source",
+    "Fresh digest-pinned4.3.1 Docker identity/features/API ranges and exact four-record delivery/Renew/release/expiry/count/accept proof",
+    "Required three-release broker compatibility qualification; native proof remains supplemental"
+  ]
+}

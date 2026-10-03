@@ -1,0 +1,81 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 15.92s
+     Running tests/protocol_oracles.rs (/workspace/work/client-share-target/debug/deps/protocol_oracles-37cb06dc754f3488)
+
+running 40 tests
+protocol_oracles: api=Produce pin=3.9.1 identity=fixture:apache/kafka:3.9.1 versions=[3, 4, 5, 6, 7, 8, 9, 10, 11]
+test add_raft_voter_nullable_fields_match_apache ... ok
+test add_raft_voter_apache_v0_fixtures ... ok
+test apache_list_offsets_boundary_fixtures_decode_offline ... ok
+test apache_fetch_boundary_fixtures_decode_offline ... ok
+test apache_metadata_boundary_fixtures_decode_offline ... ok
+test apache_produce_boundary_fixtures_decode_offline ... ok
+test apache_produce_v9_smoke_fixture_decodes ... ok
+test current_group_nullable_struct_marker_matches_apache_signed_byte_semantics ... ok
+test describe_log_dirs_v5_independent_java_fixtures ... ok
+test current_group_nullable_assignment_independent_apache_fixtures ... ok
+test describe_log_dirs_v5_truncation_and_version_bounds_fail_closed ... ok
+test fetch_short_tail_and_malformed_records_oracles ... ok
+protocol_oracles: api=Produce pin=4.1.0 identity=fixture:apache/kafka:4.1.0 versions=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+protocol_oracles: api=Fetch pin=3.9.1 identity=fixture:apache/kafka:3.9.1 versions=[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+protocol_oracles: api=Fetch pin=4.1.0 identity=fixture:apache/kafka:4.1.0 versions=[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+protocol_oracles: api=Metadata pin=3.9.1 identity=fixture:apache/kafka:3.9.1 versions=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+protocol_oracles: api=Metadata pin=4.1.0 identity=fixture:apache/kafka:4.1.0 versions=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+protocol_oracles: api=ListOffsets pin=3.9.1 identity=fixture:apache/kafka:3.9.1 versions=[1, 2, 3, 4, 5, 6, 7, 8, 9]
+protocol_oracles: api=ListOffsets pin=4.1.0 identity=fixture:apache/kafka:4.1.0 versions=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+test fetch_v18_known_tag_mutations_and_sidecar_shapes_fail_closed ... ok
+test fetch_v18_apache_high_watermarks_and_lower_version_fallbacks ... ok
+test advertised_matrix_semantic_oracles ... ok
+test fetch_v18_rust_bodies_match_apache_and_can_be_parsed_independently ... ok
+test fetch_version_gate_and_field_order_mutations_fail ... ok
+test list_offsets_v11_independent_apache_fixtures ... ok
+test list_offsets_v11_truncation_and_future_versions_fail_closed ... ok
+test list_offsets_version_gate_and_field_order_mutations_fail ... ok
+test live_broker_decoded_semantics ... ignored, live broker; scripts/ci-protocol-oracles.sh REQUIRE_BROKER=1
+test metadata_version_gate_and_field_order_mutations_fail ... ok
+test produce_v13_pinned_topic_id_fixtures_and_legacy_fallback ... ok
+test produce_v13_rejects_missing_ambiguous_and_truncated_identities ... ok
+test produce_version_gate_and_field_order_mutations_fail ... ok
+test remove_raft_voter_apache_v0_fixtures ... ok
+test remove_raft_voter_nullable_fields_match_apache ... ok
+Produce13 live Java decode not requested; independent offline fixtures remain active
+test produce_v13_rust_output_decodes_with_current_apache_when_requested ... ok
+java toolchain / conformance jars not available; skipping live Apache decode of Rust output
+test rust_list_offsets_output_decodes_with_apache_when_java_available ... ok
+test share_acknowledge_v0_v1_fixtures_decode_offline ... ok
+test share_fetch_null_records_and_error_paths_decode_offline ... ok
+test share_fetch_v0_delta_fixture_decodes_offline ... ok
+test share_fetch_v1_delta_fixture_decodes_offline ... ok
+test share_v2_apache_request_bytes_and_older_renew_rejection ... ok
+test share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition ... ok
+test share_v2_apache_schema_pin ... ok
+test share_v2_apache_truncation_and_unknown_version_fail_closed ... ok
+java toolchain / conformance jars not available; skipping live Apache decode of Rust output
+test rust_fetch_output_decodes_with_apache_when_java_available ... ok
+java toolchain / conformance jars not available; skipping live Apache decode of Rust output
+test rust_produce_output_decodes_with_apache_when_java_available ... ok
+java toolchain / conformance jars not available; skipping live Apache decode of Rust output
+test rust_metadata_output_decodes_with_apache_when_java_available ... ok
+
+test result: ok. 39 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c)
+
+running 14 tests
+test acknowledge_session_error_clears_old_acquisition_without_replaying_accept ... ok
+test decoded_budget_and_overlapping_acquisitions_fail_before_delivery ... ok
+test java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit ... ok
+test live_current_v2_share_delivery_renew_release_expiry_accept ... ignored, requires an explicitly selected fresh digest-pinned Apache Kafka 4.3.1 Docker cell
+test each_partition_leader_negotiates_its_own_share_version_and_v2_gate ... ok
+test leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader ... ok
+test partial_retriable_ack_retries_only_failed_partition ... ok
+test outstanding_acquisitions_consume_budget_across_successive_polls ... ok
+test partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record ... ok
+test share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation ... ok
+test session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded ... ok
+test coordinator_move_preserves_delivery_and_partition_leader_session ... ok
+test unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats ... ok
+test renew_v2_extends_only_selected_record_and_preserves_delivery_count ... ok
+
+test result: ok. 13 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.26s
+

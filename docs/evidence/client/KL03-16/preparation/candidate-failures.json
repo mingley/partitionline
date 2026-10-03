@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "reconstructed_logs": false,
+  "failures": [
+    {
+      "log": "runtime-share-01.log",
+      "cause_and_resolution": "environmental ENOSPC during full_surface compile; no code/lint conclusion",
+      "sha256": "684f396633da2c25124ae0d19f7e5a7094549bebde0828b60fe950d72290aab8"
+    },
+    {
+      "log": "runtime-semantics-01.log",
+      "cause_and_resolution": "E0521 helper borrowed payload fixed by copying owned bytes",
+      "sha256": "ae59f8afb70bb6be6740bf4acaba25176bd201f7c8af3f8ddc1f6a83d38e9bce"
+    },
+    {
+      "log": "runtime-semantics-oracles-03.log",
+      "cause_and_resolution": "E0433 serde_json unavailable without feature; proof uses explicit structured text, no dependency added",
+      "sha256": "b946c202598e0271d0e68f5c0299ec08c03d8315e9d6023faf11760a30331d79"
+    },
+    {
+      "log": "runtime-full-share-02.log",
+      "cause_and_resolution": "two members regression from unintended request default500; legacy16 preserved",
+      "sha256": "ac1a702bb9a0c53f7d4714357f79c7b41876a5adc9d554b8fc1d94fbda254f75"
+    },
+    {
+      "log": "runtime-clippy-01.log",
+      "cause_and_resolution": "indexing and redundant closure fixed",
+      "sha256": "99ba2d7f3d883eeee6d1e21ac9cdf646193b32164425f31ccaf9d8ce3fd5e7ef"
+    },
+    {
+      "log": "runtime-clippy-02.log",
+      "cause_and_resolution": "unfulfilled test indexing lint expectation removed",
+      "sha256": "127038ab51cf7f580f1ae7992c0173a3a39f12137d7d3851ae6d2143b977ca44"
+    },
+    {
+      "log": "runtime-full-share-05.log",
+      "cause_and_resolution": "stopped heartbeat startup wrote a deadline after unsubscribe; synchronized stop check now guards deadline mutation",
+      "sha256": "8b24835fa005ed50e2ae003029b5a6dc180eea9dab6c8fdce59ba21359d83d5a"
+    }
+  ]
+}

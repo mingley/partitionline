@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py",
+    "--baseline",
+    "/workspace/work/segments-final-45582234/stable-default-all-targets/fault-histories/roll-error/ManifestRenamed/interrupted",
+    "--fixture",
+    "/workspace/work/segments-final-45582234/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+    "--output",
+    "docs/evidence/broker/KL11-09/oracle/storage-development/attempt-1-reproduced"
+  ],
+  "exit_code": 1,
+  "source_sha256": "cbda5fe1005316b330f7bb30c1c783960c713d829c30465f5eff5e6f158ba366",
+  "reason": "Development setup assumed wrong BASIC value position. Original partial attempt-1 retained; this is a fresh reproduction of the same failure, not reconstructed original raw stderr."
+}

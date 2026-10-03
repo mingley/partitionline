@@ -3278,8 +3278,8 @@ pub use protocol::records::{
 };
 pub use protocol::txn::TransactionResult;
 pub use share::{
-    AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata, SHARE_ACK_ACCEPT,
-    SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
+    AcknowledgeType, ShareAcquireMode, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata,
+    SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE, SHARE_ACK_RENEW,
 };
 
 /// Software name sent in ApiVersions v3–v4.

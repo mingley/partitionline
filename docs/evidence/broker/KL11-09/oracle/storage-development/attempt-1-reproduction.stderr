@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py", line 110, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py", line 89, in main
+    mutation(directory, name)
+  File "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py", line 44, in mutation
+    checker.require(payload[-2] == ord('v'), 'actual BASIC value byte for semantic mutation')
+  File "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-history.py", line 27, in require
+    raise ValueError(reason)
+ValueError: actual BASIC value byte for semantic mutation

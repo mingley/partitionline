@@ -25668,12 +25668,15 @@
     "docs/evidence/broker/KL11-15/",
     "docs/plan/evidence/KL11-15.json"
   ],
-  "integration_coordinator": "Root owns raft/mod export, manifests/shared source bindings and publication. After73 sealed source closure, RPC exclusively owns authoritative snapshot Node/WAL install+replay hooks and runtime/fault histories; c_peer owns snapshot image/store/foundation tests/fixtures/oracle. Additional election/protocol changes require coordinated delegation.",
+  "integration_coordinator": "Root owns raft/mod export, manifests/shared source bindings and publication. After73 sealed source closure, RPC exclusively owns authoritative snapshot Node/WAL install+replay hooks and runtime/fault histories; c_peer owns snapshot image/store/foundation tests/fixtures/oracle. Additional election/protocol changes require coordinated delegation. Root exclusively owns independent opcode5/image causal-history checker under oracle/history; c_peer does not edit this path.",
   "delegated_write_sets": {
     "codex-rpc-reuse-20261003": [
       "partitionline-broker/src/raft/replication.rs",
       "partitionline-broker/tests/raft_replication.rs",
       "docs/evidence/broker/KL11-15/runtime/"
+    ],
+    "codex-coordinator-20261003": [
+      "docs/evidence/broker/KL11-15/oracle/history/"
     ]
   }
 },
@@ -27219,10 +27222,14 @@
       "docs/evidence/broker/KL11-37/oracle/",
       "docs/evidence/broker/KL11-37/peers/",
       "partitionline-broker/tests/fixtures/oidc/"
+    ],
+    "codex-c-peer-20261003": [
+      "docs/evidence/broker/KL11-37/oracle/jwt/",
+      "partitionline-broker/tests/fixtures/oidc/"
     ]
   },
   "dependency_note": "37 establishes signed OAUTHBEARER/OIDC, bounded real HTTPS discovery/JWKS/introspection authority refresh and post-authentication lease expiry/reconnect. Positive session lifetime and mid-connection renewed-token SASL reauthentication belong to dependent71; zero lifetime until71 qualification.",
-  "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence."
+  "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence. c_peer exclusively owns independent RS256/ES256 signed fixtures and three official Java SDK JWT validators under oracle/jwt and fixtures/oidc; root retains live HTTPS issuer and other peer paths."
 },
     {
       "id": "KL11-38",

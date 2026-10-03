@@ -1,0 +1,58 @@
+docker.io/apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837: Pulling from apache/kafka
+6a0ac1617861: Pulling fs layer
+5ef4bf1bda35: Pulling fs layer
+6e338134b21e: Pulling fs layer
+42516208460b: Pulling fs layer
+2d1a277377d1: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+da9d0fb3345c: Pulling fs layer
+9ee28cb5e924: Pulling fs layer
+f9f362c352e2: Pulling fs layer
+625afcf9df2f: Pulling fs layer
+cb74ead52f10: Pulling fs layer
+c62d3fe6c586: Pulling fs layer
+9ee28cb5e924: Waiting
+f9f362c352e2: Waiting
+625afcf9df2f: Waiting
+42516208460b: Waiting
+cb74ead52f10: Waiting
+2d1a277377d1: Waiting
+c62d3fe6c586: Waiting
+4f4fb700ef54: Waiting
+da9d0fb3345c: Waiting
+6a0ac1617861: Download complete
+6a0ac1617861: Pull complete
+5ef4bf1bda35: Verifying Checksum
+5ef4bf1bda35: Download complete
+42516208460b: Verifying Checksum
+42516208460b: Download complete
+2d1a277377d1: Verifying Checksum
+2d1a277377d1: Download complete
+4f4fb700ef54: Verifying Checksum
+4f4fb700ef54: Download complete
+5ef4bf1bda35: Pull complete
+9ee28cb5e924: Download complete
+6e338134b21e: Verifying Checksum
+6e338134b21e: Download complete
+625afcf9df2f: Verifying Checksum
+625afcf9df2f: Download complete
+f9f362c352e2: Verifying Checksum
+f9f362c352e2: Download complete
+cb74ead52f10: Download complete
+c62d3fe6c586: Verifying Checksum
+c62d3fe6c586: Download complete
+6e338134b21e: Pull complete
+42516208460b: Pull complete
+da9d0fb3345c: Verifying Checksum
+da9d0fb3345c: Download complete
+2d1a277377d1: Pull complete
+4f4fb700ef54: Pull complete
+da9d0fb3345c: Pull complete
+9ee28cb5e924: Pull complete
+f9f362c352e2: Pull complete
+625afcf9df2f: Pull complete
+cb74ead52f10: Pull complete
+c62d3fe6c586: Pull complete
+Digest: sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+Status: Downloaded newer image for apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+docker.io/apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/client-share-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "PATH_prefix": "/workspace/work/cargo/bin",
+    "cpu_affinity": "0-2,4"
+  },
+  "cwd": "/workspace/partitionline",
+  "commands": [
+    {
+      "log": "runtime-clippy-06.log",
+      "command": "cargo clippy --offline --locked --lib --test share_semantics --test protocol_oracles --all-features -- -D warnings"
+    },
+    {
+      "log": "runtime-semantics-oracles-08.log",
+      "command": "cargo test --offline --locked --test share_semantics --test protocol_oracles -- --nocapture"
+    },
+    {
+      "log": "runtime-full-share-07.log",
+      "command": "cargo test --offline --locked --test full_surface share -- --nocapture"
+    }
+  ],
+  "all_logged_candidate_commands": {
+    "runtime-check-01.log": "cargo check --offline --locked --lib",
+    "runtime-share-01.log": "cargo test --offline --locked --test full_surface share_ -- --nocapture",
+    "runtime-semantics-01.log": "cargo test --offline --locked --test share_semantics -- --nocapture",
+    "runtime-semantics-02.log": "cargo test --offline --locked --test share_semantics -- --nocapture",
+    "runtime-semantics-oracles-03.log": "cargo test --offline --locked --test share_semantics --test protocol_oracles -- --nocapture",
+    "runtime-full-share-02.log": "cargo test --offline --locked --test full_surface share -- --nocapture",
+    "runtime-clippy-01.log": "cargo clippy --offline --locked --lib --test share_semantics --test protocol_oracles --all-features -- -D warnings",
+    "runtime-clippy-02.log": "cargo clippy --offline --locked --lib --test share_semantics --test protocol_oracles --all-features -- -D warnings",
+    "runtime-full-share-05.log": "cargo test --offline --locked --test full_surface share -- --nocapture"
+  }
+}

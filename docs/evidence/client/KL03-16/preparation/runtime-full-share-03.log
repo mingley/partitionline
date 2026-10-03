@@ -1,0 +1,35 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 22.93s
+     Running tests/full_surface.rs (/workspace/work/client-share-target/debug/deps/full_surface-0307b86adab9acf9)
+
+running 27 tests
+test delete_share_groups_follows_group_coordinator ... ok
+test describe_share_group_offsets_batches_find_coordinator ... ok
+test alter_share_group_offsets_follows_group_coordinator ... ok
+test delete_share_group_offsets_follows_group_coordinator ... ok
+test describe_share_groups_follows_group_coordinator ... ok
+test list_share_group_offsets_follows_group_coordinator ... ok
+test describe_share_group_offsets_follows_group_coordinator ... ok
+test share_accept_batches_one_rpc_and_advances_epoch ... ok
+test share_acknowledge_negotiates_v0_when_broker_caps ... ok
+test add_raft_voter_controller_refresh_shares_outer_deadline ... ok
+test share_fetch_accept_then_release ... ok
+test remove_raft_voter_controller_refresh_shares_outer_deadline ... ok
+test share_fetch_negotiates_v0_when_broker_caps ... ok
+test share_group_describe_batches_find_coordinator ... ok
+test share_fetch_follows_partition_leader ... ok
+test share_group_describe_negotiates_v0_when_broker_caps ... ok
+test sasl_share_group_post_join_heartbeat ... ok
+test share_group_heartbeat_negotiates_v0_when_broker_caps ... ok
+test share_group_join_leave_without_classic_or_kip848 ... ok
+test share_group_describe_follows_group_coordinator ... ok
+test share_leave_without_poll_does_not_acknowledge ... ok
+test share_reject_does_not_redeliver ... ok
+test share_two_members_same_partition ... ok
+test share_group_follows_moved_coordinator ... ok
+test tls_share_group_post_join_heartbeat ... ok
+test share_group_recovers_after_coordinator_drop ... ok
+test share_broker_heartbeat_interval_scheduling ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 303 filtered out; finished in 0.85s
+
