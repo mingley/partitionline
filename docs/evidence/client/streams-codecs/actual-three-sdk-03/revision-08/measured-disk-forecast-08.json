@@ -1,0 +1,24 @@
+{
+  "source_file_count": 73938,
+  "source_bytes": 713363027,
+  "source_directory_count": 10308,
+  "categories": {
+    "full_raw_before_exact_bytes": 23380322,
+    "full_raw_after_configured_upper_bound_bytes": 24428898,
+    "verified_origin_gzip_before_exact_bytes": 2630489,
+    "verified_origin_gzip_after_upper_bound_bytes": 2630489,
+    "full_directory_before_exact_compact_bytes": 1628040,
+    "full_directory_after_configured_upper_bound_bytes": 2152329,
+    "all_fresh_classes_enforced_upper_bound_bytes": 2097152,
+    "all_two_process_three_sdk_fixtures_enforced_upper_bound_bytes": 8388608,
+    "ten_command_two_streams_enforced_upper_bound_bytes": 1310720,
+    "minimal_json_metadata_enforced_upper_bound_bytes": 2097152,
+    "file_allocation_and_directory_entry_reserve_bytes": 8388608
+  },
+  "worst_case_new_output_allocated_bytes": 79132807,
+  "successful_unchanged_raw_maps_exact_physical_bytes": 27638851,
+  "required_free_bytes": 446134407,
+  "sampled_free_bytes": 909176832,
+  "minimum_remaining_free_bytes": 367001600,
+  "owned_output_limit_bytes": 100663296
+}

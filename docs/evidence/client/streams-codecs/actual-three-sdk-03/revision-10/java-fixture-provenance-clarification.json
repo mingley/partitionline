@@ -1,0 +1,20 @@
+{
+  "scope": "Additive precise provenance clarification for revision09 java-generation-summary.json; original frozen bytes retained. No outcome/artifact/source change.",
+  "original_summary_sha256": "e44ade4cd9fd768dda5e06a689aee45ed4c3036e4fcdd6ae5561ab6f8c2f7988",
+  "direct_sdk_body_serializations_per_sdk": 23,
+  "mutations_of_actual_sdk_serialized_bodies_per_sdk": 15,
+  "handcrafted_hostile_input_byte_sequences_per_sdk": 3,
+  "handcrafted_hostile_cases": [
+    "describe-request-count-bomb",
+    "describe-request-null-nonnullable-array",
+    "describe-request-invalid-utf8"
+  ],
+  "direct_sdk_header_body_serializations_per_sdk": 12,
+  "all_53_cases_independently_passed_through_actual_pinned_apache_parser": true,
+  "actual_body_parser_outcomes_per_sdk": {
+    "parsed": 39,
+    "java.lang.RuntimeException": 2
+  },
+  "wording_correction": "The prior brief phrase describing all malformed count/UTF8 bytes as modified authentic bytes was overbroad: the three listed hostile inputs are explicitly handcrafted invalid byte sequences in the pinned helper and are qualified by actual Apache parser outcomes, not claimed as Apache serializer output. Other15mutations are visibly derived from genuine default SDK serializations. Actual positive/nullable/unknown-tag23body+12header serializers are genuine.",
+  "rust_policy_outcomes": "Still expectations:26admitted15locallyrejected perSDK; no Rust execution or broker/runtime qualification."
+}

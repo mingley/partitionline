@@ -1,0 +1,59 @@
+{
+  "scope": "Source-only combined24test install proposal and standalone syntax/format check; no Cargo/Rust typecheck/test/runtime execution. Actual prior successful Java generations remain separately pinned and do not prove Rust behavior.",
+  "complete_product_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "production_codec_unchanged_sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+  "original21test_sha256": "d3ec0b14efcad2a8370747a73128ffd7aeae801052345bfadcf4c8700929ca86",
+  "original21_prefix_exactly_unchanged": true,
+  "candidate24test_sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0",
+  "original_work_fragment_sha256": "88a87620d722b770e7958ca35713d150206077552e96a7cb243e5f0b7f1f5810",
+  "corrected_formatted_work_fragment_sha256": "7ec63cdb241e6213420d1c14bbd26e0ffba9a6201c5418c1fc2e2d216a057455",
+  "exact_semantic_fragment_delta": "Filename guard adds literal8 only, matching frozen actual utf8 fixture names; other fragment statements unchanged. Rustfmt wraps the changed assertion.",
+  "meaningful_new_tests": [
+    "Replay all41body cases perSDK with exact hashes/counts/26admitted15locallyrejected policies and all144full-model contextual sentinel values, canonical Rust bytes optionally emitted for genuineJava reverse parse.",
+    "Replay all12actual request2/response1 header+body cases perSDK, classicnullableClientId null/empty/UTF8, unknownheader tags, exact correlation/API/version/header/body boundary and canonical bytes compared with no-tag SDK counterparts.",
+    "Every truncated prefix and one extra terminal byte rejected for actual full messages in all4families\u00d73SDKs."
+  ],
+  "expected_models": {
+    "repository_path": "tests/fixtures/streams/oracle/expected_models.rs",
+    "sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de",
+    "unchanged031890_source_bytes": true,
+    "source_api": "Four existing pub(super) typed full-model constructors; reachable from sibling apache module via test parent. No field/value/type edits."
+  },
+  "signature_and_type_read_review": {
+    "scope": "Read-only actual04f Rust source/exports; not compiler validation",
+    "eight_codec_functions": "Public functions accept input slice or typed value, versioni16, Limits and return crateResult with matching concrete struct/Vecu8. All four model types and Limits imported through public protocol::streams. crateError::protocol is public.",
+    "headers": "protocol reexports generic decode_request_header(&mutBuf), decode_response_header(&mutBuf,i16,i16), encode_request_header(&mutBytesMut,&RequestHeader), encode_response_header(&mutBytesMut,i16,i16,i32); request_header_version/response_header_version returni16. Current API88/89 dispatch selects2/1 at0. Existing RequestHeader client_id OptionString and correlation_idi32 match replay.",
+    "dependency_inputs": "Existing bytes1 and sha20.11 dependencies; no manifest/dependency changes proposed.",
+    "header_canonical_fixture_paths": "Both request header-tag fixtures compare with matching -header-utf8 body; both response tags compare with -header-empty. All actual generated filenames exist.",
+    "limits": "Default bound data safely exceeds actual <=3KiB body fixtures. Full input version0 checks and all bytes policy remain production codec responsibilities, still unexecuted Rust."
+  },
+  "read_only_actual_name_and_count_checks": {
+    "vectors_checked": 159,
+    "cases_per_sdk": 53,
+    "literal8_names_per_sdk": 3,
+    "all_existing_utf8_names_now_admitted": true,
+    "original_fragment_predicate_guaranteed_blocker_retained": true,
+    "coverage_receipt": "actual-name-coverage-readonly.json"
+  },
+  "format_receipts": {
+    "tool": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+    "cpu_affinity": "0,1",
+    "edition": "2021",
+    "first_check_exit_status": 1,
+    "first_check_failure": "Only newly lengthened assertion needed line wrapping; exact first-format-check.log retained. No compiler/typecheck.",
+    "format_apply_exit_status": 0,
+    "final_check_exit_status": 0,
+    "existing21_and_expectedmodels_unchanged_after_apply": true
+  },
+  "actual_fixture_stage_manifest": {
+    "path": "/workspace/work/streams-codecs/revision-09/fixture-stage-manifest.json",
+    "sha256": "bfb0bad744a7fbaa93af67eecac055d56fe856035c23c19af902bb5cbab4fe40",
+    "files": 165,
+    "target_prefix": "tests/fixtures/streams/<SDK>/",
+    "generation_source": "Both independently executed genuineSDK generation paths bound per-file bytes/modes/hashes; repository candidate0644 vs runtime original0600 explicit."
+  },
+  "no_repo_install": true,
+  "actual_cargo_commands": 0,
+  "actual_jvm_commands_in_this_refinement": 0,
+  "next_step": "Root read review/install candidate24tests+actual fixture paths and immutable checkpoint; authorized Rust compile/replay before acceptance."
+}

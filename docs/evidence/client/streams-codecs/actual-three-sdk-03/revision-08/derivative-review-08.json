@@ -1,0 +1,73 @@
+{
+  "scope": "WORK-only minimal runner guard proposal, no JVM/Cargo retry or repository edit. Actual genuine first53vectors retained as partial failed-driver outputs, not completed qualification. Product04f and standalone848 bytes unchanged.",
+  "previous_runner_sha256": "3e663008e04fdef4844beeeda8478dff941f4f4c2516b7ad86ea0836f129e64a",
+  "candidate_runner_sha256": "1d346dd59dba771d49b09804ad41d7e6976275e0420a34d72c2b431da9188528",
+  "exact_functional_delta": "Only additional literal8 admitted in artifact-name alphabet, needed by existing three utf8 names. Other digits/uppercase/path separators remain rejected.",
+  "oracle_bytes_changed": false,
+  "fixture_case_fields_changed": false,
+  "strict_flags_or_resource_bounds_weakened": false,
+  "frozen_arguments": [
+    "taskset",
+    "-c",
+    "0,1",
+    "python3",
+    "/workspace/work/streams-codecs/revision-08/run-oracle.py",
+    "--repo",
+    "/workspace/partitionline",
+    "--snapshot",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--jars",
+    "/workspace/work/broker-wire/jars",
+    "--java",
+    "/usr/bin/java",
+    "--origin",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "--output",
+    "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03",
+    "--oracle",
+    "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java"
+  ],
+  "whole_supervisor_source": "/workspace/work/streams-codecs/revision-08/launch-supervisor-09.py",
+  "fresh_forecast": {
+    "source_file_count": 73938,
+    "source_bytes": 713363027,
+    "source_directory_count": 10308,
+    "categories": {
+      "full_raw_before_exact_bytes": 23380322,
+      "full_raw_after_configured_upper_bound_bytes": 24428898,
+      "verified_origin_gzip_before_exact_bytes": 2630489,
+      "verified_origin_gzip_after_upper_bound_bytes": 2630489,
+      "full_directory_before_exact_compact_bytes": 1628040,
+      "full_directory_after_configured_upper_bound_bytes": 2152329,
+      "all_fresh_classes_enforced_upper_bound_bytes": 2097152,
+      "all_two_process_three_sdk_fixtures_enforced_upper_bound_bytes": 8388608,
+      "ten_command_two_streams_enforced_upper_bound_bytes": 1310720,
+      "minimal_json_metadata_enforced_upper_bound_bytes": 2097152,
+      "file_allocation_and_directory_entry_reserve_bytes": 8388608
+    },
+    "worst_case_new_output_allocated_bytes": 79132807,
+    "successful_unchanged_raw_maps_exact_physical_bytes": 27638851,
+    "required_free_bytes": 446134407,
+    "sampled_free_bytes": 909176832,
+    "minimum_remaining_free_bytes": 367001600,
+    "owned_output_limit_bytes": 100663296
+  },
+  "root_publication_reserve_bytes": 33554432,
+  "required_free_with_publication_bytes": 479688839,
+  "free_now": 908500992,
+  "controls": {
+    "python_tests_passed": 42,
+    "previous_guard_and_overlay_tests": 34,
+    "actual_partial_fixture_validator_tests": 8,
+    "actual_sdk_jvm_retry_commands": 0,
+    "cargo_commands": 0
+  },
+  "actual_partial_source_artifacts": {
+    "files": 55,
+    "body_vectors": 41,
+    "header_body_vectors": 12,
+    "bytes": 42293,
+    "immutable_input_hashes_after_copy_controls": true
+  },
+  "pending": "Root review then renewed serialSDKGO; Avro compiler priority respected. No automatic retry."
+}

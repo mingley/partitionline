@@ -1,0 +1,74 @@
+{
+  "scope": "WORK-only combined24test candidate + preserved unchanged03189expected-model bytes, actual159fixture-name readchecks, standaloneformat/syntax proof and additive precise Java fixture provenance clarification. No Cargo/typecheck/Rusttests/repoedit/JVM.",
+  "product_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "tests24_sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0",
+  "expected_models_sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de",
+  "original21_exact_prefix_unchanged": true,
+  "target_test_path": "tests/streams_protocol.rs",
+  "target_fixture_mapping": "revision09fixture-stage-manifest165files tests/fixtures/streams/<SDK>/",
+  "files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/actual-name-coverage-readonly.json",
+      "bytes": 7526,
+      "full_permission_mode": "0644",
+      "sha256": "720bebbd91593327dabc9548e7db7e525b23bfee65b8011e10ae9c06b9037be6"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/combined24-test.patch",
+      "bytes": 12840,
+      "full_permission_mode": "0644",
+      "sha256": "dc0b31bb54bf8c35422fbea2a333384bc12056cd63cbe51603b53fbfcf023855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/final-format-check.log",
+      "bytes": 0,
+      "full_permission_mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/first-format-check.log",
+      "bytes": 668,
+      "full_permission_mode": "0600",
+      "sha256": "22583b2f9b3d5f11af379bb55e1de40a1135a8b1df33c0940ca38c1766d0297f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/fixture_replay.formatted.part.rs",
+      "bytes": 12402,
+      "full_permission_mode": "0644",
+      "sha256": "7ec63cdb241e6213420d1c14bbd26e0ffba9a6201c5418c1fc2e2d216a057455"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/format-apply.log",
+      "bytes": 0,
+      "full_permission_mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/java-fixture-provenance-clarification.json",
+      "bytes": 1447,
+      "full_permission_mode": "0644",
+      "sha256": "777cad6b5bb901b59f4b11c78fa83032d0650c6883a66b27d7243f35d6ff6568"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/source-review-10.json",
+      "bytes": 4890,
+      "full_permission_mode": "0644",
+      "sha256": "0efa59749cf6a74c109394ebcecb823eeb1ea0db09242adb92186a9c583a1448"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/tests/fixtures/streams/oracle/expected_models.rs",
+      "bytes": 13982,
+      "full_permission_mode": "0644",
+      "sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-10/tests/streams_protocol.rs",
+      "bytes": 36045,
+      "full_permission_mode": "0644",
+      "sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0"
+    }
+  ],
+  "actual_cargo_commands": 0,
+  "total_bytes": 89800,
+  "free_now": 871669760
+}

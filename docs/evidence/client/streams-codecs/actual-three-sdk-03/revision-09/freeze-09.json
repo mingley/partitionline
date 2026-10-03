@@ -1,0 +1,1292 @@
+{
+  "scope": "Actual successful immutable genuine Java proof, exact fixture install proposals and source-only futureRust name-admission refinement. No repo edit/Cargo/replay/runtime claim. No class/JAR/ELF payload.",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "sole_standalone_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "actual_proof_result_sha256": "7bbd57a5d9c8a8c21aac7f5d9bf65df74784372625bf866a1d0961e95acde47f",
+  "actual_whole_supervisor_sha256": "613b2a2d7864fabfdd324f75d63f1841cc2c5836628a29d2367345abf493d9a8",
+  "candidate_fixture_files": 165,
+  "candidate_unique_version_scoped_vectors": 159,
+  "future_rust_consumer_compiled": false,
+  "files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/cases.tsv",
+      "bytes": 6471,
+      "full_permission_mode": "0644",
+      "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-count-bomb.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-default.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-descending-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-duplicate-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-full.bin",
+      "bytes": 97,
+      "full_permission_mode": "0644",
+      "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-empty.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-null.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-tags.bin",
+      "bytes": 133,
+      "full_permission_mode": "0644",
+      "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-utf8.bin",
+      "bytes": 129,
+      "full_permission_mode": "0644",
+      "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-invalid-utf8.bin",
+      "bytes": 5,
+      "full_permission_mode": "0644",
+      "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-noncanonical-boolean.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-null-nonnullable-array.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-trailing-zero.bin",
+      "bytes": 4,
+      "full_permission_mode": "0644",
+      "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-unknown-all-structures.bin",
+      "bytes": 101,
+      "full_permission_mode": "0644",
+      "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-unknown-root-tags.bin",
+      "bytes": 102,
+      "full_permission_mode": "0644",
+      "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-default.bin",
+      "bytes": 6,
+      "full_permission_mode": "0644",
+      "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-descending-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-duplicate-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-empty-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-full.bin",
+      "bytes": 2872,
+      "full_permission_mode": "0644",
+      "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-header-empty.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-header-tags.bin",
+      "bytes": 2880,
+      "full_permission_mode": "0644",
+      "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-null-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-null-topology.bin",
+      "bytes": 26,
+      "full_permission_mode": "0644",
+      "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-trailing-zero.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-unknown-all-structures.bin",
+      "bytes": 2956,
+      "full_permission_mode": "0644",
+      "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-unknown-root-tags.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/headers.tsv",
+      "bytes": 1966,
+      "full_permission_mode": "0644",
+      "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-default.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-descending-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-duplicate-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-empty-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-full.bin",
+      "bytes": 2036,
+      "full_permission_mode": "0644",
+      "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-empty.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-null.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-tags.bin",
+      "bytes": 2072,
+      "full_permission_mode": "0644",
+      "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-utf8.bin",
+      "bytes": 2068,
+      "full_permission_mode": "0644",
+      "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-negative-null-markers.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-noncanonical-boolean.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-null-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-trailing-zero.bin",
+      "bytes": 28,
+      "full_permission_mode": "0644",
+      "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-unknown-all-structures.bin",
+      "bytes": 2096,
+      "full_permission_mode": "0644",
+      "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-unknown-root-tags.bin",
+      "bytes": 2041,
+      "full_permission_mode": "0644",
+      "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-default.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-descending-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-duplicate-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-empty-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-full.bin",
+      "bytes": 711,
+      "full_permission_mode": "0644",
+      "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-header-empty.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-header-tags.bin",
+      "bytes": 719,
+      "full_permission_mode": "0644",
+      "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-null-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-trailing-zero.bin",
+      "bytes": 35,
+      "full_permission_mode": "0644",
+      "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-unknown-all-structures.bin",
+      "bytes": 747,
+      "full_permission_mode": "0644",
+      "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-unknown-root-tags.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/cases.tsv",
+      "bytes": 6471,
+      "full_permission_mode": "0644",
+      "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-count-bomb.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-default.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-descending-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-duplicate-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-full.bin",
+      "bytes": 97,
+      "full_permission_mode": "0644",
+      "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-empty.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-null.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-tags.bin",
+      "bytes": 133,
+      "full_permission_mode": "0644",
+      "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-utf8.bin",
+      "bytes": 129,
+      "full_permission_mode": "0644",
+      "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-invalid-utf8.bin",
+      "bytes": 5,
+      "full_permission_mode": "0644",
+      "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-noncanonical-boolean.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-null-nonnullable-array.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-trailing-zero.bin",
+      "bytes": 4,
+      "full_permission_mode": "0644",
+      "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-unknown-all-structures.bin",
+      "bytes": 101,
+      "full_permission_mode": "0644",
+      "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-unknown-root-tags.bin",
+      "bytes": 102,
+      "full_permission_mode": "0644",
+      "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-default.bin",
+      "bytes": 6,
+      "full_permission_mode": "0644",
+      "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-descending-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-duplicate-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-empty-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-full.bin",
+      "bytes": 2872,
+      "full_permission_mode": "0644",
+      "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-header-empty.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-header-tags.bin",
+      "bytes": 2880,
+      "full_permission_mode": "0644",
+      "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-null-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-null-topology.bin",
+      "bytes": 26,
+      "full_permission_mode": "0644",
+      "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-trailing-zero.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-unknown-all-structures.bin",
+      "bytes": 2956,
+      "full_permission_mode": "0644",
+      "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-unknown-root-tags.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/headers.tsv",
+      "bytes": 1966,
+      "full_permission_mode": "0644",
+      "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-default.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-descending-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-duplicate-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-empty-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-full.bin",
+      "bytes": 2036,
+      "full_permission_mode": "0644",
+      "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-empty.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-null.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-tags.bin",
+      "bytes": 2072,
+      "full_permission_mode": "0644",
+      "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-utf8.bin",
+      "bytes": 2068,
+      "full_permission_mode": "0644",
+      "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-negative-null-markers.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-noncanonical-boolean.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-null-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-trailing-zero.bin",
+      "bytes": 28,
+      "full_permission_mode": "0644",
+      "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-unknown-all-structures.bin",
+      "bytes": 2096,
+      "full_permission_mode": "0644",
+      "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-unknown-root-tags.bin",
+      "bytes": 2041,
+      "full_permission_mode": "0644",
+      "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-default.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-descending-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-duplicate-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-empty-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-full.bin",
+      "bytes": 711,
+      "full_permission_mode": "0644",
+      "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-header-empty.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-header-tags.bin",
+      "bytes": 719,
+      "full_permission_mode": "0644",
+      "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-null-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-trailing-zero.bin",
+      "bytes": 35,
+      "full_permission_mode": "0644",
+      "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-unknown-all-structures.bin",
+      "bytes": 747,
+      "full_permission_mode": "0644",
+      "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-unknown-root-tags.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/cases.tsv",
+      "bytes": 6471,
+      "full_permission_mode": "0644",
+      "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-count-bomb.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-default.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-descending-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-duplicate-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-full.bin",
+      "bytes": 97,
+      "full_permission_mode": "0644",
+      "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-empty.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-null.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-tags.bin",
+      "bytes": 133,
+      "full_permission_mode": "0644",
+      "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-utf8.bin",
+      "bytes": 129,
+      "full_permission_mode": "0644",
+      "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-invalid-utf8.bin",
+      "bytes": 5,
+      "full_permission_mode": "0644",
+      "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-noncanonical-boolean.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-null-nonnullable-array.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-trailing-zero.bin",
+      "bytes": 4,
+      "full_permission_mode": "0644",
+      "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-unknown-all-structures.bin",
+      "bytes": 101,
+      "full_permission_mode": "0644",
+      "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-unknown-root-tags.bin",
+      "bytes": 102,
+      "full_permission_mode": "0644",
+      "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-default.bin",
+      "bytes": 6,
+      "full_permission_mode": "0644",
+      "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-descending-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-duplicate-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-empty-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-full.bin",
+      "bytes": 2872,
+      "full_permission_mode": "0644",
+      "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-header-empty.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-header-tags.bin",
+      "bytes": 2880,
+      "full_permission_mode": "0644",
+      "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-null-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-null-topology.bin",
+      "bytes": 26,
+      "full_permission_mode": "0644",
+      "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-trailing-zero.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-unknown-all-structures.bin",
+      "bytes": 2956,
+      "full_permission_mode": "0644",
+      "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-unknown-root-tags.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/headers.tsv",
+      "bytes": 1966,
+      "full_permission_mode": "0644",
+      "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-default.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-descending-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-duplicate-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-empty-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-full.bin",
+      "bytes": 2036,
+      "full_permission_mode": "0644",
+      "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-empty.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-null.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-tags.bin",
+      "bytes": 2072,
+      "full_permission_mode": "0644",
+      "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-utf8.bin",
+      "bytes": 2068,
+      "full_permission_mode": "0644",
+      "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-negative-null-markers.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-noncanonical-boolean.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-null-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-trailing-zero.bin",
+      "bytes": 28,
+      "full_permission_mode": "0644",
+      "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-unknown-all-structures.bin",
+      "bytes": 2096,
+      "full_permission_mode": "0644",
+      "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-unknown-root-tags.bin",
+      "bytes": 2041,
+      "full_permission_mode": "0644",
+      "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-default.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-descending-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-duplicate-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-empty-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-full.bin",
+      "bytes": 711,
+      "full_permission_mode": "0644",
+      "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-header-empty.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-header-tags.bin",
+      "bytes": 719,
+      "full_permission_mode": "0644",
+      "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-null-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-trailing-zero.bin",
+      "bytes": 35,
+      "full_permission_mode": "0644",
+      "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-unknown-all-structures.bin",
+      "bytes": 747,
+      "full_permission_mode": "0644",
+      "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-unknown-root-tags.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture-stage-manifest.json",
+      "bytes": 179208,
+      "full_permission_mode": "0644",
+      "sha256": "bfb0bad744a7fbaa93af67eecac055d56fe856035c23c19af902bb5cbab4fe40"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/fixture_replay.part.rs",
+      "bytes": 12360,
+      "full_permission_mode": "0644",
+      "sha256": "22730cf07ce812b39897834837156991c7757d6f703a4d56e4144c4626016083"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/future-rust-name-admission.patch",
+      "bytes": 627,
+      "full_permission_mode": "0644",
+      "sha256": "3215ee03bba3fb23620fc9fb70eab2eb953f97d9a438177a40013d9cb0385939"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-generation-summary.json",
+      "bytes": 4914,
+      "full_permission_mode": "0644",
+      "sha256": "e44ade4cd9fd768dda5e06a689aee45ed4c3036e4fcdd6ae5561ab6f8c2f7988"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-compile.json",
+      "bytes": 1556,
+      "full_permission_mode": "0644",
+      "sha256": "7dedf2ea47480856756df3b42439af46032c2ac4666a095f4f214d58c41e6489"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-compile.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-1.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "9fec3b030ccb47200f06d6abf3c620016ba8e27df611b1851c7a6ffd489194a3"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-1.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-1.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-2.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "dd1411060ba5c9e0561fb2144e9bcd97575cb48c130a88a865ac3dac531d5d05"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-2.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.1.2-generation-2.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-compile.json",
+      "bytes": 1555,
+      "full_permission_mode": "0644",
+      "sha256": "b739a394747feb97d5ee9d2cfedb2d0c0388c72c10ac7ab44464f0c7632c3321"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-compile.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-1.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "edfbbc1cd031f877b296c8b2bc0900222f49bd211eb5fa8a2cfdafb788626e2e"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-1.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-1.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-2.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "8c6640923acf3b6bb287eb1532f0acf4de09f78cf6021c034f9daad89435e6a0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-2.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.2.1-generation-2.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-compile.json",
+      "bytes": 1555,
+      "full_permission_mode": "0644",
+      "sha256": "f4897c515a1b40d48bc4528a35d3d9218ed2b9063de7c6314f04955874217f0a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-compile.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-1.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "a63f80e05cff720e3d2fbf167bfba1d3a9fa8056accd1f85e64db6bf876e71e6"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-1.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-1.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-2.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "dd07cea14e4bb0b2f951bf809d1d53fe48415513134a051a36218e68002036aa"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-2.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/4.3.1-generation-2.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/driver-09.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/driver-09.stdout",
+      "bytes": 123,
+      "full_permission_mode": "0644",
+      "sha256": "b811b77426087e1c00e36dc2336069d743b90d437a9b67c14aa51714003bddab"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/freeze-08.json",
+      "bytes": 25951,
+      "full_permission_mode": "0644",
+      "sha256": "7a4086c66a59570cf56863f31e92bc65403a14a2cf7a130daf7a12eb8d35ed04"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/java-version.json",
+      "bytes": 922,
+      "full_permission_mode": "0644",
+      "sha256": "983de4a30e6c6c99155197329f045663e4d96becd7e599b0dc27091a9f3414b2"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/java-version.stderr",
+      "bytes": 187,
+      "full_permission_mode": "0644",
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/java-version.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/launch-09.json",
+      "bytes": 1256,
+      "full_permission_mode": "0644",
+      "sha256": "2075b65781c04510afc326ee71b70df8f01624d61634d30bc5f91d734a259744"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/launch-preflight-09.json",
+      "bytes": 2312,
+      "full_permission_mode": "0644",
+      "sha256": "daef7181c612f62b91732dee05a98cea37838eb124254b220c798cf7c6fd5446"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/launch-supervisor-09.py",
+      "bytes": 6424,
+      "full_permission_mode": "0644",
+      "sha256": "86c3693963357c106d909333bd82c2f6529a6408195b74bbf22ff0141219df2e"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/results.json",
+      "bytes": 97681,
+      "full_permission_mode": "0644",
+      "sha256": "7bbd57a5d9c8a8c21aac7f5d9bf65df74784372625bf866a1d0961e95acde47f"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/run-oracle.py",
+      "bytes": 24380,
+      "full_permission_mode": "0644",
+      "sha256": "1d346dd59dba771d49b09804ad41d7e6976275e0420a34d72c2b431da9188528"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/source-after-receipt.json",
+      "bytes": 895,
+      "full_permission_mode": "0644",
+      "sha256": "68622e0c88299cbb045e180cf64190025b7950201df8c94017ec66aea74d16c8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/source-after.json.gz",
+      "bytes": 2630489,
+      "full_permission_mode": "0644",
+      "sha256": "e3e549aae650a679e50b4989f99022f4706abd7ef0c3ef18c237c1c101f63129"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/source-before-receipt.json",
+      "bytes": 823,
+      "full_permission_mode": "0644",
+      "sha256": "0987b76885e95207903cb5d252f41c819c80ba22a089469b964471ddf2ca7dab"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/source-directories-after.json.gz",
+      "bytes": 48524,
+      "full_permission_mode": "0644",
+      "sha256": "6537193d84a1c4cbeb683cefd52f890a25e053496e3804db6cad71c254d9d3a5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-09/java-proof/supervisor-09.json",
+      "bytes": 1869,
+      "full_permission_mode": "0644",
+      "sha256": "613b2a2d7864fabfdd324f75d63f1841cc2c5836628a29d2367345abf493d9a8"
+    }
+  ],
+  "total_logical_bytes": 3190022,
+  "free_now": 874536960
+}

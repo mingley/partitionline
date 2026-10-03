@@ -1,0 +1,57 @@
+--- revision-07/launch-supervisor-08.py
++++ revision-08/launch-supervisor-09.py
+@@ -10,8 +10,8 @@
+ import sys
+ import time
+ 
+-ROOT=Path("/workspace/work/streams-codecs/revision-07")
+-OUTPUT=Path("/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-02")
++ROOT=Path("/workspace/work/streams-codecs/revision-08")
++OUTPUT=Path("/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03")
+ ARGS=["taskset","-c","0,1","python3",str(ROOT/"run-oracle.py"),"--repo","/workspace/partitionline","--snapshot","/workspace/work/client-capabilities-source-04f6bc29","--jars","/workspace/work/broker-wire/jars","--java","/usr/bin/java","--origin","/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json","--output",str(OUTPUT),"--oracle","/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java"]
+ FLOOR=350*1024*1024
+ LIMIT=96*1024*1024
+@@ -21,7 +21,7 @@
+ if ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)!=0:
+     raise OSError(ctypes.get_errno(),"PR_SET_CHILD_SUBREAPER failed")
+ assert not OUTPUT.exists()
+-for name in ("launch-08.json","supervisor-08.json","driver-08.stdout","driver-08.stderr"):
++for name in ("launch-09.json","supervisor-09.json","driver-09.stdout","driver-09.stderr"):
+     assert not (ROOT/name).exists()
+ started=time.monotonic()
+ known=set()
+@@ -56,12 +56,12 @@
+                 files+=1
+     return sum(unique.values()),sum(logical.values()),files
+ 
+-stdout=(ROOT/"driver-08.stdout").open("xb")
+-stderr=(ROOT/"driver-08.stderr").open("xb")
++stdout=(ROOT/"driver-09.stdout").open("xb")
++stderr=(ROOT/"driver-09.stderr").open("xb")
+ env=dict(os.environ,PYTHONDONTWRITEBYTECODE="1")
+ process=subprocess.Popen(ARGS,stdout=stdout,stderr=stderr,env=env,start_new_session=True)
+ launch={"driver_pid":process.pid,"driver_pgid":os.getpgid(process.pid),"supervisor_pid":os.getpid(),"supervisor_pgid":os.getpgrp(),"output":str(OUTPUT),"arguments":ARGS,"source_sha":"04f6bc2968c1d721c6815a6389897a62e4ca76f1","runner_sha256":hashlib.sha256((ROOT/"run-oracle.py").read_bytes()).hexdigest(),"sole_standalone_oracle_sha256":"848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a","poll_seconds":0.2,"whole_run_absolute_deadline_seconds":DEADLINE,"minimum_free_bytes":FLOOR,"output_unique_logical_and_allocated_limit_bytes":LIMIT}
+-(ROOT/"launch-08.json").write_text(json.dumps(launch,indent=2)+"\n")
++(ROOT/"launch-09.json").write_text(json.dumps(launch,indent=2)+"\n")
+ print(json.dumps(launch),flush=True)
+ samples=0
+ minfree=shutil.disk_usage(ROOT).free
+@@ -84,7 +84,7 @@
+             raise RuntimeError("whole-run96MiB output/files bound crossed")
+         if time.monotonic()-started>DEADLINE:
+             raise RuntimeError("whole-run720s absolute deadline crossed")
+-        if any((ROOT/name).stat().st_size>65536 for name in ("driver-08.stdout","driver-08.stderr")):
++        if any((ROOT/name).stat().st_size>65536 for name in ("driver-09.stdout","driver-09.stderr")):
+             raise RuntimeError("outer driver stream64KiB cap crossed")
+         if process.poll() is not None:
+             break
+@@ -136,7 +136,7 @@
+             time.sleep(0.01)
+             continue
+         reaped.append({"pid":pid,"wait_status":status})
+-    record={**launch,"driver_exit_status":process.returncode,"driver_joined":True,"remaining_owned_children":sorted(descendants(os.getpid())),"watchdog_failure":failure,"sample_count":samples,"minimum_observed_free_bytes":minfree,"maximum_observed_output_allocated_bytes":maxphysical,"maximum_observed_output_unique_logical_bytes":maxlogical,"maximum_observed_output_files":maxfiles,"duration_seconds":time.monotonic()-started,"killed_nested_pgids":killed,"adopted_children_reaped":reaped,"stdout_sha256":hashlib.sha256((ROOT/"driver-08.stdout").read_bytes()).hexdigest(),"stderr_sha256":hashlib.sha256((ROOT/"driver-08.stderr").read_bytes()).hexdigest()}
+-    (ROOT/"supervisor-08.json").write_text(json.dumps(record,indent=2)+"\n")
++    record={**launch,"driver_exit_status":process.returncode,"driver_joined":True,"remaining_owned_children":sorted(descendants(os.getpid())),"watchdog_failure":failure,"sample_count":samples,"minimum_observed_free_bytes":minfree,"maximum_observed_output_allocated_bytes":maxphysical,"maximum_observed_output_unique_logical_bytes":maxlogical,"maximum_observed_output_files":maxfiles,"duration_seconds":time.monotonic()-started,"killed_nested_pgids":killed,"adopted_children_reaped":reaped,"stdout_sha256":hashlib.sha256((ROOT/"driver-09.stdout").read_bytes()).hexdigest(),"stderr_sha256":hashlib.sha256((ROOT/"driver-09.stderr").read_bytes()).hexdigest()}
++    (ROOT/"supervisor-09.json").write_text(json.dumps(record,indent=2)+"\n")
+     print(json.dumps(record),flush=True)
+ sys.exit(process.returncode if process.returncode else (1 if failure else 0))

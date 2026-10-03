@@ -1,0 +1,71 @@
+{
+  "scope": "WORK-only reviewed caller-input overlay derivative;34 meaningful real Python controls, no JVM/Cargo retry or repo edit. Complete product source04f and original7f81 oracle remain unchanged. Actual fixture count remains0.",
+  "prior_caller_and_failure_freeze_sha256": "9654f73396fc94c032bf9feae7114df6a09da634a59f09b85e6098f16c8712be",
+  "original_runner_sha256": "7752f503971163b9ad2d56f22496beacf1d7d58cf2d7484d1e65f4985507cd21",
+  "derivative_runner_sha256": "3e663008e04fdef4844beeeda8478dff941f4f4c2516b7ad86ea0836f129e64a",
+  "oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "origin_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+  "files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/derivative-review-07.json",
+      "bytes": 4567,
+      "full_permission_mode": "0644",
+      "sha256": "8be5d6647a4e946d1268b224e07c4e0b90b17521ce5d174527e89e2dfbb5db81"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/explicit-oracle-derivative.patch",
+      "bytes": 4345,
+      "full_permission_mode": "0644",
+      "sha256": "4b419a3d187517c8b8cabf92bd4d9f62433958bb1f0e35720c2d0b13deceeacc"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/launch-supervisor-08.py",
+      "bytes": 6424,
+      "full_permission_mode": "0644",
+      "sha256": "35234ab7433d5b3d13f9f737e1d3c245a5d52b435969220c4bc40a1c05268ff9"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/measured-disk-forecast-07.json",
+      "bytes": 1079,
+      "full_permission_mode": "0600",
+      "sha256": "705450c669be1e47f782ba9b7f8a6dc3cd0742bc526341649a0bfbd53fb5ffdc"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/python-controls-07.log",
+      "bytes": 5181,
+      "full_permission_mode": "0600",
+      "sha256": "f11dc65eb019442c5215b240097a3d645008c462569277b244003e73e65c89d4"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/run-oracle.py",
+      "bytes": 24379,
+      "full_permission_mode": "0644",
+      "sha256": "3e663008e04fdef4844beeeda8478dff941f4f4c2516b7ad86ea0836f129e64a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/supervisor-frozen-paths.patch",
+      "bytes": 5622,
+      "full_permission_mode": "0644",
+      "sha256": "821279de246221cea73f858fb2089fba1b92cf15befb10b22d326fa7e446c3a8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/test_overlay.py",
+      "bytes": 5698,
+      "full_permission_mode": "0644",
+      "sha256": "473204ae0f91dae0ffa330e023d1eb42083e1cbad643ca343310bfe549c19e68"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-07/test_prelaunch.py",
+      "bytes": 11848,
+      "full_permission_mode": "0644",
+      "sha256": "aed82b81c28b8f71245c1d6dafffe05a217433ebbe59c97933552a13cad297bc"
+    }
+  ],
+  "next_step": "Root review then explicit renewed serial SDK GO; no automatic retry."
+}

@@ -49878,25 +49878,62 @@
         "Actual pinned Java fixture generation and reverse parsing; source registration alone cannot become runtime coverage."
       ],
       "evidence": [
-  {
-    "schema_version": 1,
-    "task": "KL05-31",
-    "status": "in_progress",
-    "scope": "Actual strict Kafka4.1.2 Java compile failure and two-line caller correction; no generated fixture or Rust test pass.",
-    "actual_failed_source": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
-    "actual_failure_result_sha256": "82bb30225836460a430e228e0c7a7d35a2f6931af9d7189b0f3e02520d8e6d18",
-    "actual_sdk_commands": 2,
-    "actual_compile_exit": 1,
-    "generated_vectors": 0,
-    "source_and_input_guards_passed": true,
-    "all_children_joined": true,
-    "candidate_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
-    "candidate_compiled": false,
-    "full_protocol_complete": false,
-    "evidence": "docs/evidence/client/streams-codecs/oracle-correction-01/failure-01-publication/failure-summary.json",
-    "source_method_review": "docs/evidence/client/streams-codecs/oracle-correction-01/source-method-review.json"
-  }
-]
+        {
+          "schema_version": 1,
+          "task": "KL05-31",
+          "status": "in_progress",
+          "scope": "Actual strict Kafka4.1.2 Java compile failure and two-line caller correction; no generated fixture or Rust test pass.",
+          "actual_failed_source": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+          "actual_failure_result_sha256": "82bb30225836460a430e228e0c7a7d35a2f6931af9d7189b0f3e02520d8e6d18",
+          "actual_sdk_commands": 2,
+          "actual_compile_exit": 1,
+          "generated_vectors": 0,
+          "source_and_input_guards_passed": true,
+          "all_children_joined": true,
+          "candidate_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+          "candidate_compiled": false,
+          "full_protocol_complete": false,
+          "evidence": "docs/evidence/client/streams-codecs/oracle-correction-01/failure-01-publication/failure-summary.json",
+          "source_method_review": "docs/evidence/client/streams-codecs/oracle-correction-01/source-method-review.json"
+        },
+        {
+          "schema_version": 1,
+          "task": "KL05-31",
+          "status": "in_progress",
+          "scope": "Actual successful three pinned Apache SDK codec fixture generations; Rust24-test source installed, not yet compiled or run. No broker or framework runtime qualification.",
+          "actual_product_source": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+          "sole_corrected_standalone_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+          "actual_result_sha256": "7bbd57a5d9c8a8c21aac7f5d9bf65df74784372625bf866a1d0961e95acde47f",
+          "actual_supervisor_sha256": "613b2a2d7864fabfdd324f75d63f1841cc2c5836628a29d2367345abf493d9a8",
+          "actual_commands": 10,
+          "strict_compiles": 3,
+          "independent_generation_processes": 6,
+          "version_scoped_vectors": 159,
+          "actual_emitted_vectors": 318,
+          "matching_complete_generation_trees": true,
+          "per_sdk": {
+            "direct_sdk_body_serializations": 23,
+            "mutated_sdk_body_inputs": 15,
+            "handcrafted_hostile_apache_parser_inputs": 3,
+            "direct_sdk_header_body_serializations": 12,
+            "body_parser_parsed": 39,
+            "body_parser_rejected": 2
+          },
+          "installed_fixture_files": 165,
+          "all_original_21_tests_exact_prefix_preserved": true,
+          "new_meaningful_replay_tests": 3,
+          "actual_rust_test_commands": 0,
+          "reverse_apache_parse_completed": false,
+          "all_source_input_guards_passed": true,
+          "all_children_joined": true,
+          "first_compile_failure_retained": true,
+          "second_filename_guard_failure_retained": true,
+          "full_protocol_complete": false,
+          "core_protocol_complete": false,
+          "evidence_prefix": "docs/evidence/client/streams-codecs/actual-three-sdk-03/",
+          "precise_provenance": "docs/evidence/client/streams-codecs/actual-three-sdk-03/revision-10/java-fixture-provenance-clarification.json"
+        }
+      ]
     },
     {
       "id": "KL05-32",

@@ -1,0 +1,11 @@
+--- revision-02/fixture_replay.part.rs
++++ revision-09/fixture_replay.part.rs
+@@ -110,7 +110,7 @@
+                 let cells: Vec<_> = row.split('\t').collect();
+                 assert_eq!(cells.len(), 8);
+                 let name = cell(&cells, 0)?;
+-                assert!(name.chars().all(|ch| ch.is_ascii_lowercase() || ch == '-'));
++                assert!(name.chars().all(|ch| ch.is_ascii_lowercase() || ch == '-' || ch == '8'));
+                 let typ = cell(&cells, 2)?;
+                 let api: i16 = cell(&cells, 1)?.parse()?;
+                 assert_eq!(api, if typ.contains("Heartbeat") { 88 } else { 89 });

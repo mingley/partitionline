@@ -1,0 +1,2612 @@
+{
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "scope": "Complete04f product snapshot plus sole pinned848 standalone oracle compiler input; actual generated data/header codecs only; no broker/runtime/framework claim",
+  "runtime_broker_claim": false,
+  "driver_completed": true,
+  "commands": [
+    {
+      "label": "java-version",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-version"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.03135884400398936,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/java-version.stdout",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/java-version.stderr",
+          "size": 187,
+          "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 0,
+        "stderr": 187
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.1.2-compile",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-Xlint:all",
+        "-Werror",
+        "-proc:none",
+        "-implicit:none",
+        "-sourcepath",
+        "",
+        "-d",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/classes",
+        "-classpath",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.9727509139920585,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-compile.stdout",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-compile.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 0,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.1.2-generation-1",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.16263770600198768,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-generation-1.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-generation-1.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.1.2-generation-2",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.13436687500507105,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-generation-2.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2-generation-2.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.2.1-compile",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-Xlint:all",
+        "-Werror",
+        "-proc:none",
+        "-implicit:none",
+        "-sourcepath",
+        "",
+        "-d",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/classes",
+        "-classpath",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 1.003845994011499,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-compile.stdout",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-compile.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 0,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.2.1-generation-1",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.13845021899032872,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-1.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-1.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.2.1-generation-2",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.13758621500164736,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-2.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-2.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.3.1-compile",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-Xlint:all",
+        "-Werror",
+        "-proc:none",
+        "-implicit:none",
+        "-sourcepath",
+        "",
+        "-d",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/classes",
+        "-classpath",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 1.010197732000961,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-compile.stdout",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-compile.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 0,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.3.1-generation-1",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.18107256099756341,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-generation-1.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-generation-1.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    },
+    {
+      "label": "4.3.1-generation-2",
+      "command": [
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+        "-classpath",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "StreamsWireOracle",
+        "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2"
+      ],
+      "timeout_seconds": 60,
+      "maximum_stdout_or_stderr_bytes": 65536,
+      "cpu_affinity": "0,1",
+      "exit_status": 0,
+      "duration_seconds": 0.15671031699457671,
+      "streams": {
+        "stdout": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-generation-2.stdout",
+          "size": 59,
+          "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+          "mode": "0600"
+        },
+        "stderr": {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1-generation-2.stderr",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": "0600"
+        }
+      },
+      "actual_read_stream_bytes": {
+        "stdout": 59,
+        "stderr": 0
+      },
+      "joined": true,
+      "bound_failure": null
+    }
+  ],
+  "disk_forecast": {
+    "source_file_count": 73938,
+    "source_bytes": 713363027,
+    "source_directory_count": 10308,
+    "categories": {
+      "full_raw_before_exact_bytes": 23380322,
+      "full_raw_after_configured_upper_bound_bytes": 24428898,
+      "verified_origin_gzip_before_exact_bytes": 2630489,
+      "verified_origin_gzip_after_upper_bound_bytes": 2630489,
+      "full_directory_before_exact_compact_bytes": 1628040,
+      "full_directory_after_configured_upper_bound_bytes": 2152329,
+      "all_fresh_classes_enforced_upper_bound_bytes": 2097152,
+      "all_two_process_three_sdk_fixtures_enforced_upper_bound_bytes": 8388608,
+      "ten_command_two_streams_enforced_upper_bound_bytes": 1310720,
+      "minimal_json_metadata_enforced_upper_bound_bytes": 2097152,
+      "file_allocation_and_directory_entry_reserve_bytes": 8388608
+    },
+    "worst_case_new_output_allocated_bytes": 79132807,
+    "successful_unchanged_raw_maps_exact_physical_bytes": 27638851,
+    "required_free_bytes": 446134407,
+    "sampled_free_bytes": 905719808,
+    "minimum_remaining_free_bytes": 367001600,
+    "owned_output_limit_bytes": 100663296
+  },
+  "source_before": {
+    "complete": true,
+    "file_identity_checks": 73938,
+    "observed_files": 73938,
+    "expected_files": 73938,
+    "directory_identity_checks": 10308,
+    "observed_file_bytes": 713363027,
+    "passed": true,
+    "error_count": 0,
+    "first16errors": [],
+    "expected_owner_uid": 1000,
+    "expected_owner_gid": 1000,
+    "file_owner_checks": 73938,
+    "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "full_raw": {
+      "path": "source-before.json",
+      "bytes": 23380322,
+      "sha256": "f5179aac9e296b356b80b3ae3e053ff836bc5d084593d21fd01678513dde2b5c",
+      "mode": "0600"
+    },
+    "full_directory_raw": {
+      "path": "source-directories-before.json",
+      "bytes": 1628040,
+      "sha256": "2ed570a730ed4254348ab2576351fbe42fff8f744a5e91846c2a77b7da3ce7c8",
+      "mode": "0600"
+    },
+    "exact_byte_verified_hardlinks": [],
+    "file_map_equals_verified_origin": true
+  },
+  "compiler_input_overlay": {
+    "scope": "Sole standalone compiler-input overlay; no product-source overlay or wider main-source claim",
+    "complete_product_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "complete_source_original_oracle": {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "size": 56444,
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "mode": "0600"
+    },
+    "standalone_compiler_oracle": {
+      "path": "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java",
+      "size": 56478,
+      "sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+      "mode": "0644"
+    },
+    "changed_caller_lines": [
+      38,
+      527
+    ],
+    "actual_serialization_implementation": "Pinned genuine SDK MessageUtil.toByteBufferAccessor(...).buffer()"
+  },
+  "read_only_reference_objects": {
+    "official_schema_objects": [
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+        "size": 9682,
+        "sha256": "d040e5345fa47ad600b3d3400ca79a56f9cb6a57db7c6a516aa20ad9f39f3935",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+        "size": 7555,
+        "sha256": "a9048b5f2a73a9962323887bad527608858098921f1a89eead3a955862a89d1c",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+        "size": 1480,
+        "sha256": "c224f107b9282b0d8e79b92513b2f39e190603f9619a0231e9c44e7ef7bbef42",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+        "size": 9798,
+        "sha256": "1b0bf406eb283e13a3d51be054829f639ab011e490b2c89f0781439e013cef1f",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/RequestHeader.json",
+        "size": 2117,
+        "sha256": "2f4fb9b826ab490879d9412f76e9ac177ec2af917f686d890d57c8f190d5185f",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.1.2",
+        "object": "clients/src/main/resources/common/message/ResponseHeader.json",
+        "size": 1087,
+        "sha256": "0bf02cc9a7663f05848117537e9cf22879770e03a74555ab1c3dd5ab0b517b88",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+        "size": 9457,
+        "sha256": "fb701487a63b11bdbae033b0d0e078f7e844abff36775ddb65f61460a0c06b96",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+        "size": 7613,
+        "sha256": "3702a2f166b6644e887fb20d92496d73d43935dd6fcdf22029e892f04d38bde0",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+        "size": 1256,
+        "sha256": "ee884e3d4db77832db618485691820c393ee3286cfff38ad0a4d1e395f5f4dfc",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+        "size": 9396,
+        "sha256": "1b9a866d6fec371a9cdbd112a05b471d5d518f84c3ec8ea7b384422e919d946b",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/RequestHeader.json",
+        "size": 2117,
+        "sha256": "2f4fb9b826ab490879d9412f76e9ac177ec2af917f686d890d57c8f190d5185f",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.2.1",
+        "object": "clients/src/main/resources/common/message/ResponseHeader.json",
+        "size": 1087,
+        "sha256": "0bf02cc9a7663f05848117537e9cf22879770e03a74555ab1c3dd5ab0b517b88",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+        "size": 9457,
+        "sha256": "fb701487a63b11bdbae033b0d0e078f7e844abff36775ddb65f61460a0c06b96",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+        "size": 7613,
+        "sha256": "3702a2f166b6644e887fb20d92496d73d43935dd6fcdf22029e892f04d38bde0",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+        "size": 1256,
+        "sha256": "ee884e3d4db77832db618485691820c393ee3286cfff38ad0a4d1e395f5f4dfc",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+        "size": 9396,
+        "sha256": "1b9a866d6fec371a9cdbd112a05b471d5d518f84c3ec8ea7b384422e919d946b",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/RequestHeader.json",
+        "size": 2117,
+        "sha256": "2f4fb9b826ab490879d9412f76e9ac177ec2af917f686d890d57c8f190d5185f",
+        "tar_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "clients/src/main/resources/common/message/ResponseHeader.json",
+        "size": 1087,
+        "sha256": "0bf02cc9a7663f05848117537e9cf22879770e03a74555ab1c3dd5ab0b517b88",
+        "tar_mode": "0644"
+      }
+    ],
+    "actual_jar_class_objects": [
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "size": 27266,
+        "sha256": "c6111c4392243de060edd28c4b971232bef3c6f4ccda55045fe93bc54f28525d",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$KeyValue.class",
+        "size": 8303,
+        "sha256": "0bc6a38dedad0fad73673ae005e903200f4644b627e5a27b5a11c2ff49b7a8d0",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TopicInfo.class",
+        "size": 11196,
+        "sha256": "50760df44de4bb82d0636ea86392b006f518b3e6715d646083e952d7dacf04eb",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Endpoint.class",
+        "size": 8109,
+        "sha256": "4a39f150cae482719491df1fae50421d22aaecf1fa1678306ebb07858abf580f",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskOffset.class",
+        "size": 8575,
+        "sha256": "24df3fbde7ef256f67af211fedcfc12b567153a36e6c9056ad048529c39867e4",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskIds.class",
+        "size": 9630,
+        "sha256": "ec11cb396830ca97e0664ca84b08cec90a59cf36175ed323f129623714084735",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Topology.class",
+        "size": 9300,
+        "sha256": "5785994d2ea2e3a67342bc48be564cec05cc31810c4cca9b9339cd8909f8d825",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Subtopology.class",
+        "size": 18619,
+        "sha256": "d39f609c5f16c82721a4ea522fdb222e20d86c94a81ca6f02f8c8f4b386667a8",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$CopartitionGroup.class",
+        "size": 10767,
+        "sha256": "5db09de3bb4e0cbb62858333b617ce89835db39863a337c53106ec31e229c283",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "size": 21230,
+        "sha256": "54725db49690177ae914e499d3b9e87d679bb972cb396101c03297dc1dd7aa0e",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Status.class",
+        "size": 8180,
+        "sha256": "71a205cb3b358a9b5b0232a464ee309be4e9272c539649248573170a7feba99f",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TopicPartition.class",
+        "size": 9546,
+        "sha256": "0d7d672905ca68eaef8660d0ae2b0a571ebff567f869dd50f9e28bbac4d632b8",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TaskIds.class",
+        "size": 9638,
+        "sha256": "fe27069c9098aae53101839eab9b726e1073021b84ab1da0fc59f6ff6330b743",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Endpoint.class",
+        "size": 8116,
+        "sha256": "eb24a1942a794c8149a542b907c10b2e388714a57222d83d3a6b48c2f511ca85",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$EndpointToPartitions.class",
+        "size": 10864,
+        "sha256": "f49e8c7760d058b85e98176e22a23eedc0a82d632d4c817196ae2041564df375",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "size": 9503,
+        "sha256": "c04b896f10b75887017d15d64a743558128f5649f18cbd1fedb5b2974d00bffb",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "size": 10062,
+        "sha256": "b844f44e78e587c6dba48f4ef23def66bc5b05ac036b4caa0f32e1c37d2b361e",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Endpoint.class",
+        "size": 8109,
+        "sha256": "bd5ea7dec1710ee4942285ca786ccfafc585b0b86dea941f660c4d966404f9f6",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskOffset.class",
+        "size": 8575,
+        "sha256": "90c0ca9c1ebf4356e2ef04c2c7435d9fbdda8a03350e4b883dec07a5abd01202",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TopicPartitions.class",
+        "size": 10348,
+        "sha256": "9e10ada498c2aac50c6bbe673d24585066b5676eacaa59ec2e566162bccc2156",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Assignment.class",
+        "size": 10430,
+        "sha256": "b54ba048a54f60e78bdc84ef712f1c9159c2747de93ee287c3348c308f231a5f",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskIds.class",
+        "size": 9630,
+        "sha256": "9967d41ce2f7ec59d3b29674d26bfca459451a99556595acc6aad68a72897522",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$KeyValue.class",
+        "size": 8303,
+        "sha256": "ac0b9dff9f591446a15fbe4c4498ec5c377653daaffa89ac42178f8f52f25398",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TopicInfo.class",
+        "size": 11196,
+        "sha256": "e7c2af03c0a1d26922a0ca6175fdbe68f0c3ee30db441455af773c3c0c9aa43b",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$DescribedGroup.class",
+        "size": 15181,
+        "sha256": "ffcdb06c5a8463079c4548a54240689a935c9d3f33c1a164db395010f35e2948",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Topology.class",
+        "size": 9620,
+        "sha256": "366abf161715bb6c5be76d36c94036de4e86fe3e062d45aa65f176f532b5af52",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Subtopology.class",
+        "size": 15036,
+        "sha256": "15269ba94de291cfc60dd475f80ca98e46c60114e3229d22e1b50f512a96622c",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Member.class",
+        "size": 21888,
+        "sha256": "09f4161a2c6d823e8bd0253a3e2e16c66448193ea424ea50f0eaaabbbe0b64d5",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/RequestHeaderData.class",
+        "size": 9303,
+        "sha256": "d0bef8bbedbabb6a4d38706bfc84b82fbccc7cc4b78311ff012006fe705392f2",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.1.2",
+        "object": "org/apache/kafka/common/message/ResponseHeaderData.class",
+        "size": 6707,
+        "sha256": "edbae92ded878ca5bf59eb23d55d7dd97084004a00315d246ef139f19bb2f115",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "size": 27266,
+        "sha256": "c6111c4392243de060edd28c4b971232bef3c6f4ccda55045fe93bc54f28525d",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$KeyValue.class",
+        "size": 8303,
+        "sha256": "0bc6a38dedad0fad73673ae005e903200f4644b627e5a27b5a11c2ff49b7a8d0",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TopicInfo.class",
+        "size": 11196,
+        "sha256": "50760df44de4bb82d0636ea86392b006f518b3e6715d646083e952d7dacf04eb",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Endpoint.class",
+        "size": 8109,
+        "sha256": "4a39f150cae482719491df1fae50421d22aaecf1fa1678306ebb07858abf580f",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskOffset.class",
+        "size": 8575,
+        "sha256": "24df3fbde7ef256f67af211fedcfc12b567153a36e6c9056ad048529c39867e4",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskIds.class",
+        "size": 9630,
+        "sha256": "ec11cb396830ca97e0664ca84b08cec90a59cf36175ed323f129623714084735",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Topology.class",
+        "size": 9300,
+        "sha256": "5785994d2ea2e3a67342bc48be564cec05cc31810c4cca9b9339cd8909f8d825",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Subtopology.class",
+        "size": 18619,
+        "sha256": "d39f609c5f16c82721a4ea522fdb222e20d86c94a81ca6f02f8c8f4b386667a8",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$CopartitionGroup.class",
+        "size": 10767,
+        "sha256": "5db09de3bb4e0cbb62858333b617ce89835db39863a337c53106ec31e229c283",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "size": 21196,
+        "sha256": "542af5e86961000f8c1ded75f47ba3230c72923a9e9b894a443d3dffcb2915cb",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Status.class",
+        "size": 8180,
+        "sha256": "71a205cb3b358a9b5b0232a464ee309be4e9272c539649248573170a7feba99f",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TopicPartition.class",
+        "size": 9546,
+        "sha256": "0d7d672905ca68eaef8660d0ae2b0a571ebff567f869dd50f9e28bbac4d632b8",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TaskIds.class",
+        "size": 9638,
+        "sha256": "fe27069c9098aae53101839eab9b726e1073021b84ab1da0fc59f6ff6330b743",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Endpoint.class",
+        "size": 8116,
+        "sha256": "eb24a1942a794c8149a542b907c10b2e388714a57222d83d3a6b48c2f511ca85",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$EndpointToPartitions.class",
+        "size": 10864,
+        "sha256": "f49e8c7760d058b85e98176e22a23eedc0a82d632d4c817196ae2041564df375",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "size": 9503,
+        "sha256": "c04b896f10b75887017d15d64a743558128f5649f18cbd1fedb5b2974d00bffb",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "size": 9948,
+        "sha256": "73d9166a3d78acf1ea50cefe88aa6d3e77d9072aad9b4051898d6785433f9510",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Endpoint.class",
+        "size": 8109,
+        "sha256": "377c323e163fb673d4e6ad70f134ca25df062e71e710910d6ef319bcc48991b7",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskOffset.class",
+        "size": 8575,
+        "sha256": "cddcb7f72352f9e84d07f01889e47b815a35b09356756305e36b727f62fb18ce",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Assignment.class",
+        "size": 10430,
+        "sha256": "b9c4d031260ae0116b45527452af74824a56d408b8e44892b98f9c55dc25a7ef",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskIds.class",
+        "size": 9630,
+        "sha256": "1995aa2ddff3672ec63031d41b6c59b0ef0787cafb30522dbfa4090b1654fcbc",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$KeyValue.class",
+        "size": 8303,
+        "sha256": "b5c422cd212204ad352d4269a0fb71b0fb0dd89ced6e5e3228c01fd11490948d",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TopicInfo.class",
+        "size": 11196,
+        "sha256": "e430606f73f5fdb2ebf29baca4600fa9bfa99ea538bd07a1e936435a23ab9c28",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$DescribedGroup.class",
+        "size": 15181,
+        "sha256": "346a0efb7407cb391ef1eec321567a132c2c402832848a2894880e92f8f56b32",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Topology.class",
+        "size": 9620,
+        "sha256": "345e30c29de491e1f14f5ee59ca32aa572a267bf8897ccaf11092b8f86a39b57",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Subtopology.class",
+        "size": 15036,
+        "sha256": "945e58aa309ba29d726d8ba412f31af76689982ec08f1d728e5368f2a3a55aaf",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Member.class",
+        "size": 21888,
+        "sha256": "9e63987af8dd08cf4ca7dc4586d0e11143672430e3deb94da6754729cbecaf10",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/RequestHeaderData.class",
+        "size": 9303,
+        "sha256": "d0bef8bbedbabb6a4d38706bfc84b82fbccc7cc4b78311ff012006fe705392f2",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.2.1",
+        "object": "org/apache/kafka/common/message/ResponseHeaderData.class",
+        "size": 6707,
+        "sha256": "edbae92ded878ca5bf59eb23d55d7dd97084004a00315d246ef139f19bb2f115",
+        "zip_external_attr": 0,
+        "zip_create_system": 0,
+        "zip_unix_mode": "0000"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "size": 27419,
+        "sha256": "2b1410a3dce94dab88caffd4ad35579479bf64f37c09a4050cec97219e653cb8",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$KeyValue.class",
+        "size": 8322,
+        "sha256": "ca67d4292a38521bddd9e22dec3cdf4d595f2ba1e4f02039297971b2dac252e4",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TopicInfo.class",
+        "size": 11211,
+        "sha256": "ac0cfb6e7269455f4e0c00e6ff318d712696cf08e2426eb2b5554cdbb14c5d1d",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Endpoint.class",
+        "size": 8127,
+        "sha256": "9e98ec190c32b211f0c9d8a66227d640ddefa241da2f0af8833a2e9561e33620",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskOffset.class",
+        "size": 8592,
+        "sha256": "629ba15ba7fc1feedf8784e43e6974496fda57e8720dc65b2547ad046ce980b3",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$TaskIds.class",
+        "size": 9625,
+        "sha256": "7b07d0bf345cdf9dc5adc2aaf7555aab529d5ea3031635fd2d66502716590df7",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Topology.class",
+        "size": 9319,
+        "sha256": "947b23eb3979947ccb45a8888727a7325c6e8a713a01d4c87d4cd54f1ba76292",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$Subtopology.class",
+        "size": 18637,
+        "sha256": "b12dd7069bfbb2f795076f0d48c053221fa9938133b5fa1d36f3ff0726639484",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData$CopartitionGroup.class",
+        "size": 10784,
+        "sha256": "ef724b1d7421ff5411cb23230d14e28c063cc0147c7ba20dacf0ebdb3313cd13",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "size": 21210,
+        "sha256": "523ada784b9102d999530dd0aa4b8689187934c8168ec60b4943fa8195fee466",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Status.class",
+        "size": 8199,
+        "sha256": "cf986f32b70aa0147c6a45baeacc9b0b478ae0b0dbbfe92abe72449f579987a5",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TopicPartition.class",
+        "size": 9541,
+        "sha256": "bc53693cae311d61705885c631a44c3158f13366f9b33da3161c4c76ad29c666",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$TaskIds.class",
+        "size": 9633,
+        "sha256": "4d05065198726647933fa9904e7a51b5f906916fae5a7109e6636714f516174d",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$Endpoint.class",
+        "size": 8134,
+        "sha256": "a1cb40b4c1a133280371aa351db50d8a71f642bc4e53eed63c216e4e6070cabf",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData$EndpointToPartitions.class",
+        "size": 10881,
+        "sha256": "99c173d5114b37a829191ba57bf099dcf534b7a0c6f255dbf68156688bdb32ce",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "size": 9520,
+        "sha256": "e9ede5d54fae4980514a07124b7c340c6fb924478461ff4927fa5df8620d6c00",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "size": 9967,
+        "sha256": "cd3583b0dfbf96a3cae18a7ffa7fb96ee5712d302086ec8d3ca8511fc5583b6f",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Endpoint.class",
+        "size": 8127,
+        "sha256": "0363a6e069382c64c80ea78502f3b4b79d57124bd178948fc1e2d0858548d272",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskOffset.class",
+        "size": 8592,
+        "sha256": "95203f299ab09c0012a22716973241aa723d9ea5249f4046f1c6cef9e5af0b71",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Assignment.class",
+        "size": 10448,
+        "sha256": "f6fee46993770a0f9e13a383c5bfc7f56b83cb99328e79266686e7fef6e13941",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TaskIds.class",
+        "size": 9625,
+        "sha256": "7addf6dbbb3f41f36a18a1f2901517fcc42448e92fc1fc6e2b19ad3b29d0ceae",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$KeyValue.class",
+        "size": 8322,
+        "sha256": "5e7beda0f3174162c05f5d392e709a6377351b73c4f9f3df94539b7b9546a97d",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$TopicInfo.class",
+        "size": 11211,
+        "sha256": "8bdd3290788ba5fd6c1766cc1f33013aa0a5a02c3bbddef91226a972f1a7323a",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$DescribedGroup.class",
+        "size": 15326,
+        "sha256": "8dd04919d6bfa050f6be482b4cbae6fcb143b9f05e2d778c24eb52c8ee872089",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Topology.class",
+        "size": 9639,
+        "sha256": "034f9dcd5f5a207d1d5b820c3cc8ac978f649519762a8cb1b35c6f0366d04a39",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Subtopology.class",
+        "size": 15053,
+        "sha256": "ba815b2786da196b5bbbf60f976aaa4eeb98a949502dbf3256d702904c4d0952",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData$Member.class",
+        "size": 22033,
+        "sha256": "60654c204d9c3f91dbd57116166ae224fc8e1322ab216720aca8cfbf8bdb7893",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/RequestHeaderData.class",
+        "size": 9310,
+        "sha256": "4fce5cf9e80d654c7d767fd075c44c16581eba11d7e0f7c2b41d6bc3012ee305",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      },
+      {
+        "release": "4.3.1",
+        "object": "org/apache/kafka/common/message/ResponseHeaderData.class",
+        "size": 6730,
+        "sha256": "c15d8bdeb7330557d2f71132cdb79f63105ca478eb43e78a3fd6384581804503",
+        "zip_external_attr": 2175008768,
+        "zip_create_system": 3,
+        "zip_unix_mode": "0644"
+      }
+    ]
+  },
+  "read_only_input_objects_before": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java",
+      "size": 56478,
+      "sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+      "mode": "0644"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "size": 56444,
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "size": 41125,
+      "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "mode": "0600"
+    },
+    {
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "size": 14384,
+      "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+      "mode": "0755"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "size": 9769826,
+      "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "size": 10119977,
+      "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "size": 10204032,
+      "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz",
+      "size": 70116,
+      "sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz",
+      "size": 70799,
+      "sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz",
+      "size": 71283,
+      "sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "mode": "0600"
+    }
+  ],
+  "sdk_results": {
+    "4.1.2": {
+      "deterministic_two_processes": true,
+      "actual_body_cases": 41,
+      "actual_header_body_cases": 12,
+      "artifacts": [
+        {
+          "path": "cases.tsv",
+          "size": 6471,
+          "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-count-bomb.bin",
+          "size": 7,
+          "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-default.bin",
+          "size": 3,
+          "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-descending-tags.bin",
+          "size": 7,
+          "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-duplicate-tags.bin",
+          "size": 7,
+          "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-full.bin",
+          "size": 97,
+          "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-empty.bin",
+          "size": 108,
+          "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-null.bin",
+          "size": 108,
+          "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-tags.bin",
+          "size": 133,
+          "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-utf8.bin",
+          "size": 129,
+          "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-invalid-utf8.bin",
+          "size": 5,
+          "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-noncanonical-boolean.bin",
+          "size": 3,
+          "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-null-nonnullable-array.bin",
+          "size": 3,
+          "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-trailing-zero.bin",
+          "size": 4,
+          "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-all-structures.bin",
+          "size": 101,
+          "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-root-tags.bin",
+          "size": 102,
+          "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-default.bin",
+          "size": 6,
+          "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-descending-tags.bin",
+          "size": 10,
+          "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-duplicate-tags.bin",
+          "size": 10,
+          "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-empty-subtopologies.bin",
+          "size": 32,
+          "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-full.bin",
+          "size": 2872,
+          "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-empty.bin",
+          "size": 2877,
+          "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-tags.bin",
+          "size": 2880,
+          "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-subtopologies.bin",
+          "size": 32,
+          "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-topology.bin",
+          "size": 26,
+          "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-trailing-zero.bin",
+          "size": 7,
+          "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-all-structures.bin",
+          "size": 2956,
+          "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-root-tags.bin",
+          "size": 2877,
+          "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196",
+          "mode": "0600"
+        },
+        {
+          "path": "headers.tsv",
+          "size": 1966,
+          "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-default.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-descending-tags.bin",
+          "size": 31,
+          "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-duplicate-tags.bin",
+          "size": 31,
+          "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-empty-changes.bin",
+          "size": 27,
+          "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-full.bin",
+          "size": 2036,
+          "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-empty.bin",
+          "size": 2047,
+          "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-null.bin",
+          "size": 2047,
+          "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-tags.bin",
+          "size": 2072,
+          "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-utf8.bin",
+          "size": 2068,
+          "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-negative-null-markers.bin",
+          "size": 27,
+          "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-noncanonical-boolean.bin",
+          "size": 27,
+          "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-null-changes.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-trailing-zero.bin",
+          "size": 28,
+          "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-all-structures.bin",
+          "size": 2096,
+          "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-root-tags.bin",
+          "size": 2041,
+          "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-default.bin",
+          "size": 34,
+          "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-descending-tags.bin",
+          "size": 38,
+          "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-duplicate-tags.bin",
+          "size": 38,
+          "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-empty-changes.bin",
+          "size": 34,
+          "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-full.bin",
+          "size": 711,
+          "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-empty.bin",
+          "size": 716,
+          "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-tags.bin",
+          "size": 719,
+          "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-null-changes.bin",
+          "size": 34,
+          "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-trailing-zero.bin",
+          "size": 35,
+          "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-all-structures.bin",
+          "size": 747,
+          "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-root-tags.bin",
+          "size": 716,
+          "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5",
+          "mode": "0600"
+        }
+      ],
+      "fresh_classes": [
+        {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/classes/StreamsWireOracle.class",
+          "size": 46310,
+          "sha256": "a730f077e51909124a320bf99eacd3f2b45fa82bb44ebf6ac1812ac35d951284",
+          "mode": "0600"
+        }
+      ]
+    },
+    "4.2.1": {
+      "deterministic_two_processes": true,
+      "actual_body_cases": 41,
+      "actual_header_body_cases": 12,
+      "artifacts": [
+        {
+          "path": "cases.tsv",
+          "size": 6471,
+          "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-count-bomb.bin",
+          "size": 7,
+          "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-default.bin",
+          "size": 3,
+          "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-descending-tags.bin",
+          "size": 7,
+          "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-duplicate-tags.bin",
+          "size": 7,
+          "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-full.bin",
+          "size": 97,
+          "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-empty.bin",
+          "size": 108,
+          "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-null.bin",
+          "size": 108,
+          "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-tags.bin",
+          "size": 133,
+          "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-utf8.bin",
+          "size": 129,
+          "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-invalid-utf8.bin",
+          "size": 5,
+          "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-noncanonical-boolean.bin",
+          "size": 3,
+          "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-null-nonnullable-array.bin",
+          "size": 3,
+          "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-trailing-zero.bin",
+          "size": 4,
+          "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-all-structures.bin",
+          "size": 101,
+          "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-root-tags.bin",
+          "size": 102,
+          "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-default.bin",
+          "size": 6,
+          "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-descending-tags.bin",
+          "size": 10,
+          "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-duplicate-tags.bin",
+          "size": 10,
+          "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-empty-subtopologies.bin",
+          "size": 32,
+          "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-full.bin",
+          "size": 2872,
+          "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-empty.bin",
+          "size": 2877,
+          "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-tags.bin",
+          "size": 2880,
+          "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-subtopologies.bin",
+          "size": 32,
+          "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-topology.bin",
+          "size": 26,
+          "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-trailing-zero.bin",
+          "size": 7,
+          "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-all-structures.bin",
+          "size": 2956,
+          "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-root-tags.bin",
+          "size": 2877,
+          "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196",
+          "mode": "0600"
+        },
+        {
+          "path": "headers.tsv",
+          "size": 1966,
+          "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-default.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-descending-tags.bin",
+          "size": 31,
+          "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-duplicate-tags.bin",
+          "size": 31,
+          "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-empty-changes.bin",
+          "size": 27,
+          "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-full.bin",
+          "size": 2036,
+          "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-empty.bin",
+          "size": 2047,
+          "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-null.bin",
+          "size": 2047,
+          "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-tags.bin",
+          "size": 2072,
+          "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-utf8.bin",
+          "size": 2068,
+          "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-negative-null-markers.bin",
+          "size": 27,
+          "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-noncanonical-boolean.bin",
+          "size": 27,
+          "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-null-changes.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-trailing-zero.bin",
+          "size": 28,
+          "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-all-structures.bin",
+          "size": 2096,
+          "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-root-tags.bin",
+          "size": 2041,
+          "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-default.bin",
+          "size": 34,
+          "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-descending-tags.bin",
+          "size": 38,
+          "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-duplicate-tags.bin",
+          "size": 38,
+          "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-empty-changes.bin",
+          "size": 34,
+          "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-full.bin",
+          "size": 711,
+          "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-empty.bin",
+          "size": 716,
+          "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-tags.bin",
+          "size": 719,
+          "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-null-changes.bin",
+          "size": 34,
+          "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-trailing-zero.bin",
+          "size": 35,
+          "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-all-structures.bin",
+          "size": 747,
+          "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-root-tags.bin",
+          "size": 716,
+          "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5",
+          "mode": "0600"
+        }
+      ],
+      "fresh_classes": [
+        {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/classes/StreamsWireOracle.class",
+          "size": 46310,
+          "sha256": "a730f077e51909124a320bf99eacd3f2b45fa82bb44ebf6ac1812ac35d951284",
+          "mode": "0600"
+        }
+      ]
+    },
+    "4.3.1": {
+      "deterministic_two_processes": true,
+      "actual_body_cases": 41,
+      "actual_header_body_cases": 12,
+      "artifacts": [
+        {
+          "path": "cases.tsv",
+          "size": 6471,
+          "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-count-bomb.bin",
+          "size": 7,
+          "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-default.bin",
+          "size": 3,
+          "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-descending-tags.bin",
+          "size": 7,
+          "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-duplicate-tags.bin",
+          "size": 7,
+          "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-full.bin",
+          "size": 97,
+          "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-empty.bin",
+          "size": 108,
+          "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-null.bin",
+          "size": 108,
+          "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-tags.bin",
+          "size": 133,
+          "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-header-utf8.bin",
+          "size": 129,
+          "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-invalid-utf8.bin",
+          "size": 5,
+          "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-noncanonical-boolean.bin",
+          "size": 3,
+          "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-null-nonnullable-array.bin",
+          "size": 3,
+          "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-trailing-zero.bin",
+          "size": 4,
+          "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-all-structures.bin",
+          "size": 101,
+          "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-request-unknown-root-tags.bin",
+          "size": 102,
+          "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-default.bin",
+          "size": 6,
+          "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-descending-tags.bin",
+          "size": 10,
+          "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-duplicate-tags.bin",
+          "size": 10,
+          "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-empty-subtopologies.bin",
+          "size": 32,
+          "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-full.bin",
+          "size": 2872,
+          "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-empty.bin",
+          "size": 2877,
+          "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-header-tags.bin",
+          "size": 2880,
+          "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-subtopologies.bin",
+          "size": 32,
+          "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-null-topology.bin",
+          "size": 26,
+          "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-trailing-zero.bin",
+          "size": 7,
+          "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-all-structures.bin",
+          "size": 2956,
+          "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16",
+          "mode": "0600"
+        },
+        {
+          "path": "describe-response-unknown-root-tags.bin",
+          "size": 2877,
+          "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196",
+          "mode": "0600"
+        },
+        {
+          "path": "headers.tsv",
+          "size": 1966,
+          "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-default.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-descending-tags.bin",
+          "size": 31,
+          "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-duplicate-tags.bin",
+          "size": 31,
+          "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-empty-changes.bin",
+          "size": 27,
+          "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-full.bin",
+          "size": 2036,
+          "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-empty.bin",
+          "size": 2047,
+          "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-null.bin",
+          "size": 2047,
+          "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-tags.bin",
+          "size": 2072,
+          "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-header-utf8.bin",
+          "size": 2068,
+          "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-negative-null-markers.bin",
+          "size": 27,
+          "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-noncanonical-boolean.bin",
+          "size": 27,
+          "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-null-changes.bin",
+          "size": 27,
+          "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-trailing-zero.bin",
+          "size": 28,
+          "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-all-structures.bin",
+          "size": 2096,
+          "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-request-unknown-root-tags.bin",
+          "size": 2041,
+          "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-default.bin",
+          "size": 34,
+          "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-descending-tags.bin",
+          "size": 38,
+          "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-duplicate-tags.bin",
+          "size": 38,
+          "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-empty-changes.bin",
+          "size": 34,
+          "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-full.bin",
+          "size": 711,
+          "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-empty.bin",
+          "size": 716,
+          "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-header-tags.bin",
+          "size": 719,
+          "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-null-changes.bin",
+          "size": 34,
+          "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-trailing-zero.bin",
+          "size": 35,
+          "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-all-structures.bin",
+          "size": 747,
+          "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a",
+          "mode": "0600"
+        },
+        {
+          "path": "heartbeat-response-unknown-root-tags.bin",
+          "size": 716,
+          "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5",
+          "mode": "0600"
+        }
+      ],
+      "fresh_classes": [
+        {
+          "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/classes/StreamsWireOracle.class",
+          "size": 46310,
+          "sha256": "a730f077e51909124a320bf99eacd3f2b45fa82bb44ebf6ac1812ac35d951284",
+          "mode": "0600"
+        }
+      ]
+    }
+  },
+  "source_after": {
+    "complete": true,
+    "file_identity_checks": 73938,
+    "observed_files": 73938,
+    "expected_files": 73938,
+    "directory_identity_checks": 10308,
+    "observed_file_bytes": 713363027,
+    "passed": true,
+    "error_count": 0,
+    "first16errors": [],
+    "expected_owner_uid": 1000,
+    "expected_owner_gid": 1000,
+    "file_owner_checks": 73938,
+    "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "full_raw": {
+      "path": "source-after.json",
+      "bytes": 23380322,
+      "sha256": "f5179aac9e296b356b80b3ae3e053ff836bc5d084593d21fd01678513dde2b5c",
+      "mode": "0600"
+    },
+    "full_directory_raw": {
+      "path": "source-directories-after.json",
+      "bytes": 1628040,
+      "sha256": "2ed570a730ed4254348ab2576351fbe42fff8f744a5e91846c2a77b7da3ce7c8",
+      "mode": "0600"
+    },
+    "exact_byte_verified_hardlinks": [
+      "source-after.json",
+      "source-directories-after.json",
+      "source-after.json.gz"
+    ],
+    "file_map_equals_verified_origin": true
+  },
+  "read_only_input_objects_after": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java",
+      "size": 56478,
+      "sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+      "mode": "0644"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "size": 56444,
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "size": 41125,
+      "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "mode": "0600"
+    },
+    {
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "size": 14384,
+      "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+      "mode": "0755"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "size": 9769826,
+      "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "size": 10119977,
+      "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "size": 10204032,
+      "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz",
+      "size": 70116,
+      "sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz",
+      "size": 70799,
+      "sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "mode": "0600"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-04f6bc29/tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz",
+      "size": 71283,
+      "sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "mode": "0600"
+    }
+  ]
+}

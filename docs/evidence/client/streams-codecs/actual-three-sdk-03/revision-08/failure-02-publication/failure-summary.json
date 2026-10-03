@@ -1,0 +1,506 @@
+{
+  "scope": "Actual corrected caller compilation and first genuine4.1.2 generation completed; runner rejected frozen utf8 artifact names before second generation. Driver qualification failed. Every actual partial artifact/command/error retained; no retry; no classes/JAR/ELF published. Complete raw before/after maps remain in WORK, publication gzip reuses exact lossless source/directory maps from failure01.",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "standalone_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "driver_completed": false,
+  "failure": "ValueError: actual fixture row shape/name differs",
+  "actual_commands": 3,
+  "strict4_1_2_javac": "passed exit0",
+  "actual4_1_2_generation1": "passed exit0,41body+12header vectors,55artifact files",
+  "two_generation_determinism": "not_run",
+  "other_two_sdk_compilation_and_generation": "not_run",
+  "rust_fixture_replay": "not_run",
+  "accepted_fixture_qualification": false,
+  "immutable_product_source_before_after_passed": true,
+  "all_read_only_inputs_including_standalone_before_after_equal": true,
+  "processes_joined_no_remaining": true,
+  "whole_watchdog_failure": null,
+  "minimum_free_bytes": 909869056,
+  "maximum_owned_allocated_bytes": 28028928,
+  "source_full_map": {
+    "path": "source-after.json",
+    "bytes": 23380322,
+    "sha256": "f5179aac9e296b356b80b3ae3e053ff836bc5d084593d21fd01678513dde2b5c",
+    "mode": "0600"
+  },
+  "source_full_directory_map": {
+    "path": "source-directories-after.json",
+    "bytes": 1628040,
+    "sha256": "2ed570a730ed4254348ab2576351fbe42fff8f744a5e91846c2a77b7da3ce7c8",
+    "mode": "0600"
+  },
+  "cause": "Caller guard allows only lowercase letters and hyphen, but three unchanged source filenames end utf8; literal8 rejected after authentic successful generation.",
+  "proposed_correction": "Admit only additional literal8; unchanged byte caps, counts, exact hash/path uniqueness and strict schema columns. No oracle/case/workload/vector bytes changed.",
+  "raw_output_work_path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-02",
+  "publication_source_gzip_exact_byte_hardlinks": true,
+  "artifacts": [
+    {
+      "path": "4.1.2-compile.json",
+      "bytes": 1556,
+      "full_permission_mode": "0644",
+      "sha256": "aaf0c895795bd572ba6e497154a2fa9f4725136941c83317ad5286e7f84f79ad"
+    },
+    {
+      "path": "4.1.2-compile.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4.1.2-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4.1.2-generation-1.json",
+      "bytes": 1407,
+      "full_permission_mode": "0644",
+      "sha256": "1508afd02502bacf9abc4cf1a9fd9fa3f62e568506cca862c8ae30a28bbd8743"
+    },
+    {
+      "path": "4.1.2-generation-1.stderr",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4.1.2-generation-1.stdout",
+      "bytes": 59,
+      "full_permission_mode": "0644",
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275"
+    },
+    {
+      "path": "driver-08.stderr",
+      "bytes": 506,
+      "full_permission_mode": "0644",
+      "sha256": "214c3f52f5e5f856db33d2f43bd1949945da404c5e5c98ad9b7820bc60b830ec"
+    },
+    {
+      "path": "driver-08.stdout",
+      "bytes": 170,
+      "full_permission_mode": "0644",
+      "sha256": "81f5d837f03824efcee6ff6d4cd29be1fe05fe9b72f2895a917b7f2f7ea00f49"
+    },
+    {
+      "path": "freeze-07.json",
+      "bytes": 3205,
+      "full_permission_mode": "0644",
+      "sha256": "79ed01799f8a437af7e1818bcf6c53c6d735d838875d0ba3e4351b2a899129a7"
+    },
+    {
+      "path": "java-version.json",
+      "bytes": 923,
+      "full_permission_mode": "0644",
+      "sha256": "47bdf74bc78bf5b5d073c9ea0cc31b6394c4866e427960d7ae919f7ad8e79fc9"
+    },
+    {
+      "path": "java-version.stderr",
+      "bytes": 187,
+      "full_permission_mode": "0644",
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "path": "java-version.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "launch-08.json",
+      "bytes": 1256,
+      "full_permission_mode": "0644",
+      "sha256": "6bb41754a52ac0aa0ec609b09f964ceec34d79458997b7a2e0705b7c536766b0"
+    },
+    {
+      "path": "launch-preflight-08.json",
+      "bytes": 2315,
+      "full_permission_mode": "0644",
+      "sha256": "ff529939e70b56c64da3d8771422fe79c0fa178153caf81797ff3dfe14f33f31"
+    },
+    {
+      "path": "launch-supervisor-08.py",
+      "bytes": 6424,
+      "full_permission_mode": "0644",
+      "sha256": "35234ab7433d5b3d13f9f737e1d3c245a5d52b435969220c4bc40a1c05268ff9"
+    },
+    {
+      "path": "origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "path": "partial-generation-1/cases.tsv",
+      "bytes": 6471,
+      "full_permission_mode": "0644",
+      "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2"
+    },
+    {
+      "path": "partial-generation-1/describe-request-count-bomb.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+    },
+    {
+      "path": "partial-generation-1/describe-request-default.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+    },
+    {
+      "path": "partial-generation-1/describe-request-descending-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+    },
+    {
+      "path": "partial-generation-1/describe-request-duplicate-tags.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+    },
+    {
+      "path": "partial-generation-1/describe-request-full.bin",
+      "bytes": 97,
+      "full_permission_mode": "0644",
+      "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+    },
+    {
+      "path": "partial-generation-1/describe-request-header-empty.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+    },
+    {
+      "path": "partial-generation-1/describe-request-header-null.bin",
+      "bytes": 108,
+      "full_permission_mode": "0644",
+      "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+    },
+    {
+      "path": "partial-generation-1/describe-request-header-tags.bin",
+      "bytes": 133,
+      "full_permission_mode": "0644",
+      "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+    },
+    {
+      "path": "partial-generation-1/describe-request-header-utf8.bin",
+      "bytes": 129,
+      "full_permission_mode": "0644",
+      "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+    },
+    {
+      "path": "partial-generation-1/describe-request-invalid-utf8.bin",
+      "bytes": 5,
+      "full_permission_mode": "0644",
+      "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+    },
+    {
+      "path": "partial-generation-1/describe-request-noncanonical-boolean.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+    },
+    {
+      "path": "partial-generation-1/describe-request-null-nonnullable-array.bin",
+      "bytes": 3,
+      "full_permission_mode": "0644",
+      "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+    },
+    {
+      "path": "partial-generation-1/describe-request-trailing-zero.bin",
+      "bytes": 4,
+      "full_permission_mode": "0644",
+      "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+    },
+    {
+      "path": "partial-generation-1/describe-request-unknown-all-structures.bin",
+      "bytes": 101,
+      "full_permission_mode": "0644",
+      "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+    },
+    {
+      "path": "partial-generation-1/describe-request-unknown-root-tags.bin",
+      "bytes": 102,
+      "full_permission_mode": "0644",
+      "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+    },
+    {
+      "path": "partial-generation-1/describe-response-default.bin",
+      "bytes": 6,
+      "full_permission_mode": "0644",
+      "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+    },
+    {
+      "path": "partial-generation-1/describe-response-descending-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+    },
+    {
+      "path": "partial-generation-1/describe-response-duplicate-tags.bin",
+      "bytes": 10,
+      "full_permission_mode": "0644",
+      "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+    },
+    {
+      "path": "partial-generation-1/describe-response-empty-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+    },
+    {
+      "path": "partial-generation-1/describe-response-full.bin",
+      "bytes": 2872,
+      "full_permission_mode": "0644",
+      "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+    },
+    {
+      "path": "partial-generation-1/describe-response-header-empty.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+    },
+    {
+      "path": "partial-generation-1/describe-response-header-tags.bin",
+      "bytes": 2880,
+      "full_permission_mode": "0644",
+      "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+    },
+    {
+      "path": "partial-generation-1/describe-response-null-subtopologies.bin",
+      "bytes": 32,
+      "full_permission_mode": "0644",
+      "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+    },
+    {
+      "path": "partial-generation-1/describe-response-null-topology.bin",
+      "bytes": 26,
+      "full_permission_mode": "0644",
+      "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+    },
+    {
+      "path": "partial-generation-1/describe-response-trailing-zero.bin",
+      "bytes": 7,
+      "full_permission_mode": "0644",
+      "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+    },
+    {
+      "path": "partial-generation-1/describe-response-unknown-all-structures.bin",
+      "bytes": 2956,
+      "full_permission_mode": "0644",
+      "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+    },
+    {
+      "path": "partial-generation-1/describe-response-unknown-root-tags.bin",
+      "bytes": 2877,
+      "full_permission_mode": "0644",
+      "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+    },
+    {
+      "path": "partial-generation-1/headers.tsv",
+      "bytes": 1966,
+      "full_permission_mode": "0644",
+      "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-default.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-descending-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-duplicate-tags.bin",
+      "bytes": 31,
+      "full_permission_mode": "0644",
+      "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-empty-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-full.bin",
+      "bytes": 2036,
+      "full_permission_mode": "0644",
+      "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-header-empty.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-header-null.bin",
+      "bytes": 2047,
+      "full_permission_mode": "0644",
+      "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-header-tags.bin",
+      "bytes": 2072,
+      "full_permission_mode": "0644",
+      "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-header-utf8.bin",
+      "bytes": 2068,
+      "full_permission_mode": "0644",
+      "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-negative-null-markers.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-noncanonical-boolean.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-null-changes.bin",
+      "bytes": 27,
+      "full_permission_mode": "0644",
+      "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-trailing-zero.bin",
+      "bytes": 28,
+      "full_permission_mode": "0644",
+      "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-unknown-all-structures.bin",
+      "bytes": 2096,
+      "full_permission_mode": "0644",
+      "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-request-unknown-root-tags.bin",
+      "bytes": 2041,
+      "full_permission_mode": "0644",
+      "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-default.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-descending-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-duplicate-tags.bin",
+      "bytes": 38,
+      "full_permission_mode": "0644",
+      "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-empty-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-full.bin",
+      "bytes": 711,
+      "full_permission_mode": "0644",
+      "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-header-empty.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-header-tags.bin",
+      "bytes": 719,
+      "full_permission_mode": "0644",
+      "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-null-changes.bin",
+      "bytes": 34,
+      "full_permission_mode": "0644",
+      "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-trailing-zero.bin",
+      "bytes": 35,
+      "full_permission_mode": "0644",
+      "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-unknown-all-structures.bin",
+      "bytes": 747,
+      "full_permission_mode": "0644",
+      "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+    },
+    {
+      "path": "partial-generation-1/heartbeat-response-unknown-root-tags.bin",
+      "bytes": 716,
+      "full_permission_mode": "0644",
+      "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+    },
+    {
+      "path": "results.json",
+      "bytes": 49903,
+      "full_permission_mode": "0644",
+      "sha256": "258d9a530a651628db7904099b43c7d710e7e337ee900789199e45c68d4c7b4e"
+    },
+    {
+      "path": "run-oracle.py",
+      "bytes": 24379,
+      "full_permission_mode": "0644",
+      "sha256": "3e663008e04fdef4844beeeda8478dff941f4f4c2516b7ad86ea0836f129e64a"
+    },
+    {
+      "path": "source-after-receipt.json",
+      "bytes": 895,
+      "full_permission_mode": "0644",
+      "sha256": "68622e0c88299cbb045e180cf64190025b7950201df8c94017ec66aea74d16c8"
+    },
+    {
+      "path": "source-after.json.gz",
+      "bytes": 2630489,
+      "full_permission_mode": "0644",
+      "sha256": "e3e549aae650a679e50b4989f99022f4706abd7ef0c3ef18c237c1c101f63129"
+    },
+    {
+      "path": "source-before-receipt.json",
+      "bytes": 823,
+      "full_permission_mode": "0644",
+      "sha256": "0987b76885e95207903cb5d252f41c819c80ba22a089469b964471ddf2ca7dab"
+    },
+    {
+      "path": "source-directories-after.json.gz",
+      "bytes": 48524,
+      "full_permission_mode": "0644",
+      "sha256": "6537193d84a1c4cbeb683cefd52f890a25e053496e3804db6cad71c254d9d3a5"
+    },
+    {
+      "path": "supervisor-08.json",
+      "bytes": 1869,
+      "full_permission_mode": "0644",
+      "sha256": "6b92ac7e210f99d83f21a8a1ecb81b8fc87a176b66bc95ae4f0ad6a9dd62174a"
+    }
+  ]
+}

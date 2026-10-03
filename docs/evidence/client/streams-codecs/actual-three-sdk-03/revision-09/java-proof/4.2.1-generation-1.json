@@ -1,0 +1,38 @@
+{
+  "label": "4.2.1-generation-1",
+  "command": [
+    "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "-Xms16m",
+    "-Xmx128m",
+    "-Djava.io.tmpdir=/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/tmp",
+    "-classpath",
+    "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+    "StreamsWireOracle",
+    "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1"
+  ],
+  "timeout_seconds": 60,
+  "maximum_stdout_or_stderr_bytes": 65536,
+  "cpu_affinity": "0,1",
+  "exit_status": 0,
+  "duration_seconds": 0.13845021899032872,
+  "streams": {
+    "stdout": {
+      "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-1.stdout",
+      "size": 59,
+      "sha256": "27e6b12e03cff695b0e4ca57107509ea691526b2436efe286693b879ed033275",
+      "mode": "0600"
+    },
+    "stderr": {
+      "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1-generation-1.stderr",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0600"
+    }
+  },
+  "actual_read_stream_bytes": {
+    "stdout": 59,
+    "stderr": 0
+  },
+  "joined": true,
+  "bound_failure": null
+}

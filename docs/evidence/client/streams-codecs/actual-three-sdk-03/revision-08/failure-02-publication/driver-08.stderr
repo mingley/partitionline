@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/work/streams-codecs/revision-07/run-oracle.py", line 466, in <module>
+    main()
+  File "/workspace/work/streams-codecs/revision-07/run-oracle.py", line 419, in main
+    trees.append(fixture_tree(fixtures))
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/streams-codecs/revision-07/run-oracle.py", line 329, in fixture_tree
+    raise ValueError("actual fixture row shape/name differs")
+ValueError: actual fixture row shape/name differs

@@ -1,0 +1,3474 @@
+{
+  "scope": "Exact actual generated fixture copy proposals only. No repo installation/Rust build. Both independent actual generation paths bind every proposed byte/hash/fullmode. Java-copy mode0644 is intentional repository candidate mode; original runtime files remain0600.",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "standalone_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "fixture_files": 165,
+  "vectors": 159,
+  "rows": [
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/cases.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0644",
+        "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "26cd66bd25ca8178c53b63aaf4f1927207233c49b2592081f678d5e5902d23b2"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-count-bomb.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0644",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0644",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0644",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-invalid-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0644",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-null-nonnullable-array.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0644",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0644",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0644",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0644",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-empty-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0644",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0644",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-null-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-null-topology.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0644",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0644",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/describe-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/headers.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0644",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0644",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0644",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0644",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-negative-null-markers.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0644",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0644",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0644",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "6b481be82335131683295484cb66a959d2a2a2b5ca1b488c3ef931830cfbbfca"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bcc897863922490fc360749640d2648f2b3061dbc202f7af0ba6cf6333ccd1d0"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0644",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0644",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0644",
+        "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "aa631d0a72f3fbfe060d3c822c5077d4a2d5650a964d82ec1de36714331cedf7"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0644",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.1.2/heartbeat-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.1.2/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-1/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.1.2/generation-2/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/cases.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0644",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-count-bomb.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0644",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0644",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0644",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-invalid-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0644",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-null-nonnullable-array.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0644",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0644",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0644",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0644",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-empty-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0644",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0644",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-null-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-null-topology.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0644",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0644",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/describe-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/headers.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0644",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0644",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0644",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0644",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-negative-null-markers.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0644",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0644",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0644",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0644",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0644",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0644",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0644",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.2.1/heartbeat-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.2.1/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-1/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.2.1/generation-2/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/cases.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0644",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/cases.tsv",
+        "bytes": 6471,
+        "full_permission_mode": "0600",
+        "sha256": "d61f30d65f3f32917af4b70162a21ae8632112ebe72111ce1a58161a8e65ee05"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-count-bomb.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-count-bomb.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "b20d8ea669091313d49222e8eb0ae57af196035406cbb7a664f8207f499ce8a3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-default.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "fb50dc0717ff266cf9baf82b1ce7a1c2ef6d9247859680b11a19fb7077f5f222"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-descending-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "65e9e351a06f229f1f453b53b5f491c84653135237d3ae09ee21b60b97f32520"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-duplicate-tags.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "045c7f9a57f13a557508a724d19ade4b01410132c751caebe39362ea9d3482ef"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0644",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-full.bin",
+        "bytes": 97,
+        "full_permission_mode": "0600",
+        "sha256": "9bf17442212af8cff850d300995c6d40fab5a16ccc75bfd781d556c5f277e35f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-header-empty.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "f7d6ea28bf662c65508fcebafa4ac30272fa413c00cb5b738c4c0540f441883a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0644",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-header-null.bin",
+        "bytes": 108,
+        "full_permission_mode": "0600",
+        "sha256": "b1ce09f794e82dc4506fafb1510069e70455cdb6a6df1d7ee547130564e5444a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0644",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-header-tags.bin",
+        "bytes": 133,
+        "full_permission_mode": "0600",
+        "sha256": "88f397bb10bcff641de5b711f6ff1e022a09184d7049f20fd2724a1170481ea9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0644",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-header-utf8.bin",
+        "bytes": 129,
+        "full_permission_mode": "0600",
+        "sha256": "5bebfb9bb8eb31c70bcd24d335bf4399d5206ac9a2fcc3ba5277bcf1fbbd9c5d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-invalid-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0644",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-invalid-utf8.bin",
+        "bytes": 5,
+        "full_permission_mode": "0600",
+        "sha256": "3390781ca8b377f3e8cf71d69011aa7a18f125091e8746b3bd33b22fb73610b5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-noncanonical-boolean.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "f4a02442da2c7e7e0abea336ad098e1b860c225a170a671e3247fdbaaa69b9a5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-null-nonnullable-array.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0644",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-null-nonnullable-array.bin",
+        "bytes": 3,
+        "full_permission_mode": "0600",
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0644",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-trailing-zero.bin",
+        "bytes": 4,
+        "full_permission_mode": "0600",
+        "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0644",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-unknown-all-structures.bin",
+        "bytes": 101,
+        "full_permission_mode": "0600",
+        "sha256": "1b55def4c34b743e2cf0fc8f7f7a2ed236505177c28a7d6e366d85237416107f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0644",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-request-unknown-root-tags.bin",
+        "bytes": 102,
+        "full_permission_mode": "0600",
+        "sha256": "e6497597506d72a989feddc54414f586ce62198510299514845e3e2f4db22366"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0644",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-default.bin",
+        "bytes": 6,
+        "full_permission_mode": "0600",
+        "sha256": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-descending-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "ec73465b85a2dcb0ac5bdd8db0f2f9ce40f9464a42409f0009ac4f22983290f3"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0644",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-duplicate-tags.bin",
+        "bytes": 10,
+        "full_permission_mode": "0600",
+        "sha256": "c303fe9007823bc0541a74abf82b09822bafccb769a2a21e2125fd554cfe8b67"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-empty-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-empty-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "e5af51972ac6b2bb9befd8bfb62008daead13d221df7dc0c8e7443fb4da1ebf8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0644",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-full.bin",
+        "bytes": 2872,
+        "full_permission_mode": "0600",
+        "sha256": "5abee9a4cab25b9b6fdcba3cb9942221d258b6b105fda285e5900c3e3005a1a8"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-header-empty.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "ebe1a361d9ef0896281e63b8ed7416f0788ab59cfe5da5d3a06283baa735062b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0644",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-header-tags.bin",
+        "bytes": 2880,
+        "full_permission_mode": "0600",
+        "sha256": "12d29041337f1672069116d0d643cf8e4c57712e4e08106fdb492a07e635bbb9"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-null-subtopologies.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0644",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-null-subtopologies.bin",
+        "bytes": 32,
+        "full_permission_mode": "0600",
+        "sha256": "91a6a35daa3bcd04e41ba8c531e5f2ace810f20732c7c2deb867ae31cf37e991"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-null-topology.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0644",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-null-topology.bin",
+        "bytes": 26,
+        "full_permission_mode": "0600",
+        "sha256": "a65f545481c800301f9c718f8df1497342fab6c77e84916e6cc202a337d17867"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0644",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-trailing-zero.bin",
+        "bytes": 7,
+        "full_permission_mode": "0600",
+        "sha256": "ac82e3cd5011c942105aa13776bd49aa98bde66665a3e1228801ae7f5f60aafa"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0644",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-unknown-all-structures.bin",
+        "bytes": 2956,
+        "full_permission_mode": "0600",
+        "sha256": "5283b14e9d0bc09eb5402e69cc87ad0bd1037bfbc42ce56d207f0297a4feed16"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/describe-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0644",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/describe-response-unknown-root-tags.bin",
+        "bytes": 2877,
+        "full_permission_mode": "0600",
+        "sha256": "76de02d7879b53aea7be3d1211511faefb0a6ee4680ee00129e0d1343e744196"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/headers.tsv",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0644",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/headers.tsv",
+        "bytes": 1966,
+        "full_permission_mode": "0600",
+        "sha256": "4f2bd1e34fbeeef832dccea251b27f05a8e7648342887ec5511793593f43d402"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-default.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-descending-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "3551293e6cb12f931773e846fb3302e157fe19c9579c6cd671a768046f88abff"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0644",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-duplicate-tags.bin",
+        "bytes": 31,
+        "full_permission_mode": "0600",
+        "sha256": "71b720f52bffb195fb4a19e9d9f638bba6ed3421f8224700d9d7da37a677e57a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-empty-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "342118b898cebb5c391ddfdaeb40597e05f748044841ffb39c68ef5388ffd6a2"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0644",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-full.bin",
+        "bytes": 2036,
+        "full_permission_mode": "0600",
+        "sha256": "c2019013ca2a4233892e9da924896a2140161d502b3a0c474cc2487f7c7e993b"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-header-empty.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "29fd63a4261d07f85970b8dc4079fb2278735ffabb1b9d428363b6e4d8432187"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-header-null.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0644",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-header-null.bin",
+        "bytes": 2047,
+        "full_permission_mode": "0600",
+        "sha256": "1004a4d0279514250f169773b5850808312f2add80e68227f8f04c8ca9ae35b4"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0644",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-header-tags.bin",
+        "bytes": 2072,
+        "full_permission_mode": "0600",
+        "sha256": "cbe597aab11b4edc77827acc1bb842178263d4e5fc4293dea79201f078f33934"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-header-utf8.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0644",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-header-utf8.bin",
+        "bytes": 2068,
+        "full_permission_mode": "0600",
+        "sha256": "723996d96dcc44c421a60710f09140d48a032d0bbc2995b6e90888b18aa202be"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-negative-null-markers.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-negative-null-markers.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "f96d83494585d3d2a09522ad1578d23e9f1c9194c685d2a05accb99dca1a5b53"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-noncanonical-boolean.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-noncanonical-boolean.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "d9b630e4311673602789e5c04626fbc905a4c579b167cc1dd2ef21ae9c810a5f"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0644",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-null-changes.bin",
+        "bytes": 27,
+        "full_permission_mode": "0600",
+        "sha256": "9a4b18591c37915745b769c465ff105cf816fc3daa107361fe6837b8bab6a4e5"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0644",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-trailing-zero.bin",
+        "bytes": 28,
+        "full_permission_mode": "0600",
+        "sha256": "4c0fd0c137508d0e97944d26cd6559c6cd62abde972d44379c57446fbeca8443"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0644",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-unknown-all-structures.bin",
+        "bytes": 2096,
+        "full_permission_mode": "0600",
+        "sha256": "b28c70eece1e1b5b38e42b25a0e7a068d50e1e08b2d9a14bf5384a78a65da0e0"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-request-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0644",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-request-unknown-root-tags.bin",
+        "bytes": 2041,
+        "full_permission_mode": "0600",
+        "sha256": "0c429e0fad1f588031507a34f0bdf801c66866488b3c1add9596612c2330a467"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-default.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-default.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "3af77c1b21bcc97e6aacf25b84150e012dfbdf4cae81dfe0921f172359bdf32d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-descending-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-descending-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "bdd90ec3be7a199742032744edffa1e3edf408afe7de77e008bf7dba9029fd6d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-duplicate-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0644",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-duplicate-tags.bin",
+        "bytes": 38,
+        "full_permission_mode": "0600",
+        "sha256": "15dc4740c54fa9129d6876c34829c302364c1d75df85088eed3b7b2dab0b09e4"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-empty-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-empty-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "0e54f4a606aad64b19b0d8b4fc6f0f3dee9865defb2899846559fc6b4f383c0d"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-full.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0644",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-full.bin",
+        "bytes": 711,
+        "full_permission_mode": "0600",
+        "sha256": "7b6e3ca62e94b9b004fd48b464fe71d6f6e07c4dedcade9d1cdc3e335e328400"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-header-empty.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-header-empty.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "e22f7efade85797fa40bc0693754e19ff30359b774ad9246ecb1328171b9cb31"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-header-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0644",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-header-tags.bin",
+        "bytes": 719,
+        "full_permission_mode": "0600",
+        "sha256": "aaac04aaf87fc5f7dc76a17d46b03bf78dccbdecc56678348fb3509832a21254"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-null-changes.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0644",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-null-changes.bin",
+        "bytes": 34,
+        "full_permission_mode": "0600",
+        "sha256": "2b53d67cb14d19fecc5baa32e9087697022f7f443e76de365221250a83747309"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-trailing-zero.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0644",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-trailing-zero.bin",
+        "bytes": 35,
+        "full_permission_mode": "0600",
+        "sha256": "7d061c67c5eac3d3722366c2eb03461606af676ac40b300ecbccd64156bd1188"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-unknown-all-structures.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0644",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-unknown-all-structures.bin",
+        "bytes": 747,
+        "full_permission_mode": "0600",
+        "sha256": "61cdfd674e82fba2ce2719ec136299bca4fb017bb24b6ca6269f954575b67f2a"
+      }
+    },
+    {
+      "target_repository_path": "tests/fixtures/streams/4.3.1/heartbeat-response-unknown-root-tags.bin",
+      "work_candidate": {
+        "path": "/workspace/work/streams-codecs/revision-09/fixture-candidates/4.3.1/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0644",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation1": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-1/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      },
+      "actual_generation2": {
+        "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-overlay848-attempt-03/4.3.1/generation-2/heartbeat-response-unknown-root-tags.bin",
+        "bytes": 716,
+        "full_permission_mode": "0600",
+        "sha256": "bcf7417d24211132c4842cbab3dee4e329c49339e710ef7b6959416d9f3d29b5"
+      }
+    }
+  ]
+}

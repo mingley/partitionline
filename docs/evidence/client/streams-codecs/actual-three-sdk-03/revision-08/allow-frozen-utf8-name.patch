@@ -1,0 +1,11 @@
+--- revision-07/run-oracle.py
++++ revision-08/run-oracle.py
+@@ -325,7 +325,7 @@
+             raise ValueError("actual fixture table row count differs")
+         for row in table[1:]:
+             cells = row.split("\t")
+-            if len(cells) != columns or not cells[0] or any(ch not in "abcdefghijklmnopqrstuvwxyz-" for ch in cells[0]):
++            if len(cells) != columns or not cells[0] or any(ch not in "abcdefghijklmnopqrstuvwxyz-8" for ch in cells[0]):
+                 raise ValueError("actual fixture row shape/name differs")
+             filename = cells[0] + ".bin"
+             if filename in referenced or digest(root / filename) != cells[-1]:

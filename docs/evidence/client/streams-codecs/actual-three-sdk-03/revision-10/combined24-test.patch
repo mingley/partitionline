@@ -1,0 +1,273 @@
+--- a/tests/streams_protocol.rs
++++ b/tests/streams_protocol.rs
+@@ -626,3 +626,270 @@
+         assert!(encode_request(&Request::default(), 0, limit).is_err());
+     }
+ }
++
++#[path = "fixtures/streams/oracle/expected_models.rs"]
++mod apache_expected_models;
++
++mod apache {
++    use bytes::BytesMut;
++    use partitionline::protocol::streams::*;
++    use partitionline::protocol::{
++        decode_request_header, decode_response_header, encode_request_header,
++        encode_response_header, request_header_version, response_header_version,
++    };
++    use sha2::{Digest, Sha256};
++    use std::{fs, path::PathBuf};
++
++    type TestResult = Result<(), Box<dyn std::error::Error>>;
++
++    fn fixtures(release: &str) -> PathBuf {
++        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
++            .join("tests/fixtures/streams")
++            .join(release)
++    }
++
++    fn digest(data: &[u8]) -> String {
++        Sha256::digest(data)
++            .iter()
++            .map(|byte| format!("{byte:02x}"))
++            .collect()
++    }
++
++    fn cell<'a>(cells: &'a [&str], index: usize) -> Result<&'a str, Box<dyn std::error::Error>> {
++        cells
++            .get(index)
++            .copied()
++            .ok_or_else(|| "missing fixture column".into())
++    }
++
++    fn canonical(typ: &str, data: &[u8]) -> partitionline::Result<Vec<u8>> {
++        match typ {
++            "StreamsGroupHeartbeatRequest" => encode_streams_group_heartbeat_request(
++                &decode_streams_group_heartbeat_request(data, 0, Limits::default())?,
++                0,
++                Limits::default(),
++            ),
++            "StreamsGroupHeartbeatResponse" => encode_streams_group_heartbeat_response(
++                &decode_streams_group_heartbeat_response(data, 0, Limits::default())?,
++                0,
++                Limits::default(),
++            ),
++            "StreamsGroupDescribeRequest" => encode_streams_group_describe_request(
++                &decode_streams_group_describe_request(data, 0, Limits::default())?,
++                0,
++                Limits::default(),
++            ),
++            "StreamsGroupDescribeResponse" => encode_streams_group_describe_response(
++                &decode_streams_group_describe_response(data, 0, Limits::default())?,
++                0,
++                Limits::default(),
++            ),
++            _ => Err(partitionline::Error::protocol(
++                "unexpected Streams fixture type",
++            )),
++        }
++    }
++
++    fn check_full(typ: &str, data: &[u8]) -> TestResult {
++        match typ {
++            "StreamsGroupHeartbeatRequest" => assert_eq!(
++                decode_streams_group_heartbeat_request(data, 0, Limits::default())?,
++                super::apache_expected_models::streams_group_heartbeat_request_expected()
++            ),
++            "StreamsGroupHeartbeatResponse" => assert_eq!(
++                decode_streams_group_heartbeat_response(data, 0, Limits::default())?,
++                super::apache_expected_models::streams_group_heartbeat_response_expected()
++            ),
++            "StreamsGroupDescribeRequest" => assert_eq!(
++                decode_streams_group_describe_request(data, 0, Limits::default())?,
++                super::apache_expected_models::streams_group_describe_request_expected()
++            ),
++            "StreamsGroupDescribeResponse" => assert_eq!(
++                decode_streams_group_describe_response(data, 0, Limits::default())?,
++                super::apache_expected_models::streams_group_describe_response_expected()
++            ),
++            _ => return Err("unexpected Streams fixture type".into()),
++        }
++        Ok(())
++    }
++
++    fn reverse_directory(release: &str) -> Result<Option<PathBuf>, Box<dyn std::error::Error>> {
++        match std::env::var("STREAMS_REVERSE_OUT") {
++            Ok(path) => {
++                let directory = PathBuf::from(path).join(release);
++                fs::create_dir_all(&directory)?;
++                Ok(Some(directory))
++            }
++            Err(std::env::VarError::NotPresent) => Ok(None),
++            Err(error) => Err(error.into()),
++        }
++    }
++
++    #[test]
++    fn actual_three_sdk_vectors_preserve_every_field_and_local_policy() -> TestResult {
++        for release in ["4.1.2", "4.2.1", "4.3.1"] {
++            let source = fixtures(release);
++            let table = fs::read_to_string(source.join("cases.tsv"))?;
++            let reverse = reverse_directory(release)?;
++            let mut reverse_index = String::from("name\ttype\toriginal_file\trust_file\n");
++            let mut count = 0usize;
++            let mut accepted = 0usize;
++            let mut rejected = 0usize;
++            for row in table.lines().skip(1) {
++                let cells: Vec<_> = row.split('\t').collect();
++                assert_eq!(cells.len(), 8);
++                let name = cell(&cells, 0)?;
++                assert!(name
++                    .chars()
++                    .all(|ch| ch.is_ascii_lowercase() || ch == '-' || ch == '8'));
++                let typ = cell(&cells, 2)?;
++                let api: i16 = cell(&cells, 1)?.parse()?;
++                assert_eq!(api, if typ.contains("Heartbeat") { 88 } else { 89 });
++                assert_eq!(cell(&cells, 3)?, "0");
++                let original = fs::read(source.join(format!("{name}.bin")))?;
++                assert_eq!(digest(&original), cell(&cells, 7)?);
++                let policy = cell(&cells, 6)?;
++                match policy {
++                    "accept" | "accept-normalize-boolean" | "accept-normalize-null-marker" => {
++                        assert_eq!(cell(&cells, 4)?, "parsed");
++                        assert_eq!(cell(&cells, 5)?, "0");
++                        let rust = canonical(typ, &original)?;
++                        if name.ends_with("-full")
++                            || name.ends_with("-unknown-root-tags")
++                            || name.ends_with("-unknown-all-structures")
++                        {
++                            check_full(typ, &original)?;
++                        }
++                        if let Some(directory) = &reverse {
++                            fs::write(directory.join(format!("original-{name}.bin")), &original)?;
++                            fs::write(directory.join(format!("rust-{name}.bin")), &rust)?;
++                            reverse_index.push_str(&format!(
++                                "{name}\t{typ}\toriginal-{name}.bin\trust-{name}.bin\n"
++                            ));
++                        }
++                        accepted += 1;
++                    }
++                    "reject-local-tag-order"
++                    | "reject-local-whole-input"
++                    | "reject-bounded-count"
++                    | "reject-nonnullable-null"
++                    | "reject-local-utf8" => {
++                        assert!(canonical(typ, &original).is_err(), "fixture {name}");
++                        rejected += 1;
++                    }
++                    _ => return Err("unexpected fixture policy".into()),
++                }
++                count += 1;
++            }
++            assert_eq!((count, accepted, rejected), (41, 26, 15));
++            if let Some(directory) = reverse {
++                fs::write(directory.join("rust.tsv"), reverse_index)?;
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn actual_three_sdk_flexible_headers_keep_correlation_and_body_boundaries() -> TestResult {
++        for release in ["4.1.2", "4.2.1", "4.3.1"] {
++            let source = fixtures(release);
++            let table = fs::read_to_string(source.join("headers.tsv"))?;
++            let reverse = reverse_directory(release)?;
++            let mut reverse_index =
++                String::from("name\tapi\ttype\trequest\toriginal_file\trust_file\n");
++            let mut count = 0usize;
++            for row in table.lines().skip(1) {
++                let cells: Vec<_> = row.split('\t').collect();
++                assert_eq!(cells.len(), 10);
++                let name = cell(&cells, 0)?;
++                let api: i16 = cell(&cells, 1)?.parse()?;
++                let typ = cell(&cells, 2)?;
++                let request: bool = cell(&cells, 3)?.parse()?;
++                let correlation: i32 = cell(&cells, 5)?.parse()?;
++                let header_version: i16 = cell(&cells, 6)?.parse()?;
++                let header_bytes: usize = cell(&cells, 7)?.parse()?;
++                let body_bytes: usize = cell(&cells, 8)?.parse()?;
++                let original = fs::read(source.join(format!("{name}.bin")))?;
++                assert_eq!(digest(&original), cell(&cells, 9)?);
++                assert_eq!(header_bytes.checked_add(body_bytes), Some(original.len()));
++                let mut body = original.as_slice();
++                let mut encoded = BytesMut::new();
++                if request {
++                    assert!(typ.ends_with("Request"));
++                    assert_eq!(request_header_version(api, 0), header_version);
++                    assert_eq!(header_version, 2);
++                    let header = decode_request_header(&mut body)?;
++                    assert_eq!(
++                        (header.api_key, header.api_version, header.correlation_id),
++                        (api, 0, correlation)
++                    );
++                    let client = match cell(&cells, 4)? {
++                        "null" => None,
++                        "empty" => Some(""),
++                        "utf8" => Some("streams-client-詳細"),
++                        _ => return Err("unexpected client label".into()),
++                    };
++                    assert_eq!(header.client_id.as_deref(), client);
++                    encode_request_header(&mut encoded, &header)?;
++                } else {
++                    assert!(typ.ends_with("Response"));
++                    assert_eq!(response_header_version(api, 0), header_version);
++                    assert_eq!(header_version, 1);
++                    assert_eq!(
++                        decode_response_header(&mut body, api, 0)?.correlation_id,
++                        correlation
++                    );
++                    encode_response_header(&mut encoded, api, 0, correlation)?;
++                }
++                assert_eq!(body.len(), body_bytes);
++                check_full(typ, body)?;
++                let canonical_body = canonical(typ, body)?;
++                encoded.extend_from_slice(&canonical_body);
++                if name.ends_with("-tags") {
++                    // Canonical SDK header fixtures have the same client/correlation/body
++                    // and differ only in the discarded unknown header tags.
++                    let suffix = if request { "-utf8" } else { "-empty" };
++                    let canonical_name = format!("{}{}", name.trim_end_matches("-tags"), suffix);
++                    let sdk_canonical = fs::read(source.join(format!("{canonical_name}.bin")))?;
++                    assert_eq!(encoded.as_ref(), sdk_canonical.as_slice());
++                } else {
++                    assert_eq!(encoded.as_ref(), original.as_slice());
++                }
++                if let Some(directory) = &reverse {
++                    fs::write(directory.join(format!("original-{name}.bin")), &original)?;
++                    fs::write(directory.join(format!("rust-{name}.bin")), encoded.as_ref())?;
++                    reverse_index.push_str(&format!(
++                        "{name}\t{api}\t{typ}\t{request}\toriginal-{name}.bin\trust-{name}.bin\n"
++                    ));
++                }
++                count += 1;
++            }
++            assert_eq!(count, 12);
++            if let Some(directory) = reverse {
++                fs::write(directory.join("rust-headers.tsv"), reverse_index)?;
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn actual_complete_sdk_messages_reject_every_truncation_and_extra_tail() -> TestResult {
++        for release in ["4.1.2", "4.2.1", "4.3.1"] {
++            for (name, typ) in [
++                ("heartbeat-request", "StreamsGroupHeartbeatRequest"),
++                ("heartbeat-response", "StreamsGroupHeartbeatResponse"),
++                ("describe-request", "StreamsGroupDescribeRequest"),
++                ("describe-response", "StreamsGroupDescribeResponse"),
++            ] {
++                let data = fs::read(fixtures(release).join(format!("{name}-full.bin")))?;
++                for end in 0..data.len() {
++                    assert!(canonical(typ, data.get(..end).ok_or("prefix")?).is_err());
++                }
++                let mut trailing = data;
++                trailing.push(0);
++                assert!(canonical(typ, &trailing).is_err());
++            }
++        }
++        Ok(())
++    }
++}
