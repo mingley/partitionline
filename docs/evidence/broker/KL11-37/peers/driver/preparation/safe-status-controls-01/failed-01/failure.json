@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "scope": "synthetic process control harness only; no broker/SDK/issuer",
+  "failure": "assertion failed before output serialization",
+  "exact_failed_control": "unretained in first harness, never inferred",
+  "original_source_sha256": "b35043ba6ca1e914ff4c7129321412ddf50a82c5d404d44c5308ee99817e6ae6",
+  "harness_correction": "wait for the deliberately self-exiting child before asserting an unforced cleanup; ready receipt can precede interpreter exit",
+  "candidate_driver_source_changed": false
+}

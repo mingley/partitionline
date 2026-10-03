@@ -32,6 +32,112 @@ def checked_json(path):
     return json.loads(path.read_text())
 
 
+def validate_native_frontier(position, eof, expected_offsets, start, end):
+    """Native consumed position and verified EOF are distinct frontiers."""
+    if (any(type(value) is not int for value in (*expected_offsets, start, end))
+            or expected_offsets != sorted(set(expected_offsets))
+            or any(offset < start or offset >= end for offset in expected_offsets)):
+        raise RuntimeError("Typed ordered expected retained native offsets required")
+    expected_position = expected_offsets[-1] + 1 if expected_offsets else -1001
+    if any(type(position.get(name)) is not int for name in (
+            "seek", "position", "beginning_offset", "end_offset", "eof_offset", "records_since_seek")):
+        raise RuntimeError("Typed actual native position/EOF/cardinality values required")
+    if any(type(eof.get(name)) is not int for name in (
+            "partition", "seek", "eof_offset", "position", "records_since_seek", "beginning_offset", "end_offset")):
+        raise RuntimeError("Typed actual native EOF values required")
+    if (position.get("label"), eof.get("label"), position.get("topic"), position["seek"]) != (
+            "public-consumer-position", "public-consumer-eof", eof.get("topic"), start):
+        raise RuntimeError("Native position and independently observed EOF must bind the same seek/topic")
+    if (position["position"], position["beginning_offset"], position["end_offset"],
+            position.get("position_semantics"), position["eof_offset"], position["records_since_seek"]) != (
+            expected_position, 0, end, "last-consumed-plus-one-or-invalid", end, len(expected_offsets)):
+        raise RuntimeError("Native raw position derives from last delivered record, with separate actual EOF/cardinality")
+    if (eof["partition"], eof["seek"], eof["eof_offset"], eof["position"], eof["records_since_seek"],
+            eof["beginning_offset"], eof["end_offset"]) != (
+            0, start, end, expected_position, len(expected_offsets), 0, end):
+        raise RuntimeError("Actual EOF/records/position/watermarks must independently agree")
+    return expected_position
+
+
+def validate_read_history(reader, producer, stage, observed):
+    """Check public native EOF separately from Java/Rust logical positions."""
+    if reader not in PRODUCERS or producer not in PRODUCERS or stage not in (
+            "initial", "first", "before-expiry", "expired", "restart", "appended"):
+        raise RuntimeError("Reviewed public reader/producer/stage required")
+    if (observed.get("operation"), observed.get("stage"), observed.get("prefix")) != (
+            "read", stage, "cp-" + producer):
+        raise RuntimeError("Actual reader receipt identity/stage required")
+    history = observed.get("history")
+    if not isinstance(history, list) or len(history) > 1024:
+        raise RuntimeError("Bounded actual public consumer history required")
+    records = [event for event in history if event.get("label") == "public-consumer-record"]
+    positions = [event for event in history if event.get("label") == "public-consumer-position"]
+    eofs = [event for event in history if event.get("label") == "public-consumer-eof"]
+    expected_labels = {"public-consumer-record", "public-consumer-position"}
+    if reader == "native":
+        expected_labels.add("public-consumer-eof")
+    if any(event.get("label") not in expected_labels for event in history):
+        raise RuntimeError("Unreviewed public consumer event")
+    if type(observed.get("records")) is not int or observed["records"] != len(records):
+        raise RuntimeError("Actual consumer record cardinality required")
+    if len(positions) != 9 or len(eofs) != (9 if reader == "native" else 0):
+        raise RuntimeError("Exactly nine seek positions and native EOF receipts required")
+    consumed = set()
+    selected_positions = set()
+    selected_eofs = set()
+    for scenario, initial_end in SCENARIOS.items():
+        end = initial_end + (stage == "appended")
+        topic = "cp-" + producer + "-" + scenario
+        if stage == "initial":
+            kept = list(range(initial_end))
+        elif scenario == "mixed":
+            kept = [2, 5, 8] + ([4, 7] if stage in ("first", "before-expiry") else [])
+        elif scenario == "removed":
+            kept = [3] + ([2] if stage in ("first", "before-expiry") else [])
+        else:
+            kept = [2]
+        if stage == "appended":
+            kept.append(initial_end)
+        starts = (0, 3 if scenario == "mixed" else 1, end)
+        for start in starts:
+            round_records = [(index, event) for index, event in enumerate(records)
+                             if event.get("seek") == start and event.get("record", {}).get("topic") == topic]
+            expected_offsets = sorted(offset for offset in kept if offset >= start)
+            if [event["record"].get("offset") for _, event in round_records] != expected_offsets:
+                raise RuntimeError("Exact retained native/public seek offsets and cardinality required")
+            for index, event in round_records:
+                if (event.get("stage") != stage or event["record"].get("partition") != 0
+                        or type(event.get("seek")) is not int
+                        or type(event["record"].get("partition")) is not int
+                        or type(event["record"].get("offset")) is not int):
+                    raise RuntimeError("Actual selected consumer partition/stage required")
+                consumed.add(index)
+            selected = [(index, event) for index, event in enumerate(positions)
+                        if event.get("seek") == start and event.get("topic") == topic]
+            if len(selected) != 1:
+                raise RuntimeError("Exactly one actual position receipt per seek required")
+            index, position = selected[0]
+            selected_positions.add(index)
+            expected_position = (expected_offsets[-1] + 1 if expected_offsets else -1001) if reader == "native" else end
+            if any(type(position.get(name)) is not int for name in (
+                    "seek", "position", "beginning_offset", "end_offset")):
+                raise RuntimeError("Typed actual public position values required")
+            if (position["position"], position["beginning_offset"], position["end_offset"]) != (
+                    expected_position, 0, end):
+                raise RuntimeError("SDK-specific actual position and unchanged public watermark required")
+            if reader == "native":
+                selected = [(index, event) for index, event in enumerate(eofs)
+                            if event.get("seek") == start and event.get("topic") == topic]
+                if len(selected) != 1:
+                    raise RuntimeError("Native INVALID position requires actual matching EOF; no INVALID-alone success")
+                index, eof = selected[0]
+                selected_eofs.add(index)
+                validate_native_frontier(position, eof, expected_offsets, start, end)
+    if len(consumed) != len(records) or len(selected_positions) != len(positions) or len(selected_eofs) != len(eofs):
+        raise RuntimeError("No extra or unbound public consumer receipts admitted")
+    return {"record_events": len(records), "position_events": len(positions), "native_eof_events": len(eofs)}
+
+
 def snapshot(source, output):
     output.mkdir()
     files, total = [], 0
@@ -57,6 +163,8 @@ def snapshot(source, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--peer-source-sha", required=True,
+                        help="Separate exact published helper/native-source pin; server and Rust remain --source-sha")
     parser.add_argument("--source-receipt", required=True, type=Path)
     parser.add_argument("--server-binary", required=True, type=Path)
     parser.add_argument("--toolchain", choices=("stable", "1.85.0"), required=True)
@@ -75,6 +183,8 @@ def main():
     args = parser.parse_args()
     if len(args.source_sha) != 40 or any(c not in "0123456789abcdef" for c in args.source_sha):
         parser.error("Full hexadecimal source pin required")
+    if len(args.peer_source_sha) != 40 or any(c not in "0123456789abcdef" for c in args.peer_source_sha):
+        parser.error("Full hexadecimal peer helper source pin required")
     if not 1024 <= args.port <= 65535:
         parser.error("Nonprivileged bounded TCP port required")
     args.scratch.mkdir(parents=True, exist_ok=False)
@@ -195,6 +305,8 @@ def main():
         observed = checked_json(report)
         if observed.get("passed") is not True:
             raise RuntimeError("Peer receipt did not pass")
+        if operation == "read":
+            item["independently_checked_read_history"] = validate_read_history(reader, producer, stage, observed)
         item.update(assertions=observed["assertions"], records=observed["records"])
         for topic, identity in observed["identities"].items():
             if len(identity) != 32 or any(c not in "0123456789abcdef" for c in identity) or identity == "0" * 32:
@@ -297,7 +409,13 @@ def main():
             states.append({"stage": "failure", **snapshot(server_dir, args.evidence / "state-failure")})
         receipts = {name: {"path": str(path), "sha256": sha(path)} for name, path in (
             ("source", args.source_receipt), ("java_build", args.java_build_receipt), ("native_build", args.native_build_receipt), ("rust_build", args.rust_build_receipt))}
-        report = {"schema_version": 1, "source_sha": args.source_sha, "passed": passed, "failure": failure,
+        report = {"schema_version": 1, "source_sha": args.source_sha,
+                  "peer_source_sha": args.peer_source_sha,
+                  "peer_source_scope": "Separately published helper/native fix; exact server and public Rust dependency remain source_sha.",
+                  "peer_source_files": {str(path.relative_to(source)): sha(path) for path in (
+                      source / "run-live.py", source / "compaction-native.c", source / "CompactionPeer.java",
+                      source / "rust-adopter/Cargo.toml", source / "rust-adopter/Cargo.lock", source / "rust-adopter/src/main.rs")},
+                  "passed": passed, "failure": failure,
                   "toolchain": args.toolchain, "features": args.features, "port": args.port,
                   "actual_peer_jobs": len(results), "results": results, "servers": servers, "states": states,
                   "operator_calls": operations, "public_topic_identities": identities, "receipts": receipts,

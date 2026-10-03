@@ -157,9 +157,19 @@ static void consume(const char *stage) {
             check(rd_kafka_assign(handle,assignment)==RD_KAFKA_RESP_ERR_NO_ERROR,"public manual assignment/seek");
             check(rd_kafka_seek_partitions(handle,assignment,5000)==RD_KAFKA_RESP_ERR_NO_ERROR && assignment->elems[0].err==RD_KAFKA_RESP_ERR_NO_ERROR,"actual public seek");
             rd_kafka_topic_partition_list_destroy(assignment); int64_t deadline=now_ms()+10000;
-            while((next<end || position(handle,name)<end) && now_ms()<deadline) {
+            int eof_seen=0; int64_t eof_offset=RD_KAFKA_OFFSET_INVALID; unsigned received=0;
+            int64_t last_delivered_offset=RD_KAFKA_OFFSET_INVALID;
+            while((next<end || !eof_seen) && now_ms()<deadline) {
                 rd_kafka_message_t *record=rd_kafka_consumer_poll(handle,100); if(!record) continue;
-                if(record->err==RD_KAFKA_RESP_ERR__PARTITION_EOF) { rd_kafka_message_destroy(record); continue; }
+                if(record->err==RD_KAFKA_RESP_ERR__PARTITION_EOF) {
+                    check(!eof_seen && next==end && record->rkt!=NULL && record->partition==0 && record->offset==end && strcmp(rd_kafka_topic_name(record->rkt),name)==0,"actual native EOF matches preserved LEO after exact records");
+                    eof_seen=1; eof_offset=record->offset;
+                    check(rd_kafka_query_watermark_offsets(handle,name,0,&low,&high,5000)==RD_KAFKA_RESP_ERR_NO_ERROR && low==0 && high==end,"public watermark independently matches native EOF");
+                    int64_t actual_position=position(handle,name);
+                    check(actual_position==(received?last_delivered_offset+1:RD_KAFKA_OFFSET_INVALID),"native position follows last consumed message or remains invalid after empty seek");
+                    event(); fprintf(output,"{\"label\":\"public-consumer-eof\",\"topic\":\"%s\",\"partition\":%d,\"seek\":%d,\"eof_offset\":%" PRId64 ",\"position\":%" PRId64 ",\"records_since_seek\":%u,\"beginning_offset\":%" PRId64 ",\"end_offset\":%" PRId64 "}",name,record->partition,start,eof_offset,actual_position,received,low,high);
+                    rd_kafka_message_destroy(record); continue;
+                }
                 check(record->err==RD_KAFKA_RESP_ERR_NO_ERROR && next<end && record->partition==0 && record->offset==next && strcmp(rd_kafka_topic_name(record->rkt),name)==0,"actual native seek skips holes");
                 rd_kafka_timestamp_type_t type; int64_t time=rd_kafka_message_timestamp(record,&type);
                 check(type==RD_KAFKA_TIMESTAMP_CREATE_TIME && time==times[s][next],"exact native CreateTime");
@@ -169,11 +179,13 @@ static void consume(const char *stage) {
                     check(rd_kafka_header_get_all(headers,i,&hname,&hvalue,&length)==RD_KAFKA_RESP_ERR_NO_ERROR,"native header access");
                     check(strcmp(hname,i==2?"e":"d")==0,"header name/order"); same(hvalue,length,i==0?"a":i==1?NULL:"","exact header bytes"); }
                 event(); fprintf(output,"{\"label\":\"public-consumer-record\",\"seek\":%d,\"stage\":\"%s\",\"record\":",start,stage);
-                receipt(name,record->offset,time,record->key,record->key_len,record->payload,record->len,headers); fputc('}',output); records++;
+                receipt(name,record->offset,time,record->key,record->key_len,record->payload,record->len,headers); fputc('}',output); records++; received++; last_delivered_offset=record->offset;
                 rd_kafka_message_destroy(record); next++; while(next<end && !retained(s,next,stage)) next++;
             }
-            check(next==end && position(handle,name)==end,"native consumer completes at preserved LEO"); event();
-            fprintf(output,"{\"label\":\"public-consumer-position\",\"topic\":\"%s\",\"seek\":%d,\"position\":%d,\"beginning_offset\":0,\"end_offset\":%d}",name,start,end,end);
+            int64_t actual_position=position(handle,name);
+            check(next==end && eof_seen && eof_offset==end && actual_position==(received?last_delivered_offset+1:RD_KAFKA_OFFSET_INVALID),"native consumer completes at actual EOF with SDK-specific position");
+            check(start!=end || received==0,"exact-end native seek returns no records"); event();
+            fprintf(output,"{\"label\":\"public-consumer-position\",\"topic\":\"%s\",\"seek\":%d,\"position\":%" PRId64 ",\"position_semantics\":\"last-consumed-plus-one-or-invalid\",\"eof_offset\":%" PRId64 ",\"records_since_seek\":%u,\"beginning_offset\":%" PRId64 ",\"end_offset\":%" PRId64 "}",name,start,actual_position,eof_offset,received,low,high);
         }
     }
     check(rd_kafka_consumer_close(handle)==RD_KAFKA_RESP_ERR_NO_ERROR,"bounded native close"); rd_kafka_destroy(handle);

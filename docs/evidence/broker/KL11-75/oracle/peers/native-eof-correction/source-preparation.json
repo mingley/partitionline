@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "scope": "Reviewed native EOF/consumed-position source correction plus complete preserved original failure and actual diagnostic. New native compilation and four qualifying live lanes remain pending.",
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": null,
+  "peer_source_pin_policy": "Use actual future pushed helper Git commit in --peer-source-sha and native bound compile receipt. Keep403broker/publicRust source_sha and acceptedJava source unchanged.",
+  "installed_helpers": [
+    {
+      "repo_path": "docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c",
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c",
+      "sha256": "99e75ca64e02807aa007379fbb8dfc9a0c017f9c3fe935f243a2dbba487eea03",
+      "bytes": 16245,
+      "full_mode": "0o600",
+      "git_blob_sha1": "f22606621ab5c3f7aedad02fa5b529edfce7083e",
+      "git_file_mode": "100644"
+    },
+    {
+      "repo_path": "docs/evidence/broker/KL11-75/oracle/peers/run-live.py",
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/run-live.py",
+      "sha256": "0cc6fdf46c5349630a93880beceb862f0b0e6c44694d4dc62b02661a3182f79d",
+      "bytes": 26479,
+      "full_mode": "0o600",
+      "git_blob_sha1": "c1ab12c21bd6f30859a8dcb4e3b86a02cf4064ae",
+      "git_file_mode": "100644"
+    },
+    {
+      "repo_path": "docs/evidence/broker/KL11-75/oracle/peers/test-live-histories.py",
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/test-live-histories.py",
+      "sha256": "5d61e3c5ec7c7529dcae739f924335324eee0f45f649977f5bb743b4aabbfce5",
+      "bytes": 11189,
+      "full_mode": "0o600",
+      "git_blob_sha1": "dbcf7c2cede89c7401a1e85564c13b0cf7991c06",
+      "git_file_mode": "100644"
+    }
+  ],
+  "packet": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/native-eof-correction/failure-diagnostic-proposals.json.gz",
+    "sha256": "d789c5d12214775210e4d344f3883282dd2088dd69c5d4aec3ac3ae9609c1180",
+    "bytes": 91829,
+    "full_mode": "0o600",
+    "decompressed_utf8_bytes": 828904,
+    "decompressed_sha256": "2b764bc34a32e2b33b891fd859ab1165fd1ef4ec8a05f097d9caf16a890112f2",
+    "file_entries": 226,
+    "original_bytes_total": 672820,
+    "group_counts": {
+      "original-live-failure": 181,
+      "original-live-supervision": 5,
+      "historical-source-build-bindings": 8,
+      "actual-observation-diagnostic": 14,
+      "native-eof-helper-proposal": 8,
+      "native-eof-helper-proposal-v2": 8,
+      "installed-helper-offline-controls": 2
+    },
+    "lossless_compression_and_every_original_byte_full07777mode_verified": true
+  },
+  "original_failure": {
+    "passed": false,
+    "actual_peer_jobs": 9,
+    "operator_calls": 0,
+    "actual_native_exit": 1,
+    "actual_server_exit": 0,
+    "complete_native_prefix_record_events": 15,
+    "supervision_sha256": "8c9741d5b2ddc4ed06279fdec544311468053872c5e2df7523d317203a1ced14",
+    "preservation_sha256": "4af5ebaa72e41be2ad5fc97cd9447d54aa5053d247fe67cc8b2bd593960e7352"
+  },
+  "actual_diagnostic": {
+    "receipt_sha256": "2fa6e1339ff25a8ed19d834b21668950124a4caeeb59bce371817d41dd685859",
+    "scope": "Observation-only Ccopy; unchanged failingpredicate reproducedexit1. Same403ELF/fresh copy/read-only persisted bytes and complete source guards unchanged.",
+    "actual_compile_commands": 1,
+    "actual_native_jobs": 1,
+    "actual_native_exit": 1,
+    "actual_server_launches": 1,
+    "actual_server_exit": 0,
+    "actual_separately_originated_raw_fetch6_requests": 1,
+    "native_observed_EOF": 9,
+    "native_observed_app_position": -1001,
+    "native_queried_high_watermark": 9,
+    "raw_probe": "Independent requestoffset9/error0/HW9/LSO9/start0/zero records, not actualnativeRPCbytes orcausality."
+  },
+  "reviewed_policy": "Native app position is last actual returned recordoffset+1, orOFFSET_INVALID if no returned records. EOFatLEO plus queriedHWatLEO verify the logical frontier independently, including empty reads belowLEO and trailingholes. Exact retained records/fields/cardinality stillrequired; INVALID alone never succeeds.",
+  "superseded_proposal_sha256": "7e0cbf1166fb9bef1a10a2e1167dc4f80358d4d96aa5587983f7228ca737bdf4",
+  "reviewed_v2_proposal_sha256": "803425b9b17ae92722f8487cd28bb7fdb378198f618d04c67d9f04898d569806",
+  "installed_source_offline_check": {
+    "argv": [
+      "taskset",
+      "-c",
+      "2,4",
+      "python3",
+      "-B",
+      "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/test-live-histories.py",
+      "--actual-receipts",
+      "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1",
+      "--output",
+      "/workspace/work/compaction-public-403be1e3/installed-helper-offline-controls.json"
+    ],
+    "exit_code": 0,
+    "source_before_after_unchanged": true,
+    "result": {
+      "path": "/workspace/work/compaction-public-403be1e3/installed-helper-offline-controls.json",
+      "sha256": "119b3c36b10a3fbd9ffb7a203d51418c6204a626694f63d731f86f94b7bcf112",
+      "bytes": 15939,
+      "full_mode": "0o600"
+    },
+    "log": {
+      "path": "/workspace/work/compaction-public-403be1e3/installed-helper-offline-controls.log",
+      "sha256": "c7dece5c94b6cd862d72ad21142c0967d725a857cee65fb739a0a52b6c2e81c3",
+      "bytes": 350,
+      "full_mode": "0o600"
+    },
+    "actual_Java_receipts_rechecked": 3,
+    "synthetic_positives": 11,
+    "synthetic_negative_controls": 40,
+    "new_compiler_or_broker_jobs": 0
+  },
+  "new_native_compile_jobs": 0,
+  "new_qualifying_live_lanes": 0,
+  "qualification_pass_claimed": false,
+  "future_mixed_source_guards": "Require complete71885 Git403 paths and complete futurehelperGit prefix paths/blobs/hashes/fullmodes beforeafter compile/live, with explicit source origins. Old4dc cohort remainshistorical."
+}

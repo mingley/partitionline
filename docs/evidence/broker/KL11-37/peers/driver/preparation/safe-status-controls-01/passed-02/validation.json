@@ -1,0 +1,63 @@
+{
+  "source_sha256": "7097d0001acde3563ebd70cb56324cbca308a7268e1132aaa06a2cc1d81c85f6",
+  "scope": "infrastructure childprocess status serialization only; zero broker/SDK/issuer/OAuth cohorts",
+  "passed": true,
+  "controls": [
+    {
+      "name": "pre-ready-exit",
+      "expected_readiness": false,
+      "observed_readiness": false,
+      "safe_status": {
+        "event": "process-cleanup-status",
+        "exit_code": 7,
+        "stdout_events": 0,
+        "stdout_receipt_rejected": false,
+        "stderr_bytes": 24,
+        "stderr_sha256": "17c364dbecb694100e0185cf8eb8397eca0322bac769568bcd46298bbdd6892b",
+        "stderr_retained": false,
+        "forced_close": false
+      },
+      "no_group_survivor": true,
+      "reader_threads_joined": true,
+      "passed": true
+    },
+    {
+      "name": "successful-ready",
+      "expected_readiness": true,
+      "observed_readiness": true,
+      "safe_status": {
+        "event": "process-cleanup-status",
+        "exit_code": 0,
+        "stdout_events": 1,
+        "stdout_receipt_rejected": false,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_retained": false,
+        "forced_close": false
+      },
+      "no_group_survivor": true,
+      "reader_threads_joined": true,
+      "passed": true
+    },
+    {
+      "name": "rejected-stdout",
+      "expected_readiness": false,
+      "observed_readiness": false,
+      "safe_status": {
+        "event": "process-cleanup-status",
+        "exit_code": 9,
+        "stdout_events": 0,
+        "stdout_receipt_rejected": true,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_retained": false,
+        "forced_close": false
+      },
+      "no_group_survivor": true,
+      "reader_threads_joined": true,
+      "passed": true
+    }
+  ],
+  "mandatory_readiness_not_weakened": true,
+  "raw_synthetic_stderr_or_rejected_stdout_bodies_retained": false
+}
