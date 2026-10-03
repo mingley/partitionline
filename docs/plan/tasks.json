@@ -46627,67 +46627,68 @@
       ]
     },
 {
-  "id": "KL11-75",
-  "title": "Compact ordinary keyed records through bounded durable sparse segment swaps",
-  "priority": "P1",
-  "kind": "implementation",
-  "status": "in_progress",
-  "owner": "codex-open-loop-20261003",
-  "depends_on": [
-    "KL11-09",
-    "KL11-10"
-  ],
-  "files": [
-    "partitionline-broker/src/compaction.rs",
-    "partitionline-broker/src/records.rs",
-    "partitionline-broker/src/partition.rs",
-    "partitionline-broker/src/segments.rs"
-  ],
-  "deliverable": "An actual persisted ordinary compaction path with sparse/empty read validation, preserved logical offset extents and crash-safe changed-generation publication.",
-  "acceptance": [
-    "Keep the last retained value per key, match independently executed Kafka null-key/tombstone horizon semantics, preserve uncompacted active/protected suffix and exact logical offsets. Unsupported transactional/control/producer-state cleaning stays fail-closed until aggregate11 qualifies it.",
-    "Separate ordinary contiguous Produce admission from sparse or empty compacted Fetch/recovery parsing; preserve legacy V1/V2 formats and resource bounds without reinterpreting old victim descriptors.",
-    "Interrupted publication/partial cleanup retains one authoritative recoverable generation; verify exact old/new record histories, no invented or missing retained values, monotonic floors and bounded key map/scratch/descriptor/FD peaks.",
-    "Use independent pinned Apache cleaner components, public Java/C/Rust retained reads and actual raw process/IO histories; retain failures and exact source-bound stable/MSRV checks."
-  ],
-  "validation": [
-    "Full actual-source stable/Rust1.85 default/all broker test/lint/fmt/docs checks and ordinary Produce/Fetch/retention regression profiles.",
-    "Independent raw changed-generation and key/tombstone oracle with checksum-valid negative controls."
-  ],
-  "evidence": [],
-  "write_set": [
-    "partitionline-broker/src/compaction.rs",
-    "partitionline-broker/src/records.rs",
-    "partitionline-broker/src/partition.rs",
-    "partitionline-broker/src/segments.rs",
-    "partitionline-broker/tests/compaction.rs",
-    "partitionline-broker/tests/records.rs",
-    "partitionline-broker/tests/partition.rs",
-    "partitionline-broker/tests/segments.rs",
-    "docs/evidence/broker/KL11-75/storage/",
-    "docs/plan/evidence/KL11-75.json"
-  ],
-  "delegated_write_sets": {
-    "codex-avro-adapter-20261003": [
-      "docs/evidence/broker/KL11-75/oracle/apache/",
-      "partitionline-broker/tests/fixtures/records-compacted/"
-    ],
-    "codex-coordinator-20261003": [
-      "partitionline-broker/src/lib.rs",
-      "partitionline-broker/src/metadata.rs",
-      "partitionline-broker/src/produce.rs",
-      "partitionline-broker/src/fetch.rs",
-      "partitionline-broker/tests/metadata.rs",
-      "partitionline-broker/tests/produce.rs",
-      "partitionline-broker/tests/fetch.rs",
-      "docs/evidence/broker/KL11-75/oracle/storage/",
-      "scripts/check-broker-api-matrix.py",
-      "tests/ci/test_broker_api_matrix.py",
-      "tests/conformance/broker/features.json",
-      "tests/conformance/broker/implemented-api-versions.json"
-    ]
-  },
-  "integration_coordinator": "Open_loop owns ordinary compaction core, sparse/empty batch read validation, preserved logical extents and new changed-generation publication; existing Produce admission stays strict. Avro independently owns true Apache cleaner/record components and declared fixtures; root owns shared exports, owner/Fetch integration, registry bindings and independent raw storage/key oracle. Agree typed hooks/format before edits; freeze foundations before final immutable QA. Parent11 retains transactional/control/producer-state semantics23/25 and cannot close from this ordinary child. No held client records/buf or unrelated security/Raft writes."
+      "id": "KL11-75",
+      "title": "Compact ordinary keyed records through bounded durable sparse segment swaps",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-open-loop-20261003",
+      "depends_on": [
+            "KL11-09",
+            "KL11-10"
+      ],
+      "files": [
+            "partitionline-broker/src/compaction.rs",
+            "partitionline-broker/src/records.rs",
+            "partitionline-broker/src/partition.rs",
+            "partitionline-broker/src/segments.rs"
+      ],
+      "deliverable": "An actual persisted ordinary compaction path with sparse/empty read validation, preserved logical offset extents and crash-safe changed-generation publication.",
+      "acceptance": [
+            "Keep the last retained value per key, match independently executed Kafka null-key/tombstone horizon semantics, preserve uncompacted active/protected suffix and exact logical offsets. Unsupported transactional/control/producer-state cleaning stays fail-closed until aggregate11 qualifies it.",
+            "Separate ordinary contiguous Produce admission from sparse or empty compacted Fetch/recovery parsing; preserve legacy V1/V2 formats and resource bounds without reinterpreting old victim descriptors.",
+            "Interrupted publication/partial cleanup retains one authoritative recoverable generation; verify exact old/new record histories, no invented or missing retained values, monotonic floors and bounded key map/scratch/descriptor/FD peaks.",
+            "Use independent pinned Apache cleaner components, public Java/C/Rust retained reads and actual raw process/IO histories; retain failures and exact source-bound stable/MSRV checks."
+      ],
+      "validation": [
+            "Full actual-source stable/Rust1.85 default/all broker test/lint/fmt/docs checks and ordinary Produce/Fetch/retention regression profiles.",
+            "Independent raw changed-generation and key/tombstone oracle with checksum-valid negative controls."
+      ],
+      "evidence": [],
+      "write_set": [
+            "partitionline-broker/src/compaction.rs",
+            "partitionline-broker/src/records.rs",
+            "partitionline-broker/src/partition.rs",
+            "partitionline-broker/src/segments.rs",
+            "partitionline-broker/tests/compaction.rs",
+            "partitionline-broker/tests/records.rs",
+            "partitionline-broker/tests/partition.rs",
+            "partitionline-broker/tests/segments.rs",
+            "docs/evidence/broker/KL11-75/storage/",
+            "docs/plan/evidence/KL11-75.json"
+      ],
+      "delegated_write_sets": {
+            "codex-avro-adapter-20261003": [
+                  "docs/evidence/broker/KL11-75/oracle/apache/",
+                  "partitionline-broker/tests/fixtures/records-compacted/",
+                  "docs/evidence/broker/KL11-75/oracle/peers/"
+            ],
+            "codex-coordinator-20261003": [
+                  "partitionline-broker/src/lib.rs",
+                  "partitionline-broker/src/metadata.rs",
+                  "partitionline-broker/src/produce.rs",
+                  "partitionline-broker/src/fetch.rs",
+                  "partitionline-broker/tests/metadata.rs",
+                  "partitionline-broker/tests/produce.rs",
+                  "partitionline-broker/tests/fetch.rs",
+                  "docs/evidence/broker/KL11-75/oracle/storage/",
+                  "scripts/check-broker-api-matrix.py",
+                  "tests/ci/test_broker_api_matrix.py",
+                  "tests/conformance/broker/features.json",
+                  "tests/conformance/broker/implemented-api-versions.json"
+            ]
+      },
+      "integration_coordinator": "Open_loop owns ordinary compaction core, sparse/empty batch read validation, preserved logical extents and new changed-generation publication; existing Produce admission stays strict. Avro independently owns true Apache cleaner/record components and declared fixtures; root owns shared exports, owner/Fetch integration, registry bindings and independent raw storage/key oracle. Agree typed hooks/format before edits; freeze foundations before final immutable QA. Parent11 retains transactional/control/producer-state semantics23/25 and cannot close from this ordinary child. No held client records/buf or unrelated security/Raft writes."
 },
 {
   "id": "KL11-76",
