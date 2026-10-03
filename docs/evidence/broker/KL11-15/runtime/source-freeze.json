@@ -12,7 +12,7 @@
     "partitionline-broker/tests/raft_snapshot.rs"
   ],
   "source_files": {
-    "partitionline-broker/src/raft/replication.rs": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
+    "partitionline-broker/src/raft/replication.rs": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
     "partitionline-broker/tests/raft_replication.rs": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
     "partitionline-broker/src/raft/snapshot.rs": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
     "partitionline-broker/tests/raft_snapshot.rs": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f"
@@ -159,5 +159,11 @@
         "sha256": "1ec95a9cf26f9c80097dc2e3ac6b33a5594a79610e6d77f7e31b2fe9109428ef"
       }
     ]
+  },
+  "artifact_writer_correction": {
+    "reason": "Actual immutable4ffd all-target strict Clippy rejected two disallowed std::fs::write calls in cfg(test) artifact recorder.",
+    "scope": "cfg(test)-only File::create/write_all helper; production behavior unchanged",
+    "receipt": "docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/validation.json",
+    "previous_freeze": "docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/source-freeze-before.json"
   }
 }

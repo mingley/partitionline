@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "immutable_source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "category": "environmental compile ENOSPC",
+  "product_code_failure": false,
+  "lint_failure": false,
+  "runtime_test_started": false,
+  "source_changed": false,
+  "raw_compiler_result": "runtime.log",
+  "owned_container_removed": "cleanup.log",
+  "fresh_same_source_retry_required": true
+}

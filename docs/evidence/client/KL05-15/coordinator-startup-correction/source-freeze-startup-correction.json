@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "phase": "narrow production startup correction frozen for root review/push; not final qualification",
+  "previous_pushed_source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "changed_source_paths": [
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs"
+  ],
+  "source_sha256": {
+    "src/share.rs": "cbc06e955dabc901c354d34c98f0f275d8c8c113019360bdb0f228963e7518d9",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "952516a79bc55b6980a27893f5d106cf0a1625538ef782c0a8a3f91f575cdb65",
+    "tests/share_semantics.rs": "80388e6b7b9d4dc5a945c2cfaf56a25895ac25f1941483f1729c6276362c6fad",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "unchanged_held_source_sha256": {
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "behavior": "Initial ShareGroup discovery retries only coordinator14/15/16 with configured bounded backoff and one absolute cfg.request_timeout deadline. Each attempt receives remaining request and connect budgets; timeout_at cancels over-budget owned transport. Other broker/auth/transport errors remain visible.",
+  "socket_proof": [
+    "Six typed14/15/16 errors across two exhausted immediate discovery passes recover on the seventh attempt and then deliver/accept exactrecord",
+    "GroupAuthorizationFailed and RequestTimedOut remain unchanged after one FindCoordinator attempt",
+    "Persistent15 obeys original80ms budget,25ms backoff and at most12FindCoordinator calls (onebootstrap,threepasses per discovery), endingTimeout"
+  ],
+  "preparation": {
+    "share_semantics_passed": 19,
+    "share_semantics_live_ignored": 1,
+    "full_surface_share_passed": 27,
+    "focused_all_feature_strict_clippy": "passed"
+  },
+  "retained_failures": [
+    "failed-first.json",
+    "../coordinator-first-0cff69bb/failure.json",
+    "../environment-first-0cff69bb/failure-classification.json"
+  ],
+  "final_gates": "New pushed source: fresh genuine pinned4.3.1 delivery +actual onebatch/fourJavaIDs, then full stable/MSRV default/allfeature clientQA; separate root three-release qualification remains required."
+}

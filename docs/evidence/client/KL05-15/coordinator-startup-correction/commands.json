@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "cwd": "/workspace/partitionline",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/client-share-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "cpu_affinity": "0-2,4"
+  },
+  "format": "rustfmt --edition 2021 src/share.rs tests/common/mod.rs tests/share_semantics.rs",
+  "commands": {
+    "failed-first-socket.log": "cargo test --offline --locked --test share_semantics",
+    "runtime-coordinator-correction-test.log": "cargo test --offline --locked --test share_semantics",
+    "runtime-coordinator-correction-clippy.log": "cargo clippy --offline --locked --lib --test share_semantics --test protocol_oracles --all-features -- -D warnings",
+    "runtime-coordinator-correction-full.log": "cargo test --offline --locked --test full_surface share"
+  }
+}

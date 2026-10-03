@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "product_source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "production_matches_checkpoint": {
+    "src/share.rs": "53982130bda0622517bfc4abba8b12f7a3a9f1d5de4aeb0b6137550d123be8be",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+  },
+  "results": "17 passed,2 failed,1 live ignored",
+  "actual_broker_failure": "../coordinator-first-0cff69bb/failure.json",
+  "socket_failures": [
+    "Six14/15/16 faults exceed three immediate passes; ShareGroup::join returns16 instead of retrying to success",
+    "Persistent15 returns broker error after three immediate attempts instead of staying within fixed80ms budget/backoff and endingTimeout"
+  ],
+  "scope": [
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs"
+  ],
+  "group_and_net_source_unchanged": true
+}

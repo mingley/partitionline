@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "parent_source_sha": "4ffd7557a2a35bfda931b0d0414b11264802dbc6",
+  "qualification": "narrow correction ready; final full pushed-source matrix pending",
+  "failed_gate": "docs/evidence/broker/KL11-15/runtime/final-4ffd7557/stable-default/clippy.log",
+  "prior_passed_tests": 240,
+  "change": "cfg(test) cut artifact recorder uses File::create/write_all through helper; no runtime change",
+  "old_source_sha256": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
+  "new_source_sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--lib",
+        "snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/writer-correction/source",
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/stable-test.log",
+      "sha256": "231de25a98b9cb4408e6534a60bcc8be701d0369137d4e55ceadc7bca76f6e27"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/writer-correction/source",
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/stable-clippy.log",
+      "sha256": "83e0c97bd89b3487b94f9dc1293ee9d71e1208684f4846a01a1c8cceaf2bda8b"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--lib",
+        "snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/writer-correction/source",
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/msrv-test.log",
+      "sha256": "f257b7870a3ba8b877bad6f981773d93d16912019d65701a30fa3b27a799958c"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/writer-correction/source",
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/msrv-clippy.log",
+      "sha256": "eff3f94668e6e2d597c57b86fddc512bf74e81421f8de206133d4f6f25242a6a"
+    }
+  ],
+  "results": {
+    "actual_owner_process_cut_tests_passed": 2,
+    "strict_all_target_default_clippy_cells_passed": 2
+  },
+  "whole_immutable_inputs_after_failed_gate": "docs/evidence/broker/KL11-15/runtime/final-source-4ffd7557/source-integrity-after-failed-gate.json"
+}

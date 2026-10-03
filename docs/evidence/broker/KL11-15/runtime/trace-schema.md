@@ -31,6 +31,11 @@ operation counts and selected descriptor. All complete generations are copied,
 including inactive ones. Parent reopening happens after an actual child process
 exits without owner Drop. Raw journals/images before and after recovery are the
 independent proof inputs; checksums/manifests are added when captures freeze.
+The child writes its final logical clock to `restart-now-ms.txt` before exit;
+parent owners reopen at that parsed value. This preserves one monotonic test
+clock across the process boundary. Earlier development captures reset the parent
+clock to zero and remain retained as rejected trace inputs; their recorded times
+are never rewritten.
 
 The separate `install-cut-{receipt,summary}` artifacts are narrower owner tests:
 synthetic typed configured-leader inputs prepare a genuine durable prefix and

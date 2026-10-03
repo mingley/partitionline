@@ -1,0 +1,81 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clean",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "-p",
+      "partitionline-broker"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-4ffd7557/source",
+    "log": "stable-clean.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.040611869997519534,
+    "sha256": "fd405273e51491e686614cb02a638239d2e0c84c6d4a820eec15e6646c2c3a9c"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-4ffd7557/source",
+    "log": "stable-default/tests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 21.58205450099922,
+    "sha256": "fa9bec648eb84ea5b3cfca2e5eaa8d847c2e096eb8f8e245cf6313e634af6a45"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/final-4ffd7557/stable-default/replication",
+      "--source-root",
+      "/workspace/work/snapshot-runtime/final-4ffd7557/source",
+      "--source-sha",
+      "4ffd7557a2a35bfda931b0d0414b11264802dbc6"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-4ffd7557/source",
+    "log": "stable-default/seal.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.062275885000417475,
+    "sha256": "4f9370c6ca63fa6d180d9d8304d8ffde282da15e6a7e9eefa6db32219cfee351"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-4ffd7557/source",
+    "log": "stable-default/clippy.log",
+    "exit_code": 101,
+    "elapsed_seconds": 5.0356366299965885,
+    "sha256": "692f715d1cfdb58ac76c2eeb8b287beca619f88aedeb753660344935d93e659d"
+  }
+]

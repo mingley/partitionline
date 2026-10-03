@@ -1,0 +1,31 @@
+[
+  {
+    "toolchain": "stable",
+    "features": "default",
+    "passed": 240,
+    "failed": 0,
+    "ignored": 0,
+    "suite_results": 21,
+    "replication_events": [
+      73,
+      121
+    ],
+    "snapshot_events": [
+      69,
+      102
+    ],
+    "independent_oracle_status": "pending separate receipt",
+    "snapshot_histories": [
+      {
+        "voters": 3,
+        "events": 69,
+        "raw_checkpoints": 17
+      },
+      {
+        "voters": 5,
+        "events": 102,
+        "raw_checkpoints": 25
+      }
+    ]
+  }
+]

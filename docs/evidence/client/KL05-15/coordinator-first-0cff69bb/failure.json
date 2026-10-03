@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "immutable_source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "failure": "ShareGroup::join returns Broker15 FindCoordinator after three immediate discovery passes while Kafka asynchronously creates __consumer_offsets.",
+  "runtime_started": true,
+  "share_delivery_started": false,
+  "source_sha256": {
+    "src/share.rs": "53982130bda0622517bfc4abba8b12f7a3a9f1d5de4aeb0b6137550d123be8be",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "0a555600e527ae846277c6e55128045fae6e72d0e2a6b89df7f8bdd9f910de32",
+    "tests/share_semantics.rs": "642252a07152c592702dedd9844241c6dd14b65e307df2ca8b7663f34b7d7c41",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "raw_logs": [
+    "runtime.log",
+    "broker.log"
+  ],
+  "broker_startup_events": [
+    "04:42:27.687 Sent auto-creation request for __consumer_offsets",
+    "04:42:27.719 Removed fetcher for __consumer_offsets-0",
+    "04:42:27.723 Loading producer state for __consumer_offsets-0"
+  ],
+  "proposed_scope": [
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs"
+  ],
+  "held_core_edits": false
+}

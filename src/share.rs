@@ -642,7 +642,41 @@ impl ShareGroup {
         // CoordinatorType.SHARE is only for share-partition state keys
         // (`groupId:topicId:partition`), not the group id alone (KIP-932).
 
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let discovery_deadline = Instant::now() + cfg.request_timeout;
+        let discovery_backoff = cfg
+            .retry_backoff
+            .min(cfg.retry_backoff_max)
+            .max(Duration::from_millis(1));
+        let coord = loop {
+            let remaining = discovery_deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let mut attempt_cfg = cfg.clone();
+            attempt_cfg.request_timeout = remaining;
+            attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
+            let result = tokio::time::timeout_at(
+                discovery_deadline.into(),
+                discover_coord(&attempt_cfg, &group_id, COORDINATOR_GROUP),
+            )
+            .await
+            .map_err(|_| Error::Timeout)?;
+            match result {
+                Ok(coord) => break coord,
+                Err(error)
+                    if error
+                        .broker_code()
+                        .is_some_and(error::coordinator_retriable) =>
+                {
+                    let remaining = discovery_deadline.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        return Err(Error::Timeout);
+                    }
+                    tokio::time::sleep(discovery_backoff.min(remaining)).await;
+                }
+                Err(error) => return Err(error),
+            }
+        };
 
         // Kafka 4.1 ShareGroupHeartbeat requires a client-generated member id
         // for the process lifetime. ShareFetch parses it as a base64url Uuid.

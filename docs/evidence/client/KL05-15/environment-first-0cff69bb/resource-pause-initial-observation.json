@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "reason": "Shared filesystem exhausted during concurrent immutable archive preparation, before any rustc child or runtime test. Root recovered headroom losslessly; peer coordination permits only focused share compile.",
+  "paused_owned_pids": [
+    802058,
+    805080
+  ],
+  "free_bytes_at_resume": 2683052032,
+  "four_broad_lanes": "held pending rpc cache release",
+  "source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "disposition": "environment pause, no QA/test result"
+}

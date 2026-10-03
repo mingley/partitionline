@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_sha": "4ffd7557a2a35bfda931b0d0414b11264802dbc6",
+  "passed": true,
+  "scope": "Exact committed four storage source/test hashes bind the existing independent static review; no runtime or fault execution claim.",
+  "candidate_review_sha256": "b3d164e4422e6b6e309f3956160a7ee45bfe05bd5a35954b8fd3fbd73bd3aa46",
+  "candidate_review": "docs/evidence/broker/KL11-10/oracle/apache/independent-storage-review.json",
+  "committed_reviewed_files": {
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "6a56a0b46daab18c7d1d98891746ae39dab2bf2b6e700211b8c27b0fe4369aea",
+      "git_blob": "9b9dc91c9c87f37f2338a6664fc96ebcc5f16866"
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "git_blob": "0bc345c66535113193ed7c99eee1d6b05aa46d84"
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "git_blob": "2bba4cea9cfaa0bc9f0c273a3fa7693b305c53ea"
+    },
+    "partitionline-broker/tests/partition.rs": {
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "git_blob": "938d336e4560023e240a1867713f9de45d578db8"
+    }
+  },
+  "review_status": "historical candidate review with subsequent scalar getter concern retained",
+  "pending_followup": "Open_loop subsequently identified that a poisoned Log.log_start_offset scalar can expose an unpublished target before first manifest durability, then reopen at the old floor. Store wire reads already fence poisoned handles. A separate committed_floor scalar correction is pending; this receipt binds source identity and does not qualify that getter behavior."
+}

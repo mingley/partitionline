@@ -354,6 +354,85 @@ async fn acknowledge_session_error_clears_old_acquisition_without_replaying_acce
 }
 
 #[tokio::test]
+async fn share_join_retries_only_typed_coordinator_startup_errors() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"startup")]).await;
+    for code in [
+        error::COORDINATOR_LOAD_IN_PROGRESS,
+        error::COORDINATOR_NOT_AVAILABLE,
+        error::NOT_COORDINATOR,
+        error::COORDINATOR_LOAD_IN_PROGRESS,
+        error::COORDINATOR_NOT_AVAILABLE,
+        error::NOT_COORDINATOR,
+    ] {
+        mock.fail_find_coordinator_once(code);
+    }
+    let mut group = ShareGroup::join(config(&mock), "startup", "t")
+        .await
+        .unwrap();
+    assert_eq!(mock.find_coordinator_calls(), 7);
+    assert!(mock
+        .find_coordinator_key_types()
+        .iter()
+        .all(|kind| *kind == 0));
+    let records = group.poll().await.unwrap();
+    assert_eq!(records.len(), 1);
+    group.accept(&records).await.unwrap();
+    group.leave().await.unwrap();
+
+    for terminal in [error::GROUP_AUTHORIZATION_FAILED, error::REQUEST_TIMED_OUT] {
+        let peer = common::Mock::start().await;
+        v2(&peer);
+        peer.fail_find_coordinator_once(terminal);
+        let result = ShareGroup::join(config(&peer), "terminal-discovery", "t").await;
+        assert!(result.is_err(), "terminal discovery unexpectedly succeeded");
+        if let Err(failure) = result {
+            assert_broker(failure, terminal);
+        }
+        assert_eq!(
+            peer.find_coordinator_calls(),
+            1,
+            "only coordinator14/15/16 are retried"
+        );
+    }
+}
+
+#[tokio::test]
+async fn share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    for _ in 0..64 {
+        mock.fail_find_coordinator_once(error::COORDINATOR_NOT_AVAILABLE);
+    }
+    let mut cfg = config(&mock);
+    cfg.request_timeout = Duration::from_millis(80);
+    cfg.retry_backoff = Duration::from_millis(25);
+    cfg.retry_backoff_max = cfg.retry_backoff;
+    let started = std::time::Instant::now();
+    let result = tokio::time::timeout(
+        Duration::from_secs(2),
+        ShareGroup::join(cfg, "startup-bounded", "t"),
+    )
+    .await
+    .unwrap();
+    assert!(
+        result.is_err(),
+        "persistent coordinator failure unexpectedly succeeded"
+    );
+    if let Err(failure) = result {
+        assert!(matches!(failure, Error::Timeout), "{failure:?}");
+    }
+    assert!(started.elapsed() >= Duration::from_millis(70));
+    let attempts = mock.find_coordinator_calls();
+    assert!(
+        (1..=12).contains(&attempts),
+        "one bootstrap,3passes per discovery,80ms/25ms fixed budget: {attempts}"
+    );
+    assert_eq!(mock.share_fetch_history().len(), 0);
+}
+
+#[tokio::test]
 async fn acknowledge_top_level_retry_advances_epoch_without_duplicate_accept() {
     let mock = common::Mock::start().await;
     v2(&mock);

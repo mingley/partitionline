@@ -3,7 +3,7 @@
   "task": "KL11-15",
   "status": "predeclared before mutation execution",
   "production_source": "partitionline-broker/src/raft/replication.rs",
-  "production_sha256": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
+  "production_sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
   "policy": "Each mutant is built in an isolated exact-source archive, never WORK; original guard-specific tests must pass, mutant must compile and fail the intended runtime assertion. Build/lint failures are not behavioral counterexamples. Retain source/log/binary hashes and restore each source before the next mutant. No sampling/performance claim.",
   "mutants": [
     {
@@ -24,5 +24,11 @@
       "old": "if image.descriptor != install.image {\n            return Err(Error::Corrupt);\n        }",
       "new": "if false {\n            return Err(Error::Corrupt);\n        }"
     }
-  ]
+  ],
+  "source_update": {
+    "previous_sha256": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
+    "reason": "cfg(test)-only artifact-writer lint correction after real4ffd failure",
+    "mutants_unchanged": true,
+    "execution_status": "none executed yet"
+  }
 }

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "status": "predeclared before mutation execution",
+  "production_source": "partitionline-broker/src/raft/replication.rs",
+  "production_sha256": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
+  "policy": "Each mutant is built in an isolated exact-source archive, never WORK; original guard-specific tests must pass, mutant must compile and fail the intended runtime assertion. Build/lint failures are not behavioral counterexamples. Retain source/log/binary hashes and restore each source before the next mutant. No sampling/performance claim.",
+  "mutants": [
+    {
+      "name": "committed-overlap",
+      "test": "snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert",
+      "old": "if entry.index <= self.committed || old.term == entry.term {",
+      "new": "if false {"
+    },
+    {
+      "name": "install-sync",
+      "test": "snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay",
+      "old": "out.extend_from_slice(&self.group);\n        self.journal.append(1, &out)?;",
+      "new": "out.extend_from_slice(&self.group);\n        // Deliberate unsafe counterexample: omit authoritative Install receipt."
+    },
+    {
+      "name": "image-descriptor-binding",
+      "test": "checksummed_snapshot_install_receipt_mutations_fail_replay",
+      "old": "if image.descriptor != install.image {\n            return Err(Error::Corrupt);\n        }",
+      "new": "if false {\n            return Err(Error::Corrupt);\n        }"
+    }
+  ]
+}

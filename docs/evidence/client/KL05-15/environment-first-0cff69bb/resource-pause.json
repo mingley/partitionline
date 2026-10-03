@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "reason": "Shared filesystem exhausted during concurrent immutable archive preparation. A later raw compiler log proves rustc had run and codegen failed ENOSPC before the process pause; no rustc child was present at the snapshot, which had been misinterpreted.",
+  "paused_owned_pids": [
+    802058,
+    805080
+  ],
+  "free_bytes_at_resume": 2683052032,
+  "four_broad_lanes": "held pending rpc cache release",
+  "source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "disposition": "environmental compilation ENOSPC, not lint/code/runtimeShare failure",
+  "initial_observation_retained": "resource-pause-initial-observation.json",
+  "actual_exit": "exit.json"
+}
