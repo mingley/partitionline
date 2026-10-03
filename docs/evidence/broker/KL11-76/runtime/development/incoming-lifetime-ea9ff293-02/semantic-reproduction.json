@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "basis": "unchanged ea9 production, one declared test overlay; selective66 experiment only",
+  "receipt": {
+    "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/validation.json",
+    "sha256": "f1876594e68aa118df6de7c6eae6e679e158759d6f2fb5738a573738cb3636c4"
+  },
+  "actual_commands": [
+    "taskset",
+    "-c",
+    "2,4",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--test",
+    "raft_membership",
+    "incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen",
+    "--",
+    "--exact",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "result": "valid Begin->unchanged Follower poll->first Chunk Err(InvalidPeer)",
+  "executed_cases": {
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0,
+    "filtered": 27
+  },
+  "raw_files_per_phase": 10,
+  "all_raw_durable_files_bytes_full07777_and_pathsets_identical_across_phases": true,
+  "phase_files": {
+    "before-poll": {
+      "1-02020202020202020202020202020202.election": {
+        "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+        "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+        "bytes": 431,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.wal": {
+        "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+        "bytes": 2566,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.election": {
+        "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.wal": {
+        "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+        "bytes": 1444,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.election": {
+        "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.wal": {
+        "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.election": {
+        "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.wal": {
+        "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "actual-facts.txt": {
+        "sha256": "0de54b2435f9cc8c88b86750b04c5abf5fbcf8e5d2e3eb4a3ac548b9615224f4",
+        "bytes": 1279,
+        "full07777": 384
+      }
+    },
+    "after-poll": {
+      "1-02020202020202020202020202020202.election": {
+        "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+        "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+        "bytes": 431,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.wal": {
+        "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+        "bytes": 2566,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.election": {
+        "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.wal": {
+        "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+        "bytes": 1444,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.election": {
+        "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.wal": {
+        "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.election": {
+        "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.wal": {
+        "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "actual-facts.txt": {
+        "sha256": "d9d9e582a5925401a29372721397cf7bb63b257d0d7d71277465040f4f952980",
+        "bytes": 1290,
+        "full07777": 384
+      }
+    },
+    "after-first-chunk": {
+      "1-02020202020202020202020202020202.election": {
+        "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+        "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+        "bytes": 431,
+        "full07777": 384
+      },
+      "1-02020202020202020202020202020202.wal": {
+        "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+        "bytes": 2566,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.election": {
+        "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+        "bytes": 1588,
+        "full07777": 384
+      },
+      "2-03030303030303030303030303030303.wal": {
+        "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+        "bytes": 1444,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.election": {
+        "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "3-04040404040404040404040404040404.wal": {
+        "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.election": {
+        "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+        "bytes": 958,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "full07777": 384
+      },
+      "4-05050505050505050505050505050505.wal": {
+        "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+        "bytes": 340,
+        "full07777": 384
+      },
+      "actual-facts.txt": {
+        "sha256": "c46fff0a3566684c8893f2b6db49a089a675d3701b5e4fa153714403210fa8cf",
+        "bytes": 1280,
+        "full07777": 384
+      }
+    }
+  },
+  "facts": {
+    "before-poll": "actual unchanged ea9 production; one declared regression overlay\nphase=before-poll\noffer=DynamicSnapshotRequest { context: Context { leader: Key { id: 1, directory: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] }, peer: Key { id: 4, directory: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5] }, configuration_epoch: 0 }, request: SnapshotRequest { leader: 1, peer: 4, sequence: 7, term: 2, leader_commit: 2, descriptor: Descriptor { generation: [61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61], base: LogPosition { term: 2, index: 2 }, records: 2, payload_bytes: 23, bytes: 431, checksum: 729818836 } } }\noutcome=valid Begin completed\nreceiver_state=State { local_id: 4, base_position: LogPosition { term: 0, index: 0 }, last_position: LogPosition { term: 0, index: 0 }, committed_end: 0, election: State { persistent: PersistentState { term: 2, voted_for: None, log: LogPosition { term: 0, index: 0 } }, role: Follower, leader: Some(1), deadline_ms: 26, granted_votes: 0, poisoned: false }, poisoned: false, ready: true, active_term: None, wal_durable_ops: 1, election_durable_states: 3, recovery: Recovery { original_file_bytes: 0, recovered_file_bytes: 24, recovered_entries: 0, truncated_bytes: 0, next_offset: 0, initialized: true } }\nreceiver_vote=None\n",
+    "after-poll": "actual unchanged ea9 production; one declared regression overlay\nphase=after-poll\noffer=DynamicSnapshotRequest { context: Context { leader: Key { id: 1, directory: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] }, peer: Key { id: 4, directory: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5] }, configuration_epoch: 0 }, request: SnapshotRequest { leader: 1, peer: 4, sequence: 7, term: 2, leader_commit: 2, descriptor: Descriptor { generation: [61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61], base: LogPosition { term: 2, index: 2 }, records: 2, payload_bytes: 23, bytes: 431, checksum: 729818836 } } }\noutcome=unchanged Follower poll completed\nreceiver_state=State { local_id: 4, base_position: LogPosition { term: 0, index: 0 }, last_position: LogPosition { term: 0, index: 0 }, committed_end: 0, election: State { persistent: PersistentState { term: 2, voted_for: None, log: LogPosition { term: 0, index: 0 } }, role: Follower, leader: Some(1), deadline_ms: 26, granted_votes: 0, poisoned: false }, poisoned: false, ready: true, active_term: None, wal_durable_ops: 1, election_durable_states: 3, recovery: Recovery { original_file_bytes: 0, recovered_file_bytes: 24, recovered_entries: 0, truncated_bytes: 0, next_offset: 0, initialized: true } }\nreceiver_vote=None\n",
+    "after-first-chunk": "actual unchanged ea9 production; one declared regression overlay\nphase=after-first-chunk\noffer=DynamicSnapshotRequest { context: Context { leader: Key { id: 1, directory: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] }, peer: Key { id: 4, directory: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5] }, configuration_epoch: 0 }, request: SnapshotRequest { leader: 1, peer: 4, sequence: 7, term: 2, leader_commit: 2, descriptor: Descriptor { generation: [61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61], base: LogPosition { term: 2, index: 2 }, records: 2, payload_bytes: 23, bytes: 431, checksum: 729818836 } } }\noutcome=Err(InvalidPeer)\nreceiver_state=State { local_id: 4, base_position: LogPosition { term: 0, index: 0 }, last_position: LogPosition { term: 0, index: 0 }, committed_end: 0, election: State { persistent: PersistentState { term: 2, voted_for: None, log: LogPosition { term: 0, index: 0 } }, role: Follower, leader: Some(1), deadline_ms: 26, granted_votes: 0, poisoned: false }, poisoned: false, ready: true, active_term: None, wal_durable_ops: 1, election_durable_states: 3, recovery: Recovery { original_file_bytes: 0, recovered_file_bytes: 24, recovered_entries: 0, truncated_bytes: 0, next_offset: 0, initialized: true } }\nreceiver_vote=None\n"
+  },
+  "limits": "Reproduction only; no candidate, no Finish/Finished or image selection success, no full-source qualification."
+}

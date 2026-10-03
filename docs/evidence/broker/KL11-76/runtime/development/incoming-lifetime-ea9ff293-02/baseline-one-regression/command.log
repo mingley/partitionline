@@ -1,0 +1,16 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 5.11s
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 1 test
+test incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen ... Error: InvalidPeer
+FAILED
+
+failures:
+
+failures:
+    incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--test raft_membership`

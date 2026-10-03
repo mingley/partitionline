@@ -1,0 +1,30 @@
+{
+  "args": [
+    "taskset",
+    "-c",
+    "0,1",
+    "python3",
+    "/workspace/work/raft-runtime-76/materializer-exact-audit-preparation-01/materialize-from-baseline-exact-audit.py",
+    "--source",
+    "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "--destination",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--receipt-directory",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29",
+    "--baseline-commit",
+    "7942fbac784b35220ae02f6983e6454399f42ba5",
+    "--baseline-root",
+    "/workspace/work/client-capabilities-source-7942fbac",
+    "--baseline-origin",
+    "/workspace/work/integration/client-capabilities-source-7942fbac/receipt.json",
+    "--baseline-origin-sha256",
+    "6b32de0a48931c1a7fcb85ae15165661f9303f501e5936c17c36cb1c570f4007"
+  ],
+  "exit": 0,
+  "cutoff": null,
+  "elapsed": 30.03195525400224,
+  "minimum_free": 813522944,
+  "free_after": 813522944,
+  "group_joined": true,
+  "passed": true
+}

@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "before": [
+    {
+      "path": "/workspace/work/snapshot-draft-db002076/source.tar",
+      "sha256": "168dec4f89af42b3f89e6e85b6c8dd33b1e60a503303d26edcbbf4a7d3be9c61",
+      "bytes": 160952320,
+      "full_mode": 384,
+      "dev": 27,
+      "inode": 1733121,
+      "links": 1,
+      "allocated": 160956416
+    },
+    {
+      "path": "/workspace/work/replication-final/db002076.tar",
+      "sha256": "168dec4f89af42b3f89e6e85b6c8dd33b1e60a503303d26edcbbf4a7d3be9c61",
+      "bytes": 160952320,
+      "full_mode": 384,
+      "dev": 27,
+      "inode": 1707677,
+      "links": 1,
+      "allocated": 160956416
+    }
+  ],
+  "after": [
+    {
+      "path": "/workspace/work/snapshot-draft-db002076/source.tar",
+      "sha256": "168dec4f89af42b3f89e6e85b6c8dd33b1e60a503303d26edcbbf4a7d3be9c61",
+      "bytes": 160952320,
+      "full_mode": 384,
+      "dev": 27,
+      "inode": 1733121,
+      "links": 2,
+      "allocated": 160956416
+    },
+    {
+      "path": "/workspace/work/replication-final/db002076.tar",
+      "sha256": "168dec4f89af42b3f89e6e85b6c8dd33b1e60a503303d26edcbbf4a7d3be9c61",
+      "bytes": 160952320,
+      "full_mode": 384,
+      "dev": 27,
+      "inode": 1733121,
+      "links": 2,
+      "allocated": 160956416
+    }
+  ],
+  "original_paths_bytes_full_modes_preserved": true,
+  "payloads_compressed_or_removed": false,
+  "allocation_saved": 160956416
+}

@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "state": "WORK-only prepared; no materialization/Cargo/run lease granted",
+  "basis_sha": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "immutable_basis": "/workspace/work/broker-merged-source-ea9ff293",
+  "basis_origin": "/workspace/work/integration/broker-merged-source-ea9ff293/receipt.json",
+  "basis_origin_sha256": "dfff18c792e4bba13a998b53b6696113476c9127b0d4c46e110c094738d73632",
+  "overlay": [
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/failing-first-overlay/partitionline-broker/tests/raft_membership.rs",
+      "sha256": "5efb967b1bc7a83a64bc4263c96ec1290311e5d9bb297a71747a14dc9f37086b",
+      "bytes": 77521,
+      "fullmode": 384,
+      "qualification": "ONE declared appended regression plus its fixture helper; original production exact ea9"
+    }
+  ],
+  "commands": [
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "clean",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-segments",
+      "--package",
+      "partitionline-broker"
+    ],
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_membership",
+      "incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen",
+      "--",
+      "--exact",
+      "--test-threads=1",
+      "--nocapture"
+    ]
+  ],
+  "expected_actual_branch": "one selected regression must execute; anticipated unchanged baseline rejects first Chunk after successful Begin/poll; do not accept compilation failure as semantic reproduction",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "source_guards": "Before/after every future command verify ALL73171 original ea9 Git paths/bytes/full07777 against origin complete-source map and Git; separately verify selected experiment complete pathset, Git blob/hash/fullmode rows plus ONE declared appended test overlay. Hardlink only verified originals; overlay owned fresh inode; no chmod/write baseline inode; worktree disjoint. Preserve selected manifest and original referenced complete map.",
+  "retention_guards": "all five active process-reference categories clear; preserve/verify every pre-existing and failed-run ELF before clean/build/copy; monitor350MiB and terminate only own process group on breach; preserve failure source and raw journals",
+  "forecast": {
+    "cache_bytes": 393508792,
+    "free_bytes_at_readonly_probe": 1220583424,
+    "cache_elf_paths": 116,
+    "uncompressed_gzip_upper_bound": 71090986,
+    "hardlink_source_and_audit_write_upper_bound": 1419510,
+    "additional_generated_peak_cap": 67108864,
+    "minimum_free_floor": 367001600,
+    "serial_required_free": 507669536,
+    "serial_fits_probe": true,
+    "parallel_client_forecast_including_same_floor": 822083584,
+    "aggregate_parallel_required_free": 962751520,
+    "parallel_fits_probe": true,
+    "recommended": "CPU2,4 lease and fresh aggregate forecast required; selective experiment can fit parallel budget at this read-only probe, no runtime or full-source qualification claimed"
+  },
+  "scope": "selective declared-overlay failing-first experiment, never complete-source qualification",
+  "selected_paths": [
+    ".cargo/audit.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "clippy.toml",
+    "partitionline-broker/Cargo.lock",
+    "partitionline-broker/Cargo.toml",
+    "partitionline-broker/src/catalog.rs",
+    "partitionline-broker/src/codecs.rs",
+    "partitionline-broker/src/compaction.rs",
+    "partitionline-broker/src/fetch.rs",
+    "partitionline-broker/src/journal.rs",
+    "partitionline-broker/src/lib.rs",
+    "partitionline-broker/src/metadata.rs",
+    "partitionline-broker/src/partition.rs",
+    "partitionline-broker/src/produce.rs",
+    "partitionline-broker/src/protocol.rs",
+    "partitionline-broker/src/raft/election.rs",
+    "partitionline-broker/src/raft/membership.rs",
+    "partitionline-broker/src/raft/mod.rs",
+    "partitionline-broker/src/raft/peer_codec.rs",
+    "partitionline-broker/src/raft/protocol.rs",
+    "partitionline-broker/src/raft/replication.rs",
+    "partitionline-broker/src/raft/runtime.rs",
+    "partitionline-broker/src/raft/snapshot.rs",
+    "partitionline-broker/src/records.rs",
+    "partitionline-broker/src/retention.rs",
+    "partitionline-broker/src/security/credentials.rs",
+    "partitionline-broker/src/security/mod.rs",
+    "partitionline-broker/src/security/oidc.rs",
+    "partitionline-broker/src/security/oidc/cache.rs",
+    "partitionline-broker/src/security/oidc/http.rs",
+    "partitionline-broker/src/security/oidc/introspection.rs",
+    "partitionline-broker/src/security/oidc/jwt.rs",
+    "partitionline-broker/src/security/oidc/sasl.rs",
+    "partitionline-broker/src/security/sasl.rs",
+    "partitionline-broker/src/security/session.rs",
+    "partitionline-broker/src/security/tls.rs",
+    "partitionline-broker/src/segments.rs",
+    "partitionline-broker/src/transport.rs",
+    "partitionline-broker/tests/common/raft_runtime.rs",
+    "partitionline-broker/tests/raft_membership.rs",
+    "src/lib.rs"
+  ],
+  "selected_baseline_pins": {
+    ".cargo/audit.toml": {
+      "bytes": 100,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1db6f9c7e89942ee066ae0553b71c59d8e960f3b",
+      "mode": "100644",
+      "sha256": "5f2f08393131dce2c1854abed8e1fbb3911e07981fc6656c7460d01ff8bdd36a"
+    },
+    "Cargo.lock": {
+      "bytes": 18165,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1960ec541c8ce1d38c103ac3cb55c772341a49a8",
+      "mode": "100644",
+      "sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9"
+    },
+    "Cargo.toml": {
+      "bytes": 4129,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7f0f02e7f09a81dc03298bc2b881246a7c6593aa",
+      "mode": "100644",
+      "sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13"
+    },
+    "clippy.toml": {
+      "bytes": 1522,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b328f709a75fd86c47e7029e8aa66e24247bdab2",
+      "mode": "100644",
+      "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+    },
+    "partitionline-broker/Cargo.lock": {
+      "bytes": 19487,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "726255a6aaa7abaa1663c536149fb185fea0ad44",
+      "mode": "100644",
+      "sha256": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146"
+    },
+    "partitionline-broker/Cargo.toml": {
+      "bytes": 2327,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "ce2dde014a2e2ccf1511ba7a3b5996591e4254cd",
+      "mode": "100644",
+      "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa"
+    },
+    "partitionline-broker/src/catalog.rs": {
+      "bytes": 28559,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "c6dbd6576dd12e814b76bec5fd6d9e578e43f624",
+      "mode": "100644",
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8"
+    },
+    "partitionline-broker/src/codecs.rs": {
+      "bytes": 22259,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b2163667c1a0c1e45dec02ccf32301e4f141a45e",
+      "mode": "100644",
+      "sha256": "28112daa3779f18da53d8dd3cb4db41019e6404f47ce710d744fb353baa5a0b4"
+    },
+    "partitionline-broker/src/compaction.rs": {
+      "bytes": 25367,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "071879ac51420f95d9d067c83e8b6ae19796e3d7",
+      "mode": "100644",
+      "sha256": "864840ca1fb90256bb9078ac49782fec5aed03d54dbf71adaa66ed6fc5af6962"
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "bytes": 24580,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "05781f41e5897ec485c7acfee95bad7947013716",
+      "mode": "100644",
+      "sha256": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8"
+    },
+    "partitionline-broker/src/journal.rs": {
+      "bytes": 48288,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "294d0173013f0d4dd0a79985e423d5bb10da986c",
+      "mode": "100644",
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c"
+    },
+    "partitionline-broker/src/lib.rs": {
+      "bytes": 848,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "9b129643b0bd4754918cc90be4c3633366332693",
+      "mode": "100644",
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77"
+    },
+    "partitionline-broker/src/metadata.rs": {
+      "bytes": 99234,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e47d607e5c35995bdf0b409c9550a5a9143b0273",
+      "mode": "100644",
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f"
+    },
+    "partitionline-broker/src/partition.rs": {
+      "bytes": 18396,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "dcd78f641e1fb6d9942ed3994d4a810c08873404",
+      "mode": "100644",
+      "sha256": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca"
+    },
+    "partitionline-broker/src/produce.rs": {
+      "bytes": 40354,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "048bc0f205ef3502d067799e7f30c6d644b00af0",
+      "mode": "100644",
+      "sha256": "2d85a339af47a8a6732d5b3e5d98d3fff691e99e0fbfc280dddf53a384c673b7"
+    },
+    "partitionline-broker/src/protocol.rs": {
+      "bytes": 13554,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "ef4b58ac44dd7b93b91b61f64654002898c72b48",
+      "mode": "100644",
+      "sha256": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a"
+    },
+    "partitionline-broker/src/raft/election.rs": {
+      "bytes": 66814,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "17b04d90a1eeac17ba2b0f564f17513256375ad0",
+      "mode": "100644",
+      "sha256": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a"
+    },
+    "partitionline-broker/src/raft/membership.rs": {
+      "bytes": 22326,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "bf1867f60a633cbb3f6275aabcc0e609e3dcdc2d",
+      "mode": "100644",
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f"
+    },
+    "partitionline-broker/src/raft/mod.rs": {
+      "bytes": 611,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b45b16c315811b96bdb16364ae22bab8b1275bfa",
+      "mode": "100644",
+      "sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46"
+    },
+    "partitionline-broker/src/raft/peer_codec.rs": {
+      "bytes": 27638,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "d1fb1a209e1f2faf8a6d2529dd925328ba0eda1f",
+      "mode": "100644",
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c"
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "bytes": 37801,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "21decf8d174594c8ef2622873bd4e39b42c1e517",
+      "mode": "100644",
+      "sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a"
+    },
+    "partitionline-broker/src/raft/replication.rs": {
+      "bytes": 175742,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "bceffc03cff762a29566552041dc454056a80e30",
+      "mode": "100644",
+      "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f"
+    },
+    "partitionline-broker/src/raft/runtime.rs": {
+      "bytes": 96127,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "8f2b0afdf43f33cd11b0d96b7a22c7b538a2dc05",
+      "mode": "100644",
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53"
+    },
+    "partitionline-broker/src/raft/snapshot.rs": {
+      "bytes": 52384,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "3eb10bf0f4cfad0674bc9c1f0e5aded6d1f60f3b",
+      "mode": "100644",
+      "sha256": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db"
+    },
+    "partitionline-broker/src/records.rs": {
+      "bytes": 30302,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "11fa91668ec977597069af24936bfbe90db936e9",
+      "mode": "100644",
+      "sha256": "150fa65d2b4ad3b7075bcc392af7e6e4ae1538abe4b1458c277db00ae3169cf1"
+    },
+    "partitionline-broker/src/retention.rs": {
+      "bytes": 16390,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "57604484a7d6f563c1a643423c1410a7d70513d9",
+      "mode": "100644",
+      "sha256": "da9a74aec25080b48b0dd0bbf82b223cafb1126064a53cbf3af0d245eff9547b"
+    },
+    "partitionline-broker/src/security/credentials.rs": {
+      "bytes": 35510,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "71a2c7494e28e4e3dc207417edad26a66b7a4d17",
+      "mode": "100644",
+      "sha256": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938"
+    },
+    "partitionline-broker/src/security/mod.rs": {
+      "bytes": 267,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "3bc875e898b8df66ccf2658a38905c4409d7d2f1",
+      "mode": "100644",
+      "sha256": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409"
+    },
+    "partitionline-broker/src/security/oidc.rs": {
+      "bytes": 21211,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a10db8a0d12382382eb44d5c1f78670b36504808",
+      "mode": "100644",
+      "sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab"
+    },
+    "partitionline-broker/src/security/oidc/cache.rs": {
+      "bytes": 32310,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "f627ef298675777d2cea2c09b608e334569cf9c4",
+      "mode": "100644",
+      "sha256": "87f7ead09a741e6b95546fcb54ed237ef88e6955963e8c27fab1fea4227eb011"
+    },
+    "partitionline-broker/src/security/oidc/http.rs": {
+      "bytes": 18812,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "99425acfd1ef3ba832d13f658d2d4f8d247dd9fb",
+      "mode": "100644",
+      "sha256": "bfc60d9fde04eaff23c729c5b89ff9ed756eea5ed4bce7245536c87a147ed0fe"
+    },
+    "partitionline-broker/src/security/oidc/introspection.rs": {
+      "bytes": 6778,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "48b9531f66b108e1583a02d04915436a5c4c9c1f",
+      "mode": "100644",
+      "sha256": "3db692d142611b7aa40674cab9c4aafca3c95708deace9e93cfd1e5ae0c418f2"
+    },
+    "partitionline-broker/src/security/oidc/jwt.rs": {
+      "bytes": 35775,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "3fe2f4195cf36b7d9d4e337cf4688d5c89f55397",
+      "mode": "100644",
+      "sha256": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536"
+    },
+    "partitionline-broker/src/security/oidc/sasl.rs": {
+      "bytes": 4148,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "5861b00e29997e155521cb74ae3c22a7a80ce535",
+      "mode": "100644",
+      "sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344"
+    },
+    "partitionline-broker/src/security/sasl.rs": {
+      "bytes": 47494,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "44df7d91c572a78c88c2c96f56340b8cd8ef3441",
+      "mode": "100644",
+      "sha256": "dbd72a443485e67f5ebb5cbe59d48cfca9439f9eefae013e91076cdc724caf1e"
+    },
+    "partitionline-broker/src/security/session.rs": {
+      "bytes": 57296,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fc4da3ef53ec797342bc0ac4f3d18310c5f2441b",
+      "mode": "100644",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+    },
+    "partitionline-broker/src/security/tls.rs": {
+      "bytes": 12136,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "756d2ef3b011b4d47f7e39f15b758bbd229dee20",
+      "mode": "100644",
+      "sha256": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040"
+    },
+    "partitionline-broker/src/segments.rs": {
+      "bytes": 126373,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "17be802a1977f436704b1a76c3a9c8f83c6639e6",
+      "mode": "100644",
+      "sha256": "14998f8873bcf41ae9f5eabb40c7cd8932897e217b81c04eea31ff3f79dd8f3e"
+    },
+    "partitionline-broker/src/transport.rs": {
+      "bytes": 31777,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "215237efec3e8d0ae5166afb431fcb43cdcb5d04",
+      "mode": "100644",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+    },
+    "partitionline-broker/tests/common/raft_runtime.rs": {
+      "bytes": 31258,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "c5b18055c09e4573571b095ec0b94b34707277b0",
+      "mode": "100644",
+      "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047"
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "bytes": 72376,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "874677ed274c1ca699f6e484be41b768977eab13",
+      "mode": "100644",
+      "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b"
+    },
+    "src/lib.rs": {
+      "bytes": 211438,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "4be2457bdda9524e58175cf2260df3348e369a9d",
+      "mode": "100644",
+      "sha256": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+    }
+  },
+  "selected_files": 42,
+  "selected_baseline_bytes": 1638263,
+  "compiler_input_review": {
+    "broker_is_workspace_excluded": true,
+    "broker_has_own_lock": true,
+    "broker_has_no_local_path_dependencies": true,
+    "new_selected_test_has_no_repository_fixture_imports": true,
+    "default_library_cfg_test": false,
+    "cfg_test_library_include_expansions_not_in_this_test_target": "runtime shared unit body, segment/metadata fixtures and SASL fixtures are behind cfg(test); selected shared runtime source copied as a bounded precaution; final library-unit experiments need more fixture inputs",
+    "parent_manifest_parse_support": "root Cargo.toml/lock and src/lib.rs retained so excluded workspace/package autodiscovery cannot fail merely from an absent parent target",
+    "root_cargo_config": "none exists in exact basis; .cargo/audit.toml retained; explicit toolchain/env/offline flags will be bound",
+    "qualification_limit": "exact source file identities and original complete-source guards, but selective package discovery differs; compiler failure must be kept separately and never called the desired behavioral failure"
+  },
+  "capture": "three phases bounded2MiB each plus <=8KiB facts; source/destination bytes compared with bounded reads and full07777 checked before/after copy",
+  "raw_capture_bytes_upper_bound": 6316032
+}

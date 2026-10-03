@@ -1,0 +1,126 @@
+{
+  "passed": true,
+  "object_count": 36001,
+  "object_inventory_sha256": "3b3b6a3cfb2662c5c129d4b4c98fe5ba8033bde85b6a6ae6db0af85831cd3c98",
+  "allocated_before": 168534016,
+  "allocated_after": 129712128,
+  "free_before": 731627520,
+  "free_after": 762761216,
+  "commands": [
+    {
+      "name": "before-objects",
+      "args": [
+        "git",
+        "cat-file",
+        "--batch-all-objects",
+        "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 731627520,
+      "elapsed": 0.201017450002837
+    },
+    {
+      "name": "before-head",
+      "args": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 729796608,
+      "elapsed": 0.20075353200081736
+    },
+    {
+      "name": "before-status",
+      "args": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "-z"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 729792512,
+      "elapsed": 0.4012376699974993
+    },
+    {
+      "name": "repack",
+      "args": [
+        "taskset",
+        "-c",
+        "0,1",
+        "git",
+        "-c",
+        "pack.threads=1",
+        "-c",
+        "pack.windowMemory=64m",
+        "repack",
+        "-a",
+        "-d",
+        "--keep-unreachable"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 641183744,
+      "elapsed": 8.015601735998644
+    },
+    {
+      "name": "after-objects",
+      "args": [
+        "git",
+        "cat-file",
+        "--batch-all-objects",
+        "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 764600320,
+      "elapsed": 0.20075071600149386
+    },
+    {
+      "name": "after-head",
+      "args": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 762769408,
+      "elapsed": 0.20074485198711045
+    },
+    {
+      "name": "after-status",
+      "args": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "-z"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 762765312,
+      "elapsed": 0.20072147699829657
+    },
+    {
+      "name": "fsck",
+      "args": [
+        "taskset",
+        "-c",
+        "0,1",
+        "git",
+        "fsck",
+        "--full",
+        "--no-dangling"
+      ],
+      "exit": 0,
+      "cutoff": null,
+      "minimum_free": 762761216,
+      "elapsed": 4.608485118995304
+    }
+  ],
+  "pruning": false,
+  "reflogs_expired": false
+}
