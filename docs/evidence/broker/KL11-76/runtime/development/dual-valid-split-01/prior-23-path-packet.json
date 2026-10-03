@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "source_before": "4e13fa8211fe98fbcdfbaddea5362dcef6b892d1",
+  "paths": [
+    "partitionline-broker/src/raft/runtime.rs",
+    "partitionline-broker/tests/raft_runtime.rs",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/README.md",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/guard-functions.py",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/guard-provenance.json",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/run-focused.py",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/command.exit",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/command.log",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/disk-monitor.jsonl",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/before.json",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/correction.patch",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/format.exit",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/format.log",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/msrv-check.exit",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/msrv-check.log",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/stable-check.exit",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/stable-check.log",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/validation.json",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-origin.json",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/command.exit",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/command.log",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/disk-monitor.jsonl",
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/validation.json"
+  ],
+  "identities": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "ee7cfa530d09c5955e72a8c5c72bdbdebffcebfff9af73240beedf6a6c49bcc3",
+      "bytes": 96120,
+      "mode": 384
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "5b889b0bddaf2aba8a1280ebbb87975a3a4219d69eaa7c6085b152511292f42b",
+      "bytes": 31417,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/README.md": {
+      "sha256": "82312af23131c2540f744647ab945dc32a229caeb0080b435f0bde8bc890b519",
+      "bytes": 1227,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/guard-functions.py": {
+      "sha256": "4c7f8396a9ae51f326cf643268f77584fa723d7cbad918bcc126525dd326f55b",
+      "bytes": 13323,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/guard-provenance.json": {
+      "sha256": "10d960806da3af4359897f6424ee465876a9cb2b8e972b554adf49cd81f2bf95",
+      "bytes": 738,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/driver/run-focused.py": {
+      "sha256": "2fdeb400e15b3bd9e83316f8a68f8073593ec5fbf8589f62e696c2e779b75c08",
+      "bytes": 7784,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/command.exit": {
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/command.log": {
+      "sha256": "a8dfb7e517eafa8e32257b496f0e5314f6972375a18f99bb04cef9624709a1f6",
+      "bytes": 37,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/package-clean/disk-monitor.jsonl": {
+      "sha256": "0aec04e9ad7c9f4ab821b25ad737254ece9b9fcf31f2809ce098745c35d497f2",
+      "bytes": 396,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/before.json": {
+      "sha256": "2b14179681cd820639533270dd21af5515051e9a4e417ad5242ae3b024624025",
+      "bytes": 347,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/correction.patch": {
+      "sha256": "25ee7b541ee52ad5537b666a7eb043676b8b6841ddbe6540fae022620da3859b",
+      "bytes": 1356,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/format.exit": {
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/msrv-check.exit": {
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/msrv-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/stable-check.exit": {
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/stable-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-correction/validation.json": {
+      "sha256": "6182e2584f9cef8514e7792aea7c27d5448e06aa2aca7923b21b37ca2e32805b",
+      "bytes": 1993,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/source-origin.json": {
+      "sha256": "468efae43034531e1c94d534ea618414d74aa22e397589ab65e4702bf7144311",
+      "bytes": 1453,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/command.exit": {
+      "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "bytes": 4,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/command.log": {
+      "sha256": "0deaa6f90a840c5f7e79676adf11d3b32fbf741fe7086f057c812a78d36ba84f",
+      "bytes": 1197,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/stable-default-runtime-tests/disk-monitor.jsonl": {
+      "sha256": "5c51a67b85d84baffcc5b86b08628ba3db83ba400ad4567b43f03945bf9764bf",
+      "bytes": 1214,
+      "mode": 384
+    },
+    "docs/evidence/broker/KL11-76/runtime/development/diagnostic-4e13fa82-01/validation.json": {
+      "sha256": "21f1853c9d2422d1d406820acdcd4733d24bb56dca292e30f4d68488f892f787",
+      "bytes": 367364,
+      "mode": 384
+    }
+  },
+  "compiler_commands_after_correction": 0,
+  "private_runtime_unqualified": true,
+  "no_compiled_artifacts_in_staging": true
+}

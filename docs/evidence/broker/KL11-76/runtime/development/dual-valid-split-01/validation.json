@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "reason": "crate-level docs must remain in integration wrapper; include! shared body cannot contain inner docs",
+  "source_before": "4e13fa8211fe98fbcdfbaddea5362dcef6b892d1",
+  "prior_fix_packet": "/workspace/work/raft-runtime-76/development/dual-valid-split-01/prior-23-path-packet.json",
+  "files": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+      "bytes": 96127,
+      "full_permission_mode": 384
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "53308755744ab1d075a31a97928bcc6a990f536087eb2d600be576370bbb2dd6",
+      "bytes": 196,
+      "full_permission_mode": 384
+    },
+    "partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+      "bytes": 31258,
+      "full_permission_mode": 384
+    }
+  },
+  "body_sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+  "body_exact_after_format": true,
+  "commands": [
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--check",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--check",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "type_checks_executed": 0,
+  "tests_executed": 0,
+  "cargo_invocations": 0
+}

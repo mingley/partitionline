@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "reason": "actual4e13 immutable stable testcompile missingcrate docs and two unusedimports; no test ran",
+  "failed_source": "4e13fa8211fe98fbcdfbaddea5362dcef6b892d1",
+  "scope": "crate docs and conditional/unusedimports only",
+  "files": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "ee7cfa530d09c5955e72a8c5c72bdbdebffcebfff9af73240beedf6a6c49bcc3",
+      "bytes": 96120,
+      "full_permission_mode": 384
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "5b889b0bddaf2aba8a1280ebbb87975a3a4219d69eaa7c6085b152511292f42b",
+      "bytes": 31417,
+      "full_permission_mode": 384
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "cargo_after_correction": 0,
+  "tests_after_correction": 0,
+  "compiled_artifacts_retained_outside_git": true
+}

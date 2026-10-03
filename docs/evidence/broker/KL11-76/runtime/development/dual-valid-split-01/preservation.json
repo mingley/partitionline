@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "before": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "ee7cfa530d09c5955e72a8c5c72bdbdebffcebfff9af73240beedf6a6c49bcc3",
+      "bytes": 96120,
+      "mode": 384
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "5b889b0bddaf2aba8a1280ebbb87975a3a4219d69eaa7c6085b152511292f42b",
+      "bytes": 31417,
+      "mode": 384
+    }
+  },
+  "body_sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+  "body_bytes": 31258,
+  "shared_body_exact_original_after_crate_docs": true,
+  "integration_wrapper": "partitionline-broker/tests/raft_runtime.rs",
+  "unit_alias_retained": true,
+  "behavior_change": false,
+  "previous_packet_sha256": "336c279d29923e6e74fb3a964c5eee0bb037ecd1fe55718246afa06af50050da"
+}

@@ -1,0 +1,32 @@
+diff --git a/partitionline-broker/src/raft/runtime.rs b/partitionline-broker/src/raft/runtime.rs
+index 2534b906..da2719a9 100644
+--- a/partitionline-broker/src/raft/runtime.rs
++++ b/partitionline-broker/src/raft/runtime.rs
+@@ -13,10 +13,12 @@ use super::{
+     replication::{self, ChangeReceipt, DynamicSnapshotRequest, Node, Record, State},
+     snapshot,
+ };
++#[cfg(test)]
++use std::path::Path;
+ use std::{
+     fmt, io,
+     net::{IpAddr, SocketAddr},
+-    path::{Path, PathBuf},
++    path::PathBuf,
+     sync::{
+         atomic::{AtomicBool, AtomicUsize, Ordering},
+         Arc,
+diff --git a/partitionline-broker/tests/raft_runtime.rs b/partitionline-broker/tests/raft_runtime.rs
+index 68c9bbcd..8c81e6dd 100644
+--- a/partitionline-broker/tests/raft_runtime.rs
++++ b/partitionline-broker/tests/raft_runtime.rs
+@@ -1,7 +1,6 @@
+-// Public-runtime TCP/process tests. Also included in the lib-unit test artifact
+-// so the cfg(test)-only owner-local causal/WAL capture can observe these cases.
++//! Public-runtime TCP/process tests, also included in the lib-unit artifact
++//! so the cfg(test)-only owner-local causal/WAL capture can observe these cases.
+ use partitionline_broker::raft::{
+-    election::Role,
+     membership::{Bootstrap, Endpoint, Key, Voter, Voters},
+     protocol,
+     runtime::{Config, Limits, Paths, Peer, Runtime, StorageLimits},

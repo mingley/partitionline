@@ -13,10 +13,12 @@ use super::{
     replication::{self, ChangeReceipt, DynamicSnapshotRequest, Node, Record, State},
     snapshot,
 };
+#[cfg(test)]
+use std::path::Path;
 use std::{
     fmt, io,
     net::{IpAddr, SocketAddr},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
@@ -2095,7 +2097,7 @@ mod tests {
     // owner-local raw/WAL hook without adding a production fault surface.
     include!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/tests/raft_runtime.rs"
+        "/tests/common/raft_runtime.rs"
     ));
 }
 
