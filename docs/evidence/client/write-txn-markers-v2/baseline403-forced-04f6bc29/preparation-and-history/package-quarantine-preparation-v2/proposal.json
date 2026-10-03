@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "status": "frozen_WORK-only_proposal; no actual quarantine/compiler GO inferred",
+  "prepared_at_unix": 1791059282.4423935,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "source_root": "/workspace/work/client-capabilities-source-04f6bc29",
+  "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+  "runner": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v2.py",
+    "sha256": "6c64161cca8cde4eb0a367fce475ece8c2dff7fabe5df3a2db3fe0e38c2bc081",
+    "bytes": 53721,
+    "full_mode": 384
+  },
+  "proposal_patch": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/runner.proposed.patch",
+    "sha256": "50aa23c11c70bd993cae15a444704776e65e6cd20212ea47f42143487e07541c",
+    "bytes": 3487,
+    "full_mode": 384
+  },
+  "frozen_v5_predecessor": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py",
+    "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+    "bytes": 49877,
+    "full_mode": 384
+  },
+  "actual_v5_failed_attempt": {
+    "root": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01",
+    "closed_artifact_map_sha256": "84f5be5cc7576ceeaf69a843d36979a96c91bf9501c785fcdd93257365d43cc9",
+    "postguard_sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+    "actual_observation": "177B marker repaired; Cargo dryrun exit0 printed16 reviewed fingerprint files versus25 and rejected; no real clean/compiler/tests"
+  },
+  "same_selected_original403_scope": {
+    "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+    "exact_inputs": 66,
+    "compiler_manifest_sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+    "explicit_test_helper_overlays": 5,
+    "overlay_map_sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+    "whole_old_tree_qualification": false,
+    "hidden_product_overlays": false
+  },
+  "guard_contract": {
+    "first_actual_Docker_API_zero_running_workloads": true,
+    "second_actual_Docker_API_after_quarantine_zero_running_workloads": true,
+    "same_exact_rootdaemon_exception_allowlist_sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+    "nonexempt_unreadable_live_process_or_target_reference": "reject",
+    "universal_allPID_readability_or_noowner_claim": false,
+    "all609_SHA_bytes_full07777_mtimes_before_invalidation": true,
+    "all25_existing_gzip_bytes_decompression_and_raw_inodes_verified": true,
+    "current_standard_marker_checked_without_repair": "caeb86a5f72cec3de50e68d39b59218c678c5280c2775e0697837ad880987514"
+  },
+  "invalidation": {
+    "kind": "reversible_exact25_atomicrename_no_Cargo_cleanup",
+    "target": "/workspace/work/client-share-target",
+    "target_expected_dev_inode_uid_mode": [
+      27,
+      524404,
+      1000,
+      448
+    ],
+    "quarantine_directory": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01",
+    "fresh_exclusive_owned0700_same_filesystem": true,
+    "exact25_original_map_sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+    "exact_aftercache_files": 584,
+    "exact_quarantine_raw_files": 25,
+    "retained_original_bytes": 89426248,
+    "retained_original_allocated_bytes": 89194496,
+    "reclaimed_file_bytes": 0,
+    "raw_copy_delete_reencode_or_chmod": false,
+    "dependency_marker_or_unreviewed_cache_changes": false,
+    "per_file_planned_and_completed_fsynced_ledger": true,
+    "recorded_source_destination_SHA_bytes_fullmode_mtime_inode": true,
+    "on_partial_or_ambiguous_rename_failure": "stop, preserve all current source/destination paths and bounded location map; no automatic rollback/retry or following compile",
+    "new_unknown_symlink_or_existing_destination": "reject",
+    "trusted0700_and_exclusive_lease_scope": "cooperating writers; no universal race-free or power-loss durability claim",
+    "postcompile_original_check": "exact25 quarantine file identities independent of recreated mutable cache paths; each actual test and final seal"
+  },
+  "forecast": {
+    "sampled_free_bytes": 874409984,
+    "raw25_retained_allocated_bytes_not_reclaimed": 89194496,
+    "quarantine_reclaimed_file_bytes": 0,
+    "required_actual_postquarantine_free_bytes": 782925569,
+    "headroom_bytes": 91484415,
+    "fits": true,
+    "shared_floor_bytes": 367001600,
+    "root_external_publication_reserve_bytes": 33554432,
+    "library_allowance_bytes": 83002787,
+    "three_test_allowance_bytes": 52000524,
+    "one_link_codegen_allowance_bytes": 83002787,
+    "new_lossless_capture_allowance_bytes": 143391919,
+    "metadata_allowance_bytes": 16777216,
+    "selected_source_allowance_bytes": 4194304,
+    "already_retained25_gzip_bytes_not_charged_again": 27156162,
+    "actual_future_immediately_postquarantine_resample_mandatory": true,
+    "no_RPC_native_or_other_SDK_compiler_overlap_allowed": true,
+    "uncertainty": "measured artifacts scaled1.5 and sampled0.2s cutoff; does not guarantee instantaneous peak"
+  },
+  "read_only_preflight": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/readonly-preflight-forecast.json",
+    "sha256": "f3dec10d4c14a70b20907eba30cdd0ba4bd7757a6c84a2418e7bce62e28c404d",
+    "bytes": 2139,
+    "full_mode": 384
+  },
+  "controls": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/quarantine-controls.json",
+    "sha256": "3b78b6ab1288d54590c781078e1c6402e7f998208a8f1440a7585741c8a9b196",
+    "bytes": 4012,
+    "full_mode": 384
+  },
+  "control_count": 30,
+  "control_source": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/check-quarantine-controls.py",
+    "sha256": "ff307954f770131dbbd82dd45ecc181eb0982b07dbab5a87d3fc52c4a20cdf4a",
+    "bytes": 13536,
+    "full_mode": 384
+  },
+  "inherited_controlled_runtime_and_source_guard_ASTs_unchanged": [
+    "run",
+    "source_guard",
+    "selected_origin_guard",
+    "materialize_baseline",
+    "test_result",
+    "seed_retention",
+    "verify_platform_daemons",
+    "verify_docker_cli",
+    "docker_zero_running_workloads",
+    "process_reference_guard",
+    "retain_cache",
+    "verify_complete_cache_map"
+  ],
+  "future_exact_argv": [
+    "taskset",
+    "-c",
+    "0,1",
+    "env",
+    "CARGO_HOME=/workspace/work/cargo",
+    "RUSTUP_HOME=/workspace/work/rustup",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v2.py",
+    "--source",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--source-sha",
+    "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "--origin-receipt",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "--origin-receipt-sha256",
+    "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "--run-label",
+    "04f6bc29-quarantine-v2-attempt-01"
+  ],
+  "expected_actual_subprocesses": 6,
+  "command_ledger": [
+    "platform-docker-before-quarantine",
+    "platform-docker-after-quarantine",
+    "stable-baseline-positive-controls",
+    "old-library-symbol-probe",
+    "stable-baseline-api27-red",
+    "stable-baseline-api90-red"
+  ],
+  "actual_Cargo_clean_or_dryrun_commands": 0,
+  "future_actual_behavior_required": {
+    "positive_controls": 2,
+    "API27_expected_failed_tests": 3,
+    "API90_expected_failed_tests": 1,
+    "old8_failure_prevents_old9_subcase": "explicit8-only negative proof; futurecandidatemusttestboth",
+    "compile_setup_failure_is_behavior": false,
+    "forced_library_proof": "verboseactualrustc library invocation, independentlydifferentrlib+rmeta, actualnmnewlagmethodabsence"
+  },
+  "actual_operations_in_preparation": {
+    "quarantine": 0,
+    "Cargo": 0,
+    "DockerAPI": 0,
+    "API_behavior": 0,
+    "memory_model_controls": 30
+  },
+  "held_after_baseline": [
+    "candidate runtime",
+    "candidate strict",
+    "Streams Rust tests",
+    "JVM generation/reverse/public counterpart",
+    "MSRV",
+    "whole-client matrix"
+  ],
+  "previous_unlaunched_quarantine_v1": {
+    "runner": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v1.py",
+      "sha256": "ff3ab5eeab85c294a979126cce6dcef9e33c31ee092bca30173f2519c179cdb0",
+      "bytes": 52632,
+      "full_mode": 384
+    },
+    "proposal": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/proposal.json",
+      "sha256": "6473dc8c56f305deb6d15e3f8988e888ab056b8021a7c2bb631e03e642cf77c9",
+      "bytes": 8219,
+      "full_mode": 384
+    },
+    "manifest": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/frozen-packet-manifest.json",
+      "sha256": "a1abd674eea1c72246bc7a89b48a2c23e317c5d9bc86a21bf9e7cf2529edfe83",
+      "bytes": 6407,
+      "full_mode": 384
+    },
+    "operational_target_mutations": 0
+  },
+  "concrete_review_correction": {
+    "source": "OpenLoop exact extracted V1 post-test counterexample",
+    "problem": "post-test source-present XOR quarantine-present falsely rejects legitimate cache filename recreation",
+    "fix": "precompile XOR unchanged; postcompile verify original25 quarantine exactpathset/SHA/length/full07777/mtime/inode independently and record mutable cachepathdiagnostics separately",
+    "expanded_controls": [
+      "samecachepath/newbytes accepted",
+      "retainedoriginal damage rejected",
+      "retainedoriginal missing evenifcachematches rejected",
+      "extraquarantinepath rejected"
+    ],
+    "no_broader_runtime_or_behavior_change": true
+  },
+  "python_runtime_identity": {
+    "invocation_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "symlink_text": "python3.12",
+    "invocation_full_mode": 511,
+    "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "bytes": 30894944,
+    "resolved_full_mode": 493,
+    "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+  }
+}

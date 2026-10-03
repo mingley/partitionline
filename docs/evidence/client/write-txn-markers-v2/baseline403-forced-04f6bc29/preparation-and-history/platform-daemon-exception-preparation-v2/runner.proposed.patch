@@ -1,0 +1,77 @@
+--- frozen-e0919e0a.py
++++ run-forced-baseline403-platform-exception-v2.py
+@@ -477,7 +477,17 @@
+ def process_reference_guard():
+     # Only safe public target-match booleans/errors are recorded. Never dump
+     # commandlines, unrelated env values, credentials or complete maps.
+-    refs=[];faults=[];checked=0;zombies=0
++    refs=[];faults=[];checked=0;zombies=0;closed_descriptors=0;vanished_or_nonexecuting_after_scan=0
++    def disappeared_or_nonexecuting(proc):
++        # ENOENT on a field alone does not establish process exit. A live
++        # process with an unknown field must fail closed; genuine exit/Z is
++        # excluded only after a fresh stat observation.
++        try:
++            value=(proc/'stat').read_text();parts=value[value.rfind(')')+2:].split()
++        except (FileNotFoundError,ProcessLookupError):return True
++        except OSError as error:
++            faults.append({'pid':int(proc.name),'field':'stat-recheck','errno':error.errno});return False
++        return parts[0]=='Z'
+     platform_before=verify_platform_daemons()
+     exempt={x['pid'] for x in platform_before}
+     exempt_seen=[]
+@@ -495,30 +505,50 @@
+             exempt_seen.append(pid)
+             continue
+         checked+=1
++        identity_before=(raw[raw.find('(')+1:raw.rfind(')')],int(fields[19]))
+         for field in ['cwd','exe']:
+             try:value=os.fsencode(os.readlink(proc/field))
+-            except (FileNotFoundError,ProcessLookupError):continue
++            except (FileNotFoundError,ProcessLookupError) as error:
++                if not disappeared_or_nonexecuting(proc):faults.append({'pid':pid,'field':field,'errno':error.errno,'same_process_not_observed_exited':True})
++                continue
+             except OSError as error:faults.append({'pid':pid,'field':field,'errno':error.errno});continue
+             if target in value:refs.append({'pid':pid,'field':field,'target_match':True})
+         for field in ['environ','maps']:
+             try:value=(proc/field).read_bytes()
+-            except (FileNotFoundError,ProcessLookupError):continue
++            except (FileNotFoundError,ProcessLookupError) as error:
++                if not disappeared_or_nonexecuting(proc):faults.append({'pid':pid,'field':field,'errno':error.errno,'same_process_not_observed_exited':True})
++                continue
+             except OSError as error:faults.append({'pid':pid,'field':field,'errno':error.errno});continue
+             if field=='environ':value=b'\0'.join(x for x in value.split(b'\0') if x.startswith(b'CARGO_TARGET_DIR='))
+             if target in value:refs.append({'pid':pid,'field':field,'target_match':True})
+         try:descriptors=list((proc/'fd').iterdir())
+-        except (FileNotFoundError,ProcessLookupError):continue
++        except (FileNotFoundError,ProcessLookupError) as error:
++            if not disappeared_or_nonexecuting(proc):faults.append({'pid':pid,'field':'fd','errno':error.errno,'same_process_not_observed_exited':True})
++            continue
+         except OSError as error:faults.append({'pid':pid,'field':'fd','errno':error.errno});continue
+         assert len(descriptors)<=16384, 'bounded descriptor inventory'
+         for descriptor in descriptors:
+             try:value=os.fsencode(os.readlink(descriptor))
+-            except (FileNotFoundError,ProcessLookupError):continue
++            except (FileNotFoundError,ProcessLookupError):
++                closed_descriptors+=1;continue
+             except OSError as error:faults.append({'pid':pid,'field':'fd-link','errno':error.errno});continue
+             if target in value:refs.append({'pid':pid,'field':'fd','target_match':True})
++        try:
++            value=(proc/'stat').read_text();parts=value[value.rfind(')')+2:].split()
++        except (FileNotFoundError,ProcessLookupError):vanished_or_nonexecuting_after_scan+=1
++        except OSError as error:faults.append({'pid':pid,'field':'stat-after','errno':error.errno})
++        else:
++            if parts[0]=='Z':vanished_or_nonexecuting_after_scan+=1
++            elif (value[value.find('(')+1:value.rfind(')')],int(parts[19]))!=identity_before:
++                faults.append({'pid':pid,'field':'identity-after','identity_changed_during_inspection':True})
+     platform_after=verify_platform_daemons()
+     assert platform_before==platform_after and set(exempt_seen)==exempt
+     row={'checked_live_other_processes':checked,'nonexecuting_zombies_excluded':zombies,
+-         'supervising_runner_pid_excluded':os.getpid(),'target_references':refs,'unexplained_live_field_failures':faults,
++         'supervising_runner_pid_excluded':os.getpid(),'target_references':refs,
++         'vanished_fd_links_observed_closed':closed_descriptors,
++         'vanished_or_Z_processes_at_final_recheck':vanished_or_nonexecuting_after_scan,
++         'ENOENT_on_nonexempt_live_process_field_rejected':True,
++         'nonexempt_live_PID_starttime_comm_rechecked':True,'unexplained_live_field_failures':faults,
+          'all_relevant_nonexempt_live_fields_readable':not faults,
+          'no_target_references_from_inspectable_processes':not refs,
+          'root_approved_exact_platform_daemons':platform_after,

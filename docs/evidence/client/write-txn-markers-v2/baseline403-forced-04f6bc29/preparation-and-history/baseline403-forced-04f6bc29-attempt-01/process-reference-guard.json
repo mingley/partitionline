@@ -1,0 +1,60 @@
+{
+  "checked_live_other_processes": 6,
+  "nonexecuting_zombies_excluded": 229,
+  "supervising_runner_pid_excluded": 1221677,
+  "target_references": [],
+  "unexplained_live_field_failures": [
+    {
+      "pid": 199,
+      "field": "cwd",
+      "errno": 13
+    },
+    {
+      "pid": 199,
+      "field": "exe",
+      "errno": 13
+    },
+    {
+      "pid": 199,
+      "field": "environ",
+      "errno": 13
+    },
+    {
+      "pid": 199,
+      "field": "maps",
+      "errno": 13
+    },
+    {
+      "pid": 199,
+      "field": "fd",
+      "errno": 13
+    },
+    {
+      "pid": 251,
+      "field": "cwd",
+      "errno": 13
+    },
+    {
+      "pid": 251,
+      "field": "exe",
+      "errno": 13
+    },
+    {
+      "pid": 251,
+      "field": "environ",
+      "errno": 13
+    },
+    {
+      "pid": 251,
+      "field": "maps",
+      "errno": 13
+    },
+    {
+      "pid": 251,
+      "field": "fd",
+      "errno": 13
+    }
+  ],
+  "all_required_other_live_fields_readable": false,
+  "no_other_target_owner": true
+}

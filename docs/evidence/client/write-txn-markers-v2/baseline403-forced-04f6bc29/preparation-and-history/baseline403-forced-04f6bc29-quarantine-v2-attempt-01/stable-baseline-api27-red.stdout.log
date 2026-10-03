@@ -1,0 +1,32 @@
+
+running 3 tests
+test broker_and_replica_unavailability_must_remap_and_retry ... FAILED
+test missing_result_must_not_mean_success ... FAILED
+test version2_only_public_abort_must_negotiate_the_default_marker ... FAILED
+
+failures:
+
+---- broker_and_replica_unavailability_must_remap_and_retry stdout ----
+
+thread 'broker_and_replica_unavailability_must_remap_and_retry' (1234799) panicked at tests/fail_first_write_txn_markers_v2.rs:67:47:
+called `Result::unwrap()` on an `Err` value: Broker { code: 8, message: "WriteTxnMarkers" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- missing_result_must_not_mean_success stdout ----
+
+thread 'missing_result_must_not_mean_success' (1234800) panicked at tests/fail_first_write_txn_markers_v2.rs:51:5:
+assertion failed: matches!(admin.abort_transaction(spec()).await, Err(Error::Protocol(_)))
+
+---- version2_only_public_abort_must_negotiate_the_default_marker stdout ----
+
+thread 'version2_only_public_abort_must_negotiate_the_default_marker' (1234801) panicked at tests/fail_first_write_txn_markers_v2.rs:80:43:
+called `Result::unwrap()` on an `Err` value: Unsupported("broker does not support WriteTxnMarkers")
+
+
+failures:
+    broker_and_replica_unavailability_must_remap_and_retry
+    missing_result_must_not_mean_success
+    version2_only_public_abort_must_negotiate_the_default_marker
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

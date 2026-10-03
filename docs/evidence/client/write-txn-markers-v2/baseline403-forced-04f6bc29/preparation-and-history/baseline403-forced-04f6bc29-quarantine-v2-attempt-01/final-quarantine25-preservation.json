@@ -1,0 +1,710 @@
+{
+  "quarantine_original_file_count": 25,
+  "all25_original_sha_bytes_fullmodes_mtimes_inodes_preserved": true,
+  "exact_quarantine25_pathset_verified": true,
+  "source_path_absence_required_after_compile": false,
+  "retained_originals_and_current_cache_paths": [
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 236,
+        "full_mode": 384,
+        "mtime_ns": 1791047649677105488,
+        "inode": [
+          27,
+          586043
+        ],
+        "sha256": "52660baa0e709de91a5d6acaab979a9e3a57ecf2d9482807f302904276c6335b",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791047649677105488,
+        "inode": [
+          27,
+          586047
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791047650393117167,
+        "inode": [
+          27,
+          586972
+        ],
+        "sha256": "5183da98eadde93ab6b407c526ab33b4f40ef6239fc24b18fff5e6b80c9d9fc1",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 1389,
+        "full_mode": 384,
+        "mtime_ns": 1791047650393117167,
+        "inode": [
+          27,
+          586976
+        ],
+        "sha256": "2ace87c576275bb626164dcfcdc24ca66e6274404e71cbb636f3bb076e0d7ac5",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 808,
+        "full_mode": 384,
+        "mtime_ns": 1791047639168933849,
+        "inode": [
+          27,
+          586042
+        ],
+        "sha256": "39ba1f3672e78f69dc842ed463d78ffc899a7cbab8e8c74bc7a4c466cc36f022",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 808,
+        "full_mode": 384,
+        "mtime_ns": 1791059788876672039,
+        "inode": [
+          27,
+          589897
+        ],
+        "sha256": "39ba1f3672e78f69dc842ed463d78ffc899a7cbab8e8c74bc7a4c466cc36f022",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791047639168933849,
+        "inode": [
+          27,
+          586036
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791059788876672039,
+        "inode": [
+          27,
+          589773
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791047649677105488,
+        "inode": [
+          27,
+          586044
+        ],
+        "sha256": "28c21f3254372161568d828e07bbb58c81a06c5977afe17199f6da72593e06f6",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791059800432862182,
+        "inode": [
+          27,
+          589900
+        ],
+        "sha256": "28c21f3254372161568d828e07bbb58c81a06c5977afe17199f6da72593e06f6",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 1296,
+        "full_mode": 384,
+        "mtime_ns": 1791047649677105488,
+        "inode": [
+          27,
+          586045
+        ],
+        "sha256": "8ec508144c7751aa5be596f48a968081c3431d3d661c6e0fa80299b3a763c2ec",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 1296,
+        "full_mode": 384,
+        "mtime_ns": 1791059800432862182,
+        "inode": [
+          27,
+          589903
+        ],
+        "sha256": "8ec508144c7751aa5be596f48a968081c3431d3d661c6e0fa80299b3a763c2ec",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 226,
+        "full_mode": 384,
+        "mtime_ns": 1791047650393117167,
+        "inode": [
+          27,
+          587108
+        ],
+        "sha256": "9c8b9afaaf5d6064ecaeb9f356f364c826110d39f3fba4eef2ec74bae30f417b",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791047650393117167,
+        "inode": [
+          27,
+          587106
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791047651189130201,
+        "inode": [
+          27,
+          587109
+        ],
+        "sha256": "b4b0974dcb434016e58777b1b4a9ce18442a6a43d7964894b60e4589b1854550",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 1384,
+        "full_mode": 384,
+        "mtime_ns": 1791047651189130201,
+        "inode": [
+          27,
+          587110
+        ],
+        "sha256": "270830747dc115b222f3754e60d4860771ec3a5bb915a20263554cc542ec3dde",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 111,
+        "full_mode": 384,
+        "mtime_ns": 1791048906313668073,
+        "inode": [
+          27,
+          586999
+        ],
+        "sha256": "35872406a360f17d65e14bbd9aea6e8c03e2f281812719ac9ff3e19f77dab0a3",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 111,
+        "full_mode": 384,
+        "mtime_ns": 1791059800432862182,
+        "inode": [
+          27,
+          589907
+        ],
+        "sha256": "35872406a360f17d65e14bbd9aea6e8c03e2f281812719ac9ff3e19f77dab0a3",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791048906313668073,
+        "inode": [
+          27,
+          586974
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 48,
+        "full_mode": 384,
+        "mtime_ns": 1791059800432862182,
+        "inode": [
+          27,
+          589905
+        ],
+        "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791048906969678818,
+        "inode": [
+          27,
+          587000
+        ],
+        "sha256": "436e67a6dbc0663d491a801e914468b9012f9c9d2074723fcddd105ac028afd9",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 16,
+        "full_mode": 384,
+        "mtime_ns": 1791059801144873890,
+        "inode": [
+          27,
+          589908
+        ],
+        "sha256": "436e67a6dbc0663d491a801e914468b9012f9c9d2074723fcddd105ac028afd9",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 1395,
+        "full_mode": 384,
+        "mtime_ns": 1791048906969678818,
+        "inode": [
+          27,
+          587002
+        ],
+        "sha256": "6fb764fe36483901e71836010f4384c70aa0fda544291091f8740e29afdb663c",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 1395,
+        "full_mode": 384,
+        "mtime_ns": 1791059801144873890,
+        "inode": [
+          27,
+          589909
+        ],
+        "sha256": "6fb764fe36483901e71836010f4384c70aa0fda544291091f8740e29afdb663c",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 11317608,
+        "full_mode": 448,
+        "mtime_ns": 1791048906957678622,
+        "inode": [
+          27,
+          587113
+        ],
+        "sha256": "2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 11254904,
+        "full_mode": 448,
+        "mtime_ns": 1791059801136873758,
+        "inode": [
+          27,
+          589931
+        ],
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 451,
+        "full_mode": 384,
+        "mtime_ns": 1791048906333668401,
+        "inode": [
+          27,
+          586998
+        ],
+        "sha256": "215e7e23b5762f58aa77dbd86a60cb16c694fd7d8ca8a7f55ac69225a94fe582",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 451,
+        "full_mode": 384,
+        "mtime_ns": 1791059800460862643,
+        "inode": [
+          27,
+          589906
+        ],
+        "sha256": "215e7e23b5762f58aa77dbd86a60cb16c694fd7d8ca8a7f55ac69225a94fe582",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 40536990,
+        "full_mode": 384,
+        "mtime_ns": 1791047649653105098,
+        "inode": [
+          27,
+          587105
+        ],
+        "sha256": "cb74ff9d2c1b357521b44ec13f8df49b2fccb89fcb9828a4b99072f1cac5b873",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 39647128,
+        "full_mode": 384,
+        "mtime_ns": 1791059800404861723,
+        "inode": [
+          27,
+          589923
+        ],
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 14798201,
+        "full_mode": 384,
+        "mtime_ns": 1791047647083800287,
+        "inode": [
+          27,
+          586973
+        ],
+        "sha256": "1ffee1c0b944269b1463aceb68d59fc0c7eaea31204bfe3e039643da0ea62076",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 14500694,
+        "full_mode": 384,
+        "mtime_ns": 1791059797360022308,
+        "inode": [
+          27,
+          589899
+        ],
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/partitionline-41c9070129cbefc4.d",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/partitionline-41c9070129cbefc4.d",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 2843,
+        "full_mode": 384,
+        "mtime_ns": 1791047639560940239,
+        "inode": [
+          27,
+          586041
+        ],
+        "sha256": "02c8487a9a841d5d2de1cb49f0e02b2f0784bddff6fa42150f20b6737fcbd244",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/partitionline-41c9070129cbefc4.d",
+      "current_cache_path_diagnostic": {
+        "present": true,
+        "regular": true,
+        "bytes": 2843,
+        "full_mode": 384,
+        "mtime_ns": 1791059789432681179,
+        "inode": [
+          27,
+          589896
+        ],
+        "sha256": "02c8487a9a841d5d2de1cb49f0e02b2f0784bddff6fa42150f20b6737fcbd244",
+        "identity_matches_expected": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 11555672,
+        "full_mode": 448,
+        "mtime_ns": 1791047651177130004,
+        "inode": [
+          27,
+          587137
+        ],
+        "sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 748,
+        "full_mode": 384,
+        "mtime_ns": 1791047650417117559,
+        "inode": [
+          27,
+          587107
+        ],
+        "sha256": "c63b4a864560276f8fece0264ffb3ed5952bfab0ffdbe08e6105837f228c01f0",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 11205848,
+        "full_mode": 448,
+        "mtime_ns": 1791047650381116971,
+        "inode": [
+          27,
+          587125
+        ],
+        "sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    },
+    {
+      "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "quarantine_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-quarantine-04f6bc29-quarantine-v2-attempt-01/debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "retained_original_identity": {
+        "present": true,
+        "regular": true,
+        "bytes": 786,
+        "full_mode": 384,
+        "mtime_ns": 1791047649701105880,
+        "inode": [
+          27,
+          586048
+        ],
+        "sha256": "3d7d7e905e55eb6aff53aaf17a7678328861bb950e7bb074fa8458e2d215dffc",
+        "identity_matches_expected": true
+      },
+      "cache_path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "current_cache_path_diagnostic": {
+        "present": false
+      },
+      "cache_path_role": "mutable compiler output; existence does not establish loss of retained original",
+      "current_cache_hash_scope": "compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately"
+    }
+  ]
+}

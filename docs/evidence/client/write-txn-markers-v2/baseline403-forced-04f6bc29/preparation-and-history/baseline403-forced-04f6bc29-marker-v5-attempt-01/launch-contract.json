@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "candidate_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+  "forecast": {
+    "sampled_free_bytes": 950906880,
+    "current_cache_allocated_bytes": 227930112,
+    "kind": "clean",
+    "named_baseline_targets_remaining": 3,
+    "required_free_bytes": 375390208,
+    "postclean_compile_required_free_bytes": 782925569,
+    "postclean_compile_base_without_publication_reserve_bytes": 749371137,
+    "native_allowance_bytes": 0,
+    "RPC_overlap_assumed": false,
+    "RPC_closed_gate_required": true,
+    "reference_refined_forecast_sha256": "726a66f74dc147314f5461c8243b74a8560181c3280baa5ea8b9feb36f29a4bf",
+    "expected_clean_reclaim_bytes_for_projection_only": 89194496,
+    "already_retained_package_objects_not_added_again_bytes": 27156162,
+    "root_publication_reserve_bytes": 33554432,
+    "shared_floor_bytes": 367001600,
+    "fits": true,
+    "headroom_bytes": 575516672,
+    "projected_postclean_free_bytes": 1040101376,
+    "projected_postclean_compile_fits": true
+  },
+  "platform_exception_sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+  "root_external_publication_reserve_bytes": 33554432,
+  "baseline_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "baseline_selected_inputs": 66,
+  "explicit_overlay_count": 5,
+  "expected_actual_behavior": "positive2 passes then exact3+1 old behavior failures; never compile/setup failures",
+  "root_authorized_scope": "forced baseline-only once ROOT GO/RPC close; following candidate phases held"
+}

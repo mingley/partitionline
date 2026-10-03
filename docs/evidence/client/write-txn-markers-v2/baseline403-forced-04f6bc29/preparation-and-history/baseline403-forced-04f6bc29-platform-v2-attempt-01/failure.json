@@ -1,0 +1,7 @@
+{
+  "type": "AssertionError",
+  "detail": "('baseline command failed or expected regression outcome differs', 'stable-own-package-clean', 101, None)",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "passed": false,
+  "no_following_command_launched": true
+}

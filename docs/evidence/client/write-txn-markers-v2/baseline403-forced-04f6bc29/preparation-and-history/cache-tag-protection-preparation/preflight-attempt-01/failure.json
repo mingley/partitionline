@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "actual_exit_code": 1,
+  "scope": "inline read-only future-command preflight, no driver/Cargo/Docker/marker write",
+  "actual_stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 22, in <module>\nAssertionError\n",
+  "actual_cause": "overly strict preflight required every executable invocation path be regular; /usr/bin/nm is the standard x86_64-linux-gnu-nm symlink. Its resolved target is regular and executable. No actual nm execution occurred. Corrected preflight binds link text/mode and resolved binary hash/fullmode.",
+  "original_inline_source_artifact_retention": "no source file was emitted; exact stdin command remains in tool history, not recreated as a purported original file",
+  "actual_target_writes": 0,
+  "actual_Cargo_commands": 0,
+  "actual_Docker_queries": 0
+}

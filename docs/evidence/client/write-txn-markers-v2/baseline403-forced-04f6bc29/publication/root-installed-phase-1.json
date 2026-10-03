@@ -1,0 +1,1780 @@
+{
+  "schema_version": 1,
+  "phase": 1,
+  "phase_count": 3,
+  "published_rows": 176,
+  "all322_original_rows_verified": true,
+  "source_inventory_sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+  "handoff_sha256": "d659777038b4e65d3a8b499536b7060ff9f580a1be897fc46c236d7d93900a13",
+  "original_full_modes_and_bytes_preserved": true,
+  "actual_baseline_positive_controls": 2,
+  "actual_baseline_expected_behavioral_failures": 4,
+  "actual_baseline_all6_groups_joined": true,
+  "old_library_rebuilt_and_new_method_absent": true,
+  "candidate_qualified": false,
+  "compiled_payloads_WORK_only": true,
+  "free_before": 785440768,
+  "free_after": 777666560,
+  "rows": [
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/1.85.0.fmt.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/1.85.0.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791049644953796999,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/1.85.0.fmt.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/1.85.0.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791049644953796999,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/baseline-overlay.proposed.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/baseline-overlay.proposed.json",
+      "sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+      "bytes": 3066,
+      "full_mode": 384,
+      "mtime_ns": 1791049250981350527,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/current-rlib-new-api-symbols.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/current-rlib-new-api-symbols.log",
+      "sha256": "f538d0a43cae90b034c8bb025eaaf6a5c1b3bed639aba829ecd0c7f750c100ff",
+      "bytes": 96,
+      "full_mode": 384,
+      "mtime_ns": 1791049356489057580,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/current-rlib-nm.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/current-rlib-nm.stderr.log",
+      "sha256": "1a3343ce9a19685ffd15a200ea283ae18c5a7f36aa76f0b07b851666a68bd11c",
+      "bytes": 57,
+      "full_mode": 384,
+      "mtime_ns": 1791049356425056536,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/format-validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/format-validation.json",
+      "sha256": "27641a98f55176e2baa70e74c97f9efe10d54ba32bcf499ba98118bed2259bd1",
+      "bytes": 1518,
+      "full_mode": 384,
+      "mtime_ns": 1791049890927602754,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/installation-predeclared.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/installation-predeclared.json",
+      "sha256": "f26899f51eb48b3051527fe7fb1ce5e834e287be0c6c9f49c810cda5188bb60f",
+      "bytes": 757,
+      "full_mode": 384,
+      "mtime_ns": 1791049644704096968,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/proposal.json",
+      "sha256": "d84e63be50fe6278c9195c885716776b03f1d6d5eed7d838552a627af198231d",
+      "bytes": 1944,
+      "full_mode": 384,
+      "mtime_ns": 1791049250981482654,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.before.rs",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/socket_peer.before.rs",
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "bytes": 15289,
+      "full_mode": 384,
+      "mtime_ns": 1791049250948743218,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/socket_peer.proposed.patch",
+      "sha256": "caa30a9deedf43b5dade50fa7286154438911b880b92c12ac1f6cd08d4dd7746",
+      "bytes": 1294,
+      "full_mode": 384,
+      "mtime_ns": 1791049250978833939,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.proposed.rs",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/socket_peer.proposed.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full_mode": 384,
+      "mtime_ns": 1791049250948823468,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/stable.fmt.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/stable.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791049644809794643,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/stable.fmt.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-peer-correction-after-first-controls/stable.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791049644809794643,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/check-exact-daemon-exception.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/check-exact-daemon-exception.py",
+      "sha256": "f3913ff084baf7ea9c79a518d81e28d9b16bc9c8667f1242ee2225510226dd6b",
+      "bytes": 12392,
+      "full_mode": 384,
+      "mtime_ns": 1791053473997095315,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/controls-attempt-01/check-exact-daemon-exception.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/controls-attempt-01/check-exact-daemon-exception.py",
+      "sha256": "8fe181e78f65d47207bad18ab7a080ab281b8d3165747b4ce058862be1456f3c",
+      "bytes": 12392,
+      "full_mode": 384,
+      "mtime_ns": 1791053473996869356,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/controls-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/controls-attempt-01/failure.json",
+      "sha256": "ee772b51e75451281ee974bebf59fca991fac9a1e073c4073fee8757e9b210c5",
+      "bytes": 793,
+      "full_mode": 384,
+      "mtime_ns": 1791053473997040463,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/current-complete-cache-hash-fullmode-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/current-complete-cache-hash-fullmode-map.json",
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b",
+      "bytes": 184402,
+      "full_mode": 384,
+      "mtime_ns": 1791053615131816115,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/exact-platform-daemons.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/exact-platform-daemons.json",
+      "sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+      "bytes": 1767,
+      "full_mode": 384,
+      "mtime_ns": 1791052722118164774,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/frozen-packet-manifest.json",
+      "sha256": "6159f499fc5ddc6b22715e3570fa9730a62065a306eaeef2d56d21f7a7e74a6b",
+      "bytes": 3871,
+      "full_mode": 384,
+      "mtime_ns": 1791053697890250105,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/helper-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/helper-controls.json",
+      "sha256": "65deb3647ca3b1a3f43c9e89becb4d809464be128b937188fe263fa55c5a4bd8",
+      "bytes": 3863,
+      "full_mode": 384,
+      "mtime_ns": 1791053474043155619,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/proposal.json",
+      "sha256": "6ff8181e05fa5b1949d8aaf31db95144de1a4c2b848a9dd69b277d8ad2397ee7",
+      "bytes": 7160,
+      "full_mode": 384,
+      "mtime_ns": 1791053697889313843,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/readonly-source-cache-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/readonly-source-cache-forecast.json",
+      "sha256": "09b2f484693db7e9a9a758a489dd1e7b83c39c92d2ca5206c9d591641a4b0116",
+      "bytes": 4764,
+      "full_mode": 384,
+      "mtime_ns": 1791053615132389914,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-1a7ab070.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/runner.before-1a7ab070.py",
+      "sha256": "1a7ab0702109e429f407444fbe833e9486eb9bd6f365d0725bff29c44eca012d",
+      "bytes": 37531,
+      "full_mode": 384,
+      "mtime_ns": 1791053315134339082,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-68f17205.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/runner.before-68f17205.py",
+      "sha256": "68f172053b61b9619b26101e2f22c210d4f9ea7f1279d12c4f74b6cede9ec384",
+      "bytes": 33848,
+      "full_mode": 384,
+      "mtime_ns": 1791052951756950854,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/runner.proposed.patch",
+      "sha256": "818b6f311bb0535be239585c7f63d1fe46eb76fffb17d32eef852ddfced8c32d",
+      "bytes": 10982,
+      "full_mode": 384,
+      "mtime_ns": 1791053315144468992,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/verify-readonly-preparation.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation/verify-readonly-preparation.py",
+      "sha256": "9ba701fd31782b9d5c5cc9c2bf9dce070c97a915e64b37ffc3573056159c60eb",
+      "bytes": 7502,
+      "full_mode": 384,
+      "mtime_ns": 1791053602135935309,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/check-exact-daemon-exception.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/check-exact-daemon-exception.py",
+      "sha256": "19b77f6bf5c7457b2b2f2a57efcb6e01bf0a31f4ae87d2a533f4f5c91b606719",
+      "bytes": 14387,
+      "full_mode": 384,
+      "mtime_ns": 1791053902533716057,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/check-fail-first-live-field.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/check-fail-first-live-field.py",
+      "sha256": "bab7bb919c13b6232dcba01eaf2f21f2210607e662deafb6e11bc6e323f99a85",
+      "bytes": 3782,
+      "full_mode": 384,
+      "mtime_ns": 1791053997782814825,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/check-fail-first-live-field.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/comparison-attempt-01/check-fail-first-live-field.py",
+      "sha256": "e5d697ebfbceda2a1e07b8d5afd8c269d9eab0cfb543d82cf9f8c90a0516701f",
+      "bytes": 3707,
+      "full_mode": 384,
+      "mtime_ns": 1791053997782338391,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/fail-first-live-field-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/comparison-attempt-01/fail-first-live-field-controls.json",
+      "sha256": "303a451f20ec1646ccbc3c32f9745c04849ea19d0fda2d76e6d947a9e2489a1e",
+      "bytes": 3805,
+      "full_mode": 384,
+      "mtime_ns": 1791053997782405792,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/superseded.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/comparison-attempt-01/superseded.json",
+      "sha256": "b5f70b47b40e104f5c5993ce98ef49be5c3fe19abefd506ee08881cad6c041b7",
+      "bytes": 510,
+      "full_mode": 384,
+      "mtime_ns": 1791053997782734485,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json",
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b",
+      "bytes": 184402,
+      "full_mode": 384,
+      "mtime_ns": 1791054034754123096,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/fail-first-live-field-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/fail-first-live-field-controls.json",
+      "sha256": "9044d51ef38462076ce1774438f0efe4f024391c2939bed037dafd370dabadb7",
+      "bytes": 3805,
+      "full_mode": 384,
+      "mtime_ns": 1791053997842937933,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/frozen-packet-manifest.json",
+      "sha256": "a2cd20de6ff5bd425d6e4fc438edfc347b922715cd386639f307a5f02f77ee29",
+      "bytes": 4097,
+      "full_mode": 384,
+      "mtime_ns": 1791054128573440984,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/helper-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/helper-controls.json",
+      "sha256": "4b58ae0357488979022689599e1a5f3a79912cb245638080ba2438d43d4b88d0",
+      "bytes": 4648,
+      "full_mode": 384,
+      "mtime_ns": 1791053902584798690,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/proposal.json",
+      "sha256": "f39f910ec6adc9d64a3fce40bc50e8ce5fc3df5011e4125e8d8e25b156e4ebd0",
+      "bytes": 8605,
+      "full_mode": 384,
+      "mtime_ns": 1791054128572632274,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/readonly-source-cache-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/readonly-source-cache-forecast.json",
+      "sha256": "bb23ab43dc0a1c58ec1dba0f57fef12c8203b37d40cca686a875ddbab7f62f44",
+      "bytes": 4771,
+      "full_mode": 384,
+      "mtime_ns": 1791054034754593561,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/runner.proposed.patch",
+      "sha256": "03560626d0aae5e72d0ebd8bf6b8bf01a985e6b59293ad07b97c0d96f744c6eb",
+      "bytes": 5193,
+      "full_mode": 384,
+      "mtime_ns": 1791053858705323123,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/verify-readonly-preparation.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/platform-daemon-exception-preparation-v2/verify-readonly-preparation.py",
+      "sha256": "7a1fbb96db35eafda85707c18c266643f9c7d91da4e05a6e5c79886526d13b57",
+      "bytes": 7570,
+      "full_mode": 384,
+      "mtime_ns": 1791054021043936256,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/check-marker-dryrun-controls.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/check-marker-dryrun-controls.py",
+      "sha256": "93a2db60fc41742706141b4d11a72a10649ef30490a9dad803c11b60e99e89fc",
+      "bytes": 11036,
+      "full_mode": 384,
+      "mtime_ns": 1791055285059844153,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/frozen-packet-manifest.json",
+      "sha256": "de92dfd748a00a55fc4b965b08c3b0187fe670492e56c82bc4b530e4b5e47a4c",
+      "bytes": 3007,
+      "full_mode": 384,
+      "mtime_ns": 1791055833690727493,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/marker-dryrun-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/marker-dryrun-controls.json",
+      "sha256": "9d08355afedc63c8a6df16f798a731284ede66031964d9225c8f0faa62e1a60a",
+      "bytes": 2908,
+      "full_mode": 384,
+      "mtime_ns": 1791055285229968106,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/preflight-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/preflight-attempt-01/failure.json",
+      "sha256": "0bea7c29fb2e84d6a6b70e0a594742dc29538da54a9f640747a336c88c3393ab",
+      "bytes": 828,
+      "full_mode": 384,
+      "mtime_ns": 1791055529947837291,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/proposal.json",
+      "sha256": "41dff8c918adc09f23bbfe4fd8fddbc8d47d3e5cb617e1664cafb08fa314d821",
+      "bytes": 13812,
+      "full_mode": 384,
+      "mtime_ns": 1791055833690097039,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/readonly-preflight-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/readonly-preflight-forecast.json",
+      "sha256": "f4bced216d9a2b472b14ece36d2f6f051d26d965b2825a72ac45cad84eb2c0bb",
+      "bytes": 4138,
+      "full_mode": 384,
+      "mtime_ns": 1791055645721272582,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/runner.before-e45996fb.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/runner.before-e45996fb.py",
+      "sha256": "e45996fb971434a4e2b9e430d0451ce94f191a46bead70a090ab27768d15ec75",
+      "bytes": 47786,
+      "full_mode": 384,
+      "mtime_ns": 1791055118904045614,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/runner.proposed.patch",
+      "sha256": "96bd88b21d39dd95314991c534b59df33480f13857d42318dc347e3b85878d68",
+      "bytes": 10494,
+      "full_mode": 384,
+      "mtime_ns": 1791055118912956409,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed",
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+      "bytes": 177,
+      "full_mode": 384,
+      "mtime_ns": 1791054853216870942,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/verify-readonly-preflight.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation/verify-readonly-preflight.py",
+      "sha256": "bb2a413acdbbe3c274a0a7288a3c1ec274f523e65de600e3f3463abf01703bbc",
+      "bytes": 5702,
+      "full_mode": 384,
+      "mtime_ns": 1791055645245873967,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/check-marker-dryrun-controls.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/check-marker-dryrun-controls.py",
+      "sha256": "68da32ad8a5c19ee65ed61c195a8227098cc29971c811c46270fa5d86b237808",
+      "bytes": 12531,
+      "full_mode": 384,
+      "mtime_ns": 1791056458722582973,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/frozen-packet-manifest.json",
+      "sha256": "193617989b6294d3a916b00f0673228883f78febc58e14b62183fa5ab5d00f50",
+      "bytes": 2456,
+      "full_mode": 384,
+      "mtime_ns": 1791056738868742255,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/marker-dryrun-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/marker-dryrun-controls.json",
+      "sha256": "da5532de61de439f2703803583c80dde171035c3b274ce12e504b7f652ac161e",
+      "bytes": 3447,
+      "full_mode": 384,
+      "mtime_ns": 1791056458871209550,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/proposal.json",
+      "sha256": "44b02bac2e2884ed4cfe9707b02d7f21cb3cd502cfe9e7414f3f8a1cf00bedc3",
+      "bytes": 14622,
+      "full_mode": 384,
+      "mtime_ns": 1791056738868101025,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/readonly-preflight-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/readonly-preflight-forecast.json",
+      "sha256": "6030631b31d1c30482c0b53026fb9f44cd25ca556a0a2b6707afce10a96f77ae",
+      "bytes": 4137,
+      "full_mode": 384,
+      "mtime_ns": 1791056459272373098,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/runner.before-df101f96.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/runner.before-df101f96.py",
+      "sha256": "df101f96ca32c71bdab1a82f2bf8dbbff972b9de9f2948caf2cb193f96f35d50",
+      "bytes": 49003,
+      "full_mode": 384,
+      "mtime_ns": 1791056458713288885,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/runner.proposed.patch",
+      "sha256": "e5c00b493b708c318c75d08ec39a6ec8952c784f1ae62ee51593730b525bca30",
+      "bytes": 4073,
+      "full_mode": 384,
+      "mtime_ns": 1791056458723536220,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/verify-readonly-preflight.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v4/verify-readonly-preflight.py",
+      "sha256": "ecf8f922408f8efc0c93b31fb622045bb197e347e26292edf6645742a8edea98",
+      "bytes": 5705,
+      "full_mode": 384,
+      "mtime_ns": 1791056458722707269,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/check-marker-dryrun-controls.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/check-marker-dryrun-controls.py",
+      "sha256": "f461d3271f00a307b09fd22a97ae4b80835a281bccf0ea76fb60628c5a248490",
+      "bytes": 13441,
+      "full_mode": 384,
+      "mtime_ns": 1791057047683345370,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/frozen-packet-manifest.json",
+      "sha256": "e39493766a35bb749f786e245bbc54f854dc9fa060d5b5986633b26681691edb",
+      "bytes": 2182,
+      "full_mode": 384,
+      "mtime_ns": 1791057626875207635,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/marker-dryrun-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/marker-dryrun-controls.json",
+      "sha256": "f53fe4f19fc20cb4f5ca3a075efbaa0d8a8fe65d887fb253ba3c33dbb80e181d",
+      "bytes": 3877,
+      "full_mode": 384,
+      "mtime_ns": 1791057047863301232,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/proposal.json",
+      "sha256": "feffe191999cf557f1e6d1f630eef5991f7a0bdf4e089ac8af625f1b518e0bac",
+      "bytes": 15411,
+      "full_mode": 384,
+      "mtime_ns": 1791057626874740966,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/readonly-preflight-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/readonly-preflight-forecast.json",
+      "sha256": "aa2d581a42d99d94eb8a6ea212e33c33771fba2b513d7f61cead8756324b4c11",
+      "bytes": 4138,
+      "full_mode": 384,
+      "mtime_ns": 1791057426350275923,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/runner.proposed.patch",
+      "sha256": "04185101dde88fac2e6658bc922cad30df68a430b63aed83311e3cb1347229c1",
+      "bytes": 1536,
+      "full_mode": 384,
+      "mtime_ns": 1791056952849209265,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/verify-readonly-preflight.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-tag-protection-preparation-v5/verify-readonly-preflight.py",
+      "sha256": "7f0b19a92f9334329d462e1830bb4ceb9421ac4b9406478f53729574d2202269",
+      "bytes": 5705,
+      "full_mode": 384,
+      "mtime_ns": 1791057425952696253,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative-v2.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/build-derivative-v2.py",
+      "sha256": "7ec8e37c085a22c3390bc6e95d583ae7978dd3eb04c1167f1129bc75db45bc4a",
+      "bytes": 7101,
+      "full_mode": 384,
+      "mtime_ns": 1791058600600091359,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/build-derivative.py",
+      "sha256": "d35d8f0c4e9276c1aede41842f7aa3838b30e6b32a9bdc0111348df9adf93d7b",
+      "bytes": 7171,
+      "full_mode": 384,
+      "mtime_ns": 1791058562127613293,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/check-quarantine-controls.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/check-quarantine-controls.py",
+      "sha256": "1d28b13681cf4caf6daaf9f3d82a701a0caa1c24c7609561ced3ed25474aa6b9",
+      "bytes": 12056,
+      "full_mode": 384,
+      "mtime_ns": 1791058728504593097,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/first-source-composer-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/first-source-composer-failure.json",
+      "sha256": "5ac277864fb1ec2e4cae2e1c16d44b61a65a7b335a1bc8e88bddcca75730d182",
+      "bytes": 788,
+      "full_mode": 384,
+      "mtime_ns": 1791058600600219511,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/frozen-packet-manifest.json",
+      "sha256": "a1abd674eea1c72246bc7a89b48a2c23e317c5d9bc86a21bf9e7cf2529edfe83",
+      "bytes": 6407,
+      "full_mode": 384,
+      "mtime_ns": 1791058949438848342,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/proposal.json",
+      "sha256": "6473dc8c56f305deb6d15e3f8988e888ab056b8021a7c2bb631e03e642cf77c9",
+      "bytes": 8219,
+      "full_mode": 384,
+      "mtime_ns": 1791058949438130315,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058728504593097,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stdout.log",
+      "sha256": "89081eefb23ee256455ecd795f48636bf19800d0a9472df0be71579c5baaea94",
+      "bytes": 119,
+      "full_mode": 384,
+      "mtime_ns": 1791058728685938106,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-final.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls-final.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058780811544776,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-final.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls-final.stdout.log",
+      "sha256": "6a26dd45fd6d7993296f2f3897a133404f4ffd654fb08b46323931388ff061b7",
+      "bytes": 119,
+      "full_mode": 384,
+      "mtime_ns": 1791058781026700392,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-initial.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls-initial.json",
+      "sha256": "826578ea32d26d61bc2d2c584ab37d66e87338dcace6a7786bf4082893b2d7de",
+      "bytes": 3492,
+      "full_mode": 384,
+      "mtime_ns": 1791058728685938106,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls.before-final-original25-checks.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls.before-final-original25-checks.json",
+      "sha256": "826578ea32d26d61bc2d2c584ab37d66e87338dcace6a7786bf4082893b2d7de",
+      "bytes": 3492,
+      "full_mode": 384,
+      "mtime_ns": 1791058780794800911,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-controls.json",
+      "sha256": "8322029d1c6224570cb3d6b3d8bd436abe3ba6f3a2e99d2110908d6ef9c2aa88",
+      "bytes": 3492,
+      "full_mode": 384,
+      "mtime_ns": 1791058781026700392,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-functions.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/quarantine-functions.py",
+      "sha256": "fefc2b780ef58b5b502b9597325c4ac707d3eb34d7f18749a1635c96121be1b6",
+      "bytes": 8390,
+      "full_mode": 384,
+      "mtime_ns": 1791058562125511351,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/readonly-preflight-forecast.json",
+      "sha256": "75502d4b86b6f486a3052db88b3e593de6027d2966ea5a3595cc1076972243ad",
+      "bytes": 2140,
+      "full_mode": 384,
+      "mtime_ns": 1791058849020707409,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/readonly-preflight.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058848245750548,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/readonly-preflight.stdout.log",
+      "sha256": "2d5d2322197208864a3367f842055b2d8fa8c2057c38cb72e88e4e510a71a052",
+      "bytes": 193,
+      "full_mode": 384,
+      "mtime_ns": 1791058849020707409,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/runner.before-final-original25-checks.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/runner.before-final-original25-checks.py",
+      "sha256": "002af88f8df62078bc62540ab9d5cbee5f009e9ca76e3682486d852d79189ac2",
+      "bytes": 51961,
+      "full_mode": 384,
+      "mtime_ns": 1791058780794515895,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/runner.proposed.patch",
+      "sha256": "3e80cf92a920aedf90ab4890739b76d8c50a204d2d88bde98b8c2b9e195a42df",
+      "bytes": 28762,
+      "full_mode": 384,
+      "mtime_ns": 1791058780809724489,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/source-composer-v2.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/source-composer-v2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058600600576662,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/source-composer-v2.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/source-composer-v2.stdout.log",
+      "sha256": "484657bb9d50cbd88d617f906358721e5846b5ad8aca4f574c0d29b9b03ec715",
+      "bytes": 65,
+      "full_mode": 384,
+      "mtime_ns": 1791058600654903080,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/verify-readonly-preflight.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v1/verify-readonly-preflight.py",
+      "sha256": "a65fb5094fcd6592e388af0f76ebc68ea3437d3aa7d1a32e84d763f36be0b3c9",
+      "bytes": 4319,
+      "full_mode": 384,
+      "mtime_ns": 1791058848245750548,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/check-quarantine-controls.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/check-quarantine-controls.py",
+      "sha256": "ff307954f770131dbbd82dd45ecc181eb0982b07dbab5a87d3fc52c4a20cdf4a",
+      "bytes": 13536,
+      "full_mode": 384,
+      "mtime_ns": 1791059180145199083,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/frozen-packet-manifest.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/frozen-packet-manifest.json",
+      "sha256": "bc69a0529351381d290ddf0f6dbde50864045f28137dfebe7b19a942fc1b83d5",
+      "bytes": 3579,
+      "full_mode": 384,
+      "mtime_ns": 1791059282480090832,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/postcompile-functions.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/postcompile-functions.py",
+      "sha256": "ae0b8843ee346a2dce5de8e757842cb3c7742f4c7e8ec89faf38c24a93c2ea61",
+      "bytes": 1359,
+      "full_mode": 384,
+      "mtime_ns": 1791059143823964843,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/proposal.json",
+      "sha256": "d1b260ccfb2b9a2496c9caf4d93bb9fa3a4b49f0290d76eca1f77a1ffcee5a5d",
+      "bytes": 10547,
+      "full_mode": 384,
+      "mtime_ns": 1791059282479378051,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/quarantine-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/quarantine-controls.json",
+      "sha256": "3b78b6ab1288d54590c781078e1c6402e7f998208a8f1440a7585741c8a9b196",
+      "bytes": 4012,
+      "full_mode": 384,
+      "mtime_ns": 1791059180436303803,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/quarantine-controls.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/quarantine-controls.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059180145199083,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/quarantine-controls.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/quarantine-controls.stdout.log",
+      "sha256": "d463e7892371fec439903d9a1cc48359c06e2a3b8f3b3163fc18c4251547b137",
+      "bytes": 119,
+      "full_mode": 384,
+      "mtime_ns": 1791059180436303803,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/readonly-preflight-forecast.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/readonly-preflight-forecast.json",
+      "sha256": "f3dec10d4c14a70b20907eba30cdd0ba4bd7757a6c84a2418e7bce62e28c404d",
+      "bytes": 2139,
+      "full_mode": 384,
+      "mtime_ns": 1791059223755178137,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/readonly-preflight.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/readonly-preflight.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059222967839517,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/readonly-preflight.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/readonly-preflight.stdout.log",
+      "sha256": "0f0365077777167fd094389a18efe6fdf2a7f3b8a03b09bca5fea0cea09e25b6",
+      "bytes": 192,
+      "full_mode": 384,
+      "mtime_ns": 1791059223755178137,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/runner.proposed.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/runner.proposed.patch",
+      "sha256": "50aa23c11c70bd993cae15a444704776e65e6cd20212ea47f42143487e07541c",
+      "bytes": 3487,
+      "full_mode": 384,
+      "mtime_ns": 1791059143869801814,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v2/verify-readonly-preflight.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-quarantine-preparation-v2/verify-readonly-preflight.py",
+      "sha256": "e6d11f8240e2074198fd7ec89bb0e94032568cfaed11c18c639a01f81b8111d1",
+      "bytes": 4319,
+      "full_mode": 384,
+      "mtime_ns": 1791059222967839517,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01/failure.json",
+      "sha256": "722db4da6f686d91a50bc7aa40df8dbb7c544ed75a4efa147108ac056e2fd5d5",
+      "bytes": 222,
+      "full_mode": 384,
+      "mtime_ns": 1791052442495591772,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01/launch-contract.json",
+      "sha256": "c7035ca8a5fb3af5eef0cdb173e184829ddfced6782e3daadcf99723230b2259",
+      "bytes": 1251,
+      "full_mode": 384,
+      "mtime_ns": 1791052441313298705,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01/no-cargo-source-cache-after-block.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01/no-cargo-source-cache-after-block.json",
+      "sha256": "65a7fcf7f533e2c0a885bef633cdb7fed872dbeb90f2e26caeb63c9b6fe19af8",
+      "bytes": 1972,
+      "full_mode": 384,
+      "mtime_ns": 1791052647757111820,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01/process-reference-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01/process-reference-guard.json",
+      "sha256": "37821c32c9eeb817f3dc03d97076848d44ecd90f48dbbea3f6ac8ddfe0ccca79",
+      "bytes": 999,
+      "full_mode": 384,
+      "mtime_ns": 1791052442495035098,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01/validation.json",
+      "sha256": "300a346df5de9775c517bf04f35948949d948944c2438efc776c7455538b49b0",
+      "bytes": 1618,
+      "full_mode": 384,
+      "mtime_ns": 1791052442495500636,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/closed-failure-artifact-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/closed-failure-artifact-map.json",
+      "sha256": "6561c3f0b6900e4eda04e1bf3e0d97fa8f9b01d0bb6a8dab425d911da904e159",
+      "bytes": 3857,
+      "full_mode": 384,
+      "mtime_ns": 1791054482951392490,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/failure.json",
+      "sha256": "ad6f141aeee4fe990b605f81f2faf9b1b2a13450faf1897e7b466cedd4d7cd57",
+      "bytes": 272,
+      "full_mode": 384,
+      "mtime_ns": 1791054318717893856,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/launch-contract.json",
+      "sha256": "5c3aa6e1b30cc68388bb186be5a9fda1d6b113fedb490d0d7e584e1c5237f853",
+      "bytes": 1625,
+      "full_mode": 384,
+      "mtime_ns": 1791054259419772286,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "sha256": "ca60a12a437ed97c3b58c4af30aca6d0c52280331adb7d62840a07ce181cb7b3",
+      "bytes": 419,
+      "full_mode": 384,
+      "mtime_ns": 1791054272007191677,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791054271795188138,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791054271795188138,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/post-failure-source-cache-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/post-failure-source-cache-guard.json",
+      "sha256": "4f205d43132e8641dc12a52cdcf364ae6f5bcbf3e55db346be09a2ab5abb3f64",
+      "bytes": 2038,
+      "full_mode": 384,
+      "mtime_ns": 1791054482946668682,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/preclean-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/preclean-guard.json",
+      "sha256": "82bc10e7151f94a06d0ac06c10c8c51f3665e0686d6598a8591fea37f4756864",
+      "bytes": 125234,
+      "full_mode": 384,
+      "mtime_ns": 1791054295523408752,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/process-reference-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/process-reference-guard.json",
+      "sha256": "031a46bf552bc23139303b0648afb3b666da9da1848bb56bcbce6fb87dfd50d5",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791054284262541321,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.disk-monitor.jsonl",
+      "sha256": "d3798e33eae1e2b6f64fc9f326e01dcc33c4510afb5673901c0cdb452c4a37ba",
+      "bytes": 421,
+      "full_mode": 384,
+      "mtime_ns": 1791054307155775034,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stderr.log",
+      "sha256": "e4cae336bfa9ab80fb9cbb217bd2a131bacafd5e5a27bc503f36df56f0030778",
+      "bytes": 188,
+      "full_mode": 384,
+      "mtime_ns": 1791054306963771849,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791054306947771583,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01/validation.json",
+      "sha256": "bcb96239882886e845b4ed459bccf44f3a5a42ca39135a8bd083a408d31e8f4e",
+      "bytes": 317232,
+      "full_mode": 384,
+      "mtime_ns": 1791054318717593396,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/actual-dryrun-omitted-nine.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/actual-dryrun-omitted-nine.json",
+      "sha256": "e9df2a5f6a4a11a2d20e3a1dbbe6b2dc57a029ebc2525a3132289920e6bc0c3f",
+      "bytes": 8912,
+      "full_mode": 384,
+      "mtime_ns": 1791058263666542349,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/closed-failure-artifact-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/closed-failure-artifact-map.json",
+      "sha256": "84f5be5cc7576ceeaf69a843d36979a96c91bf9501c785fcdd93257365d43cc9",
+      "bytes": 11289,
+      "full_mode": 384,
+      "mtime_ns": 1791058263668839269,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/failure.json",
+      "sha256": "04e7ab9f67b8f0fd006b27e9d87668cc787c1a3a71c2ec268c422ffa3013b2e8",
+      "bytes": 701,
+      "full_mode": 384,
+      "mtime_ns": 1791057880492026776,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/launch-contract.json",
+      "sha256": "acf341def87af6d2bdef1fa624149960388b4749e26d28915fe126c430842d40",
+      "bytes": 1624,
+      "full_mode": 384,
+      "mtime_ns": 1791057795194527058,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/original608-pre-marker-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/original608-pre-marker-guard.json",
+      "sha256": "4287ab2c553048353152993ee759b49b6be2a67f933a845807867d2d5c364d11",
+      "bytes": 148946,
+      "full_mode": 384,
+      "mtime_ns": 1791057832658557694,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.disk-monitor.jsonl",
+      "sha256": "2c40915674e76909fab4debc4b45065ad5e48176c5d0d106b75e394ae3ac27d9",
+      "bytes": 415,
+      "full_mode": 384,
+      "mtime_ns": 1791057845023577979,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057844811574527,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057844811574527,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "sha256": "6233762d57fdd2963895c8b80c76812ae64e0dd7235c530df9daf0743f46b9cf",
+      "bytes": 414,
+      "full_mode": 384,
+      "mtime_ns": 1791057807874971340,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057807662967885,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057807662967885,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-failure-source-cache-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-failure-source-cache-guard.json",
+      "sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+      "bytes": 7167,
+      "full_mode": 384,
+      "mtime_ns": 1791058194706799331,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-marker-relevant-process-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-marker-relevant-process-guard.json",
+      "sha256": "da3a484fed014c4c96529691ae8e97b3386c4b8aaab6e402660d1910a1bf1f17",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791057856580794949,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058180717574253,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stdout.log",
+      "sha256": "658d7816c650a11c0e3c4e2d4e93e9b95e0e3c552d51725d48b97964f61880b7",
+      "bytes": 712,
+      "full_mode": 384,
+      "mtime_ns": 1791058194706799331,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verifier-first-assumption-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verifier-first-assumption-failure.json",
+      "sha256": "c9fcecdd58d3ae76612bed8112120ff25a69d70d005399ed0f19d51ae1463889",
+      "bytes": 1158,
+      "full_mode": 384,
+      "mtime_ns": 1791058180716605105,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/preclean-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/preclean-guard.json",
+      "sha256": "8bfd25375175670f9510f08e1eec3e5c8ddc7eb5ba47b4cbb8989f9cfd2bdd79",
+      "bytes": 149141,
+      "full_mode": 384,
+      "mtime_ns": 1791057856801727811,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/process-reference-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/process-reference-guard.json",
+      "sha256": "da3a484fed014c4c96529691ae8e97b3386c4b8aaab6e402660d1910a1bf1f17",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791057856580646707,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.disk-monitor.jsonl",
+      "sha256": "bbec6a196a98e5e52f823f43e2999581e99e8f69009c026b34ab585ee16f172b",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791057868759965184,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stderr.log",
+      "sha256": "363dddf68962397e4a392f2f688a98227d96568ada70d4b52d8d42c618dc69f9",
+      "bytes": 80,
+      "full_mode": 384,
+      "mtime_ns": 1791057868579962245,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stdout.log",
+      "sha256": "faa743e095c4841b323a9920767fca6cef019e5a780a5c3f1cf4fd6ec29a9614",
+      "bytes": 2275,
+      "full_mode": 384,
+      "mtime_ns": 1791057868578785509,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/standard-cache-marker-repair.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/standard-cache-marker-repair.json",
+      "sha256": "caeb86a5f72cec3de50e68d39b59218c678c5280c2775e0697837ad880987514",
+      "bytes": 147753,
+      "full_mode": 384,
+      "mtime_ns": 1791057833094832806,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/validation.json",
+      "sha256": "e1258d3a730c1fb1bd5434ad6b5400870e6f46dd8d45885cdae06296abdb20ee",
+      "bytes": 476387,
+      "full_mode": 384,
+      "mtime_ns": 1791057880491800517,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure-v2.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure-v2.py",
+      "sha256": "b1306f55b6c2118a724d878aa236b6856f864de7129a3d627def038da0a6e68b",
+      "bytes": 7524,
+      "full_mode": 384,
+      "mtime_ns": 1791058180716357404,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure.py",
+      "sha256": "fe53afc91cf8e813fddc4013e455b4a8a04f242c125b102e3a8339b60a07102f",
+      "bytes": 7459,
+      "full_mode": 384,
+      "mtime_ns": 1791058132263400289,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/baseline-materialization.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/baseline-materialization.json",
+      "sha256": "c1d0259aec888935cac63d5665fc9a0df61a24a0ce9588481586b5544aff6c8a",
+      "bytes": 23878,
+      "full_mode": 384,
+      "mtime_ns": 1791059777316065201,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/candidate-next-focused-forecast-proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/candidate-next-focused-forecast-proposal.json",
+      "sha256": "31be030df37916dff47b25d079c4b476417516a91b0dcd57bb09e1c233bca212",
+      "bytes": 4277,
+      "full_mode": 384,
+      "mtime_ns": 1791060362337271426,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-artifact-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-artifact-map.json",
+      "sha256": "0cade5a6e83fbc5d2e87d62433f17681c9df672bbc8da8c582c91988bff78600",
+      "bytes": 20503,
+      "full_mode": 384,
+      "mtime_ns": 1791060362373888051,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-summary.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-summary.json",
+      "sha256": "57ba0a68d000e1db29cf5c23d374a9bd4a5ad5914d8779c1010ba1b5c1644b4c",
+      "bytes": 6872,
+      "full_mode": 384,
+      "mtime_ns": 1791060105988611971,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-complete-cache-hash-fullmode-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-complete-cache-hash-fullmode-map.json",
+      "sha256": "82063b325fe7c03eb77c2caccb8dc3e33f4b1a6abba1fc5d51ee78bacb7ca05b",
+      "bytes": 184769,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991672255,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-new-owned-package-map.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-new-owned-package-map.json",
+      "sha256": "474080ebfeff5a1b9766d223af71c36c02ab3609c3f837f9be45c1c1223ba02e",
+      "bytes": 8059,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991883651,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-quarantine25-preservation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-quarantine25-preservation.json",
+      "sha256": "70f89b2bc8806a9d3b385d0e8e4cc7348cc4fa0d59a802e84da07952db2651e4",
+      "bytes": 33836,
+      "full_mode": 384,
+      "mtime_ns": 1791059885388436843,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/launch-contract.json",
+      "sha256": "6d50462b1617f0f8cdccfeb39c395f823be9de0392a488d2f70fde48fca09758",
+      "bytes": 1662,
+      "full_mode": 384,
+      "mtime_ns": 1791059703852030776,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.disk-monitor.jsonl",
+      "sha256": "c01a35a249893341d6dc76b8cbbcb4ec331434a01a3d47d6b2e9b8b157955de7",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791059825337271815,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stderr.log",
+      "sha256": "6c3b7b76c5d38a1f8346555ecfd5484591da3ff957b15ab1c3d12ead6e7a0218",
+      "bytes": 75,
+      "full_mode": 384,
+      "mtime_ns": 1791059825141268602,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stdout.log",
+      "sha256": "566cb285895f64941444197e17c015ea4253eb74a26b669f22f4c6c2a6beecce",
+      "bytes": 4284606,
+      "full_mode": 384,
+      "mtime_ns": 1791059825197269521,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/package-quarantine-receipt.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/package-quarantine-receipt.json",
+      "sha256": "14a49381e35a29865ccdf1fe7426be8da3550cd4cdd99858b75b5198fff8e068",
+      "bytes": 26189,
+      "full_mode": 384,
+      "mtime_ns": 1791059742295961838,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.disk-monitor.jsonl",
+      "sha256": "723248b165d7242beba21b9adabc449706ddf9ce1e70b7e5ebf7c91422cbbe27",
+      "bytes": 415,
+      "full_mode": 384,
+      "mtime_ns": 1791059754012098934,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059753804095519,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059753804095519,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.disk-monitor.jsonl",
+      "sha256": "b683f5087e1e5110ffb6749f87f48932fdaa37e49aad6b52698a9c6b2702f393",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791059716635484733,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059716423481242,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059716423481242,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-before-compiler-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-before-compiler-guard.json",
+      "sha256": "23d7c2829e00dea3b617e7265d16b172a04c1e5191d42ae9b9c30627df295058",
+      "bytes": 25195,
+      "full_mode": 384,
+      "mtime_ns": 1791059765799532912,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-relevant-process-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-relevant-process-guard.json",
+      "sha256": "480daaab178f5374cf1a755f88ae703453c6638997e54c822361e294cfa24703",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791059765452592166,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/prequarantine609-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/prequarantine609-guard.json",
+      "sha256": "0df767a90febdeec94aa50f764e286206089573bf7dec7f9ab0cc50ed55f61ae",
+      "bytes": 149141,
+      "full_mode": 384,
+      "mtime_ns": 1791059740818734869,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/process-reference-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/process-reference-guard.json",
+      "sha256": "480daaab178f5374cf1a755f88ae703453c6638997e54c822361e294cfa24703",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791059765452452987,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/quarantine-moves.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/quarantine-moves.jsonl",
+      "sha256": "e266d7e16e0f9665ee327e4c1d7bb81f98e6089c2e0e11aba7d3d1dd85c31172",
+      "bytes": 26110,
+      "full_mode": 384,
+      "mtime_ns": 1791059742071972524,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060103103179240,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stdout.log",
+      "sha256": "debc68480dd409160cc4c622fcf7ab31f4ba5551dbebf9c738be93d68ffbd06e",
+      "bytes": 397,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991883651,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/seal-readonly-baseline.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/seal-readonly-baseline.py",
+      "sha256": "7cc9796f27ba42dc635ad382a01bdeb9d4b16bff9e03d4006b4f8cd887e46f94",
+      "bytes": 8469,
+      "full_mode": 384,
+      "mtime_ns": 1791060103103179240,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.disk-monitor.jsonl",
+      "sha256": "ba891125cb02e0c7638f89b3fbf5fdac7844decd1bb2e63d9df67db6b5ae8bdc",
+      "bytes": 831,
+      "full_mode": 384,
+      "mtime_ns": 1791059849129662421,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stderr.log",
+      "sha256": "1b18a8ceea2c4efd0acb47e0e0fd12abcb3b60a7c7c69fb46c24b2ffb43cb33e",
+      "bytes": 5385,
+      "full_mode": 384,
+      "mtime_ns": 1791059849001660318,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stdout.log",
+      "sha256": "15ea92b9b1e32839e7f02ba065df3f0fd67e2bd3829d1b528c56a566fe7e044a",
+      "bytes": 1466,
+      "full_mode": 384,
+      "mtime_ns": 1791059849001660318,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.disk-monitor.jsonl",
+      "sha256": "485900480c73a624ece10754ff8e38dd3fff09c8efcd13776a3cb38742167990",
+      "bytes": 831,
+      "full_mode": 384,
+      "mtime_ns": 1791059872986054303,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stderr.log",
+      "sha256": "dd53190c0ab203fa62dcc1e611b5d6c8ae70ce13827bf3126d3d0bf5a87a95e1",
+      "bytes": 5369,
+      "full_mode": 384,
+      "mtime_ns": 1791059872930053383,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stdout.log",
+      "sha256": "04725c863ada5001d40311c37f3c0f65bf4160bee930b318e8fb0335ca5b6395",
+      "bytes": 625,
+      "full_mode": 384,
+      "mtime_ns": 1791059872930053383,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "sha256": "ac457a93b464420bc847ca00db56eddeb7ad0590fa314a008a1ff0b774fbd88c",
+      "bytes": 8789,
+      "full_mode": 384,
+      "mtime_ns": 1791059801276876067,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "sha256": "1b80f096e666e3f8675dc6d17931f472bc1e0fdbdf18beccb049f4d9e82ac34c",
+      "bytes": 8362,
+      "full_mode": 384,
+      "mtime_ns": 1791059801148873956,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "sha256": "43dfa0e5d75fb7336c18ab0a1298bf6996e830d60a0c2255ee667f767490120c",
+      "bytes": 217,
+      "full_mode": 384,
+      "mtime_ns": 1791059801156874088,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    }
+  ]
+}

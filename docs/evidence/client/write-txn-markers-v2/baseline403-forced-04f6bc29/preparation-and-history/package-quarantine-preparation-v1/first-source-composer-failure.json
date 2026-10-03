@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scope": "source composer failed before writing derivative; no target/Cargo/runtime",
+  "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative.py",
+  "sha256": "d35d8f0c4e9276c1aede41842f7aa3838b30e6b32a9bdc0111348df9adf93d7b",
+  "actual_exit_code": 1,
+  "actual_reason": "unnecessary no-op transformation asserted one occurrence but LAST_FORECAST_KIND compile exists twice",
+  "actual_stderr_retention": "tool output only; standalone stderr not captured",
+  "source_or_cache_mutations": 0,
+  "corrected_source": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative-v2.py",
+  "correction": "remove unnecessary no-op transformation"
+}

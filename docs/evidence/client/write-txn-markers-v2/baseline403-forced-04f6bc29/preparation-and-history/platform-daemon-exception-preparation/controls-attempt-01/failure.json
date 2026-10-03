@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "actual_exit_code": 1,
+  "actual_invocation": [
+    "taskset",
+    "-c",
+    "0,1",
+    "python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/check-exact-daemon-exception.py"
+  ],
+  "control_source_sha256": "8fe181e78f65d47207bad18ab7a080ab281b8d3165747b4ce058862be1456f3c",
+  "actual_failure": "AssertionError: 35 at assert len(RESULTS)==36",
+  "classification": "mock-control wrapper count mismatch after all35 control bodies completed; no runner/Cargo/Docker/cache operation",
+  "stdout_empty": true,
+  "actual_Cargo_commands": 0,
+  "actual_Docker_queries": 0,
+  "actual_cache_removals": 0,
+  "output_retention": "exact diagnostic as returned by exec tool; no preexisting raw redirect log was produced"
+}

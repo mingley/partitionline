@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "scope": "actual Cargo clean101 setup refusal only; no compiler/API27/API90 baseline behavior qualification",
+  "sampled_at_unix": 1791054482.9499977,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+  "validation_sha256": "bcb96239882886e845b4ed459bccf44f3a5a42ca39135a8bd083a408d31e8f4e",
+  "complete_sources_after_failure": [
+    {
+      "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+      "files": 73938,
+      "bytes": 713363027,
+      "whole_declared_path_set_match": true,
+      "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+      "set_blob_fullmode_sha256": "61dcc9a607ba13f2f68c12981e7c4808d290764f68d90c644f31ae7282453329"
+    },
+    {
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "files": 71885,
+      "bytes": 653466714,
+      "whole_declared_path_set_match": true,
+      "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+      "set_blob_fullmode_sha256": "8ef181d8d9f63cb6bd2ed6e8bd9011d3b29b733c989eecc822317f7d16b3c7fc"
+    }
+  ],
+  "cache_pathset_count": 608,
+  "complete608_cache_bytes_sha256_fullmodes_mtimes_unchanged": true,
+  "cache_changed_paths": [],
+  "all25_own_package_outputs_exact_and_losslessly_retained": true,
+  "cache_allocated_bytes": 227930112,
+  "CACHEDIR_TAG_present": false,
+  "Cargo_clean_setup_exit_code": 101,
+  "actual_package_removals": 0,
+  "actual_compiler_invocations": 0,
+  "actual_test_executions": 0,
+  "actual_nm_invocations": 0,
+  "actual_before_Docker_API_empty_exit0": true,
+  "actual_after_Docker_API_not_launched": true,
+  "all_owned_command_groups_joined_no_live_members": true,
+  "selected_baseline_source_materialized": false,
+  "source_mutations": 0,
+  "cache_mutations": 0,
+  "lease_closed_after_readonly_verification": true,
+  "free_bytes": 1006759936,
+  "next_phase": "held; ROOT review of actual Cargo cleanup protection required, no automatic tag mutation/manual deletion/retry"
+}

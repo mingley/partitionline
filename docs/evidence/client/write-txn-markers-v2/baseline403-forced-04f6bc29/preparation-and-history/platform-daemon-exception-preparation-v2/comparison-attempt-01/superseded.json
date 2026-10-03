@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic component control preparation only",
+  "reason": "original comparison changedPID only on a second stat read; oldguard did not perform second read, so its sixth scenario had not actually mutatedPID. Five ENOENT scenarios remain actual model observations; sixth source interpretation superseded. Corrected trigger is maps-read and must assert mutation happened for both models.",
+  "actual_Cargo_commands": 0,
+  "actual_Docker_queries": 0,
+  "actual_removals": 0
+}

@@ -1,0 +1,3 @@
+{"elapsed_seconds": 0, "free_bytes": 950095872, "process_group": 1232840, "pre_launch": true, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.007754599995678291, "free_bytes": 950091776, "process_group": 1232840, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.20799636699666735, "free_bytes": 950083584, "process_group": 1232840, "process_completed": true, "exit_code": 0}

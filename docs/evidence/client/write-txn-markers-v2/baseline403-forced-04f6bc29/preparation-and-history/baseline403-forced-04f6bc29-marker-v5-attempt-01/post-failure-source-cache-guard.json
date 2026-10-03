@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "scope": "actual177B standard cache marker repair and Cargo dry-run pathset refusal; no compiler/API27/API90 behavior qualification",
+  "sampled_at_unix": 1791058194.7060647,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "runner_sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+  "validation_sha256": "e1258d3a730c1fb1bd5434ad6b5400870e6f46dd8d45885cdae06296abdb20ee",
+  "complete_sources_after_failure": [
+    {
+      "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+      "files": 73938,
+      "bytes": 713363027,
+      "whole_declared_path_set_match": true,
+      "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+      "set_blob_fullmode_sha256": "61dcc9a607ba13f2f68c12981e7c4808d290764f68d90c644f31ae7282453329"
+    },
+    {
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "files": 71885,
+      "bytes": 653466714,
+      "whole_declared_path_set_match": true,
+      "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+      "set_blob_fullmode_sha256": "8ef181d8d9f63cb6bd2ed6e8bd9011d3b29b733c989eecc822317f7d16b3c7fc"
+    }
+  ],
+  "cache_pathset_count": 609,
+  "original608_cache_hashes_bytes_fullmodes_mtimes_unchanged": true,
+  "new_standard177B_cache_marker_exact": true,
+  "only_intentional_cache_change": {
+    "path": "/workspace/work/client-share-target/CACHEDIR.TAG",
+    "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+    "bytes": 177,
+    "full_mode": 384,
+    "mtime_ns": 1791057832880094064
+  },
+  "complete609_after_dryrun_hashes_bytes_fullmodes_mtimes_unchanged": true,
+  "all25_own_package_outputs_exact_and_losslessly_retained": true,
+  "cache_allocated_bytes": 227934208,
+  "actual_Cargo_dryrun_exit_code": 0,
+  "actual_reported_paths": [
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4",
+    "debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+    "debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+    "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+    "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+    "debug/.fingerprint/partitionline-3690429a045642cf",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827"
+  ],
+  "actual_expanded_regular_paths": [
+    "debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+    "debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+    "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+    "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+    "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+    "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+    "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json"
+  ],
+  "actual_expanded_regular_path_count": 16,
+  "reviewed_package_path_count": 25,
+  "prospective_missing_reviewed_package_paths": [
+    "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+    "debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+    "debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+    "debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+    "debug/deps/partitionline-41c9070129cbefc4.d",
+    "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+    "debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+    "debug/deps/write_txn_markers_v2-3690429a045642cf",
+    "debug/deps/write_txn_markers_v2-3690429a045642cf.d"
+  ],
+  "prospective_unreviewed_paths": [],
+  "actual_Cargo_summary": "Summary 23 files, 74.5MiB total\nwarning: no files deleted due to --dry-run",
+  "actual_package_removals": 0,
+  "actual_compiler_invocations": 0,
+  "actual_test_executions": 0,
+  "actual_nm_invocations": 0,
+  "actual_before_and_after_marker_Docker_API_empty_exit0": true,
+  "actual_after_clean_Docker_API_not_launched": true,
+  "all_owned_command_groups_joined_no_live_members": true,
+  "commands": [
+    {
+      "name": "platform-docker-before-clean",
+      "exit_code": 0,
+      "owned_process_group": 1232723,
+      "no_live_group_members": true,
+      "minimum_sampled_free_bytes": 950894592
+    },
+    {
+      "name": "platform-docker-after-marker-before-clean",
+      "exit_code": 0,
+      "owned_process_group": 1232819,
+      "no_live_group_members": true,
+      "minimum_sampled_free_bytes": 950411264
+    },
+    {
+      "name": "stable-own-package-clean-dry-run",
+      "exit_code": 0,
+      "owned_process_group": 1232840,
+      "no_live_group_members": true,
+      "minimum_sampled_free_bytes": 950083584
+    }
+  ],
+  "selected_baseline_source_materialized": false,
+  "source_mutations": 0,
+  "cache_metadata_mutations": 1,
+  "free_bytes": 947748864,
+  "lease_closed_after_readonly_verification": true,
+  "next_phase": "held; ROOT review of actual dry-run incomplete report required; no automatic cleanup/retry/relaxation",
+  "verifier_sha256": "b1306f55b6c2118a724d878aa236b6856f864de7129a3d627def038da0a6e68b"
+}

@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "synthetic extracted source functions only; original guard accepted6 unsafe model states and revised guard rejected all6; no actual process/cache/Cargo/API behavior proof",
+  "source_sha256": "e5d697ebfbceda2a1e07b8d5afd8c269d9eab0cfb543d82cf9f8c90a0516701f",
+  "cases": [
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "ENOENT_cwd_while_same_PID_starttime_live",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "ENOENT_exe_while_same_PID_starttime_live",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "ENOENT_environ_while_same_PID_starttime_live",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "ENOENT_maps_while_same_PID_starttime_live",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "ENOENT_fd_while_same_PID_starttime_live",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "scenario": "nonexempt_PID_starttime_comm_changed_after_inspection",
+      "rejected": false,
+      "old_unexpected_acceptance": true,
+      "new_required_rejection": false
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "ENOENT_cwd_while_same_PID_starttime_live",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "ENOENT_exe_while_same_PID_starttime_live",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "ENOENT_environ_while_same_PID_starttime_live",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "ENOENT_maps_while_same_PID_starttime_live",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "ENOENT_fd_while_same_PID_starttime_live",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    },
+    {
+      "runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "scenario": "nonexempt_PID_starttime_comm_changed_after_inspection",
+      "rejected": true,
+      "old_unexpected_acceptance": false,
+      "new_required_rejection": true
+    }
+  ],
+  "old_guard_unexpected_acceptances": 6,
+  "new_guard_required_rejections": 6,
+  "actual_runner_workflow_executions": 0,
+  "actual_Cargo_commands": 0,
+  "actual_Docker_queries": 0,
+  "actual_removals": 0
+}

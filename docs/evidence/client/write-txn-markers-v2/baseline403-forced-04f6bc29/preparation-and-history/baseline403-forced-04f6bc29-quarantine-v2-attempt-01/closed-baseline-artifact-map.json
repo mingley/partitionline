@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "kind": "closedgenuine403baseline-positive2-red3plus1",
+  "passed": true,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "baseline_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "summary_sha256": "57ba0a68d000e1db29cf5c23d374a9bd4a5ad5914d8779c1010ba1b5c1644b4c",
+  "validation_sha256": "d469dc22fd1eb86d5ed0d2b5c37ee9a3c890c507aa21d1886c32fa9ede8dd401",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/baseline-materialization.json",
+      "run_relative_path": "baseline-materialization.json",
+      "sha256": "c1d0259aec888935cac63d5665fc9a0df61a24a0ce9588481586b5544aff6c8a",
+      "bytes": 23878,
+      "full_mode": 384,
+      "mtime_ns": 1791059777316065201,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/candidate-next-focused-forecast-proposal.json",
+      "run_relative_path": "candidate-next-focused-forecast-proposal.json",
+      "sha256": "31be030df37916dff47b25d079c4b476417516a91b0dcd57bb09e1c233bca212",
+      "bytes": 4277,
+      "full_mode": 384,
+      "mtime_ns": 1791060362337271426,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-summary.json",
+      "run_relative_path": "closed-baseline-summary.json",
+      "sha256": "57ba0a68d000e1db29cf5c23d374a9bd4a5ad5914d8779c1010ba1b5c1644b4c",
+      "bytes": 6872,
+      "full_mode": 384,
+      "mtime_ns": 1791060105988611971,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-complete-cache-hash-fullmode-map.json",
+      "run_relative_path": "final-complete-cache-hash-fullmode-map.json",
+      "sha256": "82063b325fe7c03eb77c2caccb8dc3e33f4b1a6abba1fc5d51ee78bacb7ca05b",
+      "bytes": 184769,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991672255,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-new-owned-package-map.json",
+      "run_relative_path": "final-new-owned-package-map.json",
+      "sha256": "474080ebfeff5a1b9766d223af71c36c02ab3609c3f837f9be45c1c1223ba02e",
+      "bytes": 8059,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991883651,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-quarantine25-preservation.json",
+      "run_relative_path": "final-quarantine25-preservation.json",
+      "sha256": "70f89b2bc8806a9d3b385d0e8e4cc7348cc4fa0d59a802e84da07952db2651e4",
+      "bytes": 33836,
+      "full_mode": 384,
+      "mtime_ns": 1791059885388436843,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/launch-contract.json",
+      "run_relative_path": "launch-contract.json",
+      "sha256": "6d50462b1617f0f8cdccfeb39c395f823be9de0392a488d2f70fde48fca09758",
+      "bytes": 1662,
+      "full_mode": 384,
+      "mtime_ns": 1791059703852030776,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.disk-monitor.jsonl",
+      "run_relative_path": "old-library-symbol-probe.disk-monitor.jsonl",
+      "sha256": "c01a35a249893341d6dc76b8cbbcb4ec331434a01a3d47d6b2e9b8b157955de7",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791059825337271815,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stderr.log",
+      "run_relative_path": "old-library-symbol-probe.stderr.log",
+      "sha256": "6c3b7b76c5d38a1f8346555ecfd5484591da3ff957b15ab1c3d12ead6e7a0218",
+      "bytes": 75,
+      "full_mode": 384,
+      "mtime_ns": 1791059825141268602,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/old-library-symbol-probe.stdout.log",
+      "run_relative_path": "old-library-symbol-probe.stdout.log",
+      "sha256": "566cb285895f64941444197e17c015ea4253eb74a26b669f22f4c6c2a6beecce",
+      "bytes": 4284606,
+      "full_mode": 384,
+      "mtime_ns": 1791059825197269521,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/package-quarantine-receipt.json",
+      "run_relative_path": "package-quarantine-receipt.json",
+      "sha256": "14a49381e35a29865ccdf1fe7426be8da3550cd4cdd99858b75b5198fff8e068",
+      "bytes": 26189,
+      "full_mode": 384,
+      "mtime_ns": 1791059742295961838,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.disk-monitor.jsonl",
+      "run_relative_path": "platform-docker-after-quarantine.disk-monitor.jsonl",
+      "sha256": "723248b165d7242beba21b9adabc449706ddf9ce1e70b7e5ebf7c91422cbbe27",
+      "bytes": 415,
+      "full_mode": 384,
+      "mtime_ns": 1791059754012098934,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stderr.log",
+      "run_relative_path": "platform-docker-after-quarantine.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059753804095519,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-after-quarantine.stdout.log",
+      "run_relative_path": "platform-docker-after-quarantine.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059753804095519,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.disk-monitor.jsonl",
+      "run_relative_path": "platform-docker-before-quarantine.disk-monitor.jsonl",
+      "sha256": "b683f5087e1e5110ffb6749f87f48932fdaa37e49aad6b52698a9c6b2702f393",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791059716635484733,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stderr.log",
+      "run_relative_path": "platform-docker-before-quarantine.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059716423481242,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/platform-docker-before-quarantine.stdout.log",
+      "run_relative_path": "platform-docker-before-quarantine.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791059716423481242,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-before-compiler-guard.json",
+      "run_relative_path": "postquarantine-before-compiler-guard.json",
+      "sha256": "23d7c2829e00dea3b617e7265d16b172a04c1e5191d42ae9b9c30627df295058",
+      "bytes": 25195,
+      "full_mode": 384,
+      "mtime_ns": 1791059765799532912,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/postquarantine-relevant-process-guard.json",
+      "run_relative_path": "postquarantine-relevant-process-guard.json",
+      "sha256": "480daaab178f5374cf1a755f88ae703453c6638997e54c822361e294cfa24703",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791059765452592166,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/prequarantine609-guard.json",
+      "run_relative_path": "prequarantine609-guard.json",
+      "sha256": "0df767a90febdeec94aa50f764e286206089573bf7dec7f9ab0cc50ed55f61ae",
+      "bytes": 149141,
+      "full_mode": 384,
+      "mtime_ns": 1791059740818734869,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/process-reference-guard.json",
+      "run_relative_path": "process-reference-guard.json",
+      "sha256": "480daaab178f5374cf1a755f88ae703453c6638997e54c822361e294cfa24703",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791059765452452987,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/quarantine-moves.jsonl",
+      "run_relative_path": "quarantine-moves.jsonl",
+      "sha256": "e266d7e16e0f9665ee327e4c1d7bb81f98e6089c2e0e11aba7d3d1dd85c31172",
+      "bytes": 26110,
+      "full_mode": 384,
+      "mtime_ns": 1791059742071972524,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stderr.log",
+      "run_relative_path": "readonly-seal.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060103103179240,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/readonly-seal.stdout.log",
+      "run_relative_path": "readonly-seal.stdout.log",
+      "sha256": "debc68480dd409160cc4c622fcf7ab31f4ba5551dbebf9c738be93d68ffbd06e",
+      "bytes": 397,
+      "full_mode": 384,
+      "mtime_ns": 1791060105991883651,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/retained-elfs/3eeb4715c81071f29db13b7574f3a70b84bb0980201a9a236a754ca3be91aedd.elf.gz",
+      "run_relative_path": "retained-elfs/3eeb4715c81071f29db13b7574f3a70b84bb0980201a9a236a754ca3be91aedd.elf.gz",
+      "sha256": "f4cb5244a439e6dde01b256354d17fe7c3908e6d39c8e721f2f465d75da1d11d",
+      "bytes": 3322293,
+      "full_mode": 384,
+      "mtime_ns": 1791059812892614282,
+      "payload_kind": "WORK-only compiled ELF/library capture excluded fromrepo"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/retained-elfs/8d11eb2ef81c80f1e2b33c584544e0617d6b3f668e8e4de3c76499bbd44c151d.elf.gz",
+      "run_relative_path": "retained-elfs/8d11eb2ef81c80f1e2b33c584544e0617d6b3f668e8e4de3c76499bbd44c151d.elf.gz",
+      "sha256": "5b4595bbd9485ff94b8088c858fcf8f9f39a41288f4920d2107d92e4a777f549",
+      "bytes": 3233083,
+      "full_mode": 384,
+      "mtime_ns": 1791059860751350694,
+      "payload_kind": "WORK-only compiled ELF/library capture excluded fromrepo"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/retained-elfs/b4c4e07e41820c29cc777679322aadb3298dc8fe2c65041987021f13e8e55eed.rmeta.gz",
+      "run_relative_path": "retained-elfs/b4c4e07e41820c29cc777679322aadb3298dc8fe2c65041987021f13e8e55eed.rmeta.gz",
+      "sha256": "e1a68ebfcf351170b5ce4a9060c151dc1f374d0b747a3276893400d913e39ae1",
+      "bytes": 6462325,
+      "full_mode": 384,
+      "mtime_ns": 1791059813657355401,
+      "payload_kind": "WORK-only compiled ELF/library capture excluded fromrepo"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/retained-elfs/d69cac99602deea75444141ebddf6f0720c134acb9fa6b13eb2f060596cd65d4.elf.gz",
+      "run_relative_path": "retained-elfs/d69cac99602deea75444141ebddf6f0720c134acb9fa6b13eb2f060596cd65d4.elf.gz",
+      "sha256": "0177fd606dd8386f95c3bbd59792158e8f924af8fb69d173a628b9fd208f056a",
+      "bytes": 3284351,
+      "full_mode": 384,
+      "mtime_ns": 1791059885133253676,
+      "payload_kind": "WORK-only compiled ELF/library capture excluded fromrepo"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/retained-elfs/f0915ee792aea90a986b887c16e72157e6a2deeec7b17a982ad009da1bc2f427.rlib.gz",
+      "run_relative_path": "retained-elfs/f0915ee792aea90a986b887c16e72157e6a2deeec7b17a982ad009da1bc2f427.rlib.gz",
+      "sha256": "455acf2b3f7608b116adfa0dcc9cf30c4777fcb03e7061e478c3e71203c7befd",
+      "bytes": 10230501,
+      "full_mode": 384,
+      "mtime_ns": 1791059813337950589,
+      "payload_kind": "WORK-only compiled ELF/library capture excluded fromrepo"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/seal-readonly-baseline.py",
+      "run_relative_path": "seal-readonly-baseline.py",
+      "sha256": "7cc9796f27ba42dc635ad382a01bdeb9d4b16bff9e03d4006b4f8cd887e46f94",
+      "bytes": 8469,
+      "full_mode": 384,
+      "mtime_ns": 1791060103103179240,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.disk-monitor.jsonl",
+      "run_relative_path": "stable-baseline-api27-red.disk-monitor.jsonl",
+      "sha256": "ba891125cb02e0c7638f89b3fbf5fdac7844decd1bb2e63d9df67db6b5ae8bdc",
+      "bytes": 831,
+      "full_mode": 384,
+      "mtime_ns": 1791059849129662421,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stderr.log",
+      "run_relative_path": "stable-baseline-api27-red.stderr.log",
+      "sha256": "1b18a8ceea2c4efd0acb47e0e0fd12abcb3b60a7c7c69fb46c24b2ffb43cb33e",
+      "bytes": 5385,
+      "full_mode": 384,
+      "mtime_ns": 1791059849001660318,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api27-red.stdout.log",
+      "run_relative_path": "stable-baseline-api27-red.stdout.log",
+      "sha256": "15ea92b9b1e32839e7f02ba065df3f0fd67e2bd3829d1b528c56a566fe7e044a",
+      "bytes": 1466,
+      "full_mode": 384,
+      "mtime_ns": 1791059849001660318,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.disk-monitor.jsonl",
+      "run_relative_path": "stable-baseline-api90-red.disk-monitor.jsonl",
+      "sha256": "485900480c73a624ece10754ff8e38dd3fff09c8efcd13776a3cb38742167990",
+      "bytes": 831,
+      "full_mode": 384,
+      "mtime_ns": 1791059872986054303,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stderr.log",
+      "run_relative_path": "stable-baseline-api90-red.stderr.log",
+      "sha256": "dd53190c0ab203fa62dcc1e611b5d6c8ae70ce13827bf3126d3d0bf5a87a95e1",
+      "bytes": 5369,
+      "full_mode": 384,
+      "mtime_ns": 1791059872930053383,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-api90-red.stdout.log",
+      "run_relative_path": "stable-baseline-api90-red.stdout.log",
+      "sha256": "04725c863ada5001d40311c37f3c0f65bf4160bee930b318e8fb0335ca5b6395",
+      "bytes": 625,
+      "full_mode": 384,
+      "mtime_ns": 1791059872930053383,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "run_relative_path": "stable-baseline-positive-controls.disk-monitor.jsonl",
+      "sha256": "ac457a93b464420bc847ca00db56eddeb7ad0590fa314a008a1ff0b774fbd88c",
+      "bytes": 8789,
+      "full_mode": 384,
+      "mtime_ns": 1791059801276876067,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "run_relative_path": "stable-baseline-positive-controls.stderr.log",
+      "sha256": "1b80f096e666e3f8675dc6d17931f472bc1e0fdbdf18beccb049f4d9e82ac34c",
+      "bytes": 8362,
+      "full_mode": 384,
+      "mtime_ns": 1791059801148873956,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "run_relative_path": "stable-baseline-positive-controls.stdout.log",
+      "sha256": "43dfa0e5d75fb7336c18ab0a1298bf6996e830d60a0c2255ee667f767490120c",
+      "bytes": 217,
+      "full_mode": 384,
+      "mtime_ns": 1791059801156874088,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/validation.json",
+      "run_relative_path": "validation.json",
+      "sha256": "d469dc22fd1eb86d5ed0d2b5c37ee9a3c890c507aa21d1886c32fa9ede8dd401",
+      "bytes": 1055697,
+      "full_mode": 384,
+      "mtime_ns": 1791059885398271057,
+      "payload_kind": "rawsource/log/receipt"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-driver.log",
+      "sha256": "5966ca030db22624e8c574c7aa378d340c59671445ba0e9f1bb7638cb282dd77",
+      "bytes": 763,
+      "full_mode": 384,
+      "mtime_ns": 1791059885398271057,
+      "payload_kind": "rawparentlaunch/log"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-parent-launch.json",
+      "sha256": "4067f182f2c94398006c09c0d00d8feec6b7d3bf028f1342a8cb0577f83755c1",
+      "bytes": 1327,
+      "full_mode": 384,
+      "mtime_ns": 1791059703410731459,
+      "payload_kind": "rawparentlaunch/log"
+    }
+  ],
+  "file_count": 42,
+  "file_bytes": 32410391,
+  "self_excluded": true,
+  "original_rawquarantine25_plus_gzip_refs_retained": true,
+  "candidate_no_actualexecution": true,
+  "all6groups_joined_leaseclosed": true,
+  "compiledlibrary_ELF_payloads_WORK_only_no_repo_stage": true
+}

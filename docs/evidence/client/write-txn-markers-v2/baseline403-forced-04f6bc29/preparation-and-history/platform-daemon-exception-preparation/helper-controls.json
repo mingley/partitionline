@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+  "control_source_sha256": "f3913ff084baf7ea9c79a518d81e28d9b16bc9c8667f1242ee2225510226dd6b",
+  "exact_allowlist_sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+  "passed": true,
+  "synthetic_controls": 35,
+  "controls": [
+    {
+      "name": "exact-two-pinned-daemons-positive-with-explicit-uninspected-scope",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-comm",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-parent_pid",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-uid_all_four",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-starttime_ticks",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-cmdline_sha256",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-pinned-cmdline_bytes",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-status-Name",
+      "passed": true
+    },
+    {
+      "name": "reject-unverifiable-pinned-stat",
+      "passed": true
+    },
+    {
+      "name": "reject-unverifiable-pinned-status",
+      "passed": true
+    },
+    {
+      "name": "reject-unverifiable-pinned-cmdline",
+      "passed": true
+    },
+    {
+      "name": "reject-pinned-identity-change-after-live-process-scan",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-stat",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-cwd",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-exe",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-environ",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-maps",
+      "passed": true
+    },
+    {
+      "name": "reject-nonexempt-unreadable-fd",
+      "passed": true
+    },
+    {
+      "name": "reject-inspectable-cache-reference-cwd",
+      "passed": true
+    },
+    {
+      "name": "reject-inspectable-cache-reference-exe",
+      "passed": true
+    },
+    {
+      "name": "reject-inspectable-cache-reference-environ",
+      "passed": true
+    },
+    {
+      "name": "reject-inspectable-cache-reference-maps",
+      "passed": true
+    },
+    {
+      "name": "reject-inspectable-cache-reference-fd",
+      "passed": true
+    },
+    {
+      "name": "reject-new-PID-even-when-comm-and-UID-look-like-daemon",
+      "passed": true
+    },
+    {
+      "name": "synthetic-Docker-empty-exit0-positive-exact-argv-and-timeout",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-any-running-workload",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-query-failure-no-zero-workload-inference",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-daemon-change-after-API-query",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-CLI-changed-sha256",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-CLI-changed-bytes",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-CLI-changed-full_mode",
+      "passed": true
+    },
+    {
+      "name": "reject-Docker-CLI-symlink-substitution",
+      "passed": true
+    },
+    {
+      "name": "compile-forecast-boundary-with32MiB-root-reserve-after-0-targets",
+      "passed": true
+    },
+    {
+      "name": "compile-forecast-boundary-with32MiB-root-reserve-after-1-targets",
+      "passed": true
+    },
+    {
+      "name": "compile-forecast-boundary-with32MiB-root-reserve-after-2-targets",
+      "passed": true
+    }
+  ],
+  "scope": "mocked extracted functions only; no actual Docker API, process-owner qualification, cleanup, Cargo/JVM/socket/API behavior run",
+  "actual_runner_workflow_executions": 0,
+  "actual_cache_removals": 0,
+  "actual_Cargo_commands": 0,
+  "actual_Docker_queries": 0
+}

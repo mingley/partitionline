@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only marker repair/dryrun source/control/preflight packet; no actual marker write or Cargo command launched; no ELF/rlib/rmeta/JAR/class payloads",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v3.py",
+      "sha256": "39609fb5f5b2777810fabafa8b659a1ee92fd0746b24e34fe9d53963d5056182",
+      "bytes": 48167,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/check-marker-dryrun-controls.py",
+      "sha256": "93a2db60fc41742706141b4d11a72a10649ef30490a9dad803c11b60e99e89fc",
+      "bytes": 11036,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/marker-dryrun-controls.json",
+      "sha256": "9d08355afedc63c8a6df16f798a731284ede66031964d9225c8f0faa62e1a60a",
+      "bytes": 2908,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/preflight-attempt-01/failure.json",
+      "sha256": "0bea7c29fb2e84d6a6b70e0a594742dc29538da54a9f640747a336c88c3393ab",
+      "bytes": 828,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/proposal.json",
+      "sha256": "41dff8c918adc09f23bbfe4fd8fddbc8d47d3e5cb617e1664cafb08fa314d821",
+      "bytes": 13812,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/readonly-preflight-forecast.json",
+      "sha256": "f4bced216d9a2b472b14ece36d2f6f051d26d965b2825a72ac45cad84eb2c0bb",
+      "bytes": 4138,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/runner.before-e45996fb.py",
+      "sha256": "e45996fb971434a4e2b9e430d0451ce94f191a46bead70a090ab27768d15ec75",
+      "bytes": 47786,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/runner.proposed.patch",
+      "sha256": "96bd88b21d39dd95314991c534b59df33480f13857d42318dc347e3b85878d68",
+      "bytes": 10494,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed",
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+      "bytes": 177,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/verify-readonly-preflight.py",
+      "sha256": "bb2a413acdbbe3c274a0a7288a3c1ec274f523e65de600e3f3463abf01703bbc",
+      "bytes": 5702,
+      "full_mode": 384
+    }
+  ],
+  "file_count": 10,
+  "total_bytes": 145048
+}

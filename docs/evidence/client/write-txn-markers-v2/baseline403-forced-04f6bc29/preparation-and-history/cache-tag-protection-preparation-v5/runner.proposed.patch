@@ -1,0 +1,26 @@
+--- frozen-80650204-v4.py
++++ run-forced-baseline403-standard-marker-v5.py
+@@ -670,6 +670,14 @@
+         'CACHEDIR_TAG_removal_planned':False,'dryrun_only_no_actual_deletion':True}
+     row.update(result);persist();return result
+ 
++def verify_exact_afterclean_paths(before_cache,afterclean):
++    expected=set(before_cache)-set(INITIAL_PACKAGE_IDENTITIES)
++    actual=set(afterclean)
++    assert actual==expected, ('post-clean cache pathset not exact reviewed transition',sorted(actual-expected),sorted(expected-actual))
++    assert len(before_cache)==609 and len(INITIAL_PACKAGE_IDENTITIES)==25 and len(actual)==584
++    return {'original_paths':609,'removed_reviewed_package_paths':25,'remaining_paths':584,
++        'unreviewed_added_paths':0,'exact609_minus25_transition_verified':True}
++
+ def prove_forced_old_library(row):
+     assert CLEAN_DONE
+     log=Path(row['stderr_path']).read_text()
+@@ -726,6 +734,8 @@
+     afterclean=files(TARGET)
+     assert all(name not in afterclean for name in INITIAL_PACKAGE_IDENTITIES), 'own package output survived clean'
+     before_cache=checked_preclean['complete_cache_identity_map']
++    exact_afterclean=verify_exact_afterclean_paths(before_cache,afterclean)
++    (RUN/'postclean-exact-cache-pathset.json').write_text(json.dumps(exact_afterclean,indent=2)+'\n')
+     removed=set(before_cache)-set(afterclean)
+     assert removed==set(INITIAL_PACKAGE_IDENTITIES), ('clean affected unreviewed output',removed-set(INITIAL_PACKAGE_IDENTITIES))
+     for name,expected in before_cache.items():

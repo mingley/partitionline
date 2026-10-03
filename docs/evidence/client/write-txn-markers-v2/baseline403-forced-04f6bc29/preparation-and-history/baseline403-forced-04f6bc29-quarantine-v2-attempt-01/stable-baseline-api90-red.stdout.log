@@ -1,0 +1,18 @@
+
+running 1 test
+test existing_public_operation_must_consume_v1_lag ... FAILED
+
+failures:
+
+---- existing_public_operation_must_consume_v1_lag stdout ----
+
+thread 'existing_public_operation_must_consume_v1_lag' (1234833) panicked at tests/fail_first_share_offsets_v1.rs:26:10:
+called `Result::unwrap()` on an `Err` value: Unsupported("broker does not support DescribeShareGroupOffsets")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    existing_public_operation_must_consume_v1_lag
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

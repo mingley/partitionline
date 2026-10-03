@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "WORK-only frozen source/memory controls/read-only cache forecast; actual quarantine/compiler requires newROOTGO",
+  "sampled_at_unix": 1791058849.0203393,
+  "runner_sha256": "ff3ab5eeab85c294a979126cce6dcef9e33c31ee092bca30173f2519c179cdb0",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "source_full_guards_prior_closed_binding": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-failure-source-cache-guard.json",
+    "sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+    "actual_future_beforeafter_fullguard_required": true
+  },
+  "all609_current_sha_bytes_fullmodes_mtimes_match": true,
+  "all25_current_inodes_and_existing_gzip_restore_verified": true,
+  "standard177B_marker_current_matches_previous_publicized_receipt": true,
+  "fresh_future_run_source_and_quarantine_paths_absent": true,
+  "forecast": {
+    "sampled_free_bytes": 905744384,
+    "raw25_retained_allocated_bytes_not_reclaimed": 89194496,
+    "quarantine_reclaimed_file_bytes": 0,
+    "required_actual_postquarantine_free_bytes": 782925569,
+    "headroom_bytes": 122818815,
+    "fits": true,
+    "shared_floor_bytes": 367001600,
+    "root_external_publication_reserve_bytes": 33554432,
+    "library_allowance_bytes": 83002787,
+    "three_test_allowance_bytes": 52000524,
+    "one_link_codegen_allowance_bytes": 83002787,
+    "new_lossless_capture_allowance_bytes": 143391919,
+    "metadata_allowance_bytes": 16777216,
+    "selected_source_allowance_bytes": 4194304,
+    "already_retained25_gzip_bytes_not_charged_again": 27156162,
+    "actual_future_immediately_postquarantine_resample_mandatory": true,
+    "no_RPC_native_or_other_SDK_compiler_overlap_allowed": true,
+    "uncertainty": "measured artifacts scaled1.5 and sampled0.2s cutoff; does not guarantee instantaneous peak"
+  },
+  "actual_operations": {
+    "target_writes": 0,
+    "quarantine_renames": 0,
+    "Cargo": 0,
+    "DockerAPI": 0,
+    "tests": 0
+  },
+  "verifier_sha256": "a65fb5094fcd6592e388af0f76ebc68ea3437d3aa7d1a32e84d763f36be0b3c9"
+}

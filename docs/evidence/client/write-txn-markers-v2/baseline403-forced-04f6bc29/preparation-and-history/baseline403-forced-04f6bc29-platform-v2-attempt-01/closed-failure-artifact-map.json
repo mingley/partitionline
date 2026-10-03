@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/failure.json",
+      "bytes": 272,
+      "full_mode": 384,
+      "sha256": "ad6f141aeee4fe990b605f81f2faf9b1b2a13450faf1897e7b466cedd4d7cd57"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/launch-contract.json",
+      "bytes": 1625,
+      "full_mode": 384,
+      "sha256": "5c3aa6e1b30cc68388bb186be5a9fda1d6b113fedb490d0d7e584e1c5237f853"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "bytes": 419,
+      "full_mode": 384,
+      "sha256": "ca60a12a437ed97c3b58c4af30aca6d0c52280331adb7d62840a07ce181cb7b3"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stderr.log",
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/platform-docker-before-clean.stdout.log",
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/post-failure-source-cache-guard.json",
+      "bytes": 2038,
+      "full_mode": 384,
+      "sha256": "4f205d43132e8641dc12a52cdcf364ae6f5bcbf3e55db346be09a2ab5abb3f64"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/preclean-guard.json",
+      "bytes": 125234,
+      "full_mode": 384,
+      "sha256": "82bc10e7151f94a06d0ac06c10c8c51f3665e0686d6598a8591fea37f4756864"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/process-reference-guard.json",
+      "bytes": 1697,
+      "full_mode": 384,
+      "sha256": "031a46bf552bc23139303b0648afb3b666da9da1848bb56bcbce6fb87dfd50d5"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.disk-monitor.jsonl",
+      "bytes": 421,
+      "full_mode": 384,
+      "sha256": "d3798e33eae1e2b6f64fc9f326e01dcc33c4510afb5673901c0cdb452c4a37ba"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stderr.log",
+      "bytes": 188,
+      "full_mode": 384,
+      "sha256": "e4cae336bfa9ab80fb9cbb217bd2a131bacafd5e5a27bc503f36df56f0030778"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/stable-own-package-clean.stdout.log",
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/validation.json",
+      "bytes": 317232,
+      "full_mode": 384,
+      "sha256": "bcb96239882886e845b4ed459bccf44f3a5a42ca39135a8bd083a408d31e8f4e"
+    }
+  ],
+  "driver_log": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01-driver.log",
+    "sha256": "6bbc9182c426ab7e63eea690994444b6dac548d71c9ef9ab4606b47b1c879449"
+  }
+}

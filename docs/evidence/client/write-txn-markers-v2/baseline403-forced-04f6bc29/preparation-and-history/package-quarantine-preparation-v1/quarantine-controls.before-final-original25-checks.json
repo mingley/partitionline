@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "scope": "26 extracted exact-helper in-memory controls; no actual target/quarantine/Docker/Cargo/compiler/tests",
+  "runner_sha256": "002af88f8df62078bc62540ab9d5cbee5f009e9ca76e3682486d852d79189ac2",
+  "control_source_sha256": "1d28b13681cf4caf6daaf9f3d82a701a0caa1c24c7609561ced3ed25474aa6b9",
+  "passed": true,
+  "synthetic_controls": 26,
+  "controls": [
+    {
+      "name": "exact609-to584-and25-same-inodes-fullmode-mtime-zero-reclaim",
+      "passed": true
+    },
+    {
+      "name": "reject-owned-sha256-mismatch-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-owned-bytes-mismatch-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-owned-full_mode-mismatch-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-owned-mtime_ns-mismatch-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-owned-inode-mismatch-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-added_unknown-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-symlink_owned-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-symlink_dependency-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-missing_dependency-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-existing_quarantine-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-existing_ledger-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-wrong_target_owner-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-wrong_target_mode-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-wrong_target_inode-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-different_filesystem-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-gzip_corrupt-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-wrong_marker-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "reject-source_path_traversal-before-any-rename",
+      "passed": true
+    },
+    {
+      "name": "partial-before_first-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-before_tenth-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-after_tenth-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-completed_ledger_failure-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-existing_future_destination-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-new_target_path-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    },
+    {
+      "name": "partial-controlled_interruption-preserves-originals-location-ledger-no-retry",
+      "passed": true
+    }
+  ],
+  "inherited_function_ASTs_unchanged": [
+    "run",
+    "source_guard",
+    "selected_origin_guard",
+    "materialize_baseline",
+    "test_result",
+    "seed_retention",
+    "verify_platform_daemons",
+    "verify_docker_cli",
+    "docker_zero_running_workloads",
+    "process_reference_guard",
+    "retain_cache",
+    "verify_complete_cache_map"
+  ],
+  "actual_cache_operations": 0,
+  "actual_Cargo_or_Docker_commands": 0
+}

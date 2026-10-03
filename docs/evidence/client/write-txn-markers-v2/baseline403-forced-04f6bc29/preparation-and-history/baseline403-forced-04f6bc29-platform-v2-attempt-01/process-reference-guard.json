@@ -1,0 +1,60 @@
+{
+  "checked_live_other_processes": 4,
+  "nonexecuting_zombies_excluded": 231,
+  "supervising_runner_pid_excluded": 1227125,
+  "target_references": [],
+  "vanished_fd_links_observed_closed": 0,
+  "vanished_or_Z_processes_at_final_recheck": 0,
+  "ENOENT_on_nonexempt_live_process_field_rejected": true,
+  "nonexempt_live_PID_starttime_comm_rechecked": true,
+  "unexplained_live_field_failures": [],
+  "all_relevant_nonexempt_live_fields_readable": true,
+  "no_target_references_from_inspectable_processes": true,
+  "root_approved_exact_platform_daemons": [
+    {
+      "pid": 199,
+      "comm": "dockerd",
+      "parent_pid": 1,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 536,
+      "cmdline_sha256": "579d52338a2258e03175e098d87ca41a27b5cdf0c04abc9d6b5225224d1675b9",
+      "cmdline_bytes": 177,
+      "explicitly_uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ]
+    },
+    {
+      "pid": 251,
+      "comm": "containerd",
+      "parent_pid": 199,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 548,
+      "cmdline_sha256": "01f9517b8a27cf1d1aff433cfd1e58f85a8762cb29af69a2d982364ab71bbbec",
+      "cmdline_bytes": 79,
+      "explicitly_uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ]
+    }
+  ],
+  "exception_allowlist_sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+  "universal_all_pid_readability_or_no_owner_claim": false,
+  "scope": "relevant workloads and readable processes; explicitly uninspected exact pinned Docker daemons"
+}

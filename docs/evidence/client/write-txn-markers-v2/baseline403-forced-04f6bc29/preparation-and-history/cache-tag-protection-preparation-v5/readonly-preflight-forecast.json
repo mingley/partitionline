@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "scope": "readonly standard-marker repair/future-command preflight; no target repair/Docker API/Cargo/test executed",
+  "sampled_at_unix": 1791057426.3500116,
+  "verifier_sha256": "7f0b19a92f9334329d462e1830bb4ceb9421ac4b9406478f53729574d2202269",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "full_source_guards_binding": {
+    "receipt": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01/post-failure-source-cache-guard.json",
+    "sha256": "4f205d43132e8641dc12a52cdcf364ae6f5bcbf3e55db346be09a2ab5abb3f64"
+  },
+  "target_marker_original_state": {
+    "present": false,
+    "lexists": false
+  },
+  "complete608_cache_hashes_bytes_fullmodes_mtimes_unchanged": true,
+  "cache_allocated_bytes": 227930112,
+  "own_package25_current_and_retained_exact": true,
+  "future_selected66_old_inputs_checked": true,
+  "future_exact5_overlay_inputs_checked": true,
+  "fresh_run_target_and_temp_paths_absent": true,
+  "executables_readonly_identity_preflight": [
+    {
+      "invocation_path": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+      "invocation_type": "regular",
+      "invocation_full_mode": 448,
+      "symlink_text": null,
+      "resolved_path": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+      "resolved_sha256": "e951141cc55a6cd7b9876d187bd30a3720e6086b99413af95e3b8de1cdd72f14",
+      "resolved_bytes": 36160240,
+      "resolved_full_mode": 448,
+      "uid": 1000
+    },
+    {
+      "invocation_path": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+      "invocation_type": "regular",
+      "invocation_full_mode": 448,
+      "symlink_text": null,
+      "resolved_path": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+      "resolved_sha256": "f3834d26669b03f6855fa54bd2381443123e860167bc0c7a8dd137e5cf6e5e4f",
+      "resolved_bytes": 647376,
+      "resolved_full_mode": 448,
+      "uid": 1000
+    },
+    {
+      "invocation_path": "/usr/bin/nm",
+      "invocation_type": "symlink",
+      "invocation_full_mode": 511,
+      "symlink_text": "x86_64-linux-gnu-nm",
+      "resolved_path": "/usr/bin/x86_64-linux-gnu-nm",
+      "resolved_sha256": "ddb55c0685721bf494aa2d090056b8b32a40614ad4464b305896f527d882c3c1",
+      "resolved_bytes": 45160,
+      "resolved_full_mode": 493,
+      "uid": 0
+    },
+    {
+      "invocation_path": "/usr/bin/taskset",
+      "invocation_type": "regular",
+      "invocation_full_mode": 493,
+      "symlink_text": null,
+      "resolved_path": "/usr/bin/taskset",
+      "resolved_sha256": "0c34de807bc9c617406360836fca2c7505eb86ede4df5a34854bde6eeddad9f3",
+      "resolved_bytes": 67976,
+      "resolved_full_mode": 493,
+      "uid": 0
+    },
+    {
+      "invocation_path": "/usr/local/bin/docker",
+      "invocation_type": "regular",
+      "invocation_full_mode": 493,
+      "symlink_text": null,
+      "resolved_path": "/usr/local/bin/docker",
+      "resolved_sha256": "27f239f97492c434e091a70b41b8796c698f0aa2b6052c6f9c28da4ee7ae888b",
+      "resolved_bytes": 43556144,
+      "resolved_full_mode": 493,
+      "uid": 0
+    }
+  ],
+  "Cargo_actual_dryrun_paths_not_yet_observed": true,
+  "dryrun_format_support": "strict bare path/Removing/backtick forms or bounded directory expansion only; any unexpected real output stops before clean",
+  "forecast": {
+    "sampled_free_bytes": 951128064,
+    "projected_package_reclaim_bytes": 89194496,
+    "projected_postclean_free_bytes": 1040322560,
+    "required_postclean_compile_bytes": 782925569,
+    "projected_headroom_bytes": 257396991,
+    "fits_projection": true,
+    "marker_max_new_bytes": 177,
+    "marker_disk_metadata_allowance_in_existing16MiB": true,
+    "Root_external_publication_reserved_bytes": 33554432,
+    "shared_floor_bytes": 367001600,
+    "actual_postclean_resample_mandatory": true,
+    "RPC_native_compiler_SDK_overlap_assumed": false
+  },
+  "actual_operations": {
+    "target_writes": 0,
+    "Cargo": 0,
+    "Docker_API": 0,
+    "tests": 0
+  },
+  "cleanup_and_retry_held_for_ROOT_review": true
+}

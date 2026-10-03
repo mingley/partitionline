@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only proposed fixture capability correction; no product/codecs/operation assertions changes",
+  "source_helper_sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+  "proposed_helper_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+  "proposed_full_mode": 384,
+  "proposed_helper_bytes": 15854,
+  "exact_mandatory_requirements": [
+    {
+      "api_key": 19,
+      "name": "CreateTopics",
+      "versions": "0\u20137",
+      "source": "src/admin.rs3748\u20133753(candidate),3745\u20133750(old)"
+    },
+    {
+      "api_key": 20,
+      "name": "DeleteTopics",
+      "versions": "0\u20136",
+      "source": "src/admin.rs3755\u20133760(candidate),3751\u20133756(old)"
+    },
+    {
+      "api_key": 3,
+      "name": "Metadata",
+      "versions": "1\u201313",
+      "already_advertised": true
+    }
+  ],
+  "unchanged_targeted_capability_controls": [
+    "API27 absent or exact requested min/max",
+    "API90 absent or exact requested min/max",
+    "no Create/Delete operation body/response or dispatch handler added",
+    "all operation-local Unsupported/no unrelated discovery checks unchanged"
+  ],
+  "candidate_fixture_issue": "Same mandatory requirements exist in exact7942; candidate PeerAdmin bootstrap cannot reach assertions without the same reviewed advertised19/20 prerequisites. No candidate execution performed.",
+  "prior_setup_failure_validation_sha256": "d185913b2a1b89f4d8025d2ebd24625863332c8f9304f9092f5f02228776761e",
+  "prior_failures_counted_as_API27_90_red_proof": false,
+  "new_overlay_map_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/baseline-overlay.proposed.json",
+  "new_overlay_map_sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+  "status": "proposal only; ROOT approval/sourcefreeze/compile freshness guard needed before retry"
+}

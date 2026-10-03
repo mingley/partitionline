@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only frozen source/control/read-only-guard packet; no actual driver launch or ELF/class/JAR/rlib/rmeta payloads",
+  "predecessor_packet_preserved_sha256": "6159f499fc5ddc6b22715e3570fa9730a62065a306eaeef2d56d21f7a7e74a6b",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception-v2.py",
+      "sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "bytes": 40891,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/check-exact-daemon-exception.py",
+      "sha256": "19b77f6bf5c7457b2b2f2a57efcb6e01bf0a31f4ae87d2a533f4f5c91b606719",
+      "bytes": 14387,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/check-fail-first-live-field.py",
+      "sha256": "bab7bb919c13b6232dcba01eaf2f21f2210607e662deafb6e11bc6e323f99a85",
+      "bytes": 3782,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/check-fail-first-live-field.py",
+      "sha256": "e5d697ebfbceda2a1e07b8d5afd8c269d9eab0cfb543d82cf9f8c90a0516701f",
+      "bytes": 3707,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/fail-first-live-field-controls.json",
+      "sha256": "303a451f20ec1646ccbc3c32f9745c04849ea19d0fda2d76e6d947a9e2489a1e",
+      "bytes": 3805,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01/superseded.json",
+      "sha256": "b5f70b47b40e104f5c5993ce98ef49be5c3fe19abefd506ee08881cad6c041b7",
+      "bytes": 510,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json",
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b",
+      "bytes": 184402,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/fail-first-live-field-controls.json",
+      "sha256": "9044d51ef38462076ce1774438f0efe4f024391c2939bed037dafd370dabadb7",
+      "bytes": 3805,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/helper-controls.json",
+      "sha256": "4b58ae0357488979022689599e1a5f3a79912cb245638080ba2438d43d4b88d0",
+      "bytes": 4648,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/proposal.json",
+      "sha256": "f39f910ec6adc9d64a3fce40bc50e8ce5fc3df5011e4125e8d8e25b156e4ebd0",
+      "bytes": 8605,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/readonly-source-cache-forecast.json",
+      "sha256": "bb23ab43dc0a1c58ec1dba0f57fef12c8203b37d40cca686a875ddbab7f62f44",
+      "bytes": 4771,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/runner.proposed.patch",
+      "sha256": "03560626d0aae5e72d0ebd8bf6b8bf01a985e6b59293ad07b97c0d96f744c6eb",
+      "bytes": 5193,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/verify-readonly-preparation.py",
+      "sha256": "7a1fbb96db35eafda85707c18c266643f9c7d91da4e05a6e5c79886526d13b57",
+      "bytes": 7570,
+      "full_mode": 384
+    }
+  ],
+  "file_count": 13,
+  "total_bytes": 286076
+}

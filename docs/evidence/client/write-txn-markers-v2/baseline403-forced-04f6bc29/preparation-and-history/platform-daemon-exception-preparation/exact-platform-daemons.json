@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "sampled_at_unix": 1791052722.092484,
+  "scope": "WORK-only source guard allowlist preparation, no cleanup/retry",
+  "platform_daemons": [
+    {
+      "pid": 199,
+      "comm": "dockerd",
+      "parent_pid": 1,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 536,
+      "cmdline_sha256": "579d52338a2258e03175e098d87ca41a27b5cdf0c04abc9d6b5225224d1675b9",
+      "cmdline_bytes": 177,
+      "uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ],
+      "root_authorized_scope": "exact pinned platform daemon with actualDockerAPI zero running workloads before/after package cleanup; no universal field readability claim"
+    },
+    {
+      "pid": 251,
+      "comm": "containerd",
+      "parent_pid": 199,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 548,
+      "cmdline_sha256": "01f9517b8a27cf1d1aff433cfd1e58f85a8762cb29af69a2d982364ab71bbbec",
+      "cmdline_bytes": 79,
+      "uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ],
+      "root_authorized_scope": "exact pinned platform daemon with actualDockerAPI zero running workloads before/after package cleanup; no universal field readability claim"
+    }
+  ],
+  "docker_cli": {
+    "path": "/usr/local/bin/docker",
+    "sha256": "27f239f97492c434e091a70b41b8796c698f0aa2b6052c6f9c28da4ee7ae888b",
+    "bytes": 43556144,
+    "full_mode": 493
+  },
+  "docker_ps_argv": [
+    "/usr/local/bin/docker",
+    "--host",
+    "unix:///var/run/docker.sock",
+    "ps",
+    "--format",
+    "{{.ID}} {{.Names}} {{.Status}}"
+  ],
+  "actual_before_after_queries_required": true
+}

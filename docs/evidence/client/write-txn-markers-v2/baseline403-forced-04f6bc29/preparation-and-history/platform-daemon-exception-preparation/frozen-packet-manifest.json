@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only source/control/review packet; no ELF/rlib/rmeta/JAR/class payloads included",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception.py",
+      "sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "bytes": 38734,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/check-exact-daemon-exception.py",
+      "sha256": "f3913ff084baf7ea9c79a518d81e28d9b16bc9c8667f1242ee2225510226dd6b",
+      "bytes": 12392,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/controls-attempt-01/check-exact-daemon-exception.py",
+      "sha256": "8fe181e78f65d47207bad18ab7a080ab281b8d3165747b4ce058862be1456f3c",
+      "bytes": 12392,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/controls-attempt-01/failure.json",
+      "sha256": "ee772b51e75451281ee974bebf59fca991fac9a1e073c4073fee8757e9b210c5",
+      "bytes": 793,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/current-complete-cache-hash-fullmode-map.json",
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b",
+      "bytes": 184402,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/exact-platform-daemons.json",
+      "sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd",
+      "bytes": 1767,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/helper-controls.json",
+      "sha256": "65deb3647ca3b1a3f43c9e89becb4d809464be128b937188fe263fa55c5a4bd8",
+      "bytes": 3863,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/proposal.json",
+      "sha256": "6ff8181e05fa5b1949d8aaf31db95144de1a4c2b848a9dd69b277d8ad2397ee7",
+      "bytes": 7160,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/readonly-source-cache-forecast.json",
+      "sha256": "09b2f484693db7e9a9a758a489dd1e7b83c39c92d2ca5206c9d591641a4b0116",
+      "bytes": 4764,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-1a7ab070.py",
+      "sha256": "1a7ab0702109e429f407444fbe833e9486eb9bd6f365d0725bff29c44eca012d",
+      "bytes": 37531,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-68f17205.py",
+      "sha256": "68f172053b61b9619b26101e2f22c210d4f9ea7f1279d12c4f74b6cede9ec384",
+      "bytes": 33848,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.proposed.patch",
+      "sha256": "818b6f311bb0535be239585c7f63d1fe46eb76fffb17d32eef852ddfced8c32d",
+      "bytes": 10982,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/verify-readonly-preparation.py",
+      "sha256": "9ba701fd31782b9d5c5cc9c2bf9dce070c97a915e64b37ffc3573056159c60eb",
+      "bytes": 7502,
+      "full_mode": 384
+    }
+  ],
+  "file_count": 13,
+  "total_bytes": 356130
+}

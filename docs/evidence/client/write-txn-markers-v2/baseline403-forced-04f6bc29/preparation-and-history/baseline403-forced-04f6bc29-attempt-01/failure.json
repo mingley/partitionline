@@ -1,0 +1,7 @@
+{
+  "type": "AssertionError",
+  "detail": "cache process owner/field unknown: no removal permitted",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "passed": false,
+  "no_following_command_launched": true
+}

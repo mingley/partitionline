@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "kind": "actual-dryrun-omitted-nine-owned-package-output-map",
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "runner_sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+  "postfailure_guard_sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+  "actual_stdout_sha256": "faa743e095c4841b323a9920767fca6cef019e5a780a5c3f1cf4fd6ec29a9614",
+  "actual_stderr_sha256": "363dddf68962397e4a392f2f688a98227d96568ada70d4b52d8d42c618dc69f9",
+  "actual_printed_regular_files": 16,
+  "reviewed_owned_package_outputs": 25,
+  "actual_summary": "Summary 23 files, 74.5MiB total",
+  "dryrun_exit_code": 0,
+  "strict_guard_rejected": true,
+  "no_removals_or_compiler_or_tests": true,
+  "omitted_output_rows": [
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "target_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "bytes": 786,
+      "full_mode": 384,
+      "mtime_ns": 1791047649701105880,
+      "inode": [
+        27,
+        586048
+      ],
+      "allocated_bytes": 4096,
+      "sha256": "3d7d7e905e55eb6aff53aaf17a7678328861bb950e7bb074fa8458e2d215dffc",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/3d7d7e905e55eb6aff53aaf17a7678328861bb950e7bb074fa8458e2d215dffc.gz",
+      "gzip_sha256": "866b45736aa6740bd5a30291da16266a0e139cc16aafd95a65055c191e3acbca",
+      "gzip_bytes": 200,
+      "decompression_verified": true,
+      "kind": "fingerprint_or_depinfo"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "target_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14798201,
+      "full_mode": 384,
+      "mtime_ns": 1791047647083800287,
+      "inode": [
+        27,
+        586973
+      ],
+      "allocated_bytes": 14798848,
+      "sha256": "1ffee1c0b944269b1463aceb68d59fc0c7eaea31204bfe3e039643da0ea62076",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/1ffee1c0b944269b1463aceb68d59fc0c7eaea31204bfe3e039643da0ea62076.gz",
+      "gzip_sha256": "f20ef217f65703b1a6fc64cbd6adc8b9f1d28eaef69e41cd0754604983b20198",
+      "gzip_bytes": 6599758,
+      "decompression_verified": true,
+      "kind": "rmeta"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "target_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "bytes": 11205848,
+      "full_mode": 448,
+      "mtime_ns": 1791047650381116971,
+      "inode": [
+        27,
+        587125
+      ],
+      "allocated_bytes": 11104256,
+      "sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb.gz",
+      "gzip_sha256": "ab864a62db8c2d7e73f5e25c24291bc1d0d37ddd73be55046ec6e440de9e30b3",
+      "gzip_bytes": 3340750,
+      "decompression_verified": true,
+      "kind": "ELF"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/partitionline-41c9070129cbefc4.d",
+      "target_relative_path": "debug/deps/partitionline-41c9070129cbefc4.d",
+      "bytes": 2843,
+      "full_mode": 384,
+      "mtime_ns": 1791047639560940239,
+      "inode": [
+        27,
+        586041
+      ],
+      "allocated_bytes": 4096,
+      "sha256": "02c8487a9a841d5d2de1cb49f0e02b2f0784bddff6fa42150f20b6737fcbd244",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/02c8487a9a841d5d2de1cb49f0e02b2f0784bddff6fa42150f20b6737fcbd244.gz",
+      "gzip_sha256": "c7de545c3ebf41396f1ec7cb9d50d5022e4b4343cad83a7313574b1992f4ca66",
+      "gzip_bytes": 507,
+      "decompression_verified": true,
+      "kind": "fingerprint_or_depinfo"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "target_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "bytes": 40536990,
+      "full_mode": 384,
+      "mtime_ns": 1791047649653105098,
+      "inode": [
+        27,
+        587105
+      ],
+      "allocated_bytes": 40538112,
+      "sha256": "cb74ff9d2c1b357521b44ec13f8df49b2fccb89fcb9828a4b99072f1cac5b873",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/cb74ff9d2c1b357521b44ec13f8df49b2fccb89fcb9828a4b99072f1cac5b873.gz",
+      "gzip_sha256": "bd3bfb25880b6f7b22175612efaf383d97880c42237b2252f9f38c62ce0c5236",
+      "gzip_bytes": 10467631,
+      "decompression_verified": true,
+      "kind": "rlib"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "target_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "bytes": 451,
+      "full_mode": 384,
+      "mtime_ns": 1791048906333668401,
+      "inode": [
+        27,
+        586998
+      ],
+      "allocated_bytes": 4096,
+      "sha256": "215e7e23b5762f58aa77dbd86a60cb16c694fd7d8ca8a7f55ac69225a94fe582",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/215e7e23b5762f58aa77dbd86a60cb16c694fd7d8ca8a7f55ac69225a94fe582.gz",
+      "gzip_sha256": "16ac39cfdda5ae2e6d765246a0e15528a9e6591a4b66b37daa030f00830f0e8b",
+      "gzip_bytes": 167,
+      "decompression_verified": true,
+      "kind": "fingerprint_or_depinfo"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "target_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "bytes": 11555672,
+      "full_mode": 448,
+      "mtime_ns": 1791047651177130004,
+      "inode": [
+        27,
+        587137
+      ],
+      "allocated_bytes": 11452416,
+      "sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead.gz",
+      "gzip_sha256": "74c94c42989d2b12f212c54851f373105e0144c0fb8d8850ed930df719e5085f",
+      "gzip_bytes": 3407989,
+      "decompression_verified": true,
+      "kind": "ELF"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "target_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "bytes": 748,
+      "full_mode": 384,
+      "mtime_ns": 1791047650417117559,
+      "inode": [
+        27,
+        587107
+      ],
+      "allocated_bytes": 4096,
+      "sha256": "c63b4a864560276f8fece0264ffb3ed5952bfab0ffdbe08e6105837f228c01f0",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/c63b4a864560276f8fece0264ffb3ed5952bfab0ffdbe08e6105837f228c01f0.gz",
+      "gzip_sha256": "a5b16fe818ca1acf2c501fff62839e3aababaa64e12ac2f84f634758817bdd0e",
+      "gzip_bytes": 208,
+      "decompression_verified": true,
+      "kind": "fingerprint_or_depinfo"
+    },
+    {
+      "full_path": "/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "target_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "bytes": 11317608,
+      "full_mode": 448,
+      "mtime_ns": 1791048906957678622,
+      "inode": [
+        27,
+        587113
+      ],
+      "allocated_bytes": 11218944,
+      "sha256": "2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41",
+      "gzip_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/objects/2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41.gz",
+      "gzip_sha256": "88cc276517d0e72a873b156875434d487bdd464121610d247f81d38223542af4",
+      "gzip_bytes": 3334647,
+      "decompression_verified": true,
+      "kind": "ELF"
+    }
+  ],
+  "omitted_output_bytes": 89419147,
+  "omitted_output_allocated_bytes": 89128960,
+  "provenance": "These nine rows originate in exact approved25 package restore map791e813. Their originals still match SHA/bytes/full07777/mtime and existing gzip restorations; Cargo output does not prove whether unprinted paths would be removed, so no real clean occurred.",
+  "next_operations_held": "No manual deletion/quarantine/parser relaxation or retry authorized by this receipt."
+}

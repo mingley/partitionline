@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "scope": "candidate-only bounded next-phase forecast/proposal; no candidate Cargo or invalidation authorization inferred",
+  "sampled_at_unix": 1791060362.3367395,
+  "candidate_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "candidate_source": "/workspace/work/client-capabilities-source-04f6bc29",
+  "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+  "completed_genuine_old_baseline": {
+    "summary": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/closed-baseline-summary.json",
+    "sha256": "57ba0a68d000e1db29cf5c23d374a9bd4a5ad5914d8779c1010ba1b5c1644b4c",
+    "positive2_red3plus1": true,
+    "library_forced_and_newlagabsent": true
+  },
+  "current_cache609_map": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-complete-cache-hash-fullmode-map.json",
+    "sha256": "82063b325fe7c03eb77c2caccb8dc3e33f4b1a6abba1fc5d51ee78bacb7ca05b"
+  },
+  "current_old_generated_package25": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/final-new-owned-package-map.json",
+    "sha256": "474080ebfeff5a1b9766d223af71c36c02ab3609c3f837f9be45c1c1223ba02e",
+    "bytes": 87377031,
+    "allocated_bytes": 87162880
+  },
+  "precompile_required_invalidation_proposal": "reuse reviewed exact25 reversible atomicrename helper with explicitly rebound current609/newold25 maps and lossless libraries/ELFs; preserve prior7942 quarantine25 and all newraw403 artifacts, no Cargo.clean or staleartifactreuse",
+  "quarantine_reclaimed_bytes": 0,
+  "no_manual_deletion_or_cleanup_authorized": true,
+  "default_stable_two_target_first_no_run": {
+    "tests": [
+      "write_txn_markers_v2",
+      "share_offsets_v1"
+    ],
+    "whole_current_client_library_including_committed_sticky_and_Streams": "must genuinely rebuild; actualverbose rustc, independentcandidate rlib+rmeta differoldf091/b4c4, actualnmnewlagPRESENT",
+    "jobs": 1,
+    "offline": true,
+    "locked": true,
+    "CPUs": [
+      0,
+      1
+    ],
+    "following_if_newROOTGO_afteractualcompilepass": [
+      "same2 focusedbehavior targets",
+      "strictClippy onlylib+same2 targets"
+    ],
+    "no_unadvertised_wholeclient_matrix": true
+  },
+  "candidate_behavior_tests_predeclared": {
+    "write_txn_markers_v2": 12,
+    "share_offsets_v1": 10,
+    "external_public_Admin_harness": "opt-in test returns without externalSDK environment; no actualSDKproof inferred",
+    "retry8and9": "candidate mustactuallyexerciseboth; oldnegativeproved8only"
+  },
+  "forecast": {
+    "sampled_free_bytes": 751181824,
+    "required_initial_two_target_compile_and_lossless_capture_bytes": 748258553,
+    "headroom_bytes": 2923271,
+    "fits_initial_projection": true,
+    "library_allowance_bytes": 83002787,
+    "two_test_allowance_bytes": 34667016,
+    "single_link_codegen_allowance_bytes": 83002787,
+    "new_lossless_capture_allowance_bytes": 126058411,
+    "metadata_allowance_bytes": 16777216,
+    "selected_source_allowance_bytes": 4194304,
+    "350MiB_floor_bytes": 367001600,
+    "root_publication_reserve_bytes": 33554432,
+    "references": "originalactual7942 library55335191B and largest focusedtest11555672B scaled1.5; actualold403536? librarytotal54147822B remains smaller; committednewStreams size unknown untilgenuinecandidatecompile",
+    "raw403_package25_retained_bytes_not_reclaimed": 87162880,
+    "strict_additional_budget_conservative_bytes": 67108864,
+    "compile_and_strict_aggregate_required_bytes": 815367417,
+    "compile_and_strict_aggregate_fits": false,
+    "reforecast_afterinvalidation_andcompile_mandatory": true,
+    "sampled_cutoff_does_not_guarantee_instantaneous_peak": true,
+    "zero_other_SDK_compiler_native_RPC_overlap_assumed": true
+  },
+  "remaining_phases_held": [
+    "all candidate execution untilROOTGO",
+    "strictgates untilfreshactualpostcompileresources/rootreview",
+    "Streams21Rusttests",
+    "MSRV",
+    "JVMoracles/reverse/publicAdmincounterpart",
+    "fullclientmatrix"
+  ],
+  "actual_operations_in_this_proposal": {
+    "cache_mutations": 0,
+    "Cargo": 0,
+    "SDK": 0
+  }
+}

@@ -1,0 +1,48 @@
+--- frozen-39609fb5-v3.py
++++ run-forced-baseline403-standard-marker-v4.py
+@@ -42,6 +42,11 @@
+ assert hashlib.sha256(PLATFORM_ALLOW_BYTES).hexdigest()=='5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd'
+ PLATFORM_ALLOW=json.loads(PLATFORM_ALLOW_BYTES)
+ ROOT_PUBLICATION_RESERVE=32*1024*1024
++FULL_CACHE_REFERENCE_PATH=BASE/'platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json'
++FULL_CACHE_REFERENCE_BYTES=FULL_CACHE_REFERENCE_PATH.read_bytes()
++assert hashlib.sha256(FULL_CACHE_REFERENCE_BYTES).hexdigest()=='396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b'
++FULL_CACHE_REFERENCE=json.loads(FULL_CACHE_REFERENCE_BYTES)
++assert len(FULL_CACHE_REFERENCE)==608 and set(FULL_CACHE_REFERENCE)==set(PACKAGE_MAP['complete_cache_file_inventory'])
+ CACHE_TAG_SOURCE=BASE/'cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed'
+ CACHE_TAG_BYTES=CACHE_TAG_SOURCE.read_bytes()
+ assert hashlib.sha256(CACHE_TAG_BYTES).hexdigest()=='6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2'
+@@ -256,7 +261,7 @@
+            'baseline_source_sha':BASELINE_INPUTS['source_sha'],'baseline_input_manifest_sha256':digest(BASELINE_INPUT_BYTES),
+            'five_overlay_contract_sha256':digest(OVERLAY_BYTES),'baseline_manifest':BASELINE_MANIFEST,
+            'original403_origin_sha256':digest(OLD_ORIGIN_BYTES),'original403_manifest_compressed_sha256':OLD_MAP['compressed_sha256'],
+-           'own_package_restore_map_sha256':digest(PACKAGE_MAP_BYTES),'baseline_library_proof':BASELINE_LIBRARY_PROOF,
++           'own_package_restore_map_sha256':digest(PACKAGE_MAP_BYTES),'full608_frozen_cache_reference_sha256':digest(FULL_CACHE_REFERENCE_BYTES),'baseline_library_proof':BASELINE_LIBRARY_PROOF,
+            'RPC_overlap_assumed':False,'native_allowance_bytes':0,
+            'remaining_phases_held':True,
+            'root_approved_platform_exception_sha256':digest(PLATFORM_ALLOW_BYTES),
+@@ -575,11 +580,13 @@
+         data=p.read_bytes();mode=stat.S_IMODE(st.st_mode)
+         original=PACKAGE_MAP['complete_cache_file_inventory'][name]
+         assert len(data)==original['bytes'] and mode==original['full_mode']
++        frozen=FULL_CACHE_REFERENCE[name]
++        assert digest(data)==frozen['sha256'] and len(data)==frozen['bytes'] and mode==frozen['full_mode'] and st.st_mtime_ns==frozen['mtime_ns'], ('frozen complete608 cache identity changed',name)
+         if name in INITIAL_PACKAGE_IDENTITIES:
+             expected=INITIAL_PACKAGE_IDENTITIES[name]
+             assert digest(data)==expected['sha256'] and st.st_mtime_ns==expected['mtime_ns']
+             restored=gzip.decompress(Path(expected['gzip_path']).read_bytes());assert restored==data
+-        identities[name]={'sha256':digest(data),'bytes':len(data),'full_mode':mode}
++        identities[name]={'sha256':digest(data),'bytes':len(data),'full_mode':mode,'mtime_ns':st.st_mtime_ns}
+     return {'complete_cache_identity_map':identities,'package_output_count':len(INITIAL_PACKAGE_IDENTITIES),
+             'all_package_output_gzip_decompression_verified':True,'process_guard':process_reference_guard(),
+             'original403_fullguard':source_guard(OLD_SOURCE,OLD_MANIFEST),'candidate_fullguard':source_guard(SOURCE,MANIFEST)}
+@@ -723,7 +730,8 @@
+     assert removed==set(INITIAL_PACKAGE_IDENTITIES), ('clean affected unreviewed output',removed-set(INITIAL_PACKAGE_IDENTITIES))
+     for name,expected in before_cache.items():
+         if name not in removed:
+-            p=TARGET/name; assert digest(p.read_bytes())==expected['sha256'] and stat.S_IMODE(p.stat().st_mode)==expected['full_mode']
++            p=TARGET/name;st=p.lstat()
++            assert stat.S_ISREG(st.st_mode) and digest(p.read_bytes())==expected['sha256'] and stat.S_IMODE(st.st_mode)==expected['full_mode'] and st.st_mtime_ns==expected['mtime_ns'], ('nonpackage or marker changed during cleanup',name)
+     docker_zero_running_workloads('platform-docker-after-clean')
+     CLEAN_DONE=True;LAST_FORECAST_KIND='compile';forecast()
+     materialize_baseline()

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "scope": "read-only postfailure verifier helper assumption failure; no actual cache/source mismatch established",
+  "first_helper": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure.py",
+  "first_helper_sha256": "fe53afc91cf8e813fddc4013e455b4a8a04f242c125b102e3a8339b60a07102f",
+  "actual_exit_code": 1,
+  "actual_assertion": "entire metadata row equality failed because historical reference additionally includes inode/allocated_bytes; frozen four identity fields were equal in inspected first row",
+  "stderr_retention": "original traceback retained in tool output; no standalone stderr file existed for first invocation",
+  "source_or_cache_mutations": 0,
+  "corrected_helper": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure-v2.py",
+  "corrected_helper_sha256": "b1306f55b6c2118a724d878aa236b6856f864de7129a3d627def038da0a6e68b",
+  "narrow_change": "compare exact four inherited SHA/bytes/fullmode/mtime keys instead of extra-field whole-row equality"
+}

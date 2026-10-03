@@ -1,0 +1,138 @@
+--- frozen-231425e4-v2.py
++++ run-forced-baseline403-standard-marker-v3.py
+@@ -42,6 +42,10 @@
+ assert hashlib.sha256(PLATFORM_ALLOW_BYTES).hexdigest()=='5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd'
+ PLATFORM_ALLOW=json.loads(PLATFORM_ALLOW_BYTES)
+ ROOT_PUBLICATION_RESERVE=32*1024*1024
++CACHE_TAG_SOURCE=BASE/'cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed'
++CACHE_TAG_BYTES=CACHE_TAG_SOURCE.read_bytes()
++assert hashlib.sha256(CACHE_TAG_BYTES).hexdigest()=='6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2'
++assert len(CACHE_TAG_BYTES)==177 and CACHE_TAG_BYTES.startswith(b'Signature: 8a477f597d28d172789f06886806bc55\n')
+ BASELINE_INPUT_PATH = BASE/'baseline-compiler-inputs.json'
+ BASELINE_INPUT_BYTES = BASELINE_INPUT_PATH.read_bytes()
+ assert hashlib.sha256(BASELINE_INPUT_BYTES).hexdigest() == '9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592'
+@@ -259,6 +263,9 @@
+            'platform_daemon_uninspected_fields':['cwd','exe','environ','maps','fd'],
+            'universal_all_pid_readability_or_no_owner_claim':False,
+            'actual_zero_running_Docker_before_after_cleanup_required':True,
++           'actual_standard_cache_marker_repair_and_exact25_dryrun_required':True,
++           'standard_cache_marker_sha256':digest(CACHE_TAG_BYTES),
++           'original_cache_inventory608_marker_added609_disclosed':True,
+            'root_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+            'source_origin_receipt_sha256':digest(ORIGIN_BYTES),'source_manifest_compressed_sha256':SOURCE_MAP['compressed_sha256'],
+            'source_manifest_uncompressed_sha256':SOURCE_MAP['uncompressed_sha256'],'candidate_hidden_overlays':False,'baseline_explicit_overlay_count':5}
+@@ -270,7 +277,7 @@
+     result = os.environ.copy()
+     result.update({'CARGO_HOME': '/workspace/work/cargo', 'RUSTUP_HOME': '/workspace/work/rustup',
+                    'CARGO_TARGET_DIR': str(TARGET), 'CARGO_BUILD_JOBS': '1', 'CARGO_INCREMENTAL': '0',
+-                   'CARGO_PROFILE_DEV_DEBUG': '0', 'CARGO_PROFILE_TEST_DEBUG': '0', 'CARGO_NET_OFFLINE': 'true',
++                   'CARGO_PROFILE_DEV_DEBUG': '0', 'CARGO_PROFILE_TEST_DEBUG': '0', 'CARGO_NET_OFFLINE': 'true', 'CARGO_TERM_COLOR':'never',
+                    'RUSTC': tool+'/rustc', 'RUSTDOC': tool+'/rustdoc', 'RUSTFMT': tool+'/rustfmt',
+                    'PATH': tool+':/workspace/work/cargo/bin:'+os.environ['PATH']})
+     for key in ['DOCKER_CONTEXT','DOCKER_HOST','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','PARTITIONLINE_CAPABILITY_PEER_DIR','PARTITIONLINE_CAPABILITY_PEER_MODE','PARTITIONLINE_CAPABILITY_PEER_VERSION']:
+@@ -577,6 +584,85 @@
+             'all_package_output_gzip_decompression_verified':True,'process_guard':process_reference_guard(),
+             'original403_fullguard':source_guard(OLD_SOURCE,OLD_MANIFEST),'candidate_fullguard':source_guard(SOURCE,MANIFEST)}
+ 
++def verify_complete_cache_map(expected):
++    current=files(TARGET)
++    assert current.keys()==expected.keys(), 'cache pathset changed during owned marker/dry-run gate'
++    for name,row in expected.items():
++        p=TARGET/name;st=current[name]
++        assert stat.S_ISREG(st.st_mode), ('cache unexpectedly nonregular',name)
++        data=p.read_bytes()
++        assert digest(data)==row['sha256'] and len(data)==row['bytes'] and stat.S_IMODE(st.st_mode)==row['full_mode'], ('cache identity changed',name)
++        if 'mtime_ns' in row:assert st.st_mtime_ns==row['mtime_ns'], ('cache mtime changed',name)
++    return {'files':len(current),'all_bytes_sha256_fullmodes_and_recorded_mtimes_match':True}
++
++def repair_standard_owned_cache_marker(checked):
++    # ROOT-authorized generated-cache metadata only. The original complete608
++    # and all25 lossless package outputs have already passed the strict guard.
++    tag=TARGET/'CACHEDIR.TAG'
++    assert not os.path.lexists(tag), 'marker state changed; never overwrite an unreviewed existing path'
++    st=TARGET.lstat()
++    assert stat.S_ISDIR(st.st_mode) and st.st_uid==os.getuid() and stat.S_IMODE(st.st_mode)==0o700
++    assert (st.st_dev,st.st_ino)==(27,524404), 'owned target directory identity changed'
++    expected={name:dict(row) for name,row in checked['complete_cache_identity_map'].items()}
++    original=verify_complete_cache_map(expected)
++    assert original['files']==608, 'reviewed original cache must have exactly608 regular paths before any marker write'
++    # Exclusive temporary regular file, exact standard payload, fsync, atomic
++    # replacement into the reviewed absent marker. The lease/owned0700 cache
++    # contract applies; this is not a universal race-free ownership claim.
++    temp=TARGET/('.partitionline-cache-tag-'+ARGS.run_label+'.tmp')
++    fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
++    with os.fdopen(fd,'wb') as output:
++        output.write(CACHE_TAG_BYTES);output.flush();os.fsync(output.fileno())
++    assert temp.read_bytes()==CACHE_TAG_BYTES and stat.S_ISREG(temp.lstat().st_mode)
++    assert not os.path.lexists(tag), 'marker appeared before publication; refuse overwrite'
++    os.replace(temp,tag)
++    directory_fd=os.open(TARGET,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
++    try:os.fsync(directory_fd)
++    finally:os.close(directory_fd)
++    after_target=TARGET.lstat()
++    assert (after_target.st_dev,after_target.st_ino,after_target.st_uid,stat.S_IMODE(after_target.st_mode))==(st.st_dev,st.st_ino,st.st_uid,stat.S_IMODE(st.st_mode)), 'target directory identity/mode changed during marker repair'
++    tagst=tag.lstat();assert stat.S_ISREG(tagst.st_mode) and stat.S_IMODE(tagst.st_mode)==0o600 and tag.read_bytes()==CACHE_TAG_BYTES
++    expected['CACHEDIR.TAG']={'sha256':digest(CACHE_TAG_BYTES),'bytes':len(CACHE_TAG_BYTES),'full_mode':0o600,'mtime_ns':tagst.st_mtime_ns}
++    after=verify_complete_cache_map(expected)
++    assert original['files']==608 and after['files']==609
++    receipt={'schema_version':1,'kind':'ROOT-authorized-standard-owned-cache-marker-repair','original_marker':{'present':False,'lexists':False},
++        'new_marker':{'path':str(tag),**expected['CACHEDIR.TAG']},'original608_metadata_rows_unchanged':True,
++        'new609_complete_cache_identity_map':expected,'original_cache_guard':original,'after_marker_guard':after,
++        'target_directory_original_identity':{'dev':st.st_dev,'inode':st.st_ino,'uid':st.st_uid,'full_mode':stat.S_IMODE(st.st_mode)},
++        'standard_marker_source_sha256':digest(CACHE_TAG_BYTES),'fsync_temp_and_directory_completed':True,'atomic_replace_into_reviewed_absent_marker':True,
++        'source_product_or_dependency_mutation':False,'universal_race_free_ownership_claim':False}
++    output=RUN/'standard-cache-marker-repair.json';output.write_text(json.dumps(receipt,indent=2)+'\n');output.chmod(0o600)
++    checked['complete_cache_identity_map']=expected
++    return receipt
++
++def exact_dryrun_package_paths(row,expected):
++    # --verbose --dry-run reports removal paths; accept only exact bare paths or
++    # Cargo's explicit Removing form. Unexpected path syntax stops before clean.
++    reported=[];unreviewed=[];target=str(TARGET)
++    for path in [row['stdout_path'],row['stderr_path']]:
++        for rawline in Path(path).read_text().splitlines():
++            line=rawline.strip()
++            if target not in line:continue
++            match=re.fullmatch(r'(?:Removing\s+)?(`?)('+re.escape(target)+r'(?:/[^`\r\n]+)?)(`?)',line)
++            assert match is not None and match.group(1)==match.group(3), ('unrecognized actual dry-run target-path line',line)
++            p=Path(match.group(2));relative=p.relative_to(TARGET).as_posix()
++            assert relative!='.' and '..' not in p.parts
++            reported.append(relative)
++    assert reported, 'actual verbose dry-run did not list removal paths; no deletion authorized'
++    expanded=set()
++    for relative in reported:
++        if relative in expected:expanded.add(relative)
++        else:
++            descendants={name for name in expected if name.startswith(relative.rstrip('/')+'/')}
++            assert descendants and (TARGET/relative).is_dir(), ('dry-run unknown path',relative)
++            expanded.update(descendants)
++    assert expanded==set(INITIAL_PACKAGE_IDENTITIES), ('dry-run prospective files differ from reviewed25',sorted(expanded-set(INITIAL_PACKAGE_IDENTITIES)),sorted(set(INITIAL_PACKAGE_IDENTITIES)-expanded))
++    actual_cache=verify_complete_cache_map(expected)
++    result={'actual_verbose_dryrun_reported_paths':reported,'expanded_current_regular_file_paths':sorted(expanded),
++        'expanded_regular_file_count':len(expanded),'exactly_reviewed25_package_outputs':True,'all609_cache_bytes_fullmodes_mtimes_unchanged':actual_cache,
++        'CACHEDIR_TAG_removal_planned':False,'dryrun_only_no_actual_deletion':True}
++    row.update(result);persist();return result
++
+ def prove_forced_old_library(row):
+     assert CLEAN_DONE
+     log=Path(row['stderr_path']).read_text()
+@@ -616,9 +702,19 @@
+     seed_retention()
+     docker_zero_running_workloads('platform-docker-before-clean')
+     checked_preclean=guard_package_outputs_and_processes()
++    (RUN/'original608-pre-marker-guard.json').write_text(json.dumps(checked_preclean,indent=2)+'\n')
++    repair_standard_owned_cache_marker(checked_preclean)
++    docker_zero_running_workloads('platform-docker-after-marker-before-clean')
++    post_marker_process_guard=process_reference_guard()
++    (RUN/'post-marker-relevant-process-guard.json').write_text(json.dumps(post_marker_process_guard,indent=2)+'\n')
++    verify_complete_cache_map(checked_preclean['complete_cache_identity_map'])
+     (RUN/'preclean-guard.json').write_text(json.dumps(checked_preclean,indent=2)+'\n')
+     clean_argv=['taskset','-c','0,1','/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo',
+         'clean','--package','partitionline','--offline','--locked','--manifest-path',str(SOURCE/'Cargo.toml'),'--target-dir',str(TARGET)]
++    dryrun_argv=clean_argv[:5]+['--verbose','--dry-run']+clean_argv[5:]
++    dryrun=run('stable-own-package-clean-dry-run',dryrun_argv,SOURCE,MANIFEST)
++    exact_dryrun_package_paths(dryrun,checked_preclean['complete_cache_identity_map'])
++    process_reference_guard()
+     run('stable-own-package-clean',clean_argv,SOURCE,MANIFEST)
+     afterclean=files(TARGET)
+     assert all(name not in afterclean for name in INITIAL_PACKAGE_IDENTITIES), 'own package output survived clean'

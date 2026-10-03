@@ -1,0 +1,386 @@
+--- /workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py
++++ /workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v1.py
+@@ -29,12 +29,13 @@
+ TARGET=Path('/workspace/work/client-share-target')
+ RUN=BASE/('baseline403-forced-'+ARGS.run_label)
+ BASELINE=BASE/('baseline403-forced-source-'+ARGS.run_label)
++QUARANTINE=BASE/('baseline403-quarantine-'+ARGS.run_label)
+ PACKAGE_MAP_PATH=BASE/'package-invalidation-proposal-after-baseline-setup/proposal.json'
+ PACKAGE_MAP_BYTES=PACKAGE_MAP_PATH.read_bytes()
+ assert hashlib.sha256(PACKAGE_MAP_BYTES).hexdigest()=='791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528'
+ PACKAGE_MAP=json.loads(PACKAGE_MAP_BYTES)
+ INITIAL_PACKAGE_IDENTITIES={row['target_relative_path']:row for row in PACKAGE_MAP['package_output_restore_map']}
+-CLEAN_DONE=False
++INVALIDATION_DONE=False
+ LAST_FORECAST_KIND='compile'
+ BASELINE_LIBRARY_PROOF=None
+ PLATFORM_ALLOW_PATH=BASE/'platform-daemon-exception-preparation/exact-platform-daemons.json'
+@@ -51,6 +52,10 @@
+ CACHE_TAG_BYTES=CACHE_TAG_SOURCE.read_bytes()
+ assert hashlib.sha256(CACHE_TAG_BYTES).hexdigest()=='6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2'
+ assert len(CACHE_TAG_BYTES)==177 and CACHE_TAG_BYTES.startswith(b'Signature: 8a477f597d28d172789f06886806bc55\n')
++MARKER_RECEIPT_PATH=BASE/'baseline403-forced-04f6bc29-marker-v5-attempt-01/standard-cache-marker-repair.json'
++MARKER_RECEIPT_BYTES=MARKER_RECEIPT_PATH.read_bytes()
++assert hashlib.sha256(MARKER_RECEIPT_BYTES).hexdigest()=='caeb86a5f72cec3de50e68d39b59218c678c5280c2775e0697837ad880987514'
++EXISTING_MARKER_IDENTITY=json.loads(MARKER_RECEIPT_BYTES)['new609_complete_cache_identity_map']['CACHEDIR.TAG']
+ BASELINE_INPUT_PATH = BASE/'baseline-compiler-inputs.json'
+ BASELINE_INPUT_BYTES = BASELINE_INPUT_PATH.read_bytes()
+ assert hashlib.sha256(BASELINE_INPUT_BYTES).hexdigest() == '9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592'
+@@ -175,18 +180,18 @@
+     captures=library+remaining*TARGET_ALLOWANCE+8*1024*1024
+     needed=library+remaining*TARGET_ALLOWANCE+LIBRARY_ALLOWANCE+captures+FORECAST_METADATA+SOURCE_METADATA+FLOOR
+     current=free_bytes()
+-    if LAST_FORECAST_KIND=='clean':
+-        # A clean does not promise reclaimed blocks; only the immediately fresh
+-        # post-clean compile forecast admits the compiler launch.
++    if LAST_FORECAST_KIND=='quarantine':
++        # Moving raw originals retains every allocated byte. Only a fresh
++        # post-quarantine sample admits compilation; projected reclaim is zero.
+         required=FLOOR+8*1024*1024
+     else:required=needed+ROOT_PUBLICATION_RESERVE
+     row={'sampled_free_bytes':current,'current_cache_allocated_bytes':cache_allocated(),
+          'kind':LAST_FORECAST_KIND,'named_baseline_targets_remaining':remaining,
+-         'required_free_bytes':required,'postclean_compile_required_free_bytes':needed+ROOT_PUBLICATION_RESERVE,
+-         'postclean_compile_base_without_publication_reserve_bytes':needed,
++         'required_free_bytes':required,'postquarantine_compile_required_free_bytes':needed+ROOT_PUBLICATION_RESERVE,
++         'postquarantine_compile_base_without_publication_reserve_bytes':needed,
+          'native_allowance_bytes':0,'RPC_overlap_assumed':False,'RPC_closed_gate_required':True,
+          'reference_refined_forecast_sha256':'726a66f74dc147314f5461c8243b74a8560181c3280baa5ea8b9feb36f29a4bf',
+-         'expected_clean_reclaim_bytes_for_projection_only':89194496,
++         'expected_quarantine_reclaim_bytes':0,
+          'already_retained_package_objects_not_added_again_bytes':27156162,
+          'root_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+          'shared_floor_bytes':FLOOR,'fits':current>=required,'headroom_bytes':current-required}
+@@ -267,10 +272,15 @@
+            'root_approved_platform_exception_sha256':digest(PLATFORM_ALLOW_BYTES),
+            'platform_daemon_uninspected_fields':['cwd','exe','environ','maps','fd'],
+            'universal_all_pid_readability_or_no_owner_claim':False,
+-           'actual_zero_running_Docker_before_after_cleanup_required':True,
+-           'actual_standard_cache_marker_repair_and_exact25_dryrun_required':True,
++           'actual_zero_running_Docker_before_after_quarantine_required':True,
++           'already_present_standard_cache_marker_verified':True,
++           'actual_exact25_atomicrename_quarantine_required':True,
++           'actual_Cargo_clean_or_dryrun_commands':0,
++           'expected_actual_command_count':6,
++           'quarantine_directory':str(QUARANTINE),
+            'standard_cache_marker_sha256':digest(CACHE_TAG_BYTES),
+-           'original_cache_inventory608_marker_added609_disclosed':True,
++           'original_cache_inventory608_plus_previous_177B_marker609_disclosed':True,
++           'previous_marker_repair_receipt_sha256':digest(MARKER_RECEIPT_BYTES),
+            'root_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+            'source_origin_receipt_sha256':digest(ORIGIN_BYTES),'source_manifest_compressed_sha256':SOURCE_MAP['compressed_sha256'],
+            'source_manifest_uncompressed_sha256':SOURCE_MAP['uncompressed_sha256'],'candidate_hidden_overlays':False,'baseline_explicit_overlay_count':5}
+@@ -573,14 +583,14 @@
+ 
+ def guard_package_outputs_and_processes():
+     current=files(TARGET)
+-    assert current.keys()==PACKAGE_MAP['complete_cache_file_inventory'].keys(), 'cache pathset changed since retention review'
++    assert set(current)==set(FULL_CACHE_REFERENCE)|{'CACHEDIR.TAG'} and len(current)==609, 'cache pathset changed from reviewed609'
+     identities={}
+     for name,st in current.items():
+         p=TARGET/name;assert stat.S_ISREG(st.st_mode),'cache unexpected nonregular path'
+         data=p.read_bytes();mode=stat.S_IMODE(st.st_mode)
+-        original=PACKAGE_MAP['complete_cache_file_inventory'][name]
++        original=PACKAGE_MAP['complete_cache_file_inventory'].get(name,EXISTING_MARKER_IDENTITY)
+         assert len(data)==original['bytes'] and mode==original['full_mode']
+-        frozen=FULL_CACHE_REFERENCE[name]
++        frozen=FULL_CACHE_REFERENCE.get(name,EXISTING_MARKER_IDENTITY)
+         assert digest(data)==frozen['sha256'] and len(data)==frozen['bytes'] and mode==frozen['full_mode'] and st.st_mtime_ns==frozen['mtime_ns'], ('frozen complete608 cache identity changed',name)
+         if name in INITIAL_PACKAGE_IDENTITIES:
+             expected=INITIAL_PACKAGE_IDENTITIES[name]
+@@ -602,84 +612,131 @@
+         if 'mtime_ns' in row:assert st.st_mtime_ns==row['mtime_ns'], ('cache mtime changed',name)
+     return {'files':len(current),'all_bytes_sha256_fullmodes_and_recorded_mtimes_match':True}
+ 
+-def repair_standard_owned_cache_marker(checked):
+-    # ROOT-authorized generated-cache metadata only. The original complete608
+-    # and all25 lossless package outputs have already passed the strict guard.
+-    tag=TARGET/'CACHEDIR.TAG'
+-    assert not os.path.lexists(tag), 'marker state changed; never overwrite an unreviewed existing path'
+-    st=TARGET.lstat()
+-    assert stat.S_ISDIR(st.st_mode) and st.st_uid==os.getuid() and stat.S_IMODE(st.st_mode)==0o700
+-    assert (st.st_dev,st.st_ino)==(27,524404), 'owned target directory identity changed'
+-    expected={name:dict(row) for name,row in checked['complete_cache_identity_map'].items()}
+-    original=verify_complete_cache_map(expected)
+-    assert original['files']==608, 'reviewed original cache must have exactly608 regular paths before any marker write'
+-    # Exclusive temporary regular file, exact standard payload, fsync, atomic
+-    # replacement into the reviewed absent marker. The lease/owned0700 cache
+-    # contract applies; this is not a universal race-free ownership claim.
+-    temp=TARGET/('.partitionline-cache-tag-'+ARGS.run_label+'.tmp')
+-    fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+-    with os.fdopen(fd,'wb') as output:
+-        output.write(CACHE_TAG_BYTES);output.flush();os.fsync(output.fileno())
+-    assert temp.read_bytes()==CACHE_TAG_BYTES and stat.S_ISREG(temp.lstat().st_mode)
+-    assert not os.path.lexists(tag), 'marker appeared before publication; refuse overwrite'
+-    os.replace(temp,tag)
+-    directory_fd=os.open(TARGET,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+-    try:os.fsync(directory_fd)
+-    finally:os.close(directory_fd)
+-    after_target=TARGET.lstat()
+-    assert (after_target.st_dev,after_target.st_ino,after_target.st_uid,stat.S_IMODE(after_target.st_mode))==(st.st_dev,st.st_ino,st.st_uid,stat.S_IMODE(st.st_mode)), 'target directory identity/mode changed during marker repair'
+-    tagst=tag.lstat();assert stat.S_ISREG(tagst.st_mode) and stat.S_IMODE(tagst.st_mode)==0o600 and tag.read_bytes()==CACHE_TAG_BYTES
+-    expected['CACHEDIR.TAG']={'sha256':digest(CACHE_TAG_BYTES),'bytes':len(CACHE_TAG_BYTES),'full_mode':0o600,'mtime_ns':tagst.st_mtime_ns}
+-    after=verify_complete_cache_map(expected)
+-    assert original['files']==608 and after['files']==609
+-    receipt={'schema_version':1,'kind':'ROOT-authorized-standard-owned-cache-marker-repair','original_marker':{'present':False,'lexists':False},
+-        'new_marker':{'path':str(tag),**expected['CACHEDIR.TAG']},'original608_metadata_rows_unchanged':True,
+-        'new609_complete_cache_identity_map':expected,'original_cache_guard':original,'after_marker_guard':after,
+-        'target_directory_original_identity':{'dev':st.st_dev,'inode':st.st_ino,'uid':st.st_uid,'full_mode':stat.S_IMODE(st.st_mode)},
+-        'standard_marker_source_sha256':digest(CACHE_TAG_BYTES),'fsync_temp_and_directory_completed':True,'atomic_replace_into_reviewed_absent_marker':True,
+-        'source_product_or_dependency_mutation':False,'universal_race_free_ownership_claim':False}
+-    output=RUN/'standard-cache-marker-repair.json';output.write_text(json.dumps(receipt,indent=2)+'\n');output.chmod(0o600)
+-    checked['complete_cache_identity_map']=expected
+-    return receipt
+-
+-def exact_dryrun_package_paths(row,expected):
+-    # --verbose --dry-run reports removal paths; accept only exact bare paths or
+-    # Cargo's explicit Removing form. Unexpected path syntax stops before clean.
+-    reported=[];unreviewed=[];target=str(TARGET)
+-    for path in [row['stdout_path'],row['stderr_path']]:
+-        for rawline in Path(path).read_text().splitlines():
+-            line=rawline.strip()
+-            if target not in line:continue
+-            match=re.fullmatch(r'(?:Removing\s+)?(`?)('+re.escape(target)+r'(?:/[^`\r\n]+)?)(`?)',line)
+-            assert match is not None and match.group(1)==match.group(3), ('unrecognized actual dry-run target-path line',line)
+-            p=Path(match.group(2));relative=p.relative_to(TARGET).as_posix()
+-            assert relative!='.' and '..' not in p.parts
+-            reported.append(relative)
+-    assert reported, 'actual verbose dry-run did not list removal paths; no deletion authorized'
+-    expanded=set()
+-    for relative in reported:
+-        if relative in expected:expanded.add(relative)
+-        else:
+-            descendants={name for name in expected if name.startswith(relative.rstrip('/')+'/')}
+-            assert descendants and (TARGET/relative).is_dir(), ('dry-run unknown path',relative)
+-            expanded.update(descendants)
+-    assert expanded==set(INITIAL_PACKAGE_IDENTITIES), ('dry-run prospective files differ from reviewed25',sorted(expanded-set(INITIAL_PACKAGE_IDENTITIES)),sorted(set(INITIAL_PACKAGE_IDENTITIES)-expanded))
+-    actual_cache=verify_complete_cache_map(expected)
+-    result={'actual_verbose_dryrun_reported_paths':reported,'expanded_current_regular_file_paths':sorted(expanded),
+-        'expanded_regular_file_count':len(expanded),'exactly_reviewed25_package_outputs':True,'all609_cache_bytes_fullmodes_mtimes_unchanged':actual_cache,
+-        'CACHEDIR_TAG_removal_planned':False,'dryrun_only_no_actual_deletion':True}
+-    row.update(result);persist();return result
+-
+-def verify_exact_afterclean_paths(before_cache,afterclean):
+-    expected=set(before_cache)-set(INITIAL_PACKAGE_IDENTITIES)
+-    actual=set(afterclean)
+-    assert actual==expected, ('post-clean cache pathset not exact reviewed transition',sorted(actual-expected),sorted(expected-actual))
+-    assert len(before_cache)==609 and len(INITIAL_PACKAGE_IDENTITIES)==25 and len(actual)==584
+-    return {'original_paths':609,'removed_reviewed_package_paths':25,'remaining_paths':584,
+-        'unreviewed_added_paths':0,'exact609_minus25_transition_verified':True}
++def observe_quarantine_identity(path,expected):
++    # Diagnostic inspection remains bounded by each reviewed artifact's length.
++    if not os.path.lexists(path):return {'present':False}
++    try:
++        st=path.lstat()
++        result={'present':True,'regular':stat.S_ISREG(st.st_mode),'bytes':st.st_size,
++                'full_mode':stat.S_IMODE(st.st_mode),'mtime_ns':st.st_mtime_ns,
++                'inode':[st.st_dev,st.st_ino]}
++        if result['regular'] and st.st_size==expected['bytes']:
++            result['sha256']=digest(path.read_bytes())
++        result['identity_matches_expected']=all(result.get(k)==expected[k] for k in ['bytes','full_mode','mtime_ns','inode','sha256']) and result['regular']
++        return result
++    except BaseException as fault:
++        return {'present':True,'inspection_error':type(fault).__name__,'identity_matches_expected':False}
++
++def require_quarantine_identity(path,expected):
++    result=observe_quarantine_identity(path,expected)
++    assert result.get('identity_matches_expected'), ('reviewed package identity changed',str(path),result)
++    return result
++
++def quarantine_location_snapshot(moved):
++    rows=[]
++    for name,expected in sorted(INITIAL_PACKAGE_IDENTITIES.items()):
++        source=observe_quarantine_identity(TARGET/name,expected)
++        retained=observe_quarantine_identity(QUARANTINE/name,expected)
++        exactly_once=source.get('present',False)!=retained.get('present',False)
++        intact=exactly_once and (source if source.get('present') else retained).get('identity_matches_expected',False)
++        rows.append({'cache_relative_path':name,'source_path':str(TARGET/name),
++                     'quarantine_path':str(QUARANTINE/name),'source':source,'quarantine':retained,
++                     'exactly_once_and_intact':intact,'completed_in_ledger':name in moved})
++    return {'observed_locations':rows,'all25_present_exactly_once_and_intact':len(rows)==25 and all(r['exactly_once_and_intact'] for r in rows),
++            'completed_rename_count':len(moved),'automatic_rollback_or_retry':False}
++
++def quarantine_log_event(event):
++    # Fresh exclusive ledger; each planned and completed rename is flushed.
++    path=RUN/'quarantine-moves.jsonl'
++    with path.open('a') as output:
++        output.write(json.dumps(event,sort_keys=True)+'\n');output.flush();os.fsync(output.fileno())
++
++def quarantine_own_package_outputs(checked):
++    expected=checked['complete_cache_identity_map']
++    assert len(expected)==609 and set(expected)==set(FULL_CACHE_REFERENCE)|{'CACHEDIR.TAG'}
++    verify_complete_cache_map(expected)
++    targetst=TARGET.lstat()
++    assert stat.S_ISDIR(targetst.st_mode) and targetst.st_uid==os.getuid() and stat.S_IMODE(targetst.st_mode)==0o700
++    assert (targetst.st_dev,targetst.st_ino)==(27,524404), 'owned target identity changed'
++    assert len(INITIAL_PACKAGE_IDENTITIES)==25
++    for name,row in sorted(INITIAL_PACKAGE_IDENTITIES.items()):
++        assert not Path(name).is_absolute() and '..' not in Path(name).parts and len(Path(name).parts)<=4
++        assert name in expected and all(row[k]==expected[name][k] for k in ['sha256','bytes','full_mode','mtime_ns'])
++        require_quarantine_identity(TARGET/name,row)
++        compressed=Path(row['gzip_path']).read_bytes()
++        assert digest(compressed)==row['gzip_sha256'] and gzip.decompress(compressed)==(TARGET/name).read_bytes()
++    assert not os.path.lexists(QUARANTINE), 'never overwrite a prior quarantine directory'
++    parent=QUARANTINE.parent.lstat()
++    assert stat.S_ISDIR(parent.st_mode) and parent.st_uid==os.getuid() and parent.st_dev==targetst.st_dev
++    # mkdir without exist_ok is exclusive. Trusted0700 destination plus the
++    # exclusive lease prevents cooperating writers; no universal race-free claim.
++    QUARANTINE.mkdir(mode=0o700)
++    qst=QUARANTINE.lstat()
++    assert stat.S_ISDIR(qst.st_mode) and stat.S_IMODE(qst.st_mode)==0o700 and qst.st_uid==os.getuid() and qst.st_dev==targetst.st_dev
++    ledger=RUN/'quarantine-moves.jsonl'
++    with ledger.open('x') as output:output.flush();os.fsync(output.fileno())
++    ledger.chmod(0o600)
++    moved=[]
++    try:
++        parents={str(Path(name).parent) for name in INITIAL_PACKAGE_IDENTITIES}
++        assert len(parents)<=25
++        for relative in sorted(parents):
++            path=QUARANTINE
++            for component in Path(relative).parts:
++                path=path/component
++                if not os.path.lexists(path):path.mkdir(mode=0o700)
++                st=path.lstat()
++                assert stat.S_ISDIR(st.st_mode) and st.st_uid==os.getuid() and stat.S_IMODE(st.st_mode)==0o700 and st.st_dev==targetst.st_dev
++        for name,row in sorted(INITIAL_PACKAGE_IDENTITIES.items()):
++            if INTERRUPTED is not None:raise InterruptedError('controlled before-rename interruption')
++            assert set(files(TARGET))==set(expected)-set(moved), 'cache pathset changed during quarantine'
++            source=TARGET/name;dest=QUARANTINE/name
++            require_quarantine_identity(source,row)
++            path=QUARANTINE
++            for component in Path(name).parts[:-1]:
++                path=path/component;st=path.lstat()
++                assert stat.S_ISDIR(st.st_mode) and stat.S_IMODE(st.st_mode)==0o700 and st.st_uid==os.getuid() and st.st_dev==targetst.st_dev
++            assert not os.path.lexists(dest), ('existing quarantine destination',str(dest))
++            quarantine_log_event({'operation':'rename_planned','cache_relative_path':name,
++                'source_path':str(source),'quarantine_path':str(dest),
++                'expected_identity':{k:row[k] for k in ['sha256','bytes','full_mode','mtime_ns','inode']}})
++            os.rename(source,dest)
++            assert not os.path.lexists(source), ('source path remained after rename',str(source))
++            actual=require_quarantine_identity(dest,row)
++            moved.append(name)
++            quarantine_log_event({'operation':'rename_completed','cache_relative_path':name,'actual_identity':actual})
++        after=files(TARGET)
++        assert set(after)==set(expected)-set(INITIAL_PACKAGE_IDENTITIES) and len(after)==584
++        survivors={name:row for name,row in expected.items() if name not in INITIAL_PACKAGE_IDENTITIES}
++        verify_complete_cache_map(survivors)
++        assert set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES), 'quarantine regular pathset changed'
++        locations=quarantine_location_snapshot(moved)
++        assert locations['all25_present_exactly_once_and_intact']
++        result={'schema_version':1,'kind':'ROOT-authorized-reversible-exact25-owned-package-quarantine',
++            'source_sha':PLAN['source_sha'],'quarantine_directory':str(QUARANTINE),
++            'quarantine_directory_identity':{'inode':[qst.st_dev,qst.st_ino],'uid':qst.st_uid,'full_mode':stat.S_IMODE(qst.st_mode)},
++            'original_cache_files':609,'retained_survivor_files':584,'quarantined_original_files':25,
++            'all584_survivor_sha_bytes_fullmodes_mtimes_unchanged':True,
++            'all25_original_sha_bytes_fullmodes_mtimes_inodes_preserved':True,
++            'all25_existing_gzip_decompression_verified':True,'retained_locations':locations,
++            'actual_reclaimed_file_bytes':0,'raw_original_bytes_deleted_copied_or_reencoded':False,
++            'standard_CACHEDIR_TAG_left_unchanged':True,'actual_Cargo_clean_or_dryrun_commands':0,
++            'rename_ledger_sha256':digest(ledger.read_bytes()),'automatic_rollback_or_retry':False,
++            'universal_race_free_ownership_or_power_loss_durability_claim':False}
++        output=RUN/'package-quarantine-receipt.json';output.write_text(json.dumps(result,indent=2)+'\n');output.chmod(0o600)
++        return result
++    except BaseException as fault:
++        # Preserve every surviving source/destination and the actual planned vs
++        # completed ledger. No delete, chmod of originals, rollback or retry.
++        result={'schema_version':1,'kind':'actual-partial-quarantine-failure','error_type':type(fault).__name__,
++            'quarantine_directory':str(QUARANTINE),'locations':quarantine_location_snapshot(moved),
++            'rename_ledger_sha256':digest(ledger.read_bytes()),'automatic_rollback_or_retry':False,
++            'following_compiler_or_test_launch_permitted':False}
++        output=RUN/'package-quarantine-failure.json';output.write_text(json.dumps(result,indent=2)+'\n');output.chmod(0o600)
++        raise
+ 
+ def prove_forced_old_library(row):
+-    assert CLEAN_DONE
++    assert INVALIDATION_DONE
+     log=Path(row['stderr_path']).read_text()
+     assert any('Running ' in line and '--crate-name partitionline ' in line and '--crate-type lib' in line for line in log.splitlines()), 'actual rustc library invocation absent'
+     artifacts=[]
+@@ -702,48 +759,30 @@
+         'new_package_artifact_reuse':False,'scope':'actualold selectivebaseline only, nofulloldtree/candidate qualification'}
+ 
+ try:
+-    LAST_FORECAST_KIND='clean'; initial_forecast=forecast()
+-    initial_forecast['projected_postclean_free_bytes']=initial_forecast['sampled_free_bytes']+initial_forecast['expected_clean_reclaim_bytes_for_projection_only']
+-    initial_forecast['projected_postclean_compile_fits']=initial_forecast['projected_postclean_free_bytes']>=initial_forecast['postclean_compile_required_free_bytes']
+-    assert initial_forecast['projected_postclean_compile_fits'], 'preclean projection insufficient; cleanup not launched'
+-    # The projection does not authorize Cargo: actual free space is independently
+-    # sampled after successful exact package-only cleanup before compiler launch.
++    LAST_FORECAST_KIND='quarantine';initial_forecast=forecast()
++    assert initial_forecast['sampled_free_bytes']>=initial_forecast['postquarantine_compile_required_free_bytes'], 'pre-quarantine actual free insufficient; raw files reclaim zero'
+     (RUN/'launch-contract.json').write_text(json.dumps({'schema_version':1,'candidate_source_sha':PLAN['source_sha'],
+         'origin_receipt_sha256':digest(ORIGIN_BYTES),'forecast':initial_forecast,
+         'platform_exception_sha256':digest(PLATFORM_ALLOW_BYTES),'root_external_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+         'baseline_source_sha':BASELINE_INPUTS['source_sha'],'baseline_selected_inputs':66,'explicit_overlay_count':5,
+         'expected_actual_behavior':'positive2 passes then exact3+1 old behavior failures; never compile/setup failures',
+-        'root_authorized_scope':'forced baseline-only once ROOT GO/RPC close; following candidate phases held'},indent=2)+'\n')
++        'root_authorized_scope':'exact25 reversible quarantine then forced selective403 baseline once ROOT GO; candidate phases held',
++        'expected_actual_subprocesses':6,'actual_Cargo_clean_or_dryrun_commands':0,'quarantine_reclaimed_bytes':0},indent=2)+'\n')
+     seed_retention()
+-    docker_zero_running_workloads('platform-docker-before-clean')
+-    checked_preclean=guard_package_outputs_and_processes()
+-    (RUN/'original608-pre-marker-guard.json').write_text(json.dumps(checked_preclean,indent=2)+'\n')
+-    repair_standard_owned_cache_marker(checked_preclean)
+-    docker_zero_running_workloads('platform-docker-after-marker-before-clean')
+-    post_marker_process_guard=process_reference_guard()
+-    (RUN/'post-marker-relevant-process-guard.json').write_text(json.dumps(post_marker_process_guard,indent=2)+'\n')
+-    verify_complete_cache_map(checked_preclean['complete_cache_identity_map'])
+-    (RUN/'preclean-guard.json').write_text(json.dumps(checked_preclean,indent=2)+'\n')
+-    clean_argv=['taskset','-c','0,1','/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo',
+-        'clean','--package','partitionline','--offline','--locked','--manifest-path',str(SOURCE/'Cargo.toml'),'--target-dir',str(TARGET)]
+-    dryrun_argv=clean_argv[:5]+['--verbose','--dry-run']+clean_argv[5:]
+-    dryrun=run('stable-own-package-clean-dry-run',dryrun_argv,SOURCE,MANIFEST)
+-    exact_dryrun_package_paths(dryrun,checked_preclean['complete_cache_identity_map'])
+-    process_reference_guard()
+-    run('stable-own-package-clean',clean_argv,SOURCE,MANIFEST)
+-    afterclean=files(TARGET)
+-    assert all(name not in afterclean for name in INITIAL_PACKAGE_IDENTITIES), 'own package output survived clean'
+-    before_cache=checked_preclean['complete_cache_identity_map']
+-    exact_afterclean=verify_exact_afterclean_paths(before_cache,afterclean)
+-    (RUN/'postclean-exact-cache-pathset.json').write_text(json.dumps(exact_afterclean,indent=2)+'\n')
+-    removed=set(before_cache)-set(afterclean)
+-    assert removed==set(INITIAL_PACKAGE_IDENTITIES), ('clean affected unreviewed output',removed-set(INITIAL_PACKAGE_IDENTITIES))
+-    for name,expected in before_cache.items():
+-        if name not in removed:
+-            p=TARGET/name;st=p.lstat()
+-            assert stat.S_ISREG(st.st_mode) and digest(p.read_bytes())==expected['sha256'] and stat.S_IMODE(st.st_mode)==expected['full_mode'] and st.st_mtime_ns==expected['mtime_ns'], ('nonpackage or marker changed during cleanup',name)
+-    docker_zero_running_workloads('platform-docker-after-clean')
+-    CLEAN_DONE=True;LAST_FORECAST_KIND='compile';forecast()
++    docker_zero_running_workloads('platform-docker-before-quarantine')
++    checked_prequarantine=guard_package_outputs_and_processes()
++    (RUN/'prequarantine609-guard.json').write_text(json.dumps(checked_prequarantine,indent=2)+'\n')
++    quarantine_own_package_outputs(checked_prequarantine)
++    docker_zero_running_workloads('platform-docker-after-quarantine')
++    postquarantine_process_guard=process_reference_guard()
++    (RUN/'postquarantine-relevant-process-guard.json').write_text(json.dumps(postquarantine_process_guard,indent=2)+'\n')
++    survivor_map={name:row for name,row in checked_prequarantine['complete_cache_identity_map'].items() if name not in INITIAL_PACKAGE_IDENTITIES}
++    verify_complete_cache_map(survivor_map)
++    locations=quarantine_location_snapshot(list(INITIAL_PACKAGE_IDENTITIES))
++    assert locations['all25_present_exactly_once_and_intact'], 'quarantine changed before old compiler'
++    assert set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES)
++    (RUN/'postquarantine-before-compiler-guard.json').write_text(json.dumps({'survivor584_guard':verify_complete_cache_map(survivor_map),'quarantine25_locations':locations},indent=2)+'\n')
++    INVALIDATION_DONE=True;LAST_FORECAST_KIND='compile';forecast()
+     materialize_baseline()
+     commands=[
+       ('stable-baseline-positive-controls','baseline_positive_controls',0,2,0,
+@@ -760,6 +799,9 @@
+         old_after=selected_origin_guard();assert old_before==old_after
+         row['selected_origin_before']=old_before;row['selected_origin_after']=old_after
+         test_result(row,passed,failed,names)
++        locations=quarantine_location_snapshot(list(INITIAL_PACKAGE_IDENTITIES))
++        assert locations['all25_present_exactly_once_and_intact'] and set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES)
++        row['quarantine25_originals_after_test']=locations;persist()
+         if target=='baseline_positive_controls':
+             BASELINE_LIBRARY_PROOF=prove_forced_old_library(row)
+             nmrow=run('old-library-symbol-probe',['taskset','-c','0,1','/usr/bin/nm','-C','--defined-only',BASELINE_LIBRARY_PROOF['rebuilt_library_artifacts'][0]['path']],BASELINE,BASELINE_MANIFEST)
+@@ -768,6 +810,10 @@
+             BASELINE_LIBRARY_PROOF['old_library_new_lag_symbol_absent']=True
+             BASELINE_LIBRARY_PROOF['actual_nm_command_index']=len(ROWS)-1
+             persist()
++    assert len(ROWS)==6, 'exact twoDocker/threeCargo/oneNm commands required'
++    final_quarantine=quarantine_location_snapshot(list(INITIAL_PACKAGE_IDENTITIES))
++    assert final_quarantine['all25_present_exactly_once_and_intact'] and set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES)
++    (RUN/'final-quarantine25-preservation.json').write_text(json.dumps(final_quarantine,indent=2)+'\n')
+     WORKFLOW_PASSED=True;persist()
+ except BaseException as failure:
+     if ACTIVE is not None:

@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "kind": "closedactualv5-marker-dryrun-setup-failure",
+  "passed": false,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "scope": "actual177B standard cache marker repair and Cargo dry-run pathset refusal; no compiler/API27/API90 behavior qualification",
+  "source_and_cache_guard_sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+  "actual_omitted_nine_map_sha256": "e9df2a5f6a4a11a2d20e3a1dbbe6b2dc57a029ebc2525a3132289920e6bc0c3f",
+  "runner_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py",
+  "runner_sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/actual-dryrun-omitted-nine.json",
+      "run_relative_path": "actual-dryrun-omitted-nine.json",
+      "sha256": "e9df2a5f6a4a11a2d20e3a1dbbe6b2dc57a029ebc2525a3132289920e6bc0c3f",
+      "bytes": 8912,
+      "full_mode": 384,
+      "mtime_ns": 1791058263666542349
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/failure.json",
+      "run_relative_path": "failure.json",
+      "sha256": "04e7ab9f67b8f0fd006b27e9d87668cc787c1a3a71c2ec268c422ffa3013b2e8",
+      "bytes": 701,
+      "full_mode": 384,
+      "mtime_ns": 1791057880492026776
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/launch-contract.json",
+      "run_relative_path": "launch-contract.json",
+      "sha256": "acf341def87af6d2bdef1fa624149960388b4749e26d28915fe126c430842d40",
+      "bytes": 1624,
+      "full_mode": 384,
+      "mtime_ns": 1791057795194527058
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/original608-pre-marker-guard.json",
+      "run_relative_path": "original608-pre-marker-guard.json",
+      "sha256": "4287ab2c553048353152993ee759b49b6be2a67f933a845807867d2d5c364d11",
+      "bytes": 148946,
+      "full_mode": 384,
+      "mtime_ns": 1791057832658557694
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.disk-monitor.jsonl",
+      "run_relative_path": "platform-docker-after-marker-before-clean.disk-monitor.jsonl",
+      "sha256": "2c40915674e76909fab4debc4b45065ad5e48176c5d0d106b75e394ae3ac27d9",
+      "bytes": 415,
+      "full_mode": 384,
+      "mtime_ns": 1791057845023577979
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stderr.log",
+      "run_relative_path": "platform-docker-after-marker-before-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057844811574527
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-after-marker-before-clean.stdout.log",
+      "run_relative_path": "platform-docker-after-marker-before-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057844811574527
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.disk-monitor.jsonl",
+      "run_relative_path": "platform-docker-before-clean.disk-monitor.jsonl",
+      "sha256": "6233762d57fdd2963895c8b80c76812ae64e0dd7235c530df9daf0743f46b9cf",
+      "bytes": 414,
+      "full_mode": 384,
+      "mtime_ns": 1791057807874971340
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stderr.log",
+      "run_relative_path": "platform-docker-before-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057807662967885
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/platform-docker-before-clean.stdout.log",
+      "run_relative_path": "platform-docker-before-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791057807662967885
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-failure-source-cache-guard.json",
+      "run_relative_path": "post-failure-source-cache-guard.json",
+      "sha256": "7c50a7b1dc9fcac726031f315291c347c8b7a1eb9561c49eb1408279cba55089",
+      "bytes": 7167,
+      "full_mode": 384,
+      "mtime_ns": 1791058194706799331
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/post-marker-relevant-process-guard.json",
+      "run_relative_path": "post-marker-relevant-process-guard.json",
+      "sha256": "da3a484fed014c4c96529691ae8e97b3386c4b8aaab6e402660d1910a1bf1f17",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791057856580794949
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stderr.log",
+      "run_relative_path": "postfailure-verification-v2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791058180717574253
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verification-v2.stdout.log",
+      "run_relative_path": "postfailure-verification-v2.stdout.log",
+      "sha256": "658d7816c650a11c0e3c4e2d4e93e9b95e0e3c552d51725d48b97964f61880b7",
+      "bytes": 712,
+      "full_mode": 384,
+      "mtime_ns": 1791058194706799331
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/postfailure-verifier-first-assumption-failure.json",
+      "run_relative_path": "postfailure-verifier-first-assumption-failure.json",
+      "sha256": "c9fcecdd58d3ae76612bed8112120ff25a69d70d005399ed0f19d51ae1463889",
+      "bytes": 1158,
+      "full_mode": 384,
+      "mtime_ns": 1791058180716605105
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/preclean-guard.json",
+      "run_relative_path": "preclean-guard.json",
+      "sha256": "8bfd25375175670f9510f08e1eec3e5c8ddc7eb5ba47b4cbb8989f9cfd2bdd79",
+      "bytes": 149141,
+      "full_mode": 384,
+      "mtime_ns": 1791057856801727811
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/process-reference-guard.json",
+      "run_relative_path": "process-reference-guard.json",
+      "sha256": "da3a484fed014c4c96529691ae8e97b3386c4b8aaab6e402660d1910a1bf1f17",
+      "bytes": 1697,
+      "full_mode": 384,
+      "mtime_ns": 1791057856580646707
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.disk-monitor.jsonl",
+      "run_relative_path": "stable-own-package-clean-dry-run.disk-monitor.jsonl",
+      "sha256": "bbec6a196a98e5e52f823f43e2999581e99e8f69009c026b34ab585ee16f172b",
+      "bytes": 416,
+      "full_mode": 384,
+      "mtime_ns": 1791057868759965184
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stderr.log",
+      "run_relative_path": "stable-own-package-clean-dry-run.stderr.log",
+      "sha256": "363dddf68962397e4a392f2f688a98227d96568ada70d4b52d8d42c618dc69f9",
+      "bytes": 80,
+      "full_mode": 384,
+      "mtime_ns": 1791057868579962245
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/stable-own-package-clean-dry-run.stdout.log",
+      "run_relative_path": "stable-own-package-clean-dry-run.stdout.log",
+      "sha256": "faa743e095c4841b323a9920767fca6cef019e5a780a5c3f1cf4fd6ec29a9614",
+      "bytes": 2275,
+      "full_mode": 384,
+      "mtime_ns": 1791057868578785509
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/standard-cache-marker-repair.json",
+      "run_relative_path": "standard-cache-marker-repair.json",
+      "sha256": "caeb86a5f72cec3de50e68d39b59218c678c5280c2775e0697837ad880987514",
+      "bytes": 147753,
+      "full_mode": 384,
+      "mtime_ns": 1791057833094832806
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/validation.json",
+      "run_relative_path": "validation.json",
+      "sha256": "e1258d3a730c1fb1bd5434ad6b5400870e6f46dd8d45885cdae06296abdb20ee",
+      "bytes": 476387,
+      "full_mode": 384,
+      "mtime_ns": 1791057880491800517
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure-v2.py",
+      "run_relative_path": "verify-post-dryrun-failure-v2.py",
+      "sha256": "b1306f55b6c2118a724d878aa236b6856f864de7129a3d627def038da0a6e68b",
+      "bytes": 7524,
+      "full_mode": 384,
+      "mtime_ns": 1791058180716357404
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01/verify-post-dryrun-failure.py",
+      "run_relative_path": "verify-post-dryrun-failure.py",
+      "sha256": "fe53afc91cf8e813fddc4013e455b4a8a04f242c125b102e3a8339b60a07102f",
+      "bytes": 7459,
+      "full_mode": 384,
+      "mtime_ns": 1791058132263400289
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01-driver.log",
+      "sha256": "aea339422fc1f5a993e6ecba92f354bae2ae0bf55abb32638533561a7e090f89",
+      "bytes": 1583,
+      "full_mode": 384,
+      "mtime_ns": 1791057880492026776
+    }
+  ],
+  "file_count": 25,
+  "file_bytes": 966061,
+  "map_self_excluded": true,
+  "raw_first_failure_preserved": true,
+  "exact_sources_and_original608_unchanged": true,
+  "approved_marker_only_cache_addition": true,
+  "actual_clean_compiler_test_nm_counts": {
+    "clean": 0,
+    "compiler": 0,
+    "tests": 0,
+    "nm": 0
+  },
+  "all_owned_groups_joined": true,
+  "CPU0_1_lease_closed": true,
+  "no_API27_90_baseline_behavior_proof": true
+}

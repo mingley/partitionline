@@ -1,0 +1,161 @@
+--- runner.before-68f17205.py
++++ run-forced-baseline403-platform-exception.py
+@@ -37,6 +37,11 @@
+ CLEAN_DONE=False
+ LAST_FORECAST_KIND='compile'
+ BASELINE_LIBRARY_PROOF=None
++PLATFORM_ALLOW_PATH=BASE/'platform-daemon-exception-preparation/exact-platform-daemons.json'
++PLATFORM_ALLOW_BYTES=PLATFORM_ALLOW_PATH.read_bytes()
++assert hashlib.sha256(PLATFORM_ALLOW_BYTES).hexdigest()=='5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd'
++PLATFORM_ALLOW=json.loads(PLATFORM_ALLOW_BYTES)
++ROOT_PUBLICATION_RESERVE=32*1024*1024
+ BASELINE_INPUT_PATH = BASE/'baseline-compiler-inputs.json'
+ BASELINE_INPUT_BYTES = BASELINE_INPUT_PATH.read_bytes()
+ assert hashlib.sha256(BASELINE_INPUT_BYTES).hexdigest() == '9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592'
+@@ -165,14 +170,16 @@
+         # A clean does not promise reclaimed blocks; only the immediately fresh
+         # post-clean compile forecast admits the compiler launch.
+         required=FLOOR+8*1024*1024
+-    else:required=needed
++    else:required=needed+ROOT_PUBLICATION_RESERVE
+     row={'sampled_free_bytes':current,'current_cache_allocated_bytes':cache_allocated(),
+          'kind':LAST_FORECAST_KIND,'named_baseline_targets_remaining':remaining,
+-         'required_free_bytes':required,'postclean_compile_required_free_bytes':needed,
++         'required_free_bytes':required,'postclean_compile_required_free_bytes':needed+ROOT_PUBLICATION_RESERVE,
++         'postclean_compile_base_without_publication_reserve_bytes':needed,
+          'native_allowance_bytes':0,'RPC_overlap_assumed':False,'RPC_closed_gate_required':True,
+          'reference_refined_forecast_sha256':'726a66f74dc147314f5461c8243b74a8560181c3280baa5ea8b9feb36f29a4bf',
+          'expected_clean_reclaim_bytes_for_projection_only':89194496,
+          'already_retained_package_objects_not_added_again_bytes':27156162,
++         'root_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+          'shared_floor_bytes':FLOOR,'fits':current>=required,'headroom_bytes':current-required}
+     assert row['fits'],('forced baseline forecast no longer fits',row)
+     return row
+@@ -248,6 +255,11 @@
+            'own_package_restore_map_sha256':digest(PACKAGE_MAP_BYTES),'baseline_library_proof':BASELINE_LIBRARY_PROOF,
+            'RPC_overlap_assumed':False,'native_allowance_bytes':0,
+            'remaining_phases_held':True,
++           'root_approved_platform_exception_sha256':digest(PLATFORM_ALLOW_BYTES),
++           'platform_daemon_uninspected_fields':['cwd','exe','environ','maps','fd'],
++           'universal_all_pid_readability_or_no_owner_claim':False,
++           'actual_zero_running_Docker_before_after_cleanup_required':True,
++           'root_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+            'source_origin_receipt_sha256':digest(ORIGIN_BYTES),'source_manifest_compressed_sha256':SOURCE_MAP['compressed_sha256'],
+            'source_manifest_uncompressed_sha256':SOURCE_MAP['uncompressed_sha256'],'candidate_hidden_overlays':False,'baseline_explicit_overlay_count':5}
+     (RUN/'validation.json').write_text(json.dumps(row, indent=2)+'\n')
+@@ -261,7 +273,7 @@
+                    'CARGO_PROFILE_DEV_DEBUG': '0', 'CARGO_PROFILE_TEST_DEBUG': '0', 'CARGO_NET_OFFLINE': 'true',
+                    'RUSTC': tool+'/rustc', 'RUSTDOC': tool+'/rustdoc', 'RUSTFMT': tool+'/rustfmt',
+                    'PATH': tool+':/workspace/work/cargo/bin:'+os.environ['PATH']})
+-    for key in ['PARTITIONLINE_CAPABILITY_PEER_DIR','PARTITIONLINE_CAPABILITY_PEER_MODE','PARTITIONLINE_CAPABILITY_PEER_VERSION']:
++    for key in ['DOCKER_CONTEXT','DOCKER_HOST','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','PARTITIONLINE_CAPABILITY_PEER_DIR','PARTITIONLINE_CAPABILITY_PEER_MODE','PARTITIONLINE_CAPABILITY_PEER_VERSION']:
+         result.pop(key,None)
+     return result
+ 
+@@ -425,10 +437,50 @@
+         assert digest(data)==row['uncompressed_sha256'] and len(data)==row['uncompressed_bytes']
+         RETAINED.setdefault(row['uncompressed_sha256'],{key:row[key] for key in ['path','sha256','compressed_bytes','uncompressed_sha256','uncompressed_bytes','decompression_verified']})
+ 
++def verify_platform_daemons():
++    verified=[]
++    for expected in PLATFORM_ALLOW['platform_daemons']:
++        proc=Path('/proc')/str(expected['pid'])
++        status=(proc/'status').read_text()
++        fields={line.split(':',1)[0]:line.split(':',1)[1].strip() for line in status.splitlines() if ':' in line}
++        raw=(proc/'stat').read_text();stat_fields=raw[raw.rfind(')')+2:].split()
++        comm=raw[raw.find('(')+1:raw.rfind(')')]
++        cmd=(proc/'cmdline').read_bytes()
++        actual={'pid':expected['pid'],'comm':comm,'parent_pid':int(fields['PPid']),
++                'uid_all_four':[int(x) for x in fields['Uid'].split()],
++                'starttime_ticks':int(stat_fields[19]),'cmdline_sha256':digest(cmd),'cmdline_bytes':len(cmd)}
++        assert fields['Name']==expected['comm'] and actual['comm']==expected['comm']
++        assert actual['uid_all_four']==[0,0,0,0]
++        assert all(actual[key]==expected[key] for key in actual), 'platform daemon identity changed/unverifiable'
++        actual['explicitly_uninspected_fields']=['cwd','exe','environ','maps','fd']
++        verified.append(actual)
++    return verified
++
++def verify_docker_cli():
++    expected=PLATFORM_ALLOW['docker_cli'];p=Path(expected['path']);st=p.lstat()
++    assert stat.S_ISREG(st.st_mode), 'pinned Docker CLI must remain a regular file, not a symlink'
++    data=p.read_bytes()
++    assert digest(data)==expected['sha256'] and len(data)==expected['bytes'] and stat.S_IMODE(st.st_mode)==expected['full_mode']
++    return expected
++
++def docker_zero_running_workloads(name):
++    verified_before=verify_platform_daemons();verify_docker_cli()
++    # Never infer zero workload from process names or inaccessible daemon fields.
++    row=run(name,['taskset','-c','0,1',*PLATFORM_ALLOW['docker_ps_argv']],SOURCE,MANIFEST,timeout=10)
++    assert Path(row['stdout_path']).read_bytes().strip()==b'', 'Docker API reports running workload(s)'
++    verified_after=verify_platform_daemons();assert verified_before==verified_after
++    row.update({'actual_docker_api_zero_running_workloads':True,'actual_platform_daemons_before':verified_before,
++                'actual_platform_daemons_after':verified_after,'daemon_fields_uninspected':True,
++                'scope':'relevant Docker workloads/readable processes, not universal all-PID field readability'})
++    persist();return row
++
+ def process_reference_guard():
+     # Only safe public target-match booleans/errors are recorded. Never dump
+     # commandlines, unrelated env values, credentials or complete maps.
+     refs=[];faults=[];checked=0;zombies=0
++    platform_before=verify_platform_daemons()
++    exempt={x['pid'] for x in platform_before}
++    exempt_seen=[]
+     target=os.fsencode(str(TARGET))
+     for proc in sorted(Path('/proc').iterdir(),key=lambda p:p.name):
+         if not proc.name.isdigit():continue
+@@ -439,6 +491,9 @@
+         except OSError as error:faults.append({'pid':pid,'field':'stat','errno':error.errno});continue
+         if fields[0]=='Z':zombies+=1;continue
+         if pid==os.getpid():continue
++        if pid in exempt:
++            exempt_seen.append(pid)
++            continue
+         checked+=1
+         for field in ['cwd','exe']:
+             try:value=os.fsencode(os.readlink(proc/field))
+@@ -460,9 +515,16 @@
+             except (FileNotFoundError,ProcessLookupError):continue
+             except OSError as error:faults.append({'pid':pid,'field':'fd-link','errno':error.errno});continue
+             if target in value:refs.append({'pid':pid,'field':'fd','target_match':True})
++    platform_after=verify_platform_daemons()
++    assert platform_before==platform_after and set(exempt_seen)==exempt
+     row={'checked_live_other_processes':checked,'nonexecuting_zombies_excluded':zombies,
+          'supervising_runner_pid_excluded':os.getpid(),'target_references':refs,'unexplained_live_field_failures':faults,
+-         'all_required_other_live_fields_readable':not faults,'no_other_target_owner':not refs}
++         'all_relevant_nonexempt_live_fields_readable':not faults,
++         'no_target_references_from_inspectable_processes':not refs,
++         'root_approved_exact_platform_daemons':platform_after,
++         'exception_allowlist_sha256':digest(PLATFORM_ALLOW_BYTES),
++         'universal_all_pid_readability_or_no_owner_claim':False,
++         'scope':'relevant workloads and readable processes; explicitly uninspected exact pinned Docker daemons'}
+     output=RUN/'process-reference-guard.json';output.write_text(json.dumps(row,indent=2)+'\n')
+     assert not refs and not faults, 'cache process owner/field unknown: no removal permitted'
+     return row
+@@ -510,12 +572,19 @@
+ 
+ try:
+     LAST_FORECAST_KIND='clean'; initial_forecast=forecast()
++    initial_forecast['projected_postclean_free_bytes']=initial_forecast['sampled_free_bytes']+initial_forecast['expected_clean_reclaim_bytes_for_projection_only']
++    initial_forecast['projected_postclean_compile_fits']=initial_forecast['projected_postclean_free_bytes']>=initial_forecast['postclean_compile_required_free_bytes']
++    assert initial_forecast['projected_postclean_compile_fits'], 'preclean projection insufficient; cleanup not launched'
++    # The projection does not authorize Cargo: actual free space is independently
++    # sampled after successful exact package-only cleanup before compiler launch.
+     (RUN/'launch-contract.json').write_text(json.dumps({'schema_version':1,'candidate_source_sha':PLAN['source_sha'],
+         'origin_receipt_sha256':digest(ORIGIN_BYTES),'forecast':initial_forecast,
++        'platform_exception_sha256':digest(PLATFORM_ALLOW_BYTES),'root_external_publication_reserve_bytes':ROOT_PUBLICATION_RESERVE,
+         'baseline_source_sha':BASELINE_INPUTS['source_sha'],'baseline_selected_inputs':66,'explicit_overlay_count':5,
+         'expected_actual_behavior':'positive2 passes then exact3+1 old behavior failures; never compile/setup failures',
+         'root_authorized_scope':'forced baseline-only once ROOT GO/RPC close; following candidate phases held'},indent=2)+'\n')
+     seed_retention()
++    docker_zero_running_workloads('platform-docker-before-clean')
+     checked_preclean=guard_package_outputs_and_processes()
+     (RUN/'preclean-guard.json').write_text(json.dumps(checked_preclean,indent=2)+'\n')
+     clean_argv=['taskset','-c','0,1','/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo',
+@@ -529,6 +598,7 @@
+     for name,expected in before_cache.items():
+         if name not in removed:
+             p=TARGET/name; assert digest(p.read_bytes())==expected['sha256'] and stat.S_IMODE(p.stat().st_mode)==expected['full_mode']
++    docker_zero_running_workloads('platform-docker-after-clean')
+     CLEAN_DONE=True;LAST_FORECAST_KIND='compile';forecast()
+     materialize_baseline()
+     commands=[

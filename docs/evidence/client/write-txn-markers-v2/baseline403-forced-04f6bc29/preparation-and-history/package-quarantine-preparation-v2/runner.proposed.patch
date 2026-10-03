@@ -1,0 +1,48 @@
+--- /workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v1.py
++++ /workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v2.py
+@@ -735,6 +735,23 @@
+         output=RUN/'package-quarantine-failure.json';output.write_text(json.dumps(result,indent=2)+'\n');output.chmod(0o600)
+         raise
+ 
++def quarantine_retained_originals_after_compile():
++    # Cargo may legitimately recreate the exact same source pathname with new
++    # bytes. Original preservation depends on quarantine identities only.
++    assert set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES) and len(INITIAL_PACKAGE_IDENTITIES)==25
++    rows=[]
++    for name,expected in sorted(INITIAL_PACKAGE_IDENTITIES.items()):
++        retained=require_quarantine_identity(QUARANTINE/name,expected)
++        cache=observe_quarantine_identity(TARGET/name,expected)
++        rows.append({'cache_relative_path':name,'quarantine_path':str(QUARANTINE/name),
++                     'retained_original_identity':retained,'cache_path':str(TARGET/name),
++                     'current_cache_path_diagnostic':cache,
++                     'cache_path_role':'mutable compiler output; existence does not establish loss of retained original',
++                     'current_cache_hash_scope':'compared to original only if regular and original byte length; library/ELF capture supplies actual generated artifact hashes separately'})
++    return {'quarantine_original_file_count':25,'all25_original_sha_bytes_fullmodes_mtimes_inodes_preserved':True,
++            'exact_quarantine25_pathset_verified':True,'source_path_absence_required_after_compile':False,
++            'retained_originals_and_current_cache_paths':rows}
++
+ def prove_forced_old_library(row):
+     assert INVALIDATION_DONE
+     log=Path(row['stderr_path']).read_text()
+@@ -799,9 +816,8 @@
+         old_after=selected_origin_guard();assert old_before==old_after
+         row['selected_origin_before']=old_before;row['selected_origin_after']=old_after
+         test_result(row,passed,failed,names)
+-        locations=quarantine_location_snapshot(list(INITIAL_PACKAGE_IDENTITIES))
+-        assert locations['all25_present_exactly_once_and_intact'] and set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES)
+-        row['quarantine25_originals_after_test']=locations;persist()
++        retained_originals=quarantine_retained_originals_after_compile()
++        row['quarantine25_originals_after_test']=retained_originals;persist()
+         if target=='baseline_positive_controls':
+             BASELINE_LIBRARY_PROOF=prove_forced_old_library(row)
+             nmrow=run('old-library-symbol-probe',['taskset','-c','0,1','/usr/bin/nm','-C','--defined-only',BASELINE_LIBRARY_PROOF['rebuilt_library_artifacts'][0]['path']],BASELINE,BASELINE_MANIFEST)
+@@ -811,8 +827,7 @@
+             BASELINE_LIBRARY_PROOF['actual_nm_command_index']=len(ROWS)-1
+             persist()
+     assert len(ROWS)==6, 'exact twoDocker/threeCargo/oneNm commands required'
+-    final_quarantine=quarantine_location_snapshot(list(INITIAL_PACKAGE_IDENTITIES))
+-    assert final_quarantine['all25_present_exactly_once_and_intact'] and set(files(QUARANTINE))==set(INITIAL_PACKAGE_IDENTITIES)
++    final_quarantine=quarantine_retained_originals_after_compile()
+     (RUN/'final-quarantine25-preservation.json').write_text(json.dumps(final_quarantine,indent=2)+'\n')
+     WORKFLOW_PASSED=True;persist()
+ except BaseException as failure:

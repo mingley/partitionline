@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only frozen full608-bound standard marker repair/dryrun source/control/preflight packet; no marker write/Cargo/cleanup/SDK/runtime phase",
+  "files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v4.py",
+      "sha256": "8065020485bec6865e09ffb567130194ccf9bdc6f3121fa5efc032234ea908fe",
+      "bytes": 49145,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/check-marker-dryrun-controls.py",
+      "sha256": "68da32ad8a5c19ee65ed61c195a8227098cc29971c811c46270fa5d86b237808",
+      "bytes": 12531,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/marker-dryrun-controls.json",
+      "sha256": "da5532de61de439f2703803583c80dde171035c3b274ce12e504b7f652ac161e",
+      "bytes": 3447,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/proposal.json",
+      "sha256": "44b02bac2e2884ed4cfe9707b02d7f21cb3cd502cfe9e7414f3f8a1cf00bedc3",
+      "bytes": 14622,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/readonly-preflight-forecast.json",
+      "sha256": "6030631b31d1c30482c0b53026fb9f44cd25ca556a0a2b6707afce10a96f77ae",
+      "bytes": 4137,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/runner.before-df101f96.py",
+      "sha256": "df101f96ca32c71bdab1a82f2bf8dbbff972b9de9f2948caf2cb193f96f35d50",
+      "bytes": 49003,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/runner.proposed.patch",
+      "sha256": "e5c00b493b708c318c75d08ec39a6ec8952c784f1ae62ee51593730b525bca30",
+      "bytes": 4073,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/verify-readonly-preflight.py",
+      "sha256": "ecf8f922408f8efc0c93b31fb622045bb197e347e26292edf6645742a8edea98",
+      "bytes": 5705,
+      "full_mode": 384
+    }
+  ],
+  "file_count": 8,
+  "total_bytes": 142663
+}

@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "status": "frozen_WORK-only_source_controls_and_readonly_forecast; no retry GO assumed",
+  "sampled_at_unix": 1791055833.6896124,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "source_root": "/workspace/work/client-capabilities-source-04f6bc29",
+  "origin_receipt": "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+  "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+  "runner": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v3.py",
+    "sha256": "39609fb5f5b2777810fabafa8b659a1ee92fd0746b24e34fe9d53963d5056182",
+    "bytes": 48167,
+    "full_mode": 384
+  },
+  "predecessors_preserved": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-68f17205.py",
+      "sha256": "68f172053b61b9619b26101e2f22c210d4f9ea7f1279d12c4f74b6cede9ec384"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/runner.before-1a7ab070.py",
+      "sha256": "1a7ab0702109e429f407444fbe833e9486eb9bd6f365d0725bff29c44eca012d"
+    }
+  ],
+  "proposal_patch": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/runner.proposed.patch",
+    "sha256": "96bd88b21d39dd95314991c534b59df33480f13857d42318dc347e3b85878d68",
+    "base_runner_sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c"
+  },
+  "allowlist": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/exact-platform-daemons.json",
+    "sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd"
+  },
+  "controls": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/helper-controls.json",
+    "sha256": "4b58ae0357488979022689599e1a5f3a79912cb245638080ba2438d43d4b88d0",
+    "synthetic_controls": 43,
+    "passed": true,
+    "first_original_count_wrapper_failure_preserved": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/controls-attempt-01"
+  },
+  "readonly_guard_and_fresh_forecast": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/readonly-source-cache-forecast.json",
+    "sha256": "bb23ab43dc0a1c58ec1dba0f57fef12c8203b37d40cca686a875ddbab7f62f44",
+    "forecast": {
+      "free_bytes_before_readonly_checks": 1007820800,
+      "free_bytes_after_readonly_checks": 1007562752,
+      "actual_package_allocated_bytes_before_clean": 89194496,
+      "postclean_compile_base_required_bytes": 749371137,
+      "root_publication_allowance_bytes": 33554432,
+      "required_postclean_compile_free_bytes": 782925569,
+      "projected_postclean_free_bytes": 1096757248,
+      "projected_postclean_fits": true,
+      "projected_headroom_bytes": 313831679,
+      "projected_reclaim_not_actual_until_clean": true,
+      "mandatory_actual_postclean_forecast_before_any_Cargo": true,
+      "shared350MiB_floor_bytes": 367001600,
+      "single_link_codegen_allowance_bytes": 83002787,
+      "persistent_library_and_three_test_allowance_bytes": 135003311,
+      "new_lossless_capture_allowance_bytes": 143391919,
+      "metadata_allowance_bytes": 16777216,
+      "selected_source_metadata_allowance_bytes": 4194304,
+      "uncertainty": "measured small-target/library references scaled1.5; sampled0.2s guard cannot guarantee instantaneous peak",
+      "RPC_overlap_allowed": false,
+      "native_overlap_allowed": false,
+      "other_compiler_SDK_overlap_allowed": false,
+      "existing_package_gzip_objects_not_charged_again_bytes": 27156162
+    }
+  },
+  "package25_lossless_restore_map_sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+  "helper104e_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+  "exact_five_overlays_sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+  "source_protection": "both complete04f73938 and40371885 source pathsets/Git/SHA/length/full07777 verified; exact66old compiler inputs plus5declared test overlays only",
+  "process_exception": {
+    "exact_pids": [
+      199,
+      251
+    ],
+    "mandatory_identity_fields": [
+      "pid",
+      "starttime_ticks",
+      "uid_all_four0",
+      "comm",
+      "statusName",
+      "PPid",
+      "cmdline_sha256",
+      "cmdline_bytes"
+    ],
+    "explicitly_uninspected_fields": [
+      "cwd",
+      "exe",
+      "environ",
+      "maps",
+      "fd"
+    ],
+    "actual_Docker_API_zero_running_workloads_before_after_package_clean": true,
+    "all_other_live_unknown_unreadable_or_cache_reference_rejected": true,
+    "universal_all_PID_field_readability_or_no_owner_claim": false,
+    "scope": "relevant workloads and readable processes with exact explicitly uninspected root platform daemons; two observed Docker API snapshots are not a universal race-free owner proof",
+    "ENOENT_for_still_live_nonexempt_field": "reject unless fresh stat proves vanished orZ",
+    "nonexempt_PID_identity": "starttime andcomm rechecked after live fields; change/unreadable rejects",
+    "closed_descriptor_policy": "ENOENT fd-link reports descriptor observed closed; process identity rechecked; no universal no-owner claim"
+  },
+  "next_actual_sequence_if_ROOT_GO": [
+    "actualDockerEmptyBeforeMarker",
+    "complete608package25losslessRelevantProcessAndSourceGuards",
+    "standardAbsentMarkerTempFsyncAtomicRepair609Disclosed",
+    "actualDockerEmptyAfterMarker",
+    "relevantProcessGuardAndComplete609Guard",
+    "actualCargoVerboseDryrunExactly25Unchanged609",
+    "relevantProcessGuard",
+    "actualOwnPackageCleanExactly25RemovedOtherRowsAndMarkerUnchanged",
+    "actualDockerEmptyAfterClean",
+    "actualPostcleanFreeAdmission",
+    "materialize66oldInputs+5testOverlays",
+    "actualVerbosePositive2",
+    "actualOldRlibRmetaDifferentAndNmNewLagAbsent",
+    "actualAPI27Red3",
+    "actualAPI90Red1"
+  ],
+  "expected_actual_command_count": 9,
+  "actual_Docker_query_count_if_completed": 3,
+  "actual_package_clean_count_if_completed": 1,
+  "actual_Cargo_test_commands_if_completed": 3,
+  "actual_nm_commands_if_completed": 1,
+  "required_qualification": "two old supported controls pass; exact3API27 and1API90 behavior failures; setup/compile/cache reuse failure never behavior proof; availability red covers8 only due fail-fast test",
+  "compiler_scope": "stable baseline-only CPU0,1/jobs1/offline locked; RPC/native/othercompiler/SDK overlap prohibited; default profile; candidate runtime strict Streams MSRV Java wholematrix held",
+  "future_command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "env",
+    "CARGO_HOME=/workspace/work/cargo",
+    "RUSTUP_HOME=/workspace/work/rustup",
+    "python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v3.py",
+    "--source",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--source-sha",
+    "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "--origin-receipt",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "--origin-receipt-sha256",
+    "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "--run-label",
+    "04f6bc29-marker-v3-attempt-01"
+  ],
+  "actual_operations_during_preparation": {
+    "runner_workflows": 0,
+    "Cargo": 0,
+    "DockerAPI": 0,
+    "cleanup": 0,
+    "readonly_filesystem_and_pinned_proc_identity_checks": true
+  },
+  "root_authorization_gate": "explicit ROOT GO for this exact frozen runner/new scope after root forecast and workload/CPU review; current lease closed",
+  "predecessor_frozen_packet_manifest": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/frozen-packet-manifest.json",
+    "sha256": "a2cd20de6ff5bd425d6e4fc438edfc347b922715cd386639f307a5f02f77ee29",
+    "all13_bytes_fullmode_identities_rechecked_unchanged": true
+  },
+  "synthetic_fail_first_correction": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/fail-first-live-field-controls.json",
+    "sha256": "9044d51ef38462076ce1774438f0efe4f024391c2939bed037dafd370dabadb7",
+    "old_live_field_or_identity_model_acceptances": 6,
+    "new_rejections": 6,
+    "scope": "synthetic functions only; no actual /proc/cache cleanup/compiler/API behavioral proof",
+    "superseded_first_PID_mutation_trigger_model_retained": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/comparison-attempt-01"
+  },
+  "actual_prior_Cargo_setup_failure": {
+    "directory": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01",
+    "validation_sha256": "bcb96239882886e845b4ed459bccf44f3a5a42ca39135a8bd083a408d31e8f4e",
+    "closed_failure_artifact_map_sha256": "6561c3f0b6900e4eda04e1bf3e0d97fa8f9b01d0bb6a8dab425d911da904e159",
+    "post_failure_fullsource_and_cache608_sha256": "4f205d43132e8641dc12a52cdcf364ae6f5bcbf3e55db346be09a2ab5abb3f64",
+    "Cargo_clean_exit_code": 101,
+    "cache_deleted_or_changed_paths": 0,
+    "compiler_test_or_nm_executions": 0,
+    "classification": "actual Cargo missingCACHEDIR.TAG protective refusal; not API27/90 behavioral proof"
+  },
+  "standard_marker_repair": {
+    "target": "/workspace/work/client-share-target/CACHEDIR.TAG",
+    "original_state": {
+      "present": false,
+      "lexists": false
+    },
+    "new_standard_source": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed",
+    "new_sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+    "new_bytes": 177,
+    "new_full_mode": 384,
+    "known_actual_Cargo_generated_source": "/workspace/work/target-broker-segments/CACHEDIR.TAG",
+    "expected_target_directory_identity": {
+      "device": 27,
+      "inode": 524404,
+      "uid": 1000,
+      "full_mode": 448
+    },
+    "gates_before_write": "actual Docker zero workloads and full608+25lossless+relevant process guard; owned directory; absent marker; exclusive temp regular177B/fync then atomicreplace+dirfsync; no unsafe-clean flag or oldCargo bypass",
+    "original608_rows_preserved": "all existing hashes/bytes/fullmodes recorded; only new CACHEDIR.TAG row adds609; unknown/existing marker refuses instead of overwriting",
+    "after_write_gates": "full609 unchanged original rows, actual Docker zero again, process guard, verbose Cargo dry-run unchanged609; all prospective paths expand to exactly25 reviewed regular outputs before realclean",
+    "partial_failure": "stop preserve observed temp/tag state; no retry/rollback/manual unlink fallback"
+  },
+  "dryrun_gate": {
+    "argv": [
+      "taskset",
+      "-c",
+      "0,1",
+      "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+      "clean",
+      "--verbose",
+      "--dry-run",
+      "--package",
+      "partitionline",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/client-capabilities-source-04f6bc29/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/client-share-target"
+    ],
+    "actual_removal_path_observation_required": true,
+    "accepted_strict_forms": [
+      "bare absolute target path",
+      "Removing absolute target path",
+      "Removing backtick-quoted absolute target path"
+    ],
+    "bounded_directory_expansion": "only existing directory paths expanded against complete609 regular-file map; exact equality25, no dependency or marker deletion",
+    "unrecognized_output_or_actual_size_mode_hash_mtime_change": "stop before realclean; never infer safe paths from summary or assume output format"
+  },
+  "additional_controls": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/marker-dryrun-controls.json",
+    "sha256": "9d08355afedc63c8a6df16f798a731284ede66031964d9225c8f0faa62e1a60a",
+    "passed": true,
+    "synthetic_marker_dryrun_controls": 23,
+    "inherited43_guard_and_forecast_function_ASTs_unchanged": true,
+    "preflight_wrapper_symlink_assumption_failure_retained": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/preflight-attempt-01"
+  },
+  "readonly_preflight_and_fresh_forecast": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/readonly-preflight-forecast.json",
+    "sha256": "f4bced216d9a2b472b14ece36d2f6f051d26d965b2825a72ac45cad84eb2c0bb",
+    "forecast": {
+      "sampled_free_bytes": 998813696,
+      "projected_package_reclaim_bytes": 89194496,
+      "projected_postclean_free_bytes": 1088008192,
+      "required_postclean_compile_bytes": 782925569,
+      "projected_headroom_bytes": 305082623,
+      "fits_projection": true,
+      "marker_max_new_bytes": 177,
+      "marker_disk_metadata_allowance_in_existing16MiB": true,
+      "Root_external_publication_reserved_bytes": 33554432,
+      "shared_floor_bytes": 367001600,
+      "actual_postclean_resample_mandatory": true,
+      "RPC_native_compiler_SDK_overlap_assumed": false
+    },
+    "66inputs_and5overlays_rechecked": true,
+    "target608_all_hashes_bytes_fullmodes_mtimes_rechecked": true,
+    "tool_binary_identities_and_standard_nm_symlink_checked": true
+  },
+  "actual_package_dryrun_count_if_completed": 1,
+  "actual_operations_during_this_preparation": {
+    "target_marker_writes": 0,
+    "Cargo": 0,
+    "DockerAPI": 0,
+    "cleanup": 0,
+    "synthetic_controls_and_readonly_source_tool_cache_preflight": true
+  }
+}

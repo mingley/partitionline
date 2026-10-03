@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only read-only full source/cache/daemon-identity preparation; no Docker API/Cargo/cleanup/API behavioral qualification",
+  "sampled_at_unix": 1791053615.1320643,
+  "runner_sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+  "verifier_sha256": "9ba701fd31782b9d5c5cc9c2bf9dce070c97a915e64b37ffc3573056159c60eb",
+  "complete_sources": [
+    {
+      "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+      "origin_receipt": "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+      "origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+      "guard": {
+        "files": 73938,
+        "bytes": 713363027,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "61dcc9a607ba13f2f68c12981e7c4808d290764f68d90c644f31ae7282453329"
+      }
+    },
+    {
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "origin_receipt": "/workspace/work/integration/broker-merged-source-403be1e3/receipt.json",
+      "origin_receipt_sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff",
+      "guard": {
+        "files": 71885,
+        "bytes": 653466714,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "8ef181d8d9f63cb6bd2ed6e8bd9011d3b29b733c989eecc822317f7d16b3c7fc"
+      }
+    }
+  ],
+  "all25_package_outputs_exact_bytes_sha256_fullmodes_mtimes_and_lossless_gzip_verified": true,
+  "cache_pathset_count": 608,
+  "cache_allocated_bytes": 227930112,
+  "dependency_frozen_inventory_sizes_fullmodes_mtimes_match": true,
+  "dependency_historical_content_hashes_available": false,
+  "current_complete_cache_sha256_map": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/current-complete-cache-hash-fullmode-map.json",
+    "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b",
+    "full_mode": 384
+  },
+  "actual_platform_identity_readonly_check": [
+    {
+      "pid": 199,
+      "comm": "dockerd",
+      "parent_pid": 1,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 536,
+      "cmdline_sha256": "579d52338a2258e03175e098d87ca41a27b5cdf0c04abc9d6b5225224d1675b9",
+      "cmdline_bytes": 177,
+      "explicitly_uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ]
+    },
+    {
+      "pid": 251,
+      "comm": "containerd",
+      "parent_pid": 199,
+      "uid_all_four": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "starttime_ticks": 548,
+      "cmdline_sha256": "01f9517b8a27cf1d1aff433cfd1e58f85a8762cb29af69a2d982364ab71bbbec",
+      "cmdline_bytes": 79,
+      "explicitly_uninspected_fields": [
+        "cwd",
+        "exe",
+        "environ",
+        "maps",
+        "fd"
+      ]
+    }
+  ],
+  "Docker_CLI_identity_readonly_check": {
+    "path": "/usr/local/bin/docker",
+    "sha256": "27f239f97492c434e091a70b41b8796c698f0aa2b6052c6f9c28da4ee7ae888b",
+    "bytes": 43556144,
+    "full_mode": 493
+  },
+  "actual_Docker_API_queries": 0,
+  "actual_Cargo_commands": 0,
+  "actual_cache_removals": 0,
+  "prior_blocked_failure_artifact_hashes_unchanged": true,
+  "forecast": {
+    "free_bytes_before_readonly_checks": 762703872,
+    "free_bytes_after_readonly_checks": 762470400,
+    "actual_package_allocated_bytes_before_clean": 89194496,
+    "postclean_compile_base_required_bytes": 749371137,
+    "root_publication_allowance_bytes": 33554432,
+    "required_postclean_compile_free_bytes": 782925569,
+    "projected_postclean_free_bytes": 851664896,
+    "projected_postclean_fits": true,
+    "projected_headroom_bytes": 68739327,
+    "projected_reclaim_not_actual_until_clean": true,
+    "mandatory_actual_postclean_forecast_before_any_Cargo": true,
+    "shared350MiB_floor_bytes": 367001600,
+    "single_link_codegen_allowance_bytes": 83002787,
+    "persistent_library_and_three_test_allowance_bytes": 135003311,
+    "new_lossless_capture_allowance_bytes": 143391919,
+    "metadata_allowance_bytes": 16777216,
+    "selected_source_metadata_allowance_bytes": 4194304,
+    "uncertainty": "measured small-target/library references scaled1.5; sampled0.2s guard cannot guarantee instantaneous peak",
+    "RPC_overlap_allowed": false,
+    "native_overlap_allowed": false,
+    "other_compiler_SDK_overlap_allowed": false,
+    "existing_package_gzip_objects_not_charged_again_bytes": 27156162
+  },
+  "cleanup_retry_held_until_explicit_ROOT_GO": true,
+  "passed_readonly_preparation": true
+}
