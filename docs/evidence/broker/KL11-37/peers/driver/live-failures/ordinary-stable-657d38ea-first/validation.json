@@ -1,0 +1,28 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "passed": false,
+  "complete_source_unchanged": true,
+  "unresolved_negative_recovery_peers": [],
+  "failed_step": null,
+  "failure_stage": "immutable-source-runtime-and-authority-setup",
+  "phase_dispatch_denial_proved": false,
+  "audit_limit": "Independent stdout readers do not create a synchronized phase barrier. Retained complete joined audit totals are distinct from precise denial proven by source-pinned core socket tests.",
+  "steps": [],
+  "cleanup": [
+    {
+      "owner": "broker",
+      "joined": false
+    },
+    {
+      "owner": "broker-process-0",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "issuer",
+      "joined": true
+    }
+  ],
+  "ordinary_expected_history": [],
+  "scope": "real token acquisition/socket metadata and explicitly selected ordinary RF1 records; reconnect lifetime0"
+}

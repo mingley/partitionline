@@ -336,7 +336,7 @@ mod live {
             let (mut catalog, _) = Catalog::open(seed_path, catalog_limits)?;
             if catalog.by_name("oidc-probe").is_none() {
                 let mut id = [0; 16];
-                *id.last_mut().ok_or("topic identity")? = 2;
+                *id.last_mut().ok_or("topic identity")? = 1;
                 let _ = catalog.create("oidc-probe", TopicId::new(id)?, 1)?;
             }
             Ok(())

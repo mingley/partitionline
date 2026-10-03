@@ -1,0 +1,23 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "paths": [
+    {
+      "path": "partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "92d4f88154fbbfe13e6e806e66000dff22783131a5a8132c20e0a998567a6cc9",
+      "full_mode": "0o600",
+      "preserved_path": "/workspace/work/broker-oidc/ordinary-first-failure-source-657d38ea/partitionline-broker/examples/oidc_live_probe.rs",
+      "bytes": 17699
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "full_mode": "0o600",
+      "preserved_path": "/workspace/work/broker-oidc/ordinary-first-failure-source-657d38ea/docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+      "bytes": 39676
+    }
+  ],
+  "immutable_complete_source_also_preserved": "/workspace/work/broker-merged-source-657d38ea",
+  "failed_live_output": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable",
+  "actual_daemon_exit_status": "unretained; driver_exit1 does not prove daemon code",
+  "originals_preserved_before_any_fix": true
+}

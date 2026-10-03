@@ -1,0 +1,16 @@
+{
+  "driver": {
+    "pid": 1183237,
+    "pgid": 1183237,
+    "starttime_ticks": 8119989
+  },
+  "owned_groups": [
+    {
+      "actor": "broker",
+      "pid": 1183253,
+      "pgid": 1183253,
+      "starttime_ticks": 8120643
+    }
+  ],
+  "scope": "PID/starttime bound process groups; no secret argv or token data"
+}

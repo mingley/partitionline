@@ -1,0 +1,98 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "original_files_unchanged_and_retained": true,
+  "scope": "public outputs and source only; private directory files never read or copied",
+  "files": [
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/complete-source-identity.json.gz",
+      "original_bytes": 2579397,
+      "original_full_mode": "0o600",
+      "sha256": "8f6889ab0b4a241b9ff0564b4103202e41e7a476be65fa812ac32d8e505ccc44",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/complete-source-identity.json.gz"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/complete-source-identity.restore.json",
+      "original_bytes": 380,
+      "original_full_mode": "0o600",
+      "sha256": "b6747bcc75954db18ebf047637296e2a78f0ca2df431263e5f543d57ce16fb44",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/complete-source-identity.restore.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/declared-lifecycle.json",
+      "original_bytes": 84477,
+      "original_full_mode": "0o600",
+      "sha256": "667984e8690793bb93afb18e87213c1bb19a4efc13b2707ea7c96703d763c108",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/declared-lifecycle.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/events.json",
+      "original_bytes": 248,
+      "original_full_mode": "0o600",
+      "sha256": "7f5214ced233b58c9d3440c1e3a74b2f81c163e122b73db5f9afa656c971dc67",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/events.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/issued-public-metadata.json",
+      "original_bytes": 3,
+      "original_full_mode": "0o600",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/issued-public-metadata.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/issuer-events.json",
+      "original_bytes": 3,
+      "original_full_mode": "0o600",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/issuer-events.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/outer-ownership.json",
+      "original_bytes": 953,
+      "original_full_mode": "0o600",
+      "sha256": "1f70e13745c37fdb190b432f7464472ff90a966ede423a9a032ce07eaa53fb26",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/outer-ownership.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/owned-process-groups.json",
+      "original_bytes": 313,
+      "original_full_mode": "0o600",
+      "sha256": "dab1aa80911ab7b156e75ab957cb19a4a49307e0aa7ac5e61fed6ec796c67acb",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/owned-process-groups.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/private-mode-inventory.json",
+      "original_bytes": 3708,
+      "original_full_mode": "0o600",
+      "sha256": "d3b9960b6f2eb379439a50757d00ca66e47de84620960e88b4f89bb50aab35de",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/private-mode-inventory.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/live-runs-657d38ea-predeclared-01/ordinary-stable/validation.json",
+      "original_bytes": 904,
+      "original_full_mode": "0o600",
+      "sha256": "3669b8960b02d0ffa36be7d5f026040da531b880225f8f61104ba5b27ca8cde2",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/live-failures/ordinary-stable-657d38ea-first/validation.json"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/ordinary-first-failure-source-657d38ea/partitionline-broker/examples/oidc_live_probe.rs",
+      "original_bytes": 17699,
+      "original_full_mode": "0o600",
+      "sha256": "92d4f88154fbbfe13e6e806e66000dff22783131a5a8132c20e0a998567a6cc9",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/preparation/ordinary-startup-fix-01/original-source/partitionline-broker/examples/oidc_live_probe.rs"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/ordinary-first-failure-source-657d38ea/docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+      "original_bytes": 39676,
+      "original_full_mode": "0o600",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/preparation/ordinary-startup-fix-01/original-source/docs/evidence/broker/KL11-37/peers/driver/run-live.py"
+    },
+    {
+      "original_path": "/workspace/work/broker-oidc/ordinary-first-failure-source-657d38ea/manifest.json",
+      "original_bytes": 1132,
+      "original_full_mode": "0o600",
+      "sha256": "3da82900a421848e6e2fee588dd9da7cfec5fa404709dc0b73f048a6307b1835",
+      "published_copy": "docs/evidence/broker/KL11-37/peers/driver/preparation/ordinary-startup-fix-01/original-source/manifest.json"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "failed_source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "first_cohort": "ordinary-stable",
+  "result": "FAILED; original result remains unchanged",
+  "actual_driver_exit_code": 1,
+  "actual_daemon_exit_code": "unretained, never inferred from driverexit",
+  "actual_steps_executed": 0,
+  "actual_sdk_processes": 0,
+  "actual_issuer_http_events": 0,
+  "actual_returned_records": 0,
+  "broker_readiness": "not observed",
+  "complete_source_files_unchanged": 73011,
+  "logical_broker_join": "failed; processcleanup and logicaljoin are distinct",
+  "outer_cleanup": {
+    "forced": false,
+    "unverified": false,
+    "remaining": [],
+    "elapsed_seconds": 13.88799969899992,
+    "deadline_exceeded": false
+  },
+  "post_join_private_mode_inventory": "passed22 paths; only lstat types/fullmodes, no privatebytes or hashes",
+  "failure_explanation": "example seed used UUID integer1, explicitly reserved by TopicId::new; fresh seed propagates error before Router/Service/listener construction",
+  "independent_confirmation": "OpenLoop reviewed immutable657 example343-344/catalog42-44 and publicly scoped receipts; no private content reads or runtime from reviewer",
+  "production_example_fix": "seed nonreserved UUID integer2; no production catalog/policy/protocol relaxation",
+  "independent_infrastructure_fix": "always serialize safe processcleanup exitcode/acceptedstdoutcount/stderrbytecount+SHA/forced flag, even when pre-ready exit prevents logicaljoin; no arbitrary rawstderr/stdout bodies or exceptions persisted",
+  "assertions_unchanged": "ready event and every logicaljoined event remain mandatory; status telemetry cannot turn originalfailure into success",
+  "candidate_tests": "Python AST and stable/MSRV rustfmt pass; no candidate Cargo/SDK/broker live before root sourcepush+GO",
+  "source_audit_packaging": "complete-source JSON serialized directly in memory before gzip; restore original_mode0600 is chosen rawJSON restoration policy, not measured original rawfile mode; source row07777 modes were actually measured and checked"
+}

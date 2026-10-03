@@ -62,7 +62,6 @@ class OwnedProcess:
         self.events = queue.Queue(maxsize=1024)
         self.stderr_bytes = 0
         self.stderr_digest = hashlib.sha256()
-        self.stdout_event_count = 0
         self.failure = None
         self.forced = False
         self.readers = []
@@ -107,7 +106,6 @@ class OwnedProcess:
                                 'typed receipt scalar')
                 inspect(event)
                 self.receipt(self.identity, event)
-                self.stdout_event_count += 1
                 self.events.put(event, timeout=1)
         except BaseException:
             # Do not preserve a raw line or exception: a rejected value can
@@ -194,17 +192,6 @@ class OwnedProcess:
         for reader in self.readers:
             reader.join(timeout=4)
         require(not any(reader.is_alive() for reader in self.readers), 'owned readers joined')
-
-    def cleanup_status(self):
-        # Report finite status even when pre-ready exit prevents the logical
-        # joined event. This does not turn failed readiness or joins into passes.
-        # No arbitrary stdout/stderr body or exception message is retained.
-        return {'event':'process-cleanup-status','exit_code':self.process.poll(),
-                'stdout_events':self.stdout_event_count,
-                'stdout_receipt_rejected':self.failure=='rejected stdout receipt',
-                'stderr_bytes':self.stderr_bytes,
-                'stderr_sha256':self.stderr_digest.hexdigest(),
-                'stderr_retained':False,'forced_close':self.forced}
 
 
 class Run:
@@ -660,11 +647,6 @@ class Run:
                                 'forced_close':process.forced})
             except BaseException:
                 cleanup.append({'owner':process.identity+'-process-'+str(ordinal),'joined':False})
-            finally:
-                try:
-                    self.receipt(process.identity,process.cleanup_status())
-                except BaseException:
-                    cleanup.append({'owner':process.identity+'-safe-status','joined':False})
         if self.server is not None:
             issuer_ok = True
             if self.issuer_started:
