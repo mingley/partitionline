@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879",
+  "scope": "Exact pushed source Apache membership74 component/fixture qualification; no Rust/full59k snapshot/multinode/TCP claims",
+  "passed": false,
+  "commands": [
+    {
+      "name": "component",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "/workspace/work/membership-apache/final-3aedadf6/source/docs/evidence/broker/KL11-74/oracle/apache/prepare-and-run.py",
+        "--work",
+        "/workspace/work/membership-apache/final-3aedadf6/runtime",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/final-3aedadf6/component",
+        "--fixtures",
+        "/workspace/work/membership-apache/final-3aedadf6/generated-fixtures"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 0.718,
+      "exact_git_files_checked_before": 436,
+      "exact_git_files_checked_after": 436,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "3e2a3c0ea1bcb7d759962b846bf91f18461863d372209599683a55d58ba53de7"
+    }
+  ],
+  "source_files": 436,
+  "effective_cpu_mask": "2,4",
+  "runner_requested_mask": "0-2,4",
+  "affinity_adapter_sha256": "f57df5fa9450aaef739b5c6f38a3fe8b03736d0f87d7c7eee3ff552330633b8c",
+  "error": "RuntimeError: component failed: Unexpected taskset invocation\n",
+  "orchestration_source_sha256": "b1df3e85c7fc709753c39913a0cb6ba2935ef0a17de524258e24fb462b660ba9"
+}

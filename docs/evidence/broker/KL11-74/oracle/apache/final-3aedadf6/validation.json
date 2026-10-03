@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879",
+  "scope": "Exact pushed source Apache membership74 component/fixture qualification; no Rust/full59k snapshot/multinode/TCP claims",
+  "passed": true,
+  "commands": [
+    {
+      "name": "component",
+      "argv": [
+        "/usr/bin/taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "/workspace/work/membership-apache/final-3aedadf6/source/docs/evidence/broker/KL11-74/oracle/apache/prepare-and-run.py",
+        "--work",
+        "/workspace/work/membership-apache/final-3aedadf6/runtime",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/final-3aedadf6/component",
+        "--fixtures",
+        "/workspace/work/membership-apache/final-3aedadf6/generated-fixtures"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 23.407,
+      "exact_git_files_checked_before": 436,
+      "exact_git_files_checked_after": 436,
+      "stdout_sha256": "08278200e1389be00960fc4174518492002587fbe7328ff09f93cebd5ddb9613",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixture-baseline",
+      "argv": [
+        "/usr/bin/taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "/workspace/work/membership-apache/final-3aedadf6/source/docs/evidence/broker/KL11-74/oracle/apache/verify-fixtures.py",
+        "--fixtures",
+        "/workspace/work/membership-apache/final-3aedadf6/source/partitionline-broker/tests/fixtures/raft-membership",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/final-3aedadf6/fixture-verification.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.818,
+      "exact_git_files_checked_before": 436,
+      "exact_git_files_checked_after": 436,
+      "stdout_sha256": "8e815b7d28f3bf043edd25fcc95cf975055932a0f01a5360e26245539051232c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixture-controls",
+      "argv": [
+        "/usr/bin/taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "/workspace/work/membership-apache/final-3aedadf6/source/docs/evidence/broker/KL11-74/oracle/apache/test-fixture-verifier.py",
+        "--fixtures",
+        "/workspace/work/membership-apache/final-3aedadf6/source/partitionline-broker/tests/fixtures/raft-membership",
+        "--work",
+        "/workspace/work/membership-apache/final-3aedadf6/controls",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/final-3aedadf6/fixture-controls"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.434,
+      "exact_git_files_checked_before": 436,
+      "exact_git_files_checked_after": 436,
+      "stdout_sha256": "b63f1ffeb3f3fcdbc73cb14bb261acb7b912b3430bee250d8776a7470c70d28c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_files": 436,
+  "effective_cpu_mask": "2,4",
+  "runner_requested_mask": "0-2,4",
+  "affinity_adapter_sha256": "f57df5fa9450aaef739b5c6f38a3fe8b03736d0f87d7c7eee3ff552330633b8c",
+  "component_assertions": 854,
+  "intended_java_failure_controls": 9,
+  "fixture_corruption_controls": 48,
+  "positive_fixture_baselines": 3,
+  "named_fixture_cases": 59,
+  "single_replay_fixture_assertions": 427,
+  "native_batches": 85,
+  "native_records": 138,
+  "committed_fixture_files_reproduced_exactly": 426,
+  "actual_child_affinity_invocations": 19,
+  "component_validation_sha256": "ed39b6da98a7695abde59202ec92a9eb80036b7838a091a59b06e19aaac366c3",
+  "fixture_verification_sha256": "4bfd06e5ffd0f7fec0c289a3992413b9cf192290755e3225280df50093b30684",
+  "fixture_controls_sha256": "797ea9ad3355ab5c7d0ed2a686db63bce5c197dc4ebc096e4e4ed8fe32b71cab",
+  "effective_affinity_log_sha256": "cc413e71110d342852825bf7d61a9cae59a4256404eff579858f6c0839d97739",
+  "orchestration_source_sha256": "84c5bfdce989a979121b506e63f72a2f843a6b59720234cfbd64e43a6d0f5751"
+}

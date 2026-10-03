@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879",
+  "foundation_source_unchanged": true,
+  "command": [
+    "/usr/bin/taskset",
+    "-c",
+    "2,4",
+    "taskset",
+    "-c",
+    "0-2,4",
+    "python3",
+    "-c",
+    "import json,os; print(json.dumps({\"actual_affinity\":sorted(os.sched_getaffinity(0))}))"
+  ],
+  "exit_code": 0,
+  "actual_affinity": [
+    2,
+    4
+  ],
+  "wrapper_path": "/workspace/work/compaction-apache/cpu2-4/taskset",
+  "wrapper_sha256": "898f14f995cd8cdaace7c84376a4f20655d12b5695fc22a50860e109e6cfca4c",
+  "environment_override": {
+    "PATH_prefix": "/workspace/work/compaction-apache/cpu2-4",
+    "PARTITIONLINE_ORACLE_AFFINITY_LOG": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/apache/final-3aedadf6-affinity/audit.log"
+  },
+  "scope": "Documented runtime CPU lease2,4; wrapper accepts only frozen0-2,4 invocation and delegates realtaskset2,4 without changing component arguments/source."
+}

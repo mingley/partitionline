@@ -1,0 +1,490 @@
+{
+  "schema_version": 1,
+  "checker_sha256": "d8367f15905de90607de44c62159fd5d1dffb1b1d6f0bd619fc6497d405b2b87",
+  "test_source_sha256": "0aab5c0a3e4110675c4a691a9e749e87fed3c08a6b2e6ed83bd45152738cafde",
+  "passed": true,
+  "baselines": [
+    {
+      "release": "4.1.2",
+      "manifest_sha256": "7ede356ba5a11835546edd0144fdc69d8a3cbdc85b1f9d36286f0c931b69d7c5",
+      "cases": 19,
+      "assertions": 137,
+      "native_batches": 27,
+      "native_records": 44
+    },
+    {
+      "release": "4.2.1",
+      "manifest_sha256": "30f691a5f0e03373b9e3fccd50b2d706bfe2f8644de190f7ef8ef1f1c4da7844",
+      "cases": 20,
+      "assertions": 145,
+      "native_batches": 29,
+      "native_records": 47
+    },
+    {
+      "release": "4.3.1",
+      "manifest_sha256": "bfe3058a5fd05b168964728ae6dadaa5d45ac5e20973c515f32efbe80506895e",
+      "cases": 20,
+      "assertions": 145,
+      "native_batches": 29,
+      "native_records": 47
+    }
+  ],
+  "negative_controls": [
+    {
+      "release": "4.1.2",
+      "mutation": "wrong-upstream-source",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "8f52a4d923ebf553cffc529df199ef6b5497396f6c23509fa8ef1597616bb97b"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "wrong-executable-probe",
+      "rejected": true,
+      "reason": "Executable fixture probe pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "50f1185827144ef32914edfe60ff5e2868da7ebff40a16ed03e63b90d4c0bee0"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "wrong-client-pin",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "8a6725b28aa8f27fa62b6ebd9660e4f1949a834c70d58cfe34fc21c408c450d2"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "wrong-offset-term-mapping",
+      "rejected": true,
+      "reason": "Wrong fixture mapping/profile",
+      "changed_files_sha256": {
+        "manifest.json": "09f7e91d8b304320991e92c74e9febce7378de1a8a6bd976eea25ccad7b771fd"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "missing-native-sidecar",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "7ede356ba5a11835546edd0144fdc69d8a3cbdc85b1f9d36286f0c931b69d7c5"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "duplicate-case-id",
+      "rejected": true,
+      "reason": "Duplicate/missing named fixture cases",
+      "changed_files_sha256": {
+        "manifest.json": "a64088e5880eff528a2edf151fbcc2a85260a36238158a242a88bec13cf510c2",
+        "cases.tsv": "37997ff5b73761fe6dfc0fb5b893e502dd49fceec9bef5bb4ded0a20c64c2ad3"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "forged-active-voters",
+      "rejected": true,
+      "reason": "Active native voter history differs from ordered trace",
+      "changed_files_sha256": {
+        "manifest.json": "3708a398dbc13813c0447b1db3a1db5ba2e75c950d0006ea128b355e2cadd4db",
+        "add-new-majority.json": "22d7c9b924bfbdcadcbbfd940204380234bc3a7d4d9c8cd5d19dfb2260f14781"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "failed-assertion-labeled-positive",
+      "rejected": true,
+      "reason": "Failed or forged fixture assertion",
+      "changed_files_sha256": {
+        "manifest.json": "e3011fcbec606a2d080f78e5bf2897dd4fd29a232cbd64fcddc73527079e9794",
+        "add-new-majority.json": "77f494786f726e2b03debc9d0e247afda9e68435ba29a4d46cb35300e140aa52"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "oversized-trace",
+      "rejected": true,
+      "reason": "Unsafe/oversized fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "ba8336f2e1511ca8c7d129af6ff821284b7e97a6b9dfc84337b79b26f2bed27f"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "unsafe-fixture-path",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "cd7123f7cadbfe2b45346235ca3d625bf1b8cfb3fbaaa9126085356a7b7e7b51"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "wrong-assertion-count",
+      "rejected": true,
+      "reason": "Wrong fixture assertion count",
+      "changed_files_sha256": {
+        "manifest.json": "ed5a6c8a60317c33fb039bb2264b0b0c621039d92a6c0a9b090b0948277806c9"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "corrupt-native-crc",
+      "rejected": true,
+      "reason": "Native CRC32C mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "495b9f7d9f6e9d6345e7b2ae9fdf13681dfc7e6ce96f9671ffa5dbfe6ece398c",
+        "add-new-majority-0-bootstrap.control.bin": "53c3403941a4f34d67cfeb2ae2f092d447dcfcdccdbee8365672ff7cc3a7ce51"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "valid-crc-wrong-control-key",
+      "rejected": true,
+      "reason": "Unexpected native control-key version/type",
+      "changed_files_sha256": {
+        "manifest.json": "30b31fc2e6870b425ac4ac7a8c4a4dc04b6b038be44c904676b96a07211f10a2",
+        "add-new-majority-0-bootstrap.control.bin": "e777120cc903519650318d806f38d9fa7a03dafcded5d483635e70acaa992111"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "valid-crc-duplicate-voter-id",
+      "rejected": true,
+      "reason": "Unexpected fixture endpoint",
+      "changed_files_sha256": {
+        "manifest.json": "5c60a9d5e21160a5176428b4e1ff3728e3992f95de881d13791e3a613f3f8031",
+        "add-new-majority-0-bootstrap.control.bin": "a7e08efc8aa2ac90497d7d837a55c9fc6008e21d5df28d9f81a45222697b3798"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "valid-crc-wrong-native-epoch",
+      "rejected": true,
+      "reason": "Native batch offset/epoch/magic mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "81b7cf15b7981439f4f25bb63a6f5a2f555e5ca70f655544f713219460c700f9",
+        "add-new-majority-0-bootstrap.control.bin": "b6b0b96d13920f7763b9616bc71dd39023f4086a00a81e683287797295d12941"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mutation": "valid-crc-wrong-record-count",
+      "rejected": true,
+      "reason": "Native count/last delta mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "a74ccd603de40c087418b3c094c6b3de3eb8b1df813f9e2772e3c81cd30e4de5",
+        "add-new-majority-0-bootstrap.control.bin": "a041d42c424c037fd3a83205778f63d9018c6e029cb0ac102f901145d0d39d6f"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "wrong-upstream-source",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "5722c772778ff562026051103f8215bb69d57966bd472458dccf101dc712e9b9"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "wrong-executable-probe",
+      "rejected": true,
+      "reason": "Executable fixture probe pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "537fc308a947a7806fde1bae773a4e165061308642589ba538c21482cb170800"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "wrong-client-pin",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "f68807e285cb09be54dc02536d6c05b6e60e631bf98a80bc368c3aacfe058d87"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "wrong-offset-term-mapping",
+      "rejected": true,
+      "reason": "Wrong fixture mapping/profile",
+      "changed_files_sha256": {
+        "manifest.json": "4475fc2e2035e7421d4bdbe78c9b7af86b9ff16ed3a20c074ffb15e2104edfa6"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "missing-native-sidecar",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "30f691a5f0e03373b9e3fccd50b2d706bfe2f8644de190f7ef8ef1f1c4da7844"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "duplicate-case-id",
+      "rejected": true,
+      "reason": "Duplicate/missing named fixture cases",
+      "changed_files_sha256": {
+        "manifest.json": "c31a9251520b682ef495ffdbd5a98652355bb2db2998f6d67927b50d0206b9d9",
+        "cases.tsv": "fc8a742f3edf11b0f7a1eae1361799b8c7468f07b1983e20e71313880b806074"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "forged-active-voters",
+      "rejected": true,
+      "reason": "Active native voter history differs from ordered trace",
+      "changed_files_sha256": {
+        "manifest.json": "e2572886756402c94ce821cbd3dc53344183703353abe562af68f0ea50dbf547",
+        "add-new-majority.json": "7625614713ce648eb1a604ff41e7233677e72ce51d55a3a5b65df671465dbdf0"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "failed-assertion-labeled-positive",
+      "rejected": true,
+      "reason": "Failed or forged fixture assertion",
+      "changed_files_sha256": {
+        "manifest.json": "9350209f8af14cea65c0cecebd6c468e53deffc23535f743f07addf62e28d4b3",
+        "add-new-majority.json": "1b073c96c8943e39c0b19fa6a891ec3fc1980a64e9e86e4dd18c0ab4643b53aa"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "oversized-trace",
+      "rejected": true,
+      "reason": "Unsafe/oversized fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "8e2361174d1e85afc5794600b5708a4ac81114d8db6e49ebfcf1574957fe241b"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "unsafe-fixture-path",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "65ab2495c782f040e8e563648d1c4262b170c593cbd48c7ff948e316b76bfc12"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "wrong-assertion-count",
+      "rejected": true,
+      "reason": "Wrong fixture assertion count",
+      "changed_files_sha256": {
+        "manifest.json": "5b6d15956f17e1e267c5e639874bab6fe84b2f31b55bc9623725d59d39d3deec"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "corrupt-native-crc",
+      "rejected": true,
+      "reason": "Native CRC32C mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "4287bfe0d769a5a08292a6b5ea24d5a0a9ebfd94b86a5bc941b054d1a3291ecf",
+        "add-new-majority-0-bootstrap.control.bin": "53c3403941a4f34d67cfeb2ae2f092d447dcfcdccdbee8365672ff7cc3a7ce51"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "valid-crc-wrong-control-key",
+      "rejected": true,
+      "reason": "Unexpected native control-key version/type",
+      "changed_files_sha256": {
+        "manifest.json": "1b8f23b57ffd86a509ca3c08569b57a870b568cb1e0524a3d26f835300bd3455",
+        "add-new-majority-0-bootstrap.control.bin": "e777120cc903519650318d806f38d9fa7a03dafcded5d483635e70acaa992111"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "valid-crc-duplicate-voter-id",
+      "rejected": true,
+      "reason": "Unexpected fixture endpoint",
+      "changed_files_sha256": {
+        "manifest.json": "c8b5d7d71167629a80883b156e11716d389ac4d7b27e5a3641805039bfcf42da",
+        "add-new-majority-0-bootstrap.control.bin": "a7e08efc8aa2ac90497d7d837a55c9fc6008e21d5df28d9f81a45222697b3798"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "valid-crc-wrong-native-epoch",
+      "rejected": true,
+      "reason": "Native batch offset/epoch/magic mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "0af4f0613300f478f61c4563deaf80034fec6c8562b4e080139ec0a2e9ef3f79",
+        "add-new-majority-0-bootstrap.control.bin": "b6b0b96d13920f7763b9616bc71dd39023f4086a00a81e683287797295d12941"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mutation": "valid-crc-wrong-record-count",
+      "rejected": true,
+      "reason": "Native count/last delta mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "99cd570a7b61630fea8d266eae649147fb0feda88a96c9d9209f4fa746742ab0",
+        "add-new-majority-0-bootstrap.control.bin": "a041d42c424c037fd3a83205778f63d9018c6e029cb0ac102f901145d0d39d6f"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "wrong-upstream-source",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "fe9f26c92eb57c8484d4cde8659b332f5458be85833a843debaa8624ea5fe2a8"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "wrong-executable-probe",
+      "rejected": true,
+      "reason": "Executable fixture probe pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "5f846fe61fcda7115c47c131e2e3d9c5ae12632a42b49400b2f77fd4e177d037"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "wrong-client-pin",
+      "rejected": true,
+      "reason": "Official fixture source/client pin mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "9101fec4b9b01de8244176bbd742b36a997232ee26185d7d8d307168ca6e6fa5"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "wrong-offset-term-mapping",
+      "rejected": true,
+      "reason": "Wrong fixture mapping/profile",
+      "changed_files_sha256": {
+        "manifest.json": "51be034f1eaeb72380ee15a1b67c7c1c45b554e9f26c72f9fcb7c8dbfa67c843"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "missing-native-sidecar",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "bfe3058a5fd05b168964728ae6dadaa5d45ac5e20973c515f32efbe80506895e"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "duplicate-case-id",
+      "rejected": true,
+      "reason": "Duplicate/missing named fixture cases",
+      "changed_files_sha256": {
+        "manifest.json": "62ab07c4fe16f03483844627db81ada1f2f4adb5b545184beabc2389975c6b02",
+        "cases.tsv": "fc8a742f3edf11b0f7a1eae1361799b8c7468f07b1983e20e71313880b806074"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "forged-active-voters",
+      "rejected": true,
+      "reason": "Active native voter history differs from ordered trace",
+      "changed_files_sha256": {
+        "manifest.json": "7446e59155b06b3cec49bde900280bb966000889e772faf3ce540f5e5db48471",
+        "add-new-majority.json": "513447cbf478792fd88cd061337c95308fabf73eba0a46e895725154b6162843"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "failed-assertion-labeled-positive",
+      "rejected": true,
+      "reason": "Failed or forged fixture assertion",
+      "changed_files_sha256": {
+        "manifest.json": "5892ee08305bd25f6cbd94b6c6bb4f8142cb5a9e01bc07eec0376ce37856a8f8",
+        "add-new-majority.json": "a46925000b6c6e79c0112fc52ba6128b84da9b2537628bbe0a60ffe817320059"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "oversized-trace",
+      "rejected": true,
+      "reason": "Unsafe/oversized fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "959b39ddace07df7e72131ed3a863e85a7bb35a4939d5a5f61bfdf569119248b"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "unsafe-fixture-path",
+      "rejected": true,
+      "reason": "Missing/unpinned/unexpected fixture file",
+      "changed_files_sha256": {
+        "manifest.json": "8970e0a2b8044fa66a5e17a824bccc740edd221052acd2be6fa1ed728da735b3"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "wrong-assertion-count",
+      "rejected": true,
+      "reason": "Wrong fixture assertion count",
+      "changed_files_sha256": {
+        "manifest.json": "406b0d0822182a84473224efa310a1efd94c34e8d1312f796bf82d4d9f8e753f"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "corrupt-native-crc",
+      "rejected": true,
+      "reason": "Native CRC32C mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "cb4b8986f85627a63fa0a9c0262db5abff5de39ec0088c35f878694c09f4991d",
+        "add-new-majority-0-bootstrap.control.bin": "53c3403941a4f34d67cfeb2ae2f092d447dcfcdccdbee8365672ff7cc3a7ce51"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "valid-crc-wrong-control-key",
+      "rejected": true,
+      "reason": "Unexpected native control-key version/type",
+      "changed_files_sha256": {
+        "manifest.json": "2393dd6ef91101c545a0dd564b71e12e072fe0d910493149a9a6588393ff5481",
+        "add-new-majority-0-bootstrap.control.bin": "e777120cc903519650318d806f38d9fa7a03dafcded5d483635e70acaa992111"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "valid-crc-duplicate-voter-id",
+      "rejected": true,
+      "reason": "Unexpected fixture endpoint",
+      "changed_files_sha256": {
+        "manifest.json": "d8e9e1ac80d1d1f51fea4806b3ad014496774302c12f10febb6d0624c9acdad5",
+        "add-new-majority-0-bootstrap.control.bin": "a7e08efc8aa2ac90497d7d837a55c9fc6008e21d5df28d9f81a45222697b3798"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "valid-crc-wrong-native-epoch",
+      "rejected": true,
+      "reason": "Native batch offset/epoch/magic mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "dcce162e77e1e41a16ce4643a62ebcff99e5f0000f50f294beaa6591dc34cb7a",
+        "add-new-majority-0-bootstrap.control.bin": "b6b0b96d13920f7763b9616bc71dd39023f4086a00a81e683287797295d12941"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mutation": "valid-crc-wrong-record-count",
+      "rejected": true,
+      "reason": "Native count/last delta mismatch",
+      "changed_files_sha256": {
+        "manifest.json": "7fb5cf697d539825eb0a9e3d4c1c1176321fbc0f7da2749dfc5157b4d401cb2e",
+        "add-new-majority-0-bootstrap.control.bin": "a041d42c424c037fd3a83205778f63d9018c6e029cb0ac102f901145d0d39d6f"
+      }
+    }
+  ]
+}

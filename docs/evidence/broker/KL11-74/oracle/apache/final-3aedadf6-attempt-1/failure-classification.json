@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "product_failure": false,
+  "classification": "Outer orchestrator invoked taskset2,4 through the child shim that explicitly accepted only frozen runner0-2,4. Shim rejected before any Java/compiler/runtime command. Fixed outer command to absolute/usr/bin/taskset; pinned source/fixtures unchanged.",
+  "frozen_source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879"
+}

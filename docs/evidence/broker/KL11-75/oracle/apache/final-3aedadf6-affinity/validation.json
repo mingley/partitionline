@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879",
+  "source_unchanged": true,
+  "requested_frozen_helper_affinity": "0-2,4",
+  "effective_lease_affinity": "2,4",
+  "preflight_actual_affinity": [
+    2,
+    4
+  ],
+  "runtime_wrapper_sha256": "898f14f995cd8cdaace7c84376a4f20655d12b5695fc22a50860e109e6cfca4c",
+  "real_taskset_sha256": "0c34de807bc9c617406360836fca2c7505eb86ede4df5a34854bde6eeddad9f3",
+  "audit_calls": 49,
+  "audit_executables": {
+    "python3": 3,
+    "java": 46
+  },
+  "audit_sha256": "84b2f99aab2915021b371c019e4bbf659b450e17ed04d0a672e55c418f539e34",
+  "scope": "Runtime CPU lease override only; foundation source and Java/predicate/fixture code remain byte-identical."
+}

@@ -1,0 +1,3897 @@
+{
+  "schema_version": 1,
+  "scope": "Independent bounded CRC32C and VotersRecord schema/history verification; no runtime quorum proof",
+  "checker_sha256": "d8367f15905de90607de44c62159fd5d1dffb1b1d6f0bd619fc6497d405b2b87",
+  "passed": true,
+  "releases": [
+    {
+      "release": "4.1.2",
+      "manifest_sha256": "7ede356ba5a11835546edd0144fdc69d8a3cbdc85b1f9d36286f0c931b69d7c5",
+      "cases": 19,
+      "assertions": 137,
+      "native_batches": 27,
+      "native_records": 44,
+      "decoded_configurations": [
+        {
+          "case": "add-new-majority",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-new-majority",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-true",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-false",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-lagging",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-expired-probe",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "catch-up-component-boundary",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-only-voter",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 10,
+                "directory_id": "0000000000000001000000000000000b",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19210
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 11,
+                "directory_id": "0000000000000001000000000000000c",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19211
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 12,
+                "directory_id": "0000000000000001000000000000000d",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19212
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "manifest_sha256": "30f691a5f0e03373b9e3fccd50b2d706bfe2f8644de190f7ef8ef1f1c4da7844",
+      "cases": 20,
+      "assertions": 145,
+      "native_batches": 29,
+      "native_records": 47,
+      "decoded_configurations": [
+        {
+          "case": "add-new-majority",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-new-majority",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-true",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-false",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-lagging",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-expired-probe",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-newer-early-ack",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-newer-early-ack",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "catch-up-component-boundary",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-only-voter",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 10,
+                "directory_id": "0000000000000001000000000000000b",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19210
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 11,
+                "directory_id": "0000000000000001000000000000000c",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19211
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 12,
+                "directory_id": "0000000000000001000000000000000d",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19212
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "manifest_sha256": "bfe3058a5fd05b168964728ae6dadaa5d45ac5e20973c515f32efbe80506895e",
+      "cases": 20,
+      "assertions": 145,
+      "native_batches": 29,
+      "native_records": 47,
+      "decoded_configurations": [
+        {
+          "case": "add-new-majority",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-new-majority",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-true",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-feature-false",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-lagging",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-timeout-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-expired-probe",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-newer-early-ack",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "add-newer-early-ack",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "catch-up-component-boundary",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-leader-timeout-late-commit",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-follower",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-prerequisites",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-no-feature",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "remove-only-voter",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-permissive-disjoint",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 10,
+                "directory_id": "0000000000000001000000000000000b",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19210
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 11,
+                "directory_id": "0000000000000001000000000000000c",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19211
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 12,
+                "directory_id": "0000000000000001000000000000000d",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19212
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 1,
+          "local_index": 2,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        },
+        {
+          "case": "history-truncate-uncommitted",
+          "native_offset": 2,
+          "local_index": 3,
+          "decoded": {
+            "type": "voters",
+            "version": 0,
+            "voters": [
+              {
+                "id": 0,
+                "directory_id": "00000000000000010000000000000001",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19200
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 1,
+                "directory_id": "00000000000000010000000000000002",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19201
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 2,
+                "directory_id": "00000000000000010000000000000003",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19202
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              },
+              {
+                "id": 3,
+                "directory_id": "00000000000000010000000000000004",
+                "endpoints": [
+                  {
+                    "listener": "CONTROLLER",
+                    "host": "127.0.0.1",
+                    "port": 19203
+                  }
+                ],
+                "kraft_min": 0,
+                "kraft_max": 1
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

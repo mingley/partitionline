@@ -1,0 +1,1 @@
+{"passed": true, "derived_rows": 108, "columns": ["name", "file", "handler_policy", "batch_count", "record_count", "first_offset", "next_offset", "record_offsets_csv"]}
