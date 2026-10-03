@@ -1,0 +1,49 @@
+{
+  "installed_card_record": {
+    "all_original_other_305_task_objects_unchanged": true,
+    "benchmark_write_set_added_to_task10": true,
+    "new_cards": {
+      "Q-CAP-AddRaftVoter1": "KL05-40",
+      "Q-CAP-InitProducerId6": "KL05-35",
+      "Q-CAP-LegacyDiscovery0": "KL05-41",
+      "Q-CAP-LegacyJoin0_1": "KL05-42",
+      "Q-CAP-ListTransactions2": "KL05-39",
+      "Q-CAP-OffsetsUuid10": "KL05-34",
+      "Q-CAP-Reassignment1": "KL05-37",
+      "Q-DEC-PreparedTxnLifecycle": "KL05-36",
+      "Q-FIX-ListTransactionsRouting": "KL05-38"
+    },
+    "no_missing_dependencies_or_cycles": true,
+    "original_audit_manifest_sha256": "1f220ad68a9665625ae95c2c4105d180fda4463230a8447a2d3feba3db3813c1",
+    "passed": true,
+    "protocol_runtime_or_upstream_case_execution": false,
+    "status_counts": {
+      "done": 176,
+      "in_progress": 12,
+      "pending": 128
+    },
+    "task14_still_in_progress": true,
+    "task_count": 316,
+    "taskbook_sha256": "08c6457218d0d5251910692152e32c18d8a2516fa36fb094966a808fd2b7a060"
+  },
+  "installed_cards_artifact": "docs/evidence/client/protocol-inventory-current/gap-audit-01/root-card-installation.json",
+  "installed_cards_identity": {
+    "bytes": 950,
+    "git_blob": "1e47f0f0ddcabc63eaa7ce78e36ae83126ff3336",
+    "git_mode": "100644",
+    "sha256": "a386202c02e64a7f2ee0fef4c5a22b08c05bb762dba05fb0ca0eb0008cb4ac44",
+    "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+  },
+  "no_source_or_runtime_qualification_transfer": true,
+  "original_audit_source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+  "prior93_artifact": "docs/evidence/client/protocol-inventory-current/gap-audit-01/all-93-reconciliation.json",
+  "prior93_identity": {
+    "bytes": 131196,
+    "git_blob": "f827ba3d5ee3076f7294fccc78e1fe6355c9b3d2",
+    "git_mode": "100644",
+    "sha256": "12900211fdb9f1fcdfe2af4a93e78cd490081c37fc6082e012d7cd5ea648fd9d",
+    "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+  },
+  "reference_only": true,
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

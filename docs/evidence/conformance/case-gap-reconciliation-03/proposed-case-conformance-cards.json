@@ -1,0 +1,727 @@
+{
+  "new_IDs_assigned": false,
+  "proposals": [
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        0
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "matrix-cell-produce-3-9-1",
+        "matrix-cell-produce-4-1-0",
+        "proto-produce-v03-local",
+        "proto-produce-v04-local",
+        "proto-produce-v05-local",
+        "proto-produce-v06-local",
+        "proto-produce-v07-local",
+        "proto-produce-v08-local",
+        "proto-produce-v09-local",
+        "proto-produce-v10-local",
+        "proto-produce-v11-local",
+        "proto-produce-v12-local",
+        "proto-diff-produce-v12-apache-3-9-1",
+        "proto-diff-produce-v13-apache-3-9-1",
+        "proto-differential-produce-apache-java"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-ProduceWire",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify complete registered Produce wire versions and unsupported historical peers",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceProduceWire.java",
+        "new: tests/conformance/java/generate_produce_wire.py",
+        "new: tests/produce_wire_conformance.rs",
+        "new: tests/fixtures/produce_wire/",
+        "new: docs/evidence/conformance/q-conf-producewire/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        1
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "matrix-cell-fetch-3-9-1",
+        "matrix-cell-fetch-4-1-0",
+        "proto-fetch-v04-local",
+        "proto-fetch-v05-local",
+        "proto-fetch-v06-local",
+        "proto-fetch-v07-local",
+        "proto-fetch-v08-local",
+        "proto-fetch-v09-local",
+        "proto-fetch-v10-local",
+        "proto-fetch-v11-local",
+        "proto-fetch-v12-local",
+        "proto-fetch-v13-local",
+        "proto-fetch-v14-local",
+        "proto-fetch-v15-local",
+        "proto-fetch-v16-local",
+        "proto-fetch-v17-local",
+        "proto-diff-fetch-v18-apache-3-9-1",
+        "proto-differential-fetch-apache-java",
+        "proto-fetch-v18-local"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-FetchWire",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify complete registered Fetch wire versions and unsupported historical peers",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceFetchWire.java",
+        "new: tests/conformance/java/generate_fetch_wire.py",
+        "new: tests/fetch_wire_conformance.rs",
+        "new: tests/fixtures/fetch_wire/",
+        "new: docs/evidence/conformance/q-conf-fetchwire/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        3
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "matrix-cell-metadata-3-9-1",
+        "matrix-cell-metadata-4-1-0",
+        "proto-metadata-v01-local",
+        "proto-metadata-v02-local",
+        "proto-metadata-v03-local",
+        "proto-metadata-v04-local",
+        "proto-metadata-v05-local",
+        "proto-metadata-v06-local",
+        "proto-metadata-v07-local",
+        "proto-metadata-v08-local",
+        "proto-metadata-v09-local",
+        "proto-metadata-v10-local",
+        "proto-metadata-v11-local",
+        "proto-metadata-v12-local",
+        "proto-metadata-v13-local",
+        "proto-diff-metadata-v13-apache-3-9-1",
+        "proto-differential-metadata-apache-java"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-MetadataWire",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify complete registered Metadata wire versions and unsupported historical peers",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceMetadataWire.java",
+        "new: tests/conformance/java/generate_metadata_wire.py",
+        "new: tests/metadata_wire_conformance.rs",
+        "new: tests/fixtures/metadata_wire/",
+        "new: docs/evidence/conformance/q-conf-metadatawire/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        2
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "matrix-cell-listoffsets-3-9-1",
+        "matrix-cell-listoffsets-4-1-0",
+        "proto-list-offsets-v01-local",
+        "proto-list-offsets-v02-local",
+        "proto-list-offsets-v03-local",
+        "proto-list-offsets-v04-local",
+        "proto-list-offsets-v05-local",
+        "proto-list-offsets-v06-local",
+        "proto-list-offsets-v07-local",
+        "proto-list-offsets-v08-local",
+        "proto-list-offsets-v09-local",
+        "proto-list-offsets-v10-local",
+        "proto-diff-list-offsets-v10-apache-3-9-1",
+        "proto-unsupported-list-offsets-v11-client-cap",
+        "proto-differential-list-offsets-apache-java"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-ListOffsetsWire",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify complete registered ListOffsets wire versions and unsupported historical peers",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceListOffsetsWire.java",
+        "new: tests/conformance/java/generate_list_offsets_wire.py",
+        "new: tests/list_offsets_wire_conformance.rs",
+        "new: tests/fixtures/list_offsets_wire/",
+        "new: docs/evidence/conformance/q-conf-listoffsetswire/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        1,
+        8,
+        9
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "audit-regression-a01-offset-filter",
+        "audit-regression-a02-abort-interval",
+        "audit-regression-a03-partial-failure",
+        "audit-regression-a04-offset-out-of-range",
+        "audit-regression-a05-cursor-commit"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-FetchDeliveryRegressions",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Independently replay delivered-position/fetch boundary regression histories",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceFetchDeliveryRegressions.java",
+        "new: tests/conformance/java/generate_fetch_delivery_regressions.py",
+        "new: tests/fetch_delivery_regressions_conformance.rs",
+        "new: tests/fixtures/fetch_delivery_regressions/",
+        "new: docs/evidence/conformance/q-conf-fetchdeliveryregressions/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "broker-cell-historical-apache-3-9-1",
+        "broker-cell-historical-apache-4-1-0",
+        "verifiable-produce-consume-3-9-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-HistoricalOrdinary",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify the declared historical ordinary broker/record-event cells",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceHistoricalOrdinary.java",
+        "new: tests/conformance/java/generate_historical_ordinary.py",
+        "new: tests/historical_ordinary_conformance.rs",
+        "new: tests/fixtures/historical_ordinary/",
+        "new: docs/evidence/conformance/q-conf-historicalordinary/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        1
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "feature-fetch-incremental-session-runtime"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-FetchSessionRuntime",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify incremental Fetch session runtime and bounded reset histories",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceFetchSessionRuntime.java",
+        "new: tests/conformance/java/generate_fetch_session_runtime.py",
+        "new: tests/fetch_session_runtime_conformance.rs",
+        "new: tests/fixtures/fetch_session_runtime/",
+        "new: docs/evidence/conformance/q-conf-fetchsessionruntime/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        0,
+        1
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "feature-produce-fetch-quota-throttle-runtime"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-QuotaThrottleRuntime",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify Producer/Consumer quota throttle runtime histories",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceQuotaThrottleRuntime.java",
+        "new: tests/conformance/java/generate_quota_throttle_runtime.py",
+        "new: tests/quota_throttle_runtime_conformance.rs",
+        "new: tests/fixtures/quota_throttle_runtime/",
+        "new: docs/evidence/conformance/q-conf-quotathrottleruntime/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        0
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "verifiable-producer-options-3-9-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-VerifiableProducerOptions",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify the finite verifiable Producer option profile",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceVerifiableProducerOptions.java",
+        "new: tests/conformance/java/generate_verifiable_producer_options.py",
+        "new: tests/verifiable_producer_options_conformance.rs",
+        "new: tests/fixtures/verifiable_producer_options/",
+        "new: docs/evidence/conformance/q-conf-verifiableproduceroptions/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        1,
+        2,
+        8,
+        9
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "verifiable-consumer-reset-policies-3-9-1",
+        "verifiable-consumer-autocommit-3-9-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-VerifiableConsumerOffsets",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify finite verifiable reset and autocommit profiles",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceVerifiableConsumerOffsets.java",
+        "new: tests/conformance/java/generate_verifiable_consumer_offsets.py",
+        "new: tests/verifiable_consumer_offsets_conformance.rs",
+        "new: tests/fixtures/verifiable_consumer_offsets/",
+        "new: docs/evidence/conformance/q-conf-verifiableconsumeroffsets/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        57
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "current-public-api-057-v0-4-1-2",
+        "current-public-api-057-v1-4-1-2",
+        "current-public-api-057-v2-4-1-2",
+        "current-public-api-057-v0-4-2-1",
+        "current-public-api-057-v1-4-2-1",
+        "current-public-api-057-v2-4-2-1",
+        "current-public-api-057-v0-4-3-1",
+        "current-public-api-057-v1-4-3-1",
+        "current-public-api-057-v2-4-3-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-UpdateFeatures",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify public UpdateFeatures version/option/error behavior",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceUpdateFeatures.java",
+        "new: tests/conformance/java/generate_update_features.py",
+        "new: tests/update_features_conformance.rs",
+        "new: tests/fixtures/update_features/",
+        "new: docs/evidence/conformance/q-conf-updatefeatures/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification."
+      ],
+      "api_scope": [
+        91,
+        92
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "current-public-api-091-v0-4-1-2",
+        "current-public-api-091-v0-4-2-1",
+        "current-public-api-091-v0-4-3-1",
+        "current-public-api-092-v0-4-1-2",
+        "current-public-api-092-v0-4-2-1",
+        "current-public-api-092-v0-4-3-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-ShareOffsetMutations",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify public share offset alter/delete behavior",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceShareOffsetMutations.java",
+        "new: tests/conformance/java/generate_share_offset_mutations.py",
+        "new: tests/share_offset_mutations_conformance.rs",
+        "new: tests/fixtures/share_offset_mutations/",
+        "new: docs/evidence/conformance/q-conf-shareoffsetmutations/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Use genuine public Java Admin.describeMetadataQuorum where available; quorum leader/internal-only role is not a blanket public exclusion."
+      ],
+      "api_scope": [
+        55
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "current-claimed-api-055-v0-4-1-2",
+        "current-claimed-api-055-v1-4-1-2",
+        "current-claimed-api-055-v2-4-1-2",
+        "current-claimed-api-055-v0-4-2-1",
+        "current-claimed-api-055-v1-4-2-1",
+        "current-claimed-api-055-v2-4-2-1",
+        "current-claimed-api-055-v0-4-3-1",
+        "current-claimed-api-055-v1-4-3-1",
+        "current-claimed-api-055-v2-4-3-1"
+      ],
+      "depends_on": [
+        "KL01-03",
+        "KL05-19"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-DescribeQuorum",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify current DescribeQuorum public Admin cells",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceDescribeQuorum.java",
+        "new: tests/conformance/java/generate_describe_quorum.py",
+        "new: tests/describe_quorum_conformance.rs",
+        "new: tests/fixtures/describe_quorum/",
+        "new: docs/evidence/conformance/q-conf-describequorum/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Do not invent a standard Java Admin method: use authentic generated Apache request/parser and actual broker/reference implementation, plus bounded Rust raw-extension dispatch. Wire/body comparison is distinguished from runtime behavior."
+      ],
+      "api_scope": [
+        67
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "current-claimed-api-067-v0-4-1-2",
+        "current-claimed-api-067-v0-4-2-1",
+        "current-claimed-api-067-v0-4-3-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-AllocateProducerIdsRaw",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify current AllocateProducerIds raw extension cells",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceAllocateProducerIdsRaw.java",
+        "new: tests/conformance/java/generate_allocate_producer_ids_raw.py",
+        "new: tests/allocate_producer_ids_raw_conformance.rs",
+        "new: tests/fixtures/allocate_producer_ids_raw/",
+        "new: docs/evidence/conformance/q-conf-allocateproduceridsraw/"
+      ]
+    },
+    {
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Do not invent a standard Java Admin method: use authentic generated Apache request/parser and actual broker/reference implementation, plus bounded Rust raw-extension dispatch. Wire/body comparison is distinguished from runtime behavior."
+      ],
+      "api_scope": [
+        73
+      ],
+      "boundedness": [
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "case_ids": [
+        "current-claimed-api-073-v0-4-1-2",
+        "current-claimed-api-073-v0-4-2-1",
+        "current-claimed-api-073-v0-4-3-1"
+      ],
+      "depends_on": [
+        "KL01-03"
+      ],
+      "full_qualification_claim": false,
+      "id": null,
+      "kind": "evidence",
+      "priority": "P1",
+      "proposed_key": "Q-CONF-AssignReplicasToDirsRaw",
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "status": "proposed_not_in_taskbook",
+      "title": "Qualify current AssignReplicasToDirs raw extension cells",
+      "write_set": [
+        "new: tests/conformance/java/ConformanceAssignReplicasToDirsRaw.java",
+        "new: tests/conformance/java/generate_assign_replicas_to_dirs_raw.py",
+        "new: tests/assign_replicas_to_dirs_raw_conformance.rs",
+        "new: tests/fixtures/assign_replicas_to_dirs_raw/",
+        "new: docs/evidence/conformance/q-conf-assignreplicastodirsraw/"
+      ]
+    }
+  ],
+  "scope": "Finite new conformance families. Actual existing open tasks are used where their acceptance covers the gap; done implementation/tool evidence never counts as remaining work.",
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

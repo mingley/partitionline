@@ -1,0 +1,191 @@
+{
+  "current_excluded_cases": 20,
+  "current_internal_role_count": 12,
+  "framework_limit": "Streams/Connect execution and C symbol ABI exclusions do not exclude transferable protocol/producer/consumer/group/transaction/auth behavior.",
+  "full_broker_goal_excluded": false,
+  "historical_dual_or_raw_internal_role_count": 4,
+  "removed_current_role_count": 4,
+  "rows": [
+    {
+      "api_key": 4,
+      "case_id": "api-broker-internal-004-leader-and-isr",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 4, LEADER_AND_ISR, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "removed_current_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 5,
+      "case_id": "api-broker-internal-005-stop-replica",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 5, STOP_REPLICA, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "removed_current_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 6,
+      "case_id": "api-broker-internal-006-update-metadata",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 6, UPDATE_METADATA, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "removed_current_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 7,
+      "case_id": "api-broker-internal-007-controlled-shutdown",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 7, CONTROLLED_SHUTDOWN, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "removed_current_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 27,
+      "case_id": "api-broker-internal-027-write-txn-markers",
+      "denominator": false,
+      "original_reason": "Historical internal-use-only classification at this immutable source; public Admin use is separately required by current registry cases. clusterAction alone does not exclude the public operation.",
+      "proposed_exclusion_scope": "historical_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": true
+    },
+    {
+      "api_key": 52,
+      "case_id": "api-broker-internal-052-vote",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 52, VOTE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 53,
+      "case_id": "api-broker-internal-053-begin-quorum-epoch",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 53, BEGIN_QUORUM_EPOCH, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 54,
+      "case_id": "api-broker-internal-054-end-quorum-epoch",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 54, END_QUORUM_EPOCH, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 55,
+      "case_id": "api-broker-internal-055-describe-quorum",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 55, DESCRIBE_QUORUM, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "historical_internal_role",
+      "reason_needs_narrow_correction": true,
+      "requires_current_applicable_parallel_cells": true
+    },
+    {
+      "api_key": 56,
+      "case_id": "api-broker-internal-056-alter-partition",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 56, ALTER_PARTITION, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 57,
+      "case_id": "api-broker-internal-057-update-features",
+      "denominator": false,
+      "original_reason": "Historical internal-use-only classification at this immutable source; public Admin use is separately required by current registry cases. clusterAction alone does not exclude the public operation.",
+      "proposed_exclusion_scope": "historical_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": true
+    },
+    {
+      "api_key": 58,
+      "case_id": "api-broker-internal-058-envelope",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 58, ENVELOPE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 62,
+      "case_id": "api-broker-internal-062-broker-registration",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 62, BROKER_REGISTRATION, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 63,
+      "case_id": "api-broker-internal-063-broker-heartbeat",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 63, BROKER_HEARTBEAT, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 67,
+      "case_id": "api-broker-internal-067-allocate-producer-ids",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 67, ALLOCATE_PRODUCER_IDS, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "historical_internal_role",
+      "reason_needs_narrow_correction": true,
+      "requires_current_applicable_parallel_cells": true
+    },
+    {
+      "api_key": 83,
+      "case_id": "api-broker-internal-083-initialize-share-group-state",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 83, INITIALIZE_SHARE_GROUP_STATE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 84,
+      "case_id": "api-broker-internal-084-read-share-group-state",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 84, READ_SHARE_GROUP_STATE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 85,
+      "case_id": "api-broker-internal-085-write-share-group-state",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 85, WRITE_SHARE_GROUP_STATE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 86,
+      "case_id": "api-broker-internal-086-delete-share-group-state",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 86, DELETE_SHARE_GROUP_STATE, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    },
+    {
+      "api_key": 87,
+      "case_id": "api-broker-internal-087-read-share-group-state-summary",
+      "denominator": false,
+      "original_reason": "Broker-internal inter-broker API (api_key: 87, READ_SHARE_GROUP_STATE_SUMMARY, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles.",
+      "proposed_exclusion_scope": "current_broker_internal_role",
+      "reason_needs_narrow_correction": false,
+      "requires_current_applicable_parallel_cells": false
+    }
+  ],
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

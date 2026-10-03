@@ -1,0 +1,4242 @@
+{
+  "additive_current_claimed_cases": [
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 0,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v0-4-1-2",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.1.2",
+      "peer_version_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 1,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v1-4-1-2",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.1.2",
+      "peer_version_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 2,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v2-4-1-2",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.1.2",
+      "peer_version_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 0,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v0-4-2-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.2.1",
+      "peer_version_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 1,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v1-4-2-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.2.1",
+      "peer_version_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 2,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v2-4-2-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.2.1",
+      "peer_version_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 0,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v0-4-3-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.3.1",
+      "peer_version_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 1,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v1-4-3-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.3.1",
+      "peer_version_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "DescribeQuorum",
+      "api_key": 55,
+      "api_version": 2,
+      "applicability_role": "public_Java_Admin",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-055-v2-4-3-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.3.1",
+      "peer_version_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AllocateProducerIds",
+      "api_key": 67,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-067-v0-4-1-2",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.1.2",
+      "peer_version_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AllocateProducerIds",
+      "api_key": 67,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-067-v0-4-2-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.2.1",
+      "peer_version_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AllocateProducerIds",
+      "api_key": 67,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-067-v0-4-3-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.3.1",
+      "peer_version_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AssignReplicasToDirs",
+      "api_key": 73,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-073-v0-4-1-2",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.1.2",
+      "peer_version_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AssignReplicasToDirs",
+      "api_key": 73,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-073-v0-4-2-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.2.1",
+      "peer_version_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    {
+      "adapter": "none",
+      "api_family": "AssignReplicasToDirs",
+      "api_key": 73,
+      "api_version": 0,
+      "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+      "denominator": true,
+      "disposition": "not_run",
+      "id": "current-claimed-api-073-v0-4-3-1",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "peer_pin": "4.3.1",
+      "peer_version_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_backlog_tasks": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    }
+  ],
+  "case_count": 169,
+  "changed_original_source_peer_disposition_artifact_fields": false,
+  "core_protocol_complete": false,
+  "excluded_cases": 20,
+  "full_protocol_complete": false,
+  "proposed_required_after_additive": 164,
+  "required_cases": 149,
+  "required_independent_cases": 16,
+  "required_non_independent_cases": 133,
+  "rows": [
+    {
+      "api_family": "Produce",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-produce-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-produce-4-1-0",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-fetch-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-fetch-4-1-0",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-metadata-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-metadata-4-1-0",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-listoffsets-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "matrix-cell-listoffsets-4-1-0",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 3,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v03-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 4,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v04-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 5,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v05-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 6,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v06-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 7,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v07-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 8,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v08-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 9,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v09-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 10,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v10-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 11,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v11-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 12,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-produce-v12-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "transactional",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 4,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v04-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 5,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v05-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 6,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v06-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 7,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v07-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 8,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v08-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 9,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v09-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 10,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v10-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 11,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v11-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 12,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v12-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 13,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v13-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 14,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v14-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 15,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v15-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 16,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v16-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 17,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v17-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v01-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v02-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 3,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v03-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 4,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v04-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 5,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v05-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 6,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v06-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 7,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v07-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 8,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v08-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 9,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v09-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 10,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v10-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 11,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v11-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 12,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v12-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 13,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-metadata-v13-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v01-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v02-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 3,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v03-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 4,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v04-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 5,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v05-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 6,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v06-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 7,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v07-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 8,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v08-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 9,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v09-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 10,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-list-offsets-v10-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 12,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-diff-produce-v12-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "transactional",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": 13,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-diff-metadata-v13-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 10,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-diff-list-offsets-v10-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 13,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-diff-produce-v13-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [
+        "KL05-11"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": [
+        "KL05-11"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 18,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-diff-fetch-v18-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": 11,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-unsupported-list-offsets-v11-client-cap",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "Produce",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-differential-produce-apache-java",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "blocked",
+      "done_reason_references": [
+        "KL05-11"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ProduceWire"
+      ],
+      "reason_only_card_references": [
+        "KL05-11"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-differential-fetch-apache-java",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "blocked",
+      "done_reason_references": [
+        "KL01-03",
+        "KL01-05"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": [
+        "KL01-03",
+        "KL01-05"
+      ]
+    },
+    {
+      "api_family": "Metadata",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-differential-metadata-apache-java",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "blocked",
+      "done_reason_references": [
+        "KL01-03",
+        "KL01-06"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-MetadataWire"
+      ],
+      "reason_only_card_references": [
+        "KL01-03",
+        "KL01-06"
+      ]
+    },
+    {
+      "api_family": "ListOffsets",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-differential-list-offsets-apache-java",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "blocked",
+      "done_reason_references": [
+        "KL01-03",
+        "KL01-07"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "reason_only_card_references": [
+        "KL01-03",
+        "KL01-07"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "The failed historical delivered-position/fetch filtering/failure invariants cite done fixes; require independently evidenced replay, not automatic promotion.",
+      "case_id": "audit-regression-a01-offset-filter",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "failed",
+      "done_reason_references": [
+        "KL03-04"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "reason_only_card_references": [
+        "KL03-04"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "The failed historical delivered-position/fetch filtering/failure invariants cite done fixes; require independently evidenced replay, not automatic promotion.",
+      "case_id": "audit-regression-a02-abort-interval",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "failed",
+      "done_reason_references": [
+        "KL03-03"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "transactional",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "reason_only_card_references": [
+        "KL03-03"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "The failed historical delivered-position/fetch filtering/failure invariants cite done fixes; require independently evidenced replay, not automatic promotion.",
+      "case_id": "audit-regression-a03-partial-failure",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "failed",
+      "done_reason_references": [
+        "KL03-02"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "reason_only_card_references": [
+        "KL03-02"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "The failed historical delivered-position/fetch filtering/failure invariants cite done fixes; require independently evidenced replay, not automatic promotion.",
+      "case_id": "audit-regression-a04-offset-out-of-range",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "failed",
+      "done_reason_references": [
+        "KL03-05"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "reason_only_card_references": [
+        "KL03-05"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "The failed historical delivered-position/fetch filtering/failure invariants cite done fixes; require independently evidenced replay, not automatic promotion.",
+      "case_id": "audit-regression-a05-cursor-commit",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "failed",
+      "done_reason_references": [
+        "KL03-06",
+        "KL03-07"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "group",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "reason_only_card_references": [
+        "KL03-06",
+        "KL03-07"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Retained historical smoke/mock histories are not complete independently validated ordinary behavior; current3SDK proof cannot promote those pins.",
+      "case_id": "broker-cell-historical-apache-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Retained historical smoke/mock histories are not complete independently validated ordinary behavior; current3SDK proof cannot promote those pins.",
+      "case_id": "broker-cell-historical-apache-4-1-0",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 7809,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "broker-cell-target-apache-4-1-2",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL01-10",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-10",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 8116,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "broker-cell-target-apache-4-2-1",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL01-10",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-10",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 8116,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "broker-cell-target-apache-4-3-1",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL01-10",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-10",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-004-leader-and-isr",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-005-stop-replica",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-006-update-metadata",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-007-controlled-shutdown",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-027-write-txn-markers",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-052-vote",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-053-begin-quorum-epoch",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-054-end-quorum-epoch",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-055-describe-quorum",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-056-alter-partition",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-057-update-features",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-058-envelope",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-062-broker-registration",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-063-broker-heartbeat",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-067-allocate-producer-ids",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-083-initialize-share-group-state",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-084-read-share-group-state",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-085-write-share-group-state",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-086-delete-share-group-state",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Historical/internal source role only; neither all use of this key nor the broker implementation is excluded from the user goal.",
+      "case_id": "api-broker-internal-087-read-share-group-state-summary",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": false,
+      "disposition": "not_applicable",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Missing codec implementation and independent bidirectional qualification are all still open.",
+      "case_id": "feature-compression-zstd-decode-encode",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-03",
+        "KL05-04",
+        "KL05-05"
+      ],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Concrete Kerberos decision/exchange/qualification remains open; Cyrus/native footprint does not exclude transferable auth semantics.",
+      "case_id": "feature-auth-gssapi-kerberos",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL06-08",
+        "KL06-09",
+        "KL06-10"
+      ],
+      "peer_pin": "4.1.0",
+      "profile": "secure",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Done implementation06/07 does not independently qualify the retained historical not_run cell.",
+      "case_id": "feature-fetch-incremental-session-runtime",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchSessionRuntime"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Done throttle implementations08/09 do not independently qualify actual quota delay/runtime histories.",
+      "case_id": "feature-produce-fetch-quota-throttle-runtime",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-QuotaThrottleRuntime"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Retained historical smoke/mock histories are not complete independently validated ordinary behavior; current3SDK proof cannot promote those pins.",
+      "case_id": "verifiable-produce-consume-3-9-1",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-09",
+        "KL01-15",
+        "KL01-16",
+        "KL01-17"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "reason_only_card_references": [
+        "KL01-09",
+        "KL01-15",
+        "KL01-16",
+        "KL01-17"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Open classic/cooperative group churn explicitly includes delivered/committed offsets and recovery; mock event parser consistency remains unqualified.",
+      "case_id": "verifiable-rebalance-3-9-1",
+      "case_source_sha": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Open classic/cooperative group churn explicitly includes delivered/committed offsets and recovery; mock event parser consistency remains unqualified.",
+      "case_id": "verifiable-commit-failure-3-9-1",
+      "case_source_sha": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Finite CLI/config option parity needs actual public reference execution, not synthetic events.",
+      "case_id": "verifiable-producer-options-3-9-1",
+      "case_source_sha": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-16"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-VerifiableProducerOptions"
+      ],
+      "reason_only_card_references": [
+        "KL01-16"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Finite reset/autocommit CLI profiles need actual reference histories, not mock event transcripts.",
+      "case_id": "verifiable-consumer-reset-policies-3-9-1",
+      "case_source_sha": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-16"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-VerifiableConsumerOffsets"
+      ],
+      "reason_only_card_references": [
+        "KL01-16"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [],
+      "binding_reason": "Finite reset/autocommit CLI profiles need actual reference histories, not mock event transcripts.",
+      "case_id": "verifiable-consumer-autocommit-3-9-1",
+      "case_source_sha": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL01-16"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "3.9.1",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-VerifiableConsumerOffsets"
+      ],
+      "reason_only_card_references": [
+        "KL01-16"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 40157,
+          "path": "docs/plan/evidence/KL01-17.json",
+          "pinned_git_object_present": true,
+          "sha256": "857240d89d2258c1b9f0a9fbc24366e3adeb48a4592a9f70c674442bfd01f9e6"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "verifiable-produce-consume-live-4-1-2",
+      "case_source_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL01-17"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "ecosystem",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-17"
+      ]
+    },
+    {
+      "api_family": "Produce",
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 1732,
+          "path": "docs/evidence/conformance/KL01-13/run-02/summary.json",
+          "pinned_git_object_present": true,
+          "sha256": "270f7a666802ad26619d41aefe4cdacbe0cc560f4cb459844dbbf58cb2ea1195"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "librdkafka-0125-flush-overrides-linger",
+      "case_source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL01-13"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "2.15.0",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL01-13"
+      ]
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 13,
+      "artifact_checks": [
+        {
+          "bytes": 52285,
+          "path": "tests/conformance/produce-v13-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "c5776b6d309ccf19248193d55044435fb32bb61fe3051391b4781f38ea738c0d"
+        },
+        {
+          "bytes": 3007,
+          "path": "tests/fixtures/protocol_oracles/produce_v13_manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "aaf63422fecad7319bf31128ef75d084a61b3d0853ef2f383bb2bae9b1602428"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-produce-v13-independent-apache-4-1-2",
+      "case_source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-11"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-11"
+      ]
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 13,
+      "artifact_checks": [
+        {
+          "bytes": 52285,
+          "path": "tests/conformance/produce-v13-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "c5776b6d309ccf19248193d55044435fb32bb61fe3051391b4781f38ea738c0d"
+        },
+        {
+          "bytes": 3007,
+          "path": "tests/fixtures/protocol_oracles/produce_v13_manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "aaf63422fecad7319bf31128ef75d084a61b3d0853ef2f383bb2bae9b1602428"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-produce-v13-independent-apache-4-2-1",
+      "case_source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-11"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-11"
+      ]
+    },
+    {
+      "api_family": "Produce",
+      "api_version": 13,
+      "artifact_checks": [
+        {
+          "bytes": 52285,
+          "path": "tests/conformance/produce-v13-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "c5776b6d309ccf19248193d55044435fb32bb61fe3051391b4781f38ea738c0d"
+        },
+        {
+          "bytes": 3007,
+          "path": "tests/fixtures/protocol_oracles/produce_v13_manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "aaf63422fecad7319bf31128ef75d084a61b3d0853ef2f383bb2bae9b1602428"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-produce-v13-independent-apache-4-3-1",
+      "case_source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-11"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-11"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 18,
+      "artifact_checks": [],
+      "binding_reason": "Required historical local/blocked/unsupported wire cell remains required; newer max-version evidence and done generators do not qualify other versions or expected refusals.",
+      "case_id": "proto-fetch-v18-local",
+      "case_source_sha": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL05-12"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.0",
+      "profile": "core",
+      "proposed_task_bindings": [
+        "Q-CONF-FetchWire"
+      ],
+      "reason_only_card_references": [
+        "KL05-12"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 18,
+      "artifact_checks": [
+        {
+          "bytes": 54738,
+          "path": "tests/conformance/fetch-v18-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "fb93e1af929f3559aa690b5c0d55e82655f489a836f99ca2b8d5ebb3e565e170"
+        },
+        {
+          "bytes": 3768,
+          "path": "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227"
+        },
+        {
+          "bytes": 1765,
+          "path": "docs/evidence/client/KL05-12/final/validation.json",
+          "pinned_git_object_present": true,
+          "sha256": "e3f12d5890cedba5e8b845ad0856dd70a1f9c5c6357a053a54b6bd3795f7b84d"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-fetch-v18-independent-apache-4-1-2",
+      "case_source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-12"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-12"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 18,
+      "artifact_checks": [
+        {
+          "bytes": 54738,
+          "path": "tests/conformance/fetch-v18-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "fb93e1af929f3559aa690b5c0d55e82655f489a836f99ca2b8d5ebb3e565e170"
+        },
+        {
+          "bytes": 3768,
+          "path": "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227"
+        },
+        {
+          "bytes": 1765,
+          "path": "docs/evidence/client/KL05-12/final/validation.json",
+          "pinned_git_object_present": true,
+          "sha256": "e3f12d5890cedba5e8b845ad0856dd70a1f9c5c6357a053a54b6bd3795f7b84d"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-fetch-v18-independent-apache-4-2-1",
+      "case_source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-12"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-12"
+      ]
+    },
+    {
+      "api_family": "Fetch",
+      "api_version": 18,
+      "artifact_checks": [
+        {
+          "bytes": 54738,
+          "path": "tests/conformance/fetch-v18-delta.json",
+          "pinned_git_object_present": true,
+          "sha256": "fb93e1af929f3559aa690b5c0d55e82655f489a836f99ca2b8d5ebb3e565e170"
+        },
+        {
+          "bytes": 3768,
+          "path": "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227"
+        },
+        {
+          "bytes": 1765,
+          "path": "docs/evidence/client/KL05-12/final/validation.json",
+          "pinned_git_object_present": true,
+          "sha256": "e3f12d5890cedba5e8b845ad0856dd70a1f9c5c6357a053a54b6bd3795f7b84d"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "proto-fetch-v18-independent-apache-4-3-1",
+      "case_source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL05-12"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "core",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL05-12"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-acquired-subset",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-lock-expiry-stale-ack",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-renew-selected-lock",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-ack-partial-terminal",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-ack-partial-retry",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-leader-movement-ack",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-fetch-session-reset",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-ack-session-reset",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-coordinator-startup-retry",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-coordinator-startup-deadline",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-ack-top-error-epoch",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-fetch-top-error-epoch",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-cancel-stale-reply",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-coordinator-movement",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-per-leader-version",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-bootstrap-version-isolation",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-unsubscribe-lock-release",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-decoded-budget-overlap",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 147583,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+          "pinned_git_object_present": true,
+          "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+        }
+      ],
+      "binding_reason": "Exact share acquisition/lock/session/coordinator failure histories are part of the open share churn cell; controlled localTCP outcomes remain local.",
+      "case_id": "share-v2-outstanding-acquisition-budget",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "local_consistency",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": 1,
+      "artifact_checks": [
+        {
+          "bytes": 7809,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "share-delivery-live-4-1-2",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": 2,
+      "artifact_checks": [
+        {
+          "bytes": 8116,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "share-delivery-live-4-2-1",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": 2,
+      "artifact_checks": [
+        {
+          "bytes": 8116,
+          "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "share-delivery-live-4-3-1",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 3748,
+          "path": "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json",
+          "pinned_git_object_present": true,
+          "sha256": "9c767c3701c99d2cbdc7cf243980cbffe3a608b59cf49a32e1ca0f7823a16088"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "share-v2-lock-lifecycle-live-4-3-1",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": null,
+      "api_version": null,
+      "artifact_checks": [
+        {
+          "bytes": 12538,
+          "path": "docs/evidence/client/KL05-14/three-sdk/manifest.json",
+          "pinned_git_object_present": true,
+          "sha256": "011c551590478a8a13b5361ae8d9085fe027426e2f92219d2de95cf49f667600"
+        }
+      ],
+      "binding_reason": "Retain independently accepted original source/peer/artifact scope exactly; no new runtime result or blanket family qualification.",
+      "case_id": "share-wire-java-three-sdk-supported-bodies",
+      "case_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "done_reason_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2/4.2.1/4.3.1",
+      "profile": "share",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": [
+        "KL03-16",
+        "KL05-14",
+        "KL05-15"
+      ]
+    },
+    {
+      "api_family": "WriteTxnMarkers",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-027-v1-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-29"
+      ],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "WriteTxnMarkers",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-027-v1-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-29"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "WriteTxnMarkers",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-027-v2-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-29"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "WriteTxnMarkers",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-027-v1-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-29"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "WriteTxnMarkers",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-027-v2-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-29"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v1-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v2-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v1-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v2-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v1-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "UpdateFeatures",
+      "api_version": 2,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-057-v2-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupHeartbeat",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-088-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-32"
+      ],
+      "peer_pin": "4.1.2",
+      "profile": "group",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupHeartbeat",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-088-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-32"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "group",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupHeartbeat",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-088-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-32"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "group",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupDescribe",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-089-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-33"
+      ],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupDescribe",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-089-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-33"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "StreamsGroupDescribe",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-089-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "unsupported",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-33"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DescribeShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-090-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-30"
+      ],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DescribeShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-090-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-30"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DescribeShareGroupOffsets",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-090-v1-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-30"
+      ],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DescribeShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-090-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-30"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DescribeShareGroupOffsets",
+      "api_version": 1,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-090-v1-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [
+        "KL05-30"
+      ],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "AlterShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-091-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "AlterShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-091-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "AlterShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-091-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DeleteShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-092-v0-4-1-2",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.1.2",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DeleteShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-092-v0-4-2-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.2.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    },
+    {
+      "api_family": "DeleteShareGroupOffsets",
+      "api_version": 0,
+      "artifact_checks": [],
+      "binding_reason": "Exact required public API/version/peer cell needs independent execution/import; current callable feature or old internal-role exclusion does not qualify it.",
+      "case_id": "current-public-api-092-v0-4-3-1",
+      "case_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "denominator": true,
+      "disposition": "not_run",
+      "done_reason_references": [],
+      "existing_case_fields_unchanged": true,
+      "existing_explicit_backlog_fields_present": false,
+      "open_task_bindings": [],
+      "peer_pin": "4.3.1",
+      "profile": "admin",
+      "proposed_task_bindings": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "reason_only_card_references": []
+    }
+  ],
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

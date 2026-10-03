@@ -1,0 +1,110 @@
+{
+  "all_17_files_preserved_in_original_directory": true,
+  "original_directory": "/workspace/work/consumer-case-task-reconciliation-02",
+  "original_manifest_sha256": "6fcf226237ec96fbdfac8c01762632f5f130d1d2ab6f0a0607a0ec233fab5e3f",
+  "original_validation_sha256": "79be34f66cd629eeadfa93424c124aee453caea2080458de6614c3d18c704d16",
+  "verified_copied_initial_rows": [
+    {
+      "bytes": 3417,
+      "full_mode": "0o600",
+      "path": "REVIEW.md",
+      "sha256": "7137adf271bc610680293e5f97cebfe7ef3bf748809bcd804a0b998fa09729ad"
+    },
+    {
+      "bytes": 1455,
+      "full_mode": "0o600",
+      "path": "SHA256SUMS",
+      "sha256": "65c60b7bca5bba3bc1e6a0e965077b931903b11ad88ae0aee552293442db0647"
+    },
+    {
+      "bytes": 16489,
+      "full_mode": "0o600",
+      "path": "build-plan.py",
+      "sha256": "6f0a97d9f6becb39c1110bd7215252bc1eead4034e826233377eefc9ae3e5400"
+    },
+    {
+      "bytes": 162744,
+      "full_mode": "0o600",
+      "path": "case-binding-plan.json",
+      "sha256": "ada69b848e7d59b71603685e947a41bff51ecd1b78eff1761e2268fb8ce20cd6"
+    },
+    {
+      "bytes": 7870,
+      "full_mode": "0o600",
+      "path": "checker-design-plan.json",
+      "sha256": "54959c0b4dfb2603db2bf647ad94ebb509a96c2d2e091d574994dfdfcd0245a7"
+    },
+    {
+      "bytes": 2047,
+      "full_mode": "0o600",
+      "path": "current-93-audit-reference.json",
+      "sha256": "a40ad26698a3c75333a9845a3a8057b97586b1f95df0dfeaedd43aa4f8b4f4b3"
+    },
+    {
+      "bytes": 10186,
+      "full_mode": "0o600",
+      "path": "excluded-denominator-review.json",
+      "sha256": "ce56f1ec15a4dd7e57685f7d23b015c8689ba54c76601bde95f0e7379056ac30"
+    },
+    {
+      "bytes": 23503,
+      "full_mode": "0o600",
+      "path": "feature-binding-plan.json",
+      "sha256": "eb86453c22fe7572cb96422b8d3c25db55241902d764167da28e9439335f8836"
+    },
+    {
+      "bytes": 75362,
+      "full_mode": "0o600",
+      "path": "feature-independent-review.json",
+      "sha256": "a10072cbacfa390d7e350116e3f12d6fe766fe5faf90b68723ed267140a80190"
+    },
+    {
+      "bytes": 8118,
+      "full_mode": "0o600",
+      "path": "input-identities.json",
+      "sha256": "c74db00e528a928b903052504f9392a171508c0a53db48261353251f966fad73"
+    },
+    {
+      "bytes": 408974,
+      "full_mode": "0o600",
+      "path": "known-upstream-corpus-review.json",
+      "sha256": "df1621266da0b8009b0d46f6e22dadc40965b13ecf0ac872f110cbbd310c13a0"
+    },
+    {
+      "bytes": 6022,
+      "full_mode": "0o600",
+      "path": "merge-feature-plan.py",
+      "sha256": "13e69841d0d4ffc7c9109113ad712e380b20a14f37d7abc1048fd96d8f1eb4ac"
+    },
+    {
+      "bytes": 3046,
+      "full_mode": "0o600",
+      "path": "packet-manifest.json",
+      "sha256": "6fcf226237ec96fbdfac8c01762632f5f130d1d2ab6f0a0607a0ec233fab5e3f"
+    },
+    {
+      "bytes": 37521,
+      "full_mode": "0o600",
+      "path": "proposed-case-conformance-cards.json",
+      "sha256": "15602102f2df4b8573e465860ddc1e972171e58b73deb21eaa62a3406de88d45"
+    },
+    {
+      "bytes": 51796,
+      "full_mode": "0o600",
+      "path": "unified-bounded-proposals.json",
+      "sha256": "29cb2798ba017f30e467f17a15ebc21e3c20508cf12e23449e04af9a5528ab58"
+    },
+    {
+      "bytes": 7558,
+      "full_mode": "0o600",
+      "path": "validate-and-seal.py",
+      "sha256": "446c8b4fcf1e279592b8f2ce2b3ed3b6c73e9c4162c93877656708a0ecb095a3"
+    },
+    {
+      "bytes": 45085,
+      "full_mode": "0o600",
+      "path": "validation.json",
+      "sha256": "79be34f66cd629eeadfa93424c124aee453caea2080458de6614c3d18c704d16"
+    }
+  ]
+}

@@ -1,0 +1,539 @@
+{
+  "full_feature_qualification": false,
+  "original_report_retained": true,
+  "present_feature_count": 147,
+  "present_means_implementation_not_independent_qualification": true,
+  "prototype_api_aliases": {
+    "P01-registry-scope-reconciliation": "KL01-14",
+    "P02-producer-owned-backing": "Q-IMPL-ProducerBacking",
+    "P03-kip848-interval-conformance": "KL03-21",
+    "P04-producer-reauth": "Q-IMPL-ProducerReauth",
+    "P05-consumer-reauth": "Q-IMPL-RpcReauth",
+    "P06-group-reauth": "Q-IMPL-RpcReauth",
+    "P07-share-reauth": "Q-IMPL-RpcReauth",
+    "P08-admin-reauth": "Q-IMPL-RpcReauth",
+    "P09-oidc-manager-retirement": "Q-IMPL-OidcManagerOwnership",
+    "P10-avro-production-codec-conformance": "Q-CONF-AvroBackend",
+    "P11-json-production-codec-conformance": "Q-CONF-JsonSchemaBackend",
+    "P12-generic-header-scope": "Q-CONF-GenericSchemaHeader",
+    "P13-quorum-current-cells": "Q-CONF-DescribeQuorum",
+    "P14-raw-api67-cells": "Q-CONF-AllocateProducerIdsRaw",
+    "P15-raw-api73-cells": "Q-CONF-AssignReplicasToDirsRaw"
+  },
+  "reviewed_non_present_features": 28,
+  "rows": [
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": null,
+      "feature_id": "producer.sticky_partitioner",
+      "finding": "Actual in_progress card implements the missing opt-in sticky policy; source presence or round-robin does not close it.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL05-10"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "producer",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL02-01",
+          "status": "done",
+          "title": "Specify byte ownership and outcome budgets"
+        },
+        {
+          "id": "KL02-02",
+          "status": "done",
+          "title": "Enforce the producer's declared retained-byte budget"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "producer.buffer_memory",
+      "finding": "src/producer.rs:1283-1307 charges key/value AND header key/value slice lengths. KL02-02 explicitly excludes shared backing capacity, encoded overhead and socket buffers. Qualification cards do not implement residual owned-backing bounds.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL02-09",
+        "KL02-10"
+      ],
+      "original_disposition": "partial",
+      "original_notes_unchanged": true,
+      "profile": "producer",
+      "proposed_task_bindings": [
+        "Q-IMPL-ProducerBacking"
+      ],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL03-12",
+          "status": "done",
+          "title": "Honor the KIP-848 broker heartbeat interval"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "group.kip848_heartbeat_scheduling",
+      "finding": "src/group.rs:2169-2179 and2502-2510 consume initial and changed broker intervals. tests/full_surface.rs:5381 names interval scheduling coverage. Done card is finite deterministic evidence, not all current-line independent qualification.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL03-21"
+      ],
+      "original_disposition": "partial",
+      "original_notes_unchanged": true,
+      "profile": "group",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "codecs.zstd.decode",
+      "finding": "Backend decision is done; decode implementation and bidirectional qualification remain pending.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL05-03",
+        "KL05-05"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "codecs",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "codecs.zstd.encode",
+      "finding": "Backend decision is done; encode implementation and bidirectional qualification remain pending.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL05-04",
+        "KL05-05"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "codecs",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "codecs.zstd.wire_helper",
+      "finding": "Feature row itself names no card; decoding/encoding compression attribute4 belongs to these actual open codec cards. Do not infer codec profile completeness.",
+      "layer": "wire_helper",
+      "open_task_bindings": [
+        "KL05-03",
+        "KL05-04",
+        "KL05-05"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "codecs",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL06-01",
+          "status": "done",
+          "title": "Specify credential refresh and reauthentication ownership"
+        },
+        {
+          "id": "KL06-02",
+          "status": "done",
+          "title": "Parse bounded OIDC token responses and lifetime metadata"
+        },
+        {
+          "id": "KL06-03",
+          "status": "done",
+          "title": "Refresh expiring OIDC credentials without stampedes"
+        },
+        {
+          "id": "KL06-04",
+          "status": "done",
+          "title": "Honor broker SASL session lifetimes"
+        },
+        {
+          "id": "KL09-59",
+          "status": "done",
+          "title": "Reuse one OIDC token manager across connection opens"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "auth.sasl_oidc_refresh",
+      "finding": "sasl.rs:538-540 now obtains shared managed tokens; oidc.rs:208-232 retains strong process-global managers. Ordinary Producer/Consumer/Admin source has no reauth/BrokerPipeline integration; BrokerConn::roundtrip_deadline at net.rs:1165-1192 dispatches without session gating. KL06-04 recorded standalone-pipeline limit; KL06-06 is qualification, not implementation.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL06-06"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "auth",
+      "proposed_task_bindings": [
+        "Q-IMPL-OidcManagerOwnership",
+        "Q-IMPL-ProducerReauth",
+        "Q-IMPL-RpcReauth"
+      ],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": null,
+      "feature_id": "auth.sasl_gssapi",
+      "finding": "Explicit opt-in backend boundary, exchange and isolated-realm qualification cards remain pending.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL06-08",
+        "KL06-09",
+        "KL06-10"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "auth",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-26",
+          "status": "done",
+          "title": "Add Protobuf message-index framing to the companion"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "schema_ecosystem.wire_framing",
+      "finding": "wire.rs:1-6 explicitly limits generic helpers to five-byte header; encode/decode at51/60 are callable. Protobuf indexes are separate. Partial cannot be promoted to complete ecosystem support; no need to implement indexes inside generic helpers.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "partial",
+      "original_notes_unchanged": true,
+      "profile": "schema ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-GenericSchemaHeader"
+      ],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-25",
+          "status": "done",
+          "title": "Add an opt-in Avro companion adapter"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "schema_ecosystem.avro",
+      "finding": "avro.rs:249 Codec and305 Adapter<C> exist. KL05-25 limits and tests/avro.rs:57-59 identify test-only fixture codecs and caller-selected production serialization. Adapter completion does not qualify arbitrary Avro schemas or live integration.",
+      "layer": "runtime",
+      "open_task_bindings": [],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "schema ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-AvroBackend"
+      ],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [
+        {
+          "id": "KL05-27",
+          "status": "done",
+          "title": "Add an opt-in JSON Schema companion adapter"
+        }
+      ],
+      "exclusion_scope": null,
+      "feature_id": "schema_ecosystem.json_schema",
+      "finding": "json_schema.rs:3-6 states caller-selected Codec, no built-in parser/validator;319/377 define Codec/Adapter. KL05-27 pins Draft2020-12 and offline evidence but explicitly disclaims production built-in/general ecosystem qualification.",
+      "layer": "runtime",
+      "open_task_bindings": [],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "schema ecosystem",
+      "proposed_task_bindings": [
+        "Q-CONF-JsonSchemaBackend"
+      ],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": "KL01-14"
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "streams.runtime",
+      "finding": "Kafka Streams processor/runtime/state-store/topology execution is genuinely outside the client library; this exclusion does not cover API88/89 or transferable producer/consumer/transaction/group behaviors.",
+      "layer": "runtime",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "streams",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "connect.framework",
+      "finding": "Kafka Connect worker/plugin execution, deployment and connector-cluster runtime are outside client scope; extract transferable Kafka delivery/offset/transaction/auth behavior from framework tests rather than blanket-excluding their entire files.",
+      "layer": "runtime",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "connect",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "c_abi.librdkafka",
+      "finding": "Drop-in rd_kafka_* symbols/types/ABI are excluded. Transferable librdkafka delivery/offset/codec/auth regressions remain applicable independent behavior; ABI exclusion is not a test-corpus exclusion.",
+      "layer": "runtime",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "c_abi",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.leader_and_isr",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.stop_replica",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.update_metadata",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.controlled_shutdown",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.alter_partition",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.envelope",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.fetch_snapshot",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.broker_registration",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.broker_heartbeat",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.controller_registration",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.update_raft_voter",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": "framework_or_internal_role_only",
+      "feature_id": "broker_internal.share_group_state",
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs.",
+      "layer": "wire_helper",
+      "open_task_bindings": [],
+      "original_disposition": "out_of_scope",
+      "original_notes_unchanged": true,
+      "profile": "broker-internal replication",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": null,
+      "feature_id": "streams.group_heartbeat",
+      "finding": "Actual client cards cover typed codecs then caller-driven API88 heartbeat. Broker-side KL11-32 does not close client behavior; framework runtime exclusion is separate.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-32"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "streams",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    },
+    {
+      "done_task_provenance": [],
+      "exclusion_scope": null,
+      "feature_id": "streams.group_describe",
+      "finding": "Actual client cards cover typed codecs then typed public Admin API89 description. Broker-side KL11-32 does not close client behavior; framework runtime exclusion is separate.",
+      "layer": "runtime",
+      "open_task_bindings": [
+        "KL05-31",
+        "KL05-33"
+      ],
+      "original_disposition": "missing",
+      "original_notes_unchanged": true,
+      "profile": "streams",
+      "proposed_task_bindings": [],
+      "scope_reconciliation_does_not_qualify_runtime": true,
+      "source_scope_reconciliation_task": null
+    }
+  ],
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

@@ -1,0 +1,116 @@
+{
+  "changes": [
+    "Add explicit mode choices classification(default), backlog, core, full. Unknown mode exits2. Preserve existing classification output/exit compatibility; strict modes add separately named backlog/qualification verdicts.",
+    "Load actual taskbook once. Validate duplicate IDs/status types and each case/feature backlog_tasks list. A required non-independent case or applicable missing/partial feature requires at least one actual pending/in_progress task; done, unknown, closed-only or absent task references cannot satisfy remaining work. Completed task/evidence references are reported separately.",
+    "Validate case IDs/dispositions/profile/denominator types and exact duplicate rows; denominator=false requires not_applicable and a nonempty explicit source applicability scope/reason. Unsupported, blocked, failed, not_run and local_consistency stay required. Reject attempted public whole-key exclusion where only an internal-role reason exists.",
+    "Preserve all original case source/peer/disposition/artifact/test fields; add only reviewed backlog/applicability annotations. For historical055/067, narrow the existing reason to the historical/internal role and add separately applicable current055 public and067/073 raw-extension cells. No artifact is reclassified as independent by this plan.",
+    "For an independent registry row require nonempty local artifact references that exist and are actual regular files; this checks structural attribution only and cannot replace the original accepted validator/runtime proof. Gap closure through a task becoming done cannot turn a local/failed/unsupported row into an independent result.",
+    "Backlog mode succeeds only with no malformed/untracked remaining cases/features AND no schema/runtime drift. Core/full modes additionally require every selected required row to retain an independently accepted exact-source result, with no selected missing/partial runtime/feature/version gaps; qualified implementation names do not imply qualified behavior.",
+    "Name core scope explicitly as registered core/transactional/group/admin profiles; full selects all seven registered profiles and all claimed client features. Exclusions apply only to their declared roles; broker production qualification is a separate scope and is not inferred. Both current completeness booleans remain false.",
+    "Keep verified current93 inventory comparison intact. Reject unknown extra classification types and keep a classified synthetic key/version unable to establish authoritative current completeness; default classification may still report a deliberately classified synthetic gap without calling it production proof.",
+    "Report source-corpus limitations explicitly. Known inventory567 source files/2477 method or entry names has no parameter expansion and omits other Java producer/consumer/security/unit source families. Existing root source-applicability proposals remain unassigned; mode success for registered backlog does not close exhaustive KL01-14.",
+    "A present feature row is implementation provenance, not an independent verdict. Core/full require explicitly reviewed conformance_case_ids (or equivalent exact evidence-scope bindings) to independently accepted required cases for every selected applicable feature. Unmapped present-feature qualification remains open under KL01-14; do not infer it from a matching API name, Rust test path, done implementation card or profile-wide smoke.",
+    "Protect denominators against empty/truncated registries as well as false flags: strict modes report the authoritative registered source/case set and fail completeness when required applicability or parameter coverage is unresolved. Registered-backlog mode may report that all enumerated gaps have open tasks, while exhaustive_upstream_applicability_complete stays false. Never promote classified API drift into a full qualification verdict."
+  ],
+  "core_protocol_complete": false,
+  "delegated_write_set": [
+    "scripts/check-protocol-coverage.py",
+    "tests/conformance/test_check_protocol_coverage.py",
+    "tests/conformance/cases.json",
+    "tests/conformance/features.json"
+  ],
+  "explicit_profile_scopes": {
+    "case_to_feature_profiles": {
+      "admin": [
+        "common admin",
+        "full admin"
+      ],
+      "core": [
+        "producer",
+        "manual consumer",
+        "codecs",
+        "quotas"
+      ],
+      "ecosystem": [
+        "schema ecosystem",
+        "streams"
+      ],
+      "group": [
+        "group"
+      ],
+      "secure": [
+        "auth"
+      ],
+      "share": [
+        "share"
+      ],
+      "transactional": [
+        "transactions"
+      ]
+    },
+    "core_case_profiles": [
+      "core",
+      "transactional",
+      "group",
+      "admin"
+    ],
+    "feature_exclusions": [
+      "broker-internal replication",
+      "connect framework runtime only",
+      "Streams framework runtime only",
+      "C symbol ABI only"
+    ],
+    "full_case_profiles": [
+      "core",
+      "transactional",
+      "group",
+      "share",
+      "secure",
+      "admin",
+      "ecosystem"
+    ]
+  },
+  "failing_first_controls": [
+    "required gap without backlog task",
+    "required gap bound only to done implementation/tool task",
+    "unknown task ID and duplicate binding",
+    "task transitions open\u2192done while case remains failed/local/unsupported",
+    "unsupported/not_run/blocked/failed case moved out of denominator",
+    "denominator string/number instead of bool",
+    "unknown case disposition/profile/duplicate ID",
+    "current public055 excluded solely by clusterAction/internal historical row",
+    "raw067/073 extension confused with invented Java Admin operation",
+    "independent pass missing/malformed/unresolved artifact",
+    "feature missing/partial bound only to done card",
+    "unknown mode and unknown API/classification intent",
+    "newAPI/version or missing current key remains failclosed",
+    "all gaps tracked permits backlog only, core/full still fail",
+    "all selected rows genuinely satisfied in a small controlled fixture permits that fixture's precise mode without promoting real registry"
+  ],
+  "full_protocol_complete": false,
+  "present_feature_qualification_backlog_policy": {
+    "automatic_independent_promotion": false,
+    "existing_implementation_evidence_retained": true,
+    "new_147_cards_requested": false,
+    "present_count": 147,
+    "qualification_links_in_current_registry": false,
+    "task_is_open": true,
+    "unresolved_exact_feature_to_independent_case_scope_task": "KL01-14"
+  },
+  "review_source": "497f0722100d2ec34cfa6e0775bb278190f53693",
+  "root_only": [
+    "docs/plan/tasks.json",
+    "assign IDs/install bounded proposal cards",
+    "commits/push/status changes"
+  ],
+  "root_review_sequence": [
+    "Review exact169-row binding plan and15 additive current claimed rows, feature-independent-review and bounded proposals.",
+    "Assign any approved new card IDs before candidate config can use them. Other open IDs must match actual current task statuses; no proposed IDs masquerade as real tasks.",
+    "Authorize minimal checker and additive config edits; implementation remains within the four delegated paths.",
+    "Run failing-first controls, final Python suite, complete schema/report checks and source guards. Strict core/full are expected to fail honestly until real required evidence arrives.",
+    "Freeze for root source push; KL01-14 stays in_progress because complete upstream case/parameter applicability is not yet reconciled."
+  ],
+  "runtime_policy": "Python static checker/tests only on CPU0,1 with PYTHONDONTWRITEBYTECODE=1. No SDK/JVM/Cargo/product runtime or production source modifications. Preserve baseline/negative/final outputs and exact source identities.",
+  "schema_version": 1,
+  "status": "WORK plan only; no canonical checker/config edits yet"
+}

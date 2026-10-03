@@ -1,0 +1,104 @@
+{
+  "file_count": 16,
+  "files": [
+    {
+      "bytes": 3417,
+      "full_mode": "0o600",
+      "path": "REVIEW.md",
+      "sha256": "7137adf271bc610680293e5f97cebfe7ef3bf748809bcd804a0b998fa09729ad"
+    },
+    {
+      "bytes": 16489,
+      "full_mode": "0o600",
+      "path": "build-plan.py",
+      "sha256": "6b6c6406289213eda13a377fdcc0f4162bd7d95be03d370662bac60be1aac0a9"
+    },
+    {
+      "bytes": 162744,
+      "full_mode": "0o600",
+      "path": "case-binding-plan.json",
+      "sha256": "ada69b848e7d59b71603685e947a41bff51ecd1b78eff1761e2268fb8ce20cd6"
+    },
+    {
+      "bytes": 7870,
+      "full_mode": "0o600",
+      "path": "checker-design-plan.json",
+      "sha256": "54959c0b4dfb2603db2bf647ad94ebb509a96c2d2e091d574994dfdfcd0245a7"
+    },
+    {
+      "bytes": 2047,
+      "full_mode": "0o600",
+      "path": "current-93-audit-reference.json",
+      "sha256": "a40ad26698a3c75333a9845a3a8057b97586b1f95df0dfeaedd43aa4f8b4f4b3"
+    },
+    {
+      "bytes": 10186,
+      "full_mode": "0o600",
+      "path": "excluded-denominator-review.json",
+      "sha256": "ce56f1ec15a4dd7e57685f7d23b015c8689ba54c76601bde95f0e7379056ac30"
+    },
+    {
+      "bytes": 23503,
+      "full_mode": "0o600",
+      "path": "feature-binding-plan.json",
+      "sha256": "eb86453c22fe7572cb96422b8d3c25db55241902d764167da28e9439335f8836"
+    },
+    {
+      "bytes": 75362,
+      "full_mode": "0o600",
+      "path": "feature-independent-review.json",
+      "sha256": "a10072cbacfa390d7e350116e3f12d6fe766fe5faf90b68723ed267140a80190"
+    },
+    {
+      "bytes": 3552,
+      "full_mode": "0o600",
+      "path": "first-packet-preservation.json",
+      "sha256": "f1d2e86941fc47b8530b631b2ecab06ed2896b7a4c842332cb9f6afdc4b01d79"
+    },
+    {
+      "bytes": 8118,
+      "full_mode": "0o600",
+      "path": "input-identities.json",
+      "sha256": "c74db00e528a928b903052504f9392a171508c0a53db48261353251f966fad73"
+    },
+    {
+      "bytes": 408974,
+      "full_mode": "0o600",
+      "path": "known-upstream-corpus-review.json",
+      "sha256": "df1621266da0b8009b0d46f6e22dadc40965b13ecf0ac872f110cbbd310c13a0"
+    },
+    {
+      "bytes": 6123,
+      "full_mode": "0o600",
+      "path": "merge-feature-plan.py",
+      "sha256": "fd236a541644dd693aaa30a0619783dfef1850272501032e10c3d437bff8428f"
+    },
+    {
+      "bytes": 37521,
+      "full_mode": "0o600",
+      "path": "proposed-case-conformance-cards.json",
+      "sha256": "15602102f2df4b8573e465860ddc1e972171e58b73deb21eaa62a3406de88d45"
+    },
+    {
+      "bytes": 51372,
+      "full_mode": "0o600",
+      "path": "unified-bounded-proposals.json",
+      "sha256": "8c13ff9bf34d8d5d59b65e2473282912ec8cef8a077200c7f5f82741f5ac94af"
+    },
+    {
+      "bytes": 8063,
+      "full_mode": "0o600",
+      "path": "validate-and-seal.py",
+      "sha256": "cd85ee1159dd4223bef8b2080059bd20c54cd173d5d83ddc095a479371a5a12f"
+    },
+    {
+      "bytes": 47263,
+      "full_mode": "0o600",
+      "path": "validation.json",
+      "sha256": "9bb60e780ecf0275cf8388bf7db314f6b36af9df227d18c45b02826dec63127b"
+    }
+  ],
+  "scope": "WORK-only static reconciliation/proposals; no runtime qualification or repository edits",
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693",
+  "total_bytes": 872604
+}

@@ -656,6 +656,49 @@
     "evidence": "docs/evidence/client/protocol-inventory-current/gap-audit-01/validation.json",
     "full_current_protocol_complete": false,
     "remaining_work": "Reconcile every applicable Java/system/librdkafka case and run complete coverage/report and uncovered-case checks; implemented features remain individually qualified at their original pins."
+  },
+  {
+    "schema_version": 1,
+    "passed": true,
+    "scope": "Static registered conformance gap/task binding; no new runtime or independent-case verdict.",
+    "original_cases": 169,
+    "original_required_cases": 149,
+    "original_required_independent_pass": 16,
+    "original_required_gaps": 133,
+    "original_required_open_existing_bindings": 39,
+    "new_case_families": 15,
+    "additive_current_required_cells": 15,
+    "proposed_case_count": 184,
+    "proposed_required_count": 164,
+    "excluded_roles": 20,
+    "new_cards": {
+      "Q-CONF-ProduceWire": "KL01-18",
+      "Q-CONF-FetchWire": "KL01-19",
+      "Q-CONF-MetadataWire": "KL01-20",
+      "Q-CONF-ListOffsetsWire": "KL01-21",
+      "Q-CONF-FetchDeliveryRegressions": "KL01-22",
+      "Q-CONF-HistoricalOrdinary": "KL01-23",
+      "Q-CONF-FetchSessionRuntime": "KL01-24",
+      "Q-CONF-QuotaThrottleRuntime": "KL01-25",
+      "Q-CONF-VerifiableProducerOptions": "KL01-26",
+      "Q-CONF-VerifiableConsumerOffsets": "KL01-27",
+      "Q-CONF-UpdateFeatures": "KL01-28",
+      "Q-CONF-ShareOffsetMutations": "KL01-29",
+      "Q-CONF-DescribeQuorum": "KL01-30",
+      "Q-CONF-AllocateProducerIdsRaw": "KL01-31",
+      "Q-CONF-AssignReplicasToDirsRaw": "KL01-32",
+      "Q-IMPL-ProducerBacking": "KL02-11",
+      "Q-IMPL-ProducerReauth": "KL06-11",
+      "Q-IMPL-RpcReauth": "KL06-12",
+      "Q-IMPL-OidcManagerOwnership": "KL06-13",
+      "Q-CONF-AvroBackend": "KL05-43",
+      "Q-CONF-JsonSchemaBackend": "KL05-44",
+      "Q-CONF-GenericSchemaHeader": "KL05-45"
+    },
+    "full_protocol_complete": false,
+    "core_protocol_complete": false,
+    "exhaustive_upstream_applicability_complete": false,
+    "source_review": "497f0722100d2ec34cfa6e0775bb278190f53693"
   }
 ],
       "write_set": [
@@ -50583,6 +50626,1315 @@
       "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
       "proposal_key": "Q-CAP-LegacyJoin0_1",
       "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL01-18",
+      "title": "Qualify complete registered Produce wire versions and unsupported historical peers",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceProduceWire.java",
+        "tests/conformance/java/generate_produce_wire.py",
+        "tests/produce_wire_conformance.rs",
+        "tests/fixtures/produce_wire/",
+        "docs/evidence/conformance/q-conf-producewire/"
+      ],
+      "deliverable": "Qualify complete registered Produce wire versions and unsupported historical peers Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceProduceWire.java",
+        "tests/conformance/java/generate_produce_wire.py",
+        "tests/produce_wire_conformance.rs",
+        "tests/fixtures/produce_wire/",
+        "docs/evidence/conformance/q-conf-producewire/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-ProduceWire",
+      "initial_registered_case_ids": [
+        "matrix-cell-produce-3-9-1",
+        "matrix-cell-produce-4-1-0",
+        "proto-produce-v03-local",
+        "proto-produce-v04-local",
+        "proto-produce-v05-local",
+        "proto-produce-v06-local",
+        "proto-produce-v07-local",
+        "proto-produce-v08-local",
+        "proto-produce-v09-local",
+        "proto-produce-v10-local",
+        "proto-produce-v11-local",
+        "proto-produce-v12-local",
+        "proto-diff-produce-v12-apache-3-9-1",
+        "proto-diff-produce-v13-apache-3-9-1",
+        "proto-differential-produce-apache-java"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-19",
+      "title": "Qualify complete registered Fetch wire versions and unsupported historical peers",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceFetchWire.java",
+        "tests/conformance/java/generate_fetch_wire.py",
+        "tests/fetch_wire_conformance.rs",
+        "tests/fixtures/fetch_wire/",
+        "docs/evidence/conformance/q-conf-fetchwire/"
+      ],
+      "deliverable": "Qualify complete registered Fetch wire versions and unsupported historical peers Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceFetchWire.java",
+        "tests/conformance/java/generate_fetch_wire.py",
+        "tests/fetch_wire_conformance.rs",
+        "tests/fixtures/fetch_wire/",
+        "docs/evidence/conformance/q-conf-fetchwire/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-FetchWire",
+      "initial_registered_case_ids": [
+        "matrix-cell-fetch-3-9-1",
+        "matrix-cell-fetch-4-1-0",
+        "proto-fetch-v04-local",
+        "proto-fetch-v05-local",
+        "proto-fetch-v06-local",
+        "proto-fetch-v07-local",
+        "proto-fetch-v08-local",
+        "proto-fetch-v09-local",
+        "proto-fetch-v10-local",
+        "proto-fetch-v11-local",
+        "proto-fetch-v12-local",
+        "proto-fetch-v13-local",
+        "proto-fetch-v14-local",
+        "proto-fetch-v15-local",
+        "proto-fetch-v16-local",
+        "proto-fetch-v17-local",
+        "proto-diff-fetch-v18-apache-3-9-1",
+        "proto-differential-fetch-apache-java",
+        "proto-fetch-v18-local"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-20",
+      "title": "Qualify complete registered Metadata wire versions and unsupported historical peers",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceMetadataWire.java",
+        "tests/conformance/java/generate_metadata_wire.py",
+        "tests/metadata_wire_conformance.rs",
+        "tests/fixtures/metadata_wire/",
+        "docs/evidence/conformance/q-conf-metadatawire/"
+      ],
+      "deliverable": "Qualify complete registered Metadata wire versions and unsupported historical peers Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceMetadataWire.java",
+        "tests/conformance/java/generate_metadata_wire.py",
+        "tests/metadata_wire_conformance.rs",
+        "tests/fixtures/metadata_wire/",
+        "docs/evidence/conformance/q-conf-metadatawire/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-MetadataWire",
+      "initial_registered_case_ids": [
+        "matrix-cell-metadata-3-9-1",
+        "matrix-cell-metadata-4-1-0",
+        "proto-metadata-v01-local",
+        "proto-metadata-v02-local",
+        "proto-metadata-v03-local",
+        "proto-metadata-v04-local",
+        "proto-metadata-v05-local",
+        "proto-metadata-v06-local",
+        "proto-metadata-v07-local",
+        "proto-metadata-v08-local",
+        "proto-metadata-v09-local",
+        "proto-metadata-v10-local",
+        "proto-metadata-v11-local",
+        "proto-metadata-v12-local",
+        "proto-metadata-v13-local",
+        "proto-diff-metadata-v13-apache-3-9-1",
+        "proto-differential-metadata-apache-java"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-21",
+      "title": "Qualify complete registered ListOffsets wire versions and unsupported historical peers",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceListOffsetsWire.java",
+        "tests/conformance/java/generate_list_offsets_wire.py",
+        "tests/list_offsets_wire_conformance.rs",
+        "tests/fixtures/list_offsets_wire/",
+        "docs/evidence/conformance/q-conf-listoffsetswire/"
+      ],
+      "deliverable": "Qualify complete registered ListOffsets wire versions and unsupported historical peers Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceListOffsetsWire.java",
+        "tests/conformance/java/generate_list_offsets_wire.py",
+        "tests/list_offsets_wire_conformance.rs",
+        "tests/fixtures/list_offsets_wire/",
+        "docs/evidence/conformance/q-conf-listoffsetswire/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-ListOffsetsWire",
+      "initial_registered_case_ids": [
+        "matrix-cell-listoffsets-3-9-1",
+        "matrix-cell-listoffsets-4-1-0",
+        "proto-list-offsets-v01-local",
+        "proto-list-offsets-v02-local",
+        "proto-list-offsets-v03-local",
+        "proto-list-offsets-v04-local",
+        "proto-list-offsets-v05-local",
+        "proto-list-offsets-v06-local",
+        "proto-list-offsets-v07-local",
+        "proto-list-offsets-v08-local",
+        "proto-list-offsets-v09-local",
+        "proto-list-offsets-v10-local",
+        "proto-diff-list-offsets-v10-apache-3-9-1",
+        "proto-unsupported-list-offsets-v11-client-cap",
+        "proto-differential-list-offsets-apache-java"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-22",
+      "title": "Independently replay delivered-position/fetch boundary regression histories",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceFetchDeliveryRegressions.java",
+        "tests/conformance/java/generate_fetch_delivery_regressions.py",
+        "tests/fetch_delivery_regressions_conformance.rs",
+        "tests/fixtures/fetch_delivery_regressions/",
+        "docs/evidence/conformance/q-conf-fetchdeliveryregressions/"
+      ],
+      "deliverable": "Independently replay delivered-position/fetch boundary regression histories Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceFetchDeliveryRegressions.java",
+        "tests/conformance/java/generate_fetch_delivery_regressions.py",
+        "tests/fetch_delivery_regressions_conformance.rs",
+        "tests/fixtures/fetch_delivery_regressions/",
+        "docs/evidence/conformance/q-conf-fetchdeliveryregressions/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-FetchDeliveryRegressions",
+      "initial_registered_case_ids": [
+        "audit-regression-a01-offset-filter",
+        "audit-regression-a02-abort-interval",
+        "audit-regression-a03-partial-failure",
+        "audit-regression-a04-offset-out-of-range",
+        "audit-regression-a05-cursor-commit"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-23",
+      "title": "Qualify the declared historical ordinary broker/record-event cells",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceHistoricalOrdinary.java",
+        "tests/conformance/java/generate_historical_ordinary.py",
+        "tests/historical_ordinary_conformance.rs",
+        "tests/fixtures/historical_ordinary/",
+        "docs/evidence/conformance/q-conf-historicalordinary/"
+      ],
+      "deliverable": "Qualify the declared historical ordinary broker/record-event cells Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceHistoricalOrdinary.java",
+        "tests/conformance/java/generate_historical_ordinary.py",
+        "tests/historical_ordinary_conformance.rs",
+        "tests/fixtures/historical_ordinary/",
+        "docs/evidence/conformance/q-conf-historicalordinary/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-HistoricalOrdinary",
+      "initial_registered_case_ids": [
+        "broker-cell-historical-apache-3-9-1",
+        "broker-cell-historical-apache-4-1-0",
+        "verifiable-produce-consume-3-9-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-24",
+      "title": "Qualify incremental Fetch session runtime and bounded reset histories",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceFetchSessionRuntime.java",
+        "tests/conformance/java/generate_fetch_session_runtime.py",
+        "tests/fetch_session_runtime_conformance.rs",
+        "tests/fixtures/fetch_session_runtime/",
+        "docs/evidence/conformance/q-conf-fetchsessionruntime/"
+      ],
+      "deliverable": "Qualify incremental Fetch session runtime and bounded reset histories Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceFetchSessionRuntime.java",
+        "tests/conformance/java/generate_fetch_session_runtime.py",
+        "tests/fetch_session_runtime_conformance.rs",
+        "tests/fixtures/fetch_session_runtime/",
+        "docs/evidence/conformance/q-conf-fetchsessionruntime/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-FetchSessionRuntime",
+      "initial_registered_case_ids": [
+        "feature-fetch-incremental-session-runtime"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-25",
+      "title": "Qualify Producer/Consumer quota throttle runtime histories",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceQuotaThrottleRuntime.java",
+        "tests/conformance/java/generate_quota_throttle_runtime.py",
+        "tests/quota_throttle_runtime_conformance.rs",
+        "tests/fixtures/quota_throttle_runtime/",
+        "docs/evidence/conformance/q-conf-quotathrottleruntime/"
+      ],
+      "deliverable": "Qualify Producer/Consumer quota throttle runtime histories Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceQuotaThrottleRuntime.java",
+        "tests/conformance/java/generate_quota_throttle_runtime.py",
+        "tests/quota_throttle_runtime_conformance.rs",
+        "tests/fixtures/quota_throttle_runtime/",
+        "docs/evidence/conformance/q-conf-quotathrottleruntime/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-QuotaThrottleRuntime",
+      "initial_registered_case_ids": [
+        "feature-produce-fetch-quota-throttle-runtime"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-26",
+      "title": "Qualify the finite verifiable Producer option profile",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceVerifiableProducerOptions.java",
+        "tests/conformance/java/generate_verifiable_producer_options.py",
+        "tests/verifiable_producer_options_conformance.rs",
+        "tests/fixtures/verifiable_producer_options/",
+        "docs/evidence/conformance/q-conf-verifiableproduceroptions/"
+      ],
+      "deliverable": "Qualify the finite verifiable Producer option profile Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceVerifiableProducerOptions.java",
+        "tests/conformance/java/generate_verifiable_producer_options.py",
+        "tests/verifiable_producer_options_conformance.rs",
+        "tests/fixtures/verifiable_producer_options/",
+        "docs/evidence/conformance/q-conf-verifiableproduceroptions/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-VerifiableProducerOptions",
+      "initial_registered_case_ids": [
+        "verifiable-producer-options-3-9-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-27",
+      "title": "Qualify finite verifiable reset and autocommit profiles",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceVerifiableConsumerOffsets.java",
+        "tests/conformance/java/generate_verifiable_consumer_offsets.py",
+        "tests/verifiable_consumer_offsets_conformance.rs",
+        "tests/fixtures/verifiable_consumer_offsets/",
+        "docs/evidence/conformance/q-conf-verifiableconsumeroffsets/"
+      ],
+      "deliverable": "Qualify finite verifiable reset and autocommit profiles Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceVerifiableConsumerOffsets.java",
+        "tests/conformance/java/generate_verifiable_consumer_offsets.py",
+        "tests/verifiable_consumer_offsets_conformance.rs",
+        "tests/fixtures/verifiable_consumer_offsets/",
+        "docs/evidence/conformance/q-conf-verifiableconsumeroffsets/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-VerifiableConsumerOffsets",
+      "initial_registered_case_ids": [
+        "verifiable-consumer-reset-policies-3-9-1",
+        "verifiable-consumer-autocommit-3-9-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-28",
+      "title": "Qualify public UpdateFeatures version/option/error behavior",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceUpdateFeatures.java",
+        "tests/conformance/java/generate_update_features.py",
+        "tests/update_features_conformance.rs",
+        "tests/fixtures/update_features/",
+        "docs/evidence/conformance/q-conf-updatefeatures/"
+      ],
+      "deliverable": "Qualify public UpdateFeatures version/option/error behavior Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceUpdateFeatures.java",
+        "tests/conformance/java/generate_update_features.py",
+        "tests/update_features_conformance.rs",
+        "tests/fixtures/update_features/",
+        "docs/evidence/conformance/q-conf-updatefeatures/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-UpdateFeatures",
+      "initial_registered_case_ids": [
+        "current-public-api-057-v0-4-1-2",
+        "current-public-api-057-v1-4-1-2",
+        "current-public-api-057-v2-4-1-2",
+        "current-public-api-057-v0-4-2-1",
+        "current-public-api-057-v1-4-2-1",
+        "current-public-api-057-v2-4-2-1",
+        "current-public-api-057-v0-4-3-1",
+        "current-public-api-057-v1-4-3-1",
+        "current-public-api-057-v2-4-3-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-29",
+      "title": "Qualify public share offset alter/delete behavior",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceShareOffsetMutations.java",
+        "tests/conformance/java/generate_share_offset_mutations.py",
+        "tests/share_offset_mutations_conformance.rs",
+        "tests/fixtures/share_offset_mutations/",
+        "docs/evidence/conformance/q-conf-shareoffsetmutations/"
+      ],
+      "deliverable": "Qualify public share offset alter/delete behavior Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Exact registered case IDs are the declared starting cohort; parameter/source applicability expansion must be recorded before qualification.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceShareOffsetMutations.java",
+        "tests/conformance/java/generate_share_offset_mutations.py",
+        "tests/share_offset_mutations_conformance.rs",
+        "tests/fixtures/share_offset_mutations/",
+        "docs/evidence/conformance/q-conf-shareoffsetmutations/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-ShareOffsetMutations",
+      "initial_registered_case_ids": [
+        "current-public-api-091-v0-4-1-2",
+        "current-public-api-091-v0-4-2-1",
+        "current-public-api-091-v0-4-3-1",
+        "current-public-api-092-v0-4-1-2",
+        "current-public-api-092-v0-4-2-1",
+        "current-public-api-092-v0-4-3-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-30",
+      "title": "Qualify current DescribeQuorum public Admin cells",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03",
+        "KL05-19"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceDescribeQuorum.java",
+        "tests/conformance/java/generate_describe_quorum.py",
+        "tests/describe_quorum_conformance.rs",
+        "tests/fixtures/describe_quorum/",
+        "docs/evidence/conformance/q-conf-describequorum/"
+      ],
+      "deliverable": "Qualify current DescribeQuorum public Admin cells Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Use genuine public Java Admin.describeMetadataQuorum where available; quorum leader/internal-only role is not a blanket public exclusion.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceDescribeQuorum.java",
+        "tests/conformance/java/generate_describe_quorum.py",
+        "tests/describe_quorum_conformance.rs",
+        "tests/fixtures/describe_quorum/",
+        "docs/evidence/conformance/q-conf-describequorum/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-DescribeQuorum",
+      "initial_registered_case_ids": [
+        "current-claimed-api-055-v0-4-1-2",
+        "current-claimed-api-055-v1-4-1-2",
+        "current-claimed-api-055-v2-4-1-2",
+        "current-claimed-api-055-v0-4-2-1",
+        "current-claimed-api-055-v1-4-2-1",
+        "current-claimed-api-055-v2-4-2-1",
+        "current-claimed-api-055-v0-4-3-1",
+        "current-claimed-api-055-v1-4-3-1",
+        "current-claimed-api-055-v2-4-3-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-31",
+      "title": "Qualify current AllocateProducerIds raw extension cells",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceAllocateProducerIdsRaw.java",
+        "tests/conformance/java/generate_allocate_producer_ids_raw.py",
+        "tests/allocate_producer_ids_raw_conformance.rs",
+        "tests/fixtures/allocate_producer_ids_raw/",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/"
+      ],
+      "deliverable": "Qualify current AllocateProducerIds raw extension cells Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Do not invent a standard Java Admin method: use authentic generated Apache request/parser and actual broker/reference implementation, plus bounded Rust raw-extension dispatch. Wire/body comparison is distinguished from runtime behavior.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceAllocateProducerIdsRaw.java",
+        "tests/conformance/java/generate_allocate_producer_ids_raw.py",
+        "tests/allocate_producer_ids_raw_conformance.rs",
+        "tests/fixtures/allocate_producer_ids_raw/",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-AllocateProducerIdsRaw",
+      "initial_registered_case_ids": [
+        "current-claimed-api-067-v0-4-1-2",
+        "current-claimed-api-067-v0-4-2-1",
+        "current-claimed-api-067-v0-4-3-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL01-32",
+      "title": "Qualify current AssignReplicasToDirs raw extension cells",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL01-03"
+      ],
+      "files": [
+        "tests/conformance/java/ConformanceAssignReplicasToDirsRaw.java",
+        "tests/conformance/java/generate_assign_replicas_to_dirs_raw.py",
+        "tests/assign_replicas_to_dirs_raw_conformance.rs",
+        "tests/fixtures/assign_replicas_to_dirs_raw/",
+        "docs/evidence/conformance/q-conf-assignreplicastodirsraw/"
+      ],
+      "deliverable": "Qualify current AssignReplicasToDirs raw extension cells Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+      "acceptance": [
+        "Enumerate exact applicable source cases and parameter invocations for this single API or small behavioral family; retain unsupported/nonapplicable cases with source-bound reasons.",
+        "Run authentic pinned Apache4.1.2/4.2.1/4.3.1 builders/parsers and public behavior where available, plus the stated historical peer cells. Actual fields/histories/errors must match independently.",
+        "Preserve every old source/peer/disposition and actual failed attempt. Any later supersession needs an explicit independently reviewed new-source result; never promote authored or local roundtrip coverage.",
+        "Keep current corpus and qualification denominators unchanged except additive applicable cells. No product implementation dependency or done tool alone closes this evidence card.",
+        "Do not invent a standard Java Admin method: use authentic generated Apache request/parser and actual broker/reference implementation, plus bounded Rust raw-extension dispatch. Wire/body comparison is distinguished from runtime behavior.",
+        "Finite named versions/cases, nested counts/bytes, source/runtime hashes and one overall process/deadline budget.",
+        "No unbounded all-oracles job; all owned peers join and failures remain in the report."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/java/ConformanceAssignReplicasToDirsRaw.java",
+        "tests/conformance/java/generate_assign_replicas_to_dirs_raw.py",
+        "tests/assign_replicas_to_dirs_raw_conformance.rs",
+        "tests/fixtures/assign_replicas_to_dirs_raw/",
+        "docs/evidence/conformance/q-conf-assignreplicastodirsraw/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-AssignReplicasToDirsRaw",
+      "initial_registered_case_ids": [
+        "current-claimed-api-073-v0-4-1-2",
+        "current-claimed-api-073-v0-4-2-1",
+        "current-claimed-api-073-v0-4-3-1"
+      ],
+      "caller_scopes": [],
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    },
+    {
+      "id": "KL02-11",
+      "title": "Bound backing allocations retained by producer admission",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL02-01",
+        "KL02-02"
+      ],
+      "files": [
+        "src/producer.rs",
+        "tests/producer_retained_backing.rs",
+        "docs/evidence/client/producer-retained-backing/"
+      ],
+      "deliverable": "One ownership family: accepted key/value/header Bytes and header strings, including shared backing slices; explicit payload-budget contract, not process RSS. Choose and enforce an explicit charged/copied ownership policy for accepted small slices backed by large allocations.",
+      "acceptance": [
+        "Choose and enforce an explicit charged/copied ownership policy for accepted small slices backed by large allocations.",
+        "Retain a single reservation owner through queue, in-flight, retry, cancellation and release; preserve the documented oversized-first-record progress exception.",
+        "Keep encoding scratch, socket/kernel buffers, allocator overhead and process RSS outside any claim unless separately budgeted; expose their exclusion truthfully."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/producer.rs",
+        "tests/producer_retained_backing.rs",
+        "docs/evidence/client/producer-retained-backing/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-IMPL-ProducerBacking",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "One ownership family: accepted key/value/header Bytes and header strings, including shared backing slices; explicit payload-budget contract, not process RSS."
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL06-11",
+      "title": "Integrate SASL session reauthentication into Producer workers",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ],
+      "files": [
+        "src/producer.rs",
+        "src/protocol/sasl.rs",
+        "src/net.rs",
+        "tests/producer_sasl_reauthentication.rs",
+        "docs/evidence/client/producer-sasl-reauthentication/"
+      ],
+      "deliverable": "Producer worker connections and their existing accepted/in-flight requests Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/producer.rs",
+        "src/protocol/sasl.rs",
+        "src/net.rs",
+        "tests/producer_sasl_reauthentication.rs",
+        "docs/evidence/client/producer-sasl-reauthentication/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-IMPL-ProducerReauth",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "Producer worker connections and their existing accepted/in-flight requests"
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL06-12",
+      "title": "Integrate owned session reauthentication into shared roundtrip RPC callers",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ],
+      "files": [
+        "src/net.rs",
+        "src/protocol/sasl.rs",
+        "src/consumer.rs",
+        "src/group.rs",
+        "src/share.rs",
+        "src/admin.rs",
+        "tests/rpc_sasl_reauthentication.rs",
+        "docs/evidence/client/rpc-sasl-reauthentication/"
+      ],
+      "deliverable": "One shared roundtrip transport implementation with separate Consumer/ConsumerGroup/ShareGroup/Admin caller qualification, not four duplicated transport engines. Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/net.rs",
+        "src/protocol/sasl.rs",
+        "src/consumer.rs",
+        "src/group.rs",
+        "src/share.rs",
+        "src/admin.rs",
+        "tests/rpc_sasl_reauthentication.rs",
+        "docs/evidence/client/rpc-sasl-reauthentication/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-IMPL-RpcReauth",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "Manual Consumer bootstrap/leader roundtrip connections",
+        "ConsumerGroup coordinator ownership and membership RPCs; classic and KIP-848 cells remain separate",
+        "ShareGroup coordinator/leader ownership and request lifecycle",
+        "Admin ownership lease and routed RPC connections"
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL06-13",
+      "title": "Bound and retire shared OIDC manager ownership",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL06-03",
+        "KL09-59"
+      ],
+      "files": [
+        "src/protocol/oidc.rs",
+        "src/protocol/sasl.rs",
+        "tests/oidc_manager_ownership.rs",
+        "docs/evidence/client/oidc-manager-ownership/"
+      ],
+      "deliverable": "One cache/lifetime family: process-global SHARED_MANAGERS credential-key entries and manager refresh owners. Replace or constrain process-lifetime strong retention with explicit capacity, credential isolation and active-owner retirement semantics.",
+      "acceptance": [
+        "Replace or constrain process-lifetime strong retention with explicit capacity, credential isolation and active-owner retirement semantics.",
+        "Repeated distinct credential/TLS configurations cannot grow manager count or retained credential/config/task memory without a declared bound.",
+        "Preserve same-key single-flight, sequential reuse, valid-old-token behavior, fail-closed expiry and secret redaction; last-owner cleanup must stop refresh work."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/oidc.rs",
+        "src/protocol/sasl.rs",
+        "tests/oidc_manager_ownership.rs",
+        "docs/evidence/client/oidc-manager-ownership/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-IMPL-OidcManagerOwnership",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "One cache/lifetime family: process-global SHARED_MANAGERS credential-key entries and manager refresh owners."
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL05-43",
+      "title": "Qualify one selected production Avro Codec through the companion Adapter",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-25"
+      ],
+      "files": [
+        "partitionline-schema/tests/avro_selected_codec_conformance.rs",
+        "tests/conformance/java/ConformanceAvroSelectedCodec.java",
+        "tests/fixtures/avro_selected_codec/",
+        "docs/evidence/conformance/avro-selected-codec/"
+      ],
+      "deliverable": "One declared opt-in caller-selected Avro codec and writer/reader resolution family; no built-in general parser is inferred from Adapter<C>. Name/pin the selected production serializer and resource limits; exercise real writer/reader resolution, defaults/null unions, promotions and explicit reference inputs.",
+      "acceptance": [
+        "Name/pin the selected production serializer and resource limits; exercise real writer/reader resolution, defaults/null unions, promotions and explicit reference inputs.",
+        "Compare actual emitted and decoded frames bidirectionally with an independent Avro peer, including incompatible/malformed/trailing payload failures.",
+        "Distinguish adapter frame/input bounds from codec parsing, recursion, scratch and decoded-object budgets; publication/live Registry qualification remain separate."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-schema/tests/avro_selected_codec_conformance.rs",
+        "tests/conformance/java/ConformanceAvroSelectedCodec.java",
+        "tests/fixtures/avro_selected_codec/",
+        "docs/evidence/conformance/avro-selected-codec/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-AvroBackend",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "One declared opt-in caller-selected Avro codec and writer/reader resolution family; no built-in general parser is inferred from Adapter<C>."
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL05-44",
+      "title": "Qualify one selected production Draft 2020-12 Codec through the companion Adapter",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-27"
+      ],
+      "files": [
+        "partitionline-schema/tests/json_schema_selected_codec_conformance.rs",
+        "tests/conformance/java/ConformanceJsonSchemaSelectedCodec.java",
+        "tests/fixtures/json_schema_selected_codec/",
+        "docs/evidence/conformance/json-schema-selected-codec/"
+      ],
+      "deliverable": "One declared JSON Schema dialect and explicit offline-reference family; fixture-only validator coverage does not establish arbitrary schemas. Name/pin a production parser/validator and its resource limits; exercise actual writer and reader validation plus explicit URI/reference resolution.",
+      "acceptance": [
+        "Name/pin a production parser/validator and its resource limits; exercise actual writer and reader validation plus explicit URI/reference resolution.",
+        "Use independent schemas/instances and reverse-check actual Rust frames for null/numeric/ref/dialect failures; preserve no-coercion/no-default-insertion policy.",
+        "Retain unknown-dialect and missing-reference fail-closed behavior; no hidden network resolution or complete ecosystem/live Registry claim."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-schema/tests/json_schema_selected_codec_conformance.rs",
+        "tests/conformance/java/ConformanceJsonSchemaSelectedCodec.java",
+        "tests/fixtures/json_schema_selected_codec/",
+        "docs/evidence/conformance/json-schema-selected-codec/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-JsonSchemaBackend",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "One declared JSON Schema dialect and explicit offline-reference family; fixture-only validator coverage does not establish arbitrary schemas."
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+    },
+    {
+      "id": "KL05-45",
+      "title": "Qualify the generic five-byte header scope independently",
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-26"
+      ],
+      "files": [
+        "partitionline-schema/tests/generic_schema_header_conformance.rs",
+        "tests/conformance/java/ConformanceGenericSchemaHeader.java",
+        "tests/fixtures/generic_schema_header/",
+        "docs/evidence/conformance/generic-schema-header/"
+      ],
+      "deliverable": "One generic magic-byte/schema-ID wire-helper family; Protobuf message indexes remain a distinct module and row. Pin independent generic-header vectors for empty payload, boundary schema IDs, bad magic and truncated frames.",
+      "acceptance": [
+        "Pin independent generic-header vectors for empty payload, boundary schema IDs, bad magic and truncated frames.",
+        "Verify actual helper output and precise five-byte input/output contract; generic framing cannot be used as Protobuf payload framing proof.",
+        "Keep caller-owned allocation and companion publication scope explicit; review whether partial denotes broader ecosystem scope rather than missing generic-header functionality."
+      ],
+      "validation": [
+        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-schema/tests/generic_schema_header_conformance.rs",
+        "tests/conformance/java/ConformanceGenericSchemaHeader.java",
+        "tests/fixtures/generic_schema_header/",
+        "docs/evidence/conformance/generic-schema-header/"
+      ],
+      "read_only_held": [
+        "src/protocol/records.rs",
+        "src/protocol/buf.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "Cargo manifests/lock if needed"
+      ],
+      "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
+      "proposal_key": "Q-CONF-GenericSchemaHeader",
+      "initial_registered_case_ids": [],
+      "caller_scopes": [
+        "One generic magic-byte/schema-ID wire-helper family; Protobuf message indexes remain a distinct module and row."
+      ],
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
     }
   ]
 }

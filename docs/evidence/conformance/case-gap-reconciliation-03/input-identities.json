@@ -1,0 +1,176 @@
+{
+  "git_inputs": {
+    "docs/evidence/client/KL05-12/final/validation.json": {
+      "bytes": 1765,
+      "git_blob": "38f788e3322deb0c01b5da7aba080c10762c7d08",
+      "git_mode": "100644",
+      "sha256": "e3f12d5890cedba5e8b845ad0856dd70a1f9c5c6357a053a54b6bd3795f7b84d",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-14/three-sdk/manifest.json": {
+      "bytes": 12538,
+      "git_blob": "a9eb06d0e2e70afa49f8176cf492b5b5ffba6157",
+      "git_mode": "100644",
+      "sha256": "011c551590478a8a13b5361ae8d9085fe027426e2f92219d2de95cf49f667600",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json": {
+      "bytes": 3748,
+      "git_blob": "6696f2ebdc8813b61e1216063414a4a814c831d6",
+      "git_mode": "100644",
+      "sha256": "9c767c3701c99d2cbdc7cf243980cbffe3a608b59cf49a32e1ca0f7823a16088",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log": {
+      "bytes": 147583,
+      "git_blob": "565bfe4cc1fca60f3a84b7c5c31ba8e6b47b6d8a",
+      "git_mode": "100644",
+      "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json": {
+      "bytes": 7809,
+      "git_blob": "b5359c758fb2677e86b3029085274632215bc3af",
+      "git_mode": "100644",
+      "sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json": {
+      "bytes": 8116,
+      "git_blob": "93ee051130e53ec6c33f5e5f63b5c96c04600567",
+      "git_mode": "100644",
+      "sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json": {
+      "bytes": 8116,
+      "git_blob": "f3906aa243cc3e782b03f655086d8fd73a560adf",
+      "git_mode": "100644",
+      "sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/protocol-inventory-current/gap-audit-01/all-93-reconciliation.json": {
+      "bytes": 131196,
+      "git_blob": "f827ba3d5ee3076f7294fccc78e1fe6355c9b3d2",
+      "git_mode": "100644",
+      "sha256": "12900211fdb9f1fcdfe2af4a93e78cd490081c37fc6082e012d7cd5ea648fd9d",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/protocol-inventory-current/gap-audit-01/root-card-installation.json": {
+      "bytes": 950,
+      "git_blob": "1e47f0f0ddcabc63eaa7ce78e36ae83126ff3336",
+      "git_mode": "100644",
+      "sha256": "a386202c02e64a7f2ee0fef4c5a22b08c05bb762dba05fb0ca0eb0008cb4ac44",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/client/protocol-inventory-current/review-01/corrected-inventory-proposal.json": {
+      "bytes": 316245,
+      "git_blob": "a1627a36bef05653d67d391d2645e66d96ea9ca0",
+      "git_mode": "100644",
+      "sha256": "df278487951ed567985173e79fdea13ebda75a8a699c0e1fe6c13aa968f62936",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/evidence/conformance/KL01-13/run-02/summary.json": {
+      "bytes": 1732,
+      "git_blob": "1b9b847a9111532de5117ddce742353b8efe5d54",
+      "git_mode": "100644",
+      "sha256": "270f7a666802ad26619d41aefe4cdacbe0cc560f4cb459844dbbf58cb2ea1195",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/plan/evidence/KL01-17.json": {
+      "bytes": 40157,
+      "git_blob": "d9eb51933b4bdc9add42e6d03aa1b7a9edde8474",
+      "git_mode": "100644",
+      "sha256": "857240d89d2258c1b9f0a9fbc24366e3adeb48a4592a9f70c674442bfd01f9e6",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "docs/plan/tasks.json": {
+      "bytes": 3420069,
+      "git_blob": "8140ccca3ff61026ca823f7511ea88f2061a4212",
+      "git_mode": "100644",
+      "sha256": "08c6457218d0d5251910692152e32c18d8a2516fa36fb094966a808fd2b7a060",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "scripts/check-protocol-coverage.py": {
+      "bytes": 62971,
+      "git_blob": "602bbb84755321aa141862c0eb42261eee25002d",
+      "git_mode": "100755",
+      "sha256": "b8f2aa585fa35f2d464d801d2b24fd80ce730050b6f60e05cc9c5403edb42e57",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "scripts/conformance-report.py": {
+      "bytes": 39264,
+      "git_blob": "12d13eb0dce92e6092e89586172a0c8eac2542b8",
+      "git_mode": "100755",
+      "sha256": "14c46a6e80c01bb8ebc07bffe0546836392d16fdb5f12d24bebb6afbc0e95bd1",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/cases.json": {
+      "bytes": 132894,
+      "git_blob": "342bf314943eec916d0923f410cb69f485fb3bd7",
+      "git_mode": "100644",
+      "sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/features.json": {
+      "bytes": 65145,
+      "git_blob": "d4f51409c14309d81437b46492f9d8b14db1944d",
+      "git_mode": "100644",
+      "sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/fetch-v18-delta.json": {
+      "bytes": 54738,
+      "git_blob": "67a36e3c80508552d628abf2c4811d892486182f",
+      "git_mode": "100644",
+      "sha256": "fb93e1af929f3559aa690b5c0d55e82655f489a836f99ca2b8d5ebb3e565e170",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/java/pins.json": {
+      "bytes": 1149,
+      "git_blob": "35c759af966913a9ca6becb387439d869ebbdbbf",
+      "git_mode": "100644",
+      "sha256": "d7526152a2c4801e191a97f8b46db18e973f745b3f6eaf1afa7f8eadd9b705bb",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/librdkafka/pin.json": {
+      "bytes": 452,
+      "git_blob": "34446b52496a069b26ad6b295fa109fc370b4a6d",
+      "git_mode": "100644",
+      "sha256": "de292b611f5d7b64433b1f90acb0b6c883cec7a8607ca76f0ec23d3a538857e1",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/produce-v13-delta.json": {
+      "bytes": 52285,
+      "git_blob": "588b13bd350de578a94638940d4eba5052051388",
+      "git_mode": "100644",
+      "sha256": "c5776b6d309ccf19248193d55044435fb32bb61fe3051391b4781f38ea738c0d",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/conformance/test_check_protocol_coverage.py": {
+      "bytes": 27217,
+      "git_blob": "7eb2f5b55cb76f744d0ba5ce56b296fdebaab33a",
+      "git_mode": "100644",
+      "sha256": "672fcd157acb591f5a3dc074a94b68c2ad7a4c52883db3715dc2a7461d5327ba",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/fixtures/protocol_oracles/fetch_v18/manifest.json": {
+      "bytes": 3768,
+      "git_blob": "9d4dfe02e4254fb765ee2f893810272d29c59ae7",
+      "git_mode": "100644",
+      "sha256": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    },
+    "tests/fixtures/protocol_oracles/produce_v13_manifest.json": {
+      "bytes": 3007,
+      "git_blob": "d2c3fe2ff4937b7fb5815ff17c49e169e64d938a",
+      "git_mode": "100644",
+      "sha256": "aaf63422fecad7319bf31128ef75d084a61b3d0853ef2f383bb2bae9b1602428",
+      "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+    }
+  },
+  "known_upstream_inventory_sha256": "00f2ebf4a675eaa110ff75f052869b462983641865b9bef31117ebf3197d97cf",
+  "no_repo_edits": true,
+  "no_runtime_executed": true,
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

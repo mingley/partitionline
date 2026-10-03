@@ -1,0 +1,1664 @@
+{
+  "schema_version": 1,
+  "audit": "KL01-14 independent feature/case static reconciliation",
+  "source_commit": "497f0722100d2ec34cfa6e0775bb278190f53693",
+  "immutable_source_only": true,
+  "work_mode": {
+    "repository_edits": false,
+    "plan_edits": false,
+    "sdk_jvm_cargo_product_runtime": false,
+    "private_contents_read": false,
+    "python_static_affinity": "0,1",
+    "qualification_execution_performed": false
+  },
+  "counts": {
+    "feature_rows": 175,
+    "feature_dispositions": {
+      "present": 147,
+      "missing": 10,
+      "partial": 3,
+      "out_of_scope": 15
+    },
+    "reviewed_non_present_feature_rows": 28,
+    "plan_tasks": 316,
+    "plan_task_statuses": {
+      "done": 176,
+      "in_progress": 12,
+      "pending": 128
+    },
+    "case_rows": 169,
+    "case_dispositions": {
+      "local_consistency": 83,
+      "unsupported": 14,
+      "blocked": 4,
+      "failed": 5,
+      "independent_pass": 16,
+      "not_applicable": 20,
+      "not_run": 27
+    }
+  },
+  "source_blob_manifest": [
+    {
+      "path": "docs/plan/tasks.json",
+      "bytes": 3420069,
+      "git_blob_sha1": "8140ccca3ff61026ca823f7511ea88f2061a4212",
+      "sha256": "08c6457218d0d5251910692152e32c18d8a2516fa36fb094966a808fd2b7a060"
+    },
+    {
+      "path": "tests/conformance/features.json",
+      "bytes": 65145,
+      "git_blob_sha1": "d4f51409c14309d81437b46492f9d8b14db1944d",
+      "sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151"
+    },
+    {
+      "path": "tests/conformance/cases.json",
+      "bytes": 132894,
+      "git_blob_sha1": "342bf314943eec916d0923f410cb69f485fb3bd7",
+      "sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58"
+    },
+    {
+      "path": "docs/plan/README.md",
+      "bytes": 9331,
+      "git_blob_sha1": "6a4c75577599bd8b18ed477321b726483b9b4f15",
+      "sha256": "1740cd873e2e1e26079e3e257b827596dc963ab07ccb2dd582288c8427a641bb"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "bytes": 37541,
+      "git_blob_sha1": "b7c0eb039ebd9623ee72f4d6abddba88ea1b6568",
+      "sha256": "8f54039ac8bab7208a083d24fac11a6adea532f1d1945d86b9e4c42ed632258e"
+    },
+    {
+      "path": "docs/gaps.md",
+      "bytes": 26808,
+      "git_blob_sha1": "18f7b133cf7fba076088fa250a637d38b45f14d8",
+      "sha256": "1ddc2f4cfcf2c9be7e28432e33ab3fee88cd56d55efec2de6bdf3d7c21ea4010"
+    },
+    {
+      "path": "docs/schema-companion.md",
+      "bytes": 8691,
+      "git_blob_sha1": "f15d6737379323aae421630740fb474c90c33f63",
+      "sha256": "b643b77e0875211a33c2f5277747cfb6c72e3fba3c7ee929fcb46b9fbad4c472"
+    },
+    {
+      "path": "docs/resource-contract.md",
+      "bytes": 32104,
+      "git_blob_sha1": "ad6805494943241b9bd3f7790b16637261727e1b",
+      "sha256": "fd4d97a303d7323dee50bd94e662f0201d8fec2cbfcc45e6203bc9a04b4b794e"
+    },
+    {
+      "path": "docs/security.md",
+      "bytes": 6801,
+      "git_blob_sha1": "877a41eb65961ec5b84423fb85b6de8da3767425",
+      "sha256": "73749a542a1b9a3f00e4e2d263ca8f408ae964b17169d750b3e2dd347134718d"
+    },
+    {
+      "path": "docs/auth-refresh.md",
+      "bytes": 30594,
+      "git_blob_sha1": "e0022f73f93f2b5d140b9c916cfcb55e1e69b4d5",
+      "sha256": "02ce1bf42818ecd6a6de69ee15a109ef3a8fc737b727b594d7f33f389eebef0b"
+    },
+    {
+      "path": "src/producer.rs",
+      "bytes": 218265,
+      "git_blob_sha1": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    {
+      "path": "src/consumer.rs",
+      "bytes": 179916,
+      "git_blob_sha1": "ed103a4989811420ba02d521d2a3a219266488a5",
+      "sha256": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d"
+    },
+    {
+      "path": "src/group.rs",
+      "bytes": 137817,
+      "git_blob_sha1": "e43fb091c7946d68185bd37eefb05d3d25449983",
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3"
+    },
+    {
+      "path": "src/admin.rs",
+      "bytes": 576058,
+      "git_blob_sha1": "84c83cf1cca54725a8f0a2dde370d5394ca7fbf4",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc"
+    },
+    {
+      "path": "src/net.rs",
+      "bytes": 83409,
+      "git_blob_sha1": "b5c14fdf29541e4f05840ff4a9444f2cd830d71b",
+      "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+    },
+    {
+      "path": "src/protocol/oidc.rs",
+      "bytes": 104985,
+      "git_blob_sha1": "a1533f654b683db6bedcabda47a30085082e4894",
+      "sha256": "828343989f5615a3170c84f2f8d26056575d93046b3735f10e0eaa0c2a4fae56"
+    },
+    {
+      "path": "src/protocol/sasl.rs",
+      "bytes": 46329,
+      "git_blob_sha1": "ea8c49b4c3ebdab92e343c19ab190bc6eb1365a1",
+      "sha256": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50"
+    },
+    {
+      "path": "partitionline-schema/src/avro.rs",
+      "bytes": 14059,
+      "git_blob_sha1": "c00a81d3eabe45ca7760928ad783ee7c872c2a5e",
+      "sha256": "4a0459c8e053d2fd9d25d44c15ff065fd3244aedd560388177917fa3d1b44253"
+    },
+    {
+      "path": "partitionline-schema/src/json_schema.rs",
+      "bytes": 17042,
+      "git_blob_sha1": "e6346a19bd2152e49f395160d87be951dacf3d66",
+      "sha256": "30348be4b2e7552f374b0e16f00aa216425d29b8a3edf7898513ebda3f5016d3"
+    },
+    {
+      "path": "partitionline-schema/src/wire.rs",
+      "bytes": 3152,
+      "git_blob_sha1": "56da061ddba7dedd0840f17c6b3b3240ba5a6891",
+      "sha256": "881f4f63b35fefdf821537275eab41212b873a06fc5866c72bc250a5dcb7e2ed"
+    },
+    {
+      "path": "tests/full_surface.rs",
+      "bytes": 543923,
+      "git_blob_sha1": "b248fecfde4ecd5107ec4590bafb8b17b0f9b09d",
+      "sha256": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4"
+    },
+    {
+      "path": "tests/buffer_ownership.rs",
+      "bytes": 22563,
+      "git_blob_sha1": "ab5c808ea4e9eda9fafb3e837e4ba4fef1a45f38",
+      "sha256": "eb5ed521fb51f3bd4fdd6871944450ef17b9be906e3d978b15b3ac4678cac138"
+    },
+    {
+      "path": "tests/auth_lifecycle.rs",
+      "bytes": 62183,
+      "git_blob_sha1": "5c1046c5477cf3e2a8f00dbda86f1ce686983843",
+      "sha256": "b87edace544abbbf7713967259943739b7015f2b689fb2e84692d5443c5985b3"
+    },
+    {
+      "path": "partitionline-schema/tests/avro.rs",
+      "bytes": 22329,
+      "git_blob_sha1": "6e1627bc0364e6fb56cb8fae8a59118e43287c0e",
+      "sha256": "6833f7b159d17ff7941c78998e87ee94c07f0c1cfef376e4c60237155c8db72f"
+    },
+    {
+      "path": "partitionline-schema/tests/json_schema.rs",
+      "bytes": 19909,
+      "git_blob_sha1": "139c4a8955bb27c17ce51b8a04d70b9489900528",
+      "sha256": "3018b73fbc801af0e9b340d37f47ef57c2e294993251785d735ede7fb8b259c6"
+    },
+    {
+      "path": "docs/plan/evidence/KL05-26.json",
+      "bytes": 10504,
+      "git_blob_sha1": "c7c342be4f7eec0ac6efef62f8e3c7e223051ada",
+      "sha256": "7101353d2f18c9d318baebaf0ec274c40c8c1b8d07afd685cda980e2f4f67765"
+    },
+    {
+      "path": "docs/plan/evidence/KL05-27.json",
+      "bytes": 11110,
+      "git_blob_sha1": "3dbae3cdfb99a5cd8ab64584d645f75ae203dedc",
+      "sha256": "76dfe6bd212ceac2521b58cffa7ffc3600b4bc7c1a0488d55cdc0f49a78f18a5"
+    },
+    {
+      "path": "tests/conformance/broker/api-matrix.json",
+      "bytes": 664586,
+      "git_blob_sha1": "05a102823aa1fdc61a4df5c729c597553c162511",
+      "sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685"
+    }
+  ],
+  "review_principles": [
+    "Present/callable source, self-consistency and codecs alone do not establish runtime or profile conformance.",
+    "Only an actual pending/in_progress task is called open; proposal keys are audit suggestions with no allocated plan ID.",
+    "Frozen case outcomes keep their immutable source and historical interpretation; new current-source evidence is additive.",
+    "Framework/runtime, C ABI and internal role exclusions are narrow; transferable client behavior stays applicable."
+  ],
+  "feature_findings": [
+    {
+      "feature_row_ordinal_1_based": 12,
+      "feature_id": "producer.sticky_partitioner",
+      "current_disposition": "missing",
+      "profile": "producer",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/ROADMAP.md:KL-05",
+      "source_notes": "Opt-in sticky unkeyed batching partitioner is not implemented; tracked in KL05-10.",
+      "assessment": "active_implementation_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-10",
+          "status": "in_progress",
+          "title": "Add an explicit sticky unkeyed partitioner"
+        }
+      ],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Actual in_progress card implements the missing opt-in sticky policy; source presence or round-robin does not close it."
+    },
+    {
+      "feature_row_ordinal_1_based": 13,
+      "feature_id": "producer.buffer_memory",
+      "current_disposition": "partial",
+      "profile": "producer",
+      "layer": "runtime",
+      "source_entrypoint": "partitionline::producer::ProducerConfig::buffer_memory",
+      "source_evidence_reference": "docs/audits/2026-09-21.md:A08",
+      "source_notes": "Caps queued key+value bytes; partial because headers, metadata, encoded buffers, and socket memory are uncounted (audit A08).",
+      "assessment": "partial_with_stale_header_description",
+      "actual_open_tasks": [
+        {
+          "id": "KL02-09",
+          "status": "in_progress",
+          "title": "Create a repeatable overload and resource soak driver"
+        },
+        {
+          "id": "KL02-10",
+          "status": "pending",
+          "title": "Record one controlled 24-hour overload qualification"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL02-01",
+          "status": "done",
+          "title": "Specify byte ownership and outcome budgets"
+        },
+        {
+          "id": "KL02-02",
+          "status": "done",
+          "title": "Enforce the producer's declared retained-byte budget"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P02-producer-owned-backing"
+      ],
+      "finding": "src/producer.rs:1283-1307 charges key/value AND header key/value slice lengths. KL02-02 explicitly excludes shared backing capacity, encoded overhead and socket buffers. Qualification cards do not implement residual owned-backing bounds."
+    },
+    {
+      "feature_row_ordinal_1_based": 49,
+      "feature_id": "group.kip848_heartbeat_scheduling",
+      "current_disposition": "partial",
+      "profile": "group",
+      "layer": "runtime",
+      "source_entrypoint": "partitionline::group::ConsumerGroup",
+      "source_evidence_reference": "docs/audits/2026-09-21.md:A07",
+      "source_notes": "Partial because heartbeat loop uses fixed 150ms interval rather than broker response interval (audit A07, KL03-12).",
+      "assessment": "stale_runtime_description_unqualified_current_cells",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-21",
+          "status": "pending",
+          "title": "Record group-protocol churn and recovery evidence"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL03-12",
+          "status": "done",
+          "title": "Honor the KIP-848 broker heartbeat interval"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P03-kip848-interval-conformance"
+      ],
+      "finding": "src/group.rs:2169-2179 and2502-2510 consume initial and changed broker intervals. tests/full_surface.rs:5381 names interval scheduling coverage. Done card is finite deterministic evidence, not all current-line independent qualification."
+    },
+    {
+      "feature_row_ordinal_1_based": 79,
+      "feature_id": "codecs.zstd.decode",
+      "current_disposition": "missing",
+      "profile": "codecs",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/zstd-spike.md",
+      "source_notes": "Compression ID 4 decoding is unsupported in src/protocol/records.rs. Explicit missing feature of complete codec profile (KL05-02, KL05-03).",
+      "assessment": "active_implementation_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-03",
+          "status": "pending",
+          "title": "Implement bounded zstd record-batch decoding"
+        },
+        {
+          "id": "KL05-05",
+          "status": "pending",
+          "title": "Qualify all Kafka codecs bidirectionally"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Backend decision is done; decode implementation and bidirectional qualification remain pending."
+    },
+    {
+      "feature_row_ordinal_1_based": 80,
+      "feature_id": "codecs.zstd.encode",
+      "current_disposition": "missing",
+      "profile": "codecs",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/zstd-spike.md",
+      "source_notes": "Zstd encoding is not implemented; deny.toml bans zstd-sys. Explicit missing feature of complete codec profile (KL05-02, KL05-04).",
+      "assessment": "active_implementation_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-04",
+          "status": "pending",
+          "title": "Implement interoperable zstd record-batch encoding"
+        },
+        {
+          "id": "KL05-05",
+          "status": "pending",
+          "title": "Qualify all Kafka codecs bidirectionally"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Backend decision is done; encode implementation and bidirectional qualification remain pending."
+    },
+    {
+      "feature_row_ordinal_1_based": 81,
+      "feature_id": "codecs.zstd.wire_helper",
+      "current_disposition": "missing",
+      "profile": "codecs",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/records.rs",
+      "source_notes": "RecordBatch wire helper explicitly rejects ZSTD compression attribute as UnsupportedCompressionTypeException.",
+      "assessment": "unlinked_row_covered_by_real_open_codec_cards",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-03",
+          "status": "pending",
+          "title": "Implement bounded zstd record-batch decoding"
+        },
+        {
+          "id": "KL05-04",
+          "status": "pending",
+          "title": "Implement interoperable zstd record-batch encoding"
+        },
+        {
+          "id": "KL05-05",
+          "status": "pending",
+          "title": "Qualify all Kafka codecs bidirectionally"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL05-02",
+          "status": "done",
+          "title": "Choose a policy-compliant zstd backend"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Feature row itself names no card; decoding/encoding compression attribute4 belongs to these actual open codec cards. Do not infer codec profile completeness."
+    },
+    {
+      "feature_row_ordinal_1_based": 88,
+      "feature_id": "auth.sasl_oidc_refresh",
+      "current_disposition": "missing",
+      "profile": "auth",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/ROADMAP.md:KL-06",
+      "source_notes": "Proactive token refresh before expiry and broker session_lifetime_ms reauth are missing; tracked in KL06-01 to KL06-04.",
+      "assessment": "combined_stale_and_real_runtime_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL06-06",
+          "status": "pending",
+          "title": "Run a short-lived secure-broker lifecycle matrix"
+        }
+      ],
+      "related_done_tasks": [
+        {
+          "id": "KL06-01",
+          "status": "done",
+          "title": "Specify credential refresh and reauthentication ownership"
+        },
+        {
+          "id": "KL06-02",
+          "status": "done",
+          "title": "Parse bounded OIDC token responses and lifetime metadata"
+        },
+        {
+          "id": "KL06-03",
+          "status": "done",
+          "title": "Refresh expiring OIDC credentials without stampedes"
+        },
+        {
+          "id": "KL06-04",
+          "status": "done",
+          "title": "Honor broker SASL session lifetimes"
+        },
+        {
+          "id": "KL09-59",
+          "status": "done",
+          "title": "Reuse one OIDC token manager across connection opens"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P04-producer-reauth",
+        "P05-consumer-reauth",
+        "P06-group-reauth",
+        "P07-share-reauth",
+        "P08-admin-reauth",
+        "P09-oidc-manager-retirement"
+      ],
+      "finding": "sasl.rs:538-540 now obtains shared managed tokens; oidc.rs:208-232 retains strong process-global managers. Ordinary Producer/Consumer/Admin source has no reauth/BrokerPipeline integration; BrokerConn::roundtrip_deadline at net.rs:1165-1192 dispatches without session gating. KL06-04 recorded standalone-pipeline limit; KL06-06 is qualification, not implementation."
+    },
+    {
+      "feature_row_ordinal_1_based": 89,
+      "feature_id": "auth.sasl_gssapi",
+      "current_disposition": "missing",
+      "profile": "auth",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/gaps.md",
+      "source_notes": "Kerberos GSSAPI authentication is not implemented (requires Cyrus SASL C library). Explicit missing feature of enterprise auth profile (KL06-08 to KL06-10).",
+      "assessment": "active_implementation_and_qualification_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL06-08",
+          "status": "pending",
+          "title": "Choose the opt-in GSSAPI support boundary"
+        },
+        {
+          "id": "KL06-09",
+          "status": "pending",
+          "title": "Implement the approved GSSAPI token exchange"
+        },
+        {
+          "id": "KL06-10",
+          "status": "pending",
+          "title": "Qualify Kerberos expiry and reconnect in an isolated realm"
+        }
+      ],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Explicit opt-in backend boundary, exchange and isolated-realm qualification cards remain pending."
+    },
+    {
+      "feature_row_ordinal_1_based": 153,
+      "feature_id": "schema_ecosystem.wire_framing",
+      "current_disposition": "partial",
+      "profile": "schema ecosystem",
+      "layer": "wire_helper",
+      "source_entrypoint": "partitionline_schema::{encode,decode}",
+      "source_evidence_reference": "partitionline-schema/src/wire.rs",
+      "source_notes": "Dependency-free generic five-byte header scaffold; unpublished companion. Generic helpers do not parse Protobuf message indexes; separate protobuf module/Adapter qualified in KL05-26.",
+      "assessment": "intentional_generic_scope_partial",
+      "actual_open_tasks": [],
+      "related_done_tasks": [
+        {
+          "id": "KL05-26",
+          "status": "done",
+          "title": "Add Protobuf message-index framing to the companion"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P12-generic-header-scope"
+      ],
+      "finding": "wire.rs:1-6 explicitly limits generic helpers to five-byte header; encode/decode at51/60 are callable. Protobuf indexes are separate. Partial cannot be promoted to complete ecosystem support; no need to implement indexes inside generic helpers."
+    },
+    {
+      "feature_row_ordinal_1_based": 156,
+      "feature_id": "schema_ecosystem.avro",
+      "current_disposition": "missing",
+      "profile": "schema ecosystem",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/schema-companion.md",
+      "source_notes": "Opt-in Avro serialization/deserialization adapter; companion crate, tracked in KL05-25.",
+      "assessment": "stale_missing_adapter_broader_scope_unqualified",
+      "actual_open_tasks": [],
+      "related_done_tasks": [
+        {
+          "id": "KL05-25",
+          "status": "done",
+          "title": "Add an opt-in Avro companion adapter"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P10-avro-production-codec-conformance"
+      ],
+      "finding": "avro.rs:249 Codec and305 Adapter<C> exist. KL05-25 limits and tests/avro.rs:57-59 identify test-only fixture codecs and caller-selected production serialization. Adapter completion does not qualify arbitrary Avro schemas or live integration."
+    },
+    {
+      "feature_row_ordinal_1_based": 158,
+      "feature_id": "schema_ecosystem.json_schema",
+      "current_disposition": "missing",
+      "profile": "schema ecosystem",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/schema-companion.md",
+      "source_notes": "JSON Schema validation and serialization adapter; companion crate, tracked in KL05-27.",
+      "assessment": "stale_missing_adapter_broader_scope_unqualified",
+      "actual_open_tasks": [],
+      "related_done_tasks": [
+        {
+          "id": "KL05-27",
+          "status": "done",
+          "title": "Add an opt-in JSON Schema companion adapter"
+        }
+      ],
+      "proposed_task_keys": [
+        "P01-registry-scope-reconciliation",
+        "P11-json-production-codec-conformance"
+      ],
+      "finding": "json_schema.rs:3-6 states caller-selected Codec, no built-in parser/validator;319/377 define Codec/Adapter. KL05-27 pins Draft2020-12 and offline evidence but explicitly disclaims production built-in/general ecosystem qualification."
+    },
+    {
+      "feature_row_ordinal_1_based": 159,
+      "feature_id": "streams.runtime",
+      "current_disposition": "out_of_scope",
+      "profile": "streams",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/ROADMAP.md:2",
+      "source_notes": "Kafka Streams is a higher-level stateful stream processing library and runtime; out of scope for the core client protocol library.",
+      "assessment": "genuinely_framework_or_abi_only_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Kafka Streams processor/runtime/state-store/topology execution is genuinely outside the client library; this exclusion does not cover API88/89 or transferable producer/consumer/transaction/group behaviors."
+    },
+    {
+      "feature_row_ordinal_1_based": 160,
+      "feature_id": "connect.framework",
+      "current_disposition": "out_of_scope",
+      "profile": "connect",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/ROADMAP.md:2",
+      "source_notes": "Kafka Connect is a connector plugin execution framework and cluster runtime; out of scope for the client messaging library.",
+      "assessment": "genuinely_framework_or_abi_only_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Kafka Connect worker/plugin execution, deployment and connector-cluster runtime are outside client scope; extract transferable Kafka delivery/offset/transaction/auth behavior from framework tests rather than blanket-excluding their entire files."
+    },
+    {
+      "feature_row_ordinal_1_based": 161,
+      "feature_id": "c_abi.librdkafka",
+      "current_disposition": "out_of_scope",
+      "profile": "c_abi",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "docs/gaps.md",
+      "source_notes": "A drop-in librdkafka C symbol ABI (rd_kafka_*) is out of scope; partitionline is designed as an idiomatic pure-Rust Kafka client.",
+      "assessment": "genuinely_framework_or_abi_only_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Drop-in rd_kafka_* symbols/types/ABI are excluded. Transferable librdkafka delivery/offset/codec/auth regressions remain applicable independent behavior; ABI exclusion is not a test-corpus exclusion."
+    },
+    {
+      "feature_row_ordinal_1_based": 162,
+      "feature_id": "broker_internal.leader_and_isr",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:4",
+      "source_notes": "LeaderAndIsr (api 4): internal broker-to-broker partition replica state propagation; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 163,
+      "feature_id": "broker_internal.stop_replica",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:5",
+      "source_notes": "StopReplica (api 5): internal controller-to-broker partition replica deletion/shutdown; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 164,
+      "feature_id": "broker_internal.update_metadata",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:6",
+      "source_notes": "UpdateMetadata (api 6): internal controller-to-broker cluster state broadcast; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 165,
+      "feature_id": "broker_internal.controlled_shutdown",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:7",
+      "source_notes": "ControlledShutdown (api 7): broker-to-controller graceful shutdown coordination; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 166,
+      "feature_id": "broker_internal.alter_partition",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:56",
+      "source_notes": "AlterPartition (api 56): broker partition leader-to-controller ISR state updates; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 167,
+      "feature_id": "broker_internal.envelope",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:58",
+      "source_notes": "Envelope (api 58): internal request forwarding wrapper between brokers and controller; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 168,
+      "feature_id": "broker_internal.fetch_snapshot",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:59",
+      "source_notes": "FetchSnapshot (api 59): KRaft controller quorum state-machine snapshot replication; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 169,
+      "feature_id": "broker_internal.broker_registration",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:62",
+      "source_notes": "BrokerRegistration (api 62): KRaft broker lifecycle bootstrap registration; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 170,
+      "feature_id": "broker_internal.broker_heartbeat",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:63",
+      "source_notes": "BrokerHeartbeat (api 63): KRaft broker periodic liveness heartbeat to controller; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 171,
+      "feature_id": "broker_internal.controller_registration",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:70",
+      "source_notes": "ControllerRegistration (api 70): KRaft controller election and registration; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 172,
+      "feature_id": "broker_internal.update_raft_voter",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:82",
+      "source_notes": "UpdateRaftVoter (api 82): KRaft internal voter metadata update; out of scope for client libraries.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 173,
+      "feature_id": "broker_internal.share_group_state",
+      "current_disposition": "out_of_scope",
+      "profile": "broker-internal replication",
+      "layer": "wire_helper",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "src/protocol/api_keys.rs:83",
+      "source_notes": "ShareGroupState internal persistence RPCs (apis 83-87: InitializeShareGroupState, ReadShareGroupState, WriteShareGroupState, DeleteShareGroupState, ReadShareGroupStateSummary) are broker-to-persister partition state store RPCs, not client-facing.",
+      "assessment": "genuinely_internal_role_client_exclusion",
+      "actual_open_tasks": [],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "The named RPC is an internal controller/broker/replica/persister role. Retain this client exclusion narrowly; separate any actual claimed public Rust operation and broker-server scope. Do not generalize clusterAction to all APIs."
+    },
+    {
+      "feature_row_ordinal_1_based": 174,
+      "feature_id": "streams.group_heartbeat",
+      "current_disposition": "missing",
+      "profile": "streams",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "tests/conformance/broker/api-matrix.json",
+      "source_notes": "Required public broker StreamsGroupHeartbeat88 v0;4.1.2 unstable and4.2.1/4.3.1 stable. Codec/client entrypoint remains missing; Java framework runtime exclusion does not cover this API.",
+      "assessment": "active_client_implementation_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-32",
+          "status": "pending",
+          "title": "Add caller-driven Streams heartbeat client operation"
+        }
+      ],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Actual client cards cover typed codecs then caller-driven API88 heartbeat. Broker-side KL11-32 does not close client behavior; framework runtime exclusion is separate."
+    },
+    {
+      "feature_row_ordinal_1_based": 175,
+      "feature_id": "streams.group_describe",
+      "current_disposition": "missing",
+      "profile": "streams",
+      "layer": "runtime",
+      "source_entrypoint": "none",
+      "source_evidence_reference": "tests/conformance/broker/api-matrix.json",
+      "source_notes": "Required public broker StreamsGroupDescribe89 v0;4.1.2 unstable and4.2.1/4.3.1 stable. Codec/client entrypoint remains missing; Java framework runtime exclusion does not cover this API.",
+      "assessment": "active_client_implementation_gap",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-33",
+          "status": "pending",
+          "title": "Expose typed public Admin Streams group description"
+        }
+      ],
+      "related_done_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Actual client cards cover typed codecs then typed public Admin API89 description. Broker-side KL11-32 does not close client behavior; framework runtime exclusion is separate."
+    }
+  ],
+  "related_case_findings": [
+    {
+      "case_row_ordinal_1_based": 66,
+      "case_id": "audit-regression-a01-offset-filter",
+      "current_disposition": "failed",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 67,
+      "case_id": "audit-regression-a02-abort-interval",
+      "current_disposition": "failed",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-20",
+          "status": "pending",
+          "title": "Record transactional crash and fencing histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 68,
+      "case_id": "audit-regression-a03-partial-failure",
+      "current_disposition": "failed",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 69,
+      "case_id": "audit-regression-a04-offset-out-of-range",
+      "current_disposition": "failed",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 70,
+      "case_id": "audit-regression-a05-cursor-commit",
+      "current_disposition": "failed",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 80,
+      "case_id": "api-broker-internal-027-write-txn-markers",
+      "current_disposition": "not_applicable",
+      "denominator": false,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-29",
+          "status": "in_progress",
+          "title": "Implement WriteTxnMarkers v2 and qualify public Admin negotiation"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Historical internal-use role remains separate from current public WriteTxnMarkers cells; actual KL05-29 is open.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 84,
+      "case_id": "api-broker-internal-055-describe-quorum",
+      "current_disposition": "not_applicable",
+      "denominator": false,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [],
+      "proposed_task_keys": [
+        "P13-quorum-current-cells"
+      ],
+      "finding": "Blanket clusterAction reason is too broad for the claimed public read-only Admin operation. Preserve historical internal role, and add current applicable public-operation/version cells.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 86,
+      "case_id": "api-broker-internal-057-update-features",
+      "current_disposition": "not_applicable",
+      "denominator": false,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [],
+      "proposed_task_keys": [],
+      "finding": "Historical internal-use role remains separate from current public UpdateFeatures cells; current not_run cells must not inherit an exclusion or pass.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 90,
+      "case_id": "api-broker-internal-067-allocate-producer-ids",
+      "current_disposition": "not_applicable",
+      "denominator": false,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [],
+      "proposed_task_keys": [
+        "P14-raw-api67-cells"
+      ],
+      "finding": "Historical upstream broker-role exclusion may remain, narrowly stated. Claimed public Rust raw extension requires separate current cells; do not invent a standard Java Admin.allocateProducerIds counterpart.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 96,
+      "case_id": "feature-compression-zstd-decode-encode",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-03",
+          "status": "pending",
+          "title": "Implement bounded zstd record-batch decoding"
+        },
+        {
+          "id": "KL05-04",
+          "status": "pending",
+          "title": "Implement interoperable zstd record-batch encoding"
+        },
+        {
+          "id": "KL05-05",
+          "status": "pending",
+          "title": "Qualify all Kafka codecs bidirectionally"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen baseline unsupported result is preserved; current backend policy KL05-02 is done, implementation/qualification cards remain open.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 97,
+      "case_id": "feature-auth-gssapi-kerberos",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL06-08",
+          "status": "pending",
+          "title": "Choose the opt-in GSSAPI support boundary"
+        },
+        {
+          "id": "KL06-09",
+          "status": "pending",
+          "title": "Implement the approved GSSAPI token exchange"
+        },
+        {
+          "id": "KL06-10",
+          "status": "pending",
+          "title": "Qualify Kerberos expiry and reconnect in an isolated realm"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Frozen historical result must remain source-pinned; add/review a separate current-source conformance cell instead of rewriting this outcome.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 98,
+      "case_id": "feature-fetch-incremental-session-runtime",
+      "current_disposition": "not_run",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Baseline not_run remains frozen. Current feature is callable after KL05-06/07 done, with finite independent/reference evidence; review/add exact current session/recovery case cells, not a blanket pass.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 99,
+      "case_id": "feature-produce-fetch-quota-throttle-runtime",
+      "current_disposition": "not_run",
+      "denominator": true,
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "actual_open_tasks": [
+        {
+          "id": "KL03-19",
+          "status": "pending",
+          "title": "Record producer and manual-consumer fault histories"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Baseline not_run remains frozen. KL05-08/09 done do not automatically import an independent current-source Produce/Fetch throttle execution result; define separate bounded throttle conformance subfamilies.",
+      "limit": "An open broad fault campaign is a qualification destination, not substitute proof or a new bounded case card."
+    },
+    {
+      "case_row_ordinal_1_based": 153,
+      "case_id": "current-public-api-088-v0-4-1-2",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.1.2",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-32",
+          "status": "pending",
+          "title": "Add caller-driven Streams heartbeat client operation"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API88 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 154,
+      "case_id": "current-public-api-088-v0-4-2-1",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.2.1",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-32",
+          "status": "pending",
+          "title": "Add caller-driven Streams heartbeat client operation"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API88 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 155,
+      "case_id": "current-public-api-088-v0-4-3-1",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.3.1",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-32",
+          "status": "pending",
+          "title": "Add caller-driven Streams heartbeat client operation"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API88 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 156,
+      "case_id": "current-public-api-089-v0-4-1-2",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.1.2",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-33",
+          "status": "pending",
+          "title": "Expose typed public Admin Streams group description"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API89 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 157,
+      "case_id": "current-public-api-089-v0-4-2-1",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.2.1",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-33",
+          "status": "pending",
+          "title": "Expose typed public Admin Streams group description"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API89 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    },
+    {
+      "case_row_ordinal_1_based": 158,
+      "case_id": "current-public-api-089-v0-4-3-1",
+      "current_disposition": "unsupported",
+      "denominator": true,
+      "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "peer_version_pin": "4.3.1",
+      "actual_open_tasks": [
+        {
+          "id": "KL05-31",
+          "status": "in_progress",
+          "title": "Implement bounded typed Streams v0 request and response codecs"
+        },
+        {
+          "id": "KL05-33",
+          "status": "pending",
+          "title": "Expose typed public Admin Streams group description"
+        }
+      ],
+      "proposed_task_keys": [],
+      "finding": "Applicable public API89 v0 remains unsupported, denominator true; Streams framework exclusion cannot cover it.",
+      "limit": null
+    }
+  ],
+  "additional_claimed_raw_extension": {
+    "feature_row_ordinal_1_based": 125,
+    "feature_id": "full_admin.assign_replicas_to_dirs",
+    "disposition": "present",
+    "api_key": 73,
+    "source_citation": "src/admin.rs:11003 and11019",
+    "proposed_task_key": "P15-raw-api73-cells",
+    "finding": "Callable claimed Rust raw extension has no applicable cell in this case registry; add its own current-source wire/runtime claim cells. No standard Java Admin counterpart is claimed."
+  },
+  "proposed_bounded_tasks": [
+    {
+      "proposal_key": "P01-registry-scope-reconciliation",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Reconcile stale feature descriptions with exact implementation evidence",
+      "scope": "Registry-only review of producer.buffer_memory, group.kip848_heartbeat_scheduling, auth.sasl_oidc_refresh, and three companion rows; no qualification promotion from callable source alone.",
+      "acceptance": [
+        "Keep source-pinned historical outcomes intact. Separate current implementation evidence from pending independent conformance and live qualification.",
+        "Record current public entrypoints and exact evidence pins; split combined OIDC refresh/session reauth claims and generic header/codec-specific framing scopes.",
+        "Update stale header accounting and missing-adapter wording only after reviewing the linked card artifacts; do not mark whole profiles complete."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL02-02",
+        "KL03-12",
+        "KL06-03",
+        "KL06-04",
+        "KL09-59",
+        "KL05-25",
+        "KL05-26",
+        "KL05-27"
+      ]
+    },
+    {
+      "proposal_key": "P02-producer-owned-backing",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Bound backing allocations retained by producer admission",
+      "scope": "One ownership family: accepted key/value/header Bytes and header strings, including shared backing slices; explicit payload-budget contract, not process RSS.",
+      "acceptance": [
+        "Choose and enforce an explicit charged/copied ownership policy for accepted small slices backed by large allocations.",
+        "Retain a single reservation owner through queue, in-flight, retry, cancellation and release; preserve the documented oversized-first-record progress exception.",
+        "Keep encoding scratch, socket/kernel buffers, allocator overhead and process RSS outside any claim unless separately budgeted; expose their exclusion truthfully."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL02-01",
+        "KL02-02"
+      ]
+    },
+    {
+      "proposal_key": "P03-kip848-interval-conformance",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Qualify current-line KIP-848 heartbeat interval changes",
+      "scope": "One timer family: broker-directed initial/changed intervals and invalid responses under the KIP-848 client protocol.",
+      "acceptance": [
+        "Compare actual public Rust scheduling outcomes against an independently pinned current Apache behavior contract for join and subsequent interval changes.",
+        "Cover invalid intervals, prompt leave/max-poll and no 150ms default when seconds are requested; preserve classic-group timing.",
+        "Create current-source case cells and retain historical audit evidence; do not substitute broad group smoke for timer evidence."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL03-12"
+      ]
+    },
+    {
+      "proposal_key": "P04-producer-reauth",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Integrate SASL session reauthentication into Producer workers",
+      "scope": "Producer worker connections and their existing accepted/in-flight requests",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P05-consumer-reauth",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Integrate SASL session reauthentication into manual Consumer RPCs",
+      "scope": "Manual Consumer bootstrap/leader roundtrip connections",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P06-group-reauth",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Integrate SASL session reauthentication into ConsumerGroup coordinator RPCs",
+      "scope": "ConsumerGroup coordinator ownership and membership RPCs; classic and KIP-848 cells remain separate",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P07-share-reauth",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Integrate SASL session reauthentication into ShareGroup RPCs",
+      "scope": "ShareGroup coordinator/leader ownership and request lifecycle",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P08-admin-reauth",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Integrate SASL session reauthentication into Admin RPCs",
+      "scope": "Admin ownership lease and routed RPC connections",
+      "acceptance": [
+        "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+        "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL06-04",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P09-oidc-manager-retirement",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Bound and retire shared OIDC manager ownership",
+      "scope": "One cache/lifetime family: process-global SHARED_MANAGERS credential-key entries and manager refresh owners.",
+      "acceptance": [
+        "Replace or constrain process-lifetime strong retention with explicit capacity, credential isolation and active-owner retirement semantics.",
+        "Repeated distinct credential/TLS configurations cannot grow manager count or retained credential/config/task memory without a declared bound.",
+        "Preserve same-key single-flight, sequential reuse, valid-old-token behavior, fail-closed expiry and secret redaction; last-owner cleanup must stop refresh work."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL06-03",
+        "KL09-59"
+      ]
+    },
+    {
+      "proposal_key": "P10-avro-production-codec-conformance",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Qualify one selected production Avro Codec through the companion Adapter",
+      "scope": "One declared opt-in caller-selected Avro codec and writer/reader resolution family; no built-in general parser is inferred from Adapter<C>.",
+      "acceptance": [
+        "Name/pin the selected production serializer and resource limits; exercise real writer/reader resolution, defaults/null unions, promotions and explicit reference inputs.",
+        "Compare actual emitted and decoded frames bidirectionally with an independent Avro peer, including incompatible/malformed/trailing payload failures.",
+        "Distinguish adapter frame/input bounds from codec parsing, recursion, scratch and decoded-object budgets; publication/live Registry qualification remain separate."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL05-25"
+      ]
+    },
+    {
+      "proposal_key": "P11-json-production-codec-conformance",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Qualify one selected production Draft 2020-12 Codec through the companion Adapter",
+      "scope": "One declared JSON Schema dialect and explicit offline-reference family; fixture-only validator coverage does not establish arbitrary schemas.",
+      "acceptance": [
+        "Name/pin a production parser/validator and its resource limits; exercise actual writer and reader validation plus explicit URI/reference resolution.",
+        "Use independent schemas/instances and reverse-check actual Rust frames for null/numeric/ref/dialect failures; preserve no-coercion/no-default-insertion policy.",
+        "Retain unknown-dialect and missing-reference fail-closed behavior; no hidden network resolution or complete ecosystem/live Registry claim."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL05-27"
+      ]
+    },
+    {
+      "proposal_key": "P12-generic-header-scope",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Qualify the generic five-byte header scope independently",
+      "scope": "One generic magic-byte/schema-ID wire-helper family; Protobuf message indexes remain a distinct module and row.",
+      "acceptance": [
+        "Pin independent generic-header vectors for empty payload, boundary schema IDs, bad magic and truncated frames.",
+        "Verify actual helper output and precise five-byte input/output contract; generic framing cannot be used as Protobuf payload framing proof.",
+        "Keep caller-owned allocation and companion publication scope explicit; review whether partial denotes broader ecosystem scope rather than missing generic-header functionality."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL05-26"
+      ]
+    },
+    {
+      "proposal_key": "P13-quorum-current-cells",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Add current-source public DescribeQuorum claim cells",
+      "scope": "One read-only Admin API55 family for the three selected current broker lines.",
+      "acceptance": [
+        "Retain historical broker-internal role exclusion separately; add applicable public Admin/wire/version cells for the claimed Rust operation.",
+        "Review/import exact independent v0-v2 fixture evidence, then separately prove public routing/fallback/error/deadline behavior at the pinned client source.",
+        "Do not treat the isolated Apache 4.1.0 live read as all current lines or quorum failover qualification."
+      ],
+      "depends_on_actual_task_ids": [
+        "KL05-18",
+        "KL05-19"
+      ]
+    },
+    {
+      "proposal_key": "P14-raw-api67-cells",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Add current-source AllocateProducerIds raw-extension claim cells",
+      "scope": "One claimed Rust public raw extension: API67 via Admin::allocate_producer_ids; no standard Java Admin counterpart is claimed.",
+      "acceptance": [
+        "Retain a narrowly stated historical broker-role exclusion for upstream internal use; add separate applicable Rust raw-extension cells to the current claimed-surface denominator.",
+        "Pin independent official wire request/response/version fixtures and prove the actual Rust public method routing, validation, errors, cancellation and deadline ownership.",
+        "State the extension capability/profile and avoid manufacturing standard Java Admin semantic equivalence."
+      ],
+      "depends_on_actual_task_ids": []
+    },
+    {
+      "proposal_key": "P15-raw-api73-cells",
+      "proposed_only": true,
+      "plan_task_id": null,
+      "title": "Add current-source AssignReplicasToDirs raw-extension claim cells",
+      "scope": "One claimed Rust public raw extension: API73 via Admin::assign_replicas_to_dirs; no standard Java Admin counterpart is claimed.",
+      "acceptance": [
+        "Retain a narrowly stated historical broker-role exclusion for upstream internal use; add separate applicable Rust raw-extension cells to the current claimed-surface denominator.",
+        "Pin independent official wire request/response/version fixtures and prove the actual Rust public method routing, validation, errors, cancellation and deadline ownership.",
+        "State the extension capability/profile and avoid manufacturing standard Java Admin semantic equivalence."
+      ],
+      "depends_on_actual_task_ids": []
+    }
+  ],
+  "recorded_done_evidence_pins": [
+    {
+      "id": "KL02-01",
+      "status": "done",
+      "recorded_sources": [
+        "ad07c609191f1adf214083bcd2f94342dbfad711"
+      ],
+      "limits": [
+        [
+          "Specification only. Header accounting, decoded-byte limits, and post-wire cancel coverage remain later KL02 cards."
+        ]
+      ]
+    },
+    {
+      "id": "KL02-02",
+      "status": "done",
+      "recorded_sources": [
+        "bed7dd22ae8bd2416398d9551de85912152f37ef"
+      ],
+      "limits": [
+        [
+          "The counter charges slice length, not the retained capacity of a shared Bytes backing allocation. Encoded batch overhead and socket buffers remain outside this counter."
+        ]
+      ]
+    },
+    {
+      "id": "KL03-12",
+      "status": "done",
+      "recorded_sources": [
+        "4c9cc0d61f81ff74a2542da57e41cd80c6eebee5"
+      ],
+      "limits": [
+        [
+          "Share-group heartbeat interval remains KL03-13. No live broker run."
+        ]
+      ]
+    },
+    {
+      "id": "KL05-02",
+      "status": "done",
+      "recorded_sources": [
+        "fd1ee1e54e9ca3142c54a9c0628cd141cbd4a189"
+      ],
+      "limits": [
+        [
+          "Decision and isolated spike only; no core source, Cargo.toml, Cargo.lock, deny policy or default change. Zstd decode/encode/wire helper remain missing in partitionline.",
+          "Standard frame evaluation only; no independent Kafka record-batch envelope, Java/librdkafka peer, live broker or bidirectional Kafka qualification.",
+          "No throughput/RSS/architecture result or fuzz campaign was run locally. Upstream success is recorded separately from local evidence.",
+          "zstd-rs cap counts appended logical bytes; decoder scratch, 32-byte slack, vector capacity and encoder matching state need resource accounting in implementation.",
+          "The selected encoder exists and is policy-compliant for an optional non-default graph, but production implementation and supply-chain validation remain KL05-03/04 work.",
+          "The old ruzstd =0.8.1 fallback uses unsafe internally, has unsupported encoder levels and needs adapter-owned checksum/window/output checks; it is not recommended or approved for addition."
+        ]
+      ]
+    },
+    {
+      "id": "KL05-18",
+      "status": "done",
+      "recorded_sources": [
+        "ca50ca1103e37b5159875b8b5562c7cc1087c335"
+      ],
+      "limits": [
+        [
+          "clippy --all-targets fails on pre-existing lints in untouched integration tests under clippy 1.98; the lib target is warning-free.",
+          "Fixtures encoded by a scratch program in /tmp/dq-gen (not committed) with pinned kafka-clients artifacts; commands in evidence file.",
+          "ErrorMessage empty-vs-null follows repo nullable convention (None for version-absent) except where Java helpers write empty, byte-pinned by the v2 partition-error fixture.",
+          "No high-level Admin routing, header version-table entries, or features.json change; key 55 runtime wiring belongs to KL05-19. matrix.json untouched."
+        ]
+      ]
+    },
+    {
+      "id": "KL05-19",
+      "status": "done",
+      "recorded_sources": [
+        "7bd831128f65489fe0af0f4a4c8d0895e96ea225"
+      ],
+      "limits": [
+        [
+          "AdminConfig supports broker bootstrap; direct controller-bootstrap discovery is not added or claimed.",
+          "Live evidence is one read-only Apache 4.1.0 isolated broker, not multi-node quorum failover qualification. No controller membership mutation was performed.",
+          "No new dependencies, default changes, unsafe code or Raft state-machine RPCs."
+        ]
+      ]
+    },
+    {
+      "id": "KL05-25",
+      "status": "done",
+      "recorded_sources": [
+        "079e76e2774016d8fd19898c27ecc25b4b41a125"
+      ],
+      "limits": [
+        [
+          "The adapter is a caller-selected codec contract, not a built-in general-purpose Avro parser/serializer. Test codecs recognize only checked-in fixture schemas.",
+          "Frame/schema-input bounds constrain adapter-owned output and inputs, not codec parsing, retained schemas, recursion, scratch, decoded objects or process RSS; the application must separately bound those codec allocations.",
+          "Offline pinned Apache peer fixtures and actual emitted-output verification; no live Schema Registry, Kafka broker or production codec qualification is claimed.",
+          "The existing default registry feature still uses Rustls/Ring and requires a C compiler; no new native/codec dependency is added.",
+          "Current root CI does not automatically exercise the workspace-excluded companion; recorded stable/MSRV/peer checks are local controlled runs."
+        ]
+      ]
+    },
+    {
+      "id": "KL05-26",
+      "status": "done",
+      "recorded_sources": [
+        "docs/plan/evidence/KL05-26.json"
+      ],
+      "limits": []
+    },
+    {
+      "id": "KL05-27",
+      "status": "done",
+      "recorded_sources": [
+        "9c5a89ccaf3021e5715e894653ff501b19032192"
+      ],
+      "limits": [
+        [
+          "JSON parsing, JSON Schema semantics, URI/reference resolution and value serialization are delegated to the explicitly selected production Codec. No production built-in validator is claimed.",
+          "The checked-in Rust codec recognizes only the fixture schemas and their scalar numeric constraints; it is not a general-purpose JSON Schema implementation.",
+          "Input/frame/schema bounds do not constrain arbitrary codec-internal parsing work, scratch, retained schemas, object allocation or RSS; callers must configure those separately.",
+          "Independent verification covers offline representative schemas/instances and actual Rust frame output, not live Schema Registry/Kafka interoperability or complete ecosystem qualification.",
+          "Reference oracle rpds-py wheel is pinned for Python 3.12/Linux x86_64; another platform needs a separate reviewed peer wheel pin.",
+          "The feature is opt-in, adds no Rust dependency and performs no lookup, publication, registration or registry mutation."
+        ]
+      ]
+    },
+    {
+      "id": "KL06-01",
+      "status": "done",
+      "recorded_sources": [
+        "541310c9ea0f5625dc776159d3b2f1a2cb761714"
+      ],
+      "limits": [
+        [
+          "Specification only. Mid-connection refresh and SASL reauthentication remain later KL06 cards."
+        ]
+      ]
+    },
+    {
+      "id": "KL06-02",
+      "status": "done",
+      "recorded_sources": [
+        "4df72f42deb11152c63103cdcf170dcc9a56d887"
+      ],
+      "limits": [
+        [
+          "Parsing only. Proactive refresh and session_lifetime_ms handling remain later KL06 cards."
+        ]
+      ]
+    },
+    {
+      "id": "KL06-03",
+      "status": "done",
+      "recorded_sources": [
+        "8fa6d983a6db6e8094ef339322fd0f27b2f0df8a"
+      ],
+      "limits": [
+        [
+          "The default SASL authenticate path still calls the one-shot fetch. Callers must use authenticate_with_token_provider to get the cache. session_lifetime_ms handling remains a later card."
+        ]
+      ]
+    },
+    {
+      "id": "KL06-04",
+      "status": "done",
+      "recorded_sources": [
+        "2f2deb2ff2eb68b2a3b5d12e261ef4d6d7d99563"
+      ],
+      "limits": [
+        [
+          "The default produce and fetch path still uses BrokerConn::roundtrip and does not automatically enter BrokerPipeline. Callers must use the pipeline to get quiesce and reauthentication."
+        ]
+      ]
+    },
+    {
+      "id": "KL09-59",
+      "status": "done",
+      "recorded_sources": [
+        "docs/plan/evidence/KL09-59.json"
+      ],
+      "limits": []
+    }
+  ],
+  "limits": [
+    "Static reconciliation only. No runtime, peer, CI, broker, SDK, JVM or Cargo verification was executed.",
+    "Card evidence was read as a recorded scope statement, not independently replayed or upgraded into a current-source pass.",
+    "Proposed caller reauth cards require their own caller-specific source review/implementation; detailed current source tracing here directly examined Producer, Consumer, Admin, SASL and transport.",
+    "This artifact is advisory public WORK output and does not change the canonical task queue."
+  ]
+}

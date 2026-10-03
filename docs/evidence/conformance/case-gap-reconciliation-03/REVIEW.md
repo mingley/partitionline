@@ -1,0 +1,17 @@
+# KL01-14 case/task reconciliation proposal
+
+This is a source-only WORK plan from main `497f0722100d2ec34cfa6e0775bb278190f53693`. No canonical checker, case, feature, taskbook or Rust source was edited, and no SDK/JVM/Cargo/product runtime was executed.
+
+There are 169 registered cases: 149 required, including 16 independently accepted original rows and 133 remaining gaps. The gaps are 83 local-consistency, 27 not-run, 14 unsupported, 5 failed and 4 blocked rows. Thirty-nine gaps bind to existing open tasks; 94 require 12 proposed conformance families. Three additional current claimed families add 9 public DescribeQuorum 55 cells and 6 raw-extension 67/73 cells, for 15 conformance proposals and 15 added required cells. The resulting proposal would have 184 registered cases, 164 required and 20 excluded.
+
+The feature review covers all 28 non-present rows. Four implementation proposals address retained producer backing ownership, actual Producer reauthentication, shared RPC caller reauthentication and bounded shared OIDC manager retirement. Three qualification proposals address a selected real Avro Codec, a selected real JSON Schema Codec and the generic header scope. These seven proposals plus the 15 case families produce 22 unassigned proposal keys. Existing open task IDs remain actual taskbook IDs; no proposal key is an installed task.
+
+The 20 exclusions are four removed current API roles, four historical/internal dual-use or raw roles and 12 current broker-internal roles. A client-role exclusion never excludes production broker work. The existing DescribeQuorum 55 reason needs narrowing because genuine public Java Admin behavior exists. API 67 and 73 extensions are public Rust raw operations without a standard Java Admin counterpart; generated-wire and actual broker behavior must be reported separately. No invented Java method or local roundtrip can qualify them.
+
+The present 147 feature rows describe implementations, with many source/test paths as provenance. This packet does not promote them to independently qualified behaviors. Exact feature-to-independent-case scopes and complete upstream applicability remain open under KL01-14.
+
+The existing upstream candidate inventory has 567 source files and 2477 method/entry names, rechecked against three Apache archives and the native Git pin. Parameter invocations and other producer/consumer/security/unit source families remain unenumerated. `known-upstream-corpus-review.json` reports those limits explicitly. The previous 93-key static reconciliation and its installed 9 cards are retained by hash-bound reference in `current-93-audit-reference.json`; none becomes runtime proof.
+
+`case-binding-plan.json` and `feature-binding-plan.json` hold exact row/task maps. `unified-bounded-proposals.json` holds concrete card scopes, dependencies, write sets and acceptance. `excluded-denominator-review.json` separates denominator roles. `checker-design-plan.json` proposes default-compatible classification plus explicit strict backlog/core/full modes, actual open-task checks, fail-closed denominator/unknown-API handling and no independent-evidence promotion.
+
+Root review and card ID assignment must precede canonical annotations and the four-path checker implementation. The proposed checker work has failing-first Python controls; strict core/full are expected to fail on the real current registry. KL01-14 remains in progress.
