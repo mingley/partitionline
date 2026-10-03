@@ -1,0 +1,63 @@
+--- materialize-from-baseline.py
++++ materialize-from-baseline-exact-audit.py
+@@ -181,14 +181,46 @@
+ new_allocated = sum(round_block(sizes[blob]) for name, (_, blob) in entries.items() if name not in reusable)
+ # Conservatively charge one filesystem block per entry plus every directory.
+ entry_reserve = (len(entries) + len(directory_names) + 2) * block
+-audit_upper = sum(len(name.encode()) * 6 + 384 for name in entries) + 2
++def exact_audit_length(tree_entries, blob_sizes, mode_for):
++    # Metadata-only: every actual SHA256 is exactly 64 unescaped ASCII hex
++    # characters. Exact names (including JSON escaping), integer digit counts,
++    # mode/blob fields, sorting and separators match the final inventory dump.
++    skeleton = {name: {'mode': mode, 'git_blob_sha1': blob, 'sha256': '0' * 64,
++                       'bytes': blob_sizes[blob], 'full_permission_mode': mode_for(mode)}
++                for name, (mode, blob) in tree_entries.items()}
++    return len(json.dumps(skeleton, sort_keys=True, separators=(',', ':')).encode())
++
++
++def stored_gzip_upper(size):
++    assert 0 <= size <= MAX_MANIFEST
++    # <=16383 payload bytes +5 bytes per stored block, with 64 bytes for
++    # wrapper/final-block/slack. This also dominates default zlib deflateBound
++    # plus the 18-byte gzip wrapper throughout the admitted <=128MiB domain:
++    # ceil(n/16383)*5 >= floor(n/4096)+floor(n/16384), and
++    # floor(n/33554432)+25 <=29 <64. gzip.compress uses its unchanged defaults.
++    upper = size + ((size + 16382) // 16383) * 5 + 64
++    default_zlib_gzip_bound = size + (size >> 12) + (size >> 14) + (size >> 25) + 25
++    assert upper >= default_zlib_gzip_bound
++    return upper
++
++
++audit_upper = exact_audit_length(entries, sizes, owned_mode)
+ assert audit_upper <= MAX_MANIFEST
+-gzip_upper = audit_upper + ((audit_upper + 16382) // 16383) * 5 + 64
+-forecast_bytes = new_allocated + entry_reserve + 2 * audit_upper + gzip_upper + 1_048_576
++raw_audit_allocated = round_block(audit_upper)
++gzip_upper = stored_gzip_upper(audit_upper)
++gzip_allocated = round_block(gzip_upper)
++# Exactly one retained raw JSON and one retained gzip are written. The same
++# 1MiB reserve covers the bounded receipt and minimal extra file metadata;
++# entry/directory reserves and the 350MiB floor are unchanged.
++metadata_reserve = 1_048_576
++forecast_bytes = new_allocated + entry_reserve + raw_audit_allocated + gzip_allocated + metadata_reserve
+ forecast = {'new_blob_bytes': new_bytes, 'new_allocated_file_upper_bound_bytes': new_allocated,
+             'hardlink_and_directory_entry_reserve_bytes': entry_reserve,
+-            'raw_audit_upper_bound_bytes': audit_upper, 'gzip_upper_bound_bytes': gzip_upper,
+-            'metadata_and_verification_reserve_bytes': 2 * audit_upper + gzip_upper + 1_048_576,
++            'raw_audit_upper_bound_bytes': audit_upper, 'raw_audit_exact_encoded_bytes': audit_upper,
++            'raw_audit_allocated_upper_bound_bytes': raw_audit_allocated,
++            'gzip_upper_bound_bytes': gzip_upper, 'gzip_allocated_upper_bound_bytes': gzip_allocated,
++            'receipt_and_minimal_metadata_reserve_bytes': metadata_reserve,
++            'metadata_and_verification_reserve_bytes': raw_audit_allocated + gzip_allocated + metadata_reserve,
+             'forecast_output_bytes': forecast_bytes, 'required_free_bytes': FLOOR + forecast_bytes,
+             'sampled_free_bytes': guard_write(forecast_bytes), 'minimum_remaining_free_bytes': FLOOR}
+ guard_write(2 * block)
+@@ -254,7 +286,7 @@
+     assert stat.S_IMODE(s.st_mode) == pin['full_permission_mode']
+     assert git_blob(f.read_bytes()) == pin['git_blob_sha1']
+ encoded = json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode()
+-assert len(encoded) <= audit_upper
++assert len(encoded) == audit_upper
+ raw_audit = out / 'complete-source.json'
+ guard_write(round_block(len(encoded)) + block)
+ with raw_audit.open('xb') as f:

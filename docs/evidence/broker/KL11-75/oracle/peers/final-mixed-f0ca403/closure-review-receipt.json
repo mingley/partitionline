@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "reviewed_at_utc": "2026-10-03T18:41:38.044334+00:00",
+  "passed": true,
+  "scope": "Read-only closure review and exact-input bridge. No independent storage checker command, SDK, broker, compiler or JVM rerun; no taskbook mutation.",
+  "runtime_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "actual_new_storage_checker_commands": 0,
+  "actual_new_runtime_or_SDK_or_compiler_commands": 0,
+  "comparison_map_encoding": "Sorted relative regular-file paths; one canonical compact sorted-key UTF8 JSON row {path,bytes,full_mode,sha256} plus LF per file; SHA256 over their concatenation. Full mode masks 07777.",
+  "reference_inventories": [
+    {
+      "kind": "compaction-fault-histories",
+      "root": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/raw-faults",
+      "regular_files": 666,
+      "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb"
+    },
+    {
+      "kind": "compaction-corpus",
+      "root": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/raw-corpus",
+      "regular_files": 240,
+      "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d"
+    }
+  ],
+  "fresh_source_bound_cells": [
+    {
+      "cell": "stable-default",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-default/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-default/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "stable-tls",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-tls/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-tls/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "stable-sasl",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "stable-sasl+tls",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl+tls/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl+tls/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "stable-oidc",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-oidc/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-oidc/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "stable-all-features",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-default",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-default/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-default/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-tls",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-tls/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-tls/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-sasl",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-sasl+tls",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl+tls/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl+tls/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-oidc",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-oidc/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-oidc/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "captures": [
+        {
+          "kind": "compaction-fault-histories",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-all-features/compaction-fault-histories",
+          "regular_files": 666,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "89ba1fe76c7292c4858b2cb455fc407364c2de547ac272c30a41df0add6fbbcb",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        },
+        {
+          "kind": "compaction-corpus",
+          "root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-all-features/compaction-corpus",
+          "regular_files": 240,
+          "canonical_path_bytes_full07777_SHA256_map_digest": "d8841cda38cf03c0bfbf4f839baac526e0fdd816247d7a8e481969445fed4b8d",
+          "exact_pathset_bytes_SHA256_full07777_modes_equal_reference": true
+        }
+      ]
+    }
+  ],
+  "bridge_result": "Each of 12 actual403 captures is exactly byte/path/full-mode identical to already accepted independent raw inputs: 32 fault histories/64 states and 24 Apache-derived corpus cases/48 states per cell. This is input equivalence, not a fresh independent-checker execution at403.",
+  "historical_independent_semantic_controls": 34,
+  "foundation_and_checker_references": [
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/apache/final-3aedadf6/validation.json",
+      "bytes": 394558,
+      "full_mode": 384,
+      "sha256": "ac0f9c4954833010d48e67dd4e6738abf10b1d27a7748edb9d3e79c8c33d68ec"
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/root-history-validation.json",
+      "bytes": 109774,
+      "full_mode": 384,
+      "sha256": "aed8369afce12ec7a396cf9e8c48bac331b2dad8e957913bd09720bbe7fa1f81"
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/root-corpus-validation.json",
+      "bytes": 142025,
+      "full_mode": 384,
+      "sha256": "750ce348948a19bb9fe9cb12b9e61289bf800e4ad1170bcad2385ba71eb8bdcf"
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/storage/development/root-corrected-corpus/history-controls-validation.json",
+      "bytes": 65740,
+      "full_mode": 384,
+      "sha256": "a17fc596e150cb3911f58ab46f287904531101d30f88cc5aae3921285e483670"
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/merged-qualification/final-403be1e3/receipt.json",
+      "bytes": 60685,
+      "full_mode": 384,
+      "sha256": "9cd410874c214e724c0377b67a22b79411852a06ff90eed7e055574451edb4f0"
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-live-v3.py",
+      "bytes": 16882,
+      "full_mode": 384,
+      "sha256": "38a51db2009b0387b7453928fed2e9c0881290db74cbc010dde44a71edf328cd"
+    }
+  ],
+  "live_independent_replay": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/validation.json",
+    "bytes": 11746,
+    "full_mode": 384,
+    "sha256": "62028069fe0fde54f6b6ac9139811d161ce2b377e45ec0b45b5bad9725bf1e49"
+  },
+  "final_review_receipt": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/publication-packet/final-review-receipt.json",
+    "bytes": 11512,
+    "full_mode": 384,
+    "sha256": "4e94492354a26821cc554480a8a97d4bc235ba16dc0617003ffa5e5342c8f188"
+  },
+  "final_publication_stage_manifest": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/final-publication-stage-manifest.json",
+    "bytes": 357759,
+    "full_mode": 384,
+    "sha256": "9150cc2bf1045b5c5f7a82eaf848c7c511c595a6469b77af1a4c726ac4fd0a59"
+  },
+  "final_packet_files_checked": 832,
+  "final_packet_bytes_checked": 12568503,
+  "final_packet_paths_sizes_SHA256_full_modes_match": true,
+  "within_KL11_75_blockers": [],
+  "publication_requirement": "Coordinator must finish actual packet publication and bind closure references; this review is not proof of a completed remote push.",
+  "parent_KL11_11_remains_pending": true,
+  "limits": [
+    "Ordinary uncompressed stored CreateTime records with producer=-1; transactions/control/producer-state cleaning unsupported and fail-closed.",
+    "Explicit caller-owned sealed-prefix compaction on the storage actor; active/protected suffixes preserved. No autonomous/background cleaner or wire compaction API.",
+    "Runtime/server/public Rust qualification403 and corrected native/helper provenancef0ca stay separate; qualification is not transferred to arbitrary currentmain.",
+    "Finite process/IO faults and synced custom formats; no physical-power-loss, replication, production-daemon or performance qualification.",
+    "Public manual-assignment record/position/EOF/UUID proof does not itself qualify empty batch headers; Apache/component and exact raw storage proofs supply that evidence.",
+    "Live reports have no raw Kafka correlation-ID trace or per-job elapsed timestamps. Known owned groups closed; global process scans are best-effort.",
+    "SDK assertion totals are reported observations, not counts of independent verifier predicates."
+  ]
+}

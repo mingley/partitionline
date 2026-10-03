@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "python3",
+    "/workspace/work/raft-runtime-76/materializer-exact-audit-preparation-01/check-forecast.py"
+  ],
+  "tool_observed_exit_code": 0,
+  "scope": "Read-only Git metadata/stdlib forecast controls only; no materializer top-level execution.",
+  "validation_sha256": "358aa65b1574656479d897f0ae40e12ea62b11cadb765352c2a8313ed6be7c0c",
+  "actual_control_counts": {
+    "JSON_cases": 1322,
+    "gzip_boundary_checks": 122864,
+    "actual_gzip_cases": 18
+  }
+}

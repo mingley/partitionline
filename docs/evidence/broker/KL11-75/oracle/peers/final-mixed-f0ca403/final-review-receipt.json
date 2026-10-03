@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "runtime_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "scope": "Independent four-lane public-output replay and bounded provenance/supervision packaging. No task closure or new runtime qualification is inferred.",
+  "actual_affinity": [
+    2,
+    4
+  ],
+  "actual_new_Cargo_or_broker_or_SDK_or_JVM_executions": 0,
+  "actual_original_full_replay": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/validation.json",
+    "bytes": 11746,
+    "full_mode": 384,
+    "sha256": "62028069fe0fde54f6b6ac9139811d161ce2b377e45ec0b45b5bad9725bf1e49"
+  },
+  "original_all4824_cohort_files_and_external_bindings_unchanged_atseal": true,
+  "all829_prepared_packet_payloads_unchanged_after_restoration_replay": true,
+  "fresh_root_public_output_replay": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/publication-packet/restored-public-output-replay.json.gz",
+    "bytes": 54414,
+    "full_mode": 384,
+    "sha256": "389134431ce274a41be19b58f08d54b078eb3c4b87bad5068fea8c9d442ad355",
+    "uncompressed_sha256": "9ec60e27ca352713c922dafc2a7059e331e9728c5e4b5ff63b6a018bd0543e21",
+    "uncompressed_bytes": 822867,
+    "original_full_mode": 384,
+    "restore_path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/restored-public-output-replay.json",
+    "decompression_verified": true
+  },
+  "restoration_command_observation": {
+    "argv": [
+      "taskset",
+      "-c",
+      "2,4",
+      "env",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "python3",
+      "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/restore-public-output.py",
+      "--packet",
+      "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/publication-packet",
+      "--restored-root",
+      "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/restored-public-output",
+      "--output",
+      "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/restored-public-output-replay.json"
+    ],
+    "tool_observed_exit_code": 0,
+    "receipt_SHA256": "9ec60e27ca352713c922dafc2a7059e331e9728c5e4b5ff63b6a018bd0543e21"
+  },
+  "supervision_actual_rows": [
+    {
+      "lane": "stable-default",
+      "receipt": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/stable-default/attempt-1/validation.json",
+        "bytes": 31042,
+        "full_mode": 384,
+        "sha256": "3ae72afe80bd18341fe72d0b24a48223fcf4115bc78c390e231ddc1d7ca3ae42"
+      },
+      "helper_exit_code": 0,
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "actual_helper_PID": 1204344,
+      "actual_helper_elapsed_seconds_same_supervisor_epoch": 277.26560711860657,
+      "actual_peer_jobs": 160,
+      "operators": 45,
+      "raw_disk_monitor": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/stable-default/attempt-1/disk-monitor.jsonl",
+        "bytes": 49798,
+        "full_mode": 384,
+        "sha256": "ae7787f4aa4effef3a17a60588bff56e6314591b6e6726b92c7c4a3379ad669d"
+      },
+      "actual_raw_sample_count": 555,
+      "actual_raw_sample_minimum_bytes": 1294864384,
+      "reported_minimum_including_preloop_probe_bytes": 1294864384,
+      "owned_group_after_exit": [],
+      "ownership_after": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/ownership-after-stable-default-attempt-1.json",
+        "bytes": 3397,
+        "full_mode": 384,
+        "sha256": "a3df6e4e8314f5576f79719e92d8ce90ce7e01eccdd6a5c82d3e9c17eb6fbb6e"
+      }
+    },
+    {
+      "lane": "stable-all-features",
+      "receipt": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/stable-all-features/attempt-1/validation.json",
+        "bytes": 31099,
+        "full_mode": 384,
+        "sha256": "d8e16fb3f51bf1d0e0a3baf0a6cffbcfda8a82e6edc1446527384c11aa2435eb"
+      },
+      "helper_exit_code": 0,
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "actual_helper_PID": 1209034,
+      "actual_helper_elapsed_seconds_same_supervisor_epoch": 275.76328349113464,
+      "actual_peer_jobs": 160,
+      "operators": 45,
+      "raw_disk_monitor": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/stable-all-features/attempt-1/disk-monitor.jsonl",
+        "bytes": 49531,
+        "full_mode": 384,
+        "sha256": "8cea19a550a047733c51038577e1f9a1d3aec9c640c17e0561b4c579b6fe6355"
+      },
+      "actual_raw_sample_count": 552,
+      "actual_raw_sample_minimum_bytes": 1137709056,
+      "reported_minimum_including_preloop_probe_bytes": 1137709056,
+      "owned_group_after_exit": [],
+      "ownership_after": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/ownership-after-stable-all-features-attempt-1.json",
+        "bytes": 5486,
+        "full_mode": 384,
+        "sha256": "e3825c239fd5087d71aa715a3f8de9589cc18ff01ccaa8190c27a14eb6fff32e"
+      }
+    },
+    {
+      "lane": "1.85.0-default",
+      "receipt": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/1.85.0-default/attempt-1/validation.json",
+        "bytes": 31042,
+        "full_mode": 384,
+        "sha256": "873804c3a7f3c223d16d78052cc408cca9f1aa1e85353cfc837e049f0f2a1eda"
+      },
+      "helper_exit_code": 0,
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "actual_helper_PID": 1211481,
+      "actual_helper_elapsed_seconds_same_supervisor_epoch": 276.7660837173462,
+      "actual_peer_jobs": 160,
+      "operators": 45,
+      "raw_disk_monitor": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/1.85.0-default/attempt-1/disk-monitor.jsonl",
+        "bytes": 49698,
+        "full_mode": 384,
+        "sha256": "9d342f5f500c1d6cc9fe9deefcef3fa9a6bdedd264a32a3f127198c9837b12c3"
+      },
+      "actual_raw_sample_count": 554,
+      "actual_raw_sample_minimum_bytes": 1130483712,
+      "reported_minimum_including_preloop_probe_bytes": 1130483712,
+      "owned_group_after_exit": [],
+      "ownership_after": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/ownership-after-1.85.0-default-attempt-1.json",
+        "bytes": 7563,
+        "full_mode": 384,
+        "sha256": "41b5679fa94e2a68b0602f16830d88618ad223f59793025a9d90eec2418e3e36"
+      }
+    },
+    {
+      "lane": "1.85.0-all-features",
+      "receipt": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/1.85.0-all-features/attempt-1/validation.json",
+        "bytes": 31100,
+        "full_mode": 384,
+        "sha256": "08939b8a1094f865ee92f53f6be26abe661b2334e225389c07f44ec90673f79f"
+      },
+      "helper_exit_code": 0,
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "actual_helper_PID": 1213946,
+      "actual_helper_elapsed_seconds_same_supervisor_epoch": 279.27580881118774,
+      "actual_peer_jobs": 160,
+      "operators": 45,
+      "raw_disk_monitor": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/supervision/1.85.0-all-features/attempt-1/disk-monitor.jsonl",
+        "bytes": 50160,
+        "full_mode": 384,
+        "sha256": "723d4874a6a3cece5cec92894ff8ea4bfb475d06ddf5bf892812fcf37bdb0a7c"
+      },
+      "actual_raw_sample_count": 559,
+      "actual_raw_sample_minimum_bytes": 1123278848,
+      "reported_minimum_including_preloop_probe_bytes": 1123278848,
+      "owned_group_after_exit": [],
+      "ownership_after": {
+        "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/ownership-after-1.85.0-all-features-attempt-1.json",
+        "bytes": 9683,
+        "full_mode": 384,
+        "sha256": "5f3654362526ea50fde531eb7f603d1e0399a507b564a14490d61a7a9852e7b0"
+      }
+    }
+  ],
+  "minimum_original_live_reported_disk_available_bytes": 1123278848,
+  "deadline_limits": "Actual whole-cohort elapsed durations and raw disk timestamps are from each supervisor own clock epoch.100s child/15s startup-stop/10s operator/10s SDK-reader budgets are pinned source settings; no per-job elapsed or cross-PID deadline reconstruction is claimed.",
+  "correlation_limits": "Literal producer-reader-topic-seek-phase/operator UUID-partition-clock and native EOF/Rust digest correlations passed. No low-level Kafka request-response correlation ID trace is present.",
+  "complete_source_guards": [
+    {
+      "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "source_tree": "/workspace/work/broker-merged-source-403be1e3",
+      "files": 71885,
+      "bytes": 653466714,
+      "all_regular_paths_SHA256_Git_blobs_full07777_modes_match": true,
+      "origin": {
+        "path": "/workspace/work/integration/broker-merged-source-403be1e3/receipt.json",
+        "bytes": 1453,
+        "full_mode": 384,
+        "sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff"
+      },
+      "source_manifest": {
+        "path": "/workspace/work/integration/broker-merged-source-403be1e3/complete-source.json.gz",
+        "bytes": 2473021,
+        "full_mode": 384,
+        "sha256": "881b301d30acab326cfb52df3a26e71cdb4944cfe602e9f23658ff77e2b0341d"
+      },
+      "uncompressed_manifest_sha256": "089e750c4c4c0427037be76034005c569283810d1eaf262479c27795c7a40f28"
+    },
+    {
+      "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+      "source_tree": "/workspace/work/client-capabilities-source-f0ca05da",
+      "files": 73779,
+      "bytes": 705352112,
+      "all_regular_paths_SHA256_Git_blobs_full07777_modes_match": true,
+      "origin": {
+        "path": "/workspace/work/integration/client-capabilities-source-f0ca05da/receipt.json",
+        "bytes": 3013,
+        "full_mode": 384,
+        "sha256": "f18fc74f39bb561a4c0ed0f667d0bee98fe329866139fcabd957c87121433857"
+      },
+      "source_manifest": {
+        "path": "/workspace/work/integration/client-capabilities-source-f0ca05da/complete-source.json.gz",
+        "bytes": 2618796,
+        "full_mode": 384,
+        "sha256": "fc37967f4a20dda528d4e2dd2eb660fea058e8525aa1b8493510f88580a4f94c"
+      },
+      "uncompressed_manifest_sha256": "b2dbb1449166ecc331d7c5437f532ace38c42fba4aad44a7d4a0400284ec3ded"
+    }
+  ],
+  "staged_binary_payloads": 0,
+  "portable_binary_journal_reconstruction_claimed": false,
+  "sealing_source": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/seal-publication.py",
+    "bytes": 10091,
+    "full_mode": 384,
+    "sha256": "d5b4964cc74575da0b769c38c415655ef20501bdb208aff368331880bf64f806"
+  },
+  "sealing_source_gzip": {
+    "path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/publication-packet/sealing-source.py.gz",
+    "bytes": 3362,
+    "full_mode": 384,
+    "sha256": "a45be18806d22243f8b18fa32e9cf9cd656cefb44950c02614081f20ac879e54",
+    "uncompressed_sha256": "d5b4964cc74575da0b769c38c415655ef20501bdb208aff368331880bf64f806",
+    "uncompressed_bytes": 10091,
+    "original_full_mode": 384,
+    "restore_path": "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/seal-publication.py",
+    "decompression_verified": true
+  }
+}

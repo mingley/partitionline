@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-75",
+  "status": "done",
+  "acceptance_met": true,
+  "result": "passed",
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "scope": "Bounded durable ordinary keyed compaction, sparse/empty stored reads and crash-safe changed-generation recovery. ParentKL11-11 remains pending.",
+  "tested_source": "Actual whole immutable403 broker source across 12 stable/Rust1.85 feature cells; public Java/native/Rust across four default/all-feature cells. Native/helperf0ca source separately built and bound.",
+  "full_matrix": {
+    "qualification_commands": 51,
+    "maintenance_commands": 10,
+    "actual_commands": 61,
+    "actual_tests": 4368,
+    "cells": 12,
+    "normalizer_sha256": "248b83d10489c4210d7a378f64f0ec2db7662e13a077737adf4d3abae30a0916"
+  },
+  "apache_components": {
+    "source_sha": "3aedadf655f37f969e68d40fb1ed536c4b740879",
+    "releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "actual_assertions": 684,
+    "independent_replays": 6,
+    "positive_cases_per_release": 27,
+    "malformed_observations_per_release": 9,
+    "deliberate_failed_expectations": 9
+  },
+  "raw_storage": {
+    "histories_per_cell": 32,
+    "fault_states_per_cell": 64,
+    "corpus_cases_per_cell": 24,
+    "corpus_states_per_cell": 48,
+    "historical_checksum_valid_semantic_negative_controls": 34,
+    "fresh403_inputs_equal_independently_accepted_inputs": true,
+    "fresh_independent_storage_checker_commands": 0
+  },
+  "public_live_counts": {
+    "jobs": 640,
+    "assertions": 101824,
+    "records": 9380,
+    "producer_deliveries": 380,
+    "read_jobs": 600,
+    "read_records": 9000,
+    "native_eofs": 1080,
+    "positions": 5400,
+    "rust_record_digests": 1800,
+    "operators": 180,
+    "server_exits_zero": 20
+  },
+  "independent_public_verifier": {
+    "sha256": "38a51db2009b0387b7453928fed2e9c0881290db74cbc010dde44a71edf328cd",
+    "result_sha256": "62028069fe0fde54f6b6ac9139811d161ce2b377e45ec0b45b5bad9725bf1e49",
+    "passed": true,
+    "finite_negative_controls": 16
+  },
+  "closure_review": {
+    "path": "/workspace/work/compaction-closure-readiness-01/closure-review-receipt.json",
+    "bytes": 17289,
+    "full_mode": 384,
+    "sha256": "88015a2f46bd503e94629760fecfd47fd22872aa3a6addf2fce9b4487dd15d5e"
+  },
+  "required_evidence_references": [
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/apache/final-3aedadf6/validation.json",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/root-history-validation.json",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/development/frozen-focus/root-corpus-validation.json",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/storage/development/root-corrected-corpus/history-controls-validation.json",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/merged-qualification/final-403be1e3/receipt.json",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-live-v3.py",
+    "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/publication-packet/final-review-receipt.json",
+    "/workspace/work/integration/compaction-f0ca-independent-four-v3-01/final-publication-stage-manifest.json"
+  ],
+  "retained_failures": [
+    "Original native empty-seek position=end assumption: actualEOF/end/HW with SDK appPositionINVALID; observed diagnostic and first181 files retained.",
+    "First corrected native helper reassign-before-seek lifecycle failure: first181 files retained; exact discarded error codes remain unobserved.",
+    "Original v2 independent verifier omitted genuine Rust record_sha256 field: original failure and additive strictv3 controls retained; no runtime relabeling.",
+    "Earlier incomplete broker gate/source-preparation failures remain historical evidence; full403 qualification supersedes them."
+  ],
+  "limitations": [
+    "Ordinary uncompressed stored CreateTime records with producer=-1; transactions/control/producer-state cleaning unsupported and fail-closed.",
+    "Explicit caller-owned sealed-prefix compaction on the storage actor; active/protected suffixes preserved. No autonomous/background cleaner or wire compaction API.",
+    "Runtime/server/public Rust qualification403 and corrected native/helper provenancef0ca stay separate; qualification is not transferred to arbitrary currentmain.",
+    "Finite process/IO faults and synced custom formats; no physical-power-loss, replication, production-daemon or performance qualification.",
+    "Public manual-assignment record/position/EOF/UUID proof does not itself qualify empty batch headers; Apache/component and exact raw storage proofs supply that evidence.",
+    "Live reports have no raw Kafka correlation-ID trace or per-job elapsed timestamps. Known owned groups closed; global process scans are best-effort.",
+    "SDK assertion totals are reported observations, not counts of independent verifier predicates."
+  ],
+  "within_scope_outstanding_blockers": [],
+  "parent_task_status": {
+    "KL11-11": "pending",
+    "requires": [
+      "KL11-23",
+      "KL11-25"
+    ]
+  },
+  "coordinator_action_required": "This is a proposed closure object. Replace WORK reference paths with final published evidence paths and verify hashes before installing it; do not treat this draft as a taskbook edit or completed remote publication."
+}

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "published_packet_files": 832,
+  "every_staged_file_SHA256_bytes_full_mode_verified": true,
+  "raw_storage_source_bridge_independently_recomputed": 24,
+  "all_other_306_task_objects_unchanged": true,
+  "task75_done": true,
+  "parent11_pending": true,
+  "new_runtime_or_compiler_or_SDK_executions": 0,
+  "original_stage_sha256": "9150cc2bf1045b5c5f7a82eaf848c7c511c595a6469b77af1a4c726ac4fd0a59",
+  "closure_evidence_sha256": "5767a2fc62d209147439127ca0cc588ca2e67d3a2a54625d7b91b1335d3e5dab"
+}

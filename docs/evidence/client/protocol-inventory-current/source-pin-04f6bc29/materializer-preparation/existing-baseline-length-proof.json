@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Supplemental exact length equality against7942 complete actual retained SHA256 inventory, no materialization/new file contents/Git mutation.",
+  "baseline_source": "7942fbac784b35220ae02f6983e6454399f42ba5",
+  "files": 73818,
+  "predicted_exact_json_bytes": 23344752,
+  "actual_existing_raw_json_bytes": 23344752,
+  "existing_raw_sha256": "5864524f18ee6f24215a3b0e881ff33a5448e54ba4a85df0fbb6d5cee0dc3343",
+  "candidate_sha256": "88ec429775f08895affc40f918d85d4043286bb8cd1a78c591259e9f3961a589",
+  "all_existing_realSHA256_fields64hex": true,
+  "existing_exact_compact_JSON_bytes_equal": true,
+  "actual_affinity": [
+    2,
+    4
+  ],
+  "first_parse_failure_preserved": "/workspace/work/raft-runtime-76/materializer-exact-audit-preparation-01/baseline-supplement-first-parse-failure.txt"
+}

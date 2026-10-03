@@ -1,0 +1,3 @@
+First supplemental stdin check exited1 before execution with SyntaxError: expected else after if expression.
+Failing expressions used else384 without required space; no file/source/Git reads or mutations occurred.
+Original offending line: assert all(len(v['sha256'])==64 and set(v['sha256'])<=set('0123456789abcdef') and v['full_permission_mode']==(448 if v['mode']=='100755' else384) for v in rows.values())
