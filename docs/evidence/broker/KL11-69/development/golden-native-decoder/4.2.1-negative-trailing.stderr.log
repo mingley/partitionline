@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: trailing response bytes
+	at ControllerOracle.decodeResponse(ControllerOracle.java:327)
+	at ControllerOracle.main(ControllerOracle.java:414)

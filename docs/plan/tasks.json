@@ -18149,8 +18149,8 @@
       "title": "Serve bounded Fetch and ListOffsets from persisted batches",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-open-loop-20261003",
       "depends_on": [
         "KL11-06"
       ],
@@ -18161,13 +18161,26 @@
       "acceptance": [
         "Offsets/order/payloads survive restart; errors and oversized-first-batch rules match the pinned contract.",
         "Honor wait/min/max bytes and request cancellation within budgets; no hidden data loss under capped reads.",
-        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
+        "Truthful initial profile Fetch4-6/ListOffsets1-3 (366 independent68cases), ordinary persisted records only; readCommittedLSO=HW only whiletransactionalwrite/control rejected. NofakeFetchadvertisements.",
+        "Wait/min/max/oversized-first-batch semantics executeoutsideblockingcatalog actor with bounded data-admission permit, captured notification generation, original wire/caller deadline, cancellation and no lost append/delete wakeup. Reads snapshot UUID/deletion/order through existing serialized actor.",
+        "Keep default/metadata-only4 and ordinaryProduce5 profiles unchanged; add explicitly composedread/write7APIprofile only once genuinelyimplemented andtested. NativeMagic2peer negotiated realProduce>=3 ANDFetch>=4."
       ],
       "validation": [
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/fetch.rs",
+        "partitionline-broker/src/metadata.rs",
+        "partitionline-broker/src/produce.rs",
+        "partitionline-broker/tests/fetch.rs",
+        "partitionline-broker/tests/metadata.rs",
+        "partitionline-broker/tests/produce.rs",
+        "docs/evidence/broker/KL11-07/"
+      ],
+      "integration_coordinator": "open_loop owns07read actor/wire implementation after this claim push;06source frozen, c_peer owns shared registry/gates only. Root owns libexports/Cargo/globalplan/commits. Independent68Java/Cread peers follow exact07push. Do not edit shared protocol/registry/gates; send integration proposals."
     },
     {
       "id": "KL11-08",
@@ -26908,7 +26921,7 @@
       "title": "Generate independent fixed-controller Vote/Begin/End epoch oracles",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-57",
@@ -26928,7 +26941,295 @@
         "Strict compile/replay all three pinned current Apache releases.",
         "Decode actual frozen Rust controller responses and exercise real bounded handler transitions once implementation exists."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-69",
+                "status": "done",
+                "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+                "commands": [
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.1.2-compile.stdout.log",
+                                "stderr": "4.1.2-compile.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.1.2",
+                                        "4.1.2",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.1.2-replay.stdout.log",
+                                "stderr": "4.1.2-replay.stderr.log",
+                                "stdout_sha256": "4b9b481e1dd0d71d6b3bd8710da77e74bbe1a088819fb474ecedb1640d502156",
+                                "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-correlation/output",
+                                        "4.1.2",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-correlation/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.1.2-negative-correlation.stdout.log",
+                                "stderr": "4.1.2-negative-correlation.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-trailing/output",
+                                        "4.1.2",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-trailing/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.1.2-negative-trailing.stdout.log",
+                                "stderr": "4.1.2-negative-trailing.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.2.1-compile.stdout.log",
+                                "stderr": "4.2.1-compile.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.2.1",
+                                        "4.2.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.2.1-replay.stdout.log",
+                                "stderr": "4.2.1-replay.stderr.log",
+                                "stdout_sha256": "a7a862a797f7debf67aae38ccae354b0e89e9e80912a89d6f751941a9f55d22d",
+                                "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-correlation/output",
+                                        "4.2.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-correlation/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.2.1-negative-correlation.stdout.log",
+                                "stderr": "4.2.1-negative-correlation.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-trailing/output",
+                                        "4.2.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-trailing/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.2.1-negative-trailing.stdout.log",
+                                "stderr": "4.2.1-negative-trailing.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.3.1-compile.stdout.log",
+                                "stderr": "4.3.1-compile.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.3.1",
+                                        "4.3.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+                                ],
+                                "exit_code": 0,
+                                "expected_exit_code": 0,
+                                "stdout": "4.3.1-replay.stdout.log",
+                                "stderr": "4.3.1-replay.stderr.log",
+                                "stdout_sha256": "7f77a5942a140fbfa39867e1bbe1af2ec6d6c00d55f79107b11485791f70ea18",
+                                "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-correlation/output",
+                                        "4.3.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-correlation/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.3.1-negative-correlation.stdout.log",
+                                "stderr": "4.3.1-negative-correlation.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xmx128m",
+                                        "-cp",
+                                        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "ControllerOracle",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-trailing/output",
+                                        "4.3.1",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-trailing/input"
+                                ],
+                                "exit_code": 1,
+                                "expected_exit_code": 1,
+                                "stdout": "4.3.1-negative-trailing.stdout.log",
+                                "stderr": "4.3.1-negative-trailing.stderr.log",
+                                "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+                        }
+                ],
+                "results": {
+                        "source_file_count": 1111,
+                        "oracle_case_count": 201,
+                        "actual_rust_direct_response_count": 186,
+                        "actual_tcp_response_count": 18,
+                        "expected_negative_decoder_failure_count": 6,
+                        "full_kraft_qualification": false
+                },
+                "artifacts": [
+                        "docs/evidence/broker/KL11-69/FINAL.md",
+                        "docs/evidence/broker/KL11-69/final-validation.json",
+                        "docs/evidence/broker/KL11-69/independent-source-review.json",
+                        "docs/evidence/broker/KL11-69/SHA256SUMS"
+                ],
+                "limits": [
+                        "ActualApacheQuorum/KafkaRaftClient handlers use bounded synthetic dependencies; actualRustTCP replies are independently decoded. This does not qualify liveApachecontroller interoperability or completeKRaft/replication/runtime.",
+                        "Currentdirectory identity/pre-vote/membership/replication/snapshot extensions remain70/14/15."
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/tests/fixtures/raft-protocol/",
         "docs/evidence/broker/KL11-69/",

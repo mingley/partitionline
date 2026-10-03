@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "pre-freeze independent read-only source review",
+  "source_sha": null,
+  "head": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "paths_sha256": {
+    "partitionline-broker/src/raft/protocol.rs": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+  },
+  "checks": [
+    "Borrowed bounded request parser completes body/tag validation before semantic mutation; unsupported controller versions close before mutation.",
+    "Checked wire epoch +1 and nonempty-log epoch +1 mappings preserve empty (0,0); initialization synchronizes internal term1 before readiness.",
+    "Fixed distinct signed32-bit membership and successor bounds are enforced before controller mutation; count32/33 are explicitly excluded from native shift wrapping.",
+    "Votes reuse synchronized election journal transitions and poisoned ambiguous-failure handling; same-term repeated/different candidate behavior is covered by independent fixture responses.",
+    "Known same-epoch leader conflicts return local42; differing prior vote does not bar following an asserted trusted elected leader and the durable prior vote remains.",
+    "Caller-driven incoming RPC adapter has no autonomous polling/outbound peer loop or replication/commit authority; actor queue is bounded and storage is on a blocking thread.",
+    "Actor cancellation skips unstarted replies; in-progress storage cancellation is ambiguous. Shutdown stops admission, wakes the actor, retains its join handle across cancellation and joins on retry.",
+    "Peer replies validate full schema, correlation, partition, fixed identities, leader/grant consistency and epoch before distinct-voter counting; stale grants cannot elect a newer candidate.",
+    "Epoch overflow checks fence unrepresentable outgoing state; higher-term demotion precedes timer/persist ambiguity in trusted-adoption and existing election paths."
+  ],
+  "remaining_blockers": [],
+  "limits": [
+    "Queue caps concern admitted payload lengths/counts, not a process RSS ceiling or all caller allocation capacities.",
+    "Filesystem synchronization can block; request cancellation does not abort an active fsync.",
+    "Operator must bind journal path to the same cluster/topic/epoch representation; node IDs are not authentication.",
+    "Only exact fixture/native handler results and documented static-profile transitions are qualified; no complete KRaft interoperability."
+  ],
+  "validation_attribution": {
+    "rust_execution": "rpc_reuse owns Rust gates and captures; this worker did not duplicate builds.",
+    "java_execution": "This worker independently executed real Apache classes/handlers and decoded retained actual Rust captures."
+  }
+}

@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "task": "KL11-69",
+  "status": "done",
+  "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.1.2-compile.stdout.log",
+      "stderr": "4.1.2-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.1.2",
+        "4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.1.2-replay.stdout.log",
+      "stderr": "4.1.2-replay.stderr.log",
+      "stdout_sha256": "4b9b481e1dd0d71d6b3bd8710da77e74bbe1a088819fb474ecedb1640d502156",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-correlation/output",
+        "4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-correlation/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.1.2-negative-correlation.stdout.log",
+      "stderr": "4.1.2-negative-correlation.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.1.2.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-trailing/output",
+        "4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.1.2-trailing/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.1.2-negative-trailing.stdout.log",
+      "stderr": "4.1.2-negative-trailing.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.2.1-compile.stdout.log",
+      "stderr": "4.2.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.2.1",
+        "4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.2.1-replay.stdout.log",
+      "stderr": "4.2.1-replay.stderr.log",
+      "stdout_sha256": "a7a862a797f7debf67aae38ccae354b0e89e9e80912a89d6f751941a9f55d22d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-correlation/output",
+        "4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-correlation/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.2.1-negative-correlation.stdout.log",
+      "stderr": "4.2.1-negative-correlation.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.2.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-trailing/output",
+        "4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.2.1-trailing/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.2.1-negative-trailing.stdout.log",
+      "stderr": "4.2.1-negative-trailing.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/ControllerOracle.java"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.3.1-compile.stdout.log",
+      "stderr": "4.3.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/4.3.1",
+        "4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-rust-captures/responses"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "4.3.1-replay.stdout.log",
+      "stderr": "4.3.1-replay.stderr.log",
+      "stdout_sha256": "7f77a5942a140fbfa39867e1bbe1af2ec6d6c00d55f79107b11485791f70ea18",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-correlation/output",
+        "4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-correlation/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.3.1-negative-correlation.stdout.log",
+      "stderr": "4.3.1-negative-correlation.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "181e85a0fbbc401f6aef887cb20daef6f039993b6bfbdbe73667a50b8845d3b2"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/raft-protocol-oracle/final-04986a07-classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-raft-4.3.1.jar:/workspace/work/raft-protocol-oracle/jars/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "ControllerOracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-trailing/output",
+        "4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-69/final-matrix/negative-4.3.1-trailing/input"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "4.3.1-negative-trailing.stdout.log",
+      "stderr": "4.3.1-negative-trailing.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "52c888597f9e3d559da8a2a929484095a3c25f34b4a7da89a57434b0efeb9278"
+    }
+  ],
+  "results": {
+    "source_file_count": 1111,
+    "oracle_case_count": 201,
+    "actual_rust_direct_response_count": 186,
+    "actual_tcp_response_count": 18,
+    "expected_negative_decoder_failure_count": 6,
+    "full_kraft_qualification": false
+  },
+  "artifacts": [
+    "docs/evidence/broker/KL11-69/FINAL.md",
+    "docs/evidence/broker/KL11-69/final-validation.json",
+    "docs/evidence/broker/KL11-69/independent-source-review.json",
+    "docs/evidence/broker/KL11-69/SHA256SUMS"
+  ],
+  "limits": [
+    "ActualApacheQuorum/KafkaRaftClient handlers use bounded synthetic dependencies; actualRustTCP replies are independently decoded. This does not qualify liveApachecontroller interoperability or completeKRaft/replication/runtime.",
+    "Currentdirectory identity/pre-vote/membership/replication/snapshot extensions remain70/14/15."
+  ]
+}

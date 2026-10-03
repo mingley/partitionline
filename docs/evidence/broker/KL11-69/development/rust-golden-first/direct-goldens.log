@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized] target(s) in 0.01s
+     Running tests/raft_protocol.rs (/workspace/work/target-raft-wire/debug/deps/raft_protocol-a5d013805f23b48d)
+
+running 1 test
+Error: Election(CorruptState)
+test independent_apache_controller_goldens_and_registry ... FAILED
+
+failures:
+
+failures:
+    independent_apache_controller_goldens_and_registry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test raft_protocol`
