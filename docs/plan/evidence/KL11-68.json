@@ -1,0 +1,2151 @@
+{
+  "schema_version": 1,
+  "task": "KL11-68",
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "source_pins": {
+    "first_oracle_source": "ba8b94b271343d157411b822b04f2392e8180e51",
+    "ordinary_produce": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+    "persisted_reads": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0"
+  },
+  "disposition": "accepted ordinary Produce/Fetch/ListOffsets independent oracles and live peers",
+  "commands": [
+    {
+      "role": "server",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.1.2",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-04-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.2.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-05-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.3.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-06-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.1.2",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.1.2"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.2.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.2.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.3.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.3.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "append"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "append"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-1-2-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-1-2-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-2-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-2-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-3-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-3-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.1.2",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.2.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.3.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+        "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30"
+      }
+    },
+    {
+      "role": "server",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.1.2",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/codec-peer-04-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.2.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/codec-peer-05-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.3.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/codec-peer-06-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.1.2"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.2.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.3.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-1-2-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-1-2-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-2-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-2-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-3-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-3-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "stable",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+        "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053"
+      }
+    },
+    {
+      "role": "server",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-live-read/bin/1.85.0/fetch",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.1.2",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/codec-peer-04-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.2.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/codec-peer-05-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.3.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/codec-peer-06-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.1.2",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.1.2"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.2.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.2.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.3.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.3.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "append"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "append"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-1-2-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-1-2-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-2-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-2-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-3-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-3-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.1.2",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.2.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.3.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+        "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8"
+      }
+    },
+    {
+      "role": "server",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-live-read/bin/1.85.0/fetch",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "ordinary",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.1.2",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/codec-peer-04-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.2.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/codec-peer-05-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.3.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/codec-peer-06-restart.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "codec_read",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.1.2"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.2.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.3.1"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "read_control",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-1-2-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-1-2-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-2-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-2-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "restart",
+        "ordinary-4-3-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native",
+        "phase": "restart",
+        "topic": "ordinary-4-3-1-acks1",
+        "count": 13
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.1.2",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.2.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    },
+    {
+      "role": "peer",
+      "toolchain": "1.85.0",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.3.1",
+        "19135",
+        "restart",
+        "/workspace/work/broker-log-live-read/1-85-0/clients"
+      ],
+      "exit_code": 0,
+      "job": {
+        "peer": "native_read",
+        "phase": "restart",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/1-85-0/clients"
+      },
+      "receipt": {
+        "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+        "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c"
+      }
+    }
+  ],
+  "earlier_oracle_and_produce_commands": "Immutable command receipts under docs/evidence/broker/KL11-68/ already accepted by KL11-06; complete.json pins their exact proofs.",
+  "results": {
+    "task": "KL11-68",
+    "status": "complete and frozen; root-owned plan closure/integration pending",
+    "claim_sha": "06b9a9c57586db0f568335909e151abc7da9b062",
+    "source_pins": {
+      "first_oracle_source": "ba8b94b271343d157411b822b04f2392e8180e51",
+      "ordinary_produce": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+      "persisted_reads": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0"
+    },
+    "profiles": {
+      "Produce": [
+        3,
+        13
+      ],
+      "Fetch": [
+        4,
+        6
+      ],
+      "ListOffsets": [
+        1,
+        3
+      ]
+    },
+    "independent_oracle": {
+      "cases": 1074,
+      "produce_cases": 708,
+      "fetch_list_offsets_cases": 366,
+      "apache_releases": [
+        "4.1.2",
+        "4.2.1",
+        "4.3.1"
+      ],
+      "pinned_apache_source_files": 81,
+      "storage_component_reads": 36,
+      "storage_timestamp_searches": 51,
+      "strict_three_release_java_compile": true,
+      "double_generation_hash_identical": true,
+      "cross_release_wire_bytes_identical": true
+    },
+    "accepted_produce_runtime": {
+      "source": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+      "real_java_executions": 24,
+      "assertions": 9138,
+      "actual_v4_profile_checks": 90,
+      "supplemental_v0_to4_profile_exchanges": 30,
+      "unique_stored_records": 1248,
+      "independent_reverse_record_comparisons": 3744,
+      "report": {
+        "path": "docs/evidence/broker/KL11-68/live-produce/validation.json",
+        "sha256": "1ccbff3a4a0ee8a570c9aa3b39a16eac0a4b6aed08da32c0b6bf863ad0868752"
+      },
+      "profile_report": {
+        "path": "docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      }
+    },
+    "accepted_read_runtime": {
+      "source": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "full_git_blob_file_count": 17370,
+      "copied_full_source_stable_and_msrv_default_binaries": true,
+      "counts": {
+        "peer_executions": 66,
+        "assertions": 79590,
+        "ordinary_hash_comparisons": 1848,
+        "codec_hash_comparisons": 8784,
+        "native_java_hash_comparisons": 288,
+        "native_consumed_receipts": 408,
+        "native_delivery_receipts": 48,
+        "live_read_cases": 1464,
+        "positive_read_responses": 1320,
+        "structural_eofs": 144,
+        "explicit_record_hash_comparisons": 11328
+      },
+      "distinct_topic_uuids_retained": 44,
+      "all_journal_hashes_unchanged_after_restart": true,
+      "actual_native_all_topics_queries": 18,
+      "api18_v0_to4_exchanges": 60,
+      "native_library_version": "2.15.0",
+      "native_library_source": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "report": {
+        "path": "docs/evidence/broker/KL11-68/live-read/validation.json",
+        "sha256": "255771ca141350ccc4e61d5d02929178aed76d2005c82a00f0a3929080be5c3d"
+      },
+      "api_versions_report": {
+        "path": "docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      },
+      "native_receipts_report": {
+        "path": "docs/evidence/broker/KL11-68/live-read/native-receipts.json",
+        "sha256": "74404d8de0a00f8292acc5c94f77cf4e9bea211e244490559491569390d187b7"
+      }
+    },
+    "card_close_eligible": true,
+    "closure_conditions": "Root confirms shared gate independently accepts the frozen60actualAPI18responses and stages the exact frozen owned paths; no missing peer/runtime/fixture implementation work remains. No production writes or commits by this worker.",
+    "scope_limits": [
+      "Ordinary single-node durable logs only; local acks-1/fsync does not establish replication.",
+      "No transaction, idempotent, control-batch, group coordination, retention or incremental Fetch-session implementation claimed.",
+      "Live expected seeded batches use official setPartitionLeaderEpoch(0); direct-Partition fixtures retain-1 outside the protectedCRC.",
+      "Failed stable attempts1\u20133, peer configuration failures and partial-source initial behavior remain retained as development history.",
+      "Apache source/schema/storage-component methods are pinned separately from local assembled successful wire policies; no full Apache broker runtime claim.",
+      "Null87 and ordinary-only local43 restrictions remain explicitly stricter than upstream support.",
+      "Positive-acks local fsync/restart proof and acks0 persisted observation do not establish replicated durability or an acks0 durable client receipt.",
+      "No native/codec dependencies were added to any default product feature by this oracle lane."
+    ],
+    "retained_failure_sets": [
+      "failures/produce-attempt-1/",
+      "failures/produce-attempt-2/",
+      "logs/storage-runtime-4.3.1-attempt-1.txt",
+      "failures/journal-peer-attempt-1/",
+      "live-produce/stable/attempt-1/compressed-default/",
+      "native-peer-build/compile-attempt-1.log",
+      "live-read/stable/attempt-1",
+      "live-read/stable/attempt-2",
+      "live-read/stable/attempt-3",
+      "failures/read-control-attempt-1",
+      "failures/native-read-config-attempt-1",
+      "failures/native-read-config-attempt-2"
+    ],
+    "safe_new_paths_to_stage": [
+      "docs/evidence/broker/KL11-68/ReadControlPeer.java",
+      "docs/evidence/broker/KL11-68/CodecReadPeer.java",
+      "docs/evidence/broker/KL11-68/NativeReadPeer.java",
+      "docs/evidence/broker/KL11-68/ordinary-peer.c",
+      "docs/evidence/broker/KL11-68/run-read-live.py",
+      "docs/evidence/broker/KL11-68/prepare-read-peers.py",
+      "docs/evidence/broker/KL11-68/archive-read-source.py",
+      "docs/evidence/broker/KL11-68/seal-read.py",
+      "docs/evidence/broker/KL11-68/READ-PEERS.md",
+      "docs/evidence/broker/KL11-68/read-preparation.json",
+      "docs/evidence/broker/KL11-68/read-control-build",
+      "docs/evidence/broker/KL11-68/native-peer-build",
+      "docs/evidence/broker/KL11-68/live-read",
+      "docs/evidence/broker/KL11-68/failures/read-control-attempt-1",
+      "docs/evidence/broker/KL11-68/failures/native-read-config-attempt-1",
+      "docs/evidence/broker/KL11-68/failures/native-read-config-attempt-2",
+      "docs/evidence/broker/KL11-68/complete.json"
+    ],
+    "already_pushed_immutable_paths": [
+      "partitionline-broker/tests/fixtures/produce/",
+      "partitionline-broker/tests/fixtures/fetch/",
+      "docs/evidence/broker/KL11-68/live-produce/",
+      "docs/evidence/broker/KL11-68/live-produce-api-versions/",
+      "docs/evidence/broker/KL11-68/OrdinaryPeer.java",
+      "docs/evidence/broker/KL11-68/JournalPeer.java"
+    ],
+    "verification_command": "sha256sum -c docs/evidence/broker/KL11-68/live-read/SHA256SUMS",
+    "repeat_report_verification_command": "python3 docs/evidence/broker/KL11-68/seal-read.py"
+  },
+  "independent_gate": {
+    "path": "docs/evidence/broker/KL11-07/profile-gates/final-2db175c7/validation.json",
+    "sha256": "8b0733c9c87c99baf1c4170b537a4746356970fc323005ad20421f0fcef446d7"
+  },
+  "acceptance_complete": true
+}

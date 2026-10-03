@@ -1,0 +1,102 @@
+{
+  "task": "KL11-07",
+  "status": "complete; eligible for coordinator closure",
+  "implementation_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "gate_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "source_sha256": {
+    "partitionline-broker/src/fetch.rs": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+    "partitionline-broker/src/metadata.rs": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+    "partitionline-broker/src/produce.rs": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+    "partitionline-broker/tests/fetch.rs": "9df92db9a23f24fd1139b8e14231b606282f57169c9e125af850f258997947c0"
+  },
+  "features_and_versions": {
+    "metadata_profile_entries": 4,
+    "produce_profile_entries": 5,
+    "explicit_read_write_profile_entries": 7,
+    "fetch_versions": [
+      4,
+      5,
+      6
+    ],
+    "list_offsets_versions": [
+      1,
+      2,
+      3
+    ]
+  },
+  "qa": {
+    "source_files": 17370,
+    "full_git_identities_before_after_every_command": true,
+    "toolchains": [
+      "stable1.99.0",
+      "1.85.0"
+    ],
+    "default_tests_each": 151,
+    "all_feature_tests_each": 225,
+    "failures": 0,
+    "ignored": 0,
+    "fmt": "pass",
+    "strict_default_and_all_target_clippy": "pass",
+    "strict_default_and_all_rustdoc": "pass",
+    "default_and_all_doctest_counts": 0,
+    "fetch_integration_tests": 19,
+    "wire_cases_per_cell": 99,
+    "metadata_admin_cases_per_cell": 555,
+    "produce_cases_per_cell": 708,
+    "read_cases_per_cell": 366,
+    "read_responses_per_cell": 330,
+    "read_structural_closes_per_cell": 36,
+    "actual_seven_profile_serializations_per_cell": 15
+  },
+  "independent_runtime": {
+    "aggregate": "docs/evidence/broker/KL11-68/live-read/validation.json",
+    "aggregate_sha256": "255771ca141350ccc4e61d5d02929178aed76d2005c82a00f0a3929080be5c3d",
+    "accepted_initial_restart_runs": 4,
+    "peer_executions": 66,
+    "assertions": 79590,
+    "live_read_cases": 1464,
+    "live_responses": 1320,
+    "live_structural_eofs": 144,
+    "exact_record_hash_comparisons": 11328,
+    "native_delivery_receipts": 48,
+    "native_consumed_receipts": 408,
+    "allocated_uuids_retained": 44,
+    "both_restart_catalog_partition_bytes_unchanged": true,
+    "api18_actual_exchanges": 60
+  },
+  "shared_gate": {
+    "receipt": "docs/evidence/broker/KL11-07/profile-gates/final-2db175c7/validation.json",
+    "receipt_sha256": "8b0733c9c87c99baf1c4170b537a4746356970fc323005ad20421f0fcef446d7",
+    "mutation_guards": 48,
+    "compiled_cells": 4,
+    "all_pass": true
+  },
+  "independent_actor_review_sha256": "763f526826ad1b80976430c8f094a08b59cd223fdea3796fd5c9be62944f8369",
+  "evidence": [
+    "docs/evidence/broker/KL11-07/FINAL.md",
+    "docs/evidence/broker/KL11-07/README.md",
+    "docs/evidence/broker/KL11-07/final-validation.json",
+    "docs/evidence/broker/KL11-07/independent-runtime-bindings.json",
+    "docs/evidence/broker/KL11-07/final-qualified/matrix-results.json",
+    "docs/evidence/broker/KL11-07/independent-actor-review.json",
+    "docs/evidence/broker/KL11-68/live-read/validation.json",
+    "docs/evidence/broker/KL11-07/profile-gates/final-2db175c7/validation.json"
+  ],
+  "failures_preserved": [
+    "Development first fixture/assertion/queue-barrier corrections explicitly labeled; no complete first PTY log claimed",
+    "final partial4387-file archive omitted rootclippy.toml and83testunwrap lint failures; corrected17370-file full tree qualifies without source changes",
+    "KL11-68 earlier partial behavior/peer-preparation failures preserved separately"
+  ],
+  "stage_scope": [
+    "docs/evidence/broker/KL11-07/"
+  ],
+  "source_stage_required": false,
+  "plan_or_card_edits_by_worker": false,
+  "remaining_acceptance_work": [],
+  "limitations": [
+    "Ordinary single-node persisted data only; local fsync is not replication.",
+    "ReadCommittedLSO=HW/noaborts requires transaction/control/idempotent write rejection.",
+    "No incremental fetch sessions, replica fetches, retention, groups, cross-process locking, full production or comparative performance qualification.",
+    "Dataretained-byte envelope excludes separately bounded active actor buffers, transport/caller ownership, allocator/OS overhead and RSS."
+  ]
+}

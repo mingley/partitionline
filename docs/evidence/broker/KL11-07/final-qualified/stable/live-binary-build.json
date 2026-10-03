@@ -1,0 +1,30 @@
+{
+  "source_pin": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "full_source_files": 17370,
+  "before_source_manifest_sha256": "301f24f45b30331a9a0c4f6fe1fb953c430865b440b96d5d628be250629512c0",
+  "after_source_manifest_sha256": "301f24f45b30331a9a0c4f6fe1fb953c430865b440b96d5d628be250629512c0",
+  "full_git_blob_identities_match": true,
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/fetch-final-qualified-source-58810f2e/partitionline-broker/Cargo.toml",
+    "--test",
+    "fetch",
+    "--no-run"
+  ],
+  "exit_code": 0,
+  "original_binary": "/workspace/work/target-broker-fetch-dev/debug/deps/fetch-dc28d9e99e19d99a",
+  "copied_binary": "/workspace/work/partitionline-fetch-final-bin/stable/fetch",
+  "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "features": [
+    "default"
+  ],
+  "note": "Recompiled default live test executable from same complete frozen source after MSRV cleanup; no test rerun or source modification."
+}

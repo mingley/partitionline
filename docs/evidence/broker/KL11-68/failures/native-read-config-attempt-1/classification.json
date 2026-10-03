@@ -1,0 +1,7 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "actual_attempt": "docs/evidence/broker/KL11-68/live-read/stable/attempt-2/",
+  "classification": "External native probe preparation error: Java spellingfetch.max.wait.ms failslibrdkafka rd_kafka_conf_set before consumerclient allocation/TCPrequest. Correctnativepropertyisfetch.wait.max.ms. No productchange.",
+  "successful_actual_subphases": "AllthreeSDKactualmanualconsumers/codec-historyreaders; all366readgoldens and15API18profiles; actualnativeCreate/Metadataall-topics/Produce24receipts.",
+  "broker_exit_code": 0
+}

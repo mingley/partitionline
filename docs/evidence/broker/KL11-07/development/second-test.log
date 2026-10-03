@@ -1,0 +1,19 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.23s
+     Running tests/fetch.rs (/workspace/work/target-broker-fetch-dev/debug/deps/fetch-dc28d9e99e19d99a)
+
+running 11 tests
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+test absolute_wait_cap_and_minimum_clamping ... ok
+test independent_apache_read_goldens ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+

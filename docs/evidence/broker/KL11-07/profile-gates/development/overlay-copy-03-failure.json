@@ -1,0 +1,7 @@
+{
+  "stage": "candidate-overlay-copy-03",
+  "classification": "validation harness path error, not implementation failure",
+  "error": "relative source path resolved inside candidate archive; SameFileError while copying to itself",
+  "effect": "copy aborted; focused03 ran previous already-verified candidate and is superseded by focused04",
+  "source_unchanged": true
+}

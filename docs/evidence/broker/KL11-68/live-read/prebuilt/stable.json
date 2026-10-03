@@ -1,0 +1,27 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "toolchain": "stable",
+  "features": "",
+  "binary_sha256": "76cbadde26155918525223228a851e3b0c87835c769b3b03f0f4f8ea36c78a4f",
+  "original_binary": "/workspace/work/target-broker-fetch-dev/debug/deps/fetch-dc28d9e99e19d99a",
+  "copied_binary": "/workspace/work/broker-log-live-read/bin/stable/fetch",
+  "build_provenance_files": {
+    "source-integrity.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-build/source-integrity.json",
+      "sha256": "d70211808204452a32b68282271a2e7477e79175b4e6fb30c136718ad237f459"
+    },
+    "stable/results.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-build/stable/results.json",
+      "sha256": "907f64a5efeca335bbb5a394c5038bb78b1aaea838d5ccb78182e1101a6ac4c3"
+    },
+    "stable/rustc.txt": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-build/stable/rustc.txt",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    "stable/default-all-targets.log": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-build/stable/default-all-targets.log",
+      "sha256": "fa161f8bd7aba7b5f2894c9d472cd7ccafe8ccb83c891f5d1dadd88b01d08474"
+    }
+  },
+  "scope": "Copied exact-source sibling default test executable after its151test pass; no second Cargo build claimed."
+}

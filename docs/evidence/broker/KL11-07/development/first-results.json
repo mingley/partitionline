@@ -1,0 +1,20 @@
+{
+  "source_state": "dirty-tree before corrective development changes",
+  "source_hashes": {
+    "partitionline-broker/src/fetch.rs": "78d07a76416bc6ac7ef62837c6753effeca5319190b68092b3300eb9d80c025a",
+    "partitionline-broker/src/metadata.rs": "0b7db476c32bf6caaefb7d75b32685172c73a3989ee18a2433dca46bd1cb0f4b",
+    "partitionline-broker/src/produce.rs": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+    "partitionline-broker/tests/fetch.rs": "c7aa6a691a44fa5c9f0bdf12b0a21cec4124c265c0b22de09760670d846b5b10"
+  },
+  "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --test fetch --lib --jobs 1",
+  "unit_passed": 24,
+  "integration_passed": 5,
+  "integration_failed": 5,
+  "failures": {
+    "independent_apache_read_goldens": "Fetch error aborted array expected0 not null(-1)",
+    "lazy_empty_reads_and_delete_recreate_resolve_current_identity": "test expected source leader epoch-1; Produce intentionally assigns broker epoch0",
+    "waiting_read_does_not_block_append_and_delete_wakes": "same test expected epoch mismatch",
+    "wake_between_snapshot_and_receipt_is_not_lost": "same test expected epoch mismatch",
+    "wait_keeps_admission_cancel_releases_and_shutdown_wakes": "test metadata FIFO barrier raced full shared queue; retry bounded QueueFull before barrier admission"
+  }
+}

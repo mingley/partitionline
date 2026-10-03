@@ -1,0 +1,28 @@
+{
+  "native_version": "2.15.0",
+  "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "source_sha256": "e66466636263c76e8058e99848a792555ea5b1cf9413cfd875c9ae9ebe7c54be",
+  "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "binary_sha256": "9b160955d0979b0bdc52ab8b6e4d833cb694e77203052b0410249f63ebfa9d29",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "gcc",
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "docs/evidence/broker/KL11-68/ordinary-peer.c",
+    "/workspace/work/c-peer/lib/librdkafka.so.1",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-o",
+    "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+  ],
+  "exit_code": 0,
+  "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement"
+}

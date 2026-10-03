@@ -1,0 +1,211 @@
+$ taskset -c 0-2,4 /workspace/work/broker-log-oracle/live-peer/ordinary-native 127.0.0.1:19135 append
+{"peer":"librdkafka","version":"2.15.0","phase":"append","ordinary":true}
+{"operation":"delivery","id":"ordinary-native:1:0","topic":"ordinary-native","partition":1,"offset":0,"timestamp":1700000000100,"key_hex":null,"value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a30"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:1","topic":"ordinary-native","partition":1,"offset":1,"timestamp":1700000000101,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a31","value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a31"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:2","topic":"ordinary-native","partition":1,"offset":2,"timestamp":1700000000102,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a32","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a32","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a32"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:3","topic":"ordinary-native","partition":1,"offset":3,"timestamp":1700000000103,"key_hex":null,"value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a33","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a33"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:4","topic":"ordinary-native","partition":1,"offset":4,"timestamp":1700000000104,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a34","value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a34"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:5","topic":"ordinary-native","partition":1,"offset":5,"timestamp":1700000000105,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a35","value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a35"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:6","topic":"ordinary-native","partition":1,"offset":6,"timestamp":1700000000106,"key_hex":null,"value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a36","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a36"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:7","topic":"ordinary-native","partition":1,"offset":7,"timestamp":1700000000107,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a37","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a37","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a37"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:8","topic":"ordinary-native","partition":1,"offset":8,"timestamp":1700000000108,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a38","value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a38"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:9","topic":"ordinary-native","partition":1,"offset":9,"timestamp":1700000000109,"key_hex":null,"value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a39"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:10","topic":"ordinary-native","partition":1,"offset":10,"timestamp":1700000000110,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a3130","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a3130","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a3130"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:1:11","topic":"ordinary-native","partition":1,"offset":11,"timestamp":1700000000111,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a313a3131","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a313a3131","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a313a3131"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:0","topic":"ordinary-native","partition":0,"offset":0,"timestamp":1700000000000,"key_hex":null,"value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a30"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:1","topic":"ordinary-native","partition":0,"offset":1,"timestamp":1700000000001,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a31","value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a31"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:2","topic":"ordinary-native","partition":0,"offset":2,"timestamp":1700000000002,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a32","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a32","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a32"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:3","topic":"ordinary-native","partition":0,"offset":3,"timestamp":1700000000003,"key_hex":null,"value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a33","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a33"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:4","topic":"ordinary-native","partition":0,"offset":4,"timestamp":1700000000004,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a34","value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a34"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:5","topic":"ordinary-native","partition":0,"offset":5,"timestamp":1700000000005,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a35","value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a35"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:6","topic":"ordinary-native","partition":0,"offset":6,"timestamp":1700000000006,"key_hex":null,"value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a36","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a36"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:7","topic":"ordinary-native","partition":0,"offset":7,"timestamp":1700000000007,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a37","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a37","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a37"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:8","topic":"ordinary-native","partition":0,"offset":8,"timestamp":1700000000008,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a38","value_hex":null,"headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a38"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:9","topic":"ordinary-native","partition":0,"offset":9,"timestamp":1700000000009,"key_hex":null,"value_hex":"","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a39"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:10","topic":"ordinary-native","partition":0,"offset":10,"timestamp":1700000000010,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a3130","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a3130","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a3130"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"operation":"delivery","id":"ordinary-native:0:11","topic":"ordinary-native","partition":0,"offset":11,"timestamp":1700000000011,"key_hex":"6b65793a6f7264696e6172792d6e61746976653a303a3131","value_hex":"76616c75653a6f7264696e6172792d6e61746976653a303a3131","headers":[{"key":"receipt","value_hex":"6f7264696e6172792d6e61746976653a303a3131"},{"key":"dup","value_hex":"61"},{"key":"dup","value_hex":null}]}
+{"status":"pass","assertions":291,"records":24}
+%7|1790991295.115|BRKMAIN|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Enter main broker thread
+%7|1790991295.115|BROKER|ordinary-native-peer#producer-1| [thrd:app]: 127.0.0.1:19135/bootstrap: Added new broker with NodeId -1
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:app]: 127.0.0.1:19135/bootstrap: Selected for cluster connection: bootstrap servers added (broker has 0 connection attempt(s))
+%7|1790991295.115|BRKMAIN|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enter main broker thread
+%7|1790991295.115|INIT|ordinary-native-peer#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) ordinary-native-peer#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x92)
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Received CONNECT op
+%7|1790991295.115|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker changed state INIT -> TRY_CONNECT
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: broker in state TRY_CONNECT connecting
+%7|1790991295.115|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker changed state TRY_CONNECT -> CONNECT
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Connecting to ipv4#127.0.0.1:19135 (plaintext) with socket 7
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Connected to ipv4#127.0.0.1:19135
+%7|1790991295.115|CONNECTED|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Connected (#1)
+%7|1790991295.115|FEATURE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790991295.115|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker changed state CONNECT -> APIVERSION_QUERY
+%7|1790991295.115|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Sent ApiVersionRequest (v3, 54 bytes @ 0, CorrId 1)
+%7|1790991295.115|CONNECT|ordinary-native-peer#producer-1| [thrd:main]: Not selecting any broker for cluster connection: still suppressed for 49ms: lookup controller
+%7|1790991295.115|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 0.12ms)
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker API support:
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey Produce (0) Versions 3..13
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey Fetch (1) Versions 4..6
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey ListOffsets (2) Versions 1..3
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey Metadata (3) Versions 0..13
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey ApiVersion (18) Versions 0..4
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey CreateTopics (19) Versions 2..4
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:   ApiKey DeleteTopics (20) Versions 1..6
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature MsgVer1: Produce (2..32767) supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature MsgVer1: Fetch (2..32767) supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enabling feature MsgVer1
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature MsgVer2: Produce (3..32767) supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature MsgVer2: Fetch (4..32767) supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enabling feature MsgVer2
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature ApiVersion: ApiVersion (0..32767) supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enabling feature ApiVersion
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerGroupCoordinator: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature BrokerGroupCoordinator
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: OffsetCommit (1..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: OffsetFetch (1..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: JoinGroup (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: SyncGroup (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: Heartbeat (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: LeaveGroup (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature BrokerBalancedConsumer
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: ConsumerGroupHeartbeat (0..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: OffsetCommit (9..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature BrokerBalancedConsumer: OffsetFetch (9..32767) NOT supported by broker
+%7|1790991295.115|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature BrokerBalancedConsumer
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature ThrottleTime: Produce (1..32767) supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature ThrottleTime: Fetch (1..32767) supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enabling feature ThrottleTime
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature Sasl: JoinGroup (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature Sasl
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature Sasl: SaslHandshake (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature Sasl
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature SaslHandshake: SaslHandshake (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature SaslHandshake
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature LZ4: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature LZ4
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature OffsetTime: ListOffsets (1..32767) supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Enabling feature OffsetTime
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature IdempotentProducer: InitProducerId (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature IdempotentProducer
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature ZSTD: Produce (7..32767) supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature ZSTD: Fetch (10..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature ZSTD
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature SaslAuthReq: SaslHandshake (1..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap:  Feature SaslAuthReq: SaslAuthenticate (0..32767) NOT supported by broker
+%7|1790991295.116|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Disabling feature SaslAuthReq
+%7|1790991295.116|FEATURE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Updated enabled protocol features to MsgVer1,ApiVersion,ThrottleTime,OffsetTime,MsgVer2
+%7|1790991295.116|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker changed state APIVERSION_QUERY -> UP
+%7|1790991295.116|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Sent MetadataRequest (v13, 39 bytes @ 0, CorrId 2)
+%7|1790991295.158|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 42.44ms)
+%7|1790991295.158|BROKER|ordinary-native-peer#producer-1| [thrd:main]: 127.0.0.1:19135/0: Added new broker with NodeId 0
+%7|1790991295.158|DESTROY|ordinary-native-peer#producer-1| [thrd:main]: Sending TERMINATE to 127.0.0.1:19135/bootstrap
+%7|1790991295.158|CLUSTERID|ordinary-native-peer#producer-1| [thrd:main]: 127.0.0.1:19135/bootstrap: ClusterId update "" -> "partitionline-fixture"
+%7|1790991295.158|CONTROLLERID|ordinary-native-peer#producer-1| [thrd:main]: 127.0.0.1:19135/bootstrap: ControllerId update -1 -> 0
+%7|1790991295.158|TERM|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Received TERMINATE op in state UP: 3 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1790991295.158|BRKMAIN|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enter main broker thread
+%7|1790991295.158|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received CONNECT op
+%7|1790991295.158|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker changed state INIT -> TRY_CONNECT
+%7|1790991295.158|FAIL|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Decommissioning this broker (after 42ms in state UP) (_DESTROY_BROKER)
+%7|1790991295.158|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker changed state UP -> DOWN
+%7|1790991295.158|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: broker in state TRY_CONNECT connecting
+%7|1790991295.158|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker changed state TRY_CONNECT -> CONNECT
+%7|1790991295.158|TERMINATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Handle is terminating in state DOWN: 1 refcnts (0x55da474868e0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1790991295.158|FAIL|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY_BROKER)
+%7|1790991295.158|TERMINATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/bootstrap]: 127.0.0.1:19135/bootstrap: Handle terminates in state DOWN: 1 refcnts (0x55da474868e0), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1790991295.158|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Connecting to ipv4#127.0.0.1:19135 (plaintext) with socket 5
+%7|1790991295.159|CONNECT|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Connected to ipv4#127.0.0.1:19135
+%7|1790991295.159|CONNECTED|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Connected (#1)
+%7|1790991295.159|FEATURE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790991295.159|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker changed state CONNECT -> APIVERSION_QUERY
+%7|1790991295.159|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent ApiVersionRequest (v3, 54 bytes @ 0, CorrId 1)
+%7|1790991295.159|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 0.08ms)
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker API support:
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey Produce (0) Versions 3..13
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey Fetch (1) Versions 4..6
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey ListOffsets (2) Versions 1..3
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey Metadata (3) Versions 0..13
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey ApiVersion (18) Versions 0..4
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey CreateTopics (19) Versions 2..4
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:   ApiKey DeleteTopics (20) Versions 1..6
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature MsgVer1: Produce (2..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature MsgVer1: Fetch (2..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enabling feature MsgVer1
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature MsgVer2: Produce (3..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature MsgVer2: Fetch (4..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enabling feature MsgVer2
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature ApiVersion: ApiVersion (0..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enabling feature ApiVersion
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerGroupCoordinator: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature BrokerGroupCoordinator
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: OffsetCommit (1..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: OffsetFetch (1..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: JoinGroup (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: SyncGroup (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: Heartbeat (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: LeaveGroup (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature BrokerBalancedConsumer
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: ConsumerGroupHeartbeat (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: OffsetCommit (9..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature BrokerBalancedConsumer: OffsetFetch (9..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature BrokerBalancedConsumer
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature ThrottleTime: Produce (1..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature ThrottleTime: Fetch (1..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enabling feature ThrottleTime
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature Sasl: JoinGroup (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature Sasl
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature Sasl: SaslHandshake (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature Sasl
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature SaslHandshake: SaslHandshake (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature SaslHandshake
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature LZ4: FindCoordinator (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature LZ4
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature OffsetTime: ListOffsets (1..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Enabling feature OffsetTime
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature IdempotentProducer: InitProducerId (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature IdempotentProducer
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature ZSTD: Produce (7..32767) supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature ZSTD: Fetch (10..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature ZSTD
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature SaslAuthReq: SaslHandshake (1..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0:  Feature SaslAuthReq: SaslAuthenticate (0..32767) NOT supported by broker
+%7|1790991295.159|APIVERSION|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Disabling feature SaslAuthReq
+%7|1790991295.159|FEATURE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Updated enabled protocol features to MsgVer1,ApiVersion,ThrottleTime,OffsetTime,MsgVer2
+%7|1790991295.159|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker changed state APIVERSION_QUERY -> UP
+%7|1790991295.159|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent MetadataRequest (v13, 39 bytes @ 0, CorrId 2)
+%7|1790991295.202|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 42.81ms)
+%7|1790991295.202|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent CreateTopicsRequest (v4, 74 bytes @ 0, CorrId 3)
+%7|1790991295.246|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received CreateTopicsResponse (v4, 29 bytes, CorrId 3, rtt 43.87ms)
+%7|1790991295.246|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent MetadataRequest (v13, 42 bytes @ 0, CorrId 4)
+%7|1790991295.290|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received MetadataResponse (v13, 1868 bytes, CorrId 4, rtt 43.78ms)
+%7|1790991295.290|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [0]: joining broker (rktp 0x55da47486360, 7 message(s) queued)
+%7|1790991295.290|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [1]: joining broker (rktp 0x55da474868f0, 0 message(s) queued)
+%7|1790991295.290|WAKEUP|ordinary-native-peer#producer-1| [thrd:app]: Wake-up sent to 1 broker thread in state >= UP: flushing
+%7|1790991295.290|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent ProduceRequest (v10, 1032 bytes @ 0, CorrId 5)
+%7|1790991295.334|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received ProduceResponse (v10, 58 bytes, CorrId 5, rtt 43.59ms)
+%7|1790991295.334|SEND|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Sent ProduceRequest (v10, 1032 bytes @ 0, CorrId 6)
+%7|1790991295.378|RECV|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received ProduceResponse (v10, 58 bytes, CorrId 6, rtt 43.93ms)
+%7|1790991295.378|DESTROY|ordinary-native-peer#producer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1790991295.378|DESTROY|ordinary-native-peer#producer-1| [thrd:main]: Destroy internal
+%7|1790991295.378|DESTROY|ordinary-native-peer#producer-1| [thrd:main]: Removing all topics
+%7|1790991295.378|DESTROY|ordinary-native-peer#producer-1| [thrd:main]: Sending TERMINATE to 127.0.0.1:19135/0
+%7|1790991295.378|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [0]: leaving broker (0 messages in xmitq, next broker (none), rktp 0x55da47486360)
+%7|1790991295.378|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [0]: no next broker, failing 0 message(s) in partition queue
+%7|1790991295.378|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [1]: leaving broker (0 messages in xmitq, next broker (none), rktp 0x55da474868f0)
+%7|1790991295.378|TOPBRK|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Topic ordinary-native [1]: no next broker, failing 0 message(s) in partition queue
+%7|1790991295.378|TERM|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Received TERMINATE op in state UP: 3 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1790991295.378|TERM|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Received TERMINATE op in state INIT: 3 refcnts, 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1790991295.378|FAIL|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Decommissioning this broker (after 263ms in state INIT) (_DESTROY)
+%7|1790991295.378|STATE|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Broker changed state INIT -> DOWN
+%7|1790991295.378|FAIL|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Decommissioning this broker (after 219ms in state UP) (_DESTROY)
+%7|1790991295.378|BRKTERM|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1790991295.378|STATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker changed state UP -> DOWN
+%7|1790991295.378|TERMINATE|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Handle is terminating in state DOWN: 1 refcnts (0x55da47469b00), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1790991295.378|FAIL|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY)
+%7|1790991295.378|TERMINATE|ordinary-native-peer#producer-1| [thrd::0/internal]: :0/internal: Handle terminates in state DOWN: 1 refcnts (0x55da47469b00), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+%7|1790991295.378|BRKTERM|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1790991295.378|TERMINATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Handle is terminating in state DOWN: 1 refcnts (0x7f5828002000), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs: failed 0 request(s) in retry+outbuf
+%7|1790991295.379|FAIL|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Broker handle is terminating (after 0ms in state DOWN) (_DESTROY)
+%7|1790991295.379|TERMINATE|ordinary-native-peer#producer-1| [thrd:127.0.0.1:19135/0]: 127.0.0.1:19135/0: Handle terminates in state DOWN: 1 refcnts (0x7f5828002000), 0 toppar(s), 0 active toppar(s), 0 outbufs, 0 waitresps, 0 retrybufs
+
+exit_code=0

@@ -1,0 +1,8 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "peer_source_sha256": "db70842fd4ca4178009618660585b0ab23f15c9049376b9c7b7be33e39e76134",
+  "actual_attempt": "docs/evidence/broker/KL11-68/live-read/stable/attempt-1/",
+  "classification": "Live oracle preparation mismatch: productionProduce stamps partitionLeaderEpoch0, while directPartition-seeded fixture bytes retain-1. This unprotected metadata lies outsideCRC; protectedCRC/payload/count/offset/timestamp/HW/LSO are identical. OfficialApacheMutableRecordBatch.setPartitionLeaderEpoch(0) will explicitly adapt the expected live seeded batch metadata. Original1074oracle files and productsource unchanged.",
+  "completed_before_failure": "AllthreeactualJavaSDK manualconsumers and allthreecodec-historyreaders passed; firstreleaseAPI18v0-4/actualAdmin/seedProduce passed before firstFetchbytecomparison.",
+  "broker_exit_code": 0
+}

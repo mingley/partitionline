@@ -1,0 +1,86 @@
+{
+  "source_pin": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "whole_git_tree_files": 17370,
+  "matrix": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "behavioral_tests_passed": 151,
+      "fetch_cases": 366,
+      "raw_fetch_responses": 330,
+      "api_versions_cases": 15,
+      "reports": {
+        "compiled-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+        "wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+        "metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+        "produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "behavioral_tests_passed": 225,
+      "fetch_cases": 366,
+      "raw_fetch_responses": 330,
+      "api_versions_cases": 15,
+      "reports": {
+        "compiled-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+        "wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+        "metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+        "produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "behavioral_tests_passed": 151,
+      "fetch_cases": 366,
+      "raw_fetch_responses": 330,
+      "api_versions_cases": 15,
+      "reports": {
+        "compiled-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+        "wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+        "metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+        "produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "behavioral_tests_passed": 225,
+      "fetch_cases": 366,
+      "raw_fetch_responses": 330,
+      "api_versions_cases": 15,
+      "reports": {
+        "compiled-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+        "wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+        "metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+        "produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      }
+    }
+  ],
+  "counterexamples": [
+    {
+      "name": "matching-count-corrupt-response",
+      "rejected": true,
+      "reason": "response differs from authentic fixture"
+    },
+    {
+      "name": "duplicate-case",
+      "rejected": true,
+      "reason": "duplicate outcomes"
+    },
+    {
+      "name": "false-structural-response",
+      "rejected": true,
+      "reason": "structural close has response bytes"
+    },
+    {
+      "name": "missing-advertised-range",
+      "rejected": true,
+      "reason": "read/write advertisement"
+    }
+  ],
+  "independent_static_review_sha256": "763f526826ad1b80976430c8f094a08b59cd223fdea3796fd5c9be62944f8369",
+  "qualification": "Local behavior/lint/doc and exact direct Apache-fixture outcomes. Independent live Java/native acceptance is recorded separately."
+}

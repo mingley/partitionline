@@ -1,0 +1,7 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "actual_attempt": "docs/evidence/broker/KL11-68/live-read/stable/attempt-3/",
+  "classification": "External nativeclient configuration rejected before client allocation/TCPrequest: fetch.max.bytes65536 was lower than defaultmessage.max.bytes. Explicitlysetmessage.max.bytes65536 to keepboundedfetchmaxvalid. No productchange.",
+  "successful_actual_subphases": "AllthreeSDKmanualconsumers,codec-historyreaders,366readgoldens,15API18profiles andactualnativeCreate/Metadata/Produce24records.",
+  "broker_exit_code": 0
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "stage": "precheck before any CI/verifier command",
+  "gate_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "exit_code": 1,
+  "error": "Harness referenced partitionline-broker/src/raft_protocol.rs at04986; actual committed path is partitionline-broker/src/raft/protocol.rs. Corrected path from registry, no product/gate source changes.",
+  "failed_argv": [
+    "git",
+    "show",
+    "04986a07830a2e10f11946b3bd62c3359f462d90:partitionline-broker/src/raft_protocol.rs"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "source_pin": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "source_unchanged": true,
+  "matrix_incomplete": true,
+  "stable_default_tests_passed": 151,
+  "stable_default_fmt_exit": 0,
+  "stable_default_clippy_exit": 101,
+  "lint_failure_scope": "83 unwrap_used errors in existing tests/catalog.rs; owned07 source unchanged",
+  "case_counts": {
+    "fetch_list_offsets": 366,
+    "fetch_responses": 330,
+    "fetch_structural_rejects": 36,
+    "produce": 708,
+    "api18_seven_profile_serializations": 15
+  },
+  "failure_log_sha256": "db0656b19b67ba0e0a55da3a80e8d8d9e6c6d8bf08540e9b2aed75c9e9b6baf4",
+  "note": "Clean archive is authoritative. Preliminary shared-workspace Clippy success is not substituted for this failure.",
+  "resolved_cause": "Harness partial archive omitted committed root clippy.toml and its allow-unwrap-in-tests policy; no product/test source correction required.",
+  "archive_scope": "4387 selected files; not the complete17370-file source tree",
+  "superseded_by": "../final-qualified/"
+}

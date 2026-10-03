@@ -1,0 +1,5 @@
+{
+  "failure": "strictgcc errors: expressions passed into upstream type-check macros and conservative snprintf restrict warning",
+  "classification": "peer compile only; no runtime executed",
+  "fix": "precompute lengths before librdkafka variadic macros; format each independent destination from immutable topic/indices"
+}

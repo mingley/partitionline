@@ -1,0 +1,7 @@
+$ taskset -c 0-2,4 java -Xmx128m -cp /workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar CodecReadPeer 4.2.1 19135 /workspace/work/broker-log-live-read/1-85-0/clients docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/codec-peer-05-initial.json /workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin
+{"release":"4.2.1","exchanges":12,"record_comparisons":732,"assertions":1872,"passed":true}
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+
+exit_code=0

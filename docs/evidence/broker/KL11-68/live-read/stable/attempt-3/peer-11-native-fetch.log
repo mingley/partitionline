@@ -1,0 +1,6 @@
+$ taskset -c 0-2,4 /workspace/work/broker-log-oracle/live-peer/ordinary-native 127.0.0.1:19135 fetch
+{"peer":"librdkafka","version":"2.15.0","phase":"fetch","ordinary":true}
+new client failed: `fetch.max.bytes` must be >= `message.max.bytes`
+assertion failed: client allocation
+
+exit_code=1

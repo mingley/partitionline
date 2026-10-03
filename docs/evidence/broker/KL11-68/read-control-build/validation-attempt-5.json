@@ -1,0 +1,233 @@
+{
+  "status": "strict_compile_only_not_runtime",
+  "source_sha256": "d74fb61b193d8e0752f9fea175770daf6c4ed12ca28ecb2c1c39ecf13dee9b37",
+  "codec_source_sha256": "45b323941774bf7bfc883b3051cb6f960565b88721fd7104255e5995b44ff42d",
+  "native_read_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+  "namespace_adaptation": "4.1/4.2 replace common.record.internal with common.record only",
+  "java": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2/ReadControlPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "ee664bc1eed5ea549b68af99120d5a110e1fa93cabcbd5f2fe9e189b9f0a3268",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log": "read-control-build/compile-4.1.2-attempt-5.log",
+      "class_sha256": "7b876926ef69e66258333698baad0b18fc529137e5df6da86637911053fd2bf9"
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1/ReadControlPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "ee664bc1eed5ea549b68af99120d5a110e1fa93cabcbd5f2fe9e189b9f0a3268",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log": "read-control-build/compile-4.2.1-attempt-5.log",
+      "class_sha256": "7b876926ef69e66258333698baad0b18fc529137e5df6da86637911053fd2bf9"
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1/ReadControlPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "d74fb61b193d8e0752f9fea175770daf6c4ed12ca28ecb2c1c39ecf13dee9b37",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log": "read-control-build/compile-4.3.1-attempt-5.log",
+      "class_sha256": "763805906efda801b2952a2715299e584b4ad7c426d3ae7429cdfa5cd1a11562"
+    }
+  ],
+  "codec_results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2/CodecReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "04b419b06fc873612463f472aeb1bcc501b9b4c7bbe0df7f6f20db698a7af4aa",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "log": "read-control-build/codec-compile-4.1.2-attempt-5.log",
+      "class_sha256": "997eaca1a1cd1a55326dc613e003c1089c2f29998bcef6df7caa0c5d192e3a1e"
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1/CodecReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "04b419b06fc873612463f472aeb1bcc501b9b4c7bbe0df7f6f20db698a7af4aa",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "log": "read-control-build/codec-compile-4.2.1-attempt-5.log",
+      "class_sha256": "997eaca1a1cd1a55326dc613e003c1089c2f29998bcef6df7caa0c5d192e3a1e"
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1/CodecReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "45b323941774bf7bfc883b3051cb6f960565b88721fd7104255e5995b44ff42d",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "log": "read-control-build/codec-compile-4.3.1-attempt-5.log",
+      "class_sha256": "8e0a2856b1ac8f25b3e34f3edb7f9df6a4459b2ea9dab44fd20748a9da4e1cf0"
+    }
+  ],
+  "native_read_results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2/NativeReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "log": "read-control-build/native-read-compile-4.1.2-attempt-5.log",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092"
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1/NativeReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "log": "read-control-build/native-read-compile-4.2.1-attempt-5.log",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092"
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1/NativeReadPeer.java"
+      ],
+      "exit_code": 0,
+      "adapted_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "log": "read-control-build/native-read-compile-4.3.1-attempt-5.log",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092"
+    }
+  ]
+}

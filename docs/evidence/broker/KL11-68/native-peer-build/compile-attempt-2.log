@@ -1,0 +1,3 @@
+$ taskset -c 0-2,4 gcc -std=c11 -Wall -Wextra -Werror -pedantic -isystem /workspace/work/c-peer/source/src docs/evidence/broker/KL11-68/ordinary-peer.c /workspace/work/c-peer/lib/librdkafka.so.1 -Wl,-rpath,/workspace/work/c-peer/lib -o /workspace/work/broker-log-oracle/live-peer/ordinary-native
+
+exit_code=0

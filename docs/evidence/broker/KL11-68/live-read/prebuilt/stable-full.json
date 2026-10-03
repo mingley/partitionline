@@ -1,0 +1,35 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "toolchain": "stable",
+  "features": "",
+  "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+  "original_binary": "/workspace/work/partitionline-fetch-final-bin/stable/fetch",
+  "copied_binary": "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+  "build_provenance_files": {
+    "source-integrity.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/source-integrity.json",
+      "sha256": "9a08e98facdfca91c25bb1cd76694686c73821adff5fde7d15d5d95e20291d47"
+    },
+    "stable/results.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/results.json",
+      "sha256": "354f0e690afb5f24d2112b456cfdd7f5790b269326b18fb9cb65603329ba21f8"
+    },
+    "stable/rustc.txt": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/rustc.txt",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    "stable/default-all-targets.log": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/default-all-targets.log",
+      "sha256": "28f9011f8a2abddfa9d839c43a62f96ccb54ac61e2e1435bc5b009fd918ccf48"
+    },
+    "stable/live-binary-build.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/live-binary-build.json",
+      "sha256": "3114b6a644be2187130b7c1c56571aaa01392833ed4e92d1253d1041b5e0be56"
+    },
+    "stable/live-binary-build.log": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/live-binary-build.log",
+      "sha256": "911ce9405dd31c230c035e93bf1a1ccb9b50cdc0a1c21467cc22c9ad7b5744fe"
+    }
+  },
+  "scope": "Accepted full17370Gitblob exactarchive stable/default binary; reused actual siblingbuild, no secondCargo build claimed."
+}

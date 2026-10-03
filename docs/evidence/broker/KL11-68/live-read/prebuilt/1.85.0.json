@@ -1,0 +1,27 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "toolchain": "1.85.0",
+  "features": "",
+  "binary_sha256": "567ca42f2f07ea761f019372c91ca2f2a831399b93af3973ba6ac78a549632a7",
+  "original_binary": "/workspace/work/target-broker-fetch-dev/debug/deps/fetch-8562db1c75ebefc2",
+  "copied_binary": "/workspace/work/broker-log-live-read/bin/1.85.0/fetch",
+  "build_provenance_files": {
+    "source-integrity.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/1.85.0-build/source-integrity.json",
+      "sha256": "9a08e98facdfca91c25bb1cd76694686c73821adff5fde7d15d5d95e20291d47"
+    },
+    "1.85.0/results.json": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/1.85.0-build/1.85.0/results.json",
+      "sha256": "177f3b04e4a5ddfdabf014f679d6f870bf81ae4d11b15d15b0b7c7f1a07a81fc"
+    },
+    "1.85.0/rustc.txt": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/1.85.0-build/1.85.0/rustc.txt",
+      "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a"
+    },
+    "1.85.0/default-all-targets.log": {
+      "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/1.85.0-build/1.85.0/default-all-targets.log",
+      "sha256": "b08973c980a0da8cbf756b6e751249f5103d1d4614bdea31f9514095471b982d"
+    }
+  },
+  "scope": "Copied exactfull17370Gitblob source sibling default test executable; no second Cargo build claimed."
+}

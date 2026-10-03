@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "task": "KL11-07",
+  "reviewer": "codex-c-peer",
+  "review_kind": "independent static actor/store review",
+  "reviewed_at_utc": "2026-10-03T01:03:04.380247+00:00",
+  "checkout_base_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "reviewed_inputs": [
+    {
+      "path": "partitionline-broker/src/fetch.rs",
+      "sha256": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+      "bytes": 24825
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "sha256": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+      "bytes": 73417
+    },
+    {
+      "path": "partitionline-broker/src/produce.rs",
+      "sha256": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+      "bytes": 29478
+    },
+    {
+      "path": "partitionline-broker/tests/fetch.rs",
+      "sha256": "9df92db9a23f24fd1139b8e14231b606282f57169c9e125af850f258997947c0",
+      "bytes": 40811
+    }
+  ],
+  "inputs_state": "Exact final07 pushed source; four Git blobs match shared frozen files; superseded draft hashes retained separately",
+  "findings": [
+    {
+      "id": "read-reply-combined-retention",
+      "severity": "bounded-resource-accounting",
+      "observed": "ReadReply retains original request and candidate response until receipt consumption; independent512MiB input and output caps allow1GiB combined retained data replies",
+      "resolution": "Fetch Limits exposes explicit max_retained_bytes(default1GiB); read constructor charges maxQueued*(maxRequest+maxResponse). Candidate response is dropped before min-byte suspension. Test rejects configured combined ceiling minus1, proves unpolled completed reply holds QueueFull admission, then drop frees admission",
+      "status": "resolved in reviewed draft",
+      "test": "unpolled_snapshot_holds_combined_admission_and_cancel_releases",
+      "test_execution_by_this_reviewer": false
+    }
+  ],
+  "invariants_reviewed": [
+    "watch generation captured with borrow_and_update before snapshot enqueue",
+    "only actor owns strong watch Sender; unexpected exit closes waiters; shutdown weak upgrade sends wake",
+    "catalog create/delete/poison and confirmed append/partition poison notify before replying including lost receipts",
+    "original input returned through snapshot reply without per-reread cloning; candidate response dropped before waiting",
+    "data admission permit retained across queue, unconsumed reply and outside-actor min-byte wait; caller outputs after transfer remain caller bounded responsibility",
+    "absolute deadline uses initial admission; no blocking file I/O or codecs on Tokio executor",
+    "queued canceled replies skip work; canceled/outside wait drops permit; shutdown future preserves join handle for retry",
+    "whole-entry scan budget failure is explicit and cannot produce false timestamp misses; first global nonempty batch exception remains below hard response cap",
+    "ListOffsets timestamp scan checks cancellation for each record, not only each batch"
+  ],
+  "meaningful_controls_inspected": [
+    "wake_between_snapshot_and_receipt_is_not_lost FIFO barrier before append",
+    "wait_keeps_admission_cancel_releases_and_shutdown_wakes",
+    "waiting_read_does_not_block_append_and_delete_wakes",
+    "absolute_wait_cap_and_minimum_clamping",
+    "scan_and_hard_output_limits_fail_without_false_timestamp_miss",
+    "unpolled_snapshot_holds_combined_admission_and_cancel_releases",
+    "registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors",
+    "transport_deadline_cancels_wait_and_releases_read_admission",
+    "transport_joined_shutdown_cancels_live_long_poll_without_stopping_store"
+  ],
+  "independent_source_check": {
+    "release": "4.3.1",
+    "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "path": "core/src/main/scala/kafka/server/KafkaApis.scala",
+    "lines": [
+      743,
+      744
+    ],
+    "contract": "fetchMaxBytes=min(request.maxBytes,brokerLimit,quotaLimit); fetchMinBytes=min(request.minBytes,fetchMaxBytes)",
+    "method": "read exact source archive; no Apache broker runtime claim"
+  },
+  "remaining_review_blockers": [],
+  "qualification_limits": [
+    "Static review only; this receipt does not claim tests passed or qualify live client/runtime behavior",
+    "Only ordinary read/write7profile; preserved metadata4 and Produce5 constructors must independently keep prior advertisements",
+    "No replication, incremental fetch sessions, retention, transactions or full-production claim"
+  ],
+  "superseded_draft_inputs": [
+    {
+      "path": "partitionline-broker/src/fetch.rs",
+      "sha256": "94084ca637a392fda5bed19a514fa0a06f56367627cc119ff084a26dbd89461a",
+      "bytes": 24734
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "sha256": "0aa8e12e0cf4c11b68d9c0c9bc297d810c199725decce2c0295c36b75897740e",
+      "bytes": 73159
+    },
+    {
+      "path": "partitionline-broker/src/produce.rs",
+      "sha256": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+      "bytes": 29478
+    },
+    {
+      "path": "partitionline-broker/tests/fetch.rs",
+      "sha256": "19e579054b344280678cda87f70d6b5bade305e4a2e8cbcaf9bd08b2d5213dbc",
+      "bytes": 38480
+    }
+  ],
+  "final_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "final_reviewed_at_utc": "2026-10-03T01:12:43.127736+00:00"
+}

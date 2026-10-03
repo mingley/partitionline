@@ -1,0 +1,1061 @@
+{
+  "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "toolchain": "stable",
+  "source_archive": "/workspace/work/broker-log-live-read/source-58810f2e",
+  "features": "",
+  "port": 19135,
+  "restart": true,
+  "jobs_sha256": "906f6a10a2fe26031d191309c3c39d95ef3d2a2e3ced801c279ef571cbe37c35",
+  "jobs": [
+    {
+      "peer": "ordinary",
+      "phase": "fetch",
+      "release": "4.1.2",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "ordinary",
+      "phase": "fetch",
+      "release": "4.2.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "ordinary",
+      "phase": "fetch",
+      "release": "4.3.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "codec_read",
+      "phase": "initial",
+      "release": "4.1.2",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "codec_read",
+      "phase": "initial",
+      "release": "4.2.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "codec_read",
+      "phase": "initial",
+      "release": "4.3.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "read_control",
+      "phase": "seed",
+      "release": "4.1.2",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "read_control",
+      "phase": "seed",
+      "release": "4.2.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "read_control",
+      "phase": "seed",
+      "release": "4.3.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "native",
+      "phase": "append"
+    },
+    {
+      "peer": "native",
+      "phase": "fetch"
+    },
+    {
+      "peer": "native",
+      "phase": "fetch",
+      "topic": "ordinary-4-1-2-acks1",
+      "count": 13
+    },
+    {
+      "peer": "native",
+      "phase": "fetch",
+      "topic": "ordinary-4-2-1-acks1",
+      "count": 13
+    },
+    {
+      "peer": "native",
+      "phase": "fetch",
+      "topic": "ordinary-4-3-1-acks1",
+      "count": 13
+    },
+    {
+      "peer": "native_read",
+      "phase": "initial",
+      "release": "4.1.2",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "native_read",
+      "phase": "initial",
+      "release": "4.2.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    },
+    {
+      "peer": "native_read",
+      "phase": "initial",
+      "release": "4.3.1",
+      "state": "/workspace/work/broker-log-live-read/stable/clients"
+    }
+  ],
+  "peers": [
+    {
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.1.2\",\"phase\":\"fetch\",\"assertions\":374,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 1.8121424519995344,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-01-ordinary-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.2.1\",\"phase\":\"fetch\",\"assertions\":374,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 1.8286914599957527,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-02-ordinary-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "ordinary",
+        "phase": "fetch",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "class_sha256": "312aa76baebe18440bf43bc516a74f90ce5728cfc73869349e8b555f1d955d31",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "fetch",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.3.1\",\"phase\":\"fetch\",\"assertions\":374,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 1.7165444330021273,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-03-ordinary-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "45b323941774bf7bfc883b3051cb6f960565b88721fd7104255e5995b44ff42d",
+      "class_sha256": "997eaca1a1cd1a55326dc613e003c1089c2f29998bcef6df7caa0c5d192e3a1e",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.1.2",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-04-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.1.2\",\"exchanges\":12,\"record_comparisons\":732,\"assertions\":1872,\"passed\":true}\n",
+      "elapsed_seconds": 0.7559715590032283,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-04-codec_read-initial.log"
+    },
+    {
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "45b323941774bf7bfc883b3051cb6f960565b88721fd7104255e5995b44ff42d",
+      "class_sha256": "997eaca1a1cd1a55326dc613e003c1089c2f29998bcef6df7caa0c5d192e3a1e",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.2.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-05-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.2.1\",\"exchanges\":12,\"record_comparisons\":732,\"assertions\":1872,\"passed\":true}\n",
+      "elapsed_seconds": 0.7708982940021087,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-05-codec_read-initial.log"
+    },
+    {
+      "job": {
+        "peer": "codec_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "45b323941774bf7bfc883b3051cb6f960565b88721fd7104255e5995b44ff42d",
+      "class_sha256": "8e0a2856b1ac8f25b3e34f3edb7f9df6a4459b2ea9dab44fd20748a9da4e1cf0",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "CodecReadPeer",
+        "4.3.1",
+        "19135",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/codec-peer-06-initial.json",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/codecs/plain.bin"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.3.1\",\"exchanges\":12,\"record_comparisons\":732,\"assertions\":1872,\"passed\":true}\n",
+      "elapsed_seconds": 0.7885232150001684,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-06-codec_read-initial.log"
+    },
+    {
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "d74fb61b193d8e0752f9fea175770daf6c4ed12ca28ecb2c1c39ecf13dee9b37",
+      "class_sha256": "7b876926ef69e66258333698baad0b18fc529137e5df6da86637911053fd2bf9",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.1.2",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.1.2"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.1.2\",\"phase\":\"seed\",\"cases\":122,\"assertions\":3236,\"passed\":true}\n",
+      "elapsed_seconds": 0.7682157199960784,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-07-read_control-seed.log"
+    },
+    {
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "d74fb61b193d8e0752f9fea175770daf6c4ed12ca28ecb2c1c39ecf13dee9b37",
+      "class_sha256": "7b876926ef69e66258333698baad0b18fc529137e5df6da86637911053fd2bf9",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.2.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.2.1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.2.1\",\"phase\":\"seed\",\"cases\":122,\"assertions\":3236,\"passed\":true}\n",
+      "elapsed_seconds": 0.7948576170019805,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-08-read_control-seed.log"
+    },
+    {
+      "job": {
+        "peer": "read_control",
+        "phase": "seed",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "d74fb61b193d8e0752f9fea175770daf6c4ed12ca28ecb2c1c39ecf13dee9b37",
+      "class_sha256": "763805906efda801b2952a2715299e584b4ad7c426d3ae7429cdfa5cd1a11562",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "ReadControlPeer",
+        "4.3.1",
+        "19135",
+        "seed",
+        "/workspace/work/broker-log-live-read/stable/clients",
+        "/workspace/work/broker-log-live-read/source-58810f2e/partitionline-broker/tests/fixtures/fetch/4.3.1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.3.1\",\"phase\":\"seed\",\"cases\":122,\"assertions\":3236,\"passed\":true}\n",
+      "elapsed_seconds": 0.8307757919974392,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-09-read_control-seed.log"
+    },
+    {
+      "job": {
+        "peer": "native",
+        "phase": "append"
+      },
+      "pins": {
+        "native_version": "2.15.0",
+        "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+        "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "gcc",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-isystem",
+          "/workspace/work/c-peer/source/src",
+          "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+          "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "-Wl,-rpath,/workspace/work/c-peer/lib",
+          "-o",
+          "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+        ],
+        "exit_code": 0,
+        "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+        "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+        "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+        "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+        "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "append"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"peer\":\"librdkafka\",\"version\":\"2.15.0\",\"phase\":\"append\",\"ordinary\":true}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:0\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":0,\"timestamp\":1700000000000,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:1\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":1,\"timestamp\":1700000000001,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:2\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":2,\"timestamp\":1700000000002,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:3\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":3,\"timestamp\":1700000000003,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:4\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":4,\"timestamp\":1700000000004,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:5\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":5,\"timestamp\":1700000000005,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:6\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":6,\"timestamp\":1700000000006,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:7\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":7,\"timestamp\":1700000000007,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:8\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":8,\"timestamp\":1700000000008,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:9\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":9,\"timestamp\":1700000000009,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:10\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":10,\"timestamp\":1700000000010,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:0:11\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":11,\"timestamp\":1700000000011,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:0\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":0,\"timestamp\":1700000000100,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:1\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":1,\"timestamp\":1700000000101,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:2\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":2,\"timestamp\":1700000000102,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:3\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":3,\"timestamp\":1700000000103,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:4\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":4,\"timestamp\":1700000000104,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:5\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":5,\"timestamp\":1700000000105,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:6\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":6,\"timestamp\":1700000000106,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:7\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":7,\"timestamp\":1700000000107,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:8\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":8,\"timestamp\":1700000000108,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:9\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":9,\"timestamp\":1700000000109,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:10\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":10,\"timestamp\":1700000000110,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"delivery\",\"id\":\"ordinary-native:1:11\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":11,\"timestamp\":1700000000111,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"status\":\"pass\",\"assertions\":291,\"records\":24}\n",
+      "elapsed_seconds": 0.2704648630024167,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-10-native-append.log"
+    },
+    {
+      "job": {
+        "peer": "native",
+        "phase": "fetch"
+      },
+      "pins": {
+        "native_version": "2.15.0",
+        "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+        "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "gcc",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-isystem",
+          "/workspace/work/c-peer/source/src",
+          "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+          "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "-Wl,-rpath,/workspace/work/c-peer/lib",
+          "-o",
+          "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+        ],
+        "exit_code": 0,
+        "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+        "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+        "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+        "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+        "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"peer\":\"librdkafka\",\"version\":\"2.15.0\",\"phase\":\"fetch\",\"ordinary\":true}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:0\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":0,\"timestamp\":1700000000000,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:1\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":1,\"timestamp\":1700000000001,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:2\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":2,\"timestamp\":1700000000002,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:3\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":3,\"timestamp\":1700000000003,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:4\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":4,\"timestamp\":1700000000004,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:5\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":5,\"timestamp\":1700000000005,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:6\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":6,\"timestamp\":1700000000006,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:7\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":7,\"timestamp\":1700000000007,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:8\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":8,\"timestamp\":1700000000008,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:9\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":9,\"timestamp\":1700000000009,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:10\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":10,\"timestamp\":1700000000010,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:0:11\",\"topic\":\"ordinary-native\",\"partition\":0,\"offset\":11,\"timestamp\":1700000000011,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a303a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a303a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a303a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:0\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":0,\"timestamp\":1700000000100,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:1\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":1,\"timestamp\":1700000000101,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:2\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":2,\"timestamp\":1700000000102,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:3\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":3,\"timestamp\":1700000000103,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:4\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":4,\"timestamp\":1700000000104,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:5\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":5,\"timestamp\":1700000000105,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:6\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":6,\"timestamp\":1700000000106,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:7\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":7,\"timestamp\":1700000000107,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:8\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":8,\"timestamp\":1700000000108,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:9\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":9,\"timestamp\":1700000000109,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:10\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":10,\"timestamp\":1700000000110,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-native:1:11\",\"topic\":\"ordinary-native\",\"partition\":1,\"offset\":11,\"timestamp\":1700000000111,\"key_hex\":\"6b65793a6f7264696e6172792d6e61746976653a313a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d6e61746976653a313a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d6e61746976653a313a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"status\":\"pass\",\"assertions\":735,\"records\":24}\n",
+      "elapsed_seconds": 0.28588368900091155,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-11-native-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-1-2-acks1",
+        "count": 13
+      },
+      "pins": {
+        "native_version": "2.15.0",
+        "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+        "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "gcc",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-isystem",
+          "/workspace/work/c-peer/source/src",
+          "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+          "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "-Wl,-rpath,/workspace/work/c-peer/lib",
+          "-o",
+          "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+        ],
+        "exit_code": 0,
+        "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+        "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+        "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+        "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+        "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-1-2-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"peer\":\"librdkafka\",\"version\":\"2.15.0\",\"phase\":\"fetch\",\"ordinary\":true}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:0\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":0,\"timestamp\":1700000000000,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:1\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":1,\"timestamp\":1700000000001,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:2\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":2,\"timestamp\":1700000000002,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:3\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":3,\"timestamp\":1700000000003,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:4\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":4,\"timestamp\":1700000000004,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:5\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":5,\"timestamp\":1700000000005,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:6\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":6,\"timestamp\":1700000000006,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:7\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":7,\"timestamp\":1700000000007,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:8\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":8,\"timestamp\":1700000000008,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:9\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":9,\"timestamp\":1700000000009,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:10\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":10,\"timestamp\":1700000000010,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:11\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":11,\"timestamp\":1700000000011,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a303a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a303a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:0:12\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":0,\"offset\":12,\"timestamp\":1700000000012,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a303a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:0\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":0,\"timestamp\":1700000000100,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:1\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":1,\"timestamp\":1700000000101,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:2\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":2,\"timestamp\":1700000000102,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:3\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":3,\"timestamp\":1700000000103,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:4\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":4,\"timestamp\":1700000000104,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:5\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":5,\"timestamp\":1700000000105,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:6\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":6,\"timestamp\":1700000000106,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:7\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":7,\"timestamp\":1700000000107,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:8\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":8,\"timestamp\":1700000000108,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:9\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":9,\"timestamp\":1700000000109,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:10\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":10,\"timestamp\":1700000000110,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:11\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":11,\"timestamp\":1700000000111,\"key_hex\":\"6b65793a6f7264696e6172792d342d312d322d61636b73313a313a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d312d322d61636b73313a313a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-1-2-acks1:1:12\",\"topic\":\"ordinary-4-1-2-acks1\",\"partition\":1,\"offset\":12,\"timestamp\":1700000000112,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d312d322d61636b73313a313a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"status\":\"pass\",\"assertions\":814,\"records\":26}\n",
+      "elapsed_seconds": 0.28474397299578413,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-12-native-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-2-1-acks1",
+        "count": 13
+      },
+      "pins": {
+        "native_version": "2.15.0",
+        "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+        "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "gcc",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-isystem",
+          "/workspace/work/c-peer/source/src",
+          "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+          "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "-Wl,-rpath,/workspace/work/c-peer/lib",
+          "-o",
+          "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+        ],
+        "exit_code": 0,
+        "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+        "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+        "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+        "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+        "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-2-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"peer\":\"librdkafka\",\"version\":\"2.15.0\",\"phase\":\"fetch\",\"ordinary\":true}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:0\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":0,\"timestamp\":1700000000000,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:1\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":1,\"timestamp\":1700000000001,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:2\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":2,\"timestamp\":1700000000002,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:3\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":3,\"timestamp\":1700000000003,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:4\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":4,\"timestamp\":1700000000004,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:5\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":5,\"timestamp\":1700000000005,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:6\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":6,\"timestamp\":1700000000006,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:7\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":7,\"timestamp\":1700000000007,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:8\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":8,\"timestamp\":1700000000008,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:9\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":9,\"timestamp\":1700000000009,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:10\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":10,\"timestamp\":1700000000010,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:11\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":11,\"timestamp\":1700000000011,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a303a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a303a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:0:12\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":0,\"offset\":12,\"timestamp\":1700000000012,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a303a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:0\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":0,\"timestamp\":1700000000100,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:1\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":1,\"timestamp\":1700000000101,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:2\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":2,\"timestamp\":1700000000102,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:3\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":3,\"timestamp\":1700000000103,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:4\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":4,\"timestamp\":1700000000104,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:5\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":5,\"timestamp\":1700000000105,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:6\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":6,\"timestamp\":1700000000106,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:7\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":7,\"timestamp\":1700000000107,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:8\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":8,\"timestamp\":1700000000108,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:9\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":9,\"timestamp\":1700000000109,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:10\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":10,\"timestamp\":1700000000110,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:11\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":11,\"timestamp\":1700000000111,\"key_hex\":\"6b65793a6f7264696e6172792d342d322d312d61636b73313a313a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d322d312d61636b73313a313a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-2-1-acks1:1:12\",\"topic\":\"ordinary-4-2-1-acks1\",\"partition\":1,\"offset\":12,\"timestamp\":1700000000112,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d322d312d61636b73313a313a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"status\":\"pass\",\"assertions\":814,\"records\":26}\n",
+      "elapsed_seconds": 0.2854723490017932,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-13-native-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "native",
+        "phase": "fetch",
+        "topic": "ordinary-4-3-1-acks1",
+        "count": 13
+      },
+      "pins": {
+        "native_version": "2.15.0",
+        "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+        "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "gcc",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-isystem",
+          "/workspace/work/c-peer/source/src",
+          "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+          "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "-Wl,-rpath,/workspace/work/c-peer/lib",
+          "-o",
+          "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+        ],
+        "exit_code": 0,
+        "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+        "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+        "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+        "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+        "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+        "127.0.0.1:19135",
+        "fetch",
+        "ordinary-4-3-1-acks1",
+        "13"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"peer\":\"librdkafka\",\"version\":\"2.15.0\",\"phase\":\"fetch\",\"ordinary\":true}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:0\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":0,\"timestamp\":1700000000000,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:1\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":1,\"timestamp\":1700000000001,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:2\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":2,\"timestamp\":1700000000002,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:3\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":3,\"timestamp\":1700000000003,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:4\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":4,\"timestamp\":1700000000004,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:5\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":5,\"timestamp\":1700000000005,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:6\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":6,\"timestamp\":1700000000006,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:7\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":7,\"timestamp\":1700000000007,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:8\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":8,\"timestamp\":1700000000008,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:9\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":9,\"timestamp\":1700000000009,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:10\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":10,\"timestamp\":1700000000010,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:11\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":11,\"timestamp\":1700000000011,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a303a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a303a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:0:12\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":0,\"offset\":12,\"timestamp\":1700000000012,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a303a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:0\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":0,\"timestamp\":1700000000100,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a30\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:1\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":1,\"timestamp\":1700000000101,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a31\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a31\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:2\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":2,\"timestamp\":1700000000102,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a32\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a32\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a32\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:3\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":3,\"timestamp\":1700000000103,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a33\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a33\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:4\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":4,\"timestamp\":1700000000104,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a34\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a34\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:5\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":5,\"timestamp\":1700000000105,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a35\",\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a35\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:6\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":6,\"timestamp\":1700000000106,\"key_hex\":null,\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a36\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a36\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:7\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":7,\"timestamp\":1700000000107,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a37\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a37\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a37\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:8\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":8,\"timestamp\":1700000000108,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a38\",\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a38\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:9\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":9,\"timestamp\":1700000000109,\"key_hex\":null,\"value_hex\":\"\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a39\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:10\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":10,\"timestamp\":1700000000110,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a3130\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a3130\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a3130\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:11\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":11,\"timestamp\":1700000000111,\"key_hex\":\"6b65793a6f7264696e6172792d342d332d312d61636b73313a313a3131\",\"value_hex\":\"76616c75653a6f7264696e6172792d342d332d312d61636b73313a313a3131\",\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a3131\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"operation\":\"consume\",\"id\":\"ordinary-4-3-1-acks1:1:12\",\"topic\":\"ordinary-4-3-1-acks1\",\"partition\":1,\"offset\":12,\"timestamp\":1700000000112,\"key_hex\":null,\"value_hex\":null,\"headers\":[{\"key\":\"receipt\",\"value_hex\":\"6f7264696e6172792d342d332d312d61636b73313a313a3132\"},{\"key\":\"dup\",\"value_hex\":\"61\"},{\"key\":\"dup\",\"value_hex\":null}]}\n{\"status\":\"pass\",\"assertions\":814,\"records\":26}\n",
+      "elapsed_seconds": 0.28523538499575807,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-14-native-fetch.log"
+    },
+    {
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.1.2",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.1.2",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.1.2\",\"phase\":\"initial\",\"records\":24,\"assertions\":56,\"passed\":true}\n",
+      "elapsed_seconds": 0.966711007997219,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-15-native_read-initial.log"
+    },
+    {
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.2.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.2.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.2.1\",\"phase\":\"initial\",\"records\":24,\"assertions\":56,\"passed\":true}\n",
+      "elapsed_seconds": 0.9979455709981266,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-16-native_read-initial.log"
+    },
+    {
+      "job": {
+        "peer": "native_read",
+        "phase": "initial",
+        "release": "4.3.1",
+        "state": "/workspace/work/broker-log-live-read/stable/clients"
+      },
+      "peer_source_sha256": "267c1b87e5ae6e78d811e6559a6efa99705f88ed7ff15fb16d9e4c29e9c5d43c",
+      "class_sha256": "3e5b8b7bb1746429b3d95f6d51ab45696ba3d6f90265393b407a10f308ff3092",
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/read-control-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "NativeReadPeer",
+        "4.3.1",
+        "19135",
+        "initial",
+        "/workspace/work/broker-log-live-read/stable/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.3.1\",\"phase\":\"initial\",\"records\":24,\"assertions\":56,\"passed\":true}\n",
+      "elapsed_seconds": 0.9844421980014886,
+      "log": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-17-native_read-initial.log"
+    }
+  ],
+  "passed": true,
+  "build": {
+    "reused_exact_source_binary": true,
+    "provenance": {
+      "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "toolchain": "stable",
+      "features": "",
+      "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+      "original_binary": "/workspace/work/partitionline-fetch-final-bin/stable/fetch",
+      "copied_binary": "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+      "build_provenance_files": {
+        "source-integrity.json": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/source-integrity.json",
+          "sha256": "9a08e98facdfca91c25bb1cd76694686c73821adff5fde7d15d5d95e20291d47"
+        },
+        "stable/results.json": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/results.json",
+          "sha256": "354f0e690afb5f24d2112b456cfdd7f5790b269326b18fb9cb65603329ba21f8"
+        },
+        "stable/rustc.txt": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/rustc.txt",
+          "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+        },
+        "stable/default-all-targets.log": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/default-all-targets.log",
+          "sha256": "28f9011f8a2abddfa9d839c43a62f96ccb54ac61e2e1435bc5b009fd918ccf48"
+        },
+        "stable/live-binary-build.json": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/live-binary-build.json",
+          "sha256": "3114b6a644be2187130b7c1c56571aaa01392833ed4e92d1253d1041b5e0be56"
+        },
+        "stable/live-binary-build.log": {
+          "path": "docs/evidence/broker/KL11-68/live-read/prebuilt/stable-full-build/stable/live-binary-build.log",
+          "sha256": "911ce9405dd31c230c035e93bf1a1ccb9b50cdc0a1c21467cc22c9ad7b5744fe"
+        }
+      },
+      "scope": "Accepted full17370Gitblob exactarchive stable/default binary; reused actual siblingbuild, no secondCargo build claimed."
+    },
+    "provenance_sha256": "eb26f046a5a4c199360f617cd81f30193c56528ab555dd2601ec69d4742b61ed"
+  },
+  "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "server_command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+    "serve_live_probe",
+    "--exact",
+    "--nocapture"
+  ],
+  "server_pid": 545248,
+  "server_exit_code": 0,
+  "journal_hashes": {
+    "catalog.journal": "4707089b3f6b593e971ddddfc2edb5c93214b7d4e30abf92c4e678a0f171c5de",
+    "partitions/0b73622cb9964be0bbc408e0b43da559-0.journal": "ca09d5b95aa55761ba5a4f4f0de61261aab57968f3b47cea027627dc1fafb094",
+    "partitions/0f5d4755b6b4477ba167398fd2c2ef79-0.journal": "c01f7adfd2f189845925a9ed9313bb093e0dc4abc33e16877d5056c1c587a5c4",
+    "partitions/1300f7dbe6af4b299bcd4bcd5ba62e52-0.journal": "033b7e300b34dc9fb300749bf9b701deff998cf1347437211c533251f08c509a",
+    "partitions/18332e14307b4d6b9c09d7f0251b5c7c-0.journal": "6b0aaef3f048de7bc9aa1ca85d32022cd248a8a7ffce6fd61cf7c82fd4bba4fd",
+    "partitions/1fad348e1a1642a3a2f26817d1d860a9-0.journal": "7eecfd9c2e2fc113beb8799ee7aaf4798731ad97b4fa5bffc6005eda4e249569",
+    "partitions/36ebf1131627458cb7dc9b33388ec5c0-0.journal": "486797e1b91077c65dd564773404a149d8927b302db4707b7e9eb7c1cc7316db",
+    "partitions/50b74f246276441eb503befebdd603bd-0.journal": "fa5978abdb3cc7ad64a20a4f12c28873b87635fbd1cb2a43c1caf67b1c765f32",
+    "partitions/50b74f246276441eb503befebdd603bd-1.journal": "917ae09f76c729059e155e708ff0844e9fd5d9211a4f4c585a39f4c7366d59b3",
+    "partitions/61b17a8c8a094f4386265b87a9edc2d1-0.journal": "846ae26a8c7d291d9bf2f14cab9d45122aafeb22f17a1537724202b306a89f48",
+    "partitions/62d9346018d241c2b111f83db4001bc9-0.journal": "c0610782e57ff670ffec29f5d68d8662df3377609c46f761684ee80e04e0f692",
+    "partitions/67423811aee34616959f022b9a913a0b-0.journal": "6b0aaef3f048de7bc9aa1ca85d32022cd248a8a7ffce6fd61cf7c82fd4bba4fd",
+    "partitions/78cb2b5df79e430b941eb248067140ee-0.journal": "e706677e4437f90c12af9860937399545fc5b1b021c6806aa0bd5ce6a3e4a8c2",
+    "partitions/a1b37da87ecb4399b40a338ca40f0636-0.journal": "f807b0fd191a3361179ccba43a2b7af2a07fc8633a96217f86ecf927a8946ebe",
+    "partitions/a1b37da87ecb4399b40a338ca40f0636-1.journal": "9dc50adc46477d98748160b9350b911f84cca40020a2dd4e3498b2661519ef2b",
+    "partitions/a9e4ebc6282c4e88bdb2d725eaec186f-0.journal": "592ebe3af2a68e16e93e5ea8e03ee7837f7b6d8d832d719071284f23037508a4",
+    "partitions/aac121f8ac644eecb14f7653dce1fb9c-0.journal": "6b0aaef3f048de7bc9aa1ca85d32022cd248a8a7ffce6fd61cf7c82fd4bba4fd",
+    "partitions/ad2cab9028f74320ac77d9cd95b78817-0.journal": "d41f2c08dfab7d72def6eed76d488af1959682f6d59413efcdc36cb8d830810c",
+    "partitions/bc470d4987014c5789e7c4aab240871f-0.journal": "8e30f2cbc76b5f000038431ca8cf6e3b21ea99bb9e119792f6b473c9b1784607",
+    "partitions/c106d32c54ec442db7e7458021f0bbe3-0.journal": "de89ed29249d5b79734499ce10c2e77bae2a82866f2fd92008d90899f90e3b56",
+    "partitions/c106d32c54ec442db7e7458021f0bbe3-1.journal": "17c94b5090d7b9e73397f6e0a65cb33b7b58f2c7b889c2a43a83743d1c2d5557",
+    "partitions/c9fd2b464e904af3aa9fbde78706ceba-0.journal": "42b41998b4e5fa6990557195805b127be0049eee2fb5e566d017e6f06b971a2e",
+    "partitions/d576b81842934af3916c2e7f867b8bcd-0.journal": "1843d0fc18b3d82fa9ee50599882ffa304888223853b329d5f9f54cfa3e43ec2",
+    "partitions/d576b81842934af3916c2e7f867b8bcd-1.journal": "a2d76fbbc53c8ad53a203e76b2101ae2a23e5bda3ae3dd39e975146702b232c8",
+    "partitions/dfa0829bb5794dfdafee7705d51e172f-0.journal": "0039331ea658b7751c57d45a8b3c65cc769275f711deb50b2abb31fccb97d24e",
+    "partitions/e281f66c5c9d4f6f8d88c98aa6b2b3ec-0.journal": "84f195d41e95ca00a45a8cc2f5bbd607429fb7c28a0bb5f8a405efbd752bc547",
+    "partitions/e28c00aee40b49f7b7e7456870eccab1-0.journal": "6c89b3bd4bf21edd47753cabbe43115cdc48ed4abd987af5045b8ae8eb3952c0",
+    "ready": "b24d6d33736ecd5604a4b17bc9c6481039fac362bb7df044ef1c10a2bfd21db6",
+    "stop": "38dc2edaa973c15da9e6b0bbffb411806f3097a5909eea39bfa42272883b72e7"
+  },
+  "peer_state_snapshots": {
+    "/workspace/work/broker-log-live-read/stable/clients": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-state-01"
+  }
+}

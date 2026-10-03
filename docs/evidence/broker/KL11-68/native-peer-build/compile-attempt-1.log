@@ -1,0 +1,25 @@
+$ taskset -c 0-2,4 gcc -std=c11 -Wall -Wextra -Werror -pedantic -isystem /workspace/work/c-peer/source/src docs/evidence/broker/KL11-68/ordinary-peer.c /workspace/work/c-peer/lib/librdkafka.so.1 -Wl,-rpath,/workspace/work/c-peer/lib -o /workspace/work/broker-log-oracle/live-peer/ordinary-native
+In file included from docs/evidence/broker/KL11-68/ordinary-peer.c:3:
+docs/evidence/broker/KL11-68/ordinary-peer.c: In function ‘append’:
+docs/evidence/broker/KL11-68/ordinary-peer.c:110:79: error: comparison between pointer and integer [-Werror]
+  110 |             RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_KEY(key, key == NULL ? 0 : strlen(r->key)),
+      |                                                                               ^~
+docs/evidence/broker/KL11-68/ordinary-peer.c:111:43: error: comparison between pointer and integer [-Werror]
+  111 |             RD_KAFKA_V_VALUE(value, value == NULL ? 0 : strlen(value)), RD_KAFKA_V_HEADERS(headers),
+      |                                           ^~
+docs/evidence/broker/KL11-68/ordinary-peer.c: In function ‘prepare’:
+docs/evidence/broker/KL11-68/ordinary-peer.c:29:17: error: ‘snprintf’ argument 4 overlaps destination object ‘receipts’ [-Werror=restrict]
+   29 |         require(snprintf(r->key, sizeof(r->key), "key:%s", r->id) > 0, "receipt key");
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+docs/evidence/broker/KL11-68/ordinary-peer.c:16:18: note: destination object referenced by ‘restrict’-qualified argument 1 was declared here
+   16 | static receipt_t receipts[2][RECORD_COUNT];
+      |                  ^~~~~~~~
+docs/evidence/broker/KL11-68/ordinary-peer.c:30:17: error: ‘snprintf’ argument 4 overlaps destination object ‘receipts’ [-Werror=restrict]
+   30 |         require(snprintf(r->value, sizeof(r->value), "value:%s", r->id) > 0, "receipt value");
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+docs/evidence/broker/KL11-68/ordinary-peer.c:16:18: note: destination object referenced by ‘restrict’-qualified argument 1 was declared here
+   16 | static receipt_t receipts[2][RECORD_COUNT];
+      |                  ^~~~~~~~
+cc1: all warnings being treated as errors
+
+exit_code=1

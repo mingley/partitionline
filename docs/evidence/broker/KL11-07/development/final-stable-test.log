@@ -1,0 +1,85 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 6.57s
+     Running unittests src/lib.rs (/workspace/work/target-broker-fetch-dev/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 24 tests
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/fetch.rs (/workspace/work/target-broker-fetch-dev/debug/deps/fetch-dc28d9e99e19d99a)
+
+running 19 tests
+test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+test invalid_local_read_limits_are_rejected_before_io ... ok
+test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+test absolute_wait_cap_and_minimum_clamping ... ok
+test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+test independent_apache_read_goldens ... ok
+test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/metadata.rs (/workspace/work/target-broker-fetch-dev/debug/deps/metadata-7d5b85f288b6d75b)
+
+running 8 tests
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test serve_live_probe ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+test native_null_array_compatibility_is_exact_and_read_only ... ok
+test independent_apache_metadata_admin_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/produce.rs (/workspace/work/target-broker-fetch-dev/debug/deps/produce-6082aa461197432c)
+
+running 8 tests
+test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+test malformed_entire_body_never_appends ... ok
+test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+test serve_live_probe ... ok
+test response_and_normalized_budgets_fail_before_append ... ok
+test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+test independent_apache_produce_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+

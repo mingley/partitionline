@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "gate_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "implementation_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "passed": true,
+  "ci_tests": 48,
+  "compiled_cells": 4,
+  "profiles": {
+    "metadata": 4,
+    "produce": 5,
+    "ordinary_read_write": 7,
+    "fixed_controller": 4
+  },
+  "per_cell_cases": {
+    "protocol": 99,
+    "metadata": 555,
+    "produce": 708,
+    "fetch_list_offsets": 366,
+    "read_write_api_versions_response_layouts": 15,
+    "controller": 201,
+    "controller_tcp_payload_frame_pairs": 18
+  },
+  "source_rebindings": {
+    "partitionline-broker/src/fetch.rs": {
+      "original_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "sha256": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/src/metadata.rs": {
+      "original_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "sha256": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/src/produce.rs": {
+      "original_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "sha256": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "original_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "sha256": "9df92db9a23f24fd1139b8e14231b606282f57169c9e125af850f258997947c0",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "original_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "sha256": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/tests/raft_protocol.rs": {
+      "original_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "sha256": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/src/raft/election.rs": {
+      "original_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "sha256": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+      "unchanged_at_gate_source": true
+    },
+    "partitionline-broker/src/raft/mod.rs": {
+      "original_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "sha256": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+      "unchanged_at_gate_source": true
+    }
+  },
+  "limitations": [
+    "07 runtime and compiled reports remain exact58810; controller runtime/TCP captures remain exact04986 with unchanged module blobs; Produce liveAPI18 receipt remains exactc34. The gate independently checks bytes/fields and does not infer execution from reflected source labels.",
+    "No concurrent73 WORK runtime was extracted or used."
+  ],
+  "artifacts_sha256": {
+    "1.85.0-all-features-live-report.json": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "1.85.0-all-features-live-report.log": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "1.85.0-all-features-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-all-features.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-default-live-report.json": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "1.85.0-default-live-report.log": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "1.85.0-default-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-default.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "ci-48.log": "34ef1a2c71a9a16d9aac3e84694beaea9190601fd924b14cd88ea76b6f513f3f",
+    "commands.json": "fb470e853fd21bfaec4c9dc30677c69e279190484ad5c0342f1c3620046956b2",
+    "live-commands.json": "212b52a1c284cd7029626774b89ceb67b7b266bf02d2efa66c387a3aba4b142d",
+    "precheck-failure.json": "ffe4edfa7e0e09e1d88b90ba023108de549660114467c706c498c6525feedd93",
+    "source-inputs.json": "5aae49e6d7ea141e3eace7d3d5c9aa26048e69f172c5fa9061d8a4245906ed9f",
+    "stable-all-features-live-report.json": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "stable-all-features-live-report.log": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "stable-all-features-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-all-features.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-default-live-report.json": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "stable-default-live-report.log": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "stable-default-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-default.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665"
+  },
+  "live_read_write_api_versions": {
+    "passed": true,
+    "actual_exchanges": 60,
+    "independent_owner": "KL11-68",
+    "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+    "input": "docs/evidence/broker/KL11-68/live-read/api-versions.json",
+    "input_sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709",
+    "gate_cells_checked": 4
+  },
+  "preserved_harness_failures": [
+    "precheck-failure.json: wrong source path before any CI/verifier command; corrected from committed registry without product/gate source edits."
+  ]
+}

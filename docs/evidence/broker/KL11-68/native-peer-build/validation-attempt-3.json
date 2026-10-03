@@ -1,0 +1,29 @@
+{
+  "native_version": "2.15.0",
+  "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "source_sha256": "9530365a6ce4c871b2a3cd75d8b14e38e5c297829abc5ef438b96a589bcf8240",
+  "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "gcc",
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+    "/workspace/work/c-peer/lib/librdkafka.so.1",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-o",
+    "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+  ],
+  "exit_code": 0,
+  "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+  "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+  "binary_sha256": "4168be5ecfeb734aa218ab78598ccbf333164df6c251108d10b314956dce54bc"
+}

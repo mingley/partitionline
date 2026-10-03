@@ -1,0 +1,92 @@
+{
+  "implementation_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "independent_owner": "avro_adapter/KL11-68",
+  "aggregate": {
+    "path": "docs/evidence/broker/KL11-68/live-read/validation.json",
+    "sha256": "255771ca141350ccc4e61d5d02929178aed76d2005c82a00f0a3929080be5c3d"
+  },
+  "accepted_runs": [
+    {
+      "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/validation.json",
+      "sha256": "f4cb7fbb4f6df5435a409a3e1de4c48e3c4af16b87d545974645d14abe780d30",
+      "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+      "jobs": 17,
+      "all_peer_exits_zero": true,
+      "server_exit": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-68/live-read/stable/attempt-5-restart/validation.json",
+      "sha256": "4420b78b37406636e8c4a3e1a8cd436b56f885ba334101a441b956c4b9d01053",
+      "binary_sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+      "jobs": 16,
+      "all_peer_exits_zero": true,
+      "server_exit": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-1/validation.json",
+      "sha256": "284fb90432c950f3dfb830880a6f8fbc8e83058a18693c8002c30389fa66b3d8",
+      "binary_sha256": "567ca42f2f07ea761f019372c91ca2f2a831399b93af3973ba6ac78a549632a7",
+      "jobs": 17,
+      "all_peer_exits_zero": true,
+      "server_exit": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-68/live-read/1-85-0/attempt-2-restart/validation.json",
+      "sha256": "233977b430794c891c77428d62d8a6845ff124c3f64dbadd69fb753580b35e6c",
+      "binary_sha256": "567ca42f2f07ea761f019372c91ca2f2a831399b93af3973ba6ac78a549632a7",
+      "jobs": 16,
+      "all_peer_exits_zero": true,
+      "server_exit": 0
+    }
+  ],
+  "counts": {
+    "peer_executions": 66,
+    "assertions": 79590,
+    "ordinary_hash_comparisons": 1848,
+    "codec_hash_comparisons": 8784,
+    "native_java_hash_comparisons": 288,
+    "native_consumed_receipts": 408,
+    "native_delivery_receipts": 48,
+    "live_read_cases": 1464,
+    "positive_read_responses": 1320,
+    "structural_eofs": 144,
+    "explicit_record_hash_comparisons": 11328
+  },
+  "restart_byte_identity": [
+    {
+      "lane": "stable",
+      "unchanged_catalog_partition_files": 27,
+      "unchanged": true
+    },
+    {
+      "lane": "1-85-0",
+      "unchanged_catalog_partition_files": 27,
+      "unchanged": true
+    }
+  ],
+  "allocated_topic_uuids": 44,
+  "actual_api18_exchanges": 60,
+  "api_versions_report": {
+    "path": "docs/evidence/broker/KL11-68/live-read/api-versions.json",
+    "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+  },
+  "native_receipts_report": {
+    "path": "docs/evidence/broker/KL11-68/live-read/native-receipts.json",
+    "sha256": "74404d8de0a00f8292acc5c94f77cf4e9bea211e244490559491569390d187b7"
+  },
+  "gate_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "independent_gate_receipt": {
+    "path": "docs/evidence/broker/KL11-07/profile-gates/final-2db175c7/validation.json",
+    "sha256": "8b0733c9c87c99baf1c4170b537a4746356970fc323005ad20421f0fcef446d7",
+    "passed": true,
+    "mutation_tests": 48,
+    "compiled_cells": 4
+  },
+  "limitations": [
+    "Ordinary single-node durable logs only; local acks-1/fsync does not establish replication.",
+    "No transaction, idempotent, control-batch, group coordination, retention or incremental Fetch-session implementation claimed.",
+    "Live expected seeded batches use official setPartitionLeaderEpoch(0); direct-Partition fixtures retain-1 outside the protectedCRC.",
+    "Failed stable attempts1\u20133, peer configuration failures and partial-source initial behavior remain retained as development history."
+  ],
+  "qualification": "Ordinary durable manual-assignment/native cross-language sessions; no groups, transactions, replication, retention or full-production claim."
+}
