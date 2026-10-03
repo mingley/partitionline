@@ -113,7 +113,9 @@ static void alter(rd_kafka_t *runtime, rd_kafka_queue_t *queue, const char *user
     rd_kafka_event_t *event = rd_kafka_queue_poll(queue, 8000);
     require(event != NULL && rd_kafka_event_type(event) == RD_KAFKA_EVENT_ALTERUSERSCRAMCREDENTIALS_RESULT,
             "native alter result event");
-    require(rd_kafka_event_error(event) == RD_KAFKA_RESP_ERR_NO_ERROR, "native alter envelope success");
+    int envelope_error = (int)rd_kafka_event_error(event);
+    printf("{\"operation\":\"native-alter-envelope\",\"error\":%d}\n", envelope_error);
+    require(envelope_error == RD_KAFKA_RESP_ERR_NO_ERROR, "native alter envelope success");
     size_t count = 0;
     const rd_kafka_AlterUserScramCredentials_result_response_t **rows = rd_kafka_AlterUserScramCredentials_result_responses(
             rd_kafka_event_AlterUserScramCredentials_result(event), &count);

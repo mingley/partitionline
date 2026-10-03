@@ -26,8 +26,19 @@ identities. These inputs do not become the persisted verifier representation.
 `apache-errors.tsv` records actual Apache error constants.
 `apache-parser-outcomes.tsv` records each executed generated parser's
 one-byte truncation rejection and valid-prefix/trailing-byte acceptance.
-Apache parsers leave the trailing byte unread. The Rust listener's whole
-input rejection is a separate, stricter framing policy. Constructed error
+Apache parsers leave the trailing byte unread. The Rust listener consumes
+whole input, with one explicit API 51 v0 compatibility case: one redundant
+empty terminal tag from the pinned librdkafka 2.15.0 writer/finalizer. Other
+tails remain rejected. The authentic native sources and numeric-only rejected
+frame trace are retained under `docs/evidence/broker/KL11-72/peers/`.
+Constructed error
 responses and parser acceptance are not Apache broker runtime outcomes.
 Successful live listener interoperability requires the separately retained
 Java/native C histories against an immutable Rust source snapshot.
+
+`native-alter-canonical.frame.hex` and
+`native-alter-redundant-empty-tag.frame.hex` independently reproduce a public
+synthetic native Alter request with the actual Apache serializers/crypto.
+The 106-byte latter frame's SHA256 matches the genuine librdkafka TLS-write
+digest; only its numeric shape and digest were logged. Its import value is
+deliberately public fixture data, with no live SASL proof/password in these frames.

@@ -84,7 +84,7 @@
       "id": "api.1",
       "api_key": 1,
       "name": "FETCH",
-      "implementation": "missing",
+      "implementation": "partial",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -110,7 +110,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "Optional ordinary read/write router Fetch4-6 from persisted batches; bounded snapshots/wait/scan, read-committed LSO=HW while transactional writes rejected; modern sessions/replica reads unsupported; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -128,13 +128,16 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implemented_versions": "4-6",
+      "implementation_gate": "KL11-07",
+      "implementation_profile": "ordinary-read-write"
     },
     {
       "id": "api.2",
       "api_key": 2,
       "name": "LIST_OFFSETS",
-      "implementation": "missing",
+      "implementation": "partial",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -160,7 +163,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "Optional ordinary read/write router ListOffsets1-3 from persisted record timestamps; bounded complete scans, no retention/tiered offsets; newer versions unsupported; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -175,7 +178,10 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implemented_versions": "1-3",
+      "implementation_gate": "KL11-07",
+      "implementation_profile": "ordinary-read-write"
     },
     {
       "id": "api.3",
@@ -4918,6 +4924,43 @@
       "api_key": 54,
       "min_version": 0,
       "max_version": 0
+    }
+  ],
+  "read_write_api_versions": [
+    {
+      "api_key": 0,
+      "min_version": 3,
+      "max_version": 13
+    },
+    {
+      "api_key": 1,
+      "min_version": 4,
+      "max_version": 6
+    },
+    {
+      "api_key": 2,
+      "min_version": 1,
+      "max_version": 3
+    },
+    {
+      "api_key": 3,
+      "min_version": 0,
+      "max_version": 13
+    },
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    },
+    {
+      "api_key": 19,
+      "min_version": 2,
+      "max_version": 4
+    },
+    {
+      "api_key": 20,
+      "min_version": 1,
+      "max_version": 6
     }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "native_source_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "native_source_tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "source_sha256": {
+    "src/rdkafka_buf.h": "552ddff14f20eaa03718359a2ecca57a98572f149da1f67ad8c79d4b391026ab",
+    "src/rdkafka_buf.c": "a6bc3c55ff05137a68c727993c0d448244f7af0111f59f85c28a57f4e14fd255",
+    "src/rdkafka_broker.c": "1ed53a44386d60ad3a1ed91ff7f08f53b6ea36de415496222698dbd5137b8b61",
+    "src/rdkafka_ssl.c": "bafad53316abe13a435b3d10f49aefc8834652bc9c53461c5bf251e8ad722b5f"
+  },
+  "finding": "AlterUserScramCredentialsRequest writes an explicit final empty tag; broker finalize also automatically appends one for FLEXVER. Authentic request therefore has one redundant trailing zero. SSL_write observation forwards bytes unchanged and logs only numeric fields."
+}

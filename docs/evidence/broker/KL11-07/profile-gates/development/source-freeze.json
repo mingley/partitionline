@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "stage": "frozen seven-profile gate candidate",
+  "implementation_source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+  "implementation_archive_sha256": "761504527236e27fc6dd5396a477622d5abae105d6027efc4d2cc75646703cc1",
+  "immutable_source_files_checked": 17370,
+  "gate_overlay_sha256": {
+    "scripts/check-broker-api-matrix.py": "baae232d8785d388960e889e6db7169b8140d1c72c9434aa010807ad8dd0db56",
+    "tests/ci/test_broker_api_matrix.py": "e5cdd155eb38a5fc4787155d661d252992e5b1db9e095a845be1b50840b43ef5",
+    "tests/conformance/broker/implemented-api-versions.json": "114e012e219ccbb174e6fb76216ac2a343fef662581b059878a3063b0a7576e8",
+    "tests/conformance/broker/features.json": "ec95848b061543971901600ca26b403bf7bbfb77d4d13304e3e2bf64b67b56f9"
+  },
+  "scope": "whole immutable07 source plus exactly four owned gate candidate overlays; no concurrent73/SASL WORK sources",
+  "ci": {
+    "final_tests": 48,
+    "passed": true,
+    "final_log": "ci-final.log",
+    "prior48_test_log": "ci-02.log",
+    "canonical_correlation_changed_focused_tests": 2,
+    "focused_log": "focused-04.log"
+  },
+  "actual_compiled_cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "verdict": "passed",
+      "counts": {
+        "protocol": 99,
+        "metadata": 555,
+        "produce": 708,
+        "fetch_list_offsets": 366,
+        "read_write_api_versions_response_layouts": 15
+      }
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "verdict": "passed",
+      "counts": {
+        "protocol": 99,
+        "metadata": 555,
+        "produce": 708,
+        "fetch_list_offsets": 366,
+        "read_write_api_versions_response_layouts": 15
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "verdict": "passed",
+      "counts": {
+        "protocol": 99,
+        "metadata": 555,
+        "produce": 708,
+        "fetch_list_offsets": 366,
+        "read_write_api_versions_response_layouts": 15
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "verdict": "passed",
+      "counts": {
+        "protocol": 99,
+        "metadata": 555,
+        "produce": 708,
+        "fetch_list_offsets": 366,
+        "read_write_api_versions_response_layouts": 15
+      }
+    }
+  ],
+  "profiles": {
+    "metadata_only_api_count": 4,
+    "produce_only_api_count": 5,
+    "ordinary_read_write_api_count": 7,
+    "fixed_controller_api_count": 4
+  },
+  "source_execution_provenance": "07 compiled outcomes from final-qualified exact58810 matrix; unchanged13 component reports/TCP captures stay source04986, and oldProduce actualAPI18 receipt stays sourcec34. Their scopes are distinct. This gate verifies actual bytes/fields/fixture/source hashes, not runtime execution from a reflected source label.",
+  "live_read_write_api_versions": {
+    "status": "not_yet_checked",
+    "expected_exchanges": 60,
+    "independent_owner": "KL11-68"
+  },
+  "qualification": "not_run",
+  "preserved_development_failures": [
+    "overlay-copy-03 SameFileError: candidate harness copy resolved a relative source inside its destination. No product source changed; focused03 old candidate log is superseded by focused04."
+  ],
+  "artifacts_sha256": {
+    "static-report-01.json": "0f0bf66ffc09c9d5a0ffc8932dd12f93fdc6d00a90feec660a37601bd42f7342",
+    "static-01.log": "0f0bf66ffc09c9d5a0ffc8932dd12f93fdc6d00a90feec660a37601bd42f7342",
+    "ci-01.log": "025cbf7e6692f7796bd578a46dfd6928e41c702978a5d73d9d00c251d7f9276b",
+    "ci-02.log": "c32d2b1f4aa6b45b69e6f8d3b93fa48bf9cc68573d545664a412dd95410afaec",
+    "ci-final.log": "3387e239d270c6864735e5a066afa40c5633cfa62869fc9fb945061fadd4f7fd",
+    "focused-03.log": "7cafff1bcc87ad7861eb0621c6f3a2aba52c0adde8a67e408d0e1e9290358380",
+    "focused-04.log": "1ecf2122881656159397722e154004ca0768f380df8a66e1d250cab4337f986d",
+    "overlay-copy-03-failure.json": "6bd33354b0b5c90fc9b09de17eb5219f680a5cc93fc5d7cd48f41ba4d8e12e06",
+    "current-commands.json": "5ff3d75da8fd12eca517ebdda21c04968291240472be03b308aa65ec98e768c1",
+    "stable-commands-01.json": "cd9ab7675f9634e335e47b60699f544e7761de678fa3ae9a1c6d6a5d8501849d",
+    "stable-default-current-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-default-current.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-all-features-current-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "stable-all-features-current.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-default-current-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-default-current.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-all-features-current-report.json": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665",
+    "1.85.0-all-features-current.log": "669c7fdc1e680588ca517ad957f7503e3dea2d977695370701ffe7866c3b3665"
+  }
+}

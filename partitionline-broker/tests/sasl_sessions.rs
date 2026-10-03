@@ -1013,3 +1013,214 @@ async fn authenticated_describe_control_ceiling_precedes_header_parse() -> Resul
 async fn authenticated_alter_control_ceiling_precedes_header_parse_and_storage() -> Result {
     authenticated_control_case(51).await
 }
+
+#[tokio::test]
+async fn canonical_and_native_redundant_empty_alter_tag_commit_once_and_survive_restart() -> Result
+{
+    let path = Path::new();
+    let store = store(&path).await?;
+    let mut server =
+        plaintext(store.clone(), Arc::new(Probe::default()), Limits::default()).await?;
+    let mut admin = TcpStream::connect(server.local_addr()).await?;
+    scram(&mut admin, Algorithm::Sha256, "admin", "pencil", 2, false).await?;
+    let mut generation = store
+        .plain(Secret::new(b"\0admin\0pencil".to_vec()))
+        .await?
+        .generation();
+    let mut users = Vec::new();
+    for (index, algorithm) in [Algorithm::Sha256, Algorithm::Sha512]
+        .into_iter()
+        .enumerate()
+    {
+        for native_tail in [false, true] {
+            let user = format!("compat-{index}-{native_tail}");
+            let mut packet = upsert_packet(&user, algorithm, "public-compatible-password", 401);
+            if native_tail {
+                // Actual librdkafka2.15 writes canonical body tags, then its
+                // FLEXVER finalizer appends one further empty top-level block.
+                packet.push(0);
+            }
+            send(&mut admin, &packet).await?;
+            assert_eq!(
+                alter_results(&receive(&mut admin).await?)?,
+                vec![(user.clone(), 0)]
+            );
+            generation += 1;
+            assert_eq!(
+                store
+                    .plain(Secret::new(b"\0admin\0pencil".to_vec()))
+                    .await?
+                    .generation(),
+                generation
+            );
+            let mut socket = TcpStream::connect(server.local_addr()).await?;
+            assert_eq!(
+                scram(
+                    &mut socket,
+                    algorithm,
+                    &user,
+                    "public-compatible-password",
+                    2,
+                    false
+                )
+                .await?,
+                0
+            );
+            users.push((user, algorithm));
+        }
+    }
+    server.shutdown().await?;
+    store.shutdown().await?;
+    let (store, recovery) = Store::open(&path.0, CredentialLimits::default()).await?;
+    assert_eq!(recovery.recovered_entries, 10);
+    let mut server =
+        plaintext(store.clone(), Arc::new(Probe::default()), Limits::default()).await?;
+    for (user, algorithm) in users {
+        let mut socket = TcpStream::connect(server.local_addr()).await?;
+        assert_eq!(
+            scram(
+                &mut socket,
+                algorithm,
+                &user,
+                "public-compatible-password",
+                1,
+                false
+            )
+            .await?,
+            0
+        );
+    }
+    server.shutdown().await?;
+    store.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn malformed_alter_tails_and_other_api_empty_tails_never_mutate_or_dispatch() -> Result {
+    let path = Path::new();
+    let store = store(&path).await?;
+    let probe = Arc::new(Probe::default());
+    let mut server = plaintext(store.clone(), probe.clone(), Limits::default()).await?;
+    let generation = store
+        .plain(Secret::new(b"\0admin\0pencil".to_vec()))
+        .await?
+        .generation();
+    for tail in [&[1][..], &[0, 0], &[0, 1], &[1, 0], &[0, 0, 0], &[128]] {
+        let mut socket = TcpStream::connect(server.local_addr()).await?;
+        scram(&mut socket, Algorithm::Sha256, "admin", "pencil", 2, false).await?;
+        let mut packet = upsert_packet("forbidden-tail", Algorithm::Sha256, "not-committed", 402);
+        packet.extend_from_slice(tail);
+        send(&mut socket, &packet).await?;
+        assert!(closed(&mut socket).await?);
+        assert_eq!(
+            store
+                .plain(Secret::new(b"\0admin\0pencil".to_vec()))
+                .await?
+                .generation(),
+            generation
+        );
+        assert!(store
+            .describe(Some(vec!["forbidden-tail".into()]))
+            .await?
+            .is_empty());
+    }
+    for key in [17, 36, 50] {
+        let mut socket = TcpStream::connect(server.local_addr()).await?;
+        scram(&mut socket, Algorithm::Sha256, "admin", "pencil", 2, false).await?;
+        let mut packet = match key {
+            17 => handshake(1, 403, "SCRAM-SHA-256"),
+            36 => authenticate(2, 403, b"invalid-in-authenticated-state"),
+            50 => {
+                let mut packet = header(50, 0, 403, true);
+                packet.extend_from_slice(&[0, 0]);
+                packet
+            }
+            _ => unreachable!(),
+        };
+        packet.push(0);
+        send(&mut socket, &packet).await?;
+        assert!(closed(&mut socket).await?);
+    }
+    assert_eq!(probe.calls.load(Ordering::SeqCst), 0);
+    server.shutdown().await?;
+    store.shutdown().await?;
+    let (store, recovery) = Store::open(&path.0, CredentialLimits::default()).await?;
+    assert_eq!(recovery.recovered_entries, 6);
+    assert!(store
+        .describe(Some(vec!["forbidden-tail".into()]))
+        .await?
+        .is_empty());
+    store.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn authentic_native_106_and_apache_canonical_105_frames_commit_without_rewriting() -> Result {
+    let canonical =
+        hex(include_str!("fixtures/sasl-wire/native-alter-canonical.frame.hex").trim())?;
+    let native =
+        hex(include_str!("fixtures/sasl-wire/native-alter-redundant-empty-tag.frame.hex").trim())?;
+    assert_eq!((canonical.len(), native.len()), (105, 106));
+    assert_eq!(&canonical[4..], &native[4..native.len() - 1]);
+    assert_eq!(native.last(), Some(&0));
+    let path = Path::new();
+    let store = store(&path).await?;
+    let mut server =
+        plaintext(store.clone(), Arc::new(Probe::default()), Limits::default()).await?;
+    let mut admin = TcpStream::connect(server.local_addr()).await?;
+    scram(&mut admin, Algorithm::Sha256, "admin", "pencil", 2, false).await?;
+    let mut generation = store
+        .plain(Secret::new(b"\0admin\0pencil".to_vec()))
+        .await?
+        .generation();
+    for frame in [&canonical, &native] {
+        assert_eq!(
+            i32::from_be_bytes(frame[..4].try_into()?) as usize,
+            frame.len() - 4
+        );
+        // Forward the independently captured/generated full length-prefixed
+        // frame byte for byte, including its original ClientId/correlation7.
+        admin.write_all(frame).await?;
+        admin.flush().await?;
+        let response = receive(&mut admin).await?;
+        assert_eq!(i32::from_be_bytes(response[..4].try_into()?), 7);
+        assert_eq!(
+            alter_results(&response)?,
+            vec![("native-created".into(), 0)]
+        );
+        generation += 1;
+        assert_eq!(
+            store
+                .plain(Secret::new(b"\0native-created\0pencil".to_vec()))
+                .await?
+                .generation(),
+            generation
+        );
+    }
+    let info = store.describe(Some(vec!["native-created".into()])).await?;
+    assert_eq!(info.len(), 1);
+    assert_eq!(info[0].algorithm(), Algorithm::Sha256);
+    assert_eq!(info[0].iterations(), 4096);
+    server.shutdown().await?;
+    store.shutdown().await?;
+    let (store, recovery) = Store::open(&path.0, CredentialLimits::default()).await?;
+    assert_eq!(recovery.recovered_entries, 8);
+    let mut server =
+        plaintext(store.clone(), Arc::new(Probe::default()), Limits::default()).await?;
+    let mut user = TcpStream::connect(server.local_addr()).await?;
+    assert_eq!(
+        scram(
+            &mut user,
+            Algorithm::Sha256,
+            "native-created",
+            "pencil",
+            2,
+            false
+        )
+        .await?,
+        0
+    );
+    server.shutdown().await?;
+    store.shutdown().await?;
+    Ok(())
+}

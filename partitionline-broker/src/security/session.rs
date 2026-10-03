@@ -714,7 +714,7 @@ impl Session {
             }
         }
         reader.tags()?;
-        reader.finish()?;
+        reader.finish_alter()?;
         let mut output = response_header(correlation, true);
         output.extend_from_slice(&0i32.to_be_bytes());
         varint(&mut output, mutations.len() + 1);
@@ -932,6 +932,16 @@ impl<'a> Reader<'a> {
             Err(Error::Malformed)
         }
     }
+    fn finish_alter(&mut self) -> Result<(), Error> {
+        // Genuine librdkafka2.15 Alter51v0 writes canonical body tags and its
+        // FLEXVER finalizer appends one more empty tag block. Consume only that
+        // exact single-byte dialect after the complete canonical body. All
+        // other tails, and every other API, retain strict whole-input parsing.
+        if self.remaining == [0] {
+            self.remaining = &[];
+        }
+        self.finish()
+    }
 }
 
 #[cfg(test)]
@@ -1016,7 +1026,11 @@ mod tests {
             }
             _ => return Err(Error::Malformed),
         }
-        reader.finish()
+        if key == 51 {
+            reader.finish_alter()
+        } else {
+            reader.finish()
+        }
     }
     #[test]
     fn all_authentic_apache_wire_fields_headers_lengths_and_response_goldens() {
@@ -1061,6 +1075,10 @@ mod tests {
                 }
                 let mut trailing = body.clone();
                 trailing.push(0);
+                if key == 51 {
+                    assert_eq!(validate_request(key, version, &trailing), Ok(()));
+                    trailing.push(0);
+                }
                 assert_eq!(
                     validate_request(key, version, &trailing),
                     Err(Error::Malformed)
