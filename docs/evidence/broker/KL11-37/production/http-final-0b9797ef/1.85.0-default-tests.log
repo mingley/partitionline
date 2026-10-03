@@ -1,0 +1,85 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/http-final-0b9797ef/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 6.20s
+     Running unittests src/lib.rs (/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ea773fb32d16e69c)
+
+running 47 tests
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test metadata::tests::canceled_sweep_and_shared_full_admission_never_retire ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+test metadata::tests::unconsumed_sweep_receipt_holds_shared_admission ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+test raft::replication::tests::snapshot_install_process_cut_helper ... ok
+test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok
+
+running 1 test
+test raft::replication::tests::snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote ... ok
+test raft::snapshot::tests::inner_publication_process_helper ... ok
+
+running 1 test
+test raft::snapshot::tests::node_inner_publication_io_failures_replay_previous_receipt_and_committed_suffix ... ok
+
+running 1 test
+test raft::snapshot::tests::inner_publication_process_exits_preserve_previous_complete_image ... ok
+test raft::snapshot::tests::node_inner_publication_process_helper ... ok
+
+running 1 test
+test segments::tests::checksum_valid_impossible_victim_descriptor_is_rejected_before_unlink ... ok
+
+running 1 test
+test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... ok
+
+running 1 test
+test raft::snapshot::tests::node_inner_publication_process_exits_replay_previous_receipt_and_committed_suffix ... ok
+test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... ok
+test segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases ... ok
+test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... ok
+test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... ok
+test segments::tests::retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor ... ok
+test segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/oidc_http.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_http-c7e4e54a4511467b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/oidc_validation.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_validation-42016f58077d9a54)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sasl_sessions.rs (/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e89950569065fb85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,8 @@
+{
+  "source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "files": 64610,
+  "immutable_hardlinks": 59384,
+  "linked_from": "/workspace/work/broker-oidc/http-stage2-source20",
+  "every_linked_Git_blob_and_full_mode_verified": true,
+  "mutable_working_tree_inputs": false
+}

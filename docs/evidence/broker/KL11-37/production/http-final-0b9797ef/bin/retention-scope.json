@@ -1,0 +1,16 @@
+{
+  "source_sha_scope": "manifest.source_sha binds actual_test_invocations; files is a package-cache preservation inventory and does not assign one source to an unmapped retained cache file",
+  "qualified_actual_test_invocations": 24,
+  "package_cache_preserved_ELFs": 25,
+  "unmapped_retained_cache_files": [
+    {
+      "path": "debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "bytes": 14383688,
+      "mode": 448,
+      "sha256": "13ea49657e32116d6ad5096f842803a5e15618d1205fc6e03273974022c39080"
+    }
+  ],
+  "unmapped_source_qualification": false,
+  "earlier_developer_socket_scope": "../../development/managed-01/focused-20.json"
+}

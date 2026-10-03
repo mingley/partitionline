@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "disposition": "actual pushed managedHTTPS checkpoint focused active/inactive profiles qualified; socket and genuine peer stages remain open",
+  "source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "commands": 16,
+  "all_exit_codes_zero": true,
+  "behavior": {
+    "passed": 470,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 0
+  },
+  "behavior_scope": "library and owned oidc_http,oidc_validation,sasl_sessions targets; not a whole-broker behavior matrix",
+  "strict_scope": "all-targetClippy for all six stable/MSRV default/SASL/OIDC profile lanes",
+  "inactive_feature_scope": "feature-gated integration crates/cases do not compile when their required feature is disabled; no ignored/filtered runtime cases",
+  "per_toolchain": {
+    "default": 47,
+    "sasl": 76,
+    "oidc": 112
+  },
+  "source_verification": {
+    "complete_Git_blobs": 64610,
+    "full_byte_mode_checks": 32,
+    "immutable_hardlinks": 59384,
+    "one_identical_before_after_aggregate": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+  },
+  "commands_sha256": "6f124db8977975e926719a7312efcba3d29e158325fa072d9a7088f8af2b155c",
+  "source_audit_original_sha256": "fc2dafaefc9d9750b4d28cf1d841d3f3b5cdd34baca5ae1366321b94078a7b16",
+  "retained_candidate_proof": "../development/http-stage2-source20/validation.json",
+  "retained_candidate_two_regressions": "../development/http-stage2-source20/negative-controls/results.json",
+  "full_online_OIDC_qualified": false,
+  "remaining": [
+    "source-push and immutable qualifier for actual OAuthsocket enforcement",
+    "independent realHTTPSissuer/service exposure",
+    "genuine Java,C,Rust token acquisition/reconnect/rotation/outage/expiry/adminauthority flows",
+    "final optional dependency/profile inventory and feature/MSRV gates"
+  ]
+}

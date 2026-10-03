@@ -1,0 +1,229 @@
+{
+  "source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "checks": [
+    {
+      "command": "stable-rustc",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-rustc",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-default-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-default-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-default-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-default-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-sasl-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-sasl-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-default-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-default-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-sasl-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-sasl-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "dc4440404d4ac8fb1198d932826feecbdbb30482d340f37b577f7690dfe6adee"
+    }
+  ]
+}

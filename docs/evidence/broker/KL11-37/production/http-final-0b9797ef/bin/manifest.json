@@ -1,0 +1,425 @@
+{
+  "source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "archive_path": "/workspace/work/broker-oidc/http-final-retention-0b9797ef/test-executables.tar.gz",
+  "archive_sha256": "d32afb08f7ac34acb41bab93293437aa89116ee82268c4cf3cdfbf5c55292af2",
+  "byte_and_full_mode_roundtrip": true,
+  "files": [
+    {
+      "path": "debug/deps/oidc_http-2238d440fe769608",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-2238d440fe769608",
+      "bytes": 10236096,
+      "mode": 448,
+      "sha256": "0cf5b84bd0b8e15d7190c9a40a013ec5173ea3f2e0dbe84934066f5c4063fcca"
+    },
+    {
+      "path": "debug/deps/oidc_http-25e684a39cd9dc12",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-25e684a39cd9dc12",
+      "bytes": 1074856,
+      "mode": 448,
+      "sha256": "860e110ee1986afb88dc191ded9ef60e8ee31e80d85cc35f6530312e3e3c9fec"
+    },
+    {
+      "path": "debug/deps/oidc_http-7a0f4a3a82508631",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-7a0f4a3a82508631",
+      "bytes": 1079376,
+      "mode": 448,
+      "sha256": "a90df1547015e7bb728a111a4a9bf28e445d1f1fecdc1351676df6a071ab521d"
+    },
+    {
+      "path": "debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f"
+    },
+    {
+      "path": "debug/deps/oidc_http-c7e4e54a4511467b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-c7e4e54a4511467b",
+      "bytes": 1079376,
+      "mode": 448,
+      "sha256": "a01e5aa1c7a85853c11b0856f59d64b0ddbfa82428c37289153b5c914a0f8e12"
+    },
+    {
+      "path": "debug/deps/oidc_http-fa74ee4b226ea04a",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-fa74ee4b226ea04a",
+      "bytes": 1074856,
+      "mode": 448,
+      "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689"
+    },
+    {
+      "path": "debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "bytes": 14383688,
+      "mode": 448,
+      "sha256": "13ea49657e32116d6ad5096f842803a5e15618d1205fc6e03273974022c39080"
+    },
+    {
+      "path": "debug/deps/oidc_validation-22fc164c17616bbe",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-22fc164c17616bbe",
+      "bytes": 1074920,
+      "mode": 448,
+      "sha256": "421fa8cf722f6571ed2f8b18e7a5fe04be9e16f84df7815c24410aab81c2f98c"
+    },
+    {
+      "path": "debug/deps/oidc_validation-42016f58077d9a54",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-42016f58077d9a54",
+      "bytes": 1079392,
+      "mode": 448,
+      "sha256": "d02773309e350d448792d85ba04d303ea8b883dd51bc06573daed6f707754786"
+    },
+    {
+      "path": "debug/deps/oidc_validation-9d7a502cbbec6293",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-9d7a502cbbec6293",
+      "bytes": 1079392,
+      "mode": 448,
+      "sha256": "3ae876c657f32f647abd35978dbe57f53b82f61c94c079a7f7e3cce0cfc64019"
+    },
+    {
+      "path": "debug/deps/oidc_validation-bceae71c7cc60860",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-bceae71c7cc60860",
+      "bytes": 1074920,
+      "mode": 448,
+      "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08"
+    },
+    {
+      "path": "debug/deps/oidc_validation-e9aae352142f1dcf",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "bytes": 3664040,
+      "mode": 448,
+      "sha256": "40b3f8a3bd1ecbbf70984b55036e16c3a580b8cf9e5fc57fbdd2d0b8e57c18fc"
+    },
+    {
+      "path": "debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "bytes": 4212960,
+      "mode": 448,
+      "sha256": "32db4b7767f7f9bf6457058f38b18f5ccf76f978b29aee1ba199ace82c5909f6"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "bytes": 11370960,
+      "mode": 448,
+      "sha256": "fdeb67fb512362a09108aa54e65fef51563429e055e95751aee9767ea88a5e24"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "bytes": 20244328,
+      "mode": 448,
+      "sha256": "f4ec8266250c0d3598cf42e1150d13a09b1ca7dea5b50c2fd7f89930c08cd86a"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-93d5eb5ec43cda3a",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-93d5eb5ec43cda3a",
+      "bytes": 9020680,
+      "mode": 448,
+      "sha256": "d3a622b2296da83731994b2d2b3da1cd82ea60945d1ee9e7582dfaae1ad63c27"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "bytes": 16272368,
+      "mode": 448,
+      "sha256": "3b9e8b275bee26baf3889bd0a93cf1db2c42a5defff1521175ce61400a449c5e"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "bytes": 8055064,
+      "mode": 448,
+      "sha256": "f6e7d0bf4da90d7f878b16ef4ae992ff651e8233e635055b008184672baa9358"
+    },
+    {
+      "path": "debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "bytes": 6616320,
+      "mode": 448,
+      "sha256": "58490938b475d64d94a56af802e68ad8ec14bc82c8a7fdd7298ff793997962d3"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-2c9986752edf77df",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-2c9986752edf77df",
+      "bytes": 5497176,
+      "mode": 448,
+      "sha256": "3ae28dc478cae89512deb1baa95abd2c02fe5fb5109d6d619891fdcc6eba55e1"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "bytes": 10772096,
+      "mode": 448,
+      "sha256": "cc01812f48bb9c00c8e72408a6c90ea5f7ab1240560e0f8bdd62863b8827843b"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-c40c4fa34a4c54cc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-c40c4fa34a4c54cc",
+      "bytes": 9471248,
+      "mode": 448,
+      "sha256": "62dc5ab7e6654dd3a28e235ca00d624c053d43b3a43d9bf1117a49bbb9eb76de"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-d4a8d2c0a0da6487",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-d4a8d2c0a0da6487",
+      "bytes": 4686872,
+      "mode": 448,
+      "sha256": "7f991cb1a6eb71450af7d6ca690114e1eca7cbb00b97856bceddf8a3c28a0600"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-e89950569065fb85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e89950569065fb85",
+      "bytes": 1079384,
+      "mode": 448,
+      "sha256": "b7dce3eb270fc2dc67dd7f4efaff3b7f66e07146255d513b8422df2ceca1c57b"
+    },
+    {
+      "path": "debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "bytes": 1074904,
+      "mode": 448,
+      "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0"
+    }
+  ],
+  "actual_test_invocations": [
+    {
+      "command": "stable-default-tests",
+      "log": "stable-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "bytes": 8055064,
+      "mode": 448,
+      "sha256": "f6e7d0bf4da90d7f878b16ef4ae992ff651e8233e635055b008184672baa9358"
+    },
+    {
+      "command": "stable-default-tests",
+      "log": "stable-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-fa74ee4b226ea04a",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-fa74ee4b226ea04a",
+      "bytes": 1074856,
+      "mode": 448,
+      "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689"
+    },
+    {
+      "command": "stable-default-tests",
+      "log": "stable-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-bceae71c7cc60860",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-bceae71c7cc60860",
+      "bytes": 1074920,
+      "mode": 448,
+      "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08"
+    },
+    {
+      "command": "stable-default-tests",
+      "log": "stable-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "bytes": 1074904,
+      "mode": 448,
+      "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "log": "stable-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "bytes": 11370960,
+      "mode": 448,
+      "sha256": "fdeb67fb512362a09108aa54e65fef51563429e055e95751aee9767ea88a5e24"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "log": "stable-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-25e684a39cd9dc12",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-25e684a39cd9dc12",
+      "bytes": 1074856,
+      "mode": 448,
+      "sha256": "860e110ee1986afb88dc191ded9ef60e8ee31e80d85cc35f6530312e3e3c9fec"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "log": "stable-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-22fc164c17616bbe",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-22fc164c17616bbe",
+      "bytes": 1074920,
+      "mode": 448,
+      "sha256": "421fa8cf722f6571ed2f8b18e7a5fe04be9e16f84df7815c24410aab81c2f98c"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "log": "stable-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-2c9986752edf77df",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-2c9986752edf77df",
+      "bytes": 5497176,
+      "mode": 448,
+      "sha256": "3ae28dc478cae89512deb1baa95abd2c02fe5fb5109d6d619891fdcc6eba55e1"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "log": "stable-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "bytes": 20244328,
+      "mode": 448,
+      "sha256": "f4ec8266250c0d3598cf42e1150d13a09b1ca7dea5b50c2fd7f89930c08cd86a"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "log": "stable-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "log": "stable-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "bytes": 4212960,
+      "mode": 448,
+      "sha256": "32db4b7767f7f9bf6457058f38b18f5ccf76f978b29aee1ba199ace82c5909f6"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "log": "stable-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "bytes": 10772096,
+      "mode": 448,
+      "sha256": "cc01812f48bb9c00c8e72408a6c90ea5f7ab1240560e0f8bdd62863b8827843b"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "log": "1.85.0-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "bytes": 6616320,
+      "mode": 448,
+      "sha256": "58490938b475d64d94a56af802e68ad8ec14bc82c8a7fdd7298ff793997962d3"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "log": "1.85.0-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-c7e4e54a4511467b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-c7e4e54a4511467b",
+      "bytes": 1079376,
+      "mode": 448,
+      "sha256": "a01e5aa1c7a85853c11b0856f59d64b0ddbfa82428c37289153b5c914a0f8e12"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "log": "1.85.0-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-42016f58077d9a54",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-42016f58077d9a54",
+      "bytes": 1079392,
+      "mode": 448,
+      "sha256": "d02773309e350d448792d85ba04d303ea8b883dd51bc06573daed6f707754786"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "log": "1.85.0-default-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-e89950569065fb85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e89950569065fb85",
+      "bytes": 1079384,
+      "mode": 448,
+      "sha256": "b7dce3eb270fc2dc67dd7f4efaff3b7f66e07146255d513b8422df2ceca1c57b"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "log": "1.85.0-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-93d5eb5ec43cda3a",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-93d5eb5ec43cda3a",
+      "bytes": 9020680,
+      "mode": 448,
+      "sha256": "d3a622b2296da83731994b2d2b3da1cd82ea60945d1ee9e7582dfaae1ad63c27"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "log": "1.85.0-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-7a0f4a3a82508631",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-7a0f4a3a82508631",
+      "bytes": 1079376,
+      "mode": 448,
+      "sha256": "a90df1547015e7bb728a111a4a9bf28e445d1f1fecdc1351676df6a071ab521d"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "log": "1.85.0-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-9d7a502cbbec6293",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-9d7a502cbbec6293",
+      "bytes": 1079392,
+      "mode": 448,
+      "sha256": "3ae876c657f32f647abd35978dbe57f53b82f61c94c079a7f7e3cce0cfc64019"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "log": "1.85.0-sasl-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-d4a8d2c0a0da6487",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-d4a8d2c0a0da6487",
+      "bytes": 4686872,
+      "mode": 448,
+      "sha256": "7f991cb1a6eb71450af7d6ca690114e1eca7cbb00b97856bceddf8a3c28a0600"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "log": "1.85.0-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "bytes": 16272368,
+      "mode": 448,
+      "sha256": "3b9e8b275bee26baf3889bd0a93cf1db2c42a5defff1521175ce61400a449c5e"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "log": "1.85.0-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_http-2238d440fe769608",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-2238d440fe769608",
+      "bytes": 10236096,
+      "mode": 448,
+      "sha256": "0cf5b84bd0b8e15d7190c9a40a013ec5173ea3f2e0dbe84934066f5c4063fcca"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "log": "1.85.0-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/oidc_validation-e9aae352142f1dcf",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "bytes": 3664040,
+      "mode": 448,
+      "sha256": "40b3f8a3bd1ecbbf70984b55036e16c3a580b8cf9e5fc57fbdd2d0b8e57c18fc"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "log": "1.85.0-oidc-tests.log",
+      "tested_source": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+      "path": "debug/deps/sasl_sessions-c40c4fa34a4c54cc",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-c40c4fa34a4c54cc",
+      "bytes": 9471248,
+      "mode": 448,
+      "sha256": "62dc5ab7e6654dd3a28e235ca00d624c053d43b3a43d9bf1117a49bbb9eb76de"
+    }
+  ]
+}

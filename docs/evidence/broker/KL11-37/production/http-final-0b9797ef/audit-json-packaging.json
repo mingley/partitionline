@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "reason": "proactively keep audited JSON below GitHub MCP request limit; source and all runtime receipts unchanged",
+  "source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "source_audit_only": true,
+  "originals": [
+    {
+      "original_path": "docs/evidence/broker/KL11-37/production/http-final-0b9797ef/source-before.json",
+      "original_bytes": 22114343,
+      "original_full_mode": "0o600",
+      "original_sha256": "fc2dafaefc9d9750b4d28cf1d841d3f3b5cdd34baca5ae1366321b94078a7b16",
+      "compressed_path": "docs/evidence/broker/KL11-37/production/http-final-0b9797ef/source-before.json.gz",
+      "compressed_bytes": 2249637,
+      "compressed_sha256": "a770f86be97db462725d1f429a05d8beb04fd351339e2315c5e1098dafcfd6d3",
+      "sealed_original_scratch_path": "/workspace/work/broker-oidc/http-final-source-audit-retention-0b9797ef/source-before.json",
+      "byte_and_full_mode_roundtrip_verified": true,
+      "restore": "gzip-decode compressed bytes to original_path; restore original_full_mode"
+    }
+  ],
+  "original_restore_checksum_manifest": "SHA256SUMS.restorable-raw",
+  "original_restore_checksum_manifest_sha256": "55f84d1cd7327e5bdecd264817c9a81f34dcf6e7d06d4daea0243df3cf99ef6c",
+  "unchanged_validation_sha256": "d8ccfcd72de674df594bc8959b05a90e851a397b8d9a09fc1cf803cb043eecf3",
+  "new_runtime_commands": 0
+}
