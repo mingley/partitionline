@@ -31616,7 +31616,15 @@
         "Run exact committed-source stable/Rust1.85 full broker gates and strict format/lint/documentation checks.",
         "Retain failures, limits, independent evidence and actual process/byte results; do not infer production readiness or Kafka wire interoperability from a typed local exchange."
       ],
-      "evidence": []
+      "evidence": [],
+      "delegated_write_sets": {
+        "codex-c-peer-20261003": [
+          "docs/evidence/broker/KL11-73/oracle/apache/"
+        ],
+        "codex-coordinator-20261003": [
+          "docs/evidence/broker/KL11-73/oracle/history/"
+        ]
+      }
     },
     {
       "id": "KL11-74",
