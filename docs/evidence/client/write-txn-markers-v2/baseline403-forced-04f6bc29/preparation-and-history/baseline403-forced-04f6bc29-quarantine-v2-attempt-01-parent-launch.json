@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "pid": 1234632,
+  "pgid": 1234629,
+  "exact_future_argv": [
+    "taskset",
+    "-c",
+    "0,1",
+    "env",
+    "CARGO_HOME=/workspace/work/cargo",
+    "RUSTUP_HOME=/workspace/work/rustup",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v2.py",
+    "--source",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--source-sha",
+    "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "--origin-receipt",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "--origin-receipt-sha256",
+    "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "--run-label",
+    "04f6bc29-quarantine-v2-attempt-01"
+  ],
+  "initial_sampled_free_bytes": 871489536,
+  "manifest_sha256": "bc69a0529351381d290ddf0f6dbde50864045f28137dfebe7b19a942fc1b83d5",
+  "proposal_sha256": "d1b260ccfb2b9a2496c9caf4d93bb9fa3a4b49f0290d76eca1f77a1ffcee5a5d",
+  "output": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-driver.log",
+  "invocation_stage": "beforeexec exacttaskset/env/absolutePython",
+  "child_groups_owned_by_frozen_runner": true
+}

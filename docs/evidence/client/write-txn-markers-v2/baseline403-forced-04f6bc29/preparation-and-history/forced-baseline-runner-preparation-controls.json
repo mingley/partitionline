@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "runner_sha256": "68f172053b61b9619b26101e2f22c210d4f9ea7f1279d12c4f74b6cede9ec384",
+  "scope": "WORK-only AST parse + mocked forecast-helper controls; no process/source/Cargo/test/JVM launch",
+  "passed": true,
+  "controls": [
+    {
+      "name": "initial-baseline-at-bound",
+      "passed": true,
+      "actual_accepted": true,
+      "required_free_bytes": 749371137
+    },
+    {
+      "name": "initial-baseline-one-byte-under",
+      "passed": true,
+      "actual_accepted": false,
+      "required_free_bytes": null
+    },
+    {
+      "name": "clean-at-reserve",
+      "passed": true,
+      "actual_accepted": true,
+      "required_free_bytes": 375390208
+    },
+    {
+      "name": "clean-one-byte-under",
+      "passed": true,
+      "actual_accepted": false,
+      "required_free_bytes": null
+    },
+    {
+      "name": "after-clean-no-optimistic-test-subtraction",
+      "passed": true,
+      "actual_accepted": true,
+      "required_free_bytes": 749371137
+    },
+    {
+      "name": "after-positive-no-library-rebuild",
+      "passed": true,
+      "actual_accepted": false,
+      "required_free_bytes": null
+    },
+    {
+      "name": "after-nm-no-extra-target-subtraction",
+      "passed": true,
+      "actual_accepted": true,
+      "required_free_bytes": 548698547
+    },
+    {
+      "name": "after-positive-exact-remaining-two-targets",
+      "passed": true,
+      "required_free_bytes": 548698547
+    }
+  ],
+  "not_mocked_or_executed": [
+    "real ownership guard",
+    "Cargo package-only cleanup",
+    "source materialization",
+    "actual forced library compile",
+    "old actual behavioral tests"
+  ]
+}

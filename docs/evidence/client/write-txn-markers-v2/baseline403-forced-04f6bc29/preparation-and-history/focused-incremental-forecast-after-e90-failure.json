@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "historical_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "current_source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "future_source_sha": null,
+  "status": "separate focused-incremental forecast only; newsource/retryROOTGO pending",
+  "sampled_at_unix": 1791044253.8550677,
+  "warm_cache_unique_allocated_bytes": 193253376,
+  "matching_historical_test_ELF_preservation_receipt": "/workspace/work/client-share-assessment/final-12f43986/stable-default/retained-cache/cache-elf-preservation.json",
+  "matching_historical_test_ELF_preservation_receipt_sha256": "4ca1cb72fc659008b3f0e60ea8e1227ffd5a05935371b1c6c5482b174323dce2",
+  "matching_historical_ELFs": {
+    "debug/deps/client_capabilities-d07fed71f6769104": {
+      "sha256": "6348c5b635c62efa592b684553d07e6915209e1fc1e8a6f1446526282d90e4e2",
+      "bytes": 21728112,
+      "mode": 448,
+      "archive_member": "elf/6348c5b635c62efa592b684553d07e6915209e1fc1e8a6f1446526282d90e4e2-700"
+    },
+    "debug/deps/full_surface-0307b86adab9acf9": {
+      "sha256": "3dfa602524ac781077ce7bd2a091e50054618e7adcf37528d9d3df6dc9003730",
+      "bytes": 41383040,
+      "mode": 448,
+      "archive_member": "elf/3dfa602524ac781077ce7bd2a091e50054618e7adcf37528d9d3df6dc9003730-700"
+    },
+    "debug/deps/protocol_oracles-37cb06dc754f3488": {
+      "sha256": "4ff720350d382559221c7f8ce17032f26d1347d0f3fbd574c4e2c624ca9a3f0a",
+      "bytes": 10893968,
+      "mode": 448,
+      "archive_member": "elf/4ff720350d382559221c7f8ce17032f26d1347d0f3fbd574c4e2c624ca9a3f0a-700"
+    },
+    "debug/deps/share_semantics-30b3c9323593945c": {
+      "sha256": "0eba12551084945343c53408c736a0a3aa02d1fcdee7a3cf22ac41b4c6db0aa8",
+      "bytes": 20598080,
+      "mode": 448,
+      "archive_member": "elf/0eba12551084945343c53408c736a0a3aa02d1fcdee7a3cf22ac41b4c6db0aa8-700"
+    }
+  },
+  "largest_matching_historical_test_ELF_bytes": 41383040,
+  "per_new_target_allowance_50_percent_margin_bytes": 62074560,
+  "actual_current_e90_library_bundle": [
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14579190,
+      "sha256": "7f498b5d55a4e928e44aefd029f107fa61a57a64421a3ca21c0f0650ff0b35df",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "bytes": 39866822,
+      "sha256": "32e4c057c3831f17df5a92cda0bd0ef74555e94194517a3d44c0ce5719e8972b",
+      "full_mode": 384
+    }
+  ],
+  "actual_current_library_bundle_bytes": 54446012,
+  "per_new_library_bundle_allowance_50_percent_margin_bytes": 81669018,
+  "phases": [
+    {
+      "name": "corrected_stable_two_targets_and_focused_strict_only",
+      "new_partitionline_library_bundles": 1,
+      "new_test_ELF_targets": 2,
+      "persistent_incremental_cache_forecast_bytes": 205818138,
+      "transient_link_codegen_allowance_bytes": 62074560,
+      "new_lossless_ELF_capture_allowance_bytes": 132537728,
+      "metadata_logs_reserve_bytes": 16777216,
+      "floor_bytes": 367001600,
+      "required_free_incremental_bytes": 784209242,
+      "estimated_total_generated_cache_peak_bytes": 461146074,
+      "current_free_bytes": 1388277760,
+      "current_headroom_bytes": 604068518,
+      "fits_current_sample": true
+    },
+    {
+      "name": "same_stable_plus_declared403_three_regression_targets_if_individually_authorized",
+      "new_partitionline_library_bundles": 2,
+      "new_test_ELF_targets": 5,
+      "persistent_incremental_cache_forecast_bytes": 473710836,
+      "transient_link_codegen_allowance_bytes": 62074560,
+      "new_lossless_ELF_capture_allowance_bytes": 318761408,
+      "metadata_logs_reserve_bytes": 16777216,
+      "floor_bytes": 367001600,
+      "required_free_incremental_bytes": 1238325620,
+      "estimated_total_generated_cache_peak_bytes": 729038772,
+      "current_free_bytes": 1388277760,
+      "current_headroom_bytes": 149952140,
+      "fits_current_sample": true
+    }
+  ],
+  "not_a_full18_command_forecast": true,
+  "MSRV_JVM_and_whole_matrix_excluded": true,
+  "assumptions_and_limits": [
+    "Exact same installed stable compiler/dependency Cargo.lock/profile flags required for warm dependency reuse; newsource identities will be separately verified before GO.",
+    "One additional complete package rlib+rmeta bundle and two testELFs conservatively coexist with existing e90 cache; baseline adds one package bundle and three distinct targets. No cache cleanup or artifact overwrite assumptions.",
+    "A broad41.4MB historical full_surface binary supplies a measured conservative test reference, not a guaranteed new-target maximum; fiftypercent margin and62MB transient linking allowance are explicit uncertain forecasts.",
+    "ELF retention allowance uses uncompressed newELF upper estimates plus8MiB native/buildscript slack, rather than claiming a compression ratio. Actual pre-retention gzip bound is checked before writes.",
+    "350MiB sampled isolatedgroup cutoff/outputdeadline stays mandatory; reserveobserver cannot guarantee an unseen instantaneous write peak.",
+    "Fresh source materialization70\u201390MiB is outside these numbers: resample aftermaterialization immediately before rootGO.",
+    "Any concrete candidate compile/lint/test failure stops subsequent commands and is preserved; expected baselinebehaviorfailures require two actualpositivecontrols."
+  ]
+}

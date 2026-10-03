@@ -1,0 +1,13 @@
+started platform-docker-before-clean pid=1232723
+closed platform-docker-before-clean exit=0 minfree=950894592
+started platform-docker-after-marker-before-clean pid=1232819
+closed platform-docker-after-marker-before-clean exit=0 minfree=950411264
+started stable-own-package-clean-dry-run pid=1232840
+closed stable-own-package-clean-dry-run exit=0 minfree=950083584
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py", line 731, in <module>
+    exact_dryrun_package_paths(dryrun,checked_preclean['complete_cache_identity_map'])
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py", line 666, in exact_dryrun_package_paths
+    assert expanded==set(INITIAL_PACKAGE_IDENTITIES), ('dry-run prospective files differ from reviewed25',sorted(expanded-set(INITIAL_PACKAGE_IDENTITIES)),sorted(set(INITIAL_PACKAGE_IDENTITIES)-expanded))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('dry-run prospective files differ from reviewed25', [], ['debug/deps/baseline_positive_controls-fe81651cb6cc444d', 'debug/deps/baseline_positive_controls-fe81651cb6cc444d.d', 'debug/deps/libpartitionline-41c9070129cbefc4.rlib', 'debug/deps/libpartitionline-41c9070129cbefc4.rmeta', 'debug/deps/partitionline-41c9070129cbefc4.d', 'debug/deps/share_offsets_v1-c33d5760ad7cc827', 'debug/deps/share_offsets_v1-c33d5760ad7cc827.d', 'debug/deps/write_txn_markers_v2-3690429a045642cf', 'debug/deps/write_txn_markers_v2-3690429a045642cf.d'])

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-after-newpin.py", line 519, in <module>
+    checked_preclean=guard_package_outputs_and_processes()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-after-newpin.py", line 485, in guard_package_outputs_and_processes
+    'all_package_output_gzip_decompression_verified':True,'process_guard':process_reference_guard(),
+                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-after-newpin.py", line 467, in process_reference_guard
+    assert not refs and not faults, 'cache process owner/field unknown: no removal permitted'
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: cache process owner/field unknown: no removal permitted

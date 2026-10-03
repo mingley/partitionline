@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "scope": "WORK-only concrete helper compile/strictlint correction; uncompiled, repository and immutable source unchanged",
+  "diagnostic": "AbortHandle return discarded under unused_results deny; seven unreachable_pub warnings",
+  "before_sha256": "5824f8f0c964af3559fb65190d600e03a3ef1bc67a37fceabe5e76a489ed52da",
+  "after_sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+  "patch_sha256": "abcac31096dff13c8b2c2ede7471992e4f0f1e46b3d5c38f32dd797ccce722f5",
+  "semantic_note": "Named unused AbortHandle does not transfer worker ownership away from JoinSet; JoinSet remains canceled when listener future drops. pub(crate) visibility matches private integration-test module reachability.",
+  "execution": "none"
+}

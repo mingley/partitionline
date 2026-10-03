@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "actual_failed_compile_receipt_sha256": "af9756d88f5b50485eaa6c670633702110cb9bb1a1b4214ea26e7f8d96068259",
+  "scope": "exact release-checked official result representations; actual official handlers/publicAdmin retained; uncompiled proposal",
+  "source_files": [
+    {
+      "name": "CapabilityOracle.java",
+      "before_sha256": "8b5b75b6e911174ab8c903b218b11570cbe83c2e41f4157a7d0627178e76d382",
+      "after_sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+      "patch_sha256": "739b44ac33602cdc2441298b3606f68f64c84ddb07394f2fd9c473f389220897",
+      "repository_unchanged": true
+    },
+    {
+      "name": "PublicAdminProbe.java",
+      "before_sha256": "8965efae2d3b65f7405e8fe705cbc000961c035f285a58b336a62b06bd17ca41",
+      "after_sha256": "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4",
+      "patch_sha256": "50b10c6753623afc82290cd107d5dd6e086ea535da04e71bdb0aea9c26632a3d",
+      "repository_unchanged": true
+    }
+  ],
+  "source_matrix": [
+    {
+      "release": "4.1.2",
+      "public_type": "org.apache.kafka.clients.consumer.OffsetAndMetadata",
+      "offset_accessor": "offset",
+      "leader_epoch_accessor": "leaderEpoch",
+      "lag_accessor": null
+    },
+    {
+      "release": "4.2.1",
+      "public_type": "org.apache.kafka.clients.admin.SharePartitionOffsetInfo",
+      "offset_accessor": "startOffset",
+      "leader_epoch_accessor": "leaderEpoch",
+      "lag_accessor": "lag"
+    },
+    {
+      "release": "4.3.1",
+      "public_type": "org.apache.kafka.clients.admin.SharePartitionOffsetInfo",
+      "offset_accessor": "startOffset",
+      "leader_epoch_accessor": "leaderEpoch",
+      "lag_accessor": "lag"
+    }
+  ]
+}

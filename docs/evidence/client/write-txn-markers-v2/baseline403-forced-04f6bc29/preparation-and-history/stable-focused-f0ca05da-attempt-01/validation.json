@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "plan_sha256": "ed67566b33de3d5b3aeda12314ab08498bb2afb6ad9e42a6607a78800cbc1548",
+  "runner_sha256": "2a92548e2fe75d311a1c7b5257ddaa082e5415757a5b5221e23d4192bd46e952",
+  "passed": false,
+  "commands": [],
+  "retained_cache_elfs": [],
+  "scope": "initial corrected f0ca stable two-target no-run only; no baseline, behavioral test, strictlint, MSRV, JVM, full matrix or actual broker claim",
+  "source_origin_receipt_sha256": "f18fc74f39bb561a4c0ed0f667d0bee98fe329866139fcabd957c87121433857",
+  "source_manifest_compressed_sha256": "fc37967f4a20dda528d4e2dd2eb660fea058e8525aa1b8493510f88580a4f94c",
+  "source_manifest_uncompressed_sha256": "b2dbb1449166ecc331d7c5437f532ace38c42fba4aad44a7d4a0400284ec3ded",
+  "source_hidden_overlays": false
+}

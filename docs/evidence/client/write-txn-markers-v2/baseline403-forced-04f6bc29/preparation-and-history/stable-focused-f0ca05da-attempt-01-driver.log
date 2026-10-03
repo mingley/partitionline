@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused-f0ca-first.py", line 270, in <module>
+    (RUN/'launch-contract.json').write_text(json.dumps({'schema_version':1,'source_sha':PLAN['source_sha'],'origin_receipt_sha256':digest(ORIGIN_BYTES),'source_manifest_compressed_sha256':SOURCE_MAP['compressed_sha256'],'root_approved_forecast':initial_forecast,'argv':PLAN['execution_sequence'][0]['argv'],'product_source_identities':{name:MANIFEST[name] for name in ['src/admin.rs','src/protocol/admin.rs','src/protocol/txn.rs','src/lib.rs','src/producer.rs','src/partitioner.rs','src/protocol/produce.rs']},'root_authorized_scope':'candidate2target no-run only'},indent=2)+'\n')
+                                                                                                                                                                                                                                                                                                                                                     ~~~~~~~~^^^^^^
+KeyError: 'src/protocol/produce.rs'

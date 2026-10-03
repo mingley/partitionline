@@ -1,0 +1,7 @@
+{
+  "type": "AssertionError",
+  "detail": "('candidate command failed or regression outcome differs', 'stable-candidate-no-run', 101, None)",
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "passed": false,
+  "no_following_command_launched": true
+}

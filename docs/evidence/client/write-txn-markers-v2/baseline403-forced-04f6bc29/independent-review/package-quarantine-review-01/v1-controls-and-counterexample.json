@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "scope": "Independent extracted in-memory V1 quarantine controls only; no actual cache/quarantine/runtime operation",
+  "runner_sha256": "ff3ab5eeab85c294a979126cce6dcef9e33c31ee092bca30173f2519c179cdb0",
+  "inherited26controls_independently_pass": true,
+  "inherited_ASTs_unchanged": [
+    "run",
+    "source_guard",
+    "selected_origin_guard",
+    "materialize_baseline",
+    "test_result",
+    "seed_retention",
+    "verify_platform_daemons",
+    "verify_docker_cli",
+    "docker_zero_running_workloads",
+    "process_reference_guard",
+    "retain_cache",
+    "verify_complete_cache_map"
+  ],
+  "counterexample": {
+    "retained_quarantine25_all_original_identities_match": true,
+    "new_cache_artifact_same_original_path_different_bytes": true,
+    "posttest_original_XOR_guard_accepts": false,
+    "requires_retained_only_postcompile_check": true,
+    "sampled_original": {
+      "sha256": "fe71c54ba7a0fea3b502b35bdd6f49243183cdaf1058bdc3abc71a421b12396d",
+      "bytes": 12,
+      "full_mode": 384,
+      "mtime_ns": 123,
+      "inode": [
+        27,
+        600035
+      ]
+    },
+    "observed_source": {
+      "sha256": "e5aecbbc4ef3605512d23d837e4aacea48403e772c24751f4b130d8212da50c0",
+      "bytes": 34,
+      "full_mode": 384,
+      "mtime_ns": 123,
+      "inode": [
+        27,
+        600647
+      ]
+    }
+  },
+  "actual_operational_commands": 0,
+  "actual_cache_or_quarantine_mutations": 0
+}

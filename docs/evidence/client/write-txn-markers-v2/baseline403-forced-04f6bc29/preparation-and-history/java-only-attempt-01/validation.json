@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "passed": false,
+  "scope": "actual strict Java compiler/serializer/parser/handler component lane only; no Rust-emitted reverse/publicsocket/broker claim",
+  "runner": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-only.py",
+    "bytes": 7311,
+    "sha256": "0a68b8828e136f703602ea5d1544806064104e5a92f4d919b3f48d0823b333f8",
+    "full_mode": 384
+  },
+  "commands": [
+    {
+      "name": "java-identity",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "-version"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 15,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.stderr.log",
+        "bytes": 217,
+        "sha256": "1fa9315f71c942de524686f1e218078d8af209da05f361b2db371fc56bbf8359",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.monitor.jsonl",
+        "bytes": 272,
+        "sha256": "93cb289fcc190134a7a664bbe4dfb160cfc20c5cd0c74c0b5e5c5a212bfbfe38",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1397739520,
+      "maximum_sampled_output_bytes": 354,
+      "sample_count": 2,
+      "classes_present": {},
+      "passed": true
+    },
+    {
+      "name": "4.1.2-strict-compile",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/classes/4.1.2",
+        "/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java",
+        "/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 1,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 90,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.stderr.log",
+        "bytes": 2517,
+        "sha256": "e7578c88754d7e6d97375d0f0484f767cd1c6526264f5b27867f0241349c8c24",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.monitor.jsonl",
+        "bytes": 963,
+        "sha256": "5e64ff0029a3727df37204b7baee440b9185bd2752c4c1ba1d95c7d1ce8cd65a",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1397719040,
+      "maximum_sampled_output_bytes": 6595,
+      "sample_count": 7,
+      "classes_present": {},
+      "passed": false
+    }
+  ],
+  "java_executable": {
+    "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "bytes": 14384,
+    "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "full_mode": 493
+  },
+  "output_bound_bytes": 16777216,
+  "source_worktree_used": false,
+  "no_Cargo_invocation": true
+}

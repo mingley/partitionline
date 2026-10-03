@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "scope": "WORK runner source-attestation preflight typo only; no Cargo/compiler child launched, no candidate failure inferred",
+  "wrong_declared_identity_path": "src/protocol/produce.rs",
+  "correct_actual_module": "src/protocol/api.rs",
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "raw_driver_failure_preserved": true,
+  "first_runtime_directory": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-01"
+}

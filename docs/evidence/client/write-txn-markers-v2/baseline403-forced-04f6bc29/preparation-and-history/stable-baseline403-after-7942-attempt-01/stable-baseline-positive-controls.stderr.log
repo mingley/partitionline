@@ -1,0 +1,4 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-capability-qa-preparation-e90efb49/baseline-403-regression-source)
+    Finished `test` profile [unoptimized] target(s) in 0.69s
+     Running tests/baseline_positive_controls.rs (/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d)
+error: test failed, to rerun pass `--test baseline_positive_controls`

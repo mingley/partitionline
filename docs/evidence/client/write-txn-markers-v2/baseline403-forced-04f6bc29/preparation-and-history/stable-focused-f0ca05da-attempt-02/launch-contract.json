@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "origin_receipt_sha256": "f18fc74f39bb561a4c0ed0f667d0bee98fe329866139fcabd957c87121433857",
+  "source_manifest_compressed_sha256": "fc37967f4a20dda528d4e2dd2eb660fea058e8525aa1b8493510f88580a4f94c",
+  "root_approved_forecast": {
+    "sampled_free_bytes": 1278210048,
+    "current_generated_cache_allocated_bytes": 193253376,
+    "focused_incremental_forecast_bytes": 784209242,
+    "additional_C_compiler_allowance_bytes": 33554432,
+    "required_free_bytes": 817763674,
+    "minimum_remaining_free_bytes": 367001600,
+    "headroom_bytes": 460446374,
+    "fits": true,
+    "reference_forecast_sha256": "597d923ca7ae70e45be89b13171d95a1dcd6459f16e2674534716fa7281677b0",
+    "scope": "initial candidate two-target no-run only; no baseline/test/strict/MSRV/JVM/fullQA"
+  },
+  "argv": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+    "test",
+    "--no-run",
+    "--test",
+    "write_txn_markers_v2",
+    "--test",
+    "share_offsets_v1",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/client-capabilities-source-f0ca05da/Cargo.toml"
+  ],
+  "product_source_identities": {
+    "src/admin.rs": {
+      "bytes": 576058,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "84c83cf1cca54725a8f0a2dde370d5394ca7fbf4",
+      "mode": "100644",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc"
+    },
+    "src/protocol/admin.rs": {
+      "bytes": 1467875,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a47b7ceccd775d4dda12a20465256c5ef3c44521",
+      "mode": "100644",
+      "sha256": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0"
+    },
+    "src/protocol/txn.rs": {
+      "bytes": 255842,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "398cb6e0a2ad7289ea7b32bcf5e90ba4abae0fd8",
+      "mode": "100644",
+      "sha256": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf"
+    },
+    "src/lib.rs": {
+      "bytes": 211645,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fa10175d9bdbb042ebeb1f13f3e45770b922c7a7",
+      "mode": "100644",
+      "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a"
+    },
+    "src/producer.rs": {
+      "bytes": 218265,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "mode": "100644",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    "src/partitioner.rs": {
+      "bytes": 43758,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7b4e2b77ebbe2d590a980491ac09bd72b9cd10b8",
+      "mode": "100644",
+      "sha256": "89dd6ee18b26b5e8590bc919b9ce176b28fc093cce4cb82dbeb58e7dadb3c3f5"
+    },
+    "src/protocol/api.rs": {
+      "bytes": 303913,
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1fd6fd50bd1ab0256fb64edb3dd12a165dfe807e",
+      "mode": "100644",
+      "sha256": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369"
+    }
+  },
+  "root_authorized_scope": "candidate2target no-run only"
+}

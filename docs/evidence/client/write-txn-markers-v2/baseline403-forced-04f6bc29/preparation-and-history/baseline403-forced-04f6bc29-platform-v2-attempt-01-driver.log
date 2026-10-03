@@ -1,0 +1,11 @@
+started platform-docker-before-clean pid=1227131
+closed platform-docker-before-clean exit=0 minfree=1007341568
+started stable-own-package-clean pid=1227184
+closed stable-own-package-clean exit=101 minfree=1007026176
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception-v2.py", line 622, in <module>
+    run('stable-own-package-clean',clean_argv,SOURCE,MANIFEST)
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception-v2.py", line 348, in run
+    assert row['passed_expected_process_outcome'], ('baseline command failed or expected regression outcome differs', name, actual_code, trigger)
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('baseline command failed or expected regression outcome differs', 'stable-own-package-clean', 101, None)

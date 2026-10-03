@@ -1,0 +1,7 @@
+{
+  "type": "AssertionError",
+  "detail": "('baseline command failed or expected regression outcome differs', 'stable-baseline-positive-controls', 101, None)",
+  "source_sha": "7942fbac784b35220ae02f6983e6454399f42ba5",
+  "passed": false,
+  "no_following_command_launched": true
+}

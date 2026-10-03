@@ -1,0 +1,141 @@
+{
+  "manifest_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/frozen-packet-manifest.json",
+  "manifest_sha256": "a1abd674eea1c72246bc7a89b48a2c23e317c5d9bc86a21bf9e7cf2529edfe83",
+  "verified_rows": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v1.py",
+      "sha256": "ff3ab5eeab85c294a979126cce6dcef9e33c31ee092bca30173f2519c179cdb0",
+      "bytes": 52632,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative-v2.py",
+      "sha256": "7ec8e37c085a22c3390bc6e95d583ae7978dd3eb04c1167f1129bc75db45bc4a",
+      "bytes": 7101,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/build-derivative.py",
+      "sha256": "d35d8f0c4e9276c1aede41842f7aa3838b30e6b32a9bdc0111348df9adf93d7b",
+      "bytes": 7171,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/check-quarantine-controls.py",
+      "sha256": "1d28b13681cf4caf6daaf9f3d82a701a0caa1c24c7609561ced3ed25474aa6b9",
+      "bytes": 12056,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/first-source-composer-failure.json",
+      "sha256": "5ac277864fb1ec2e4cae2e1c16d44b61a65a7b335a1bc8e88bddcca75730d182",
+      "bytes": 788,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/proposal.json",
+      "sha256": "6473dc8c56f305deb6d15e3f8988e888ab056b8021a7c2bb631e03e642cf77c9",
+      "bytes": 8219,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-attempt-01.stdout.log",
+      "sha256": "89081eefb23ee256455ecd795f48636bf19800d0a9472df0be71579c5baaea94",
+      "bytes": 119,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-final.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-final.stdout.log",
+      "sha256": "6a26dd45fd6d7993296f2f3897a133404f4ffd654fb08b46323931388ff061b7",
+      "bytes": 119,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls-initial.json",
+      "sha256": "826578ea32d26d61bc2d2c584ab37d66e87338dcace6a7786bf4082893b2d7de",
+      "bytes": 3492,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls.before-final-original25-checks.json",
+      "sha256": "826578ea32d26d61bc2d2c584ab37d66e87338dcace6a7786bf4082893b2d7de",
+      "bytes": 3492,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-controls.json",
+      "sha256": "8322029d1c6224570cb3d6b3d8bd436abe3ba6f3a2e99d2110908d6ef9c2aa88",
+      "bytes": 3492,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/quarantine-functions.py",
+      "sha256": "fefc2b780ef58b5b502b9597325c4ac707d3eb34d7f18749a1635c96121be1b6",
+      "bytes": 8390,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight-forecast.json",
+      "sha256": "75502d4b86b6f486a3052db88b3e593de6027d2966ea5a3595cc1076972243ad",
+      "bytes": 2140,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/readonly-preflight.stdout.log",
+      "sha256": "2d5d2322197208864a3367f842055b2d8fa8c2057c38cb72e88e4e510a71a052",
+      "bytes": 193,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/runner.before-final-original25-checks.py",
+      "sha256": "002af88f8df62078bc62540ab9d5cbee5f009e9ca76e3682486d852d79189ac2",
+      "bytes": 51961,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/runner.proposed.patch",
+      "sha256": "3e80cf92a920aedf90ab4890739b76d8c50a204d2d88bde98b8c2b9e195a42df",
+      "bytes": 28762,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/source-composer-v2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/source-composer-v2.stdout.log",
+      "sha256": "484657bb9d50cbd88d617f906358721e5846b5ad8aca4f574c0d29b9b03ec715",
+      "bytes": 65,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-quarantine-preparation-v1/verify-readonly-preflight.py",
+      "sha256": "a65fb5094fcd6592e388af0f76ebc68ea3437d3aa7d1a32e84d763f36be0b3c9",
+      "bytes": 4319,
+      "full_mode": 384
+    }
+  ],
+  "file_count": 22,
+  "bytes": 194511,
+  "actual_cache_or_runtime_operations": 0
+}

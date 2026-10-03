@@ -1,0 +1,2976 @@
+{
+  "schema_version": 1,
+  "source_sha": "7942fbac784b35220ae02f6983e6454399f42ba5",
+  "plan_sha256": "ed67566b33de3d5b3aeda12314ab08498bb2afb6ad9e42a6607a78800cbc1548",
+  "runner_sha256": "8cd64667d1de746abb483ae45c89afcad4ee47b2f6acb8a1273613d95fc3247b",
+  "passed": false,
+  "commands": [
+    {
+      "name": "stable-baseline-positive-controls",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+        "test",
+        "--test",
+        "baseline_positive_controls",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-403-regression-source/Cargo.toml",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-403-regression-source",
+      "exit_code": 101,
+      "expected_exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "explicit_forced_environment": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/client-share-target",
+        "CARGO_BUILD_JOBS": "1",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_NET_OFFLINE": "true",
+        "RUSTC": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFMT": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "PATH": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/workspace/work/cargo/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback"
+      },
+      "source_before": {
+        "files": 73818,
+        "bytes": 708298795,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "2b91c9ffd239bc0c79f1942aead289a07aeeac5349c581a03c1e506d208e3db7"
+      },
+      "source_after": {
+        "files": 73818,
+        "bytes": 708298795,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "2b91c9ffd239bc0c79f1942aead289a07aeeac5349c581a03c1e506d208e3db7"
+      },
+      "declared_operation_source_before": {
+        "files": 71,
+        "bytes": 5828165,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "b1ce76c844c2db652f83bbc30dfcb26daa15fa76e8ef851cbc9fcd139d36218f"
+      },
+      "declared_operation_source_after": {
+        "files": 71,
+        "bytes": 5828165,
+        "whole_declared_path_set_match": true,
+        "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+        "set_blob_fullmode_sha256": "b1ce76c844c2db652f83bbc30dfcb26daa15fa76e8ef851cbc9fcd139d36218f"
+      },
+      "forecast_before": {
+        "sampled_free_bytes": 1111396352,
+        "current_generated_cache_allocated_bytes": 216690688,
+        "phase_index": 0,
+        "remaining_named_baseline_targets": 3,
+        "remaining_package_library_allowance_bytes": 83002787,
+        "persistent_incremental_allowance_bytes": 269226467,
+        "lossless_ELF_capture_allowance_bytes": 194612288,
+        "required_free_bytes": 1054395619,
+        "minimum_remaining_free_bytes": 367001600,
+        "headroom_bytes": 57000733,
+        "fits": true,
+        "reference_forecast_sha256": "2aadcb377c0cf3173ac46004ff1d7448b12e11454f9164e050b7153e70745f02",
+        "scope": "only exact selective403 baseline with five pinned overlays; candidate tests/strict/MSRV/JVM/full held"
+      },
+      "elapsed_seconds": 6.937402090989053,
+      "stdout_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "stdout_sha256": "ecd7f198225c607c2ef690b03f7a4eee70797f24e58838712bd7b076eec82905",
+      "stderr_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "stderr_sha256": "05eaa8e6c9423451c65528b2581ef15e8692065c04710c42b4e936567bb20fa0",
+      "disk_monitor_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "disk_monitor_sha256": "54bb310f897e6721361b94e864f88220f96c21d673b8dba2bf2c6bef88f1289b",
+      "disk_samples": 6,
+      "minimum_sampled_free_bytes": 1100136448,
+      "cache_elfs_before": [
+        {
+          "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+          "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+          "compressed_bytes": 310920,
+          "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "uncompressed_bytes": 756016,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+          "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+          "compressed_bytes": 310920,
+          "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "uncompressed_bytes": 756016,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+          "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+          "compressed_bytes": 245177,
+          "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+          "uncompressed_bytes": 558104,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build_script_build-e79e6dce85ff99e8",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+          "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+          "compressed_bytes": 245177,
+          "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+          "uncompressed_bytes": 558104,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+          "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+          "compressed_bytes": 212710,
+          "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "uncompressed_bytes": 478224,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+          "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+          "compressed_bytes": 212710,
+          "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "uncompressed_bytes": 478224,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+          "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+          "compressed_bytes": 272676,
+          "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "uncompressed_bytes": 638632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+          "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+          "compressed_bytes": 272676,
+          "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "uncompressed_bytes": 638632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+          "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+          "compressed_bytes": 212822,
+          "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+          "uncompressed_bytes": 478304,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+          "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+          "compressed_bytes": 212822,
+          "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+          "uncompressed_bytes": 478304,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+          "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+          "compressed_bytes": 262106,
+          "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "uncompressed_bytes": 613824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+          "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+          "compressed_bytes": 262106,
+          "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "uncompressed_bytes": 613824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+          "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+          "compressed_bytes": 244890,
+          "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "uncompressed_bytes": 556632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+          "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+          "compressed_bytes": 244890,
+          "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "uncompressed_bytes": 556632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+          "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+          "compressed_bytes": 673490,
+          "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+          "uncompressed_bytes": 1953736,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build_script_build-0736e2c027c95dce",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+          "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+          "compressed_bytes": 673490,
+          "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+          "uncompressed_bytes": 1953736,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.elf.gz",
+          "sha256": "88a552fb1e5e7d85f3130e32a1b9c11ac771ce5f5b238e4a460d2b0d6dcc8a63",
+          "compressed_bytes": 25980,
+          "uncompressed_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+          "uncompressed_bytes": 85024,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery_inv.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.elf.gz",
+          "sha256": "1471cfe035404b1a482a1e60efc511fc74fb14c00a0ad961ac1337e4d681a6a8",
+          "compressed_bytes": 24022,
+          "uncompressed_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+          "uncompressed_bytes": 79792,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/0bbbd18bda93c05b-aes_nohw.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.elf.gz",
+          "sha256": "411a8a9def4025fc23bb4ac49df6557412f726a305ba1dc10a7c49407e7e4dc2",
+          "compressed_bytes": 37752,
+          "uncompressed_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+          "uncompressed_bytes": 124880,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.elf.gz",
+          "sha256": "4c4ff0b978d97ff3b0d85739c0a8d94d65f50f67e93c9d245b958f4cbd0e2420",
+          "compressed_bytes": 86508,
+          "uncompressed_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+          "uncompressed_bytes": 232480,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519_64_adx.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.elf.gz",
+          "sha256": "9b168e03b9814ce2a78d494b14e543fa80ebe0a8408dd280a1f6206945e36f54",
+          "compressed_bytes": 147038,
+          "uncompressed_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+          "uncompressed_bytes": 557112,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-ecp_nistz.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.elf.gz",
+          "sha256": "628c34edb1581da16afa09dbe1522db6404c1febbfdc720c4f8b6b75109fa75a",
+          "compressed_bytes": 23883,
+          "uncompressed_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+          "uncompressed_bytes": 79832,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p256.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.elf.gz",
+          "sha256": "0e3cbf253d164bd601e14dede1318727e8ffbbca16cda40652a5ce2df053dfc5",
+          "compressed_bytes": 23354,
+          "uncompressed_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+          "uncompressed_bytes": 79392,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p384.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.elf.gz",
+          "sha256": "263fec426249f15bca10aad83fdd58ee62d4d143bf3cca507433d05f2a686992",
+          "compressed_bytes": 36431,
+          "uncompressed_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+          "uncompressed_bytes": 121248,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256-nistz.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.elf.gz",
+          "sha256": "52992e101bb3d8d44189d7de07c3a07e6f3898345854170bfef9aed30619f915",
+          "compressed_bytes": 185113,
+          "uncompressed_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+          "uncompressed_bytes": 262240,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.elf.gz",
+          "sha256": "da3d9424f08350fd227118a79c13d56edfbd01ad466dd53336cad876d1f41e04",
+          "compressed_bytes": 23444,
+          "uncompressed_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+          "uncompressed_bytes": 79824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-constant_time_test.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.elf.gz",
+          "sha256": "ef353beaa05d45d29793cf907e6e84b537a3689418ea687433a2372cbb4af75c",
+          "compressed_bytes": 28004,
+          "uncompressed_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+          "uncompressed_bytes": 91208,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-cpu_intel.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.elf.gz",
+          "sha256": "aa1c63d3f387d8c6cd79cddd6d98eae040d50d529aaee9a7764b347f67ae24ef",
+          "compressed_bytes": 24921,
+          "uncompressed_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+          "uncompressed_bytes": 81200,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-crypto.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.elf.gz",
+          "sha256": "edc4154549bd7ee17be339d3e9e884aac9f625aebd0fb8c2f863cb55bc2f2170",
+          "compressed_bytes": 21411,
+          "uncompressed_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+          "uncompressed_bytes": 72296,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-mem.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.elf.gz",
+          "sha256": "863f568e28a04c7c8f3310d6097576616abed296cd78d79d4b30f1641428f640",
+          "compressed_bytes": 23418,
+          "uncompressed_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+          "uncompressed_bytes": 78392,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/aaa1ba3e455ee2e1-limbs.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.elf.gz",
+          "sha256": "e078b608ecd123579a0d3acaf1405cee60c447757bbeefc197cc7c03a027a021",
+          "compressed_bytes": 31126,
+          "uncompressed_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+          "uncompressed_bytes": 102792,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.elf.gz",
+          "sha256": "d07dadc25880484615ff4e4f47fba849af7981f491774873562e475d5bcebfe5",
+          "compressed_bytes": 2800,
+          "uncompressed_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+          "uncompressed_bytes": 8904,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.elf.gz",
+          "sha256": "ba069a93abf4c5488524534df56fc2de9f1c8a2636f86655c24e01ba41e8378c",
+          "compressed_bytes": 3576,
+          "uncompressed_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+          "uncompressed_bytes": 7728,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.elf.gz",
+          "sha256": "da54ed0ca9a100003fbd81f1e5d22cb0ef14daf04416348fb27b56b7622933a5",
+          "compressed_bytes": 3570,
+          "uncompressed_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+          "uncompressed_bytes": 9176,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.elf.gz",
+          "sha256": "0cb6861a56d6ab814a56db983b60f1324762f2de89404bc9da7b6ed3baacd41b",
+          "compressed_bytes": 4994,
+          "uncompressed_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+          "uncompressed_bytes": 11760,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.elf.gz",
+          "sha256": "70d8eba2e479a0013fde7f6523305bc2e0e9a43e763b2a57c88f056235de6a65",
+          "compressed_bytes": 11725,
+          "uncompressed_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+          "uncompressed_bytes": 62048,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.elf.gz",
+          "sha256": "2cd16bdeb80e915aedeb8059838441fca194ec307488ed88158040f66de9f3d8",
+          "compressed_bytes": 3351,
+          "uncompressed_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+          "uncompressed_bytes": 8976,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.elf.gz",
+          "sha256": "4f66e0b4e6527150e0b44eb6b3efd8953aa1c23016cf7ac7ff03d5c9f72e7778",
+          "compressed_bytes": 9799,
+          "uncompressed_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+          "uncompressed_bytes": 29824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.elf.gz",
+          "sha256": "26eaf6ead138158a685ffc41ca5278daee801c0a8071a33d93045d5bc0398d43",
+          "compressed_bytes": 6127,
+          "uncompressed_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+          "uncompressed_bytes": 21160,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.elf.gz",
+          "sha256": "09eb6690726b4260007297b281b58095aba5e6044fdaf9e85e572fe879874824",
+          "compressed_bytes": 4985,
+          "uncompressed_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+          "uncompressed_bytes": 16328,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.elf.gz",
+          "sha256": "777aa38b215208d54c60d3ec46bcda1975fbf96348805299fe3e988b2af862d9",
+          "compressed_bytes": 3238,
+          "uncompressed_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+          "uncompressed_bytes": 7952,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.elf.gz",
+          "sha256": "09fc2a4343f3d254b3a8a5d49c677275de65223ceaf2b1d46c12a31fc28a7db5",
+          "compressed_bytes": 3539,
+          "uncompressed_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+          "uncompressed_bytes": 8632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.elf.gz",
+          "sha256": "95b8c1f88231840d64f154181f52f384db81e27342921026e0511313b6d94ea7",
+          "compressed_bytes": 7573,
+          "uncompressed_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+          "uncompressed_bytes": 18816,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/d5a9841f3dc6e253-poly1305.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.elf.gz",
+          "sha256": "690534fdf6bd7f737a29be872c4d23af8e286992041b20436490c9501cc25b7e",
+          "compressed_bytes": 27203,
+          "uncompressed_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+          "uncompressed_bytes": 89096,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.elf.gz",
+          "sha256": "786144a7064ec8c9d0231d12048346f5da59376eb6b24b8fd1c3f407638639c3",
+          "compressed_bytes": 1527,
+          "uncompressed_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+          "uncompressed_bytes": 3680,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.elf.gz",
+          "sha256": "0fb9ef02da51365fc81166cb7f0ed25b4a18248aac6561d8dfeba683b0371f22",
+          "compressed_bytes": 1388,
+          "uncompressed_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+          "uncompressed_bytes": 3472,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+          "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+          "compressed_bytes": 198751,
+          "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+          "uncompressed_bytes": 438184,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+          "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+          "compressed_bytes": 198751,
+          "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+          "uncompressed_bytes": 438184,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+          "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+          "compressed_bytes": 219464,
+          "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+          "uncompressed_bytes": 500648,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+          "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+          "compressed_bytes": 219464,
+          "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+          "uncompressed_bytes": 500648,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/libtokio_macros-34a490cab0b7a6f9.so",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6.elf.gz",
+          "sha256": "174d4809c72921aaf11dafa2a829eda62f58e082dc7aac70cba92bee79e0ad52",
+          "compressed_bytes": 1057812,
+          "uncompressed_sha256": "414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6",
+          "uncompressed_bytes": 3480328,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead.elf.gz",
+          "sha256": "74c94c42989d2b12f212c54851f373105e0144c0fb8d8850ed930df719e5085f",
+          "compressed_bytes": 3407989,
+          "uncompressed_sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+          "uncompressed_bytes": 11555672,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb.elf.gz",
+          "sha256": "ab864a62db8c2d7e73f5e25c24291bc1d0d37ddd73be55046ec6e440de9e30b3",
+          "compressed_bytes": 3340750,
+          "uncompressed_sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+          "uncompressed_bytes": 11205848,
+          "decompression_verified": true
+        }
+      ],
+      "cache_elfs_after": [
+        {
+          "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+          "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+          "compressed_bytes": 310920,
+          "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "uncompressed_bytes": 756016,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+          "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+          "compressed_bytes": 310920,
+          "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "uncompressed_bytes": 756016,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+          "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+          "compressed_bytes": 245177,
+          "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+          "uncompressed_bytes": 558104,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build_script_build-e79e6dce85ff99e8",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+          "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+          "compressed_bytes": 245177,
+          "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+          "uncompressed_bytes": 558104,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+          "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+          "compressed_bytes": 212710,
+          "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "uncompressed_bytes": 478224,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+          "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+          "compressed_bytes": 212710,
+          "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "uncompressed_bytes": 478224,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+          "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+          "compressed_bytes": 272676,
+          "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "uncompressed_bytes": 638632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+          "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+          "compressed_bytes": 272676,
+          "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "uncompressed_bytes": 638632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+          "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+          "compressed_bytes": 212822,
+          "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+          "uncompressed_bytes": 478304,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+          "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+          "compressed_bytes": 212822,
+          "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+          "uncompressed_bytes": 478304,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+          "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+          "compressed_bytes": 262106,
+          "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "uncompressed_bytes": 613824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+          "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+          "compressed_bytes": 262106,
+          "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "uncompressed_bytes": 613824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+          "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+          "compressed_bytes": 244890,
+          "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "uncompressed_bytes": 556632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+          "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+          "compressed_bytes": 244890,
+          "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "uncompressed_bytes": 556632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+          "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+          "compressed_bytes": 673490,
+          "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+          "uncompressed_bytes": 1953736,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build_script_build-0736e2c027c95dce",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+          "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+          "compressed_bytes": 673490,
+          "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+          "uncompressed_bytes": 1953736,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.elf.gz",
+          "sha256": "88a552fb1e5e7d85f3130e32a1b9c11ac771ce5f5b238e4a460d2b0d6dcc8a63",
+          "compressed_bytes": 25980,
+          "uncompressed_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+          "uncompressed_bytes": 85024,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery_inv.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.elf.gz",
+          "sha256": "1471cfe035404b1a482a1e60efc511fc74fb14c00a0ad961ac1337e4d681a6a8",
+          "compressed_bytes": 24022,
+          "uncompressed_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+          "uncompressed_bytes": 79792,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/0bbbd18bda93c05b-aes_nohw.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.elf.gz",
+          "sha256": "411a8a9def4025fc23bb4ac49df6557412f726a305ba1dc10a7c49407e7e4dc2",
+          "compressed_bytes": 37752,
+          "uncompressed_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+          "uncompressed_bytes": 124880,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.elf.gz",
+          "sha256": "4c4ff0b978d97ff3b0d85739c0a8d94d65f50f67e93c9d245b958f4cbd0e2420",
+          "compressed_bytes": 86508,
+          "uncompressed_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+          "uncompressed_bytes": 232480,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519_64_adx.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.elf.gz",
+          "sha256": "9b168e03b9814ce2a78d494b14e543fa80ebe0a8408dd280a1f6206945e36f54",
+          "compressed_bytes": 147038,
+          "uncompressed_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+          "uncompressed_bytes": 557112,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-ecp_nistz.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.elf.gz",
+          "sha256": "628c34edb1581da16afa09dbe1522db6404c1febbfdc720c4f8b6b75109fa75a",
+          "compressed_bytes": 23883,
+          "uncompressed_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+          "uncompressed_bytes": 79832,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p256.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.elf.gz",
+          "sha256": "0e3cbf253d164bd601e14dede1318727e8ffbbca16cda40652a5ce2df053dfc5",
+          "compressed_bytes": 23354,
+          "uncompressed_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+          "uncompressed_bytes": 79392,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p384.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.elf.gz",
+          "sha256": "263fec426249f15bca10aad83fdd58ee62d4d143bf3cca507433d05f2a686992",
+          "compressed_bytes": 36431,
+          "uncompressed_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+          "uncompressed_bytes": 121248,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256-nistz.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.elf.gz",
+          "sha256": "52992e101bb3d8d44189d7de07c3a07e6f3898345854170bfef9aed30619f915",
+          "compressed_bytes": 185113,
+          "uncompressed_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+          "uncompressed_bytes": 262240,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.elf.gz",
+          "sha256": "da3d9424f08350fd227118a79c13d56edfbd01ad466dd53336cad876d1f41e04",
+          "compressed_bytes": 23444,
+          "uncompressed_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+          "uncompressed_bytes": 79824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-constant_time_test.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.elf.gz",
+          "sha256": "ef353beaa05d45d29793cf907e6e84b537a3689418ea687433a2372cbb4af75c",
+          "compressed_bytes": 28004,
+          "uncompressed_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+          "uncompressed_bytes": 91208,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-cpu_intel.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.elf.gz",
+          "sha256": "aa1c63d3f387d8c6cd79cddd6d98eae040d50d529aaee9a7764b347f67ae24ef",
+          "compressed_bytes": 24921,
+          "uncompressed_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+          "uncompressed_bytes": 81200,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-crypto.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.elf.gz",
+          "sha256": "edc4154549bd7ee17be339d3e9e884aac9f625aebd0fb8c2f863cb55bc2f2170",
+          "compressed_bytes": 21411,
+          "uncompressed_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+          "uncompressed_bytes": 72296,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-mem.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.elf.gz",
+          "sha256": "863f568e28a04c7c8f3310d6097576616abed296cd78d79d4b30f1641428f640",
+          "compressed_bytes": 23418,
+          "uncompressed_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+          "uncompressed_bytes": 78392,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/aaa1ba3e455ee2e1-limbs.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.elf.gz",
+          "sha256": "e078b608ecd123579a0d3acaf1405cee60c447757bbeefc197cc7c03a027a021",
+          "compressed_bytes": 31126,
+          "uncompressed_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+          "uncompressed_bytes": 102792,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.elf.gz",
+          "sha256": "d07dadc25880484615ff4e4f47fba849af7981f491774873562e475d5bcebfe5",
+          "compressed_bytes": 2800,
+          "uncompressed_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+          "uncompressed_bytes": 8904,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.elf.gz",
+          "sha256": "ba069a93abf4c5488524534df56fc2de9f1c8a2636f86655c24e01ba41e8378c",
+          "compressed_bytes": 3576,
+          "uncompressed_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+          "uncompressed_bytes": 7728,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.elf.gz",
+          "sha256": "da54ed0ca9a100003fbd81f1e5d22cb0ef14daf04416348fb27b56b7622933a5",
+          "compressed_bytes": 3570,
+          "uncompressed_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+          "uncompressed_bytes": 9176,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.elf.gz",
+          "sha256": "0cb6861a56d6ab814a56db983b60f1324762f2de89404bc9da7b6ed3baacd41b",
+          "compressed_bytes": 4994,
+          "uncompressed_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+          "uncompressed_bytes": 11760,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.elf.gz",
+          "sha256": "70d8eba2e479a0013fde7f6523305bc2e0e9a43e763b2a57c88f056235de6a65",
+          "compressed_bytes": 11725,
+          "uncompressed_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+          "uncompressed_bytes": 62048,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.elf.gz",
+          "sha256": "2cd16bdeb80e915aedeb8059838441fca194ec307488ed88158040f66de9f3d8",
+          "compressed_bytes": 3351,
+          "uncompressed_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+          "uncompressed_bytes": 8976,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.elf.gz",
+          "sha256": "4f66e0b4e6527150e0b44eb6b3efd8953aa1c23016cf7ac7ff03d5c9f72e7778",
+          "compressed_bytes": 9799,
+          "uncompressed_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+          "uncompressed_bytes": 29824,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.elf.gz",
+          "sha256": "26eaf6ead138158a685ffc41ca5278daee801c0a8071a33d93045d5bc0398d43",
+          "compressed_bytes": 6127,
+          "uncompressed_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+          "uncompressed_bytes": 21160,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.elf.gz",
+          "sha256": "09eb6690726b4260007297b281b58095aba5e6044fdaf9e85e572fe879874824",
+          "compressed_bytes": 4985,
+          "uncompressed_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+          "uncompressed_bytes": 16328,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.elf.gz",
+          "sha256": "777aa38b215208d54c60d3ec46bcda1975fbf96348805299fe3e988b2af862d9",
+          "compressed_bytes": 3238,
+          "uncompressed_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+          "uncompressed_bytes": 7952,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.elf.gz",
+          "sha256": "09fc2a4343f3d254b3a8a5d49c677275de65223ceaf2b1d46c12a31fc28a7db5",
+          "compressed_bytes": 3539,
+          "uncompressed_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+          "uncompressed_bytes": 8632,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.elf.gz",
+          "sha256": "95b8c1f88231840d64f154181f52f384db81e27342921026e0511313b6d94ea7",
+          "compressed_bytes": 7573,
+          "uncompressed_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+          "uncompressed_bytes": 18816,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/d5a9841f3dc6e253-poly1305.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.elf.gz",
+          "sha256": "690534fdf6bd7f737a29be872c4d23af8e286992041b20436490c9501cc25b7e",
+          "compressed_bytes": 27203,
+          "uncompressed_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+          "uncompressed_bytes": 89096,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.elf.gz",
+          "sha256": "786144a7064ec8c9d0231d12048346f5da59376eb6b24b8fd1c3f407638639c3",
+          "compressed_bytes": 1527,
+          "uncompressed_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+          "uncompressed_bytes": 3680,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+          "original_full_mode": 384,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.elf.gz",
+          "sha256": "0fb9ef02da51365fc81166cb7f0ed25b4a18248aac6561d8dfeba683b0371f22",
+          "compressed_bytes": 1388,
+          "uncompressed_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+          "uncompressed_bytes": 3472,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+          "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+          "compressed_bytes": 198751,
+          "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+          "uncompressed_bytes": 438184,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+          "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+          "compressed_bytes": 198751,
+          "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+          "uncompressed_bytes": 438184,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+          "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+          "compressed_bytes": 219464,
+          "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+          "uncompressed_bytes": 500648,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+          "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+          "compressed_bytes": 219464,
+          "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+          "uncompressed_bytes": 500648,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41.elf.gz",
+          "sha256": "88cc276517d0e72a873b156875434d487bdd464121610d247f81d38223542af4",
+          "compressed_bytes": 3334647,
+          "uncompressed_sha256": "2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41",
+          "uncompressed_bytes": 11317608,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/libtokio_macros-34a490cab0b7a6f9.so",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6.elf.gz",
+          "sha256": "174d4809c72921aaf11dafa2a829eda62f58e082dc7aac70cba92bee79e0ad52",
+          "compressed_bytes": 1057812,
+          "uncompressed_sha256": "414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6",
+          "uncompressed_bytes": 3480328,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead.elf.gz",
+          "sha256": "74c94c42989d2b12f212c54851f373105e0144c0fb8d8850ed930df719e5085f",
+          "compressed_bytes": 3407989,
+          "uncompressed_sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+          "uncompressed_bytes": 11555672,
+          "decompression_verified": true
+        },
+        {
+          "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+          "original_full_mode": 448,
+          "elf_magic_verified": true,
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb.elf.gz",
+          "sha256": "ab864a62db8c2d7e73f5e25c24291bc1d0d37ddd73be55046ec6e440de9e30b3",
+          "compressed_bytes": 3340750,
+          "uncompressed_sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+          "uncompressed_bytes": 11205848,
+          "decompression_verified": true
+        }
+      ],
+      "owned_group_cleanup": {
+        "owned_process_group": 1216579,
+        "before": [],
+        "after": [],
+        "signals_sent": [],
+        "no_live_group_members": true,
+        "zombie_exclusion": "A /proc stat Z process has no executing context or open files; retained separately, no cleanup of shared caches inferred."
+      },
+      "passed_expected_process_outcome": false
+    }
+  ],
+  "retained_cache_elfs": [
+    {
+      "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+      "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+      "compressed_bytes": 310920,
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+      "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+      "compressed_bytes": 310920,
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+      "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+      "compressed_bytes": 245177,
+      "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "uncompressed_bytes": 558104,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build_script_build-e79e6dce85ff99e8",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+      "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+      "compressed_bytes": 245177,
+      "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "uncompressed_bytes": 558104,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+      "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+      "compressed_bytes": 212710,
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+      "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+      "compressed_bytes": 212710,
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+      "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+      "compressed_bytes": 272676,
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+      "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+      "compressed_bytes": 272676,
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+      "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+      "compressed_bytes": 212822,
+      "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "uncompressed_bytes": 478304,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+      "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+      "compressed_bytes": 212822,
+      "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "uncompressed_bytes": 478304,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+      "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+      "compressed_bytes": 262106,
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+      "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+      "compressed_bytes": 262106,
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+      "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+      "compressed_bytes": 244890,
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+      "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+      "compressed_bytes": 244890,
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+      "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+      "compressed_bytes": 673490,
+      "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "uncompressed_bytes": 1953736,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build_script_build-0736e2c027c95dce",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+      "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+      "compressed_bytes": 673490,
+      "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "uncompressed_bytes": 1953736,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.elf.gz",
+      "sha256": "88a552fb1e5e7d85f3130e32a1b9c11ac771ce5f5b238e4a460d2b0d6dcc8a63",
+      "compressed_bytes": 25980,
+      "uncompressed_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "uncompressed_bytes": 85024,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery_inv.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.elf.gz",
+      "sha256": "1471cfe035404b1a482a1e60efc511fc74fb14c00a0ad961ac1337e4d681a6a8",
+      "compressed_bytes": 24022,
+      "uncompressed_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "uncompressed_bytes": 79792,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/0bbbd18bda93c05b-aes_nohw.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.elf.gz",
+      "sha256": "411a8a9def4025fc23bb4ac49df6557412f726a305ba1dc10a7c49407e7e4dc2",
+      "compressed_bytes": 37752,
+      "uncompressed_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "uncompressed_bytes": 124880,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.elf.gz",
+      "sha256": "4c4ff0b978d97ff3b0d85739c0a8d94d65f50f67e93c9d245b958f4cbd0e2420",
+      "compressed_bytes": 86508,
+      "uncompressed_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "uncompressed_bytes": 232480,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.elf.gz",
+      "sha256": "9b168e03b9814ce2a78d494b14e543fa80ebe0a8408dd280a1f6206945e36f54",
+      "compressed_bytes": 147038,
+      "uncompressed_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "uncompressed_bytes": 557112,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-ecp_nistz.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.elf.gz",
+      "sha256": "628c34edb1581da16afa09dbe1522db6404c1febbfdc720c4f8b6b75109fa75a",
+      "compressed_bytes": 23883,
+      "uncompressed_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "uncompressed_bytes": 79832,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p256.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.elf.gz",
+      "sha256": "0e3cbf253d164bd601e14dede1318727e8ffbbca16cda40652a5ce2df053dfc5",
+      "compressed_bytes": 23354,
+      "uncompressed_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "uncompressed_bytes": 79392,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p384.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.elf.gz",
+      "sha256": "263fec426249f15bca10aad83fdd58ee62d4d143bf3cca507433d05f2a686992",
+      "compressed_bytes": 36431,
+      "uncompressed_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "uncompressed_bytes": 121248,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256-nistz.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.elf.gz",
+      "sha256": "52992e101bb3d8d44189d7de07c3a07e6f3898345854170bfef9aed30619f915",
+      "compressed_bytes": 185113,
+      "uncompressed_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "uncompressed_bytes": 262240,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.elf.gz",
+      "sha256": "da3d9424f08350fd227118a79c13d56edfbd01ad466dd53336cad876d1f41e04",
+      "compressed_bytes": 23444,
+      "uncompressed_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "uncompressed_bytes": 79824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-constant_time_test.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.elf.gz",
+      "sha256": "ef353beaa05d45d29793cf907e6e84b537a3689418ea687433a2372cbb4af75c",
+      "compressed_bytes": 28004,
+      "uncompressed_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "uncompressed_bytes": 91208,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-cpu_intel.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.elf.gz",
+      "sha256": "aa1c63d3f387d8c6cd79cddd6d98eae040d50d529aaee9a7764b347f67ae24ef",
+      "compressed_bytes": 24921,
+      "uncompressed_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "uncompressed_bytes": 81200,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-crypto.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.elf.gz",
+      "sha256": "edc4154549bd7ee17be339d3e9e884aac9f625aebd0fb8c2f863cb55bc2f2170",
+      "compressed_bytes": 21411,
+      "uncompressed_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "uncompressed_bytes": 72296,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-mem.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.elf.gz",
+      "sha256": "863f568e28a04c7c8f3310d6097576616abed296cd78d79d4b30f1641428f640",
+      "compressed_bytes": 23418,
+      "uncompressed_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "uncompressed_bytes": 78392,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/aaa1ba3e455ee2e1-limbs.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.elf.gz",
+      "sha256": "e078b608ecd123579a0d3acaf1405cee60c447757bbeefc197cc7c03a027a021",
+      "compressed_bytes": 31126,
+      "uncompressed_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "uncompressed_bytes": 102792,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.elf.gz",
+      "sha256": "d07dadc25880484615ff4e4f47fba849af7981f491774873562e475d5bcebfe5",
+      "compressed_bytes": 2800,
+      "uncompressed_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "uncompressed_bytes": 8904,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.elf.gz",
+      "sha256": "ba069a93abf4c5488524534df56fc2de9f1c8a2636f86655c24e01ba41e8378c",
+      "compressed_bytes": 3576,
+      "uncompressed_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "uncompressed_bytes": 7728,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.elf.gz",
+      "sha256": "da54ed0ca9a100003fbd81f1e5d22cb0ef14daf04416348fb27b56b7622933a5",
+      "compressed_bytes": 3570,
+      "uncompressed_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "uncompressed_bytes": 9176,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.elf.gz",
+      "sha256": "0cb6861a56d6ab814a56db983b60f1324762f2de89404bc9da7b6ed3baacd41b",
+      "compressed_bytes": 4994,
+      "uncompressed_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "uncompressed_bytes": 11760,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.elf.gz",
+      "sha256": "70d8eba2e479a0013fde7f6523305bc2e0e9a43e763b2a57c88f056235de6a65",
+      "compressed_bytes": 11725,
+      "uncompressed_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "uncompressed_bytes": 62048,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.elf.gz",
+      "sha256": "2cd16bdeb80e915aedeb8059838441fca194ec307488ed88158040f66de9f3d8",
+      "compressed_bytes": 3351,
+      "uncompressed_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "uncompressed_bytes": 8976,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.elf.gz",
+      "sha256": "4f66e0b4e6527150e0b44eb6b3efd8953aa1c23016cf7ac7ff03d5c9f72e7778",
+      "compressed_bytes": 9799,
+      "uncompressed_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "uncompressed_bytes": 29824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.elf.gz",
+      "sha256": "26eaf6ead138158a685ffc41ca5278daee801c0a8071a33d93045d5bc0398d43",
+      "compressed_bytes": 6127,
+      "uncompressed_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "uncompressed_bytes": 21160,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.elf.gz",
+      "sha256": "09eb6690726b4260007297b281b58095aba5e6044fdaf9e85e572fe879874824",
+      "compressed_bytes": 4985,
+      "uncompressed_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "uncompressed_bytes": 16328,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.elf.gz",
+      "sha256": "777aa38b215208d54c60d3ec46bcda1975fbf96348805299fe3e988b2af862d9",
+      "compressed_bytes": 3238,
+      "uncompressed_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "uncompressed_bytes": 7952,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.elf.gz",
+      "sha256": "09fc2a4343f3d254b3a8a5d49c677275de65223ceaf2b1d46c12a31fc28a7db5",
+      "compressed_bytes": 3539,
+      "uncompressed_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "uncompressed_bytes": 8632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.elf.gz",
+      "sha256": "95b8c1f88231840d64f154181f52f384db81e27342921026e0511313b6d94ea7",
+      "compressed_bytes": 7573,
+      "uncompressed_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "uncompressed_bytes": 18816,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/d5a9841f3dc6e253-poly1305.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.elf.gz",
+      "sha256": "690534fdf6bd7f737a29be872c4d23af8e286992041b20436490c9501cc25b7e",
+      "compressed_bytes": 27203,
+      "uncompressed_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "uncompressed_bytes": 89096,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.elf.gz",
+      "sha256": "786144a7064ec8c9d0231d12048346f5da59376eb6b24b8fd1c3f407638639c3",
+      "compressed_bytes": 1527,
+      "uncompressed_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "uncompressed_bytes": 3680,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.elf.gz",
+      "sha256": "0fb9ef02da51365fc81166cb7f0ed25b4a18248aac6561d8dfeba683b0371f22",
+      "compressed_bytes": 1388,
+      "uncompressed_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "uncompressed_bytes": 3472,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+      "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+      "compressed_bytes": 198751,
+      "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "uncompressed_bytes": 438184,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+      "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+      "compressed_bytes": 198751,
+      "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "uncompressed_bytes": 438184,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+      "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+      "compressed_bytes": 219464,
+      "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "uncompressed_bytes": 500648,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+      "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+      "compressed_bytes": 219464,
+      "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "uncompressed_bytes": 500648,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/libtokio_macros-34a490cab0b7a6f9.so",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6.elf.gz",
+      "sha256": "174d4809c72921aaf11dafa2a829eda62f58e082dc7aac70cba92bee79e0ad52",
+      "compressed_bytes": 1057812,
+      "uncompressed_sha256": "414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6",
+      "uncompressed_bytes": 3480328,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead.elf.gz",
+      "sha256": "74c94c42989d2b12f212c54851f373105e0144c0fb8d8850ed930df719e5085f",
+      "compressed_bytes": 3407989,
+      "uncompressed_sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+      "uncompressed_bytes": 11555672,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb.elf.gz",
+      "sha256": "ab864a62db8c2d7e73f5e25c24291bc1d0d37ddd73be55046ec6e440de9e30b3",
+      "compressed_bytes": 3340750,
+      "uncompressed_sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+      "uncompressed_bytes": 11205848,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+      "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+      "compressed_bytes": 310920,
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.elf.gz",
+      "sha256": "77338fcb9fcf071d73a679e63f6415bf87a1feb93f40d995e11314977c3fd21c",
+      "compressed_bytes": 310920,
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+      "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+      "compressed_bytes": 245177,
+      "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "uncompressed_bytes": 558104,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/crc32fast-e79e6dce85ff99e8/build_script_build-e79e6dce85ff99e8",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0.elf.gz",
+      "sha256": "da69d1f2357bc69f8c683059da84ade5e46588ec6f35db60c1f83b88a51de9bd",
+      "compressed_bytes": 245177,
+      "uncompressed_sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "uncompressed_bytes": 558104,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+      "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+      "compressed_bytes": 212710,
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.elf.gz",
+      "sha256": "9d8b14ef6fe0ad5f17ab98529e17afd0e1fd34e2c5359900fa2f847aa7742453",
+      "compressed_bytes": 212710,
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+      "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+      "compressed_bytes": 272676,
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.elf.gz",
+      "sha256": "c5a494a49cc16af15ad3c89a854353f01689db574b6e7caa21ea323e7ce91dd4",
+      "compressed_bytes": 272676,
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+      "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+      "compressed_bytes": 212822,
+      "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "uncompressed_bytes": 478304,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.elf.gz",
+      "sha256": "5c0122eab44da9acca7ae3ac7883fdaa72593f5d76a90aa4bea66dae7847eb19",
+      "compressed_bytes": 212822,
+      "uncompressed_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "uncompressed_bytes": 478304,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+      "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+      "compressed_bytes": 262106,
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.elf.gz",
+      "sha256": "ac9f474c74c37fcff0c5a8288c46ef4b89be543c7ce368f313b299ed78f7b806",
+      "compressed_bytes": 262106,
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+      "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+      "compressed_bytes": 244890,
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.elf.gz",
+      "sha256": "b771f22fefd605d86966da123eceb2dfbd4f8bfd54d41f1b2b388cbb0752cf2b",
+      "compressed_bytes": 244890,
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+      "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+      "compressed_bytes": 673490,
+      "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "uncompressed_bytes": 1953736,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-0736e2c027c95dce/build_script_build-0736e2c027c95dce",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f.elf.gz",
+      "sha256": "154fbfd09c693b8692fb789cf174ac7f31be8ce783a934cacc41da2727d9f83a",
+      "compressed_bytes": 673490,
+      "uncompressed_sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "uncompressed_bytes": 1953736,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.elf.gz",
+      "sha256": "88a552fb1e5e7d85f3130e32a1b9c11ac771ce5f5b238e4a460d2b0d6dcc8a63",
+      "compressed_bytes": 25980,
+      "uncompressed_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "uncompressed_bytes": 85024,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery_inv.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.elf.gz",
+      "sha256": "1471cfe035404b1a482a1e60efc511fc74fb14c00a0ad961ac1337e4d681a6a8",
+      "compressed_bytes": 24022,
+      "uncompressed_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "uncompressed_bytes": 79792,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/0bbbd18bda93c05b-aes_nohw.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.elf.gz",
+      "sha256": "411a8a9def4025fc23bb4ac49df6557412f726a305ba1dc10a7c49407e7e4dc2",
+      "compressed_bytes": 37752,
+      "uncompressed_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "uncompressed_bytes": 124880,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.elf.gz",
+      "sha256": "4c4ff0b978d97ff3b0d85739c0a8d94d65f50f67e93c9d245b958f4cbd0e2420",
+      "compressed_bytes": 86508,
+      "uncompressed_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "uncompressed_bytes": 232480,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.elf.gz",
+      "sha256": "9b168e03b9814ce2a78d494b14e543fa80ebe0a8408dd280a1f6206945e36f54",
+      "compressed_bytes": 147038,
+      "uncompressed_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "uncompressed_bytes": 557112,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-ecp_nistz.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.elf.gz",
+      "sha256": "628c34edb1581da16afa09dbe1522db6404c1febbfdc720c4f8b6b75109fa75a",
+      "compressed_bytes": 23883,
+      "uncompressed_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "uncompressed_bytes": 79832,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p256.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.elf.gz",
+      "sha256": "0e3cbf253d164bd601e14dede1318727e8ffbbca16cda40652a5ce2df053dfc5",
+      "compressed_bytes": 23354,
+      "uncompressed_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "uncompressed_bytes": 79392,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p384.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.elf.gz",
+      "sha256": "263fec426249f15bca10aad83fdd58ee62d4d143bf3cca507433d05f2a686992",
+      "compressed_bytes": 36431,
+      "uncompressed_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "uncompressed_bytes": 121248,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256-nistz.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.elf.gz",
+      "sha256": "52992e101bb3d8d44189d7de07c3a07e6f3898345854170bfef9aed30619f915",
+      "compressed_bytes": 185113,
+      "uncompressed_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "uncompressed_bytes": 262240,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.elf.gz",
+      "sha256": "da3d9424f08350fd227118a79c13d56edfbd01ad466dd53336cad876d1f41e04",
+      "compressed_bytes": 23444,
+      "uncompressed_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "uncompressed_bytes": 79824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-constant_time_test.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.elf.gz",
+      "sha256": "ef353beaa05d45d29793cf907e6e84b537a3689418ea687433a2372cbb4af75c",
+      "compressed_bytes": 28004,
+      "uncompressed_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "uncompressed_bytes": 91208,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-cpu_intel.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.elf.gz",
+      "sha256": "aa1c63d3f387d8c6cd79cddd6d98eae040d50d529aaee9a7764b347f67ae24ef",
+      "compressed_bytes": 24921,
+      "uncompressed_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "uncompressed_bytes": 81200,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-crypto.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.elf.gz",
+      "sha256": "edc4154549bd7ee17be339d3e9e884aac9f625aebd0fb8c2f863cb55bc2f2170",
+      "compressed_bytes": 21411,
+      "uncompressed_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "uncompressed_bytes": 72296,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-mem.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.elf.gz",
+      "sha256": "863f568e28a04c7c8f3310d6097576616abed296cd78d79d4b30f1641428f640",
+      "compressed_bytes": 23418,
+      "uncompressed_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "uncompressed_bytes": 78392,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/aaa1ba3e455ee2e1-limbs.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.elf.gz",
+      "sha256": "e078b608ecd123579a0d3acaf1405cee60c447757bbeefc197cc7c03a027a021",
+      "compressed_bytes": 31126,
+      "uncompressed_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "uncompressed_bytes": 102792,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.elf.gz",
+      "sha256": "d07dadc25880484615ff4e4f47fba849af7981f491774873562e475d5bcebfe5",
+      "compressed_bytes": 2800,
+      "uncompressed_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "uncompressed_bytes": 8904,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.elf.gz",
+      "sha256": "ba069a93abf4c5488524534df56fc2de9f1c8a2636f86655c24e01ba41e8378c",
+      "compressed_bytes": 3576,
+      "uncompressed_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "uncompressed_bytes": 7728,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.elf.gz",
+      "sha256": "da54ed0ca9a100003fbd81f1e5d22cb0ef14daf04416348fb27b56b7622933a5",
+      "compressed_bytes": 3570,
+      "uncompressed_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "uncompressed_bytes": 9176,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.elf.gz",
+      "sha256": "0cb6861a56d6ab814a56db983b60f1324762f2de89404bc9da7b6ed3baacd41b",
+      "compressed_bytes": 4994,
+      "uncompressed_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "uncompressed_bytes": 11760,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.elf.gz",
+      "sha256": "70d8eba2e479a0013fde7f6523305bc2e0e9a43e763b2a57c88f056235de6a65",
+      "compressed_bytes": 11725,
+      "uncompressed_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "uncompressed_bytes": 62048,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.elf.gz",
+      "sha256": "2cd16bdeb80e915aedeb8059838441fca194ec307488ed88158040f66de9f3d8",
+      "compressed_bytes": 3351,
+      "uncompressed_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "uncompressed_bytes": 8976,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.elf.gz",
+      "sha256": "4f66e0b4e6527150e0b44eb6b3efd8953aa1c23016cf7ac7ff03d5c9f72e7778",
+      "compressed_bytes": 9799,
+      "uncompressed_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "uncompressed_bytes": 29824,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.elf.gz",
+      "sha256": "26eaf6ead138158a685ffc41ca5278daee801c0a8071a33d93045d5bc0398d43",
+      "compressed_bytes": 6127,
+      "uncompressed_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "uncompressed_bytes": 21160,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.elf.gz",
+      "sha256": "09eb6690726b4260007297b281b58095aba5e6044fdaf9e85e572fe879874824",
+      "compressed_bytes": 4985,
+      "uncompressed_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "uncompressed_bytes": 16328,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.elf.gz",
+      "sha256": "777aa38b215208d54c60d3ec46bcda1975fbf96348805299fe3e988b2af862d9",
+      "compressed_bytes": 3238,
+      "uncompressed_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "uncompressed_bytes": 7952,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.elf.gz",
+      "sha256": "09fc2a4343f3d254b3a8a5d49c677275de65223ceaf2b1d46c12a31fc28a7db5",
+      "compressed_bytes": 3539,
+      "uncompressed_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "uncompressed_bytes": 8632,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.elf.gz",
+      "sha256": "95b8c1f88231840d64f154181f52f384db81e27342921026e0511313b6d94ea7",
+      "compressed_bytes": 7573,
+      "uncompressed_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "uncompressed_bytes": 18816,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/d5a9841f3dc6e253-poly1305.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.elf.gz",
+      "sha256": "690534fdf6bd7f737a29be872c4d23af8e286992041b20436490c9501cc25b7e",
+      "compressed_bytes": 27203,
+      "uncompressed_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "uncompressed_bytes": 89096,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.elf.gz",
+      "sha256": "786144a7064ec8c9d0231d12048346f5da59376eb6b24b8fd1c3f407638639c3",
+      "compressed_bytes": 1527,
+      "uncompressed_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "uncompressed_bytes": 3680,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "original_full_mode": 384,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.elf.gz",
+      "sha256": "0fb9ef02da51365fc81166cb7f0ed25b4a18248aac6561d8dfeba683b0371f22",
+      "compressed_bytes": 1388,
+      "uncompressed_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "uncompressed_bytes": 3472,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+      "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+      "compressed_bytes": 198751,
+      "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "uncompressed_bytes": 438184,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.elf.gz",
+      "sha256": "e31c49d4b4b620f132f2776a45cdd0cdfa7f6e05f0d66d2d5c1cfc589a8b93ca",
+      "compressed_bytes": 198751,
+      "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "uncompressed_bytes": 438184,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+      "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+      "compressed_bytes": 219464,
+      "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "uncompressed_bytes": 500648,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.elf.gz",
+      "sha256": "30eb70b7d05f3c4763e44a7f4b8572c6675322a70a0106ed5229ee1f6d1c457e",
+      "compressed_bytes": 219464,
+      "uncompressed_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "uncompressed_bytes": 500648,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41.elf.gz",
+      "sha256": "88cc276517d0e72a873b156875434d487bdd464121610d247f81d38223542af4",
+      "compressed_bytes": 3334647,
+      "uncompressed_sha256": "2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41",
+      "uncompressed_bytes": 11317608,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/libtokio_macros-34a490cab0b7a6f9.so",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6.elf.gz",
+      "sha256": "174d4809c72921aaf11dafa2a829eda62f58e082dc7aac70cba92bee79e0ad52",
+      "compressed_bytes": 1057812,
+      "uncompressed_sha256": "414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6",
+      "uncompressed_bytes": 3480328,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead.elf.gz",
+      "sha256": "74c94c42989d2b12f212c54851f373105e0144c0fb8d8850ed930df719e5085f",
+      "compressed_bytes": 3407989,
+      "uncompressed_sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+      "uncompressed_bytes": 11555672,
+      "decompression_verified": true
+    },
+    {
+      "cache_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "original_full_mode": 448,
+      "elf_magic_verified": true,
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/retained-elfs/3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb.elf.gz",
+      "sha256": "ab864a62db8c2d7e73f5e25c24291bc1d0d37ddd73be55046ec6e440de9e30b3",
+      "compressed_bytes": 3340750,
+      "uncompressed_sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+      "uncompressed_bytes": 11205848,
+      "decompression_verified": true
+    }
+  ],
+  "scope": "selective403 fail-first baseline only, not old full-tree qualification or candidate behavior/strict/MSRV/JVM/full/broker qualification",
+  "baseline_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "baseline_input_manifest_sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+  "five_overlay_contract_sha256": "6bdb43d5f9d5f6719508ae231377c1f556576231079425813a2e6c626400a800",
+  "baseline_manifest": {
+    ".cargo/audit.toml": {
+      "bytes": 100,
+      "sha256": "5f2f08393131dce2c1854abed8e1fbb3911e07981fc6656c7460d01ff8bdd36a",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1db6f9c7e89942ee066ae0553b71c59d8e960f3b",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "Cargo.lock": {
+      "bytes": 18165,
+      "sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1960ec541c8ce1d38c103ac3cb55c772341a49a8",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "Cargo.toml": {
+      "bytes": 4129,
+      "sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7f0f02e7f09a81dc03298bc2b881246a7c6593aa",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "README.md": {
+      "bytes": 10547,
+      "sha256": "b64830fed5534e02ca9f2bad40cfd4121ba7578ef19ccd1e2e635cabba66e6cd",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "f03cb019559769f0b19b0b71af336654e460d890",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "clippy.toml": {
+      "bytes": 1522,
+      "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b328f709a75fd86c47e7029e8aa66e24247bdab2",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/admin.rs": {
+      "bytes": 837,
+      "sha256": "114c742991f42ed83f77bf59d55239227f7ef111e33083e5dcecded9ca71ff0e",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e8bac8b29ac2032c7c3d4c859541ff5fa6e07d88",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/bench_fetch.rs": {
+      "bytes": 13916,
+      "sha256": "9f86dccaf4919dc8946b17e7ffdf964c7e0186a3a794cb52053f122ad1012ad2",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "6628491d367c3d46fb81bb5cc58fbf96cbbce517",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/bench_latency.rs": {
+      "bytes": 27080,
+      "sha256": "4a5806acbd84bd78bb1ec008eb401a974f296cc5f18808a05c29279ac2e3e4d9",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "f4c150cf8e1d30e12842fe8387fc430f85b9ddb5",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/bench_produce.rs": {
+      "bytes": 13222,
+      "sha256": "0477ab1a1e12fe580a2c57040f32cab867198204af2631aa0e9e8010a787badc",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fb4c56a4b1407147b9a21a7bf0df949913e37863",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/common/bench_history.rs": {
+      "bytes": 5375,
+      "sha256": "31e67d77c64a90e2ea9d5c4c47c78462472006aa5fbd49fc2304515c9a45d7f4",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "0c33c458b487141906a39bfc0a1229a323d9cda4",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/common/verifiable.rs": {
+      "bytes": 12831,
+      "sha256": "03a89bbaa3c86bc88f8c74920035fcadc8d63dfd75a48ad03224b156197638f4",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "4dd33c44b01b7a6d4ae5e3698061e0e82c629357",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/consume.rs": {
+      "bytes": 752,
+      "sha256": "4bd7517ef4c9a498424c9717ccebf52bb9bbc03c1abc20031b06efd6a75d8127",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e84ff9c56a89ef3deba5126190af7f51418b10e1",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/consume_intercept.rs": {
+      "bytes": 1279,
+      "sha256": "92cde971467a0554ff8ac1af3edb0c9f0bca310e493348a2734e7622555a56f6",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fda5a9abe047c21404c87a3b72f677fcc321e213",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/cooperative.rs": {
+      "bytes": 1125,
+      "sha256": "52bc0a49a5fb30a3c6819ebc7fec81f5e8892d403d803dcc529695ed6245bc2c",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "095f7b3022e87bea9c99efb0d1bd188e25efd81d",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/describe_quorum.rs": {
+      "bytes": 1052,
+      "sha256": "27570774bd803352c16867774e1e96f88164ca5ce8fc00bc4765e82d770d7452",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "abbc1ff59eb84339bc6e9d1e39bf89044ed025a7",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/eos.rs": {
+      "bytes": 7438,
+      "sha256": "95efd25c7c40c591aada5b1f207d3396cf68a18fe1983d7bc7ca480f9bc62bde",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "dfae1e8d0156b931b3e8695c02750932745df61e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/group.rs": {
+      "bytes": 1127,
+      "sha256": "a2e7261b9e02c52730dfa47b37758455ff1f9907ccbd11cc79584315ed56b38f",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b68c859925e2db7d8cbe422e22790f595f8125c4",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/intercept.rs": {
+      "bytes": 983,
+      "sha256": "4341a92714c64bfe5141bbfc83897b5ae0c76579aff418487467671e9c7fa71d",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fa4a0a79fbf7209f4645d6e574999654bf51aab2",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/kip848.rs": {
+      "bytes": 1250,
+      "sha256": "dcee85c4e2dd97f90c00713d6ddf23293df2efb4391a5b63c09d0eb7f26cd4c0",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7ede0ee69a71a602c2d06e455adc81b1f6d6984d",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/metrics.rs": {
+      "bytes": 3201,
+      "sha256": "a491125fe4e3af6b93bfa6620f165545db14aa6e1825d307cc75a615ea30aeb4",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "34547f9cb99b9f9866adbad31afbee5b615c827e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/oauth.rs": {
+      "bytes": 2223,
+      "sha256": "2356b66d45862d7ed43d570ade8e597cf2a30d85093cc4796f83b238d3699b17",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "d96c18fae0da50d4ff6b516d4be3628f7b82109d",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/offsets.rs": {
+      "bytes": 1975,
+      "sha256": "e26411207c8234dc2350875418f0f1baa131b8ac7316a9d272590c6e9320b963",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7abb0948415fcd0abd6b03673bdd8768010d0c75",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/pause.rs": {
+      "bytes": 1038,
+      "sha256": "87856cb483360596b7c61d7f25d689929470f2b8dc6d92b20e8503b94834b0e0",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a4358d8839b0be93619703ae95c59f926e0d970e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/produce.rs": {
+      "bytes": 640,
+      "sha256": "ff77d69b6d11392b295ee7fbc2a99f0dc40b3eb7c41f7db3aa9a2e96a05a1d4f",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "c976bb60ee00fa17a30f376f8e19c3aa2f64f5e0",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/produce_cancel.rs": {
+      "bytes": 2164,
+      "sha256": "565e41dd83a9723901039262fc2c89b05ecbd1de53aae2f4dc10c5880d69b14a",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e1ddccae0c08f593e54299a763cfa957f143d805",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/roundtrip.rs": {
+      "bytes": 1432,
+      "sha256": "d06f1d0eac6ee8346e4a10633eb4025fba59c5263819a2b8ee7f565b1c2fa838",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "92fd20dd7722407d3e82d14f8e8942e8bab5c295",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/sasl.rs": {
+      "bytes": 2340,
+      "sha256": "d051fbcfcb4ca31745f6834e90ca8b59ef7470723fdf44742ddfe6348d67c5fb",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fd2f2662295fd658f0d948b07043e1d4618f264c",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/share.rs": {
+      "bytes": 960,
+      "sha256": "00eb7d2b4d26f292178e742a39ee7e30ac4156742c47806adbb55fcd9649e89a",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "afc03b8456cf1ffe86363e2ac601e297bb366976",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/tls.rs": {
+      "bytes": 2047,
+      "sha256": "6b4972eef0813ad192d086c673b17db95d724e1a5ab3b7a1fef7610a0b15b7ee",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "f4c957d1a24800fb40f8f0aea0eac8d21a6ad274",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/txn.rs": {
+      "bytes": 1185,
+      "sha256": "4f123d4aa35959ca51a3e92cdd3137e2f527da075573ec8b23d6b7f28fe03ec1",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "348f30cd4cbea28e01426319c15541641c48877e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/verifiable_consumer.rs": {
+      "bytes": 24784,
+      "sha256": "535d57d81acc32883f1ba99b3e9810bb8912d25ef39d80aade9f8a4d68b8d2dd",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a7306c9eca0b3c80e04dfec14c8c1f367555408c",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/verifiable_producer.rs": {
+      "bytes": 15737,
+      "sha256": "f1065de1a7c456deead695d3177e6e1783d539a189eb90c9de5058aff179c762",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "fed9245af1ee14721c4c6f559085c4efe299d72c",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "examples/wakeup.rs": {
+      "bytes": 1187,
+      "sha256": "ba5b150d448b1ba8b01cb6b2c0e73747bd8df4de83d03bc4c7e1a400d6620617",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "dbb6c5ad16fc1223f911db4ba6cc44ffbce0c657",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/admin.rs": {
+      "bytes": 571120,
+      "sha256": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "2391c47613728a088a594b843ad62370884a391f",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/cluster.rs": {
+      "bytes": 20271,
+      "sha256": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "48d5f286bcd589e41e6038b3c754c4d7c6810202",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/config.rs": {
+      "bytes": 28999,
+      "sha256": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e09f9f98eac0e8b959e724a4223a2b2b39db4ae8",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/consumer.rs": {
+      "bytes": 179916,
+      "sha256": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "ed103a4989811420ba02d521d2a3a219266488a5",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/error.rs": {
+      "bytes": 35672,
+      "sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "9a04f94d94de23b1f24f93c5307f3f0f2218332e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/group.rs": {
+      "bytes": 137817,
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e43fb091c7946d68185bd37eefb05d3d25449983",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/interceptor.rs": {
+      "bytes": 3930,
+      "sha256": "15e71dbacfc19bd5716d82ea0afd2f1f61f63e78faa2c01cef812aaf34a0d7ab",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "560eb67d3abf3b9599839eb3033eb1a03d48417c",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/lib.rs": {
+      "bytes": 211438,
+      "sha256": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "4be2457bdda9524e58175cf2260df3348e369a9d",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/metrics.rs": {
+      "bytes": 30557,
+      "sha256": "a6fbef0a70e3a4ffa7c248ef71ab5cb9457c4d48fdd0f8cce6033cf9d2ca40ac",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "abbf12da6380628f4eaed893f81d6b876d266cfb",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/net.rs": {
+      "bytes": 83409,
+      "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b5c14fdf29541e4f05840ff4a9444f2cd830d71b",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/partitioner.rs": {
+      "bytes": 5209,
+      "sha256": "ad9c8977c4f5ef8b54284167020eb35d931e27fd5cc95a23d427c80bb9bd90b5",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a4ae826e63fecfbd072a7b7e82333cbb1b6af6f2",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/producer.rs": {
+      "bytes": 193923,
+      "sha256": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "bac252dd5c9f8d39a4dfd0ef07a6fb12d4011a95",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/acl.rs": {
+      "bytes": 163429,
+      "sha256": "39a9d56f0d586eaff84bd8e1f28d1d0f033a653dac46b5cdc4f2b18cef79f6f8",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "117e6a07a5b9a0c56f62635b3ee470a429fdda67",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/admin.rs": {
+      "bytes": 1460326,
+      "sha256": "2a3c3b49bc5531734563c4a289a2b34e4dd724224b4331e242fa4c81ab3e6b8b",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "c3dec3076c15ae8e84496685ab1520e091511f82",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/api.rs": {
+      "bytes": 303913,
+      "sha256": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1fd6fd50bd1ab0256fb64edb3dd12a165dfe807e",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/api_keys.rs": {
+      "bytes": 16978,
+      "sha256": "95c9e6ceb3e996402217c2737c219c70c82c48f14147e72af59fb3221746ac1b",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e34897cce863bc3c002d57bb043f419ebd0db709",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/buf.rs": {
+      "bytes": 61797,
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "73bf96bc5f8f23e3cc07723bd7b7068b216e464f",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/cgheartbeat.rs": {
+      "bytes": 40185,
+      "sha256": "49311de5e97fb0e9402260c3dcea0534582952cc7c6d8777128e431c464932f4",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1ba8cbfd008ba83fb53b0c31b108f91b95a830b7",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/epoch.rs": {
+      "bytes": 42457,
+      "sha256": "76ec51fd15879b027f4bd499a5b58dcac30004b63e37e8aee117367ffade143d",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7ee9dda04b925b1ed5c213e341117cec9bce2c30",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/fetch.rs": {
+      "bytes": 281561,
+      "sha256": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "02a5b69b303e3d3af3cba3689fce0d4f4f36c972",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/group.rs": {
+      "bytes": 603286,
+      "sha256": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "bbb5d979a96633729d0bffcdc12c2fc5b23ba98c",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/header.rs": {
+      "bytes": 74380,
+      "sha256": "07f189a6474640e1a8e95c993d41b2ec2accfbab61695ac495703856d2d5862f",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "169de380569fde90690ac16a09003faf3b143eb4",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/idem.rs": {
+      "bytes": 28038,
+      "sha256": "6154128750f29bca3b79a8217e49b19b77ad988dbf7ad77c63647e5fea2f9e60",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "9205907702875ccb4b4266bb8a7614cd81771387",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/mod.rs": {
+      "bytes": 1762,
+      "sha256": "14b234967992a14d550e710c9bf1a4b58be9bdc9bfcbf3303aa6f7ed26c3f3e4",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "7208b707a449e42dfa0237038c31b9f5d09eb8c5",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/oauth.rs": {
+      "bytes": 5197,
+      "sha256": "0ce921f988b4058ad8a207cb609c920b20f9a0589da6773f57b4d090a109066f",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e6fd8550bc1c3bb51c20da93da9eaa23d27843a9",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/offsets.rs": {
+      "bytes": 68859,
+      "sha256": "be167364402bf33631717a3f45685b84680c4ffbb40a7093ff60f4fe7aeb7126",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "5d2f1db0b8ac4b3467bd543f22bfba1f01c94f9b",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/oidc.rs": {
+      "bytes": 104985,
+      "sha256": "828343989f5615a3170c84f2f8d26056575d93046b3735f10e0eaa0c2a4fae56",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "a1533f654b683db6bedcabda47a30085082e4894",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/records.rs": {
+      "bytes": 171836,
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e9a6b76d68a6053c8d4a5148d219550b62a9ee81",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/sasl.rs": {
+      "bytes": 46329,
+      "sha256": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "ea8c49b4c3ebdab92e343c19ab190bc6eb1365a1",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/scram.rs": {
+      "bytes": 23730,
+      "sha256": "ed474ed5eb62d3cd6b0865653cec6c2d033acb2be0f88a6e9af785075402636c",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "dafa62ffacafb3b460acfb817acc562453ce8eb8",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/share.rs": {
+      "bytes": 264309,
+      "sha256": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "ddea28d7fb13377ca35846c8138700f24c9cc602",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/protocol/txn.rs": {
+      "bytes": 252067,
+      "sha256": "1d6ffe39571f136f33dd9a49eed73920d8c43f8b8ce10351099d37d411196bfc",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "6b6778065c494a062e3952fdb478580a2f966432",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "src/share.rs": {
+      "bytes": 105258,
+      "sha256": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "e2e7eb135bbb4648710fca3461efed35a004f7c6",
+      "provenance": "exact403 selected input immutable hardlink"
+    },
+    "tests/fail_first_write_txn_markers_v2.rs": {
+      "bytes": 2471,
+      "sha256": "b2bcb762d286a744453dd8ad16c43fcfa9a3ecccb7e52f145e4b8d4269db970b",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "1f0d3b0ce3f294946ac17cc7cb9d7ef71a9ef55c",
+      "provenance": "exact separately declared test overlay"
+    },
+    "tests/fail_first_share_offsets_v1.rs": {
+      "bytes": 1075,
+      "sha256": "b5a5ffd5c33224286ffe9908133fb421c349976fd0d3a8033ef0415215f99e12",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "cfeccb73544ea376981245618f7d728b8f156393",
+      "provenance": "exact separately declared test overlay"
+    },
+    "tests/baseline_positive_controls.rs": {
+      "bytes": 2678,
+      "sha256": "f05c8ba8b1013d7823aa81254b2c90017bfcc504c68282cfb5b4a4dbb34bda32",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "b79ed0c2387f01bf7c1329418619eb68796edf35",
+      "provenance": "exact separately declared test overlay"
+    },
+    "tests/fixtures/write-txn-markers-v2/socket_peer.rs": {
+      "bytes": 15289,
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "8199c550bf34da1442f5082bf9e07c67a80198ad",
+      "provenance": "exact separately declared test overlay"
+    },
+    "tests/fixtures/share-offsets-v1/schema-lag-1.response.bin": {
+      "bytes": 66,
+      "sha256": "8a7361f248d66c97ebefc7ee8fd4213538946fd6d8da41591eb8414498ac7b0b",
+      "full_permission_mode": 384,
+      "git_blob_sha1": "44499a8ee41aa4ecab24a6bfaa15763a5db227e9",
+      "provenance": "exact separately declared test overlay"
+    }
+  },
+  "remaining_phases_held": true,
+  "source_origin_receipt_sha256": "6b32de0a48931c1a7fcb85ae15165661f9303f501e5936c17c36cb1c570f4007",
+  "source_manifest_compressed_sha256": "29aad0d1fce34196774bb7aec05e5ac11904f1f8c887d78b034488062303674e",
+  "source_manifest_uncompressed_sha256": "5864524f18ee6f24215a3b0e881ff33a5448e54ba4a85df0fbb6d5cee0dc3343",
+  "candidate_hidden_overlays": false,
+  "baseline_explicit_overlay_count": 5
+}

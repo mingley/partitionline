@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only current metadata only, no target/quarantine writes; byte/gzip hashes bound by frozen preflight f3dec and required fresh operational guards",
+  "rows": [
+    {
+      "target_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf.d",
+      "bytes": 786,
+      "full_mode": 384,
+      "mtime_ns": 1791047649701105880,
+      "inode": [
+        27,
+        586048
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14798201,
+      "full_mode": 384,
+      "mtime_ns": 1791047647083800287,
+      "inode": [
+        27,
+        586973
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "bytes": 11205848,
+      "full_mode": 448,
+      "mtime_ns": 1791047650381116971,
+      "inode": [
+        27,
+        587125
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/partitionline-41c9070129cbefc4.d",
+      "bytes": 2843,
+      "full_mode": 384,
+      "mtime_ns": 1791047639560940239,
+      "inode": [
+        27,
+        586041
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "bytes": 40536990,
+      "full_mode": 384,
+      "mtime_ns": 1791047649653105098,
+      "inode": [
+        27,
+        587105
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d.d",
+      "bytes": 451,
+      "full_mode": 384,
+      "mtime_ns": 1791048906333668401,
+      "inode": [
+        27,
+        586998
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "bytes": 11555672,
+      "full_mode": 448,
+      "mtime_ns": 1791047651177130004,
+      "inode": [
+        27,
+        587137
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/share_offsets_v1-c33d5760ad7cc827.d",
+      "bytes": 748,
+      "full_mode": 384,
+      "mtime_ns": 1791047650417117559,
+      "inode": [
+        27,
+        587107
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "bytes": 11317608,
+      "full_mode": 448,
+      "mtime_ns": 1791048906957678622,
+      "inode": [
+        27,
+        587113
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/invoked.timestamp",
+      "bytes": 48,
+      "full_mode": 384,
+      "mtime_ns": 1791047639168933849,
+      "inode": [
+        27,
+        586036
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/dep-lib-partitionline",
+      "bytes": 808,
+      "full_mode": 384,
+      "mtime_ns": 1791047639168933849,
+      "inode": [
+        27,
+        586042
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline",
+      "bytes": 16,
+      "full_mode": 384,
+      "mtime_ns": 1791047649677105488,
+      "inode": [
+        27,
+        586044
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-41c9070129cbefc4/lib-partitionline.json",
+      "bytes": 1296,
+      "full_mode": 384,
+      "mtime_ns": 1791047649677105488,
+      "inode": [
+        27,
+        586045
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/dep-test-integration-test-write_txn_markers_v2",
+      "bytes": 236,
+      "full_mode": 384,
+      "mtime_ns": 1791047649677105488,
+      "inode": [
+        27,
+        586043
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/invoked.timestamp",
+      "bytes": 48,
+      "full_mode": 384,
+      "mtime_ns": 1791047649677105488,
+      "inode": [
+        27,
+        586047
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2",
+      "bytes": 16,
+      "full_mode": 384,
+      "mtime_ns": 1791047650393117167,
+      "inode": [
+        27,
+        586972
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-3690429a045642cf/test-integration-test-write_txn_markers_v2.json",
+      "bytes": 1389,
+      "full_mode": 384,
+      "mtime_ns": 1791047650393117167,
+      "inode": [
+        27,
+        586976
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/invoked.timestamp",
+      "bytes": 48,
+      "full_mode": 384,
+      "mtime_ns": 1791048906313668073,
+      "inode": [
+        27,
+        586974
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/dep-test-integration-test-baseline_positive_controls",
+      "bytes": 111,
+      "full_mode": 384,
+      "mtime_ns": 1791048906313668073,
+      "inode": [
+        27,
+        586999
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls",
+      "bytes": 16,
+      "full_mode": 384,
+      "mtime_ns": 1791048906969678818,
+      "inode": [
+        27,
+        587000
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-fe81651cb6cc444d/test-integration-test-baseline_positive_controls.json",
+      "bytes": 1395,
+      "full_mode": 384,
+      "mtime_ns": 1791048906969678818,
+      "inode": [
+        27,
+        587002
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/invoked.timestamp",
+      "bytes": 48,
+      "full_mode": 384,
+      "mtime_ns": 1791047650393117167,
+      "inode": [
+        27,
+        587106
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1",
+      "bytes": 16,
+      "full_mode": 384,
+      "mtime_ns": 1791047651189130201,
+      "inode": [
+        27,
+        587109
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/test-integration-test-share_offsets_v1.json",
+      "bytes": 1384,
+      "full_mode": 384,
+      "mtime_ns": 1791047651189130201,
+      "inode": [
+        27,
+        587110
+      ],
+      "nlink": 1
+    },
+    {
+      "target_relative_path": "debug/.fingerprint/partitionline-c33d5760ad7cc827/dep-test-integration-test-share_offsets_v1",
+      "bytes": 226,
+      "full_mode": 384,
+      "mtime_ns": 1791047650393117167,
+      "inode": [
+        27,
+        587108
+      ],
+      "nlink": 1
+    }
+  ],
+  "target_identity": [
+    27,
+    524404,
+    1000,
+    448
+  ],
+  "quarantine_parent_identity": [
+    27,
+    1521603,
+    1000,
+    448
+  ],
+  "all_original_nlink1": true,
+  "file_count": 25
+}

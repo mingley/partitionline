@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "source_base_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "baseline_scope": "only enumerated exact403 client compiler inputs plus the exact five-file declared overlay; not a full old-tree qualification",
+  "baseline_input_manifest_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-compiler-inputs.json",
+  "baseline_input_manifest_sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+  "overlay_status": "predeclared amended helper after preserved actualcompilefailure; baseline experiment still never materialized or compiled",
+  "overlays": [
+    {
+      "path": "/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/preparation/fail-first.rs",
+      "sha256": "b2bcb762d286a744453dd8ad16c43fcfa9a3ecccb7e52f145e4b8d4269db970b",
+      "bytes": 2471,
+      "full_mode": 384,
+      "destination": "tests/fail_first_write_txn_markers_v2.rs"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/share-offsets-v1/preparation/fail-first.rs",
+      "sha256": "b5a5ffd5c33224286ffe9908133fb421c349976fd0d3a8033ef0415215f99e12",
+      "bytes": 1075,
+      "full_mode": 384,
+      "destination": "tests/fail_first_share_offsets_v1.rs"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline_positive_controls.rs",
+      "sha256": "f05c8ba8b1013d7823aa81254b2c90017bfcc504c68282cfb5b4a4dbb34bda32",
+      "bytes": 2678,
+      "full_mode": 384,
+      "destination": "tests/baseline_positive_controls.rs"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-f0ca05da/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "bytes": 15289,
+      "full_mode": 384,
+      "destination": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "actual_materialization_source": "this exact immutable f0ca helper SHA (or byte/fullmode-identical next ROOTpin copy), never mutable worktree"
+    },
+    {
+      "path": "/workspace/work/client-capabilities-source-e90efb49/tests/fixtures/share-offsets-v1/schema-lag-1.response.bin",
+      "sha256": "8a7361f248d66c97ebefc7ee8fd4213538946fd6d8da41591eb8414498ac7b0b",
+      "bytes": 66,
+      "full_mode": 384,
+      "destination": "tests/fixtures/share-offsets-v1/schema-lag-1.response.bin"
+    }
+  ],
+  "expected_actual_outcomes": [
+    "two old-supported public-operation positive controls pass",
+    "three API27 behavioral failures: empty authoritative result falsely succeeds, 8/9 terminal instead of refresh, v2-only rejected",
+    "one API90 behavioral failure: existing public operation rejects v1-only broker",
+    "compile or preparation failures never count as behavioral fail-first proof"
+  ],
+  "candidate_success_required_before_baseline": true,
+  "root_go_and_fresh_budget_required": true
+}

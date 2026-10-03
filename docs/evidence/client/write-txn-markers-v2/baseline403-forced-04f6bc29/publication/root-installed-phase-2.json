@@ -1,0 +1,1390 @@
+{
+  "schema_version": 1,
+  "phase": 2,
+  "phase_count": 3,
+  "published_rows": 137,
+  "all322_original_rows_verified": true,
+  "source_inventory_sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+  "handoff_sha256": "d659777038b4e65d3a8b499536b7060ff9f580a1be897fc46c236d7d93900a13",
+  "original_full_modes_and_bytes_preserved": true,
+  "actual_baseline_positive_controls": 2,
+  "actual_baseline_expected_behavioral_failures": 4,
+  "actual_baseline_all6_groups_joined": true,
+  "old_library_rebuilt_and_new_method_absent": true,
+  "candidate_qualified": false,
+  "compiled_payloads_WORK_only": true,
+  "free_before": 760881152,
+  "free_after": 754913280,
+  "rows": [
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01/validation.json",
+      "sha256": "d469dc22fd1eb86d5ed0d2b5c37ee9a3c890c507aa21d1886c32fa9ede8dd401",
+      "bytes": 1055697,
+      "full_mode": 384,
+      "mtime_ns": 1791059885398271057,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/baseline-materialization.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/baseline-materialization.json",
+      "sha256": "ee293820f8b07d59836fc8e965d79485131b8dfb6efc7d0fe525be758ce9f722",
+      "bytes": 23849,
+      "full_mode": 384,
+      "mtime_ns": 1791048900092301740,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/failure.json",
+      "sha256": "8571182acdda5095bfa1bdae957f79941dccfc30c8df3316075a59b03f66ccbb",
+      "bytes": 281,
+      "full_mode": 384,
+      "mtime_ns": 1791048913215850837,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/launch-contract.json",
+      "sha256": "ab7346ae95416dff7cbd1293df5aae3e2f84752cea01948cb1abaf1e634ff6e7",
+      "bytes": 1238,
+      "full_mode": 384,
+      "mtime_ns": 1791048888465746826,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "sha256": "54bb310f897e6721361b94e864f88220f96c21d673b8dba2bf2c6bef88f1289b",
+      "bytes": 839,
+      "full_mode": 384,
+      "mtime_ns": 1791048907077680586,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "sha256": "05eaa8e6c9423451c65528b2581ef15e8692065c04710c42b4e936567bb20fa0",
+      "bytes": 398,
+      "full_mode": 384,
+      "mtime_ns": 1791048906977678949,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "sha256": "ecd7f198225c607c2ef690b03f7a4eee70797f24e58838712bd7b076eec82905",
+      "bytes": 1000,
+      "full_mode": 384,
+      "mtime_ns": 1791048906977678949,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01/validation.json",
+      "sha256": "d185913b2a1b89f4d8025d2ebd24625863332c8f9304f9092f5f02228776761e",
+      "bytes": 176396,
+      "full_mode": 384,
+      "mtime_ns": 1791048913215680712,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-full-source-guards-7942/after.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-full-source-guards-7942/after.json",
+      "sha256": "1aca7bae32ef3a9eab1ca54e255d49cc269ada3945b8a46b62fb9f073345fdec",
+      "bytes": 927,
+      "full_mode": 384,
+      "mtime_ns": 1791048939737956150,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-full-source-guards-7942/before.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-full-source-guards-7942/before.json",
+      "sha256": "07734d883691ffab345775792b03711959a16b0a9e49dabf4997b3fa93232657",
+      "bytes": 929,
+      "full_mode": 384,
+      "mtime_ns": 1791048872700702945,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/closed-process-and-cache-guard.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/closed-process-and-cache-guard.json",
+      "sha256": "5de496e309241a1bbb0992968aa1aa0023ba4d54e13b2986b30a692b4b55f8c4",
+      "bytes": 16822,
+      "full_mode": 384,
+      "mtime_ns": 1791043393676566708,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/failure.json",
+      "sha256": "ee541bbced18434923158e7a4eb8641579114d9e9ab99c44a83fba1090eee49d",
+      "bytes": 263,
+      "full_mode": 384,
+      "mtime_ns": 1791043073283519713,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/stable-candidate-no-run.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/stable-candidate-no-run.disk-monitor.jsonl",
+      "sha256": "10a2f0a9c9ce910e5e92b467e7524ad8429ae6a10f49c3313edf6cb6c8bf3dfa",
+      "bytes": 22575,
+      "full_mode": 384,
+      "mtime_ns": 1791043067182335875,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/stable-candidate-no-run.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/stable-candidate-no-run.stderr.log",
+      "sha256": "ccb3b9faab1b1ec40411e914499e2ffd67f0463a8486452c3ca50ad87f43fba3",
+      "bytes": 4773,
+      "full_mode": 384,
+      "mtime_ns": 1791043067006333002,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/stable-candidate-no-run.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/stable-candidate-no-run.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043034721805726,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-attempt-01/validation.json",
+      "sha256": "3406d6e24215d79224beae314b6122a662f8a95876cda50504e802e4c9791b96",
+      "bytes": 73990,
+      "full_mode": 384,
+      "mtime_ns": 1791043073283354025,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/authorized-no-run-summary.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/authorized-no-run-summary.json",
+      "sha256": "3a093ac9f76182c5f5f111587ecfc833e60eed8ca1ec6697b024be8b0f2e3976",
+      "bytes": 2328,
+      "full_mode": 384,
+      "mtime_ns": 1791047881307400505,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/launch-contract.json",
+      "sha256": "5be9ab0aa35c9cc328e70e57242bc573d6c275931f7253209d4fe22501bf443e",
+      "bytes": 3187,
+      "full_mode": 384,
+      "mtime_ns": 1791047632805582080,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.disk-monitor.jsonl",
+      "sha256": "6c39585357919631a2f695752efd70a96b5f064a3e77b006ec811dc817bb8794",
+      "bytes": 8716,
+      "full_mode": 384,
+      "mtime_ns": 1791047651369133158,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stderr.log",
+      "sha256": "dde02df537fdf5863a58a063020c7298e4c6ba07a21179351596e74ed3603054",
+      "bytes": 402,
+      "full_mode": 384,
+      "mtime_ns": 1791047651193130266,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791047639128933197,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01/validation.json",
+      "sha256": "c5f7e4ddcc931673cf8080e336ad4ca7dfbffce7c95efe795163783405b0ef9b",
+      "bytes": 148436,
+      "full_mode": 384,
+      "mtime_ns": 1791047657400621569,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-01/failure.json",
+      "sha256": "2abf09c725c9e860a9ae85cf91b4dc97c96c63ac911acf4cd878eb417774538a",
+      "bytes": 186,
+      "full_mode": 384,
+      "mtime_ns": 1791046290337865434,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-01/validation.json",
+      "sha256": "41262d32f7a9610d55cd63e901435f03843e8cdbc04a85a0e0bc8b0b34a87088",
+      "bytes": 833,
+      "full_mode": 384,
+      "mtime_ns": 1791046290337778724,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/failure.json",
+      "sha256": "6342e16734e7c8abdcb186a951505d4f31b1272e06b8821c76915382a91ff3f4",
+      "bytes": 263,
+      "full_mode": 384,
+      "mtime_ns": 1791046374551527617,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/launch-contract.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/launch-contract.json",
+      "sha256": "2bb8486ff9b627fc8bbf2eff721c32141c8f0896f36252f2c6ae3c1f6579904c",
+      "bytes": 3183,
+      "full_mode": 384,
+      "mtime_ns": 1791046354954845719,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.disk-monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.disk-monitor.jsonl",
+      "sha256": "9029655230a863db1b88ff0102b902f3d7ac6646ed2a3ebdde3b70a77a01b910",
+      "bytes": 5399,
+      "full_mode": 384,
+      "mtime_ns": 1791046368644149033,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.stderr.log",
+      "sha256": "95f338280e609cd97188d3ae1cad04dff43ed1b8f6828f4b73f8cd267643b816",
+      "bytes": 971,
+      "full_mode": 384,
+      "mtime_ns": 1791046368460145975,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/stable-candidate-no-run.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791046361212025740,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02/validation.json",
+      "sha256": "d1090d25a0a4cf2c5304b4af36b25b6ceb1fae8ccb63a9e35b05f29167d6d459",
+      "bytes": 145764,
+      "full_mode": 384,
+      "mtime_ns": 1791046374551366326,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/runner-preflight-f0ca-attempt-01/preparation-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/runner-preflight-f0ca-attempt-01/preparation-failure.json",
+      "sha256": "1586ac06e9c1cc0646794c8ec0769a112330f0e308a02cbe5c6e7bd5e7419487",
+      "bytes": 511,
+      "full_mode": 384,
+      "mtime_ns": 1791046354632491604,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/runner-preflight-f0ca-attempt-01/runner.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/runner-preflight-f0ca-attempt-01/runner.py",
+      "sha256": "2a92548e2fe75d311a1c7b5257ddaa082e5415757a5b5221e23d4192bd46e952",
+      "bytes": 14862,
+      "full_mode": 384,
+      "mtime_ns": 1791046354632350373,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/runner-preflight-f0ca-attempt-01/stable-focused-f0ca05da-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/runner-preflight-f0ca-attempt-01/stable-focused-f0ca05da-attempt-01-driver.log",
+      "sha256": "8e7e7e7547621d010bedc6e33d0a8a35391cb37fde7cd0a26520ffd97e9366ed",
+      "bytes": 1125,
+      "full_mode": 384,
+      "mtime_ns": 1791046354632413036,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/1.85.0.fmt.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/1.85.0.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043333666693890,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/1.85.0.fmt.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/1.85.0.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043333666693890,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/format-validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/format-validation.json",
+      "sha256": "d387397c1ecfec7a5d58c10a35a994726535cb9be895a973730c2da1cb0a2b25",
+      "bytes": 1698,
+      "full_mode": 384,
+      "mtime_ns": 1791043333672666346,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/helper.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/helper.patch",
+      "sha256": "abcac31096dff13c8b2c2ede7471992e4f0f1e46b3d5c38f32dd797ccce722f5",
+      "bytes": 2303,
+      "full_mode": 384,
+      "mtime_ns": 1791043177951724250,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/installation-predeclared.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/installation-predeclared.json",
+      "sha256": "340463b3a4cfb545f23f63dc720d3d489180499ba6031a58e3fa93a2f7c32934",
+      "bytes": 875,
+      "full_mode": 384,
+      "mtime_ns": 1791043302445569341,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/review-proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/review-proposal.json",
+      "sha256": "ce182bd313f3bd94f2ab2870b8e6ae98f27f6c8ee7eb22c34c147a4eeaf96873",
+      "bytes": 834,
+      "full_mode": 384,
+      "mtime_ns": 1791043177951959332,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/socket_peer.after.rs",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/socket_peer.after.rs",
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "bytes": 15289,
+      "full_mode": 384,
+      "mtime_ns": 1791043177950552336,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/socket_peer.before.rs",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/socket_peer.before.rs",
+      "sha256": "5824f8f0c964af3559fb65190d600e03a3ef1bc67a37fceabe5e76a489ed52da",
+      "bytes": 15226,
+      "full_mode": 384,
+      "mtime_ns": 1791043177950243223,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/stable.fmt.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/stable.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043333614693039,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/helper-correction-after-first-compile/stable.fmt.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/helper-correction-after-first-compile/stable.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043333614693039,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/4.1.2-strict-compile.monitor.jsonl",
+      "sha256": "5e64ff0029a3727df37204b7baee440b9185bd2752c4c1ba1d95c7d1ce8cd65a",
+      "bytes": 963,
+      "full_mode": 384,
+      "mtime_ns": 1791043959688697719,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/4.1.2-strict-compile.stderr.log",
+      "sha256": "e7578c88754d7e6d97375d0f0484f767cd1c6526264f5b27867f0241349c8c24",
+      "bytes": 2517,
+      "full_mode": 384,
+      "mtime_ns": 1791043959496694633,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/4.1.2-strict-compile.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/4.1.2-strict-compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043958472678180,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/failure.json",
+      "sha256": "67ad358af80a558131ea2e411490ab91a084834f019f4574fc1ed250d120dc8c",
+      "bytes": 271,
+      "full_mode": 384,
+      "mtime_ns": 1791043965469900885,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/java-identity.monitor.jsonl",
+      "sha256": "93cb289fcc190134a7a664bbe4dfb160cfc20c5cd0c74c0b5e5c5a212bfbfe38",
+      "bytes": 272,
+      "full_mode": 384,
+      "mtime_ns": 1791043946748490500,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/java-identity.stderr.log",
+      "sha256": "1fa9315f71c942de524686f1e218078d8af209da05f361b2db371fc56bbf8359",
+      "bytes": 217,
+      "full_mode": 384,
+      "mtime_ns": 1791043946576487758,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/java-identity.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/java-identity.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791043946540487184,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01/validation.json",
+      "sha256": "af9756d88f5b50485eaa6c670633702110cb9bb1a1b4214ea26e7f8d96068259",
+      "bytes": 5377,
+      "full_mode": 384,
+      "mtime_ns": 1791043965469704761,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.monitor.jsonl",
+      "sha256": "46d64e26c31966613508a5470bd30b28b8e20415c6118540563765db297688b2",
+      "bytes": 829,
+      "full_mode": 384,
+      "mtime_ns": 1791044687428613878,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stderr.log",
+      "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+      "bytes": 30,
+      "full_mode": 384,
+      "mtime_ns": 1791044686424592870,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791044686416592703,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.monitor.jsonl",
+      "sha256": "830149da09fa61637935d9dac1412ce82636ff0f79b927569fa41b7cc5be70a2",
+      "bytes": 974,
+      "full_mode": 384,
+      "mtime_ns": 1791044700104840408,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stderr.log",
+      "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+      "bytes": 30,
+      "full_mode": 384,
+      "mtime_ns": 1791044698900819172,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791044698892819028,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.monitor.jsonl",
+      "sha256": "eb52a7c7b930ba77ad3dc5bf4bfc167fc53995f79f94ba2bc281ee3c6a9cdf46",
+      "bytes": 976,
+      "full_mode": 384,
+      "mtime_ns": 1791044712701054834,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stderr.log",
+      "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+      "bytes": 30,
+      "full_mode": 384,
+      "mtime_ns": 1791044711497034514,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791044711489034379,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.monitor.jsonl",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/java-identity.monitor.jsonl",
+      "sha256": "3c2b43e1bddb801b814793d6ebf2bb63e1bbc7da39e6cf2b1de1b9d01cd9a248",
+      "bytes": 273,
+      "full_mode": 384,
+      "mtime_ns": 1791044674752391508,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/java-identity.stderr.log",
+      "sha256": "1fa9315f71c942de524686f1e218078d8af209da05f361b2db371fc56bbf8359",
+      "bytes": 217,
+      "full_mode": 384,
+      "mtime_ns": 1791044674576388615,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/java-identity.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791044674548388153,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02/validation.json",
+      "sha256": "74b2a23acb975a51a362765aeafa6a0eef4a7eb248ba31bfb96a09dbfb05cb91",
+      "bytes": 15568,
+      "full_mode": 384,
+      "mtime_ns": 1791044718540041195,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/CapabilityOracle.java",
+      "sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+      "bytes": 21332,
+      "full_mode": 384,
+      "mtime_ns": 1791044473310926025,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java.before",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/CapabilityOracle.java.before",
+      "sha256": "8b5b75b6e911174ab8c903b218b11570cbe83c2e41f4157a7d0627178e76d382",
+      "bytes": 18687,
+      "full_mode": 384,
+      "mtime_ns": 1791044473310879265,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/CapabilityOracle.java.patch",
+      "sha256": "739b44ac33602cdc2441298b3606f68f64c84ddb07394f2fd9c473f389220897",
+      "bytes": 6410,
+      "full_mode": 384,
+      "mtime_ns": 1791044473312146843,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/PublicAdminProbe.java",
+      "sha256": "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4",
+      "bytes": 6261,
+      "full_mode": 384,
+      "mtime_ns": 1791044473312490227,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java.before",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/PublicAdminProbe.java.before",
+      "sha256": "8965efae2d3b65f7405e8fe705cbc000961c035f285a58b336a62b06bd17ca41",
+      "bytes": 3457,
+      "full_mode": 384,
+      "mtime_ns": 1791044473312445580,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java.patch",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/PublicAdminProbe.java.patch",
+      "sha256": "50b10c6753623afc82290cd107d5dd6e086ea535da04e71bdb0aea9c26632a3d",
+      "bytes": 6815,
+      "full_mode": 384,
+      "mtime_ns": 1791044473313400961,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/checked-official-signature-matrix.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/checked-official-signature-matrix.json",
+      "sha256": "b4499c2cac921075a7ef3465fc1f400d416242502a9047340af357da512c4fb9",
+      "bytes": 3552,
+      "full_mode": 384,
+      "mtime_ns": 1791044542187185445,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/installation-predeclared.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/installation-predeclared.json",
+      "sha256": "d342b108688b30abf20a5ca6f9ed9e2c05716ce35daf90c9a38b11d5f2cd8805",
+      "bytes": 1449,
+      "full_mode": 384,
+      "mtime_ns": 1791044605577574116,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-correction-after-first-compile/proposal.json",
+      "sha256": "cc5a99a8e8f4afa36f4a61f50c80f9a07982bc944cea53cf1dcae11a49788d9f",
+      "bytes": 1786,
+      "full_mode": 384,
+      "mtime_ns": 1791044473313624696,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-compiler-inputs.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-compiler-inputs.json",
+      "sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+      "bytes": 24217,
+      "full_mode": 384,
+      "mtime_ns": 1791042724401280286,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-forced-recompile-overlap-forecast-proposed.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-forced-recompile-overlap-forecast-proposed.json",
+      "sha256": "a05568cd785a7528836af00e15f01fbedf1e6b9299f9e323b2ba14e29d6009e5",
+      "bytes": 2807,
+      "full_mode": 384,
+      "mtime_ns": 1791050154834823661,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-forced-refined-actual-elf-forecast-proposed.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-forced-refined-actual-elf-forecast-proposed.json",
+      "sha256": "726a66f74dc147314f5461c8243b74a8560181c3280baa5ea8b9feb36f29a4bf",
+      "bytes": 3888,
+      "full_mode": 384,
+      "mtime_ns": 1791051369968548784,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-helper-correction-stage-paths.txt",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-helper-correction-stage-paths.txt",
+      "sha256": "59f9ab1912ab355e4a793b73f72fd0fb14a853308497ebf8a79fef5d75bf980f",
+      "bytes": 4054,
+      "full_mode": 384,
+      "mtime_ns": 1791049890933906591,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-helper-correction-stage.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-helper-correction-stage.json",
+      "sha256": "fa1c6b9c7d6817e283559638394b5ef2103d4d7123ed5a0f6ebd0e7dff0bf4bd",
+      "bytes": 15660,
+      "full_mode": 384,
+      "mtime_ns": 1791049890933857137,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-only-incremental-forecast-after-7942-pass.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-only-incremental-forecast-after-7942-pass.json",
+      "sha256": "2aadcb377c0cf3173ac46004ff1d7448b12e11454f9164e050b7153e70745f02",
+      "bytes": 4363,
+      "full_mode": 384,
+      "mtime_ns": 1791048257425815321,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-overlay-after-helper-correction.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline-overlay-after-helper-correction.json",
+      "sha256": "6bdb43d5f9d5f6719508ae231377c1f556576231079425813a2e6c626400a800",
+      "bytes": 2955,
+      "full_mode": 384,
+      "mtime_ns": 1791047374690538896,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-attempt-01-driver.log",
+      "sha256": "38aebfbcf18ba43bc48ea1253fadfae9106794a38908ee29345d7c41deeea585",
+      "bytes": 984,
+      "full_mode": 384,
+      "mtime_ns": 1791052442495591772,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-marker-v5-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-marker-v5-attempt-01-driver.log",
+      "sha256": "aea339422fc1f5a993e6ecba92f354bae2ae0bf55abb32638533561a7e090f89",
+      "bytes": 1583,
+      "full_mode": 384,
+      "mtime_ns": 1791057880492026776,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-platform-v2-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-platform-v2-attempt-01-driver.log",
+      "sha256": "6bbc9182c426ab7e63eea690994444b6dac548d71c9ef9ab4606b47b1c879449",
+      "bytes": 903,
+      "full_mode": 384,
+      "mtime_ns": 1791054318717893856,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-driver.log",
+      "sha256": "5966ca030db22624e8c574c7aa378d340c59671445ba0e9f1bb7638cb282dd77",
+      "bytes": 763,
+      "full_mode": 384,
+      "mtime_ns": 1791059885398271057,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-parent-launch.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline403-forced-04f6bc29-quarantine-v2-attempt-01-parent-launch.json",
+      "sha256": "4067f182f2c94398006c09c0d00d8feec6b7d3bf028f1342a8cb0577f83755c1",
+      "bytes": 1327,
+      "full_mode": 384,
+      "mtime_ns": 1791059703410731459,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline_positive_controls.rs",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/baseline_positive_controls.rs",
+      "sha256": "f05c8ba8b1013d7823aa81254b2c90017bfcc504c68282cfb5b4a4dbb34bda32",
+      "bytes": 2678,
+      "full_mode": 384,
+      "mtime_ns": 1791042471216637050,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-after-f0ca-compile-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/cache-after-f0ca-compile-failure.json",
+      "sha256": "edc1007cee084343a296689fe4b95e2d251373f367befeb9a878c0e99b335a63",
+      "bytes": 963,
+      "full_mode": 384,
+      "mtime_ns": 1791046677643235610,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/focused-incremental-forecast-after-e90-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/focused-incremental-forecast-after-e90-failure.json",
+      "sha256": "597d923ca7ae70e45be89b13171d95a1dcd6459f16e2674534716fa7281677b0",
+      "bytes": 5420,
+      "full_mode": 384,
+      "mtime_ns": 1791044253855450472,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/forced-baseline-runner-preparation-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/forced-baseline-runner-preparation-controls.json",
+      "sha256": "dc5f702fc3b588d045a1171029b4e1e364906bb2e6c0cbfb2b71f284ce7affb8",
+      "bytes": 1644,
+      "full_mode": 384,
+      "mtime_ns": 1791051752604893737,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/guard-original403-for-baseline.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/guard-original403-for-baseline.py",
+      "sha256": "7d17437a0bdeaf030ccc385e5884ad53d6f6cbb1f0189e501adc31b1d9850594",
+      "bytes": 2226,
+      "full_mode": 384,
+      "mtime_ns": 1791048866694523651,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-diagnostic-overlay-attempt-02-driver.log",
+      "sha256": "f16802429fc3dde36ea3f40912d10141f90012c4b009fb7b283c6dca00ed9319",
+      "bytes": 359,
+      "full_mode": 384,
+      "mtime_ns": 1791044718540041195,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-only-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/java-only-attempt-01-driver.log",
+      "sha256": "25874e0cbdaf409376b35a5406ee8f24322bf18fec290afe5602129063f3e0f8",
+      "bytes": 782,
+      "full_mode": 384,
+      "mtime_ns": 1791043965469900885,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/predeclare-plan.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/predeclare-plan.py",
+      "sha256": "3fd529321d46b2e9d08e3c5a2b0875ec70b0d3783fd12e691d2c8e84506d7eef",
+      "bytes": 14965,
+      "full_mode": 384,
+      "mtime_ns": 1791042724160762570,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/qa-plan.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/qa-plan.json",
+      "sha256": "ed67566b33de3d5b3aeda12314ab08498bb2afb6ad9e42a6607a78800cbc1548",
+      "bytes": 29578,
+      "full_mode": 384,
+      "mtime_ns": 1791042724401662247,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/review-source.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/review-source.py",
+      "sha256": "e6c7447c57b4db09da35d6824f7662bf40e1adf20159f14b2093fafb02690ba6",
+      "bytes": 7426,
+      "full_mode": 384,
+      "mtime_ns": 1791042062061948267,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-baseline403-after-7942.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-baseline403-after-7942.py",
+      "sha256": "8cd64667d1de746abb483ae45c89afcad4ee47b2f6acb8a1273613d95fc3247b",
+      "bytes": 22526,
+      "full_mode": 384,
+      "mtime_ns": 1791048464267486854,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused-7942-first.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-focused-7942-first.py",
+      "sha256": "4441bbd00ab7fc665d076e203e400e1099bcbd1e53dab2bf66bff961d5f7d9cc",
+      "bytes": 14861,
+      "full_mode": 384,
+      "mtime_ns": 1791047632478158648,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused-f0ca-first.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-focused-f0ca-first.py",
+      "sha256": "ce2b6109c706512a4d2e361be649f9632bfe2a904493a37268bd8658b3366d3d",
+      "bytes": 14858,
+      "full_mode": 384,
+      "mtime_ns": 1791046354632566506,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-focused.py",
+      "sha256": "a6e3db5c60b03a131a4d16a5265ba751ffff93e84c9d879c2cb2cc75f927052b",
+      "bytes": 10670,
+      "full_mode": 384,
+      "mtime_ns": 1791043028425702907,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-after-newpin.pre-symbol-probe-52ea2d94.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-after-newpin.pre-symbol-probe-52ea2d94.py",
+      "sha256": "52ea2d946e290f051c580c31f16517ee77d92bc17b480987b7a8f6f6b3d96416",
+      "bytes": 33183,
+      "full_mode": 384,
+      "mtime_ns": 1791050836424332482,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-after-newpin.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-after-newpin.py",
+      "sha256": "68f172053b61b9619b26101e2f22c210d4f9ea7f1279d12c4f74b6cede9ec384",
+      "bytes": 33848,
+      "full_mode": 384,
+      "mtime_ns": 1791051369968941763,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-before-measured-forecast-92148354.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-before-measured-forecast-92148354.py",
+      "sha256": "9214835406403341491df95ba1992f4fb698003ac952b2f42377f567d23689da",
+      "bytes": 33726,
+      "full_mode": 384,
+      "mtime_ns": 1791051369968770216,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception-v2.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-platform-exception-v2.py",
+      "sha256": "231425e452e5f1045b5eb6a8006a459d6f8ed6f4bd3dca3dc44afc4a6b3ba07c",
+      "bytes": 40891,
+      "full_mode": 384,
+      "mtime_ns": 1791053858704468944,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-platform-exception.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-platform-exception.py",
+      "sha256": "e0919e0a61cee3d304bff3d822d1bc54c41e412d92f23f7b288951fa3150ba90",
+      "bytes": 38734,
+      "full_mode": 384,
+      "mtime_ns": 1791053315143426090,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v1.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-quarantine-v1.py",
+      "sha256": "ff3ab5eeab85c294a979126cce6dcef9e33c31ee092bca30173f2519c179cdb0",
+      "bytes": 52632,
+      "full_mode": 384,
+      "mtime_ns": 1791058780794898407,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-quarantine-v2.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-quarantine-v2.py",
+      "sha256": "6c64161cca8cde4eb0a367fce475ece8c2dff7fabe5df3a2db3fe0e38c2bc081",
+      "bytes": 53721,
+      "full_mode": 384,
+      "mtime_ns": 1791059143856430173,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v3.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-standard-marker-v3.py",
+      "sha256": "39609fb5f5b2777810fabafa8b659a1ee92fd0746b24e34fe9d53963d5056182",
+      "bytes": 48167,
+      "full_mode": 384,
+      "mtime_ns": 1791055118912114729,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v4.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-standard-marker-v4.py",
+      "sha256": "8065020485bec6865e09ffb567130194ccf9bdc6f3121fa5efc032234ea908fe",
+      "bytes": 49145,
+      "full_mode": 384,
+      "mtime_ns": 1791056458722345848,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-forced-baseline403-standard-marker-v5.py",
+      "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+      "bytes": 49877,
+      "full_mode": 384,
+      "mtime_ns": 1791056952848436227,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-diagnostic-overlay.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-java-diagnostic-overlay.py",
+      "sha256": "cb48b2a04aab859f6a39fc99ef7033b4f36e7c088d701bfbc00676f59766a7a5",
+      "bytes": 7240,
+      "full_mode": 384,
+      "mtime_ns": 1791044668466847241,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-only.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/run-java-only.py",
+      "sha256": "0a68b8828e136f703602ea5d1544806064104e5a92f4d919b3f48d0823b333f8",
+      "bytes": 7311,
+      "full_mode": 384,
+      "mtime_ns": 1791043940520391215,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/source-review.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/source-review.json",
+      "sha256": "d6da3f655875a507194e6c86c63e56a6afaabb03b3a7698511686f5ed8c1799a",
+      "bytes": 2755,
+      "full_mode": 384,
+      "mtime_ns": 1791042085134051428,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-baseline403-after-7942-attempt-01-driver.log",
+      "sha256": "eb76f91bde8d1e493ae1b39b41e0e6bbe33aab7c477dfc52f2c700def04d5bd3",
+      "bytes": 848,
+      "full_mode": 384,
+      "mtime_ns": 1791048913215850837,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-7942fbac-attempt-01-driver.log",
+      "sha256": "3638e8ef0dbb68f114e6302715e8f5370a0e299a2b5ad2c6480d66033b28d25c",
+      "bytes": 194,
+      "full_mode": 384,
+      "mtime_ns": 1791047657400621569,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-01-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-01-driver.log",
+      "sha256": "8e7e7e7547621d010bedc6e33d0a8a35391cb37fde7cd0a26520ffd97e9366ed",
+      "bytes": 1125,
+      "full_mode": 384,
+      "mtime_ns": 1791046290337865434,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-f0ca05da-attempt-02-driver.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/stable-focused-f0ca05da-attempt-02-driver.log",
+      "sha256": "cec1f6758068b4c287c3ae3e76a610ef1f0a038eb0b4eecef509b4c0a180534b",
+      "bytes": 758,
+      "full_mode": 384,
+      "mtime_ns": 1791046374551527617,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/warm-cache-after-first-failure.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/warm-cache-after-first-failure.json",
+      "sha256": "4d3d94ebbf58926aca5d767d53431433a0d93c900e868cc067361346ca0efadd",
+      "bytes": 951,
+      "full_mode": 384,
+      "mtime_ns": 1791043681027045384,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/proposal.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/preparation-and-history/package-invalidation-proposal-after-baseline-setup/proposal.json",
+      "sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+      "bytes": 171951,
+      "full_mode": 384,
+      "mtime_ns": 1791049412809152432,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/check-v4-counterexample-frozen.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/check-v4-counterexample-frozen.py",
+      "sha256": "ea5f52a48b66290503d70a9978b25ae9ece95a3dac393e158612fcbff08d21a0",
+      "bytes": 7226,
+      "full_mode": 384,
+      "mtime_ns": 1791057326564045921,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/check.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/check.py",
+      "sha256": "d7184eed8d3ff1b0b66cf74bd5a9e09d6b4cdf47f35f8f2e2d0b9ec2ebdf72ac",
+      "bytes": 8092,
+      "full_mode": 384,
+      "mtime_ns": 1791057326795047893,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/current608-readonly.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/current608-readonly.json",
+      "sha256": "9bc232397aa64cb5ed95321c50e091490506237716deec7a545859b83b29cb54",
+      "bytes": 162395,
+      "full_mode": 384,
+      "mtime_ns": 1791057142329765124,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/final-v5-packet-binding.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/final-v5-packet-binding.json",
+      "sha256": "ec2d029ccf967155781c0f471cf8692d5b51317056cc9710dd88ab765112964c",
+      "bytes": 2809,
+      "full_mode": 384,
+      "mtime_ns": 1791057787149682695,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/v4-counterexamples.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/v4-counterexamples.json",
+      "sha256": "6a16ed2c02e0c4d42bc78226d3a1c34989be620c0c272cb953061a247170ba71",
+      "bytes": 9399,
+      "full_mode": 384,
+      "mtime_ns": 1791057025656419007,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/v5-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/v5-controls.json",
+      "sha256": "55c735ff5715afa0fd98572695bfe4419e1e5a9c6341f1951bd16ca2c61abc6f",
+      "bytes": 11277,
+      "full_mode": 384,
+      "mtime_ns": 1791057327212101171,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/v5-inherited32-independent.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/v5-inherited32-independent.json",
+      "sha256": "e6ad70dec92f530e77b3fc18e853c38812082a795fa18480a2dff4fdc61a714d",
+      "bytes": 3949,
+      "full_mode": 384,
+      "mtime_ns": 1791057449894811619,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/cache-marker-review-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/cache-marker-review-01/validation.json",
+      "sha256": "059519ca543b6d83e5590a92a9f7e9ad0a931e62d79a9aba6c63b579b129384b",
+      "bytes": 46650,
+      "full_mode": 384,
+      "mtime_ns": 1791057571007481552,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/check-v1.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/check-v1.py",
+      "sha256": "8c708dd7615623cd97cffc46cef49e0d52a08ccaf0fc6553fe3ec73c62e29273",
+      "bytes": 2216,
+      "full_mode": 384,
+      "mtime_ns": 1791059155469485775,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/check-v2.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/check-v2.py",
+      "sha256": "d7202ea096cef18258bf12027e3cdca28d7a0363d5c53b8d97c9360c5a951124",
+      "bytes": 2480,
+      "full_mode": 384,
+      "mtime_ns": 1791059390956169255,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/current25-readonly-metadata.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/current25-readonly-metadata.json",
+      "sha256": "f7ea22fdc0e7f29ada7153d22ff83862b31aba0107dc436a36fa6de7c5899303",
+      "bytes": 7201,
+      "full_mode": 384,
+      "mtime_ns": 1791059445659290503,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/v1-controls-and-counterexample.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/v1-controls-and-counterexample.json",
+      "sha256": "d4d59aa6f193a1bc0eabd36b1b2de60ddad328dbf1dc5a18cccabe4cf2a37323",
+      "bytes": 1437,
+      "full_mode": 384,
+      "mtime_ns": 1791059161848026426,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/v1-frozen-inputs.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/v1-frozen-inputs.json",
+      "sha256": "15fb585b799ed939ec0dcb9c4c55a2532e405382b9bcbc834f9fc858e68899e0",
+      "bytes": 6495,
+      "full_mode": 384,
+      "mtime_ns": 1791059155469425836,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/v2-controls.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/v2-controls.json",
+      "sha256": "e890e86cc163ad05a30f8638a4fcb8a6716951781a05820e43e22b56075b945a",
+      "bytes": 4424,
+      "full_mode": 384,
+      "mtime_ns": 1791059396559407823,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/v2-frozen-inputs.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/v2-frozen-inputs.json",
+      "sha256": "4dcd81099d7ac8e9a55a6b87cce94f3a322cd8a4c93e14f707a249bf69b46511",
+      "bytes": 3588,
+      "full_mode": 384,
+      "mtime_ns": 1791059390956098479,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/package-quarantine-review-01/validation.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/independent-review/package-quarantine-review-01/validation.json",
+      "sha256": "051c11b1a6fd2de399ec9afa234e79bb67ccbc3033b57d6ce7f7e446549ccc99",
+      "bytes": 19341,
+      "full_mode": 384,
+      "mtime_ns": 1791059524227584320,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/source-origins/current04f/receipt.json",
+      "sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+      "bytes": 3218,
+      "full_mode": 384,
+      "mtime_ns": 1791052286820187553,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/client-capabilities-source-04f6bc29/complete-source.json.gz",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/source-origins/current04f/complete-source.json.gz",
+      "sha256": "e3e549aae650a679e50b4989f99022f4706abd7ef0c3ef18c237c1c101f63129",
+      "bytes": 2630489,
+      "full_mode": 384,
+      "mtime_ns": 1791052286627063209,
+      "payload_kind": "gzipJSON_source_audit_only",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/integration/broker-merged-source-403be1e3/receipt.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/source-origins/original403/receipt.json",
+      "sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff",
+      "bytes": 1453,
+      "full_mode": 384,
+      "mtime_ns": 1791028117151814163,
+      "payload_kind": "source/text/log/json",
+      "source_frozen_or_closed": true
+    }
+  ]
+}

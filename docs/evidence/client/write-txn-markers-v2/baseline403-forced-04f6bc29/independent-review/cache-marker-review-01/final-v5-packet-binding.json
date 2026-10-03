@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "scope": "Additive read-only final V5 packet binding; prior independent review unchanged; zero actual tag/Docker/Cargo/clean commands",
+  "prior_review": {
+    "path": "/workspace/work/integration/cache-marker-review-01/validation.json",
+    "sha256": "059519ca543b6d83e5590a92a9f7e9ad0a931e62d79a9aba6c63b579b129384b",
+    "bytes": 46650,
+    "full_mode": 384
+  },
+  "packet_manifest": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/frozen-packet-manifest.json",
+    "sha256": "e39493766a35bb749f786e245bbc54f854dc9fa060d5b5986633b26681691edb",
+    "bytes": 2182,
+    "full_mode": 384
+  },
+  "verified_files": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py",
+      "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d",
+      "bytes": 49877,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/check-marker-dryrun-controls.py",
+      "sha256": "f461d3271f00a307b09fd22a97ae4b80835a281bccf0ea76fb60628c5a248490",
+      "bytes": 13441,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/marker-dryrun-controls.json",
+      "sha256": "f53fe4f19fc20cb4f5ca3a075efbaa0d8a8fe65d887fb253ba3c33dbb80e181d",
+      "bytes": 3877,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/proposal.json",
+      "sha256": "feffe191999cf557f1e6d1f630eef5991f7a0bdf4e089ac8af625f1b518e0bac",
+      "bytes": 15411,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/readonly-preflight-forecast.json",
+      "sha256": "aa2d581a42d99d94eb8a6ea212e33c33771fba2b513d7f61cead8756324b4c11",
+      "bytes": 4138,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/runner.proposed.patch",
+      "sha256": "04185101dde88fac2e6658bc922cad30df68a430b63aed83311e3cb1347229c1",
+      "bytes": 1536,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/verify-readonly-preflight.py",
+      "sha256": "7f0b19a92f9334329d462e1830bb4ceb9421ac4b9406478f53729574d2202269",
+      "bytes": 5705,
+      "full_mode": 384
+    }
+  ],
+  "verdict": "Final runner and patch match reviewed 2c92/0418 inputs; all seven rows rehashed with full modes and byte counts; no operational qualification inferred."
+}

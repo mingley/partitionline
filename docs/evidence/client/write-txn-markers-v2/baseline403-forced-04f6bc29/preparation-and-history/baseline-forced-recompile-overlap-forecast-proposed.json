@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "WORK-only baseline retry proposal; sourcepin/Cargo clean/compile/runtime all held for ROOT GO",
+  "sampled_at_unix": 1791050154.8344028,
+  "current_free_bytes": 1013207040,
+  "baseline_without_native_allowance_required_postclean_free_bytes": 913886435,
+  "already_retained_package_gzip_bytes_not_added_again": 27156162,
+  "current_package_clean_reclaim_allocated_bytes": 89194496,
+  "expected_postclean_free_bytes_if_actual_all25_output_removal_verified": 1102401536,
+  "rpc_aggregate_required_free_bytes": 507669536,
+  "common_sampled_floor_bytes_counted_once": 367001600,
+  "aggregate_baseline_rpc_required_postclean_free_bytes": 1054554371,
+  "aggregate_required_current_free_bytes_if_confirmed_clean_reclaim": 965359875,
+  "projected_overlap_headroom_bytes": 47847165,
+  "projected_fits": true,
+  "overlap_formula": "baseline913886435 + RPC507669536 - shared350MiB367001600 =1054554371 post-clean required; subtract measured89194496 only for projection, never substitute it for actual fresh launch statvfs",
+  "baseline_forecast_reference_sha256": "2aadcb377c0cf3173ac46004ff1d7448b12e11454f9164e050b7153e70745f02",
+  "package_restore_map_sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+  "excluded_from_future_growth": [
+    "native140509184 separate allowance is removed; RPC aggregate replaces it",
+    "already allocated27,156,162B retained package gzip (current free sample already reflects it)",
+    "no full client/MSRV/JVM/finalmatrix expansion"
+  ],
+  "preclean_and_prelaunch_requirements": [
+    "ROOT exactnewsource/lease/clean approval",
+    "fresh fullpath/SHA/fullmode package map plus lossless restore verification; preserve dependencies",
+    "process/source guards, any unexplained owner/inaccessible live fields prevent removal",
+    "actual post-clean statvfs >= aggregate1054554371B before first baseline compile; observer350MiB cutoff remains sampled",
+    "future newsource materialization bytes are not prepaid: resample after ROOT new pin materializes",
+    "full old/new package artifact hashes and verbose rustc lib command required; no reused candidate library can qualify baseline"
+  ],
+  "targeted_package_forecast_components": {
+    "one_new_library_bundle_50percent_over_measured_candidate_bytes": 83002787,
+    "three_new_test_targets_reference_bytes_each": 62074560,
+    "persistent_incremental_cache_bytes": 269226467,
+    "one_transient_link_codegen_allowance_bytes": 62074560,
+    "new_lossless_ELF_capture_rawsize_allowance_bytes": 194612288,
+    "metadata_and_log_reserve_bytes": 16777216,
+    "selective_hardlink_source_directory_and_overlay_reserve_bytes": 4194304,
+    "sampled_free_floor_bytes": 367001600,
+    "required_free_bytes": 913886435
+  },
+  "candidate_still_excluded_from_GO": true
+}

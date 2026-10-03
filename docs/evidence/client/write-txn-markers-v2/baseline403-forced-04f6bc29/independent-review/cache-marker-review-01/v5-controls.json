@@ -1,0 +1,322 @@
+{
+  "actual_Cargo_Docker_SDK_cleanup_commands": 0,
+  "actual_tag_cache_source_writes": 0,
+  "affinity": [
+    2,
+    4
+  ],
+  "all_inputs_bytes_full07777_mtimes_unchanged": true,
+  "candidate_strict_set_controls": {
+    "all_existing_function_ASTs_byte_semantics_unchanged": [
+      "cache_allocated",
+      "close_group",
+      "digest",
+      "docker_zero_running_workloads",
+      "env",
+      "exact_dryrun_package_paths",
+      "files",
+      "forecast",
+      "free_bytes",
+      "group_members",
+      "guard_package_outputs_and_processes",
+      "interrupted",
+      "materialize_baseline",
+      "persist",
+      "process_reference_guard",
+      "prove_forced_old_library",
+      "repair_standard_owned_cache_marker",
+      "retain_cache",
+      "run",
+      "seed_retention",
+      "selected_origin_guard",
+      "source_guard",
+      "test_result",
+      "verify_complete_cache_map",
+      "verify_docker_cli",
+      "verify_platform_daemons"
+    ],
+    "positive584": {
+      "accepted": true,
+      "actual_operations": 0,
+      "remaining_mock_paths": 584
+    },
+    "reject_added_regular": {
+      "accepted": false,
+      "actual_operations": 0,
+      "remaining_mock_paths": 585
+    },
+    "reject_added_symlink": {
+      "accepted": false,
+      "actual_operations": 0,
+      "remaining_mock_paths": 585
+    },
+    "source": {
+      "bytes": 49877,
+      "full07777": 384,
+      "mtime_ns": 1791056952848436227,
+      "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d"
+    }
+  },
+  "inherited28_source_controls_independently_passed": [
+    {
+      "name": "standard177B-repair-only-after-complete608-map-and-owned-directory",
+      "passed": true
+    },
+    {
+      "name": "reject-target-wrong_owner-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-wrong_mode-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-different_inode-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-symlink_target-before-write",
+      "passed": true
+    },
+    {
+      "name": "refuse-unreviewed-existing-marker-invalid",
+      "passed": true
+    },
+    {
+      "name": "refuse-unreviewed-existing-marker-standard",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-dependency-cache-hash-before-marker-write",
+      "passed": true
+    },
+    {
+      "name": "reject-unreviewed-cache609-before-repair",
+      "passed": true
+    },
+    {
+      "name": "reject607-even-when-map-consistent-before-write",
+      "passed": true
+    },
+    {
+      "name": "fsync-failure-prevents-marker-publication-retains-temp-state",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-bare",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-Removing",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-backtick",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-directory",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-missing_one-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-marker-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-unknown-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-root-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-deps-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-unparseable-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-none-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-cache_changed-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "frozen608-SHA-bytes-fullmode-mtime-positive-retained25-gzip",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-sha256-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-bytes-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-full_mode-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-mtime_ns-mismatch-before-marker",
+      "passed": true
+    }
+  ],
+  "input_after": {
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/check-marker-dryrun-controls.py": {
+      "bytes": 12531,
+      "full07777": 384,
+      "mtime_ns": 1791056458722582973,
+      "sha256": "68da32ad8a5c19ee65ed61c195a8227098cc29971c811c46270fa5d86b237808"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/frozen-packet-manifest.json": {
+      "bytes": 2456,
+      "full07777": 384,
+      "mtime_ns": 1791056738868742255,
+      "sha256": "193617989b6294d3a916b00f0673228883f78febc58e14b62183fa5ab5d00f50"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/marker-dryrun-controls.json": {
+      "bytes": 3447,
+      "full07777": 384,
+      "mtime_ns": 1791056458871209550,
+      "sha256": "da5532de61de439f2703803583c80dde171035c3b274ce12e504b7f652ac161e"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/proposal.json": {
+      "bytes": 14622,
+      "full07777": 384,
+      "mtime_ns": 1791056738868101025,
+      "sha256": "44b02bac2e2884ed4cfe9707b02d7f21cb3cd502cfe9e7414f3f8a1cf00bedc3"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed": {
+      "bytes": 177,
+      "full07777": 384,
+      "mtime_ns": 1791054853216870942,
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/proposal.json": {
+      "bytes": 171951,
+      "full07777": 384,
+      "mtime_ns": 1791049412809152432,
+      "sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json": {
+      "bytes": 184402,
+      "full07777": 384,
+      "mtime_ns": 1791054034754123096,
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/exact-platform-daemons.json": {
+      "bytes": 1767,
+      "full07777": 384,
+      "mtime_ns": 1791052722118164774,
+      "sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v4.py": {
+      "bytes": 49145,
+      "full07777": 384,
+      "mtime_ns": 1791056458722345848,
+      "sha256": "8065020485bec6865e09ffb567130194ccf9bdc6f3121fa5efc032234ea908fe"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py": {
+      "bytes": 49877,
+      "full07777": 384,
+      "mtime_ns": 1791056952848436227,
+      "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d"
+    }
+  },
+  "input_before": {
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/check-marker-dryrun-controls.py": {
+      "bytes": 12531,
+      "full07777": 384,
+      "mtime_ns": 1791056458722582973,
+      "sha256": "68da32ad8a5c19ee65ed61c195a8227098cc29971c811c46270fa5d86b237808"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/frozen-packet-manifest.json": {
+      "bytes": 2456,
+      "full07777": 384,
+      "mtime_ns": 1791056738868742255,
+      "sha256": "193617989b6294d3a916b00f0673228883f78febc58e14b62183fa5ab5d00f50"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/marker-dryrun-controls.json": {
+      "bytes": 3447,
+      "full07777": 384,
+      "mtime_ns": 1791056458871209550,
+      "sha256": "da5532de61de439f2703803583c80dde171035c3b274ce12e504b7f652ac161e"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v4/proposal.json": {
+      "bytes": 14622,
+      "full07777": 384,
+      "mtime_ns": 1791056738868101025,
+      "sha256": "44b02bac2e2884ed4cfe9707b02d7f21cb3cd502cfe9e7414f3f8a1cf00bedc3"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation/standard-CACHEDIR.TAG.proposed": {
+      "bytes": 177,
+      "full07777": 384,
+      "mtime_ns": 1791054853216870942,
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/proposal.json": {
+      "bytes": 171951,
+      "full07777": 384,
+      "mtime_ns": 1791049412809152432,
+      "sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation-v2/current-complete-cache-hash-fullmode-map.json": {
+      "bytes": 184402,
+      "full07777": 384,
+      "mtime_ns": 1791054034754123096,
+      "sha256": "396be0836255e97c50becf37172d2a3402f25a868f0c27aaa8e86811062e286b"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/platform-daemon-exception-preparation/exact-platform-daemons.json": {
+      "bytes": 1767,
+      "full07777": 384,
+      "mtime_ns": 1791052722118164774,
+      "sha256": "5b225336055754c792fecb6f2ce24364a6330fb93f728011ebb78ab53bd51ebd"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v4.py": {
+      "bytes": 49145,
+      "full07777": 384,
+      "mtime_ns": 1791056458722345848,
+      "sha256": "8065020485bec6865e09ffb567130194ccf9bdc6f3121fa5efc032234ea908fe"
+    },
+    "/workspace/work/client-capability-qa-preparation-e90efb49/run-forced-baseline403-standard-marker-v5.py": {
+      "bytes": 49877,
+      "full07777": 384,
+      "mtime_ns": 1791056952848436227,
+      "sha256": "2c92b36731a1f482e45237972d7d99bdff79fc9ebdb1a52181ad28ce65160e9d"
+    }
+  },
+  "limitations": [
+    "No actual repair, dryrun, cleanup, compiler, Docker query or API behavior executed.",
+    "These are exact extracted post-clean source guards applied to a bounded memory model."
+  ],
+  "root_requested_scope": "standard177B-only marker plus historical608 through609 dryrun and strict584 survivors; root alone authorizes operational launch",
+  "schema_version": 1,
+  "scope": "independent extracted source/memory controls only",
+  "v4_concrete_pathset_counterexample": {
+    "positive584": {
+      "accepted": true,
+      "actual_operations": 0,
+      "remaining_mock_paths": 584
+    },
+    "unreviewed_regular_counterexample": {
+      "accepted": true,
+      "actual_operations": 0,
+      "remaining_mock_paths": 585
+    },
+    "unreviewed_symlink_counterexample": {
+      "accepted": true,
+      "actual_operations": 0,
+      "remaining_mock_paths": 585
+    }
+  }
+}

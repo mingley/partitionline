@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "releases": [
+    {
+      "release": "4.1.2",
+      "official_jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "official_jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "actual_jar_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "actual_public_result_type": "org.apache.kafka.clients.consumer.OffsetAndMetadata",
+      "class_sha256": "b5ea6398358cf461a10d98228569b3781b99d15605b21f30e1c970ccb574b120",
+      "actual_classfile_method_descriptors": {
+        "class_major": 55,
+        "class_minor": 0,
+        "methods": {
+          "<init>": "(J)V",
+          "offset": "()J",
+          "metadata": "()Ljava/lang/String;",
+          "leaderEpoch": "()Ljava/util/Optional;",
+          "equals": "(Ljava/lang/Object;)Z",
+          "hashCode": "()I",
+          "toString": "()Ljava/lang/String;"
+        }
+      },
+      "offset_accessor": "offset",
+      "lag_accessor": null,
+      "verified_method_signature_matrix": true,
+      "scope": "read-only signed official jar classfile/header/property inspection; no handler or SDK runtime inferred"
+    },
+    {
+      "release": "4.2.1",
+      "official_jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "official_jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "actual_jar_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "actual_public_result_type": "org.apache.kafka.clients.admin.SharePartitionOffsetInfo",
+      "class_sha256": "d8ba8ee42f3b7438de05d8fafa8dee311f8e4aee2e48660ba89fede476d9a883",
+      "actual_classfile_method_descriptors": {
+        "class_major": 55,
+        "class_minor": 0,
+        "methods": {
+          "<init>": "(JLjava/util/Optional;Ljava/util/Optional;)V",
+          "startOffset": "()J",
+          "leaderEpoch": "()Ljava/util/Optional;",
+          "lag": "()Ljava/util/Optional;",
+          "equals": "(Ljava/lang/Object;)Z",
+          "hashCode": "()I",
+          "toString": "()Ljava/lang/String;"
+        }
+      },
+      "offset_accessor": "startOffset",
+      "lag_accessor": "lag",
+      "verified_method_signature_matrix": true,
+      "scope": "read-only signed official jar classfile/header/property inspection; no handler or SDK runtime inferred"
+    },
+    {
+      "release": "4.3.1",
+      "official_jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "official_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "actual_jar_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "actual_public_result_type": "org.apache.kafka.clients.admin.SharePartitionOffsetInfo",
+      "class_sha256": "35515049b2564388efc9d215546c634afa42dd5c46fcf9f20a56116cfc2004be",
+      "actual_classfile_method_descriptors": {
+        "class_major": 55,
+        "class_minor": 0,
+        "methods": {
+          "<init>": "(JLjava/util/Optional;Ljava/util/Optional;)V",
+          "startOffset": "()J",
+          "leaderEpoch": "()Ljava/util/Optional;",
+          "lag": "()Ljava/util/Optional;",
+          "equals": "(Ljava/lang/Object;)Z",
+          "hashCode": "()I",
+          "toString": "()Ljava/lang/String;"
+        }
+      },
+      "offset_accessor": "startOffset",
+      "lag_accessor": "lag",
+      "verified_method_signature_matrix": true,
+      "scope": "read-only signed official jar classfile/header/property inspection; no handler or SDK runtime inferred"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "sampled_at_unix": 1791051369.9680996,
+  "status": "WORK-only revised measured focused proposal; wait RPC closed/new04f complete source guards/ROOT GO",
+  "candidate_source_sha_pending_materialization": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "sampled_free_bytes": 731762688,
+  "measured_source_of_size_references": "actual closed7942 package plus its cached-library first-baseline-positive binary; size observations only, not old semantic proof",
+  "measured_artifacts": [
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "bytes": 40536990,
+      "sha256": "cb74ff9d2c1b357521b44ec13f8df49b2fccb89fcb9828a4b99072f1cac5b873",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14798201,
+      "sha256": "1ffee1c0b944269b1463aceb68d59fc0c7eaea31204bfe3e039643da0ea62076",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "bytes": 11205848,
+      "sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+      "full_mode": 448
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "bytes": 11555672,
+      "sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+      "full_mode": 448
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/baseline_positive_controls-fe81651cb6cc444d",
+      "bytes": 11317608,
+      "sha256": "2221b60af748ac0d097a1d7d73bef7e317fe658ab02383a1e468a7ce396cce41",
+      "full_mode": 448
+    }
+  ],
+  "forecast_components": {
+    "library_rlib_plus_rmeta_raw_bytes": 55335191,
+    "one_new_library_allowance_50percent_margin_bytes": 83002787,
+    "largest_matching_small_test_ELF_raw_bytes": 11555672,
+    "three_new_targets_allowance_each_50percent_margin_bytes": 17333508,
+    "persistent_incremental_bytes": 135003311,
+    "one_simultaneous_link_codegen_allowance_bytes": 83002787,
+    "new_lossless_library_and_test_capture_rawsize_allowance_bytes": 143391919,
+    "metadata_log_reserve_bytes": 16777216,
+    "selective_hardlink_source_metadata_reserve_bytes": 4194304,
+    "minimum_free_floor_bytes": 367001600,
+    "native_allowance_bytes": 0,
+    "RPC_overlap_assumed": false
+  },
+  "required_actual_postclean_free_bytes": 749371137,
+  "already_retained_gzip_bytes_excluded": 27156162,
+  "projected_clean_reclaim_allocated_bytes_not_yet_realized": 89194496,
+  "projected_postclean_free_bytes": 820957184,
+  "projected_headroom_bytes": 71586047,
+  "projected_fits": true,
+  "conditions": [
+    "Fresh actual postclean statvfs must meet required749371137 before compiler, never infer reclaimed bytes from projection.",
+    "RPC retry excluded/serialized until root explicitly approves a shared-floor overlap based on its new actual bounded forecast.",
+    "Complete root materialization04f receipt/modes/pathset required; source materialization cost is not prepaid, so fresh sample afterward.",
+    "Measured artifact1.5 factors are uncertain estimates, not maxima. One83MB simultaneous link/codegen allowance remains separate.",
+    "New-library rlib/rmeta retention83MB is explicitly included; previous27MB objects already consume current disk and are not charged again.",
+    "Root-approved exact package-only removal after lossless fullmode cache map/process/source guards. Original failed baselines and pinned source mtimes untouched.",
+    "350MiB/0.2s owned-group cutoff,600s/16MiB percommand bounds remain; sampled cutoff cannot guarantee an unseen instantaneous write peak.",
+    "Whole client, candidate behavioral/strict,MSRV,JVM and Streams21 checks are separate future phases; no new execution authorized here."
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/README.md",
+      "bytes": 2114,
+      "sha256": "a756d99bf31618bef4d424576ea76fd50a1e214714b852d21a0bd079e09be4e3",
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/driver.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01-driver.log",
+      "bytes": 848,
+      "sha256": "eb76f91bde8d1e493ae1b39b41e0e6bbe33aab7c477dfc52f2c700def04d5bd3",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/failure.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/failure.json",
+      "bytes": 281,
+      "sha256": "8571182acdda5095bfa1bdae957f79941dccfc30c8df3316075a59b03f66ccbb",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/guard-original403.py",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/guard-original403-for-baseline.py",
+      "bytes": 2226,
+      "sha256": "7d17437a0bdeaf030ccc385e5884ad53d6f6cbb1f0189e501adc31b1d9850594",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/launch-contract.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/launch-contract.json",
+      "bytes": 1238,
+      "sha256": "ab7346ae95416dff7cbd1293df5aae3e2f84752cea01948cb1abaf1e634ff6e7",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/materialization.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/baseline-materialization.json",
+      "bytes": 23849,
+      "sha256": "ee293820f8b07d59836fc8e965d79485131b8dfb6efc7d0fe525be758ce9f722",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original-amended-five-overlays.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-overlay-after-helper-correction.json",
+      "bytes": 2955,
+      "sha256": "6bdb43d5f9d5f6719508ae231377c1f556576231079425813a2e6c626400a800",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original-selected66-manifest.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-compiler-inputs.json",
+      "bytes": 24217,
+      "sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original403-after.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-full-source-guards-7942/after.json",
+      "bytes": 927,
+      "sha256": "1aca7bae32ef3a9eab1ca54e255d49cc269ada3945b8a46b62fb9f073345fdec",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original403-before.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline403-full-source-guards-7942/before.json",
+      "bytes": 929,
+      "sha256": "07734d883691ffab345775792b03711959a16b0a9e49dabf4997b3fa93232657",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.disk-monitor.jsonl",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.disk-monitor.jsonl",
+      "bytes": 839,
+      "sha256": "54bb310f897e6721361b94e864f88220f96c21d673b8dba2bf2c6bef88f1289b",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.stderr.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stderr.log",
+      "bytes": 398,
+      "sha256": "05eaa8e6c9423451c65528b2581ef15e8692065c04710c42b4e936567bb20fa0",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.stdout.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/stable-baseline-positive-controls.stdout.log",
+      "bytes": 1000,
+      "sha256": "ecd7f198225c607c2ef690b03f7a4eee70797f24e58838712bd7b076eec82905",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/run-baseline.py",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-baseline403-after-7942.py",
+      "bytes": 22526,
+      "sha256": "8cd64667d1de746abb483ae45c89afcad4ee47b2f6acb8a1273613d95fc3247b",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/validation.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-baseline403-after-7942-attempt-01/validation.json",
+      "bytes": 176396,
+      "sha256": "d185913b2a1b89f4d8025d2ebd24625863332c8f9304f9092f5f02228776761e",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/current-rlib-new-api-symbols.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/current-rlib-new-api-symbols.log",
+      "bytes": 96,
+      "sha256": "f538d0a43cae90b034c8bb025eaaf6a5c1b3bed639aba829ecd0c7f750c100ff",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/current-rlib-nm.stderr.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/current-rlib-nm.stderr.log",
+      "bytes": 57,
+      "sha256": "1a3343ce9a19685ffd15a200ea283ae18c5a7f36aa76f0b07b851666a68bd11c",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/package-retention-and-invalidation-proposal.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/package-invalidation-proposal-after-baseline-setup/proposal.json",
+      "bytes": 171951,
+      "sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/authorized-no-run-summary.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/authorized-no-run-summary.json",
+      "bytes": 2328,
+      "sha256": "3a093ac9f76182c5f5f111587ecfc833e60eed8ca1ec6697b024be8b0f2e3976",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/compile.stderr.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stderr.log",
+      "bytes": 402,
+      "sha256": "dde02df537fdf5863a58a063020c7298e4c6ba07a21179351596e74ed3603054",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/compile.stdout.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/stable-candidate-no-run.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/launch-contract.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/launch-contract.json",
+      "bytes": 3187,
+      "sha256": "5be9ab0aa35c9cc328e70e57242bc573d6c275931f7253209d4fe22501bf443e",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/validation.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/stable-focused-7942fbac-attempt-01/validation.json",
+      "bytes": 148436,
+      "sha256": "c5f7e4ddcc931673cf8080e336ad4ca7dfbffce7c95efe795163783405b0ef9b",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/1.85.0.fmt.stderr.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/1.85.0.fmt.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/1.85.0.fmt.stdout.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/1.85.0.fmt.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/amended-five-overlays.proposed.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/baseline-overlay.proposed.json",
+      "bytes": 3066,
+      "sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/format-validation.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/format-validation.json",
+      "bytes": 1518,
+      "sha256": "27641a98f55176e2baa70e74c97f9efe10d54ba32bcf499ba98118bed2259bd1",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.before.rs",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.before.rs",
+      "bytes": 15289,
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.corrected.rs",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.proposed.rs",
+      "bytes": 15854,
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.patch",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/socket_peer.proposed.patch",
+      "bytes": 1294,
+      "sha256": "caa30a9deedf43b5dade50fa7286154438911b880b92c12ac1f6cd08d4dd7746",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/installation-predeclared.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/installation-predeclared.json",
+      "bytes": 757,
+      "sha256": "f26899f51eb48b3051527fe7fb1ce5e834e287be0c6c9f49c810cda5188bb60f",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/proposal.json",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/proposal.json",
+      "bytes": 1944,
+      "sha256": "d84e63be50fe6278c9195c885716776b03f1d6d5eed7d838552a627af198231d",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/stable.fmt.stderr.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/stable.fmt.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/stable.fmt.stdout.log",
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-peer-correction-after-first-controls/stable.fmt.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": 384,
+      "copied_exact": true
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "bytes": 15854,
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "full_mode": 384,
+      "exact_root_approved_code": true
+    }
+  ],
+  "file_count": 35,
+  "total_bytes": 642776,
+  "binary_payloads_in_Git": false,
+  "actual_first_baseline_failed": true,
+  "API27_90_red_proof": false,
+  "candidate_behavior_qualified": false,
+  "source_helper_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad"
+}

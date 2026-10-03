@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "status": "closed failed initialbuild; no cleanup; future correctedpin/lease not yetauthorized",
+  "sampled_at_unix": 1791043681.0268867,
+  "warm_cache_files": 593,
+  "warm_cache_logical_bytes": 198456560,
+  "warm_cache_unique_allocated_bytes": 193253376,
+  "already_preserved_41_elf_gzip_bytes": 4748618,
+  "current_free_bytes": 1411596288,
+  "remaining_cache_growth_reference_bytes": 826627263,
+  "additional_elf_capture_reference_bytes": 166310457,
+  "metadata_and_logs_reserve_bytes": 33554432,
+  "disk_floor_bytes": 367001600,
+  "required_remaining_free_bytes": 1393493752,
+  "forecast_headroom_bytes": 18102536,
+  "forecast_fits": true,
+  "limitation": "Measured old cache plusmargin is a forecast; it is not a newsource hardbuild upperbound. Recheck after root newsource materialization and immediately before nextcommand; all actual ELFs/logs retained."
+}

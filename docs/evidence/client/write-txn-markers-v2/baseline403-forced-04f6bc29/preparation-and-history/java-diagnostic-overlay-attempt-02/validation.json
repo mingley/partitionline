@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "passed": true,
+  "scope": "diagnostic strict Javac only: exact immutable e90 plus explicitly named/hash-bound two-Java WORK overlay; not final main qualification, no handler/generation/runtime claim",
+  "named_source_overlays": [
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java",
+      "bytes": 21332,
+      "sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java",
+      "bytes": 6261,
+      "sha256": "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4",
+      "full_mode": 384
+    }
+  ],
+  "runner": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-diagnostic-overlay.py",
+    "bytes": 7240,
+    "sha256": "cb48b2a04aab859f6a39fc99ef7033b4f36e7c088d701bfbc00676f59766a7a5",
+    "full_mode": 384
+  },
+  "commands": [
+    {
+      "name": "java-identity",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "-version"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 15,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.stderr.log",
+        "bytes": 217,
+        "sha256": "1fa9315f71c942de524686f1e218078d8af209da05f361b2db371fc56bbf8359",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/java-identity.monitor.jsonl",
+        "bytes": 273,
+        "sha256": "3c2b43e1bddb801b814793d6ebf2bb63e1bbc7da39e6cf2b1de1b9d01cd9a248",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1381117952,
+      "maximum_sampled_output_bytes": 355,
+      "sample_count": 2,
+      "classes_present": {},
+      "passed": true
+    },
+    {
+      "name": "4.1.2-strict-compile",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 90,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.stderr.log",
+        "bytes": 30,
+        "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.1.2-strict-compile.monitor.jsonl",
+        "bytes": 829,
+        "sha256": "46d64e26c31966613508a5470bd30b28b8e20415c6118540563765db297688b2",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1381060608,
+      "maximum_sampled_output_bytes": 37751,
+      "sample_count": 6,
+      "classes_present": {
+        "4.1.2/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.1.2/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "4.2.1-strict-compile",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 90,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.stderr.log",
+        "bytes": 30,
+        "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.2.1-strict-compile.monitor.jsonl",
+        "bytes": 974,
+        "sha256": "830149da09fa61637935d9dac1412ce82636ff0f79b927569fa41b7cc5be70a2",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1381007360,
+      "maximum_sampled_output_bytes": 75200,
+      "sample_count": 7,
+      "classes_present": {
+        "4.1.2/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.1.2/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        },
+        "4.2.1/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.2.1/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "4.3.1-strict-compile",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.3.1",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/CapabilityOracle.java",
+        "/workspace/work/client-capability-qa-preparation-e90efb49/java-correction-after-first-compile/PublicAdminProbe.java"
+      ],
+      "cwd": "/workspace/work/client-capabilities-source-e90efb49",
+      "exit_code": 0,
+      "trigger": null,
+      "cpu_affinity": "0,1",
+      "max_heap_bytes": 134217728,
+      "timeout_seconds": 90,
+      "source_before": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "source_after": {
+        "files": 73304,
+        "bytes": 679303265,
+        "full_path_set_git_blobs_sha256_lengths_full_modes_match": true,
+        "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+      },
+      "stdout": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_mode": 384
+      },
+      "stderr": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.stderr.log",
+        "bytes": 30,
+        "sha256": "9106b9cd11f9a3fd29c0c489d8e8ad90a403e530e44ad8a56201e267b9e7b3f5",
+        "full_mode": 384
+      },
+      "monitor": {
+        "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/4.3.1-strict-compile.monitor.jsonl",
+        "bytes": 976,
+        "sha256": "eb52a7c7b930ba77ad3dc5bf4bfc167fc53995f79f94ba2bc281ee3c6a9cdf46",
+        "full_mode": 384
+      },
+      "minimum_sampled_free_bytes": 1380954112,
+      "maximum_sampled_output_bytes": 113339,
+      "sample_count": 7,
+      "classes_present": {
+        "4.1.2/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.1.2/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        },
+        "4.2.1/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.2.1/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        },
+        "4.3.1/CapabilityOracle.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.3.1/CapabilityOracle.class",
+          "bytes": 26011,
+          "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+          "full_mode": 384
+        },
+        "4.3.1/PublicAdminProbe.class": {
+          "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.3.1/PublicAdminProbe.class",
+          "bytes": 7082,
+          "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+          "full_mode": 384
+        }
+      },
+      "passed": true
+    }
+  ],
+  "java_executable": {
+    "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "bytes": 14384,
+    "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "full_mode": 493
+  },
+  "output_bound_bytes": 16777216,
+  "source_worktree_used": false,
+  "no_Cargo_invocation": true
+}

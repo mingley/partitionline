@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "actual_result": "first candidate Cargo101 in sibling sticky partitioner; all future phases held",
+  "sampled_at_unix": 1791046677.643058,
+  "generated_cache_files": 592,
+  "generated_cache_logical_bytes": 158562571,
+  "generated_cache_unique_allocated_bytes": 153350144,
+  "actual_package_library_bundles": [
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14579190,
+      "sha256": "7f498b5d55a4e928e44aefd029f107fa61a57a64421a3ca21c0f0650ff0b35df",
+      "full_mode": 384
+    }
+  ],
+  "current_free_bytes": 1309310976,
+  "no_cache_cleanup_or_product_patch_from_this_agent": true,
+  "candidate_only_reference_required_free_bytes": 817763674,
+  "baseline_plus_candidate_reference_required_free_bytes": 1238325620,
+  "scope": "current actual size, no newpin qualification or cold-full18 forecast"
+}

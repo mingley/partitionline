@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "WORK-only resource proposal; ROOT GO required; no Cargo/test/JVM launch",
+  "source_sha": "7942fbac784b35220ae02f6983e6454399f42ba5",
+  "sampled_at_unix": 1791048257.4255004,
+  "sampled_free_bytes": 1133441024,
+  "candidate_no_run_passed_receipt": "stable-focused-7942fbac-attempt-01/authorized-no-run-summary.json",
+  "candidate_no_run_passed_receipt_sha256": "3a093ac9f76182c5f5f111587ecfc833e60eed8ca1ec6697b024be8b0f2e3976",
+  "cache_current_unique_allocated_bytes": 216690688,
+  "measured_current_candidate_artifacts": [
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rmeta",
+      "bytes": 14798201,
+      "sha256": "1ffee1c0b944269b1463aceb68d59fc0c7eaea31204bfe3e039643da0ea62076",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+      "bytes": 40536990,
+      "sha256": "cb74ff9d2c1b357521b44ec13f8df49b2fccb89fcb9828a4b99072f1cac5b873",
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf",
+      "bytes": 11205848,
+      "sha256": "3c269b69ac84216bc410ef9b4a83ccc1a3c1a6be54fd7a652f20d3c38d200bfb",
+      "full_mode": 448
+    },
+    {
+      "path": "/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827",
+      "bytes": 11555672,
+      "sha256": "d6e74e26393cd969c7ce88b2f03ba918a5c1cd1865e4b100dd7547be2bcd8ead",
+      "full_mode": 448
+    }
+  ],
+  "historical_reference_forecast_sha256": "597d923ca7ae70e45be89b13171d95a1dcd6459f16e2674534716fa7281677b0",
+  "baseline_only_incremental_forecast": {
+    "one_new_library_bundle_50percent_over_measured_candidate_bytes": 83002787,
+    "three_new_test_targets_reference_bytes_each": 62074560,
+    "persistent_incremental_cache_bytes": 269226467,
+    "one_transient_link_codegen_allowance_bytes": 62074560,
+    "new_lossless_ELF_capture_rawsize_allowance_bytes": 194612288,
+    "metadata_and_log_reserve_bytes": 16777216,
+    "selective_hardlink_source_directory_and_overlay_reserve_bytes": 4194304,
+    "sampled_free_floor_bytes": 367001600,
+    "required_free_bytes": 913886435,
+    "headroom_at_sample_bytes": 219554589,
+    "fits_at_sample": true,
+    "independent_native_cohort_allowance_bytes": 140509184,
+    "required_free_with_native_cohort_bytes": 1054395619,
+    "headroom_with_native_cohort_at_sample_bytes": 79045405,
+    "fits_with_native_cohort_at_sample": true
+  },
+  "candidate_after_baseline_scope": {
+    "source": "exact7942 full immutable tree",
+    "commands": "two-target actual tests then lib+two-target strict Clippy only; each separately reforecast after baseline close",
+    "worst_case_candidate_library_rebuild_bytes": 83002787,
+    "worst_case_candidate_transient_link_bytes": 62074560,
+    "candidate_test_ELF_before_overwrite_preserved": true,
+    "uses_already_compiled_source_but_does_not_assume_baseline_cargo_keeps_package_artifacts": true
+  },
+  "excluded": [
+    "full18 commands",
+    "MSRV",
+    "JVM",
+    "whole tree test expansion",
+    "unowned cache cleanup"
+  ],
+  "assumptions_limits": [
+    "All current candidate ELFs already losslessly captured/fullmode bound; preserve every new/changed actual ELF before later Cargo package overwrite. No cleanup assumed.",
+    "Baseline exactly66 checked403 compiler inputs plus5 declared overlays, no generated code or current WORK production overlays. Hardlink selected immutable inputs and copy overlays; source4MiB metadata reserve does not count pre-existing source byte payload twice.",
+    "Existing same stable compiler/offline lock/profile dependency reuse is assumed; changed old package source could change artifacts. The measured library1.5 multiplier and broader historical41.4MB ELF1.5 multiplier are uncertain allowances, not strict maximum guarantees.",
+    "350MiB/0.2s sampled owned-process-group cutoff plus finite command output/time required. This observer cannot guarantee an instantaneous write peak.",
+    "All expected baseline failures must be actual test assertion failures; compiler/setup failures do not qualify. Two old-supported positive controls must pass first.",
+    "Fresh root lease and free-space sample required at each command; no command authorized by this resource proposal."
+  ]
+}

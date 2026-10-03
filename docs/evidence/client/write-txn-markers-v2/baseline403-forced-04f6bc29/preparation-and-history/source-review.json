@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "passed": true,
+  "review_scope": "read-only independent exact Git path/blob/length/SHA-256/full-file-mode and inode review; no compiler or runtime execution",
+  "receipt_path": "/workspace/work/integration/client-capabilities-source-e90efb49/receipt.json",
+  "receipt_sha256": "8526b2d49657cc67816925c5586aff8b6c67ccd715971078898bacf846976fa7",
+  "origin_receipt_sha256": "dfff18c792e4bba13a998b53b6696113476c9127b0d4c46e110c094738d73632",
+  "source_manifest": {
+    "compressed_sha256": "64e34bfac4f0c4c3b8eeea76f53456805e36e230c3cfeecc1a143da7fbe64db2",
+    "uncompressed_sha256": "b10587e834f41b3b042ba5e6d029d7a3356ead88d1c417e65a0d57d93428ca44",
+    "uncompressed_bytes": 23188153,
+    "compressed_full_mode": 384
+  },
+  "baseline_manifest": {
+    "compressed_sha256": "5c72bc19fccec2fe4afe2377e06b5991ec3723053a5a18d2f72d2efbc4ac8418",
+    "uncompressed_sha256": "8059edb434b97598d165054ccf9dfc6a7eee4794bd4a8d482b4d675a3ea8c0f1",
+    "uncompressed_bytes": 23148265,
+    "compressed_full_mode": 384
+  },
+  "baseline_current_verification": {
+    "files": 73171,
+    "bytes": 675769376,
+    "complete_path_set_matches_git": true,
+    "all_git_blobs_sha256_and_lengths_match": true,
+    "all_full_file_permission_modes_match": true,
+    "all_git_executable_classes_match": true,
+    "no_repository_worktree_inodes_shared": true,
+    "set_blob_fullmode_sha256": "488e8a7112b2cb0a952569f3e41adacb85838968b79b33ba05cfe7ca05e64e33"
+  },
+  "source_verification": {
+    "files": 73304,
+    "bytes": 679303265,
+    "complete_path_set_matches_git": true,
+    "all_git_blobs_sha256_and_lengths_match": true,
+    "all_full_file_permission_modes_match": true,
+    "all_git_executable_classes_match": true,
+    "no_repository_worktree_inodes_shared": true,
+    "set_blob_fullmode_sha256": "4d52f1cb0386588111a09578caf845d6313be68bb44d1da7fa21cc98676c1eb7"
+  },
+  "verified_hardlinked_files": 73163,
+  "verified_new_blob_bytes": 6118823,
+  "owned_stage_manifest_sha256": "b4c102dc8edfdeb511ce3980bd432c6c21fd7d7a60e8775a2ec7cef3b433cb53",
+  "limitations": [
+    "Historical materializer before/after timing is a hash-bound origin claim; this review independently checks their present exact bytes and modes.",
+    "File full modes are verified; directory permission modes are outside the materializer manifest.",
+    "No Cargo/JVM/Kafka/issuer launch or product mutation performed."
+  ],
+  "elapsed_seconds": 16.089837074279785,
+  "reviewer_script_sha256": "e6c7447c57b4db09da35d6824f7662bf40e1adf20159f14b2093fafb02690ba6",
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/review-source.py"
+  ]
+}

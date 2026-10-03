@@ -1,0 +1,9 @@
+started stable-candidate-no-run pid=1203642
+closed stable-candidate-no-run exit=101 minfree=1273384960
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused-f0ca-first.py", line 273, in <module>
+    run('stable-candidate-no-run', PLAN['execution_sequence'][0]['argv'], SOURCE, MANIFEST)
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-focused-f0ca-first.py", line 265, in run
+    assert row['passed_expected_process_outcome'], ('candidate command failed or regression outcome differs', name, actual_code, trigger)
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('candidate command failed or regression outcome differs', 'stable-candidate-no-run', 101, None)

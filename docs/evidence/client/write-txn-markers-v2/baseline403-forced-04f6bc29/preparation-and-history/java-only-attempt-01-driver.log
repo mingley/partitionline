@@ -1,0 +1,11 @@
+started java-identity pid=1200091
+closed java-identity exit=0
+started 4.1.2-strict-compile pid=1200108
+closed 4.1.2-strict-compile exit=1
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-only.py", line 109, in <module>
+    execute(release+'-strict-compile',['taskset','-c','0,1',JAVA,'-Xmx128m','--add-modules','jdk.compiler','com.sun.tools.javac.Main','-Xlint:all','-Werror','-cp',dependencies,'-d',str(classes),*sources])
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-java-only.py", line 100, in execute
+    assert row['passed'],('actual Java command failed',name,child.returncode,trigger)
+           ~~~^^^^^^^^^^
+AssertionError: ('actual Java command failed', '4.1.2-strict-compile', 1, None)

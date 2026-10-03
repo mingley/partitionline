@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "authorization": "ROOT approved exact helper-only correction after actual e90 Cargo101; no Cargo/JVM authorized until newpin/GO",
+  "relative_path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+  "head_source_before": "f3f6d44b30fbf2baac577719ddc192d43ae76267",
+  "before_sha256": "5824f8f0c964af3559fb65190d600e03a3ef1bc67a37fceabe5e76a489ed52da",
+  "before_git_blob_sha1": "c7d34cc910806b2556727708f911215bd4ea90f0",
+  "before_full_mode": 384,
+  "after_expected_sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+  "after_expected_git_blob_sha1": "8199c550bf34da1442f5082bf9e07c67a80198ad",
+  "after_expected_full_mode": 384,
+  "source_e90_unchanged": true,
+  "fail_first_compile_receipt_sha256": "3406d6e24215d79224beae314b6122a662f8a95876cda50504e802e4c9791b96",
+  "predeclared_at_unix": 1791043302.4454372
+}

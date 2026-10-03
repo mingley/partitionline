@@ -1,0 +1,898 @@
+{
+  "schema_version": 1,
+  "source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "sampled_at_unix": 1791043393.6760643,
+  "owned_compiler_process_group": 1197889,
+  "owned_group_members": [],
+  "cache_path": "/workspace/work/client-share-target",
+  "cache_active_references": [],
+  "processes_checked": 225,
+  "scan_errors": [
+    {
+      "pid": "199",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "251",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "641",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "787",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "3483",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "3564",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "3851",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "5709",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "9814",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "11008",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "11038",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "16013",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "16855",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "17114",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "17523",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "21297",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "26586",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "30005",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "31101",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "31116",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "37752",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "37781",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "57481",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "57514",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "57547",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "57562",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "63322",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "63712",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "67184",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "67239",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "67655",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "70910",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "74309",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "74328",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "74354",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "82518",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "82935",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "82980",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "84752",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "86610",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "103451",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "103551",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "103573",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "104001",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "104064",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "104336",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "104354",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "110664",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "112695",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "112965",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "113119",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "113574",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "114918",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "115263",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "115407",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "115409",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "115419",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "115426",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "117019",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "117484",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "117521",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "119403",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "119424",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "120149",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "120338",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "120565",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "122172",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "122595",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "124567",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "128711",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "129605",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "130267",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "131921",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "132548",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "132795",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "133089",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "133942",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "134001",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "135568",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "136727",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "137091",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "138881",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "140061",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "140783",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "142795",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "142920",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "142927",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "142928",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "143624",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "150968",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "153315",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "162799",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "165376",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "167041",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "168113",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "171269",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "171622",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "174117",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "174497",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "175003",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "183312",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "183412",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "183558",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "191447",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "191578",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "202471",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "204039",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "204370",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "205389",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "209083",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "217503",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "218931",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "232695",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "237636",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "238460",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "240628",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "265222",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "274323",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "280926",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "283139",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "290532",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "305272",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "306616",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "308706",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "310836",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "314445",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "317124",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "319649",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "320838",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "324496",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "332198",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "335251",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "350312",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "351227",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "357598",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "379677",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "391152",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "407873",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "446447",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "448865",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "469069",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "493442",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "517966",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "536572",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "546421",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "591173",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "612015",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "615365",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "626844",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "639985",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "668005",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "677329",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "688529",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "694135",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "696533",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "716117",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "747441",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "748886",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "761724",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "777195",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "783438",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "794873",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "802179",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "807383",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "813150",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "828835",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "834185",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "845462",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "849041",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "853175",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "864076",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "867870",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "879814",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "898527",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "913005",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "949231",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "972257",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "974122",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "980168",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1002190",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1011278",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1018002",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1023325",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1026382",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1027290",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1035681",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1043178",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1054920",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1062097",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1062195",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1086111",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1086387",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1094544",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1098069",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1102961",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1103074",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1105503",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1105742",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1111810",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1113081",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1116328",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1124134",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1125326",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1133956",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1140922",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1146057",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1165182",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1166026",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1172197",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1179362",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1182402",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1183562",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1183684",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1185256",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1185803",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1186605",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1189655",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1191623",
+      "error_type": "PermissionError"
+    },
+    {
+      "pid": "1194658",
+      "error_type": "PermissionError"
+    }
+  ],
+  "all_five_target_reference_categories_checked": [
+    "cwd",
+    "exe",
+    "fd",
+    "CARGO_TARGET_DIR_environment",
+    "maps"
+  ],
+  "passed": false,
+  "cache_cleanup_performed": false,
+  "scope": "snapshot after closed compile; no future no-process or cleanup authorization inferred"
+}

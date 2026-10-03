@@ -1,0 +1,147 @@
+{
+  "actual_target_tag_Cargo_Docker_source_operations": 0,
+  "all_original_source_and_receipt_bytes_unchanged": true,
+  "count": 32,
+  "original_controls_receipt": {
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/marker-dryrun-controls.json",
+    "sha256": "f53fe4f19fc20cb4f5ca3a075efbaa0d8a8fe65d887fb253ba3c33dbb80e181d"
+  },
+  "schema_version": 1,
+  "scope": "independent execution of reviewed AST prefix only; excludes final real receipt writes",
+  "source": {
+    "bytes": 13441,
+    "full07777": 384,
+    "path": "/workspace/work/client-capability-qa-preparation-e90efb49/cache-tag-protection-preparation-v5/check-marker-dryrun-controls.py",
+    "sha256": "f461d3271f00a307b09fd22a97ae4b80835a281bccf0ea76fb60628c5a248490"
+  },
+  "synthetic_controls_passed": [
+    {
+      "name": "standard177B-repair-only-after-complete608-map-and-owned-directory",
+      "passed": true
+    },
+    {
+      "name": "reject-target-wrong_owner-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-wrong_mode-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-different_inode-before-write",
+      "passed": true
+    },
+    {
+      "name": "reject-target-symlink_target-before-write",
+      "passed": true
+    },
+    {
+      "name": "refuse-unreviewed-existing-marker-invalid",
+      "passed": true
+    },
+    {
+      "name": "refuse-unreviewed-existing-marker-standard",
+      "passed": true
+    },
+    {
+      "name": "reject-changed-dependency-cache-hash-before-marker-write",
+      "passed": true
+    },
+    {
+      "name": "reject-unreviewed-cache609-before-repair",
+      "passed": true
+    },
+    {
+      "name": "reject607-even-when-map-consistent-before-write",
+      "passed": true
+    },
+    {
+      "name": "fsync-failure-prevents-marker-publication-retains-temp-state",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-bare",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-Removing",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-backtick",
+      "passed": true
+    },
+    {
+      "name": "dryrun-exact25-positive-directory",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-missing_one-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-marker-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-unknown-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-root-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-deps-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-unparseable-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-none-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "dryrun-reject-cache_changed-before-real-clean",
+      "passed": true
+    },
+    {
+      "name": "frozen608-SHA-bytes-fullmode-mtime-positive-retained25-gzip",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-sha256-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-bytes-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-full_mode-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "reject-frozen-nonpackage-mtime_ns-mismatch-before-marker",
+      "passed": true
+    },
+    {
+      "name": "exact-postclean609-minus-reviewed25-equals584-positive",
+      "passed": true
+    },
+    {
+      "name": "postclean-reject-new_regular_non_ELF-before-any-old-compile",
+      "passed": true
+    },
+    {
+      "name": "postclean-reject-new_symlink-before-any-old-compile",
+      "passed": true
+    },
+    {
+      "name": "postclean-reject-missing_dependency-before-any-old-compile",
+      "passed": true
+    }
+  ]
+}

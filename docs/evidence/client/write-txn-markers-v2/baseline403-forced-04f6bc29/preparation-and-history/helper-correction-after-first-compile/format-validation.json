@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "syntax/format only; no typecheck or behavioral claim",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs"
+      ],
+      "explicit_env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup"
+      },
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "toolchain": "1.85.0",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs"
+      ],
+      "explicit_env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup"
+      },
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "after_sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+  "after_full_mode": 384,
+  "immutable_e90_helper_sha256": "5824f8f0c964af3559fb65190d600e03a3ef1bc67a37fceabe5e76a489ed52da"
+}

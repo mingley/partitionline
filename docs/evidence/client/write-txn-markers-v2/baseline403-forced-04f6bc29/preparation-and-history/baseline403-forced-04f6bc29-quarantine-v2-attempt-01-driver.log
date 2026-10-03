@@ -1,0 +1,13 @@
+started platform-docker-before-quarantine pid=1234639
+closed platform-docker-before-quarantine exit=0 minfree=871464960
+started platform-docker-after-quarantine pid=1234658
+closed platform-docker-after-quarantine exit=0 minfree=871051264
+started stable-baseline-positive-controls pid=1234689
+closed stable-baseline-positive-controls exit=0 minfree=805396480
+started old-library-symbol-probe pid=1234773
+closed old-library-symbol-probe exit=0 minfree=780865536
+started stable-baseline-api27-red pid=1234774
+closed stable-baseline-api27-red exit=101 minfree=769916928
+started stable-baseline-api90-red pid=1234802
+closed stable-baseline-api90-red exit=101 minfree=755449856
+baseline403 exactpositive2/red3+1 closed; candidate tests/strict/MSRV/JVM/full remain held
