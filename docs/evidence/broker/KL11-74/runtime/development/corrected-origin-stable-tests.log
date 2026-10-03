@@ -1,0 +1,54 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 3.85s
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 26 tests
+test actual_three_and_five_voter_membership_fault_restart_histories ... 
+running 1 test
+test dynamic_membership_history_child ... 
+running 1 test
+test dynamic_membership_history_child ... ok
+test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+test checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches ... ok
+test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+test durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_preserves_it ... ok
+test dynamic_membership_history_child ... ok
+test dynamic_snapshot_replays_voters_and_suffix_without_importing_local_vote ... ok
+test feature_preparation_has_explicit_cancel_and_deadline_without_reverting_voters ... ok
+test five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant ... ok
+test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+test malformed_or_uncommitted_multiple_configs_cannot_advance_epoch_or_truncate ... ok
+test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+test observer_feature_mismatch_directory_forgery_and_unqualified_legacy_paths_reject ... ok
+test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+test pending_addition_can_elect_known_directory_across_configuration_epochs_and_commit ... ok
+test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+test removed_id_rejoins_new_directory_without_old_progress_or_reinterpreting_saved_vote ... ok
+test removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller ... ok
+test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+test unknown_added_leader_laggard_refuses_before_mutation_then_known_history_allows_it ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/raft_protocol.rs (/workspace/work/target-broker-segments/debug/deps/raft_protocol-a5d013805f23b48d)
+
+running 9 tests
+test configured_request_queue_and_identity_budgets_validate ... ok
+test cross_peer_wire_votes_count_distinct_members_and_fence_correlations ... ok
+test dynamic_directory_owner_closes_fixed_v0_wire_before_persistent_changes ... ok
+test end_rank_timers_are_exact_and_invalid_successors_cannot_mutate ... ok
+test independent_apache_controller_goldens_and_registry ... Independent Apache controller fixture cases passed: 201
+ok
+test initial_epoch_zero_nonempty_log_and_restart_preserve_vote ... ok
+test malformed_prefixes_tags_and_counts_are_bounded_before_mutation ... ok
+test semantic_errors_and_stale_epochs_do_not_rewrite_state ... ok
+test wire_overflow_and_storage_exhaustion_fail_without_affirmative_reply ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.02s
+

@@ -1,0 +1,27 @@
+{
+  "reason": "shared filesystem headroom guard; coordinator-directed interruption and cache reclamation",
+  "base_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "driver_pid": 1060673,
+  "children": [
+    {
+      "pid": 1062097,
+      "pgid": 1062097,
+      "argv": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --manifest-path /workspace/work/broker-oidc/socket-overlay-after-jwks-12f43986/partitionline-broker/Cargo.toml --locked --offline --no-default-features --features sasl,tls --lib --test oidc_http --test oidc_validation --test oidc_sessions --test sasl_sessions "
+    }
+  ],
+  "current_command": "stable-sasl-tls-tests",
+  "completed_commands": 8,
+  "free_bytes_at_stop": 362897408,
+  "target_du_bytes": 618262262,
+  "monitor_event": "HOLD stable-sasl-tls-tests process group paused: disk below350MiB",
+  "monitor_event_source": "actual runner output from exec session98473",
+  "minimum_free_scope": "full historical minimum was not persisted by first runner; peer/root362983424 and worker362938368 observations prove threshold breach, current stop sample is explicit",
+  "observed_free_samples": [
+    362983424,
+    362938368,
+    362897408
+  ],
+  "interrupted_log": "stable-sasl-tls-tests.log",
+  "interrupted_log_sha256": "22e6b23d369f5b53e76dfbf2a49a7c1e0ba8e4b57b44a7b0eee5fe8a30f07e83",
+  "classification": "compile/resource interruption; no failing test assertion and no product qualification for this command"
+}

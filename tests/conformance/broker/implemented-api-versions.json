@@ -1281,13 +1281,13 @@
     "4.3.1/schema-only/metadata-v13-null-zero.response.bin": "52defe47987713fde5bcaadba96f28cfc3257b93396e5202446792a6f0aafada"
   },
   "controller_source": "partitionline-broker/src/raft/protocol.rs",
-  "controller_source_sha256": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+  "controller_source_sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
   "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
-  "controller_test_source_sha256": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+  "controller_test_source_sha256": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720",
   "election_source": "partitionline-broker/src/raft/election.rs",
-  "election_source_sha256": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+  "election_source_sha256": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
   "raft_module_source": "partitionline-broker/src/raft/mod.rs",
-  "raft_module_source_sha256": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028",
+  "raft_module_source_sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
   "controller_fixture_root": "partitionline-broker/tests/fixtures/raft-protocol",
   "controller_fixtures_sha256": {
     "4.1.2/api-versions-0.request.bin": "083b780dc834d6977d7e794734ff05e50516f75699a7b51b57e0b6e8178aeaf6",

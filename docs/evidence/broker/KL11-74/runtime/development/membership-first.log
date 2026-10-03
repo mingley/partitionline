@@ -1,0 +1,37 @@
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling cfg-if v1.0.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 10.16s
+     Running tests/raft_membership.rs (work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 13 tests
+test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

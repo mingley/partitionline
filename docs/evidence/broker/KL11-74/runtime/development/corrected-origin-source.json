@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source_base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "scope": "Correctedexactconfigurationorigin guard, bounded32MiB fileRead helper, authentic3/5processhistory/Commit+Data sourceforgerytests and fixed-v0/dynamicboundary; nofinalqualification",
+  "files": {
+    "partitionline-broker/src/raft/membership.rs": {
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/election.rs": {
+      "sha256": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/replication.rs": {
+      "sha256": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/snapshot.rs": {
+      "sha256": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/mod.rs": {
+      "sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_election.rs": {
+      "sha256": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_replication.rs": {
+      "sha256": "db96d17177dfa7fee4d3d5798215f57a90f6e91a35677458e386a7e2876d6f97",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_snapshot.rs": {
+      "sha256": "b5ceb3058c945b25ce43b93eb3313f34e3704daf18c1e31632fac145d359f4ce",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_protocol.rs": {
+      "sha256": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720",
+      "mode": "0o600"
+    }
+  }
+}

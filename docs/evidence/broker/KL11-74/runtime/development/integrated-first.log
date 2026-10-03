@@ -1,0 +1,25 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.54s
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 17 tests
+test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+test durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_preserves_it ... ok
+test dynamic_snapshot_replays_voters_and_suffix_without_importing_local_vote ... ok
+test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+test observer_feature_mismatch_directory_forgery_and_unqualified_legacy_paths_reject ... ok
+test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+test removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller ... ok
+test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

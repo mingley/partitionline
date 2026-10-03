@@ -1,0 +1,25 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+error[E0596]: cannot borrow `data` as mutable, as it is not declared as mutable
+    --> tests/raft_membership.rs:1707:23
+     |
+1707 |         let entries = data.fetch(offset, 1, 4 * 1024 * 1024)?;
+     |                       ^^^^ cannot borrow as mutable
+     |
+help: consider changing this to be mutable
+     |
+1702 |     let (mut data, _) = Journal::open(&wal, 0, limits)?;
+     |          +++
+
+error[E0596]: cannot borrow `original` as mutable, as it is not declared as mutable
+    --> tests/raft_membership.rs:1727:27
+     |
+1727 |         let mut fetched = original.fetch(offset, 1, 4 * 1024 * 1024)?;
+     |                           ^^^^^^^^ cannot borrow as mutable
+     |
+help: consider changing this to be mutable
+     |
+1724 |     let (mut original, _) = Journal::open(&election, 0, limits)?;
+     |          +++
+
+For more information about this error, try `rustc --explain E0596`.
+error: could not compile `partitionline-broker` (test "raft_membership") due to 2 previous errors

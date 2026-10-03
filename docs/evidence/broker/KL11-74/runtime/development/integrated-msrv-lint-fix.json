@@ -1,0 +1,9 @@
+{
+  "prior_source_receipt": "integrated-second-source.json",
+  "changed_path": "partitionline-broker/src/raft/election.rs",
+  "sha256": "aa6dd79a789812ecdec9f35150dff75fedb34029211d95f697594edb30ce2f83",
+  "before": "if !(next.term == old.term && old_vote == Some(key)) && !view.contains(key) {",
+  "after": "if !(view.contains(key) || next.term == old.term && old_vote == Some(key)) {",
+  "scope": "Boolean-equivalent MSRV Clippy nonminimal_bool correction; no runtime semantics changed.",
+  "failed_log": "integrated-msrv-clippy-second.log"
+}

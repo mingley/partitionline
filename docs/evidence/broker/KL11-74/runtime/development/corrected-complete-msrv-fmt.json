@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "rustfmt",
+    "+1.85.0",
+    "--edition",
+    "2021",
+    "--check",
+    "partitionline-broker/src/raft/membership.rs",
+    "partitionline-broker/src/raft/election.rs",
+    "partitionline-broker/src/raft/protocol.rs",
+    "partitionline-broker/src/raft/replication.rs",
+    "partitionline-broker/src/raft/snapshot.rs",
+    "partitionline-broker/tests/raft_membership.rs",
+    "partitionline-broker/tests/raft_election.rs",
+    "partitionline-broker/tests/raft_replication.rs",
+    "partitionline-broker/tests/raft_snapshot.rs",
+    "partitionline-broker/tests/raft_protocol.rs"
+  ],
+  "working_directory": "/workspace/work/membership-runtime/dev-source",
+  "source_base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "source_manifest": "docs/evidence/broker/KL11-74/runtime/development/corrected-origin-source.json",
+  "source_before": {
+    "partitionline-broker/src/raft/membership.rs": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+    "partitionline-broker/src/raft/election.rs": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+    "partitionline-broker/src/raft/protocol.rs": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+    "partitionline-broker/src/raft/replication.rs": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+    "partitionline-broker/src/raft/snapshot.rs": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+    "partitionline-broker/src/raft/mod.rs": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+    "partitionline-broker/tests/raft_membership.rs": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_replication.rs": "db96d17177dfa7fee4d3d5798215f57a90f6e91a35677458e386a7e2876d6f97",
+    "partitionline-broker/tests/raft_snapshot.rs": "b5ceb3058c945b25ce43b93eb3313f34e3704daf18c1e31632fac145d359f4ce",
+    "partitionline-broker/tests/raft_protocol.rs": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720"
+  },
+  "source_after": {
+    "partitionline-broker/src/raft/membership.rs": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+    "partitionline-broker/src/raft/election.rs": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+    "partitionline-broker/src/raft/protocol.rs": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+    "partitionline-broker/src/raft/replication.rs": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+    "partitionline-broker/src/raft/snapshot.rs": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+    "partitionline-broker/src/raft/mod.rs": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+    "partitionline-broker/tests/raft_membership.rs": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_replication.rs": "db96d17177dfa7fee4d3d5798215f57a90f6e91a35677458e386a7e2876d6f97",
+    "partitionline-broker/tests/raft_snapshot.rs": "b5ceb3058c945b25ce43b93eb3313f34e3704daf18c1e31632fac145d359f4ce",
+    "partitionline-broker/tests/raft_protocol.rs": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720"
+  },
+  "source_unchanged": true,
+  "exit_code": 0,
+  "elapsed_seconds": 0.1723211389980861,
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup"
+  },
+  "log": "corrected-complete-msrv-fmt.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "qualification": "Development focused scope only; no final Git source qualification."
+}

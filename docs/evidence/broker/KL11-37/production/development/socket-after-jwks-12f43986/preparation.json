@@ -1,0 +1,57 @@
+{
+  "base_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "base_Git_files": 69144,
+  "candidate_files": 69146,
+  "immutable_hardlinks": 64588,
+  "all_links_git_bytes_and_full_modes_verified": true,
+  "linked_only_from": "/workspace/work/broker-oidc/http-final-0b9797ef",
+  "six_overlays_unchanged": [
+    {
+      "path": "partitionline-broker/src/security/oidc.rs",
+      "sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/sasl.rs",
+      "sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "sha256": "dbd72a443485e67f5ebb5cbe59d48cfca9439f9eefae013e91076cdc724caf1e",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    }
+  ],
+  "JWKS_four_actual_pushed_blobs_match_frozen_followup": true,
+  "raw_audit": {
+    "original_sha256": "c2715fb627c58ffe074a2fec6a7a4f1bfb02b97325fae12e35f3b81986b35566",
+    "original_bytes": 26093370,
+    "original_mode": "0o600",
+    "original_scratch_path": "/workspace/work/broker-oidc/socket-audit-retention-12f43986/source-before.json",
+    "gzip_sha256": "ddceea12cf3ac15176f6791a8a514e94ae634d266c7ef14eb2479b96d60c66e0",
+    "stored_path": "source-before.json.gz",
+    "lossless_roundtrip": true
+  },
+  "qualification": "development preparation only; no Cargo/runtime or actual socket source push yet"
+}

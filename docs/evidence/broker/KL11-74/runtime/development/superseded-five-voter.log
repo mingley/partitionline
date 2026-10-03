@@ -1,0 +1,74 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+error[E0599]: no method named `acknowledge_feature_probe` found for enum `std::result::Result<T, E>` in the current scope
+    --> tests/raft_membership.rs:505:10
+     |
+ 503 |       assert!(group
+     |  _____________-
+ 504 | |         .node(0)
+ 505 | |         .acknowledge_feature_probe(response, 12)
+     | |         -^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `std::result::Result<&mut Node, Box<(dyn std::error::Error + 'static)>>`
+     | |_________|
+     |
+     |
+note: the method `acknowledge_feature_probe` exists on the type `&mut Node`
+    --> src/raft/replication.rs:3818:5
+     |
+3818 | /     pub fn acknowledge_feature_probe(
+3819 | |         &mut self,
+3820 | |         response: FeatureResponse,
+3821 | |         now_ms: u64,
+3822 | |     ) -> Result<(), Error> {
+     | |__________________________^
+help: use the `?` operator to extract the `&mut Node` value, propagating a `Result::Err` value to the caller
+     |
+ 504 |         .node(0)?
+     |                 +
+
+error[E0599]: no method named `timeout_dynamic` found for enum `std::result::Result<T, E>` in the current scope
+    --> tests/raft_membership.rs:520:10
+     |
+ 518 | /     group
+ 519 | |         .node(0)
+ 520 | |         .timeout_dynamic(key, request.request.sequence)?;
+     | |         -^^^^^^^^^^^^^^^ method not found in `std::result::Result<&mut Node, Box<(dyn std::error::Error + 'static)>>`
+     | |_________|
+     |
+     |
+note: the method `timeout_dynamic` exists on the type `&mut Node`
+    --> src/raft/replication.rs:3982:5
+     |
+3982 |     pub fn timeout_dynamic(&mut self, peer: Key, sequence: u64) -> Result<(), Error> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: use the `?` operator to extract the `&mut Node` value, propagating a `Result::Err` value to the caller
+     |
+ 519 |         .node(0)?
+     |                 +
+
+error[E0599]: no method named `receive_dynamic_snapshot_chunk` found for enum `std::result::Result<T, E>` in the current scope
+    --> tests/raft_membership.rs:548:14
+     |
+ 546 | /         group
+ 547 | |             .node(3)
+ 548 | |             .receive_dynamic_snapshot_chunk(offer, chunk.offset, &chunk.bytes, 21)?;
+     | |             -^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `std::result::Result<&mut Node, Box<(dyn std::error::Error + 'static)>>`
+     | |_____________|
+     |
+     |
+note: the method `receive_dynamic_snapshot_chunk` exists on the type `&mut Node`
+    --> src/raft/replication.rs:4031:5
+     |
+4031 | /     pub fn receive_dynamic_snapshot_chunk(
+4032 | |         &mut self,
+4033 | |         offer: DynamicSnapshotRequest,
+4034 | |         offset: u64,
+4035 | |         bytes: &[u8],
+4036 | |         now_ms: u64,
+4037 | |     ) -> Result<(), Error> {
+     | |__________________________^
+help: use the `?` operator to extract the `&mut Node` value, propagating a `Result::Err` value to the caller
+     |
+ 547 |             .node(3)?
+     |                     +
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `partitionline-broker` (test "raft_membership") due to 3 previous errors

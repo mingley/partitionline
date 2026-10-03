@@ -1,0 +1,24 @@
+{
+  "scope": "coordinator-authorized completed socket focus own generated cache only",
+  "active_proc_references": [],
+  "checked_proc_attributes": [
+    "exe",
+    "cwd",
+    "cmdline",
+    "environ"
+  ],
+  "files": 3915,
+  "generated_path_bytes": 813927732,
+  "ELF_paths": 160,
+  "all_ELF_bytes_and_full_modes_roundtrip_verified": true,
+  "archive_local_path": "/workspace/work/broker-oidc/socket-final-cache-retention-12f43986/all-current-ELF-files.tar.gz",
+  "archive_sha256": "dd0ce9b74a3b08b217dcf2a9aa30cb6e760e4178987f686234b81c4fd6112bb0",
+  "archive_bytes": 83543394,
+  "inventory_original_sha256": "f032e2202b75e9f6005db4b7eaf690698092f6f1fffa1858d7bf550b88a2c6e4",
+  "inventory_original_mode": "0o600",
+  "inventory_original_scratch_path": "/workspace/work/broker-oidc/socket-final-cache-retention-12f43986/cache-inventory.json",
+  "inventory_gzip_sha256": "b4cd809b9251ed38a6b64a8fe489a8928a4d7f3650ad095f062948b1e8e59cf8",
+  "all_50_executed_test_invocations_independently_retained_before_later_commands": true,
+  "source_rawlogs_evidence_WAL_untouched": true,
+  "deleted_only_generated_cache": true
+}

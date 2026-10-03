@@ -1,0 +1,6 @@
+{
+  "unchanged_module_receipt": "superseded-review-source.json",
+  "tests_sha256": "d1f62d08823da57f57ade482f30d15de58e4f295a55923fa44f7ddc6dd81cf80",
+  "test_source": "superseded-five-voter-test-fixed.rs",
+  "attempt_1": "Compilation failed in the newer test helper before the intended developmental counterexample ran. Three multiline node() calls needed ? after Result conversion."
+}

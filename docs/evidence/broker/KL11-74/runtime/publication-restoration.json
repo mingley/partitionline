@@ -1,0 +1,106 @@
+{
+  "scope": "Incremental source checkpoint; original1551-file development packet is sealed with its original checksum. Nine compiled gzip ELF artifacts are retained in WORK and excluded from Git; byte/mode restore map below. Runtime source/full qualification remains pending.",
+  "original_packet_SHA256SUMS_sha256": "689ac0574c79a418f36bac932ab1f031e79116d1ec2c34415aed201e01ea74f7",
+  "original_packet_files": 1551,
+  "unpublished_compiled_ELF_artifacts": [
+    {
+      "restore_relative_path": "development/corrected-complete-msrv-tests.raft_membership.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/49de0ea4da4d903a16c696b874b60942569188f4eb1fa82fb1edc2bfb02ac830.gz",
+      "compressed_sha256": "49de0ea4da4d903a16c696b874b60942569188f4eb1fa82fb1edc2bfb02ac830",
+      "compressed_bytes": 1107092,
+      "uncompressed_sha256": "7dd5d39a2aca4be59d24b1858c76f2a165cedb6c9623590b1775c8d9a4ec8151",
+      "uncompressed_bytes": 3193792,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/corrected-complete-msrv-tests.raft_protocol.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/37aa71fa7b34914e9ca9fd9eb3a9fd865b60ffafc8a3be5d522e9c266fb04b5b.gz",
+      "compressed_sha256": "37aa71fa7b34914e9ca9fd9eb3a9fd865b60ffafc8a3be5d522e9c266fb04b5b",
+      "compressed_bytes": 1602804,
+      "uncompressed_sha256": "230f02ea9c65f89d0a31e0e6bb1da9ee48fbcab9d2787349a4e315cf17d73457",
+      "uncompressed_bytes": 5125544,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/corrected-complete-stable-tests.raft_membership.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/7ea98804deb9d43c02c9495831e5de6262667adf465362fe81cdf2a3c22ff0f6.gz",
+      "compressed_sha256": "7ea98804deb9d43c02c9495831e5de6262667adf465362fe81cdf2a3c22ff0f6",
+      "compressed_bytes": 1062619,
+      "uncompressed_sha256": "5c3e768ff80f61dd351e946452de059b257fbad4e93e1c37c25db3a90a99af88",
+      "uncompressed_bytes": 3471136,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/corrected-complete-stable-tests.raft_protocol.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/7fabb0a83ffd3cd9864b4ba216e19e655930b52a16dbc82aa77e657a8e5a24c4.gz",
+      "compressed_sha256": "7fabb0a83ffd3cd9864b4ba216e19e655930b52a16dbc82aa77e657a8e5a24c4",
+      "compressed_bytes": 1495946,
+      "uncompressed_sha256": "4129a69c47670a5a5939abd00837432f4fd1376aae8afc4876c39ba625e2e0e3",
+      "uncompressed_bytes": 5972576,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/integrated-fourth-stable-history.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/3dc6651fe3791f1ca1df7d06e6397f99f1e9ebe0e6092d8c6eeabf0aa5bf6787.gz",
+      "compressed_sha256": "3dc6651fe3791f1ca1df7d06e6397f99f1e9ebe0e6092d8c6eeabf0aa5bf6787",
+      "compressed_bytes": 1044161,
+      "uncompressed_sha256": "ea95b90d50335980bf2f986e5f54aebd414d67b9c278a57a7ae6c1b324df69f0",
+      "uncompressed_bytes": 3409096,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/integrated-third-msrv-membership.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/28571920b9bdd8b32b40d57860d5cf7ab6f6c8032e1a7391d34a1964bea9ecfd.gz",
+      "compressed_sha256": "28571920b9bdd8b32b40d57860d5cf7ab6f6c8032e1a7391d34a1964bea9ecfd",
+      "compressed_bytes": 968994,
+      "uncompressed_sha256": "6f1ce857554fdb008d8e7c719999d4c2a48dcadba6bd6d392ab884d241272df3",
+      "uncompressed_bytes": 2770432,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/integrated-third-stable-membership.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/135f7abe66bc98c92c75747e684d603c6c50a7fb5090844cea32c36ffdf0463a.gz",
+      "compressed_sha256": "135f7abe66bc98c92c75747e684d603c6c50a7fb5090844cea32c36ffdf0463a",
+      "compressed_bytes": 938447,
+      "uncompressed_sha256": "c9b34c1f5358ce0e8af08e682afbf68bbd17e66db45c62c3984da4a4968043ee",
+      "uncompressed_bytes": 3014392,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/ordinal-scaffold-fixed-stable-retry.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/4b2bbea44bd315c6e560128d9fd03f56474bad546d9b3ae24c40b706207c2ef1.gz",
+      "compressed_sha256": "4b2bbea44bd315c6e560128d9fd03f56474bad546d9b3ae24c40b706207c2ef1",
+      "compressed_bytes": 1060961,
+      "uncompressed_sha256": "d62577297aeff12120be5992650bb3fee8589b5998ca645c1bafb6d71cc79604",
+      "uncompressed_bytes": 3464704,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    },
+    {
+      "restore_relative_path": "development/superseded-five-voter.binary.gz",
+      "retained_WORK_path": "/workspace/work/integration/membership-source-checkpoint-retained-ELFs/07244b9da5f22db14549429a9c8b9b6652a90d17ba5ac2dd024d249bbb0e608b.gz",
+      "compressed_sha256": "07244b9da5f22db14549429a9c8b9b6652a90d17ba5ac2dd024d249bbb0e608b",
+      "compressed_bytes": 900061,
+      "uncompressed_sha256": "1e9611beb4e59ada3a942df17b9c3335ee8f95b000448b43fedfb42995409619",
+      "uncompressed_bytes": 2878928,
+      "original_full_mode": 384,
+      "encoding": "gzip",
+      "actual_decompression_verified": true
+    }
+  ]
+}

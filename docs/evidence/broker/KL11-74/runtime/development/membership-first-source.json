@@ -1,0 +1,21 @@
+{
+  "source_base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "scope": "exact archive plus only two owned74 files and root7db export",
+  "overlay": [
+    {
+      "path": "partitionline-broker/src/raft/membership.rs",
+      "sha256": "e0d561d3ab50b6c59b26f9b6bb273c1453b8a0653fff2ba18668e7cc611f9e53",
+      "coordinator_owned": false
+    },
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "sha256": "0ea45e77af446fcf6adbd5b492fee7bdc4ff3552903014c5491cc67400250176",
+      "coordinator_owned": false
+    },
+    {
+      "path": "partitionline-broker/src/raft/mod.rs",
+      "sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+      "coordinator_owned": true
+    }
+  ]
+}

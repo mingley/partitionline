@@ -1,0 +1,42 @@
+{
+  "scope": "coordinator-authorized interrupted and safely stopped own generated cache only; all current ELF file types1/2/3 retained before deletion",
+  "cache": "/workspace/work/broker-oidc/target",
+  "proc_reference_checks": [
+    "exe",
+    "cwd",
+    "cmdline",
+    "environ"
+  ],
+  "active_references": [],
+  "files": 2871,
+  "generated_bytes": 634690246,
+  "ELF_paths": 148,
+  "new_uncovered_ELFs_preserved": 87,
+  "all_required_ELFs_byte_and_mode_roundtrip": true,
+  "retention_sources": [
+    {
+      "manifest": "docs/evidence/broker/KL11-37/production/foundation-final-96211da1/bin/manifest.json",
+      "manifest_sha256": "db61d60cce89c23a03f4a6c78d007790808f2dbd2cc66b82094975fea819be1a",
+      "archive": "/workspace/work/broker-oidc/foundation-binaries-retention-96211da1/cache-executables.tar.gz",
+      "archive_sha256": "96dee464b80435ab02e66136764b54aece07160cd719ac4c41748297dca93df4"
+    },
+    {
+      "manifest": "docs/evidence/broker/KL11-37/production/http-final-0b9797ef/bin/manifest.json",
+      "manifest_sha256": "d0094d1c9ada2723bd59b9fb7e12e1777e63ad455616faccad32f5e425c62389",
+      "archive": "/workspace/work/broker-oidc/http-final-retention-0b9797ef/test-executables.tar.gz",
+      "archive_sha256": "d32afb08f7ac34acb41bab93293437aa89116ee82268c4cf3cdfbf5c55292af2"
+    },
+    {
+      "manifest": "docs/evidence/broker/KL11-37/production/development/jwks-media-01/bin/manifest.json",
+      "manifest_sha256": "9ed5eb1d87c6fc376286db707b70592cf21db2fa5e383384093bd0c24a62bb10",
+      "archive": "/workspace/work/broker-oidc/jwks-media-retention/candidate-test-executables.tar.gz",
+      "archive_sha256": "1a273a8ca8afdefce000d055b52e0088533828b1c0a73592842866ac64048dbb"
+    }
+  ],
+  "inventory_gzip_sha256": "c52d0e348bc8a84d9ff04f8987179c5318f58439e69a137422e7474ceea75d82",
+  "inventory_original_sha256": "6f84b9363e2d502f03e1ca0eab5d256b30ee9f2816c37d513a4060e5412da6d6",
+  "inventory_original_full_mode": "0o600",
+  "inventory_original_scratch_path": "/workspace/work/broker-oidc/socket-cache-clear-retention-12f43986/cache-inventory.json",
+  "source_rawlogs_evidence_WAL_unchanged": true,
+  "deleted_only_generated_cache": true
+}

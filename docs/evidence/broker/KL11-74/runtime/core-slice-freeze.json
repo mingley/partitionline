@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "task": "KL11-74",
+  "disposition": "coherent developmental core slice; not final qualification",
+  "source_base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "source_manifest": "development/integrated-third-source.json",
+  "source_manifest_sha256": "407eb2fd0336fadc511c798f0b09e339c23005f43edbf6a9bce9b81badc9c609",
+  "frozen_for_review": {
+    "partitionline-broker/src/raft/membership.rs": {
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/election.rs": {
+      "sha256": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/protocol.rs": {
+      "sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/replication.rs": {
+      "sha256": "18808a5137cbbc53536163bd078d076503dd81749f749fed0d5f56e14e3b6e5d",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/snapshot.rs": {
+      "sha256": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+      "mode": "0o600"
+    },
+    "partitionline-broker/src/raft/mod.rs": {
+      "sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "442c24fca7d058a88f1196517cb1643dbdd4e4efc84be55196dde8dcda64232b",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_election.rs": {
+      "sha256": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_replication.rs": {
+      "sha256": "db96d17177dfa7fee4d3d5798215f57a90f6e91a35677458e386a7e2876d6f97",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/raft_snapshot.rs": {
+      "sha256": "b5ceb3058c945b25ce43b93eb3313f34e3704daf18c1e31632fac145d359f4ce",
+      "mode": "0o600"
+    },
+    "partitionline-broker/tests/protocol.rs": {
+      "sha256": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23",
+      "mode": "0o600"
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "partitionline-broker/src/raft/membership.rs",
+        "partitionline-broker/src/raft/election.rs",
+        "partitionline-broker/src/raft/protocol.rs",
+        "partitionline-broker/src/raft/replication.rs",
+        "partitionline-broker/src/raft/snapshot.rs",
+        "partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "log": "development/integrated-third-rustfmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_manifest": "development/integrated-third-source.json"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-74/runtime/development/integrated-third-stable-tests.json",
+      "sha256": "3e7de3aa1169d52c3ef410ca9ee032158ddddf3e8330c1efcde94addcdd1ec72",
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_membership",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "source_manifest": "development/integrated-third-source.json",
+      "passed": 23
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-74/runtime/development/integrated-third-stable-clippy.json",
+      "sha256": "43bd652182fd68affda44bf75e498e9a509caf36b4ef00158c1f6739a210c083",
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "raft_membership",
+        "--test",
+        "raft_replication",
+        "--test",
+        "raft_election",
+        "--test",
+        "raft_snapshot",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "source_manifest": "development/integrated-third-source.json",
+      "passed": null
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-74/runtime/development/integrated-third-msrv-tests.json",
+      "sha256": "6f46e501b253e6a862b70315117809d25b2703af26515a810413d40ea4375127",
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_membership",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "source_manifest": "development/integrated-third-source.json",
+      "passed": 23
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-74/runtime/development/integrated-third-msrv-clippy.json",
+      "sha256": "d40d3e070518b28da79eb7fa0555f377b08533a9c109be809295668b90518cc0",
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "raft_membership",
+        "--test",
+        "raft_replication",
+        "--test",
+        "raft_election",
+        "--test",
+        "raft_snapshot",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "source_manifest": "development/integrated-third-source.json",
+      "passed": null
+    }
+  ],
+  "results": {
+    "latest_stable_membership_passed": 23,
+    "latest_msrv_membership_passed": 23,
+    "latest_stable_strict_clippy": true,
+    "latest_msrv_strict_clippy": true,
+    "latest_format_check": true,
+    "latest_source_unchanged": true,
+    "prior_corrected_68_each": "development/integrated-development-validation.json; explicitly different historical source",
+    "authentic_old_denied_vote_panic": "development/superseded-five-voter-result.json; no repeated old control necessary"
+  },
+  "scope": [
+    "one-at-a-time full-directory add/remove, immediate NEWset/current-term majority, priorconfigcommit and authentic recent-catchup guard",
+    "observer feature discovery, negotiation cancellation/deadline and inactive-directory reincarnation",
+    "same-term historical full-directory vote persistence and Candidate reply correlations",
+    "full incoming repair configuration preflight before epoch/truncate changes",
+    "PLREPL02 resultconfig +80-byte authority receipts, PLDINIT2 immutable group/genesis, PLSNAP02 typedfullprefix images"
+  ],
+  "limits": [
+    "No actual dynamic3/5 process/fault causal captures have been qualified yet. They are the next ownedtest work.",
+    "Independent Apache component fixtures already frozen separately; not equivalent to full local runtime safety.",
+    "Final immutable stable/MSRV default/allfeature suite, strict docs, compiled guards and independent raw/casual proof remain outstanding.",
+    "Typed receiver must already know full leader directory; authenticated discovery/autonomous network/native Kafka directory wire remain76/70.",
+    "Fixed-format broad/controller regressions remain scheduled at final immutable source; latestClippy compiles claimed four suites but only23membership behaviors were executed here."
+  ],
+  "resource": {
+    "released_cpu_affinity": "2,4",
+    "live_cargo_sessions": 0,
+    "target_path": "/workspace/work/target-broker-segments",
+    "target_bytes": 177399149,
+    "minimum_free_mib": 930.72265625,
+    "floor_mib": 350,
+    "retained_binaries": "development/integrated-third-binaries.json"
+  },
+  "artifacts": [
+    "development/integrated-third-source.json",
+    "development/integrated-third-binaries.json",
+    "trace-schema.md",
+    "development/integrated-development-validation.json"
+  ]
+}

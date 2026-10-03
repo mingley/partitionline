@@ -1,0 +1,47 @@
+{
+  "stage": "frozen six-source socket checkpoint ready for coordinator source push; full actual-pin gates and genuine peers remain pending",
+  "base_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "source": [
+    {
+      "path": "partitionline-broker/src/security/oidc.rs",
+      "sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/sasl.rs",
+      "sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "sha256": "dbd72a443485e67f5ebb5cbe59d48cfca9439f9eefae013e91076cdc724caf1e",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    }
+  ],
+  "developer_focus": "docs/evidence/broker/KL11-37/production/development/socket-after-jwks-12f43986-after-stop-01/validation.json",
+  "developer_validation_sha256": "dfc2a7950de6c0f26bacdd85120464234afd2e11fb352498e842838441d407de",
+  "qualification": "24-command active/inactive profile development overlay only",
+  "live_peer_qualification": false,
+  "session_lifetime_ms": 0
+}

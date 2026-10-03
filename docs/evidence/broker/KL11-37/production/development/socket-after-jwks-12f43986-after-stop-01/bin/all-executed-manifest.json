@@ -1,0 +1,459 @@
+{
+  "archive_local_path": "/workspace/work/broker-oidc/socket-executed-retention-12f43986/all50-executed-test-invocations.tar.gz",
+  "archive_sha256": "addbc2f1beae8f7fd97a3cbaaa0e062c799713272b988e651d7e2767fd93ff86",
+  "archive_bytes": 73696396,
+  "actual_invocations": 50,
+  "bytes_and_full_modes_roundtrip": true,
+  "invocations": [
+    {
+      "command": "stable-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-default-tests-after-stop-01/partitionline_broker-c952dbf8a96b13dc",
+      "sha256": "aa895ec7dd91f2b4b98c80eb2fc2fb0a45a2f67f5563c96f5c4c9680a951022a",
+      "full_mode": 448,
+      "bytes": 9002528,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-fa74ee4b226ea04a",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-default-tests-after-stop-01/oidc_http-fa74ee4b226ea04a",
+      "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689",
+      "full_mode": 448,
+      "bytes": 1074856,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-d83634fe1544f8b8",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-default-tests-after-stop-01/oidc_sessions-d83634fe1544f8b8",
+      "sha256": "10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-bceae71c7cc60860",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-default-tests-after-stop-01/oidc_validation-bceae71c7cc60860",
+      "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+      "full_mode": 448,
+      "bytes": 1074920,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-default-tests-after-stop-01/sasl_sessions-e9364c4dc0ca55dc",
+      "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-32ba8b7c4555d671",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-tls-tests-after-stop-01/partitionline_broker-32ba8b7c4555d671",
+      "sha256": "f0e1a55f76445a4332d4fa62ea636500c342821db74b47b99a884aa2cd77e162",
+      "full_mode": 448,
+      "bytes": 9206144,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-13de084590424b42",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-tls-tests-after-stop-01/oidc_http-13de084590424b42",
+      "sha256": "9e619a278578a14191066079d4b0abfaa94c14025dc719bcbac26de5c1c9079a",
+      "full_mode": 448,
+      "bytes": 1074856,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-0418ab1f22877aab",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-tls-tests-after-stop-01/oidc_sessions-0418ab1f22877aab",
+      "sha256": "24de3379d91fb267c2a483dd4aad45728f2e2c07072656b58ba275f6502b9003",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-597114d3cd8b87f3",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-tls-tests-after-stop-01/oidc_validation-597114d3cd8b87f3",
+      "sha256": "83865475a4ec4d63c585feec2b40302c1c076dcd5b6735fa5b402981f8a279f0",
+      "full_mode": 448,
+      "bytes": 1074920,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-5623c12c4c3703ac",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-tls-tests-after-stop-01/sasl_sessions-5623c12c4c3703ac",
+      "sha256": "930887418e8a67534eb897c0c601b9d3c8547dc25b002db52e71270f9f564d66",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/partitionline_broker-3f4869ee22bdcef8",
+      "sha256": "68d7eedf57d2b921e66c55a98cc26e46f0d1bcc1357385279441cc9e9bb6bbc6",
+      "full_mode": 448,
+      "bytes": 12316112,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-25e684a39cd9dc12",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_http-25e684a39cd9dc12",
+      "sha256": "860e110ee1986afb88dc191ded9ef60e8ee31e80d85cc35f6530312e3e3c9fec",
+      "full_mode": 448,
+      "bytes": 1074856,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-676ce23de09f1ce5",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_sessions-676ce23de09f1ce5",
+      "sha256": "5097ac7268fc6c20044f0b5d16ccef0a3efe414ac6c2916d31d7b8bc3481c17c",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-22fc164c17616bbe",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_validation-22fc164c17616bbe",
+      "sha256": "421fa8cf722f6571ed2f8b18e7a5fe04be9e16f84df7815c24410aab81c2f98c",
+      "full_mode": 448,
+      "bytes": 1074920,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-2c9986752edf77df",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/sasl_sessions-2c9986752edf77df",
+      "sha256": "734b1c0096caac876333f81279334f97b11a3771a782cf5411a44996a26b492a",
+      "full_mode": 448,
+      "bytes": 5525312,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-d856496ca9d854d6",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tls-tests-after-stop-01/partitionline_broker-d856496ca9d854d6",
+      "sha256": "9974c5d96ab6f630820967bc0e512c42f1238cc2193c4aa9bb425083e5bb9fe9",
+      "full_mode": 448,
+      "bytes": 12540832,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-1355b424dd65b49d",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tls-tests-after-stop-01/oidc_http-1355b424dd65b49d",
+      "sha256": "e8a13c522fd3896c3fb9fb577746d546083c557889d5e11c1c974ba93cf51032",
+      "full_mode": 448,
+      "bytes": 1074856,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-a8a9a8ce409765cd",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tls-tests-after-stop-01/oidc_sessions-a8a9a8ce409765cd",
+      "sha256": "0cb9f95b09d6e9fd7d2d2a323a8aec4fc13911f2879e2787dad0c84cd72aadc2",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-ccbbe8858e944127",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tls-tests-after-stop-01/oidc_validation-ccbbe8858e944127",
+      "sha256": "f8d413545f14dc7586fbfab99d8b8b68c775adf85a5ed6d27217f68e1b784b3d",
+      "full_mode": 448,
+      "bytes": 1074920,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-0d423b32e7828816",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tls-tests-after-stop-01/sasl_sessions-0d423b32e7828816",
+      "sha256": "43913d2601c8c3b82dc2b0d8e9d3bbfa59cd763a4892eef80b239f7d494341e6",
+      "full_mode": 448,
+      "bytes": 10740608,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-oidc-tests-after-stop-01/partitionline_broker-7bbeca4ee706eb01",
+      "sha256": "4fa70ac17f1754730165bb6ee1397b0820c9e174beb2e3b7a3a16893ad3c6ce9",
+      "full_mode": 448,
+      "bytes": 21255824,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-oidc-tests-after-stop-01/oidc_http-a8a5a8e24c6a6f8b",
+      "sha256": "7d9b8b81199852bd897fe96399edae7533b07cf7b9fe5ef3ecdda54999a21d92",
+      "full_mode": 448,
+      "bytes": 11988512,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-oidc-tests-after-stop-01/oidc_sessions-96eeaa8677ba4b40",
+      "sha256": "0476a503e0ee0f134d9543269303a6a6b0eae358017587974c8f467a513abb6b",
+      "full_mode": 448,
+      "bytes": 14406000,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-oidc-tests-after-stop-01/oidc_validation-eadbd4d7a4a70f85",
+      "sha256": "c7257e5b76bd4a9852ac2059e7e761928dcd12e2e6eb4dd8b56a44989fe32f04",
+      "full_mode": 448,
+      "bytes": 4220208,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-oidc-tests-after-stop-01/sasl_sessions-aa46d068459e7a6c",
+      "sha256": "cbf2276a0bfa7bdf93a4c37004bb094213e3029d396bfa06f7cbd0558b89f9d1",
+      "full_mode": 448,
+      "bytes": 13188464,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-default-tests-after-stop-01/partitionline_broker-ea773fb32d16e69c",
+      "sha256": "5f8dbd2bdd0d72cea65e914782f133f9c94441f939f8814637f26caf9ef03af0",
+      "full_mode": 448,
+      "bytes": 7306632,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-c7e4e54a4511467b",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-default-tests-after-stop-01/oidc_http-c7e4e54a4511467b",
+      "sha256": "a01e5aa1c7a85853c11b0856f59d64b0ddbfa82428c37289153b5c914a0f8e12",
+      "full_mode": 448,
+      "bytes": 1079376,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-27003a934458ca4e",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-default-tests-after-stop-01/oidc_sessions-27003a934458ca4e",
+      "sha256": "2ac0b1a476643f143da9a35a7829b2ab2022e3497ecbc859ce2e17b71e56186e",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-42016f58077d9a54",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-default-tests-after-stop-01/oidc_validation-42016f58077d9a54",
+      "sha256": "d02773309e350d448792d85ba04d303ea8b883dd51bc06573daed6f707754786",
+      "full_mode": 448,
+      "bytes": 1079392,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-e89950569065fb85",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-default-tests-after-stop-01/sasl_sessions-e89950569065fb85",
+      "sha256": "b7dce3eb270fc2dc67dd7f4efaff3b7f66e07146255d513b8422df2ceca1c57b",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-8c3c814a78d8884b",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-tls-tests-after-stop-01/partitionline_broker-8c3c814a78d8884b",
+      "sha256": "8bdd79cd9f762562f896da5eff10d1296eead0fa0376735bbbdf48e6b835312a",
+      "full_mode": 448,
+      "bytes": 7375768,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-c79b10633b809714",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-tls-tests-after-stop-01/oidc_http-c79b10633b809714",
+      "sha256": "e959526e4456d67b47b3860388bddfefe95cf38e978ae36be732801fb00c7e84",
+      "full_mode": 448,
+      "bytes": 1079376,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-22c77556e4df78d5",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-tls-tests-after-stop-01/oidc_sessions-22c77556e4df78d5",
+      "sha256": "631f880fe611f94b931be51bc2e68d43516ed51c91a3b73db5a6b46ab22a5e23",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-83258d9686d29728",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-tls-tests-after-stop-01/oidc_validation-83258d9686d29728",
+      "sha256": "fb666173ccee15a10c86e9b4e9cbef2b52098f3b2b722570740054e71fb54c0f",
+      "full_mode": 448,
+      "bytes": 1079392,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-319c55b7a4cf097e",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-tls-tests-after-stop-01/sasl_sessions-319c55b7a4cf097e",
+      "sha256": "fd1da8e51f1d1fae3fdbd4a383b9ab209342bbfe7c63a437b1e9d1f6888da9db",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-93d5eb5ec43cda3a",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tests-after-stop-01/partitionline_broker-93d5eb5ec43cda3a",
+      "sha256": "040a54cc1b92b7cb0aa7a999db131b39abd5da5b0d5f8d0c48b2c68220be7ca1",
+      "full_mode": 448,
+      "bytes": 9712376,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-7a0f4a3a82508631",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tests-after-stop-01/oidc_http-7a0f4a3a82508631",
+      "sha256": "a90df1547015e7bb728a111a4a9bf28e445d1f1fecdc1351676df6a071ab521d",
+      "full_mode": 448,
+      "bytes": 1079376,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-0b64918d2fc87e8d",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tests-after-stop-01/oidc_sessions-0b64918d2fc87e8d",
+      "sha256": "9aec55c742d8f6b84331e3f84bf7a0a87d39381b6e7044c3ddae4438a6525022",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-9d7a502cbbec6293",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tests-after-stop-01/oidc_validation-9d7a502cbbec6293",
+      "sha256": "3ae876c657f32f647abd35978dbe57f53b82f61c94c079a7f7e3cce0cfc64019",
+      "full_mode": 448,
+      "bytes": 1079392,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-d4a8d2c0a0da6487",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tests-after-stop-01/sasl_sessions-d4a8d2c0a0da6487",
+      "sha256": "2b9c5e11a7fc0796e5157dea59f2fc2fa16845b66554692e8ec727106cb2e799",
+      "full_mode": 448,
+      "bytes": 4711768,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-99f399ba4ab060b1",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tls-tests-after-stop-01/partitionline_broker-99f399ba4ab060b1",
+      "sha256": "bb51359d8d0db9b74041ec6457794f0189b5f6d64c17f735cc46044849c5a832",
+      "full_mode": 448,
+      "bytes": 9780232,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-b113fb2c86cfe856",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tls-tests-after-stop-01/oidc_http-b113fb2c86cfe856",
+      "sha256": "0057946ebd22b26aa61d8b9e06f51ca0d3f5aa1dc961128b21a54a2b4e1d2de4",
+      "full_mode": 448,
+      "bytes": 1079376,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-a2746aada2f890e5",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tls-tests-after-stop-01/oidc_sessions-a2746aada2f890e5",
+      "sha256": "3843b2e2cf174a4448c8d1557429cc291a6beb7c64dd5f166b75e426cd03d126",
+      "full_mode": 448,
+      "bytes": 1079384,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-7553547493fe372a",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tls-tests-after-stop-01/oidc_validation-7553547493fe372a",
+      "sha256": "f8b3c3b4a74892bbaca967b81ffb5e8828fea4671cc262c396ba444a7ff38732",
+      "full_mode": 448,
+      "bytes": 1079392,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-6311f44d43949a7c",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-sasl-tls-tests-after-stop-01/sasl_sessions-6311f44d43949a7c",
+      "sha256": "98384497efbaae8322e518d9a2a771782f0784e11e1c9b5a4f8a0172740585a1",
+      "full_mode": 448,
+      "bytes": 9445600,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-oidc-tests-after-stop-01/partitionline_broker-ad6435fd80e1a8f6",
+      "sha256": "7cc0e9b2b42e664b2cf3c4f7004785200435de2c12b5ff8312c3ae2366d0c9db",
+      "full_mode": 448,
+      "bytes": 17023160,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-2238d440fe769608",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-oidc-tests-after-stop-01/oidc_http-2238d440fe769608",
+      "sha256": "b170600b240573cfb7401c1f44d83575306ba00aa2fad5f19563a763a15a314a",
+      "full_mode": 448,
+      "bytes": 10259432,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-6bb990bd864bb390",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-oidc-tests-after-stop-01/oidc_sessions-6bb990bd864bb390",
+      "sha256": "c44d341a2ca4770008492edec0699aad424138b23383faf581f5ea9726fdfb45",
+      "full_mode": 448,
+      "bytes": 12263576,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-oidc-tests-after-stop-01/oidc_validation-e9aae352142f1dcf",
+      "sha256": "fef8a7597bc6b0db49b63a8039b7c91ce1c54133ad8395e37f4b8ea216fa85b2",
+      "full_mode": 448,
+      "bytes": 3664104,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-c40c4fa34a4c54cc",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/1.85.0-oidc-tests-after-stop-01/sasl_sessions-c40c4fa34a4c54cc",
+      "sha256": "222d04cd7d4e91eeb03677f14c36c72e1bf556a01c2c1b510f8ece56cfbe5ebd",
+      "full_mode": 448,
+      "bytes": 11442816,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    }
+  ]
+}

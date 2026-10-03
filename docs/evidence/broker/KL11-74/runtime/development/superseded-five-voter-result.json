@@ -1,0 +1,18 @@
+{
+  "source_receipt": "superseded-review-source.json",
+  "test_scaffold_receipt": "superseded-five-voter-fixed-scaffold.json",
+  "source_role": "Authentic retained development capture, not published baseline",
+  "command": "taskset -c 2,4 cargo +stable test --locked --manifest-path /workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml --test raft_membership five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant -- --exact --test-threads=1 --nocapture",
+  "exit_code": 101,
+  "outcome": "Intended behavioral failure: denied first vote clears remaining Candidate correlations and attempts to remove index0 from empty Vec.",
+  "passed": 0,
+  "failed": 1,
+  "log": "superseded-five-voter-fixed-scaffold.log",
+  "binary": {
+    "path": "superseded-five-voter.binary.gz",
+    "sha256": "1e9611beb4e59ada3a942df17b9c3335ee8f95b000448b43fedfb42995409619",
+    "gzip_sha256": "07244b9da5f22db14549429a9c8b9b6652a90d17ba5ac2dd024d249bbb0e608b",
+    "mode": 448,
+    "decompression_verified": true
+  }
+}

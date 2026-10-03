@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/prepare-source.py", line 85, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/prepare-source.py", line 28, in main
+    previous_files = {row['path']: row for row in previous['files']}
+                      ~~~^^^^^^^^
+TypeError: string indices must be integers, not 'str'

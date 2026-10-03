@@ -1,0 +1,341 @@
+{
+  "base_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "checks": [
+    {
+      "command": "stable-rustc",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-rustc",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-default-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-default-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-default-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-default-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-tls-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-tls-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-tls-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-tls-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tls-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tls-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-sasl-tls-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-default-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-default-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-default-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-tls-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-tls-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-tls-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tls-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tls-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-sasl-tls-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "before",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "after",
+      "files": 69146,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.36s
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 1 test
+test five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant ... 
+thread 'five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant' (1025156) panicked at src/raft/replication.rs:3730:14:
+removal index (is 0) should be < len (is 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test raft_membership`

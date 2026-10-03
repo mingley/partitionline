@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "disposition": "developmentalhistoriespass; helperlint +ordinalcounterexample scaffold/environment failurespreserved; nofinalqualification",
+  "results": {
+    "actual_history_first_stable": {
+      "command_receipt": "integrated-fourth-stable-history.json",
+      "initial_voters": [
+        3,
+        5
+      ],
+      "events": [
+        132,
+        201
+      ],
+      "raw_paired_checkpoints": [
+        28,
+        42
+      ],
+      "child_exit_code": 88,
+      "clock_handoff": [
+        16,
+        17
+      ],
+      "manifest": "integrated-fourth-stable-history/capture-manifest.json"
+    },
+    "first_history_strict_clippy": {
+      "receipt": "integrated-fourth-stable-clippy.json",
+      "exit_code": 101,
+      "failure": "fourstd::fs::read_to_string helpers; runtimehistoryalreadyexecuted"
+    },
+    "ordinal_scaffold_first": {
+      "receipt": "ordinal-first-stable.json",
+      "exit_code": 101,
+      "failure": "twoJournalbindingmutabilitycompileerrors; intendednegativebehaviornotexecuted"
+    },
+    "ordinal_scaffold_fixed_environment": {
+      "receipt": "ordinal-scaffold-fixed-stable.json",
+      "exit_code": -15,
+      "terminated_for_disk_floor": true,
+      "minimum_free_mib": 346.1953125,
+      "failure": "actualrunnerstoppedbeforeCargooutput at350MiBfloor; notsemanticnegativeoutcome"
+    }
+  },
+  "production_source_hash": "18808a5137cbbc53536163bd078d076503dd81749f749fed0d5f56e14e3b6e5d",
+  "production_unmodified_for_counterexample": true,
+  "next": [
+    "Execute corrected checksum-valid historicalconfiguration-sourceordinal counterexample onoriginal18808source",
+    "Require actualchangedconfigreferenceatop2/3/5 withdifferentpredecessor; preservefailingactualraw/binary",
+    "Runlateststable/Rust1.85focusedmembership+boundarytests andstrictgates;freezeexactsource/captures"
+  ],
+  "artifacts": {
+    "integrated-fourth-stable-history.json": "7ccb17e1104d997834ea5324bdcc0201a28776796e4faba413113a3ca43c2974",
+    "integrated-fourth-stable-history.log": "152274372cdecd019a00495e2dfe6517a17870136d1022ff2fbca1ce81b3215e",
+    "integrated-fourth-stable-clippy.json": "f606d545ae535db6a0187fb2f96a92784efb20da073838bf141ac19108574ec8",
+    "integrated-fourth-stable-clippy.log": "56655d3c010a564958ab0fa211c0ca78c4ffbee06707b757c6278d14e3038cc3",
+    "ordinal-first-stable.json": "53193b39612c978355b1e2c293539ad24eeabf0f8c56e5866af1a180580ad31c",
+    "ordinal-first-stable.log": "24a3aa616ec45b9f2ac0c7f36d52ff079ad43bd5f16602b7e773207ec8af84f8",
+    "ordinal-scaffold-fixed-stable.json": "d65fd8d35d81eb3f35f4e93e6599870b4f1f77f2a00a3b10c71693f31687233b",
+    "ordinal-scaffold-fixed-stable.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "integrated-fourth-source.json": "09a86a174d727e00c9902062735e23a43627b56cde44caea08ad34d6e2828c95",
+    "ordinal-first-source.json": "a918e8f77084ce9fa4ee62b261ecfd36a02cf8a847a056694a3471c62c2df49e",
+    "ordinal-scaffold-fixed-source.json": "b66d08058d50b757ef41efe3ecefa0304c45749ff0cad3e07362d7344963993e"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "command": "stable-sasl-tests",
+  "invocations": [
+    {
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-3f4869ee22bdcef8",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/partitionline_broker-3f4869ee22bdcef8",
+      "sha256": "68d7eedf57d2b921e66c55a98cc26e46f0d1bcc1357385279441cc9e9bb6bbc6",
+      "full_mode": 448,
+      "bytes": 12316112,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-25e684a39cd9dc12",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_http-25e684a39cd9dc12",
+      "sha256": "860e110ee1986afb88dc191ded9ef60e8ee31e80d85cc35f6530312e3e3c9fec",
+      "full_mode": 448,
+      "bytes": 1074856,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-676ce23de09f1ce5",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_sessions-676ce23de09f1ce5",
+      "sha256": "5097ac7268fc6c20044f0b5d16ccef0a3efe414ac6c2916d31d7b8bc3481c17c",
+      "full_mode": 448,
+      "bytes": 1074904,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-22fc164c17616bbe",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/oidc_validation-22fc164c17616bbe",
+      "sha256": "421fa8cf722f6571ed2f8b18e7a5fe04be9e16f84df7815c24410aab81c2f98c",
+      "full_mode": 448,
+      "bytes": 1074920,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    },
+    {
+      "executed_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-2c9986752edf77df",
+      "retained_path": "/workspace/work/broker-oidc/socket-executables-after-jwks-12f43986/stable-sasl-tests-after-stop-01/sasl_sessions-2c9986752edf77df",
+      "sha256": "734b1c0096caac876333f81279334f97b11a3771a782cf5411a44996a26b492a",
+      "full_mode": 448,
+      "bytes": 5525312,
+      "source_scope": "same six-source overlay and pushed base as this command"
+    }
+  ]
+}

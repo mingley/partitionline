@@ -1,0 +1,153 @@
+{
+  "base_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "candidate_source_sha": null,
+  "scope": "exact pushed JWKS source plus six unchanged frozen source20 overlays; development qualification before actual socket source push; selected owned behavior and full all-target lint, not whole broker test matrix or live SDK proof",
+  "source": [
+    {
+      "path": "partitionline-broker/src/security/oidc.rs",
+      "sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/sasl.rs",
+      "sha256": "cc0636300a380dabadb30096fefdd06b76866df25cfe697013807658b9d6f344",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "sha256": "dbd72a443485e67f5ebb5cbe59d48cfca9439f9eefae013e91076cdc724caf1e",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+      "working_full_mode": "0o600",
+      "intended_git_mode": "100644"
+    }
+  ],
+  "runtime_commands": 24,
+  "all_pass": true,
+  "unfiltered_behavior": {
+    "passed": 812,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "behavior_by_profile": {
+    "stable-default-tests": {
+      "passed": 54,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-tls-tests": {
+      "passed": 54,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-sasl-tests": {
+      "passed": 83,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-sasl-tls-tests": {
+      "passed": 85,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-oidc-tests": {
+      "passed": 130,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-default-tests": {
+      "passed": 54,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-tls-tests": {
+      "passed": 54,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-sasl-tests": {
+      "passed": 83,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-sasl-tls-tests": {
+      "passed": 85,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-oidc-tests": {
+      "passed": 130,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    }
+  },
+  "strict_all_target_cells": 10,
+  "fmt_and_toolchain_cells": 4,
+  "full_source_files": 69146,
+  "before_after_full_byte_mode_checks": 48,
+  "aggregate_source_sha256": "a70a5b8ee494db0eb41b966f9080ce75625cea526d08b5d6ce69e3be9171063c",
+  "executed_ELF_invocations_retained": 50,
+  "executed_ELF_archive_sha256": "addbc2f1beae8f7fd97a3cbaaa0e062c799713272b988e651d7e2767fd93ff86",
+  "final_cache_ELF_paths_retained": 160,
+  "final_cache_deleted_only_generated": true,
+  "minimum_sampled_free_bytes": 851791872,
+  "disk_sampling_s": 0.5,
+  "resource_holds_in_completed_cohort": 0,
+  "prior_attempt": {
+    "prefix": "docs/evidence/broker/KL11-37/production/development/socket-after-jwks-12f43986",
+    "completed_commands": 8,
+    "passing_behavior_cases": 191,
+    "interrupted_command": "stable-sasl-tls-tests",
+    "interruption_classification": "shared filesystem disk guard, compiled command safely terminated before behavioral assertions; not a product failure",
+    "guard_observed_breach": [
+      362983424,
+      362938368,
+      362897408
+    ],
+    "minimum_limitation": "full historical minimum was not persisted by first runner; peer/root362983424 and worker362938368 observations prove threshold breach, current stop sample is explicit",
+    "all148_current_ELF_files_retained_then_own_cache_cleared": true,
+    "all_source_bytes_modes_unchanged_after_interruption": true
+  },
+  "live_peer_qualification": false,
+  "full_KL11_37_status": "open",
+  "session_lifetime_ms": 0
+}

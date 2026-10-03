@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "source_base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "overlay": [
+    {
+      "path": "partitionline-broker/src/raft/membership.rs",
+      "sha256": "e0d561d3ab50b6c59b26f9b6bb273c1453b8a0653fff2ba18668e7cc611f9e53",
+      "coordinator_owned": false
+    },
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "sha256": "0ea45e77af446fcf6adbd5b492fee7bdc4ff3552903014c5491cc67400250176",
+      "coordinator_owned": false
+    },
+    {
+      "path": "partitionline-broker/src/raft/mod.rs",
+      "sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+      "coordinator_owned": true
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_membership",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "membership-first.log"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/membership-runtime/dev-source/partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "raft_membership",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "membership-clippy-first.log"
+    }
+  ],
+  "results": {
+    "passed": 13,
+    "failed": 0,
+    "ignored": 0,
+    "strict_clippy_passed": true,
+    "baseline_files_unmodified_after_commands_excluding_declared_overlay": 59195,
+    "overlay_files_unmodified": 3,
+    "cache_growth_mib": 81
+  },
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "cpu_affinity": "2,4"
+  },
+  "qualification": "Focused configuration types/codec/progress only; dynamic durable replication/election/snapshot not yet implemented or qualified."
+}

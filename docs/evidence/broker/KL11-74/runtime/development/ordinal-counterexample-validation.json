@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "disposition": "Actualnegativecontrol: oldimplementation18808 accepted checksum-valid historicalsourceordinal forgery; regressionfailed asintended",
+  "command_receipt": "ordinal-scaffold-fixed-stable-retry.json",
+  "source_manifest": "ordinal-scaffold-fixed-source.json",
+  "production_sha256": "18808a5137cbbc53536163bd078d076503dd81749f749fed0d5f56e14e3b6e5d",
+  "executed_binary": {
+    "path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+    "gzip": "ordinal-scaffold-fixed-stable-retry.binary.gz",
+    "raw_sha256": "d62577297aeff12120be5992650bb3fee8589b5998ca645c1bafb6d71cc79604",
+    "gzip_sha256": "4b2bbea44bd315c6e560128d9fd03f56474bad546d9b3ae24c40b706207c2ef1",
+    "raw_bytes": 3464704,
+    "mode": 448,
+    "verified_decompression": true
+  },
+  "actual_configuration_change": 3,
+  "same-result_commit_decoy": 4,
+  "genuine_later_configuration_change": 5,
+  "altered_election_offsets": [
+    5,
+    6
+  ],
+  "crc_generation": "actualJournal.append",
+  "reopened_ready": true,
+  "final_configuration_epoch": 2,
+  "files": {
+    "equal-view-source-forgery/forged-election.wal": {
+      "sha256": "ac9cc1a6c6a247de8f298f8413bbb4cc08b11117e6d46c7496bcc23903a41707",
+      "bytes": 2647,
+      "mode": 384
+    },
+    "equal-view-source-forgery/metadata.wal": {
+      "sha256": "3e1109965098d39808ec62e1f93713ae5caed6651b17365b9f5030eb644f9082",
+      "bytes": 3015,
+      "mode": 384
+    },
+    "equal-view-source-forgery/mutation.json": {
+      "sha256": "b94473e3b23fb014c5563dc27eb770f2cbd21bd9a7ce79a1950b6fba5cbff86d",
+      "bytes": 3761,
+      "mode": 384
+    },
+    "equal-view-source-forgery/original-election.wal": {
+      "sha256": "b2b120207091139c6f25e9e2f817c7c2c17965c6f31ce4f34d680d2be927ed34",
+      "bytes": 2647,
+      "mode": 384
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "source_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "docs/evidence/broker/KL11-15/runtime/prepare-source.py",
+        "--repository",
+        "/workspace/partitionline",
+        "--source-sha",
+        "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+        "--source",
+        "/workspace/work/membership-runtime/dev-source",
+        "--output",
+        "/workspace/work/membership-runtime/dev-source-integrity.json",
+        "--reuse-source",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--reuse-manifest",
+        "/workspace/work/retention-final-d147bcf1/source-integrity.json"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 1,
+      "log": "development/prepare-source-first.log",
+      "classification": "schema mismatch: sharedmap versus priorlist; no source files extracted before failure"
+    },
+    {
+      "argv": [
+        "python3",
+        "docs/evidence/broker/KL11-74/runtime/prepare-source.py",
+        "--repository",
+        "/workspace/partitionline",
+        "--source-sha",
+        "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+        "--source",
+        "/workspace/work/membership-runtime/dev-source",
+        "--output",
+        "/workspace/work/membership-runtime/dev-source-integrity.json",
+        "--reuse-source",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--reuse-manifest",
+        "/workspace/work/retention-final-d147bcf1/source-integrity.json"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "development/prepare-source-fixed.log"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "partitionline-broker/src/raft/membership.rs",
+        "partitionline-broker/tests/raft_membership.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "immutable_git_files_verified": 59196,
+    "verified_git_tree": "7b66b95e0ec191e77e5d75d1edb7027a6cdb4e8f",
+    "hardlinked_files": 44012,
+    "source_manifest_sha256": "08844c5829a2592287092de10fa0d1134dcc276b6c1865fe7c78a71daff66010",
+    "no_cargo_started": true
+  },
+  "source_manifest_scratch": "/workspace/work/membership-runtime/dev-source-integrity.json",
+  "scope": "source preparation and formatting only; no runtime correctness qualification"
+}

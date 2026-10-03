@@ -1,0 +1,37 @@
+{
+  "base_sha": "d21c5bdfaff0fb37d248793c27ce5a5b1a06a3b4",
+  "qualification": "superseded reviewed development files plus explicitly newer regression tests; not a published Git tree or a baseline claim",
+  "root_mod_sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+  "overlay": [
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "sha256": "cba16df2ce7f03cfef95bff9330b6bd28c20db24e9f3889da96588711436bfb7",
+      "origin": "read-only copied developmental moment /workspace/work/membership-review-03"
+    },
+    {
+      "path": "partitionline-broker/src/raft/election.rs",
+      "sha256": "2427d5e6860727d35ab0834e927ad26e08efc472cb2fff354782f0957c0a11b8",
+      "origin": "read-only copied developmental moment /workspace/work/membership-review-03"
+    },
+    {
+      "path": "partitionline-broker/src/raft/membership.rs",
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "origin": "read-only copied developmental moment /workspace/work/membership-review-03"
+    },
+    {
+      "path": "partitionline-broker/src/raft/snapshot.rs",
+      "sha256": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+      "origin": "read-only copied developmental moment /workspace/work/membership-review-03"
+    },
+    {
+      "path": "partitionline-broker/src/raft/protocol.rs",
+      "sha256": "73bd6ee219ea5f4de2ece5d61d765a3172c2e26a3a7fe37df5bca08aca9261e5",
+      "origin": "read-only copied developmental moment /workspace/work/membership-review-03"
+    },
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "sha256": "77aeabb5f229b803920c97a437d06597753823f525d00fabe3fc0cd926a99878",
+      "origin": "current focused regression test scaffold"
+    }
+  ]
+}

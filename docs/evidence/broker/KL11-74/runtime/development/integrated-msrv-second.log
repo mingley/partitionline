@@ -1,0 +1,97 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 5.46s
+     Running tests/raft_election.rs (/workspace/work/target-broker-segments/debug/deps/raft_election-c18593246fa844c7)
+
+running 10 tests
+test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+test deterministic_seeded_losing_partition_and_restart_histories ... seeded histories: seeds=16 campaigns=551 elections=155 denials=894 restarts=32
+ok
+test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+test tagged_owner_reconciliation_replay_validates_complete_checksums_and_state_invariants ... ok
+test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-a467f65802ceb5ec)
+
+running 19 tests
+test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+test durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_preserves_it ... ok
+test dynamic_snapshot_replays_voters_and_suffix_without_importing_local_vote ... ok
+test five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant ... ok
+test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+test malformed_or_uncommitted_multiple_configs_cannot_advance_epoch_or_truncate ... ok
+test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+test observer_feature_mismatch_directory_forgery_and_unqualified_legacy_paths_reject ... ok
+test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+test removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller ... ok
+test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/raft_replication.rs (/workspace/work/target-broker-segments/debug/deps/raft_replication-9bcefe4fc77d2f90)
+
+running 29 tests
+test actor_serializes_controller_and_typed_storage_and_joins_shutdown ... ok
+test actual_five_node_process_history ... ok
+test actual_five_node_snapshot_process_history ... ok
+test actual_three_node_process_history ... ok
+test actual_three_node_snapshot_process_history ... ok
+test bounds_queue_envelope_fetch_and_fixed_membership_are_explicit ... ok
+test changed_external_file_poison_prevents_reply_and_known_torn_tail_can_reopen ... ok
+test checksummed_authority_term_regression_fails_recovery_even_for_an_older_entry ... ok
+test checksummed_follower_commit_cannot_authorize_a_newer_entry_term ... ok
+test checksummed_snapshot_install_receipt_mutations_fail_replay ... ok
+test committed_prefix_and_same_term_payload_conflicts_fail_before_wal_mutation ... ok
+test complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read ... ok
+test five_voters_need_three_distinct_durable_positions_and_reject_forged_replies ... ok
+test foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes ... ok
+test higher_term_repairs_only_uncommitted_suffix_and_preserves_vote_after_restart ... ok
+test minority_partition_expiry_and_lost_ack_cannot_commit ... ok
+test partial_request_does_not_commit_an_unverified_old_suffix ... ok
+test selected_snapshot_file_corruption_fences_the_owner_before_transfer ... ok
+test snapshot_actor_checkpoint_and_joined_partial_cleanup_are_owner_local ... ok
+test snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay ... ok
+test snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert ... ok
+test snapshot_exact_overlap_retains_suffix_and_higher_term_repair_drops_only_uncommitted_bytes ... ok
+test snapshot_owner_rejects_nonidle_foreign_and_overbudget_stores ... ok
+test snapshot_publication_before_failed_wal_sync_is_inert_and_poisoned_until_reopen ... ok
+test snapshot_receipt_catchup_reconciles_from_the_proven_preinstall_commit_floor ... ok
+test snapshot_transfer_deadline_reordered_chunks_and_changed_epoch_cannot_select ... ok
+test strict_majority_barrier_and_committed_visibility_survive_reopen ... ok
+test unowned_legacy_log_summary_is_not_silently_replaced_by_an_empty_new_wal ... ok
+test wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/raft_snapshot.rs (/workspace/work/target-broker-segments/debug/deps/raft_snapshot-12c7c0017cbf18bd)
+
+running 10 tests
+test actual_apache_opaque_observation_preserves_order_and_boundary_mapping ... ok
+test actual_process_exit_during_transfer_keeps_old_image_recoverable ... 
+running 1 test
+ok
+test ambiguous_rename_error_poison_preserves_previous_image ... ok
+test canonical_prefix_round_trip_and_sequential_transfer ... ok
+test empty_prefix_and_canceled_reader_have_explicit_boundaries ... ok
+test exact_completion_seal_and_crc_are_required ... ok
+test foreign_fixed_group_and_namespace_are_rejected ... ok
+test fully_rehashed_hostile_images_cannot_bless_malformed_content ... ok
+test identity_and_generation_budgets_are_preflighted ... ok
+test snapshot_crash_helper ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

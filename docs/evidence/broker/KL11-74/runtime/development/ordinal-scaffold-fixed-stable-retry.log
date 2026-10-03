@@ -1,0 +1,19 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/membership-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.76s
+     Running tests/raft_membership.rs (/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180)
+
+running 1 test
+test checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches ... 
+thread 'checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches' (1062486) panicked at tests/raft_membership.rs:1781:5:
+a configuration source must identify the operation that changed it, rather than a later equal-view receipt
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test raft_membership`
