@@ -1,0 +1,20 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "artifact_kind": "normal-peer-executable",
+  "build_command": [
+    "cargo",
+    "+1.85.0",
+    "build",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/broker-merged-source-657d38ea/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+    "--message-format=json-render-diagnostics"
+  ],
+  "artifact": {
+    "path": "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/bin/1.85.0/rust-peer",
+    "sha256": "511a2b2a16d4a5496aa60bef3bfc20939281aaa5d4b6784b10ec7a6af867a7a3",
+    "bytes": 13075160,
+    "full_mode": "0o700"
+  }
+}

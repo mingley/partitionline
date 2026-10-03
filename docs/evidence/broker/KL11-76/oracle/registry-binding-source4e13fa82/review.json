@@ -1,0 +1,27 @@
+{
+  "prior_main": "4e13fa8211fe98fbcdfbaddea5362dcef6b892d1",
+  "taskbook_previous_sha256": "c4cbd2cf3bb49d9274180976ca2a9f7efb23d5b170b8c1bac9825ee2c22ade99",
+  "claimed": [
+    "KL05-10",
+    "KL05-29",
+    "KL05-30"
+  ],
+  "extended_76_write_set": "partitionline-broker/tests/common/raft_runtime.rs",
+  "registry_change": {
+    "field": "raft_module_source_sha256",
+    "old": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+    "new": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+    "reason": "bind existing API registry to module exports/docs checkpoint; API versions unchanged; runtime76 remains unqualified"
+  },
+  "stale_check": {
+    "argv": [
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--report",
+      "/workspace/work/raft-runtime-76/oracle-preparation/stale-registry-before.json"
+    ],
+    "exit_code": 1,
+    "result": "raft_module_source: profile source checksum mismatch",
+    "report_sha256": "92bbe9c6613e5a24dec18f934f3860e55d9752ee0c919aaf4d717f7ac9904ccc"
+  }
+}

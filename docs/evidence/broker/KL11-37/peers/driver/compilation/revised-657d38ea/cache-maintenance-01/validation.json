@@ -1,0 +1,50 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "passed": true,
+  "authorization": "root explicit inactiveowned cache-only maintenance",
+  "command": [
+    "/usr/bin/rm",
+    "-rf",
+    "--",
+    "/workspace/work/broker-oidc/live-peers-target"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 9.813417673998629,
+  "compiled_output_paths": 487,
+  "unique_preserved_outputs": 427,
+  "kind_counts": {
+    ".rmeta": 238,
+    "AR": 131,
+    "ELF": 118
+  },
+  "generated_cache_file_count": 2009,
+  "generated_cache_bytes": 640090023,
+  "owners_before": [],
+  "owners_immediately_before_remove": [],
+  "before_free_bytes": 1925533696,
+  "worst_case_retention_forecast_bytes": 534312917,
+  "minimum_free_during_retention": 1759293440,
+  "after_free_bytes": 2375782400,
+  "live_config_rehash_before": {
+    "configs": 32,
+    "runtime_rehashes": 1960,
+    "outside_removed_tree": true,
+    "rust_copies0700": true
+  },
+  "live_config_rehash_after": {
+    "configs": 32,
+    "runtime_rehashes": 1960,
+    "outside_removed_tree": true,
+    "rust_copies0700": true
+  },
+  "source_guards": {
+    "files": 73011,
+    "before_equals_after": true,
+    "scope": "complete Git blobs/full07777/exact actual regular-symlink pathset"
+  },
+  "restore_map_sha256": "5064b3048d32369730924ba5ab15672ea80cb6cb0fcb803f4f33f7f56859f5d8",
+  "whole_cache_inventory_sha256": "e5ca1720d66bf6f0fe9ea8e3df328012e8d6cca0750f5f92c1a5bd13dca39223",
+  "cleanup_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cleanup_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "private_proof_sources_and_external_executables": "untouched"
+}

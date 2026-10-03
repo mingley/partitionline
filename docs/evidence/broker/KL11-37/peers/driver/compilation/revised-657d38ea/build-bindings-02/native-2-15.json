@@ -1,0 +1,386 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "exit_code": 0,
+  "scope": "actual peer compiler binding; no live invocation",
+  "immutable_origin": {
+    "path": "/workspace/work/integration/broker-merged-source-657d38ea/normalized-origin.json",
+    "sha256": "d3251d75e402c845699e7e7ad871ec0391e0961076842348e996f50f98d9e7a1",
+    "bytes": 1464,
+    "full_mode": "0o600",
+    "role": "normalized complete immutable origin"
+  },
+  "full_build_validation": {
+    "path": "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/validation.json",
+    "sha256": "ffe533ba60e63a420f87de7c8aeed237f4d01e7affefabe71d91bcd997de5914"
+  },
+  "source_unchanged": true,
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "gcc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "/workspace/work/broker-merged-source-657d38ea/docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
+    "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native/cJSON.o",
+    "-L/workspace/work/c-peer/lib",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-lrdkafka",
+    "-I/usr/include/x86_64-linux-gnu",
+    "-isystem",
+    "/usr/include/mit-krb5",
+    "-I/usr/include/p11-kit-1",
+    "-lcurl",
+    "-lssl",
+    "-lcrypto",
+    "-o",
+    "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native/oidc-native-peer"
+  ],
+  "command_log": {
+    "path": "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native-strict-link/command.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sdk_object_command": {
+    "name": "native-cjson-object",
+    "command": [
+      "taskset",
+      "-c",
+      "0,1",
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-I/workspace/work/c-peer/source/src",
+      "-c",
+      "/workspace/work/c-peer/source/src/cJSON.c",
+      "-o",
+      "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native/cJSON.o"
+    ],
+    "cwd": "/workspace/work/broker-merged-source-657d38ea",
+    "exit_code": 0,
+    "elapsed_seconds": 0.501233858987689,
+    "stopped": null,
+    "disk_samples": [
+      {
+        "elapsed_seconds": 0.0008187450002878904,
+        "free_bytes": 1333014528
+      }
+    ],
+    "minimum_free_bytes": 1333014528,
+    "log_path": "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native-cjson-object/command.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_before": {
+      "file_count": 73011,
+      "raw_sha256": "8252f16b7048dbb54a99280844839a93aaa19d164d5d78e03bf19574b2ee7609",
+      "identical_to_before": true,
+      "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+    },
+    "source_after": {
+      "file_count": 73011,
+      "raw_sha256": "8252f16b7048dbb54a99280844839a93aaa19d164d5d78e03bf19574b2ee7609",
+      "identical_to_before": true,
+      "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+    }
+  },
+  "sdk_header_classification": "-isystem for unchanged authentic upstream header; own-source Wall/Wextra/Wpedantic/Werror unchanged",
+  "artifact_kind": "normal-peer-executable",
+  "runtime_inputs": [
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "sha256": "438c546d8e8cc48496bf3a95f753051afd9db66a629a74e31a9ded71586b56e0",
+      "bytes": 225672,
+      "full_mode": "0o755",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libbrotlicommon.so.1.1.0",
+      "sha256": "7b0b0de90d8d3d4f07b99738c0285c6a0dbb6611d774ca44e7ea53a19a01ea68",
+      "bytes": 141496,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libbrotlidec.so.1.1.0",
+      "sha256": "06530583d5927000480f4214d80d0213fec3d34cc448527f932a6eceb50cefef",
+      "bytes": 51376,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "sha256": "fa430b8f298f817a266046af84a77533185ad6fc4406c7d3787b5a0a0c207826",
+      "bytes": 1995216,
+      "full_mode": "0o755",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcom_err.so.2.1",
+      "sha256": "dc4828400674492839b630c001db424cd38e5cecfcf46dbf705a637647e04bea",
+      "bytes": 18344,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+      "sha256": "8bb5f3fdffe280d4453eb79a4663c2c47af70b7c247fe2e94e2da703cee1fd3d",
+      "bytes": 6517312,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcurl.so.4.8.0",
+      "sha256": "4fdc50a9c87bff66d16ca11c5f9f575239e72ee6081a1f36d7b819b97d69341f",
+      "bytes": 983720,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4",
+      "sha256": "922024ec5a23f7de1095b1cff2f6cbfb377b5d58cd51fd0ec2e8fe35427653e2",
+      "bytes": 47576,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0",
+      "sha256": "d15e1585c6c267296459570c8ac217ca9123044bcd4e896d2f686b32333445d2",
+      "bytes": 566080,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgnutls.so.30.40.3",
+      "sha256": "4b14edde42e7cbeefd8a6d88d035e096f2e6412a535388bb1d073a1c196e2822",
+      "bytes": 2246712,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2.2",
+      "sha256": "c290f761873ebeac539911010526e1c5db86218bfcb29672760da46841741de0",
+      "bytes": 346904,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libhogweed.so.6.10",
+      "sha256": "2663d9bdca20ba67d2d72f1d4c24b6fd0a3e97d5ee23e7b739788176cf904380",
+      "bytes": 305144,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libidn2.so.0.4.0",
+      "sha256": "299cdc741f1dd0834a49d5cb44f3da26b1960bb110c1f521a084400d9b603cbf",
+      "bytes": 202872,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libk5crypto.so.3.1",
+      "sha256": "c4c3221d0350f882cee0430b58d5fb289a5776c684d3156964864c8a9719dff1",
+      "bytes": 187144,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkeyutils.so.1.10",
+      "sha256": "e5d5a7450d08eff7d4bbcaac75ef2b94d3447c81a1b2ddf3ab85d2de4709a9a8",
+      "bytes": 22448,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkrb5.so.3.3",
+      "sha256": "c4ab64e6bc2874a83e649e4439be752465da027a0041e2bb5343f81c80f0882d",
+      "bytes": 883984,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkrb5support.so.0.1",
+      "sha256": "f559f051ee5d39f151a57d79f2cde475c484030098b0c73f9f7035b421b187c4",
+      "bytes": 52208,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/liblber.so.2.0.200",
+      "sha256": "ca319704dd4f58b5b3fc8510738850f03f18940544ba04bebf2fa8a23a798346",
+      "bytes": 63824,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libldap.so.2.0.200",
+      "sha256": "e8f34e65087f24f296fa7a65a8c65383f4a7e2b532c46e40463d4e59a206c20a",
+      "bytes": 400912,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "sha256": "6d567d53e895273ca14a1f9dc164fc6c8d39aed2f60aa46a733c2784228915f3",
+      "bytes": 977112,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libnettle.so.8.10",
+      "sha256": "34ac695c167a593d3587bd88592d33d53e5dc4035984f84446100962f57376fd",
+      "bytes": 346216,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libnghttp2.so.14.28.3",
+      "sha256": "207268890b5be3043575c97af4e08c8326a12321a8a83e7278681b6b6f7d5ea8",
+      "bytes": 199152,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libnghttp3.so.9.2.6",
+      "sha256": "37ecaa050c23fee92d563eec8701164505ef880c00a513cbd6d1d03beeb8fa29",
+      "bytes": 173392,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libp11-kit.so.0.4.1",
+      "sha256": "e4ae39be74740511cf8e49e80fdfc16aeee7b822ee313793da1b78ce148ba05f",
+      "bytes": 1705664,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpsl.so.5.3.4",
+      "sha256": "d9a6975db1b66ed34bdc04195a92a77b7d29b8d6affe4c35c05d7eafe5424fef",
+      "bytes": 75616,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libresolv.so.2",
+      "sha256": "d41dd4adacf5a35df426461dd8a92d7bdd5ba29bb61a1c3531bec0ada386f8dd",
+      "bytes": 63936,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/librtmp.so.1",
+      "sha256": "7d4c54c51f62085d79a4c96c7ad52f680f1f2e6d38ff7c8b8fa18d57f89df130",
+      "bytes": 122256,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libsasl2.so.2.0.25",
+      "sha256": "3f93968591811eb3972c3467c69c2968dd9cb2b51f7b7bb48de22ba8e17d13fd",
+      "bytes": 109232,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libssh2.so.1.0.1",
+      "sha256": "56f074036efa31cb9e9aa27db4a3699f5905fe923db5bdb511b4ed286fab197c",
+      "bytes": 297472,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libssl.so.3",
+      "sha256": "4b34859318555bf96d518131bed5fc4d5e35fefa4e1729f49eaa26bd05263850",
+      "bytes": 1101760,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libtasn1.so.6.6.4",
+      "sha256": "cea637336b0855f91260714181894bcea9f345a3a97ce68d6447f6031728cabd",
+      "bytes": 88064,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libunistring.so.5.2.0",
+      "sha256": "9c200ec975ff24c0a259d4f6cf0d0fc1736d0c86da30fff3d499ad3d9a368b65",
+      "bytes": 1996840,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libz.so.1.3.1",
+      "sha256": "85590dd58edf5445e18bc7193e5ebc01ac5841f1ae187e97705a662e90c6421e",
+      "bytes": 125376,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libzstd.so.1.5.7",
+      "sha256": "27f07c9a49c2c956bcfb64cd4712976586a66facbf15fc7f09bc37413b5f2b21",
+      "bytes": 825336,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-657d38ea-attempt-02/native/oidc-native-peer",
+      "sha256": "d0967febc0315f86554c1c6ccd1bcc4c17d008d67b4977ea8c37241cb210e4aa",
+      "bytes": 47800,
+      "full_mode": "0o700",
+      "role": "native callback peer executable"
+    },
+    {
+      "path": "/workspace/work/c-peer/lib/librdkafka.so.1",
+      "sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+      "bytes": 14587400,
+      "full_mode": "0o700",
+      "role": "ELF linked runtime dependency"
+    }
+  ],
+  "source_inputs": [
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/native/pins.json",
+      "sha256": "37bd33334e58e181955a62a3d1b83cfe94b87a023c142140f9932f559900e427"
+    }
+  ],
+  "external_compile_inputs": [
+    {
+      "path": "/workspace/work/c-peer/source/src/cJSON.c",
+      "sha256": "fdb11f529efe3ad55b04d3c59c3c2f668cf4b68bd93feed23d51ee89841e0a90",
+      "bytes": 80413,
+      "full_mode": "0o600",
+      "role": "authentic librdkafka2.15 compilation input"
+    },
+    {
+      "path": "/workspace/work/c-peer/source/src/cJSON.h",
+      "sha256": "25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee",
+      "bytes": 16394,
+      "full_mode": "0o600",
+      "role": "authentic librdkafka2.15 compilation input"
+    },
+    {
+      "path": "/workspace/work/c-peer/source/src/rdkafka.h",
+      "sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+      "bytes": 431784,
+      "full_mode": "0o600",
+      "role": "authentic librdkafka2.15 compilation input"
+    }
+  ],
+  "compiler": {
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+    "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+    "bytes": 1162264,
+    "full_mode": "0o755",
+    "role": "actual native compiler"
+  }
+}

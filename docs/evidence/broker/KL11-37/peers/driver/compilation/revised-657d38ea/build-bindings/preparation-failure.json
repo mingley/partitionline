@@ -1,0 +1,8 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "failed_stage": "standalone ldd on Java native libraries without JVM-internal library search directories",
+  "code_sha256": "65a9315dbab200295b0875565abc3436d176adfd3caa032b73b8384d1dc43cb3",
+  "compiler_commands_affected": false,
+  "live_invocations": 0,
+  "partial_bindings": "not used for live; preserve unchanged"
+}

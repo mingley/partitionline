@@ -1,0 +1,13 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "serialization": "complete source_guard rows serialized directly from memory to JSON bytes then gzip; no original rawJSON filesystem file was materialized",
+  "raw_bytes_sha256": "8252f16b7048dbb54a99280844839a93aaa19d164d5d78e03bf19574b2ee7609",
+  "raw_bytes": 23173934,
+  "raw_row_count": 73011,
+  "raw_json_restoration_mode_policy": "0o600",
+  "mode_limit": "original_mode in retained restore map is the chosen0600restoration policy, not a measured deleted-original file mode",
+  "stored_gzip_work_full_mode": "0o600",
+  "git_source_modes": "each original immutable source regular/symlink path had measured full07777 mode checked before/after against Git tree; these row modes are independent of JSON packaging mode",
+  "restoration": "gzip.decompress bytes exactly reproduce serialized source rows; raw SHA/byte count and file count verified",
+  "scope": "packaging clarification only; no compiler/source/runtime assertion altered"
+}

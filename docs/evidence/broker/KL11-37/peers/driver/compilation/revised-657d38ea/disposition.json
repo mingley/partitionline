@@ -1,0 +1,23 @@
+{
+  "source_sha": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "status": "peer compile qualification passed; actual32cohort recipes bound; zero live launches in this checkpoint",
+  "actual_commands": 9,
+  "passed_commands": 9,
+  "full_source_checks": 18,
+  "full_source_file_count": 73011,
+  "minimum_free_bytes": 1332060160,
+  "normal_rust_artifacts": "both profile.test=false, distinct copied executables preserved outside cache",
+  "native": "actual2.15 callback-provider with external bounded libcurl; SDK header-isystem, own strict flags unchanged; no built-in nativeOIDC claim",
+  "java": "actual strict compilation against3 officialSDKs; public login/provider/socket outcome pending live",
+  "proof_validation_sha256": "ffe533ba60e63a420f87de7c8aeed237f4d01e7affefabe71d91bcd997de5914",
+  "peer_binding_validation_sha256": "54e58653f7aeb2d9b78cdc65f91beb394e85021f42bf3b2f67aa675a56a92616",
+  "live_config_manifest_sha256": "ab5017f8a058ffaf1a05df61197b2225d5ac73f51bbf7fee32f65592675b5333",
+  "prior_f500_losing_cohort": "5/7passes, stable Rust strict/std::fs::read and authentic upstream native header warning retained in first-f500e417; no relabeling",
+  "derivation_failure": "first bindings pass retained standalone-ldd Java lookup failure; final lookup adds JVM internal search path only for ldd identity observation, no peer runtime command alteration",
+  "elf_preservation": {
+    "unique_objects": 61,
+    "gzip_objects": "external WORK, no executables/object/JAR/class bytes published",
+    "original_bytes_and_modes": "per-command .elf-retention.json maps bind exact external gzip objects; no private source/WAL/log deletion"
+  },
+  "scope": "complete source inputs/compilers verified; actual broker/SDK/OIDC live behavior remains unqualified in this checkpoint"
+}
