@@ -124,6 +124,11 @@ def main():
         return base_command([sys.executable,'-B',tools/'parent-bound-exec.py',str(os.getpid()),*argv],
             directory,label,timeout,extra_env)
     r.command = command
+    def select_build(config):
+        if build_matrix:
+            # Result formatters read this binding as well as command execution.
+            r.binaries={name:Path(binary['path']) for name,binary in config['binaries'].items()}
+            r.guard()
     launcher = r.output/'nb-serve-parent-bound'
     launcher.write_text('#!/bin/sh\nexec '+shlex.join([sys.executable,'-B',str(tools/'parent-bound-exec.py')])+
         ' "$PPID" '+shlex.quote(str(r.binaries['nb-serve']))+' "$@"\n')
@@ -172,7 +177,7 @@ def main():
     def nb():
         for index,job in enumerate(primary+reproduce):
             directory=r.output/f'{index:03d}-{job["cohort"]}-r{job["rep"]}-{job["config"]["name"]}-{job["cell"]}'
-            directory.mkdir();config=job['config']
+            directory.mkdir();config=job['config'];select_build(config)
             print('start '+directory.name,flush=True)
             r.command([r.binaries['runtime'],'--cell',job['cell'],'--out',directory,'--repetitions','1',
                 '--runtime',config['flavor'],'--workers',str(config['workers'])],directory,'runtime',180)
@@ -314,7 +319,7 @@ log.segment.delete.delay.ms=0
             for index,job in enumerate(primary+reproduce):
                 config=job['config'];cell=job['cell'];percent=job['load']
                 directory=r.output/f'{index:03d}-{job["cohort"]}-r{job["rep"]}-{config["name"]}-{cell}-{percent or 0}'
-                directory.mkdir();topic=f'pl-runtime-{owner.pid}-{index}'
+                directory.mkdir();select_build(config);topic=f'pl-runtime-{owner.pid}-{index}'
                 if os.statvfs(r.output).f_bavail*os.statvfs(r.output).f_frsize<1400*1024*1024:
                     raise ValueError('native cell requires at least 1400MiB free for its owned topic')
                 created=create(directory,topic,6 if cell=='lb-bulk' else 1)
@@ -372,6 +377,9 @@ log.segment.delete.delay.ms=0
                 doc=adapter.build_result(r,directory,config,job['rep'],job['cohort'],cell,produced,audited,created,
                     broker,rtt_ms,adapter.read(directory/'runtime.resources.json'),observed,completed,raw,values,
                     effective,duration,warmup_seconds,None if percent is None else dict(percent=percent,rate_per_second=rates[percent],basis='current_thread_calibration'))
+                doc['execution']['total_repetitions']=a.repetitions
+                if build_matrix:
+                    doc['execution']['qualification_scope']='Local compiler-profile comparison with a fixed current-thread runtime; whole-workload resources and sampled bulk bounds are diagnostic.'
                 result=directory/(cell+'.result.json');baseline.save(result,doc)
                 data=validator(result,directory)
                 # Check changed actual result controls, without running timed work again.
