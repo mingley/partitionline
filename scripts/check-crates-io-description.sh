@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compare crates.io published description to Cargo.toml for the current version.
-# After Installable, cargo.toml may strengthen identity (no C / no librdkafka)
-# before the next cut republishes — surface that as WARN, not Installable BLOCKED.
+# Local descriptions may change before the next release. Report differences
+# without treating them as a package availability failure.
 # Exit 0 always (probe). Prints OK / WARN / SKIP.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -52,26 +52,8 @@ if [[ "$pub_desc" == "$local_desc" ]]; then
   exit 0
 fi
 
-# Identity markers local wants on crates.io for adoptability.
-local_low="$(printf '%s' "$local_desc" | tr '[:upper:]' '[:lower:]')"
-pub_low="$(printf '%s' "$pub_desc" | tr '[:upper:]' '[:lower:]')"
-local_has_noc=0
-pub_has_noc=0
-local_has_rdk=0
-pub_has_rdk=0
-[[ "$local_low" == *"no c"* || "$local_low" == *"pure rust"* || "$local_low" == *"pure-rust"* ]] && local_has_noc=1
-[[ "$pub_low" == *"no c"* || "$pub_low" == *"pure rust"* || "$pub_low" == *"pure-rust"* ]] && pub_has_noc=1
-[[ "$local_low" == *"librdkafka"* ]] && local_has_rdk=1
-[[ "$pub_low" == *"librdkafka"* ]] && pub_has_rdk=1
-
 echo "check-crates-io-description: WARN — published description differs from Cargo.toml"
 echo "  published: ${pub_desc}"
 echo "  local:     ${local_desc}"
-echo "  Next cut (e.g. 0.1.1 / release-plz) republishes Cargo.toml description; do not re-cut 0.1.0."
-if [[ "$local_has_rdk" -eq 1 && "$pub_has_rdk" -eq 0 ]]; then
-  echo "  identity: local names librdkafka; published page does not yet — adopters on crates.io see weaker no-C signal until next cut."
-fi
-if [[ "$local_has_noc" -eq 1 && "$pub_has_noc" -eq 0 ]]; then
-  echo "  identity: local states pure-Rust/no-C; published description does not."
-fi
+echo "  The next release will use the updated description."
 exit 0

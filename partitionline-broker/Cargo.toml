@@ -2,7 +2,7 @@
 name = "partitionline-broker"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 publish = false
 description = "Experimental Rust Kafka broker; production qualification tracked in KL11"

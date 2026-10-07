@@ -2,9 +2,9 @@
 name = "partitionline-schema"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-description = "Confluent-compatible schema wire framing for partitionline (scaffold; not published)."
+description = "Schema Registry lookups and Confluent-compatible schema framing for Kafka."
 readme = "README.md"
 publish = false
 keywords = ["kafka", "schema-registry", "confluent"]
@@ -22,7 +22,7 @@ json-schema = []
 # rustls with webpki roots). It is a default feature so the card's plain
 # `cargo test` exercises it, and stays optional so
 # `default-features = false` keeps the dep-free wire-framing core.
-# No C, no OpenSSL in any feature; never depends on the core client crate.
+# This companion does not depend on the core client crate.
 registry = [
     "dep:base64",
     "dep:rustls",
@@ -32,9 +32,7 @@ registry = [
 ]
 
 [dependencies]
-# Wire framing is dep-free. The `registry` client reuses the same pure-Rust
-# TLS stack the core partitionline crate already clears (rustls +
-# webpki-roots, no serde, no url crate) and never pulls native TLS.
+# Wire framing needs no dependencies. Registry lookups use Tokio and rustls.
 base64 = { version = "0.22", optional = true }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
 tokio = { version = "1", default-features = false, features = ["io-util", "net", "time", "sync"], optional = true }
@@ -46,3 +44,10 @@ webpki-roots = { version = "1", optional = true }
 # (`sync` for tokio::sync::Mutex in the mock harness: the repo clippy.toml
 # forbids std::sync::Mutex anywhere clippy runs, tests included.)
 tokio = { version = "1", default-features = false, features = ["macros", "rt", "sync", "test-util"] }
+
+# Selected production codec for offline conformance tests only. It is not
+# selected by the library's avro feature or added to its runtime graph.
+apache-avro = { version = "=0.22.0", default-features = false }
+serde_json = "1"
+# Explicit offline Draft 2020-12 validator in conformance tests only.
+jsonschema = { version = "=0.33.0", default-features = false }

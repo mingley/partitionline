@@ -14,12 +14,9 @@ but does not implement its rejected behavior or prove performance leadership.
 
 ## Crate and protocol boundary
 
-`partitionline-broker` is an independent, unpublished crate with Rust 1.85,
-safe Rust, explicit bounds and no native client/server dependency. It is excluded
-from the existing root workspace and package. The published client's dependency
-graph and defaults are preserved. Backend changes must follow the existing
-dependency policy; full Rust implementation does not authorize a hidden native
-SASL/compression default.
+`partitionline-broker` is an unpublished crate built with latest stable Rust.
+It is excluded from the root workspace and client package. Its dependency graph
+is separate; backend and authentication changes follow the dependency policy.
 
 The initial server feature matrix is
 `tests/conformance/broker/features.json`. Its API keys 0–92 form a classification

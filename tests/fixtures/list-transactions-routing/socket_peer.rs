@@ -175,6 +175,7 @@ pub(crate) struct Observed {
 }
 
 pub(crate) struct State {
+    pub(crate) sasl: bool,
     pub(crate) observed: Vec<Observed>,
     pub(crate) replies: [VecDeque<Reply>; 2],
     pub(crate) ranges: [Option<(i16, i16)>; 2],
@@ -199,12 +200,27 @@ pub(crate) struct Peer {
     pub(crate) state: Arc<Mutex<State>>,
     stop: watch::Sender<bool>,
     tasks: Vec<JoinHandle<(usize, Vec<String>)>>,
+    addresses: [SocketAddr; 3],
 }
 
-fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool, error_code: i16) -> Vec<u8> {
-    let mut keys = vec![(3i16, 1i16, 1i16), (18, 0, 0), (19, 0, 0), (20, 0, 0)];
+fn api_versions(
+    ranges: Option<(i16, i16)>,
+    allow_old: bool,
+    error_code: i16,
+    sasl: bool,
+) -> Vec<u8> {
+    let metadata_version = if allow_old { 4 } else { 1 };
+    let mut keys = vec![
+        (3i16, metadata_version, metadata_version),
+        (18, 0, 0),
+        (19, 0, 0),
+        (20, 0, 0),
+    ];
     if allow_old {
         keys.push((10, 6, 6));
+    }
+    if sasl {
+        keys.extend([(17, 1, 1), (36, 1, 1)]);
     }
     if let Some((min, max)) = ranges {
         keys.push((66, min, max));
@@ -360,6 +376,7 @@ async fn connection(
     allow_old: bool,
 ) {
     let node = if slot == 0 { 1 } else { 2 };
+    let mut authenticated = false;
     for _ in 0..MAX_FRAMES_PER_CONNECTION {
         if *stop.borrow() {
             break;
@@ -434,24 +451,65 @@ async fn connection(
                             s.ranges[usize::try_from(node - 1).unwrap()],
                             allow_old,
                             error_code,
+                            s.sasl,
                         )
                         .into(),
                     )
                 }
-                3 => {
+                17 => {
+                    assert!(s.sasl);
                     assert_eq!(version, 1);
+                    assert_eq!(body.as_ref(), b"\0\x05PLAIN");
+                    let mut out = vec![0, 0, 0, 0, 0, 1];
+                    classic(&mut out, "PLAIN");
+                    Reply::Body(out.into())
+                }
+                36 => {
+                    assert!(s.sasl);
+                    assert_eq!(version, 1);
+                    let expected = b"\0qualification-user\0qualification-pass";
                     assert_eq!(
-                        body.as_ref(),
-                        [0, 0, 0, 0],
-                        "Metadata1 requests zero topics, never an unconditional topic response"
+                        i32::from_be_bytes(body[..4].try_into().unwrap()),
+                        i32::try_from(expected.len()).unwrap()
                     );
-                    Reply::Body(
-                        s.metadata_override
-                            .clone()
-                            .unwrap_or_else(|| metadata(&addresses, s.moved_second).into()),
-                    )
+                    assert_eq!(&body[4..], expected);
+                    authenticated = true;
+                    let mut out = vec![0, 0, 255, 255, 0, 0, 0, 0];
+                    out.extend_from_slice(&0i64.to_be_bytes());
+                    Reply::Body(out.into())
+                }
+                3 => {
+                    assert!(!s.sasl || authenticated, "Metadata before authentication");
+                    if allow_old {
+                        assert_eq!(version, 4);
+                        assert!(
+                            body.as_ref() == [0, 0, 0, 0, 0]
+                                || body.as_ref() == [255, 255, 255, 255, 0],
+                            "Metadata4 empty/all topic selection with auto-create disabled"
+                        );
+                    } else {
+                        assert_eq!(version, 1);
+                        assert_eq!(
+                            body.as_ref(),
+                            [0, 0, 0, 0],
+                            "Metadata1 empty topic selection"
+                        );
+                    }
+                    let mut bytes = metadata(&addresses, s.moved_second);
+                    if allow_old {
+                        // v4 adds throttle and a nullable cluster ID. Topics
+                        // are empty, so no per-topic fields are present.
+                        let controller = bytes.len() - 8;
+                        drop(bytes.splice(controller..controller, [255, 255]));
+                        drop(bytes.splice(0..0, 0i32.to_be_bytes()));
+                    }
+                    Reply::Body(s.metadata_override.clone().unwrap_or_else(|| bytes.into()))
                 }
                 66 => {
+                    assert!(
+                        !s.sasl || authenticated,
+                        "ListTransactions before authentication"
+                    );
                     let _checked = filters(&body, version);
                     s.replies[usize::try_from(node - 1).unwrap()]
                         .pop_front()
@@ -535,6 +593,7 @@ impl Peer {
         ];
         let addresses = std::array::from_fn(|i| listeners[i].local_addr().unwrap());
         let state = Arc::new(Mutex::new(State {
+            sasl: false,
             observed: Vec::new(),
             replies: std::array::from_fn(|_| VecDeque::new()),
             ranges,
@@ -576,20 +635,22 @@ impl Peer {
             state,
             stop,
             tasks,
+            addresses,
         }
     }
 
     pub(crate) async fn admin(&self) -> partitionline::Result<Admin> {
-        Admin::new(
-            AdminConfig::bootstrap([self.bootstrap.clone()])
-                .connect_timeout(BUDGET)
-                .request_timeout(BUDGET)
-                .retry_backoff(Duration::from_millis(2))
-                .retry_backoff_max(Duration::from_millis(4))
-                .reconnect_backoff(Duration::ZERO)
-                .reconnect_backoff_max(Duration::ZERO),
-        )
-        .await
+        let mut config = AdminConfig::bootstrap([self.bootstrap.clone()])
+            .connect_timeout(BUDGET)
+            .request_timeout(BUDGET)
+            .retry_backoff(Duration::from_millis(2))
+            .retry_backoff_max(Duration::from_millis(4))
+            .reconnect_backoff(Duration::ZERO)
+            .reconnect_backoff_max(Duration::ZERO);
+        if self.state.lock().await.sasl {
+            config.sasl_plain = Some(("qualification-user".into(), "qualification-pass".into()));
+        }
+        Admin::new(config).await
     }
 
     pub(crate) async fn script(&self, node: i32, replies: impl IntoIterator<Item = Reply>) {
@@ -676,6 +737,14 @@ impl Peer {
             }
         }
         closed.observations = self.state.lock().await.observed.clone();
+        for address in self.addresses {
+            assert!(
+                TcpStream::connect(address).await.is_err(),
+                "owned listener closed"
+            );
+            let rebound = TcpListener::bind(address).await.unwrap();
+            drop(rebound);
+        }
         closed
     }
 }
@@ -691,7 +760,7 @@ impl Drop for Peer {
     }
 }
 
-async fn retain(closed: &Closed, label: &str) {
+pub(crate) async fn retain(closed: &Closed, label: &str) {
     let Some(root) = std::env::var_os("PARTITIONLINE_LIST_TRANSACTIONS_PROOF_DIR") else {
         return;
     };

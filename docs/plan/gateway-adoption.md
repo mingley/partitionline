@@ -123,7 +123,7 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 |---|---|---|---|
 | gzip, miniz_oxide 0.9.1 (current) | 101–122 MB/s | 1.06–1.10 GB/s | 6.7–7.2 |
 | gzip, system zlib 1.2.12 (librdkafka) | 92–122 MB/s | 1.82–2.15 GB/s | 6.7–7.3 |
-| gzip, zlib-rs 0.6.8 (pure Rust) | **178–218 MB/s** | 1.12–1.43 GB/s | 6.8–7.2 |
+| gzip, zlib-rs 0.6.8 | **178–218 MB/s** | 1.12–1.43 GB/s | 6.8–7.2 |
 | lz4, lz4_flex (current) | 1.6–2.2 GB/s | 7.8–8.3 GB/s | 3.9–4.2 |
 | lz4, C liblz4 | 1.7–2.1 GB/s | 7.6–7.9 GB/s | 3.9–4.2 |
 | zstd level 3, C libzstd 1.5.7 (reference only) | 714–842 MB/s | 2.3–3.1 GB/s | 7.7–7.8 |
@@ -135,18 +135,19 @@ backend reaches about 1 GB/s when it writes into a large buffer.
   spends about 18 µs per record in deflate, against about 10 µs when the
   same backend compresses the same bytes in one call. That feed overhead
   needs explaining (KL10-04).
-- zlib-rs compresses 1.8× faster. It is pure Rust but uses `unsafe` and SIMD
+- zlib-rs compresses 1.8× faster. It uses internal `unsafe` code and SIMD
   internally, so adopting it is a policy decision (KL10-05).
 - zstd is a potential migration path for workloads that can change codec,
   subject to end-to-end consumer compatibility (KL05-02..05).
 
 ### Repository health
 
-- **Red main CI.** Every CI run on `main` since `848e58c` (KL01-09,
-  2026-09-26) fails `test (1.85)`, `test (stable)` and `features`.
-  `tests/verifiable_contract.rs` runs `target/debug/examples/verifiable_*`,
-  but `cargo test --all-targets` never builds those files under that name,
-  so the tests panic with "missing example binary".
+- **Recorded CI failure (2026-09-26).** Runs at `848e58c` failed because
+  verifiable tests expected example binaries that `cargo test --all-targets`
+  did not build under those names. Later local stable suites pass; the
+  [resource driver evidence](../evidence/resource-soak/KL02-09/README.md)
+  records 2,002 default and 2,014 all-feature tests. This does not establish
+  a new hosted CI result.
 - **Build times.** On the same host with dependencies prefetched: clean
   debug 12.4 s, clean release 21.7 s, release examples 46 s, incremental
   debug 1.8 s. CI wall time is about 8.5 minutes per push, dominated by

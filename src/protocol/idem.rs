@@ -1,41 +1,83 @@
-//! InitProducerId (api key 22). v0–v1 classic; v2–v5 flexible.
-
-use std::collections::HashMap;
-
-use bytes::{Buf, BufMut, BytesMut};
+//! InitProducerId (api key 22). v0–v1 classic; v2–v6 flexible.
 
 use super::buf;
 use super::records::RecordBatch;
 use crate::error::{Error, Result};
+use bytes::{Buf, BufMut, BytesMut};
+use std::collections::HashMap;
 
-/// `true` when InitProducerId `version` is flexible (v2+).
-///
-/// v0–v1 are classic. v2 is compact strings plus tagged fields
-/// (Apache JSON `flexibleVersions: "2+"`). v3+ adds ProducerId /
-/// ProducerEpoch on the request (KIP-360). v4 is PRODUCER_FENCED; v5
-/// is TRANSACTION_ABORTABLE (KIP-890). Kafka 4.0 `validVersions` is
-/// `0-5`. v6+ (KIP-939 2PC Enable2Pc / KeepPreparedTxn) is not spoken.
 fn init_producer_id_flexible(version: i16) -> Result<bool> {
     match version {
         0..=1 => Ok(false),
-        2..=5 => Ok(true),
+        2..=6 => Ok(true),
         other => Err(Error::protocol(format!(
             "InitProducerId version {other} is not implemented"
         ))),
     }
 }
 
-/// Java `InitProducerIdRequest` helpers.
-pub struct InitProducerIdRequest;
+/// Complete InitProducerId request fields. Flags require v6.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitProducerIdRequestData {
+    /// Null for ordinary idempotent allocation; otherwise a nonempty transaction ID.
+    pub transactional_id: Option<String>,
+    /// Positive transaction timeout in milliseconds.
+    pub transaction_timeout_ms: i32,
+    /// Last allocated ID for v3+ epoch recovery, or -1 for first allocation.
+    pub producer_id: i64,
+    /// Last allocated epoch for v3+ recovery, or -1 for first allocation.
+    pub producer_epoch: i16,
+    /// Request two-phase transactions (v6 only); ordinary producers use false.
+    pub enable_2pc: bool,
+    /// Preserve a prepared transaction (v6 only); ordinary producers use false.
+    pub keep_prepared_txn: bool,
+}
+impl Default for InitProducerIdRequestData {
+    fn default() -> Self {
+        Self {
+            transactional_id: None,
+            transaction_timeout_ms: 60_000,
+            producer_id: -1,
+            producer_epoch: -1,
+            enable_2pc: false,
+            keep_prepared_txn: false,
+        }
+    }
+}
 
+/// Complete InitProducerId response. Ongoing identity is separate from allocation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitProducerIdResponseData {
+    /// Broker throttle in milliseconds.
+    pub throttle_time_ms: i32,
+    /// Top-level Kafka error code, including on a response with identities.
+    pub error_code: i16,
+    /// Newly allocated producer identity; never replaced with ongoing transaction fields.
+    pub producer_id: i64,
+    /// Newly allocated epoch.
+    pub producer_epoch: i16,
+    /// Identity of an ongoing transaction, or -1; present at v6.
+    pub ongoing_txn_producer_id: i64,
+    /// Epoch of an ongoing transaction, or -1; present at v6.
+    pub ongoing_txn_producer_epoch: i16,
+}
+impl Default for InitProducerIdResponseData {
+    fn default() -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code: 0,
+            producer_id: -1,
+            producer_epoch: -1,
+            ongoing_txn_producer_id: -1,
+            ongoing_txn_producer_epoch: -1,
+        }
+    }
+}
+
+/// Java `InitProducerIdRequest` validation/error-response helpers.
+pub struct InitProducerIdRequest;
 impl InitProducerIdRequest {
-    /// Java `InitProducerIdRequest.Builder.build`.
-    ///
-    /// Rejects a non-positive `transactionTimeoutMs`
-    /// (`IllegalArgumentException`) and an empty (non-null) transactional
-    /// id. Null transactional id is idempotent produce. Encode still
-    /// writes independently after this helper. This crate speaks 0–5.
-    /// This is not [`Self::error_response`].
+    /// Require a positive timeout and a null or nonempty transaction ID.
     pub fn build(transaction_timeout_ms: i32, transactional_id: Option<&str>) -> Result<()> {
         if transaction_timeout_ms <= 0 {
             return Err(Error::protocol(format!(
@@ -49,19 +91,8 @@ impl InitProducerIdRequest {
         }
         Ok(())
     }
-
-    /// Java `InitProducerIdRequest.getErrorResponse`.
-    ///
-    /// Producer id / epoch are [`RecordBatch::NO_PRODUCER_ID`] /
-    /// [`RecordBatch::NO_PRODUCER_EPOCH`]. ThrottleTimeMs stays the JSON
-    /// default (`0`); official Java `getErrorResponse` sets
-    /// `throttleTimeMs` to `0` even when the argument is non-zero. Crate
-    /// convenience encode still writes `0`.
-    pub fn error_response(
-        buf: &mut BytesMut,
-        version: i16,
-        error_code: i16,
-    ) -> crate::error::Result<()> {
+    /// Java error response: zero throttle and -1 identity sentinels.
+    pub fn error_response(buf: &mut BytesMut, version: i16, error_code: i16) -> Result<()> {
         encode_init_producer_id_response(
             buf,
             version,
@@ -72,54 +103,60 @@ impl InitProducerIdRequest {
     }
 }
 
-/// Java `InitProducerIdResponse` helpers.
+/// Java `InitProducerIdResponse` throttle/error-count helpers.
 pub struct InitProducerIdResponse;
-
 impl InitProducerIdResponse {
-    /// Java `InitProducerIdResponse.shouldClientThrottle`.
+    /// Java `shouldClientThrottle` (v1+).
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
     }
-
-    /// Java `InitProducerIdResponse.errorCounts`.
-    ///
-    /// Top-level `errorCode` only, including `NONE` (Java
-    /// `Collections.singletonMap`). This is not EndTxn / AddOffsetsToTxn /
-    /// Heartbeat `errorCounts`.
+    /// One count for the top-level error, including NONE.
     #[must_use]
     pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
         HashMap::from([(error_code, 1)])
     }
 }
 
-/// InitProducerId v0–v1 (classic) or v2–v5 (flexible).
-///
-/// `transaction_timeout_ms` is Kafka `transaction.timeout.ms` (INT32 after
-/// the nullable transactional id). `producer_id` / `producer_epoch` are
-/// written at v3+ (KIP-360); first init sends [`RecordBatch::NO_PRODUCER_ID`] /
-/// [`RecordBatch::NO_PRODUCER_EPOCH`]. Epoch-bump resume sends the last
-/// producer id and epoch. Ignored on v0–v2. Java
-/// `InitProducerIdRequest.getErrorResponse` writes those same sentinels.
-/// [`InitProducerIdRequest::build`] is Java
-/// `InitProducerIdRequest.Builder.build` (rejects a non-positive timeout
-/// and an empty (non-null) transactional id). Encode still writes
-/// independently after that helper.
-pub fn encode_init_producer_id_request(
+/// Encode all request fields. True v6 flags fail before output on older versions.
+pub fn encode_init_producer_id_request_data(
+    buf: &mut BytesMut,
+    version: i16,
+    data: &InitProducerIdRequestData,
+) -> Result<()> {
+    encode_request_fields(
+        buf,
+        version,
+        data.transactional_id.as_deref(),
+        data.transaction_timeout_ms,
+        (data.producer_id, data.producer_epoch),
+        (data.enable_2pc, data.keep_prepared_txn),
+    )
+}
+fn encode_request_fields(
     buf: &mut BytesMut,
     version: i16,
     transactional_id: Option<&str>,
     transaction_timeout_ms: i32,
-    producer_id: i64,
-    producer_epoch: i16,
-) -> crate::error::Result<()> {
+    identity: (i64, i16),
+    flags: (bool, bool),
+) -> Result<()> {
     let flexible = init_producer_id_flexible(version)?;
+    if version < 6 && (flags.0 || flags.1) {
+        return Err(Error::Unsupported(
+            "InitProducerId two-phase flags require v6".into(),
+        ));
+    }
     InitProducerIdRequest::build(transaction_timeout_ms, transactional_id)?;
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
     if version >= 3 {
-        buf.put_i64(producer_id);
-        buf.put_i16(producer_epoch);
+        buf.put_i64(identity.0);
+        buf.put_i16(identity.1);
+    }
+    if version >= 6 {
+        buf.put_u8(u8::from(flags.0));
+        buf.put_u8(u8::from(flags.1));
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -127,65 +164,153 @@ pub fn encode_init_producer_id_request(
     Ok(())
 }
 
-/// Decode InitProducerId request: `(transactional_id, timeout, producer_id, producer_epoch)`.
-///
-/// `producer_id` / `producer_epoch` are [`RecordBatch::NO_PRODUCER_ID`] /
-/// [`RecordBatch::NO_PRODUCER_EPOCH`] when the version is below 3.
-pub fn decode_init_producer_id_request<B: Buf>(
+/// Encode ordinary v0–v6 allocation, with both two-phase flags false.
+/// v0–v2 omit the recovery identity. The wrapper borrows the transaction ID.
+pub fn encode_init_producer_id_request(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: Option<&str>,
+    transaction_timeout_ms: i32,
+    producer_id: i64,
+    producer_epoch: i16,
+) -> Result<()> {
+    encode_request_fields(
+        buf,
+        version,
+        transactional_id,
+        transaction_timeout_ms,
+        (producer_id, producer_epoch),
+        (false, false),
+    )
+}
+
+/// Decode a complete request, retaining v6 flags. Reject truncation/trailing bytes.
+pub fn decode_init_producer_id_request_data<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Option<String>, i32, i64, i16)> {
+) -> Result<InitProducerIdRequestData> {
     let flexible = init_producer_id_flexible(version)?;
     let transactional_id = buf::get_string(buf, flexible)?;
     let transaction_timeout_ms = buf::get_i32(buf)?;
     let (producer_id, producer_epoch) = if version >= 3 {
         (buf::get_i64(buf)?, buf::get_i16(buf)?)
     } else {
-        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH)
+        (-1, -1)
+    };
+    let (enable_2pc, keep_prepared_txn) = if version >= 6 {
+        (buf::get_bool(buf)?, buf::get_bool(buf)?)
+    } else {
+        (false, false)
     };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((
+    if buf.has_remaining() {
+        return Err(Error::protocol("trailing InitProducerId request bytes"));
+    }
+    Ok(InitProducerIdRequestData {
         transactional_id,
         transaction_timeout_ms,
         producer_id,
         producer_epoch,
+        enable_2pc,
+        keep_prepared_txn,
+    })
+}
+
+/// Compatibility tuple decoder. Use the data decoder to retain v6 flags.
+pub fn decode_init_producer_id_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Option<String>, i32, i64, i16)> {
+    let d = decode_init_producer_id_request_data(buf, version)?;
+    Ok((
+        d.transactional_id,
+        d.transaction_timeout_ms,
+        d.producer_id,
+        d.producer_epoch,
     ))
 }
 
-/// Decode InitProducerId: `(error_code, producer_id, producer_epoch, throttle_time_ms)`.
-///
-/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
-/// is at bytes 4–5.
-pub fn decode_init_producer_id_response<B: Buf>(
+/// Encode all response fields. Nondefault ongoing identity requires v6.
+pub fn encode_init_producer_id_response_data(
+    buf: &mut BytesMut,
+    version: i16,
+    d: &InitProducerIdResponseData,
+) -> Result<()> {
+    let flexible = init_producer_id_flexible(version)?;
+    if version < 6 && (d.ongoing_txn_producer_id != -1 || d.ongoing_txn_producer_epoch != -1) {
+        return Err(Error::Unsupported(
+            "InitProducerId ongoing transaction identity requires v6".into(),
+        ));
+    }
+    buf.put_i32(d.throttle_time_ms);
+    buf.put_i16(d.error_code);
+    buf.put_i64(d.producer_id);
+    buf.put_i16(d.producer_epoch);
+    if version >= 6 {
+        buf.put_i64(d.ongoing_txn_producer_id);
+        buf.put_i16(d.ongoing_txn_producer_epoch);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode a complete response, retaining both regular and ongoing identities.
+pub fn decode_init_producer_id_response_data<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, i64, i16, i32)> {
+) -> Result<InitProducerIdResponseData> {
     let flexible = init_producer_id_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let producer_id = buf::get_i64(buf)?;
     let producer_epoch = buf::get_i16(buf)?;
+    let (ongoing_txn_producer_id, ongoing_txn_producer_epoch) = if version >= 6 {
+        (buf::get_i64(buf)?, buf::get_i16(buf)?)
+    } else {
+        (-1, -1)
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error_code, producer_id, producer_epoch, throttle_time_ms))
+    if buf.has_remaining() {
+        return Err(Error::protocol("trailing InitProducerId response bytes"));
+    }
+    Ok(InitProducerIdResponseData {
+        throttle_time_ms,
+        error_code,
+        producer_id,
+        producer_epoch,
+        ongoing_txn_producer_id,
+        ongoing_txn_producer_epoch,
+    })
 }
 
-/// Encode InitProducerId. Throttle is the JSON default (`0`).
-///
-/// ThrottleTimeMs is JSON `0+` on every spoken version. Java
-/// `InitProducerIdRequest.getErrorResponse` writes
-/// [`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`]
-/// and throttle `0`.
+/// Compatibility tuple decoder; ongoing fields never overwrite regular identity.
+pub fn decode_init_producer_id_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i16, i64, i16, i32)> {
+    let d = decode_init_producer_id_response_data(buf, version)?;
+    Ok((
+        d.error_code,
+        d.producer_id,
+        d.producer_epoch,
+        d.throttle_time_ms,
+    ))
+}
+
+/// Ordinary response with zero throttle and -1 ongoing identity sentinels.
 pub fn encode_init_producer_id_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
     producer_id: i64,
     producer_epoch: i16,
-) -> crate::error::Result<()> {
+) -> Result<()> {
     encode_init_producer_id_response_with_throttle(
         buf,
         version,
@@ -196,20 +321,7 @@ pub fn encode_init_producer_id_response(
     )
 }
 
-/// Encode InitProducerId v0–v5 with ThrottleTimeMs.
-///
-/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
-/// v0–v1 are classic. v2–v5 are flexible. v3 and v4 match v2 (KIP-360
-/// ProducerId is on the request; v4 is PRODUCER_FENCED). v5 is
-/// TRANSACTION_ABORTABLE (KIP-890; same layout as v2). Kafka 4.0
-/// `validVersions` is `0-5`. This crate speaks 0–5. v6+ is not spoken.
-/// Official Java `InitProducerIdResponse.throttleTimeMs` /
-/// `InitProducerIdResponseData.throttleTimeMs`. Java
-/// `getErrorResponse` sets `throttleTimeMs` to `0` even when the
-/// argument is non-zero ([`encode_init_producer_id_response`] still
-/// writes `0`). KIP-219 only changes `shouldClientThrottle` (v1+).
-/// Top-level ErrorCode is at bytes 4–5. This is not EndTxn /
-/// AddOffsetsToTxn / Produce ThrottleTimeMs.
+/// Ordinary v0–v6 response with explicit throttle and -1 ongoing sentinels.
 pub fn encode_init_producer_id_response_with_throttle(
     buf: &mut BytesMut,
     version: i16,
@@ -217,16 +329,18 @@ pub fn encode_init_producer_id_response_with_throttle(
     producer_id: i64,
     producer_epoch: i16,
     throttle_time_ms: i32,
-) -> crate::error::Result<()> {
-    let flexible = init_producer_id_flexible(version)?;
-    buf.put_i32(throttle_time_ms);
-    buf.put_i16(error_code);
-    buf.put_i64(producer_id);
-    buf.put_i16(producer_epoch);
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-    }
-    Ok(())
+) -> Result<()> {
+    encode_init_producer_id_response_data(
+        buf,
+        version,
+        &InitProducerIdResponseData {
+            throttle_time_ms,
+            error_code,
+            producer_id,
+            producer_epoch,
+            ..Default::default()
+        },
+    )
 }
 
 #[cfg(test)]
@@ -331,14 +445,14 @@ mod tests {
         assert!(
             encode_init_producer_id_request(
                 &mut req,
-                6,
+                7,
                 Some("tid"),
                 45_000,
                 RecordBatch::NO_PRODUCER_ID,
                 RecordBatch::NO_PRODUCER_EPOCH,
             )
             .is_err(),
-            "InitProducerId v6+ (KIP-939 2PC) is not spoken"
+            "InitProducerId v7+ is not implemented"
         );
     }
 

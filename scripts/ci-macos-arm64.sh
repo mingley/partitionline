@@ -12,7 +12,7 @@ if (( BASH_VERSINFO[0] < 5 )); then
   exit 1
 fi
 toolchain="${PL_MACOS_TOOLCHAIN:-stable}"
-case "$toolchain" in stable|1.85.0) ;; *) echo 'unqualified Rust toolchain' >&2; exit 1 ;; esac
+[[ "$toolchain" == stable ]] || { echo 'latest stable Rust required' >&2; exit 1; }
 [[ -z "${CARGO_BUILD_TARGET:-}" ]] || { echo 'unexpected cross target' >&2; exit 1; }
 export RUSTUP_TOOLCHAIN="$toolchain"
 export CARGO_TERM_COLOR=never

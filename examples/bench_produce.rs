@@ -7,69 +7,45 @@
 )]
 mod history;
 
-use std::time::{Duration, Instant};
+#[path = "common/bench_produce_settings.rs"]
+mod settings;
+
+use std::time::Instant;
 
 use bytes::Bytes;
-use partitionline::{Compression, ProduceRecord, Producer, ProducerConfig, TlsConfig};
+use partitionline::{ProduceRecord, Producer, TlsConfig};
+use settings::{KeyMode, PayloadMode, Settings};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
-    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
-    let topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "partitionline".into());
-    let payload = history::setting("PAYLOAD_BYTES", 100usize)?;
-    history::positive("PAYLOAD_BYTES", u64::try_from(payload).unwrap_or(u64::MAX))?;
-    let warmup = Duration::from_secs(history::setting("WARMUP_SECS", 2u64)?);
-    let measure = Duration::from_secs(history::setting("MEASURE_SECS", 5u64)?);
-    let count: Option<u64> = history::optional_setting("COUNT")?;
-    if let Some(count) = count {
-        history::positive("COUNT", count)?;
-    } else {
-        history::positive("MEASURE_SECS", measure.as_secs())?;
-    }
-    let linger_ms = history::setting("LINGER_MS", 5u64)?;
-    let acks = history::setting("ACKS", 1i16)?;
-    if ![-1, 0, 1].contains(&acks) {
-        return Err(partitionline::Error::protocol("ACKS must be -1, 0, or 1"));
-    }
-    let idempotent = history::flag("IDEMPOTENT", false)?;
-    if idempotent && acks != -1 {
+    let settings = Settings::from_env()?;
+    let arguments: Vec<_> = std::env::args().skip(1).collect();
+    if !arguments.is_empty() && arguments != ["--print-config"] {
         return Err(partitionline::Error::protocol(
-            "IDEMPOTENT=1 requires ACKS=-1",
+            "usage: bench_produce [--print-config]",
         ));
     }
-    let history_path = std::env::var("RECORD_HISTORY").ok();
-    if history_path.is_some() && (payload < history::MIN_PAYLOAD || count.is_none()) {
-        return Err(partitionline::Error::protocol(
-            "RECORD_HISTORY requires COUNT and PAYLOAD_BYTES >= 24",
-        ));
+    let effective_settings = settings.effective_json();
+    if arguments == ["--print-config"] {
+        println!("{{\"effective_settings\":{effective_settings}}}");
+        return Ok(());
     }
-    let seed = history::setting("SEED", 0x5EED_0001u64)?;
-    let mut journal = history_path
+    let topic = settings.topic.clone();
+    let payload = settings.payload;
+    let warmup = settings.warmup;
+    let measure = settings.measure;
+    let count = settings.count;
+    let linger_ms = settings.producer.linger.as_millis();
+    let acks = settings.producer.acks;
+    let idempotent = settings.producer.enable_idempotence;
+    let compression = settings.producer.compression;
+    let seed = settings.seed;
+    let mut journal = settings
+        .history_path
         .as_deref()
         .map(history::Journal::create)
         .transpose()?;
-
-    let mut cfg = ProducerConfig::bootstrap([bootstrap]);
-    cfg.linger = Duration::from_millis(linger_ms);
-    cfg.batch_records = 32_768;
-    cfg.batch_bytes = 1_000_000;
-    cfg.acks = acks;
-    cfg.connections = history::setting("CONNECTIONS", 8usize)?;
-    cfg.max_in_flight = history::setting("MAX_IN_FLIGHT", 16usize)?;
-    history::positive(
-        "CONNECTIONS",
-        u64::try_from(cfg.connections).unwrap_or(u64::MAX),
-    )?;
-    history::positive(
-        "MAX_IN_FLIGHT",
-        u64::try_from(cfg.max_in_flight).unwrap_or(u64::MAX),
-    )?;
-    let compression =
-        Compression::from_name(&std::env::var("COMPRESSION").unwrap_or_else(|_| "none".into()))?;
-    cfg.compression = compression;
-    if idempotent {
-        cfg.enable_idempotence = true;
-    }
+    let mut cfg = settings.producer.clone();
     let tls_on = if let Ok(ca_path) = std::env::var("TLS_CA_PEM") {
         let mut tls = TlsConfig {
             ca_pem: Some(tokio::fs::read(&ca_path).await.map_err(|e| {
@@ -117,20 +93,31 @@ async fn main() -> partitionline::Result<()> {
         }
     }
     let producer = Producer::new(cfg).await?;
-    let mut partitions: Vec<i32> = if journal.is_some() {
-        producer
-            .partitions_for(topic.clone())
-            .await?
-            .iter()
-            .map(|p| p.partition())
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let mut partitions: Vec<i32> =
+        if journal.is_some() || settings.key_mode == KeyMode::Id || settings.partitions.is_some() {
+            producer
+                .partitions_for(topic.clone())
+                .await?
+                .iter()
+                .map(|p| p.partition())
+                .collect()
+        } else {
+            Vec::new()
+        };
     partitions.sort_unstable();
-    if journal.is_some() && partitions.is_empty() {
+    if (journal.is_some() || settings.key_mode == KeyMode::Id || settings.partitions.is_some())
+        && partitions.is_empty()
+    {
         return Err(partitionline::Error::protocol(
             "empty topic partition metadata",
+        ));
+    }
+    if settings
+        .partitions
+        .is_some_and(|expected| expected != partitions.len())
+    {
+        return Err(partitionline::Error::protocol(
+            "PARTITIONS differs from actual topic metadata",
         ));
     }
     if let Some(ref mut journal) = journal {
@@ -138,7 +125,11 @@ async fn main() -> partitionline::Result<()> {
         journal.checkpoint()?;
     }
     let topic: std::sync::Arc<str> = topic.into();
-    let value = Bytes::from(vec![b'x'; payload]);
+    let value = if settings.payload_mode == PayloadMode::ConstantX {
+        Bytes::from(vec![b'x'; payload])
+    } else {
+        Bytes::new()
+    };
     let mut next_id = 0u64;
     let mut queue_full_attempts = 0u64;
 
@@ -153,25 +144,44 @@ async fn main() -> partitionline::Result<()> {
         partitions: &[i32],
         seed: u64,
         payload_size: usize,
+        settings: &Settings,
+        phase_id: u64,
+        pending: &mut Option<ProduceRecord>,
         next_id: &mut u64,
         journal: &mut Option<history::Journal>,
         phase: &str,
         queue_full_attempts: &mut u64,
     ) -> partitionline::Result<bool> {
-        let mut record = ProduceRecord::to(topic.clone()).value(value.clone());
-        let mut partition = 0;
         let id = *next_id;
-        if journal.is_some() {
-            let index =
-                usize::try_from(id % u64::try_from(partitions.len()).unwrap_or(1)).unwrap_or(0);
-            partition = *partitions
-                .get(index)
-                .ok_or_else(|| partitionline::Error::protocol("partition index"))?;
-            record = record
-                .partition(partition)
-                .key(history::key(seed, partition))
-                .value(history::payload(seed, id, payload_size)?);
+        let generator_id = if journal.is_some() { id } else { phase_id };
+        let partition = if partitions.is_empty() {
+            0
+        } else {
+            *partitions
+                .get(usize::try_from(generator_id % partitions.len() as u64).unwrap_or(0))
+                .ok_or_else(|| partitionline::Error::protocol("partition index"))?
+        };
+        if pending.is_none() {
+            let payload = match settings.payload_mode {
+                PayloadMode::ConstantX => value.clone(),
+                PayloadMode::Seeded => settings::seeded_payload(seed, generator_id, payload_size),
+                PayloadMode::History => history::payload(seed, id, payload_size)?,
+            };
+            let mut record = ProduceRecord::to(topic.clone()).value(payload);
+            if !partitions.is_empty() {
+                record = record.partition(partition);
+            }
+            record = match settings.key_mode {
+                KeyMode::None => record,
+                KeyMode::Id => record.key(settings::id_key(seed, generator_id)),
+                KeyMode::History => record.key(history::key(seed, partition)),
+            };
+            *pending = Some(record);
         }
+        let record = pending
+            .as_ref()
+            .ok_or_else(|| partitionline::Error::protocol("missing benchmark record"))?
+            .clone();
         let evidence = if journal.is_some() {
             Some(record.clone())
         } else {
@@ -179,6 +189,7 @@ async fn main() -> partitionline::Result<()> {
         };
         match producer.try_send(record) {
             Ok(()) => {
+                *pending = None;
                 if let (Some(journal), Some(record)) = (journal.as_mut(), evidence) {
                     journal.record(
                         &format!("{seed:016x}:{id}"),
@@ -198,7 +209,7 @@ async fn main() -> partitionline::Result<()> {
             }
             Err(partitionline::Error::QueueFull) => {
                 *queue_full_attempts = queue_full_attempts.saturating_add(1);
-                if *queue_full_attempts % 32 == 0 {
+                if queue_full_attempts.is_multiple_of(32) {
                     tokio::task::yield_now().await;
                 }
                 Ok(false)
@@ -226,15 +237,20 @@ async fn main() -> partitionline::Result<()> {
     // warmup and measurement without hiding failures in a background task.
     let mut warmup_count = 0;
     let mut measured_count = 0;
+    let mut warmup_elapsed = 0.0;
     let mut elapsed = 0.0;
     let mut failure = None;
-    for (phase, duration, limit) in [("warmup", warmup, None), ("measure", measure, count)] {
+    for (phase, duration, limit) in [
+        ("warmup", warmup, settings.warmup_records),
+        ("measure", measure, count),
+    ] {
+        let mut pending_record = None;
         let start = Instant::now();
         let deadline = start
             .checked_add(duration)
             .ok_or_else(|| partitionline::Error::protocol("measurement duration overflow"))?;
         let mut sent = 0u64;
-        if limit.is_some() || !duration.is_zero() {
+        if limit.is_some_and(|count| count > 0) || !duration.is_zero() {
             loop {
                 match send_one(
                     &producer,
@@ -243,6 +259,9 @@ async fn main() -> partitionline::Result<()> {
                     &partitions,
                     seed,
                     payload,
+                    &settings,
+                    sent,
+                    &mut pending_record,
                     &mut next_id,
                     &mut journal,
                     phase,
@@ -257,14 +276,18 @@ async fn main() -> partitionline::Result<()> {
                         break;
                     }
                 }
+                if start.elapsed() >= settings.run_timeout {
+                    failure = Some(partitionline::Error::protocol("benchmark run timeout"));
+                    break;
+                }
                 if let Some(n) = limit {
-                    if sent >= n {
+                    if sent >= n && (phase != "warmup" || Instant::now() >= deadline) {
                         break;
                     }
                 } else if Instant::now() >= deadline {
                     break;
                 }
-                if sent % 1024 == 0 {
+                if sent.is_multiple_of(1024) {
                     if let Some(ref mut journal) = journal {
                         journal.checkpoint()?;
                     }
@@ -272,12 +295,19 @@ async fn main() -> partitionline::Result<()> {
             }
         }
         if failure.is_none() {
-            if let Err(error) = producer.flush().await {
+            if let Err(error) = tokio::time::timeout(
+                settings.run_timeout.saturating_sub(start.elapsed()),
+                producer.flush(),
+            )
+            .await
+            .unwrap_or_else(|_| Err(partitionline::Error::protocol("benchmark flush timeout")))
+            {
                 failure = Some(error);
             }
         }
         if phase == "warmup" {
             warmup_count = sent;
+            warmup_elapsed = start.elapsed().as_secs_f64();
         } else {
             measured_count = sent;
             elapsed = start.elapsed().as_secs_f64();
@@ -324,7 +354,7 @@ async fn main() -> partitionline::Result<()> {
     };
     let accepted_rec_s = measured_count as f64 / elapsed.max(1e-9);
     println!(
-        "{{\"acked\":{acknowledged},\"accepted\":{measured_count},\"locally_completed\":{},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{acked_rec_s},\"accepted_rec_s\":{accepted_rec_s:.3},\"delivery_semantics\":\"{}\",\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{idempotent},\"tls\":{tls_on},\"scram\":{scram_on},\"scram512\":{scram512_on},\"oauthbearer\":{oauth_on},\"record_history\":{},\"integrity_verified\":false,\"performance_claims_valid\":false,\"run_disposition\":\"{disposition}\"}}",
+        "{{\"acked\":{acknowledged},\"accepted\":{measured_count},\"locally_completed\":{},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{acked_rec_s},\"accepted_rec_s\":{accepted_rec_s:.3},\"delivery_semantics\":\"{}\",\"payload_bytes\":{payload},\"warmup_records\":{warmup_count},\"warmup_elapsed_s\":{warmup_elapsed:.6},\"acknowledged_total\":{acknowledged_total},\"accepted_total\":{next_id},\"effective_settings\":{effective_settings},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{idempotent},\"tls\":{tls_on},\"scram\":{scram_on},\"scram512\":{scram512_on},\"oauthbearer\":{oauth_on},\"record_history\":{},\"integrity_verified\":false,\"performance_claims_valid\":false,\"run_disposition\":\"{disposition}\"}}",
         locally_completed, if acks == 0 { "local_complete" } else { "broker_ack" }, compression.as_str(), journal.is_some()
     );
     if let Some(error) = failure {

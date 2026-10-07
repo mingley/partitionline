@@ -37,21 +37,16 @@ echo "audit-civilization-bars: ${name} ${ver} @ $(git rev-parse --short HEAD 2>/
 echo
 
 # --- 1. Installable ---
-echo "== 1. Installable (crates.io + MSRV) =="
-msrv_ok=0
+echo "== 1. Installable (crates.io + stable Rust) =="
 if grep -qE '^rust-version = "1\.[0-9]+"' Cargo.toml; then
-  ok "MSRV declared in Cargo.toml"
-  msrv_ok=1
+  ok "minimum Rust version declared in Cargo.toml"
 else
   bad "Cargo.toml missing rust-version"
 fi
-if [[ -f .github/workflows/ci.yml ]] \
-  && grep -qE 'msrv|MSRV|rust-version|"1\.85"|rust:.*1\.85' .github/workflows/ci.yml; then
-  ok "MSRV exercised in CI workflow"
-elif [[ -f scripts/ci-msrv.sh ]]; then
-  part "MSRV CI job label not obvious; scripts/ci-msrv.sh present"
+if [[ -f .github/workflows/ci.yml ]] && grep -qF 'rust: [stable]' .github/workflows/ci.yml; then
+  ok "stable Rust exercised in CI workflow"
 else
-  bad "no MSRV CI / scripts/ci-msrv.sh"
+  bad "stable Rust CI matrix missing"
 fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
@@ -626,10 +621,9 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' scripts/check-installable-preflight.sh \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
   && grep -qF 'expected pre-Installable' docs/RELEASE.md \
-  && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
   && grep -qF 'Installable is met' docs/CIVILIZATION.md \
   && grep -qF '0.1.0 published' docs/CIVILIZATION.md \
-  && grep -qF 'Installable is met' docs/ADOPTION.md \
+  && grep -qF 'Version 0.1.0 is published.' docs/ADOPTION.md \
   && ! grep -qF 'not published yet' docs/CIVILIZATION.md \
   && ! grep -qF 'blocked only on credentials' docs/ADOPTION.md \
   && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \

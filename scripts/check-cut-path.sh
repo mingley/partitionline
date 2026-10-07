@@ -52,8 +52,8 @@ echo "== check-cut-path: tip-delta (docs/scripts-only vs main) =="
 bash scripts/check-tip-delta.sh
 
 echo
-echo "== check-cut-path: MSRV (Installable) =="
-bash scripts/ci-msrv.sh
+echo "== check-cut-path: stable Rust (Installable) =="
+bash scripts/ci-stable.sh
 
 echo
 echo "== check-cut-path: deny (Independent) =="

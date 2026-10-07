@@ -1,8 +1,8 @@
 # Migrate from rust-rdkafka / librdkafka (and Java)
 
-partitionline is **not** a drop-in for `rd_kafka_*`, rust-rdkafka types, or
-the Java client's string property bag. It is a pure-Rust client with
-Java-shaped typed builders. Use this map when porting a service.
+Use this guide to port a service from rust-rdkafka, librdkafka, or the Java
+client. partitionline uses typed builders, owned records, and async methods.
+Porting requires changes to configuration and call sites.
 
 ## How to read this map
 
@@ -41,9 +41,10 @@ rdkafka = { version = "0.39", features = ["cmake-build"] }
 partitionline = "0.1"
 ```
 
-No C toolchain, librdkafka, OpenSSL, or cmake-build feature required for the
-default feature set (`default = []` in `Cargo.toml`; the only optional feature
-is `tracing`).
+The client uses Tokio for async I/O and rustls with Ring for TLS. Ring requires
+a C compiler during the build. Current source enables the `zlib-rs` gzip backend
+by default and provides optional `tracing` spans; the published 0.1.0 feature
+set is an earlier baseline.
 
 ## API shape
 
@@ -225,7 +226,7 @@ correctness results, not universal Java or live compatibility qualification.
 | gzip | `Compression::Gzip` (`flate2`; zlib-rs by default) | same wire format | same wire format |
 | snappy | `Compression::Snappy` (`snap`; snappy-java framing on produce, raw on fetch) | same wire format | same wire format |
 | lz4 | `Compression::Lz4` (`lz4_flex` frame, independent 64 KiB blocks) | same wire format | same wire format |
-| zstd | **not supported** (`codecs.zstd.decode/encode/wire_helper`, missing) | `zstd` | `zstd` |
+| zstd | optional `zstd` feature; levels 1–19, default 3 | `zstd` | `zstd` |
 
 ```rust
 use partitionline::{Compression, ProducerConfig};
@@ -234,12 +235,10 @@ let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
     .compression(Compression::Lz4);
 ```
 
-zstd stays out because the Kafka ecosystem codec is `libzstd` C, and
-`deny.toml:45` bans `zstd-sys` / `libzstd-sys` from the feature set (pure-Rust
-zstd is tracked as research in `docs/zstd-spike.md`). Plan a compression
-alternative before porting zstd topics. Supported codecs enforce the 64 MiB hard decoded-byte budget during expansion
-(KL02-03). Exactly-at-limit data remains valid; process RSS includes other
-allocations and is not a promise of that byte budget.
+Enable the optional `zstd` feature for zstd topics. The codec uses
+`zstd-rs 0.1.0`; default dependencies remain unchanged. See
+[zstd-spike.md](zstd-spike.md) for encoder levels and resource limits. Codec
+limits describe decoded bytes rather than process RSS.
 
 ## Auth and TLS
 
@@ -247,7 +246,7 @@ allocations and is not a promise of that byte budget.
 |---|---|---|
 | No auth | default (all `sasl_*` are `None`, TLS `None`) | same shape |
 | PLAIN | `Sasl::plain(user, pass)` (`src/config.rs:532`) | same |
-| SCRAM-SHA-256 | `Sasl::scram_sha256(user, pass)` (`src/config.rs:540`, RFC 5802/7677, no C) | same |
+| SCRAM-SHA-256 | `Sasl::scram_sha256(user, pass)` (`src/config.rs:540`, RFC 5802/7677) | same |
 | SCRAM-SHA-512 | `Sasl::scram_sha512(user, pass)` (`src/config.rs:548`) | same |
 | OAUTHBEARER | `Sasl::oauthbearer(principal)` (`src/config.rs:556`, RFC 7628 unsecured JWT) | same (`enable.sasl.oauthbearer.unsecure.jwt`) |
 | OIDC token endpoint | `Sasl::oidc(OidcConfig)` (`src/config.rs:564`, `src/protocol/oidc.rs:24`) | same shape |
@@ -317,8 +316,8 @@ continue and the caller outcome stays ambiguous until `flush`/`close`
 
 ## Intentional differences
 
-1. **No C** — zstd and Kerberos stay out of default features (`deny.toml`
-   bans `zstd-sys`).
+1. **Feature gaps** — client zstd and Kerberos support remain unfinished.
+   See [protocol support](gaps.md) for current status.
 2. **Defaults** — Earliest offset reset, auto-commit off, idempotence off,
    shorter delivery (30 s) / max-block (30 s) / session (10 s) timeouts,
    150 ms heartbeats, 5 ms linger, uncapped `max.poll.records`, 16 MiB fetch
@@ -337,7 +336,7 @@ No equivalent exists today; do not port these call sites as-is:
 
 | Feature | Registry entry | Note |
 |---|---|---|
-| zstd compress/decompress | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` (missing) | Blocked on C (`deny.toml:45`); see `gaps.md` |
+| zstd compress/decompress | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` (optional feature) | See `zstd-spike.md`; complete live matrix remains open |
 | SASL GSSAPI / Kerberos | `auth.sasl_gssapi` (missing) | Blocked on Cyrus SASL C |
 | Proactive OIDC/token refresh | `auth.sasl_oidc_refresh` (missing) | Re-auth on `session_lifetime_ms` not implemented |
 | Sticky unkeyed partitioner | `producer.sticky_partitioner` (missing) | Unkeyed records round-robin instead |

@@ -2,9 +2,9 @@
 name = "partitionline"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-description = "A Kafka client in pure Rust. No C, no librdkafka."
+description = "An asynchronous Kafka client with producer, consumer, group, transaction and Admin APIs."
 repository = "https://github.com/mingley/partitionline"
 homepage = "https://github.com/mingley/partitionline"
 documentation = "https://docs.rs/partitionline"
@@ -77,12 +77,14 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["zlib-rs"]
-# gzip through zlib-rs: pure Rust, but it uses unsafe and SIMD internally.
+# gzip through zlib-rs, which uses unsafe and SIMD internally.
 # Without it, gzip uses miniz_oxide (forbids unsafe; CRC-32 from crc32fast).
 # docs/gzip-backend.md
 zlib-rs = ["flate2/zlib-rs"]
 # Optional OpenTelemetry-friendly spans on produce-ack, fetch, rebalance, and txn boundaries.
 tracing = ["dep:tracing"]
+# Optional bounded zstd encoding and decoding.
+zstd = ["dep:zstd-rs"]
 
 [dependencies]
 base64 = "0.23"
@@ -101,6 +103,7 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["ring",
 parking_lot = "0.12"
 tracing = { version = "0.1", optional = true }
 webpki-roots = "1"
+zstd-rs = { version = "=0.1.0", optional = true }
 
 [dev-dependencies]
 # Intentionally empty: mock TLS fixtures use the openssl CLI (see

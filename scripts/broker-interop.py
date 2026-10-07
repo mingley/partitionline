@@ -126,7 +126,7 @@ def prepare(args):
         report['native'] = {'binary': str(args.native_binary), 'binary_sha256': sha(args.native_binary),
                             'pins': native, 'source_sha256': sha(oracle / 'ordinary-peer.c'),
                             'header': str(args.native_header), 'library': str(args.native_library)}
-        for toolchain in ('stable', '1.85.0'):
+        for toolchain in ('stable',):
             report['commands'].append({'rustc': subprocess.check_output(['rustc', '+' + toolchain, '-Vv'], env=env, text=True)})
             for name, manifest, package in [('peer', peer / 'Cargo.toml', 'partitionline-broker-interop-peer'),
                                              ('client', peer / 'Cargo.toml', 'partitionline'),
@@ -302,7 +302,7 @@ def main():
     parser.add_argument('--native-header', type=Path, default=Path('/workspace/work/c-peer/source/src/rdkafka.h'))
     parser.add_argument('--native-library', type=Path, default=Path('/workspace/work/c-peer/lib/librdkafka.so.1'))
     parser.add_argument('--preparation', type=Path)
-    parser.add_argument('--toolchain', choices=['stable', '1.85.0'])
+    parser.add_argument('--toolchain', choices=['stable'])
     parser.add_argument('--features', choices=['default', 'all-features'])
     parser.add_argument('--port', type=int, default=19135)
     parser.add_argument('--state', type=Path)

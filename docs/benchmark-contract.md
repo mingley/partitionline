@@ -370,14 +370,14 @@ those exist, every cell stays `not_run` and no summary claim exists.
 | `kafka-clients` | Apache Java | Pinned release (KL04-03) | Driver pending |
 | `franz-go` | Go client | Pinned release (KL09-65) | Driver pending |
 | `rust-rdkafka` | Rust bindings over librdkafka | Reported separately from the C-only bar (KL04-05) | Adapter pending |
-| `pure-rust-peer` | One semantically comparable pure-Rust client, selected in KL04-05 | TBD in KL04-05 | Selection pending |
+| Rust peer | A comparable Rust client, selected in KL04-05 | TBD in KL04-05 | Selection pending |
 
 Per-cell best-peer rule: "superior" is always relative to the best peer
 **for that cell** among peers that support the cell's capability and have
 a runnable driver. Peers without a driver, and peers lacking the
 capability (§8 non-win rule), are listed as excluded — never counted.
 
-Results for `franz-go`, `rust-rdkafka` and the pure-Rust peer file under
+Results for `franz-go`, `rust-rdkafka` and the selected Rust client file under
 result-schema `peer: "peer-adapter"` with the concrete peer recorded in
 provenance, until their driver cards promote them to named schema peers,
 if ever.

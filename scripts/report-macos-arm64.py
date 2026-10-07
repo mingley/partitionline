@@ -29,10 +29,10 @@ def validate_versions(data):
     if (data['system'], data['machine'], data['rustc_host']) != (
             'Darwin', 'arm64', 'aarch64-apple-darwin'):
         raise ValueError('native Darwin arm64 compiler/runtime required')
-    if data['requested_toolchain'] not in ('stable', '1.85.0'):
+    if data['requested_toolchain'] != 'stable':
         raise ValueError('unqualified toolchain')
-    if data['requested_toolchain'] == '1.85.0' and data['rustc_release'] != '1.85.0':
-        raise ValueError('MSRV compiler mismatch')
+    if not re.fullmatch(r'1\.\d+\.\d+', data['rustc_release']) or tuple(map(int, data['rustc_release'].split('.'))) < (1, 99, 0):
+        raise ValueError('latest stable Rust required')
     if not re.fullmatch(r'[0-9a-f]{40}', data['source_sha']):
         raise ValueError('source commit missing')
     if not data['openssl_version'].startswith('OpenSSL 3.'):
@@ -88,7 +88,13 @@ def validate_package(summary, versions):
     if vcs['git']['sha1'] != sha or vcs['git'].get('dirty', False):
         raise ValueError('package source is stale or dirty')
     cells = summary['feature_matrix']
-    if len(cells) != 2 or {c['feature_mode'] for c in cells} != {'default', 'tracing'}:
+    optional = summary.get('approved_optional_features', ['tracing'])
+    if optional not in (['tracing'], ['tracing', 'zstd']):
+        raise ValueError('unapproved optional feature list')
+    combinations = {'default': [], 'tracing': ['tracing']}
+    if 'zstd' in optional:
+        combinations.update(zstd=['zstd'], all=['tracing', 'zstd'])
+    if len(cells) != len(combinations) or {c['feature_mode'] for c in cells} != set(combinations):
         raise ValueError('approved package feature matrix incomplete')
     for cell in cells:
         if (cell['package_vcs_info'] != vcs or cell['package_sha256'] != summary['package_sha256']
@@ -97,12 +103,12 @@ def validate_package(summary, versions):
         if (cell['compiled_snippets'] <= 0 or cell['ignored_snippets']
                 or cell['compiled_snippets'] != len(cell['snippets'])):
             raise ValueError('missing or skipped packaged snippets')
-        if cell['dependency_features'] != ([] if cell['feature_mode'] == 'default' else ['tracing']):
+        if cell['dependency_features'] != combinations[cell['feature_mode']]:
             raise ValueError('unapproved feature combination')
         if not cell['rustc'].startswith('rustc '+versions['rustc_release']+' '):
             raise ValueError('packed consumer compiler mismatch')
     expected_locks = {f"operator-{versions['requested_toolchain']}-{mode}.lock"
-                      for mode in ('default', 'tracing')}
+                      for mode in combinations}
     if set(summary['operator_lock_sha256']) != expected_locks:
         raise ValueError('operator consumer reports incomplete')
     return sum(c['compiled_snippets'] for c in cells)
@@ -136,7 +142,7 @@ def finish(directory):
             'artifact_name': re.sub(r'[^A-Za-z0-9_.-]', '_', label),
             'limits': ['Native mock/runtime and package qualification; live brokers/performance remain Linux lanes.',
                        'Pre-existing opt-in live tests are reported as ignored, with no cross-platform live claim.',
-                       'Clippy runs on stable; both Rust toolchains run default/tracing and strict documentation.']}
+                       'Latest stable Rust runs strict Clippy, documentation and the declared package feature matrix.']}
 
 
 def diagnose(path, phase, code):

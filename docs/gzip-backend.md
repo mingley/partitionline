@@ -74,7 +74,7 @@ there, so other targets allocate 64 bytes less per stream.
 
 ## Dependency audit (zlib-rs 0.6.8)
 
-- License `Zlib` (allowed by `deny.toml`); MSRV 1.75, below this crate's 1.85.
+- License `Zlib` (allowed by `deny.toml`); tested with the current stable toolchain.
 - Maintained by the Trifecta Tech Foundation, started by ISRG's Prossimo
   project; regular releases (0.6.6 on 2026-07-09, 0.6.7 on 2026-08-03, 0.6.8 on
   2026-09-15).

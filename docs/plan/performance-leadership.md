@@ -73,7 +73,7 @@ as excluded. It is never counted as a win.
 | Apache Java `kafka-clients` (pinned) | The reference implementation, with heavily tuned batching | KL04-03 |
 | **franz-go** (pinned) | Widely regarded as one of the fastest non-C clients; needed for a global claim | KL09-65 |
 | rust-rdkafka | The Rust status quo, reported separately from the C-only bar | KL04-05 |
-| One semantically comparable pure-Rust peer (selected in KL04-05) | Same-language baseline | KL04-05 |
+| One comparable Rust peer (selected in KL04-05) | Same-language baseline | KL04-05 |
 
 ### Primary metrics and guardrails (frozen by KL09-01 in contract §10.3, v1.1.0)
 

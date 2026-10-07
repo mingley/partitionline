@@ -280,3 +280,26 @@ fn decompression_bombs_adversarial_smoke() {
         );
     }
 }
+
+/// Repaired outer CRC makes mutations reach the zstd backend and header guard.
+#[cfg(feature = "zstd")]
+#[test]
+fn zstd_inner_frame_mutations_never_panic() {
+    let seed = include_bytes!("fixtures/zstd-decode/java-zstd.batch");
+    let mut state = 0x5eed0001;
+    for _ in 0..1024 {
+        let mut bytes = seed.to_vec();
+        let offset = 61
+            + usize::try_from(xorshift(&mut state) % u64::try_from(bytes.len() - 61).unwrap())
+                .unwrap();
+        if let Some(byte) = bytes.get_mut(offset) {
+            *byte ^= xorshift(&mut state).to_le_bytes()[0];
+        }
+        let crc = crc32c::crc32c(bytes.get(21..).unwrap());
+        bytes
+            .get_mut(17..21)
+            .unwrap()
+            .copy_from_slice(&crc.to_be_bytes());
+        drop(decode_record_batches_with_limit(&mut &bytes[..], 262144));
+    }
+}

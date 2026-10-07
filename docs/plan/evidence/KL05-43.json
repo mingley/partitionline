@@ -1,0 +1,313 @@
+{
+  "id": "KL05-43",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-05",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate on this baseline. Source-input-hashes.json binds tested source, locked dependencies and test inputs; no commit or hosted CI run is claimed.",
+  "owner": "codex-selected-avro-20261005",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_override": "User requested latest stable Rust only on 2026-10-05. Former Rust 1.85 acceptance cells are superseded; none were executed for this task.",
+  "codec": {
+    "name": "apache-avro",
+    "version": "0.22.0",
+    "crate_sha256": "312c1ea69e5fe9966e0029fb95aca8790100b85aff4f0d3b00a9337c74069a9c",
+    "license": "Apache-2.0",
+    "features": [],
+    "placement": "Pinned test-only dependency; no implicit library serializer"
+  },
+  "independent_peer": {
+    "name": "Apache Avro Java",
+    "version": "1.12.1",
+    "license": "Apache-2.0",
+    "jars": "docs/evidence/conformance/avro-selected-codec/validation/jars.json",
+    "cases": 9,
+    "negative_cases": 6,
+    "readback_cells": [
+      "default+avro",
+      "all-features",
+      "no-default+avro"
+    ],
+    "process_deadline_seconds": 30,
+    "jvm_heap": "128MiB",
+    "processes_exited": true
+  },
+  "resource_profile": {
+    "frame_bytes": 4096,
+    "combined_schema_text_bytes": 16384,
+    "combined_references": 8,
+    "json_depth": 32,
+    "expanded_schema_depth": 8,
+    "expanded_nodes": 128,
+    "record_fields": 32,
+    "union_branches": 4,
+    "backend_wire_allocation_guard": 4096,
+    "aggregate_decoded_scalar_acceptance_bytes": 4096,
+    "aggregate_check_timing": "Before encoding and after decoding; not a pre-allocation or RSS limit",
+    "excluded_schemas": [
+      "recursive",
+      "array",
+      "map",
+      "enum",
+      "fixed",
+      "logical types"
+    ],
+    "scratch": "Production schema/name/value resolution uses separate allocations. Input/finite expansion bounds constrain these; no measured RSS or total allocation quota is claimed.",
+    "encoded_payload_scratch": "None: production count-only Write pass, then exact adapter output slice"
+  },
+  "tests": {
+    "final-default": {
+      "passed_including_doctests": 74,
+      "failed": 0,
+      "ignored": 0,
+      "harnesses": 7
+    },
+    "final-avro": {
+      "passed_including_doctests": 95,
+      "failed": 0,
+      "ignored": 0,
+      "harnesses": 7
+    },
+    "final-all-features": {
+      "passed_including_doctests": 111,
+      "failed": 0,
+      "ignored": 0,
+      "harnesses": 7
+    },
+    "final-no-default": {
+      "passed_including_doctests": 39,
+      "failed": 0,
+      "ignored": 0,
+      "harnesses": 7
+    }
+  },
+  "core_unit_tests": 1115,
+  "commands": [
+    {
+      "name": "final-default",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 1.073,
+      "log": "final-default.log"
+    },
+    {
+      "name": "final-avro",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml",
+        "--features",
+        "avro"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 1.374,
+      "log": "final-avro.log"
+    },
+    {
+      "name": "final-avro-peer",
+      "command": [
+        "python3",
+        "tests/conformance/run-avro-selected-codec.py",
+        "--rust-output",
+        "/workspace/work/avro-selected-peer/final-avro/rust",
+        "--peer-cache",
+        "/workspace/work/avro-selected-peer",
+        "--report",
+        "/workspace/work/avro-selected-peer/final-avro/peer-receipt.json"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "final-all-features",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml",
+        "--all-features"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 1.421,
+      "log": "final-all-features.log"
+    },
+    {
+      "name": "final-all-features-peer",
+      "command": [
+        "python3",
+        "tests/conformance/run-avro-selected-codec.py",
+        "--rust-output",
+        "/workspace/work/avro-selected-peer/final-all-features/rust",
+        "--peer-cache",
+        "/workspace/work/avro-selected-peer",
+        "--report",
+        "/workspace/work/avro-selected-peer/final-all-features/peer-receipt.json"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "final-no-default",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-schema/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "avro"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 0.417,
+      "log": "final-no-default.log"
+    },
+    {
+      "name": "final-no-default-peer",
+      "command": [
+        "python3",
+        "tests/conformance/run-avro-selected-codec.py",
+        "--rust-output",
+        "/workspace/work/avro-selected-peer/final-no-default/rust",
+        "--peer-cache",
+        "/workspace/work/avro-selected-peer",
+        "--report",
+        "/workspace/work/avro-selected-peer/final-no-default/peer-receipt.json"
+      ],
+      "exit": 0
+    },
+    {
+      "command": "cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings",
+      "exit": 0,
+      "log": "validation/schema-clippy-final.log"
+    },
+    {
+      "command": "RUSTDOCFLAGS=\"-D warnings\" cargo +stable doc --locked --manifest-path partitionline-schema/Cargo.toml --no-deps --all-features",
+      "exit": 0,
+      "log": "validation/schema-docs-final.log"
+    },
+    {
+      "command": "cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check",
+      "exit": 0,
+      "log": "validation/schema-fmt-final.log"
+    },
+    {
+      "command": "cargo +stable fmt --all -- --check",
+      "exit": 0,
+      "log": "validation/root-fmt-final.log"
+    },
+    {
+      "command": "bash scripts/ci-stable.sh",
+      "exit": 0,
+      "log": "validation/core-stable.log"
+    },
+    {
+      "command": "cargo +stable check --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features",
+      "exit": 0,
+      "log": "validation/broker-stable-check.log"
+    },
+    {
+      "command": "python3 -B -m unittest discover -s tests/ci -p test_alloc_gate.py",
+      "exit": 0,
+      "log": "validation/alloc-gate-tests-final.log"
+    },
+    {
+      "command": "python3 -B -m unittest discover -s tests/ci -p test_docs_diagnostics.py",
+      "exit": 0,
+      "log": "validation/docs-diagnostics-final.log"
+    },
+    {
+      "command": "python3 -B -m unittest discover -s tests/docs -p 'test_*.py'",
+      "exit": 0,
+      "log": "validation/docs-tests-final.log"
+    },
+    {
+      "command": "bash scripts/check-main-ci.sh --self-test",
+      "exit": 0,
+      "log": "validation/main-ci-self-test.log"
+    },
+    {
+      "command": "bash scripts/check-workflows.sh",
+      "exit": 0,
+      "log": "validation/workflows-final.log"
+    },
+    {
+      "command": "bash scripts/check-crate-metadata.sh",
+      "exit": 0,
+      "log": "validation/metadata-final.log"
+    },
+    {
+      "command": "PL_PACKAGE_ALLOW_DIRTY=1 PL_PACKAGE_TOOLCHAINS=stable bash scripts/ci-crate-consumer.sh",
+      "exit": 0,
+      "log": "validation/package-final.log"
+    },
+    {
+      "command": "cargo +stable tree --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features avro -e normal",
+      "exit": 0,
+      "log": "validation/avro-runtime-dependencies.log"
+    }
+  ],
+  "acceptance_evidence": [
+    "Production parser and GenericDatumWriter/GenericDatumReader, not fixture-specific binary serialization.",
+    "Nine Java frames -> actual Rust writer bytes and reader values -> Java writer/evolved-reader decode. Full byte equality, field/default/union/reference semantics and numeric promotions verified.",
+    "Incompatible/missing-default readers, unresolved/mislabeled references, malformed/trailing datums, framing errors and bounded finite codec policy fail structurally.",
+    "EOF guard rejects the pinned backend truncated-string-to-null behavior. Java malformed-union ArrayIndexOutOfBoundsException is reported honestly.",
+    "Mutating actual Rust output fails the independent Java peer; report retains exit1 and streams.",
+    "Default, default+Avro, all-features and dependency-free Avro matrices pass on latest stable; strict lint, docs, format and dependency graph checks pass.",
+    "Current manifests require1.99 and active client/broker/capability CI matrices use stable only. A maintained schema job runs both independent readback cells."
+  ],
+  "retained_failures": [
+    {
+      "logs": [
+        "development/rust-attempt-1.log",
+        "development/rust-attempt-2.log"
+      ],
+      "disposition": "Writer-identity test initially supplied evolved references; fixed selection. Truncation prefix16 was incorrectly accepted by unguarded backend; StrictInput guard added."
+    },
+    {
+      "logs": [
+        "development/generate-attempt-1.log",
+        "development/generate-attempt-2.log"
+      ],
+      "disposition": "javac executable absent; use Java21 compiler-module source launch. Invalid union initially escaped peer rejection classifier as ArrayIndexOutOfBoundsException; explicit class retained and handled."
+    },
+    {
+      "logs": [
+        "development/schema-clippy.log"
+      ],
+      "disposition": "Synchronous fixture I/O hit async blocking-I/O lint; added narrow documented allows in the two synchronous test functions. Final strict Clippy passes."
+    },
+    {
+      "logs": [
+        "development/package-attempt-1.log"
+      ],
+      "disposition": "Simplified docs linked locally to excluded companion/plan files. Replaced these with immutable repository links; exact packed downstream default/tracing checks now pass."
+    },
+    {
+      "logs": [
+        "validation/negative-peer-receipt.json"
+      ],
+      "disposition": "Intentional Rust frame mutation is independently rejected; this exit1 is the expected negative-control result."
+    },
+    {
+      "logs": [
+        "development/tooling-tests.log",
+        "development/baseline-broker-checksum.json"
+      ],
+      "disposition": "Broad80-test CI tooling sweep failed18 cases with10 errors. Five allocation-gate errors were caused by absent Rust PATH; all five pass with configured toolchain. Broker failures/errors are existing metadata.rs registry checksum drift: current source is byte-identical to Git HEAD. No pins were rewritten to bless drift."
+    }
+  ],
+  "qualification_limit": "Guarded test bridge and declared finite offline datum family only. No built-in/general serializer, live registry/broker, publication, production deployment, RSS measurement or performance/fastest claim.",
+  "evidence_root": "docs/evidence/conformance/avro-selected-codec"
+}

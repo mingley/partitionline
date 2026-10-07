@@ -8956,7 +8956,11 @@ async fn admin_alter_list_partition_reassignments_timeout() {
         .await
         .unwrap();
     assert_eq!(assigned[0].error_code, 0);
-    assert_eq!(mock.last_alter_reassignments_timeout(), Some(1_500));
+    // Discovery and negotiation consume the same deadline as the mutation.
+    assert!(matches!(
+        mock.last_alter_reassignments_timeout(),
+        Some(1..=1_500)
+    ));
     let assigned = admin
         .alter_partition_reassignments_for_timeout(
             [(
@@ -8968,7 +8972,10 @@ async fn admin_alter_list_partition_reassignments_timeout() {
         .await
         .unwrap();
     assert_eq!(assigned[0].error_code(), 0);
-    assert_eq!(mock.last_alter_reassignments_timeout(), Some(1_750));
+    assert!(matches!(
+        mock.last_alter_reassignments_timeout(),
+        Some(1..=1_750)
+    ));
 
     let listed = admin
         .list_partition_reassignments(Some(&[TopicPartition::new("re-to", 0)]), 10_000)

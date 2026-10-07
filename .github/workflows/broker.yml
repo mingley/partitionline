@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: ['1.85.0', stable]
+        rust: [stable]
     defaults:
       run:
         shell: bash

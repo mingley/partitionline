@@ -37,9 +37,9 @@ taskset -c 0-2,4 python3 benchmarks/peers/rust/build.py \
 
 `--check` runs the card's `cargo test --locked --manifest-path
 benchmarks/peers/rust/Cargo.toml`, strict formatting/Clippy/rustdoc, and a release
-build with the isolated pkg-config/RPATH environment. `--toolchain 1.85.0`
-validates MSRV; a separate target avoids mixing compiler artifacts. Check
-`commands.json` and retained logs, then:
+build with the isolated pkg-config/RPATH environment. Use the latest stable
+Rust. Older toolchain receipts are historical. Check `commands.json` and retained
+logs, then:
 
 ```sh
 python3 -m unittest discover -s benchmarks/peers/rust -p test_adapter.py

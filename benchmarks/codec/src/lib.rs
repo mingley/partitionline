@@ -13,6 +13,10 @@ use sha2::Digest;
 
 pub mod json1k;
 
+/// Zstd record-batch benchmark shapes and correctness preflight.
+#[cfg(feature = "zstd")]
+pub mod zstd;
+
 /// Allocation baselines are recorded on x86_64, the CI gate host. zlib-rs
 /// keeps a 64-byte PCLMULQDQ CRC fold accumulator in each stream state only on
 /// x86_64, so other targets allocate this much less per zlib-rs stream.

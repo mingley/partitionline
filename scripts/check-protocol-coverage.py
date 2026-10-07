@@ -75,7 +75,7 @@ HISTORICAL_APACHE_APIS: Dict[int, Dict[str, Any]] = {
     42: {"name": "DeleteGroups", "versions": {"3.9.1": [0, 2], "4.1.0": [0, 2], "4.1.2": [0, 2], "4.2.1": [0, 2], "4.3.1": [0, 2]}},
     43: {"name": "ElectLeaders", "versions": {"3.9.1": [0, 2], "4.1.0": [0, 2], "4.1.2": [0, 2], "4.2.1": [0, 2], "4.3.1": [0, 2]}},
     44: {"name": "IncrementalAlterConfigs", "versions": {"3.9.1": [0, 1], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
-    45: {"name": "AlterPartitionReassignments", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
+    45: {"name": "AlterPartitionReassignments", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 0], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
     46: {"name": "ListPartitionReassignments", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
     47: {"name": "OffsetDelete", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
     48: {"name": "DescribeClientQuotas", "versions": {"3.9.1": [0, 1], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
@@ -140,7 +140,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     19: list(range(0, 8)),   # CreateTopics: 0-7
     20: list(range(0, 7)),   # DeleteTopics: 0-6
     21: list(range(0, 3)),   # DeleteRecords: 0-2
-    22: list(range(0, 6)),   # InitProducerId: 0-5
+    22: list(range(0, 7)),   # InitProducerId: 0-6; ordinary v6 flags false
     23: list(range(0, 5)),   # OffsetForLeaderEpoch: 0-4
     24: list(range(0, 4)),   # AddPartitionsToTxn: 0-3
     25: list(range(0, 5)),   # AddOffsetsToTxn: 0-4
@@ -163,7 +163,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     42: list(range(0, 3)),   # DeleteGroups: 0-2
     43: list(range(0, 3)),   # ElectLeaders: 0-2 (Admin::elect_leaders)
     44: list(range(0, 2)),   # IncrementalAlterConfigs: 0-1
-    45: [0],                 # AlterPartitionReassignments: 0
+    45: [0, 1],              # AlterPartitionReassignments: policy flag in1
     46: [0],                 # ListPartitionReassignments: 0
     47: [0],                 # OffsetDelete: 0
     48: list(range(0, 2)),   # DescribeClientQuotas: 0-1
@@ -176,7 +176,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     61: [0],                 # DescribeProducers: 0
     64: [0],                 # UnregisterBroker: 0
     65: [0],                 # DescribeTransactions: 0
-    66: list(range(0, 2)),   # ListTransactions: 0-1
+    66: list(range(0, 3)),   # ListTransactions: 0-2, nullable pattern
     67: [0],                 # AllocateProducerIds: 0
     68: list(range(0, 2)),   # ConsumerGroupHeartbeat: 0-1
     69: list(range(0, 2)),   # ConsumerGroupDescribe: 0-1
@@ -191,6 +191,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     79: list(range(0, 3)),   # ShareAcknowledge: 0-2 (KL05-15)
     80: [0],                 # AddRaftVoter: 0 (Admin::add_raft_voter)
     81: [0],                 # RemoveRaftVoter: 0 (Admin::remove_raft_voter)
+    88: [0],                 # Caller-driven Streams heartbeat
     90: [0, 1],              # DescribeShareGroupOffsets: typed lag, legacy projection
     91: [0],                 # AlterShareGroupOffsets: 0
     92: [0],                 # DeleteShareGroupOffsets: 0
@@ -227,14 +228,12 @@ CLASSIFIED_EXCLUDED_BROKER_INTERNAL: Dict[int, str] = {
 CLASSIFIED_OUT_OF_SCOPE_FRAMEWORKS: Dict[str, str] = {
     "streams.runtime": "Kafka Streams stream processing library out of client SDK scope (features.json)",
     "connect.framework": "Kafka Connect connector runtime framework out of client SDK scope (features.json)",
-    "c_abi.librdkafka": "C rd_kafka_* ABI symbols out of pure-Rust scope (features.json)",
+    "c_abi.librdkafka": "C rd_kafka_* ABI symbols outside this library ABI (features.json)",
 }
 
 # Client APIs tracked as missing runtime wiring in features.json
 # (do not count a key name as an implemented client operation).
 CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {
-    88: {"name": "StreamsGroupHeartbeat", "feature_id": "streams.group_heartbeat",
-         "reason": "Public Streams broker protocol/client operation remains missing; Java framework exclusion does not cover API88"},
     89: {"name": "StreamsGroupDescribe", "feature_id": "streams.group_describe",
          "reason": "Public Streams group description/client operation remains missing; Java framework exclusion does not cover API89"},
 }
@@ -245,9 +244,9 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     # Current official schema capabilities still absent from real client operations.
     (8, 10): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "OffsetCommit v10 topic UUIDs are unsupported; runtime caps at9"},
     (9, 10): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "OffsetFetch v10 topic UUIDs are unsupported; runtime caps at9"},
-    (22, 6): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "InitProducerId v6 two-phase transaction flags/lifecycle unsupported; runtime caps at5"},
-    (45, 1): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "AllowReplicationFactorChange unsupported; reassign runtime caps at0"},
-    (66, 2): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "TransactionalIdPattern unsupported; list-transactions runtime caps at1"},
+    (22, 6): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "InitProducerId6 fields and ordinary false-flag initialization are supported; historical/stable ranges stop at5. Full prepared lifecycle remains separate."},
+    (45, 1): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Reassignment policy flag is implemented for current0-1 peers; historical3.9.1/4.1.0 peers offer only0 and reject explicitfalse locally."},
+    (66, 2): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Nullable TransactionalIdPattern and public all-broker filters are implemented for current0-2 peers; historical3.9.1/4.1.0 ranges stop at1."},
     (80, 1): {"pin": "4.2.1/4.3.1", "direction": "upstream_cap", "reason": "AckWhenCommitted option unsupported; add-voter runtime caps at0"},
 
     # Produce (0)
@@ -465,6 +464,7 @@ CLIENT_RUNTIME_FEATURES = {0: 'producer.send',
  79: 'share.acknowledge',
  80: 'full_admin.add_raft_voter',
  81: 'full_admin.remove_raft_voter',
+ 88: 'streams.group_heartbeat',
  90: 'full_admin.describe_share_group_offsets',
  91: 'full_admin.alter_share_group_offsets',
  92: 'full_admin.delete_share_group_offsets'}
@@ -1176,7 +1176,7 @@ def run_self_tests() -> int:
     res = evaluate_protocol_coverage()
     assert res["summary"]["exit_code"] == 0, "Frozen pins must exit 0"
     assert len(res["unclassified_drift"]) == 0, "Frozen pins must have 0 unclassified drift"
-    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 2, "Streams88/89 remain actual missing runtime APIs"
+    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 1, "Streams89 remains an actual missing runtime API"
     assert res["gap_counts"]["excluded_broker_internal_apis"] == 20, "Public27/57 must not be wholly excluded"
     print("  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)")
 

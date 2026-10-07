@@ -40,10 +40,11 @@ Expect additive churn; renaming or removing requires a CHANGELOG note:
 
 - Schema Registry (companion crate only; see `gaps.md`)
 - Drop-in `rd_kafka_*` / rust-rdkafka types
-- Default features that link C (zstd, Kerberos / GSSAPI)
+- Native SASL backends in default features
 
-Supported broker/MSRV/OS combinations are listed in [`support.md`](support.md).
-That matrix is operational honesty for 0.1.x, not a permanent 1.0 promise.
+Supported broker and platform combinations are listed in [`support.md`](support.md).
+Current builds use the latest stable Rust. The 0.1.x support policy may change
+before 1.0.
 
 ## Experimental
 

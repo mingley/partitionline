@@ -2990,50 +2990,86 @@ pub(crate) async fn discover_coord(
     group_id: &str,
     key_type: i8,
 ) -> Result<BrokerConn> {
+    let deadline = Instant::now() + cfg.request_timeout;
+    let mut attempt = 0u32;
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let mut attempt_cfg = cfg.clone();
+        attempt_cfg.request_timeout = remaining;
+        attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
+        let result = tokio::time::timeout_at(
+            deadline.into(),
+            discover_coord_once(&attempt_cfg, group_id, key_type),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?;
+        match result {
+            Err(error)
+                if error
+                    .broker_code()
+                    .is_some_and(error::coordinator_retriable) =>
+            {
+                crate::config::sleep_retry_backoff(
+                    cfg.retry_backoff.max(Duration::from_millis(1)),
+                    cfg.retry_backoff_max.max(Duration::from_millis(1)),
+                    attempt,
+                    deadline,
+                )
+                .await;
+                attempt = attempt.saturating_add(1);
+            }
+            result => return result,
+        }
+    }
+}
+
+async fn discover_coord_once(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+) -> Result<BrokerConn> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
-    // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
-    for _ in 0..3 {
-        for addr in &cfg.bootstrap {
-            let (mut hop, version) = match open_coord_with_find_version(cfg, addr).await {
-                Ok(v) => v,
-                Err(e) => {
-                    last = e;
-                    continue;
-                }
-            };
-            let body = match hop
-                .roundtrip(
-                    FIND_COORDINATOR,
-                    version,
-                    |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-                    timeout,
-                )
-                .await
-            {
-                Ok(b) => b,
-                Err(e) => {
-                    last = e;
-                    continue;
-                }
-            };
-            let (err, _node, host, port) =
-                decode_find_coordinator_response(&mut body.clone(), version)
-                    .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
-            if err != 0 {
-                last = Error::broker(err, "FindCoordinator");
+    for addr in &cfg.bootstrap {
+        let (mut hop, version) = match open_coord_with_find_version(cfg, addr).await {
+            Ok(v) => v,
+            Err(e) => {
+                last = e;
                 continue;
             }
-            let coord_addr = format!("{host}:{port}");
-            if coord_addr == hop.addr() {
-                return Ok(hop);
+        };
+        let body = match hop
+            .roundtrip(
+                FIND_COORDINATOR,
+                version,
+                |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
+                timeout,
+            )
+            .await
+        {
+            Ok(b) => b,
+            Err(e) => {
+                last = e;
+                continue;
             }
-            return open_coord(cfg, &coord_addr).await;
+        };
+        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
+            .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
+        if err != 0 {
+            last = Error::broker(err, "FindCoordinator");
+            if !error::coordinator_retriable(err) {
+                return Err(last);
+            }
+            continue;
         }
-        match &last {
-            Error::Broker { code, .. } if error::coordinator_retriable(*code) => {}
-            _ => break,
+        let coord_addr = format!("{host}:{port}");
+        if coord_addr == hop.addr() {
+            return Ok(hop);
         }
+        return open_coord(cfg, &coord_addr).await;
     }
     Err(last)
 }

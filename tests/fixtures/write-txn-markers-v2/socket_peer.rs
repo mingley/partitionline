@@ -25,8 +25,8 @@ use partitionline::protocol::group::{
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::{Admin, AdminConfig};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
-use tokio::sync::Notify;
+use tokio::net::{TcpListener, TcpSocket};
+use tokio::sync::{watch, Notify};
 use tokio::task::{JoinHandle, JoinSet};
 
 pub(crate) const BUDGET: Duration = Duration::from_secs(2);
@@ -57,6 +57,8 @@ pub(crate) struct Peer {
     pub state: Arc<Mutex<State>>,
     pub seen: Arc<Notify>,
     pub release: Arc<Notify>,
+    pub addresses: [std::net::SocketAddr; 2],
+    shutdown: watch::Sender<bool>,
     tasks: Vec<JoinHandle<()>>,
 }
 
@@ -122,6 +124,7 @@ impl Peer {
         let state = Arc::new(Mutex::new(State::default()));
         let seen = Arc::new(Notify::new());
         let release = Arc::new(Notify::new());
+        let (shutdown, _) = watch::channel(false);
         let tasks = [first, second]
             .into_iter()
             .enumerate()
@@ -132,11 +135,19 @@ impl Peer {
                 let release = release.clone();
                 let brokers = brokers.clone();
                 let ranges = ranges.clone();
+                let mut stopped = shutdown.subscribe();
                 tokio::spawn(async move {
                     let mut workers = JoinSet::new();
                     let mut connections = 0;
                     loop {
-                        let accepted = listener.accept().await;
+                        let accepted = tokio::select! {
+                            _ = stopped.changed() => break,
+                            result = workers.join_next(), if !workers.is_empty() => {
+                                result.unwrap().unwrap();
+                                continue;
+                            },
+                            accepted = listener.accept() => accepted,
+                        };
                         let Ok((mut stream, _)) = accepted else { break };
                         connections += 1;
                         assert!(connections <= 32, "finite socket peer connection history");
@@ -305,6 +316,12 @@ impl Peer {
                             }
                         });
                     }
+                    workers.abort_all();
+                    while let Some(result) = workers.join_next().await {
+                        if let Err(error) = result {
+                            assert!(error.is_cancelled(), "socket worker panicked: {error}");
+                        }
+                    }
                 })
             })
             .collect();
@@ -313,6 +330,8 @@ impl Peer {
             state,
             seen,
             release,
+            addresses,
+            shutdown,
             tasks,
         }
     }
@@ -337,6 +356,29 @@ impl Peer {
             .filter(|row| row.key == key)
             .cloned()
             .collect()
+    }
+
+    pub(crate) async fn close(mut self) {
+        self.shutdown.send(true).unwrap();
+        for mut task in self.tasks.drain(..) {
+            match tokio::time::timeout(BUDGET, &mut task).await {
+                Ok(result) => result.unwrap(),
+                Err(_) => {
+                    task.abort();
+                    let _joined = task.await;
+                    panic!("socket listener shutdown deadline");
+                }
+            }
+        }
+        for address in self.addresses {
+            assert!(
+                std::net::TcpStream::connect_timeout(&address, Duration::from_millis(20)).is_err()
+            );
+            let socket = TcpSocket::new_v4().unwrap();
+            socket.set_reuseaddr(true).unwrap();
+            socket.bind(address).unwrap();
+            drop(socket.listen(1).unwrap());
+        }
     }
 }
 

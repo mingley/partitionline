@@ -42,8 +42,8 @@ deny = [
     { crate = "openssl", reason = "use rustls; OpenSSL is C" },
     { crate = "openssl-sys", reason = "use rustls; OpenSSL is C" },
     { crate = "native-tls", reason = "prefer rustls; native-tls pulls platform C TLS" },
-    { crate = "zstd-sys", reason = "zstd stays out of features until pure-Rust path exists" },
-    { crate = "libzstd-sys", reason = "zstd stays out of features until pure-Rust path exists" },
+    { crate = "zstd-sys", reason = "native zstd backend is outside the approved optional codec profile" },
+    { crate = "libzstd-sys", reason = "native zstd backend is outside the approved optional codec profile" },
     { crate = "rustls-pemfile", reason = "unmaintained; use rustls-pki-types PemObject" },
 ]
 

@@ -15,12 +15,12 @@ bad() { echo "FAIL $*"; fail=$((fail + 1)); }
 ski() { echo "SKIP $*"; skip=$((skip + 1)); }
 
 echo "== Installable (pre-publish) =="
-if grep -q '^rust-version = "1\.85"' Cargo.toml; then ok "MSRV declared 1.85"; else bad "MSRV rust-version"; fi
+if grep -q '^rust-version = "1\.99"' Cargo.toml; then ok "Rust 1.99 minimum declared"; else bad "rust-version"; fi
 if grep -q '^documentation = "https://docs.rs/partitionline"' Cargo.toml; then ok "docs.rs URL"; else bad "docs.rs URL"; fi
-if bash scripts/ci-msrv.sh >/tmp/pl-msrv.log 2>&1; then
-  ok "MSRV toolchain check (rust-version)"
+if bash scripts/ci-stable.sh >/tmp/pl-stable.log 2>&1; then
+  ok "stable toolchain check"
 else
-  bad "MSRV toolchain check; see /tmp/pl-msrv.log"
+  bad "stable toolchain check; see /tmp/pl-stable.log"
 fi
 if bash scripts/ci-docs.sh >/tmp/pl-docs.log 2>&1; then
   ok "rustdoc builds (docs.rs smoke)"

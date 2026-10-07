@@ -88,6 +88,8 @@ pub fn raw_compress(compression: Compression, input: &[u8]) -> Vec<u8> {
         }
         Compression::Snappy => snap::raw::Encoder::new().compress_vec(input).unwrap(),
         Compression::None => input.to_vec(),
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => panic!("zstd uses the dedicated record-batch benchmark"),
     }
 }
 
@@ -108,6 +110,8 @@ pub fn raw_decompress(compression: Compression, input: &[u8]) -> Vec<u8> {
         }
         Compression::Snappy => return snap::raw::Decoder::new().decompress_vec(input).unwrap(),
         Compression::None => output.extend_from_slice(input),
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => panic!("zstd uses the dedicated record-batch benchmark"),
     }
     output
 }

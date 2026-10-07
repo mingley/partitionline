@@ -1,12 +1,10 @@
-# Plan for a best-in-class Kafka client
+# Kafka client and broker plan
 
-The goal is to make `partitionline` a leading choice for Kafka applications:
-correct under failure, predictable under load, efficient at equivalent
-semantics, and straightforward to operate. "Best" must mean a reproducible
-result for a named workload, not a universal claim.
+The goals are production-ready Kafka client and broker implementations,
+complete protocol support, and leading performance at equivalent Kafka settings.
+The task registry tracks implementation work and the checks needed to verify it.
 
-This is an execution plan, not a certification or permission to deploy.
-**Implementation starts at [one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).**
+See the [task workflow](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).
 [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) is the canonical queue: narrow deliverables,
 dependencies, starting files, acceptance criteria and focused checks.
 [TODO.md](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md) is its short launch order, not a second status database.
@@ -17,7 +15,7 @@ Numerical targets below are **proposed**, not achieved guarantees. Michael
 Ingley is the coordinating maintainer and scope/signoff DRI; task owners and
 independent reviewers remain unassigned until actually claimed.
 
-## 1. Current audited baseline
+## 1. Audit baseline (2026-09-21)
 
 Baseline: [cb7e97d](https://github.com/mingley/partitionline/tree/cb7e97d3b92a8555aea34d59266a2990c206395f),
 audited **2026-09-21**. Read the [source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) for
@@ -26,13 +24,12 @@ The exact-SHA [CI run 33948193731](https://github.com/mingley/partitionline/acti
 has 14 successful jobs, with actual broker identities checked. Existing CI
 is useful and green; it does not exercise every required behavior.
 
-Five deterministic consumer cases fail: whole-batch seek filtering,
+Five deterministic consumer cases failed at that baseline: whole-batch seek filtering,
 committed records after an earlier abort under the same PID, preserving
 successful partitions across a partial retry, `auto.offset.reset=None`, and
-committing after a capped poll. Fix these through **KL03-01 through KL03-07**
-before broadening delivery/transaction claims. The strict rustdoc build also
-fails on a private OIDC link (**KL07-01**), and the exact-SHA release probe
-can fall back to a non-CI workflow (**KL08-01**).
+committing after a capped poll. **KL03-01 through KL03-07** fixed these cases;
+independent replay is tracked by **KL01-22**. **KL07-01** fixed the private OIDC
+rustdoc link, and **KL08-01** fixed the release probe's non-CI fallback.
 
 The 2026-09-04 `54020e2` formatting/nested-latency failure is historical.
 Incoming fixes through `0146b98`, plus the 2026-09-05 broker identity,
@@ -40,8 +37,8 @@ timeout portability, cancellation, buffer-counter, auth and release slices,
 are already present. Do not schedule their original implementation again.
 Controlled-host qualification and stronger behavioral evidence remain open.
 
-**Honesty bar:** crates.io `0.1.0` is already Installable, with adopter pins and
-the post-cut work on `main`. **Suite HOLD remains** until signed Lab A evidence.
+Crates.io `0.1.0` is published, with adopter pins and subsequent work on `main`.
+**Suite HOLD remains** until signed Lab A evidence.
 Unsigned Verifiable/latency samples do not lift it; see
 [CIVILIZATION.md](CIVILIZATION.md) and [STATUS.md](STATUS.md).
 
@@ -52,11 +49,11 @@ adds the new evidence rather than changing the support promise by prose alone.
 
 | Area | Existing evidence and source | Qualification gap |
 |---|---|---|
-| Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, Rust 1.85 declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
+| Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, latest stable Rust declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
 | Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Five reproduced consumer defects; per-API and mixed-version evidence still needed. Mock agreement is not an independent broker oracle. |
 | Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
-| Build and safety CI | [CI](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml) already includes Rust 1.85/stable, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
-| Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 exist; zstd is absent; `partitionline-schema` is an unpublished framing scaffold. | Evaluate zstd decoding and encoding separately. Backend/dependency approval precedes implementation; keep native compression out of defaults. A scaffold or decoder alone is not complete ecosystem/codec support. |
+| Build and safety CI | [CI](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml) uses latest stable Rust, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
+| Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 and optional zstd are implemented; `partitionline-schema` remains unpublished with bounded framing, lookup/cache and caller-selected adapters. | Complete the bidirectional live codec matrix and broader schema qualification. Keep default dependencies unchanged. |
 | Performance | [benchmark.md](benchmark.md) separates locked Lab A produce results from unsigned this-VM fetch/latency results. Recorded produce latency was 62/95 us p50/p99 versus rust-rdkafka 58/90 us. | No universal speed claim. Preserve Suite HOLD and its signoff rules; do not combine different hosts/configurations into one victory. |
 | Operations | [metrics](../src/metrics.rs), optional `tracing`, [security policy](security.md), [adoption checklist](ADOPTION.md) already exist. | Prove diagnostic usefulness, redaction, auth rotation, recovery and operator-driven rollback on a defined profile. |
 
@@ -116,7 +113,7 @@ one implementation session.
 
 **Priority:** P0. **Depends on:** none.
 
-1. Keep the audited baseline and current case registry honest. Name an owner
+1. Keep the audited baseline and current case registry accurate. Name an owner
    for a single ready card, preserve already-landed recovery work, and map
    every required upstream case to evidence. Separate harness noise from a
    client regression; retain historical failures rather than overwriting them.
@@ -277,8 +274,8 @@ signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it
 
 **Work surfaces:** [records](../src/protocol/records.rs), [Cargo.toml](../Cargo.toml),
 [zstd spike](zstd-spike.md), [gaps](gaps.md).
-**Done when:** selected scope has interop/safety/performance evidence and an
-honest dependency footprint. Deferred features remain documented exclusions.
+**Done when:** the selected scope passes interoperability, safety and performance
+checks. Dependencies and deferred features are documented.
 
 ### KL-06: Qualify authentication and transport recovery
 
@@ -297,8 +294,8 @@ honest dependency footprint. Deferred features remain documented exclusions.
    **Partial (2026-09-05):** `Debug` redacts Sasl passwords, OIDC `client_secret`,
    and mTLS key PEMs (plus producer/consumer/admin config cascade); see
    [security.md](security.md) and `tests/credential_redact.rs`. OIDC/OAUTHBEARER `Error` bodies no longer embed IdP/broker payloads (2026-09-05).
-   Metrics snapshots + tracing `skip(self)` span honesty added (2026-09-05).
-   OIDC IdP outage fail-closed honesty (503/timeout; one-shot fetch documented; 2026-09-05).
+   Metrics snapshots and tracing `skip(self)` checks added (2026-09-05).
+   OIDC endpoint failures close authentication (503/timeout; 2026-09-05).
    Bounded transient OIDC retry (5xx/I/O/timeout; 2026-09-05).
    Mid-connection refresh/rotation / outage soak remains open.
 
@@ -357,11 +354,12 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    recovery without publishing (0.1.0 stays; day1/handoff DRY_RUN, not another publish).
    `owner-publish` skips `cargo publish` when the version is already on crates.io;
    `release.yml` `actions: read` unblocks exact-SHA `gh run list`. KL-08 stays open.
-2. Specify broker/API, OS/architecture, MSRV and feature support plus security
+2. Specify broker/API, OS/architecture, toolchain and feature support plus security
    response, upgrade and deprecation policies. Keep unsupported combinations
-   explicit; existing Rust 1.85/stable CI is a starting point, not a new promise.
+   explicit. Current development uses latest stable Rust only; old Rust 1.85
+   runs are historical evidence.
    **Partial (2026-09-05):** [`support.md`](support.md) records the CI-backed
-   matrix (Kafka 3.9.1/4.1.0, MSRV 1.85, Linux/x86_64, default pure-Rust features)
+   matrix (Kafka 3.9.1/4.1.0, Rust 1.85, Linux/x86_64, default features)
    and explicit non-promises. Linked from RELEASE/ADOPTION/api-stability. Does
    **not** close KL-08 (adopter 24h/7d records and promotion/rollback remain).
    Blank record format: [adopter-exercise.md](adopter-exercise.md) (UNFILLED — not evidence; 2026-09-05).
@@ -394,13 +392,13 @@ the strategy, hot-path map and worker protocol. Cards are KL09-01 through
 KL09-70 in [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
 
 1. Freeze the claim gate: peer set (librdkafka C, Java, franz-go,
-   rust-rdkafka, pure-Rust peer), per-profile metrics and claim types. A
+   rust-rdkafka, Rust client peer), per-profile metrics and claim types. A
    global "fastest Kafka client" claim requires superiority in every
    required cell of all six profiles on both architectures, with no
    exceptions. Profile-scoped, X%-faster (CI lower bound) and efficiency
    claims are separate types. Add an exploratory null-broker
    client-ceiling tier that can never support a Kafka claim.
-2. Build a fast local evidence loop: honest bench drivers, ratcheted
+2. Build a fast local evidence loop: verified bench drivers, ratcheted
    allocation and instruction-count CI gates, a validating null broker, a
    profiler script and a pinned local baseline. Optimization no longer
    waits for the multi-host campaign critical path.

@@ -84,7 +84,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::producer::Producer",
     "evidence": "tests/full_surface.rs:test_idempotent_producer",
-    "notes": "Idempotent produce via InitProducerId v0-v5 with PID, epoch, and sequence tracking.",
+    "notes": "Idempotent produce via InitProducerId v0-v6 with PID, epoch, and sequence tracking. Ordinary v6 initialization uses false two-phase flags; typed codecs preserve ongoing transaction fields separately. Full prepared transaction lifecycle remains separate.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -158,14 +158,20 @@
     "id": "producer.buffer_memory",
     "profile": "producer",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::producer::ProducerConfig::buffer_memory",
-    "evidence": "docs/audits/2026-09-21.md:A08",
-    "notes": "Caps queued key+value bytes; partial because headers, metadata, encoded buffers, and socket memory are uncounted (audit A08).",
+    "evidence": "docs/evidence/client/producer-retained-backing/summary.json",
+    "notes": "Bounds visible key/value/header bytes owned by accepted records. Admission compacts shared slices and spare backing capacity; exact-size unique allocations can reuse memory. One reservation covers queue, in-flight and retries; cancelled pre-admission channel sends release it. Caller aliases, waiting inputs, metadata, record objects, allocator rounding, encoding scratch, socket buffers and process RSS are additional memory.",
     "backlog_tasks": [
       "KL02-09",
       "KL02-10",
       "KL02-11"
+    ],
+    "conformance_case_ids": [
+      "producer-accepted-backing-native-java-c"
+    ],
+    "qualification_backlog_tasks": [
+      "KL01-14"
     ]
   },
   {
@@ -966,12 +972,19 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::None",
-    "evidence": "tests/full_surface.rs:test_uncompressed",
-    "notes": "Uncompressed record batches.",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "Uncompressed record batches. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ]
   },
   {
     "id": "codecs.gzip",
@@ -979,12 +992,19 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Gzip",
-    "evidence": "docs/plan/evidence/KL02-03.json",
-    "notes": "Pure-Rust flate2 gzip; bounded decompression rejects output above the 64 MiB hard decode limit before retaining over-budget expansion. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee.",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "flate2 gzip; bounded decompression rejects output above the 64 MiB hard decode limit before retaining over-budget expansion. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ]
   },
   {
     "id": "codecs.snappy",
@@ -992,12 +1012,19 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Snappy",
-    "evidence": "docs/plan/evidence/KL02-03.json",
-    "notes": "Pure-Rust snap Snappy; raw and framed expansion use the hard decoded-byte budget. Boundary/bomb fixtures, not an RSS guarantee.",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "snap Snappy; raw and framed expansion use the hard decoded-byte budget. Boundary/bomb fixtures, not an RSS guarantee. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ]
   },
   {
     "id": "codecs.lz4",
@@ -1005,51 +1032,82 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Lz4",
-    "evidence": "docs/plan/evidence/KL02-03.json",
-    "notes": "Pure-Rust lz4_flex; bounded decompression enforces the hard decoded-byte budget. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee.",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "lz4_flex; bounded decompression enforces the hard decoded-byte budget. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ]
   },
   {
     "id": "codecs.zstd.decode",
     "profile": "codecs",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/zstd-spike.md",
-    "notes": "Compression ID 4 decoding is unsupported in src/protocol/records.rs. Explicit missing feature of complete codec profile (KL05-02, KL05-03).",
-    "backlog_tasks": [
-      "KL05-03",
-      "KL05-05"
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::records::decode_record_batches_with_limit (feature zstd)",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "Opt-in decoder, caller output budget capped at64MiB, window64MiB, at most1024 standard/skippable frames, no dictionaries. Independent Java/libzstd fixtures and actual librdkafka batches qualify a finite decode-only profile. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
+    "conformance_case_ids": [
+      "codec-zstd-bounded-decode-independent-java-c",
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ],
+    "qualification_backlog_tasks": [
+      "KL01-14"
     ]
   },
   {
     "id": "codecs.zstd.encode",
     "profile": "codecs",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/zstd-spike.md",
-    "notes": "Zstd encoding is not implemented; deny.toml bans zstd-sys. Explicit missing feature of complete codec profile (KL05-02, KL05-04).",
-    "backlog_tasks": [
-      "KL05-04",
-      "KL05-05"
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::records::{ZstdLevel,CompressScratch};ProducerConfig::zstd_level (feature zstd)",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "Optional bounded encoder, explicit levels1\u201319/default3, standard frames with content size/checksum, no dictionaries. Independent Java checks all19 levels and boundaries; Java/C read128 live Rust records on Kafka4.3.1.  Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
+    "conformance_case_ids": [
+      "codec-zstd-explicit-level-encode-independent-java-c",
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ],
+    "qualification_backlog_tasks": [
+      "KL01-14"
     ]
   },
   {
     "id": "codecs.zstd.wire_helper",
     "profile": "codecs",
     "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "src/protocol/records.rs",
-    "notes": "RecordBatch wire helper explicitly rejects ZSTD compression attribute as UnsupportedCompressionTypeException.",
-    "backlog_tasks": [
-      "KL05-03",
-      "KL05-04",
-      "KL05-05"
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::records::Compression::Zstd (feature zstd)",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "notes": "Optional compression ID4 encoder/decoder with explicit byte/window/frame limits and validated encoder levels. Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
+    "conformance_case_ids": [
+      "codec-zstd-bounded-decode-independent-java-c",
+      "codec-zstd-explicit-level-encode-independent-java-c",
+      "codec-live-3-9-1",
+      "codec-live-4-1-0",
+      "codec-live-4-1-2",
+      "codec-live-4-2-1",
+      "codec-live-4-3-1",
+      "codec-raw-snappy-and-signed-boundary-independent-java"
+    ],
+    "qualification_backlog_tasks": [
+      "KL01-14"
     ]
   },
   {
@@ -1555,12 +1613,16 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::alter_partition_reassignments",
-    "evidence": "src/admin.rs:Admin::alter_partition_reassignments",
-    "notes": "AlterPartitionReassignments api 45 v0 for moving partition replicas.",
+    "evidence": "docs/evidence/client/reassignment-options-v1/summary.json",
+    "notes": "API45 versions0\u20131. Additive options default to allowing replication-factor changes. Explicit false requires1 and fails before a0 mutation. Controller negotiation, redirects, cancellation and lost acknowledgements preserve the policy under one deadline. Finite bounds:10,000 partitions,100,000 replica IDs,16MiB received response body. Actual3SDK and fresh3-broker reference behavior; broader qualification remains in the plan.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "proto-reassignment-options-v1-independent-apache-4-1-2",
+      "proto-reassignment-options-v1-independent-apache-4-2-1",
+      "proto-reassignment-options-v1-independent-apache-4-3-1"
+    ]
   },
   {
     "id": "full_admin.list_partition_reassignments",
@@ -1725,11 +1787,17 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::abort_transaction",
     "evidence": "src/admin.rs:Admin::abort_transaction",
-    "notes": "Public force-abort via WriteTxnMarkers27 v0\u20132; v2 sends default TransactionVersion0. Partition-leader routing; typed codec retains explicit transaction version.",
+    "notes": "Public force-abort negotiates WriteTxnMarkers0..2 and v2 defaults TransactionVersion to0. Genuine SDKs4.1.2/4.2.1/4.3.1 verify the selected client-component cases. Exact target identity precedes the outcome; errors8/9 refresh the partition leader. Bootstrap capabilities remain a mixed-node rolling-upgrade gap; live broker recovery is separate.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "current-public-api-027-v1-4-1-2",
+      "current-public-api-027-v1-4-2-1",
+      "current-public-api-027-v2-4-2-1",
+      "current-public-api-027-v1-4-3-1",
+      "current-public-api-027-v2-4-3-1"
+    ]
   },
   {
     "id": "full_admin.describe_transactions",
@@ -1751,7 +1819,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::list_transactions",
     "evidence": "src/admin.rs:Admin::list_transactions",
-    "notes": "ListTransactions api 66 v0-v1 with duration filter.",
+    "notes": "API66 v0\u2013v2, all-broker complete/partial results, duration and transaction-ID pattern filters. Local SDK/component qualification is retained; broad independent profile qualification remains KL01-14.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1790,11 +1858,17 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::describe_share_group_offsets",
     "evidence": "src/admin.rs:Admin::describe_share_group_offsets",
-    "notes": "DescribeShareGroupOffsets90 v0\u20131; typed with_lag operation preserves raw signed lag (negative absent), legacy projection retains its public shape.",
+    "notes": "DescribeShareGroupOffsets0..1 routes to the GROUP coordinator. Typed results preserve signed lag; every negative value means absent, while legacy methods project to unchanged types. Actual SDK/public Java proof binds the five client-component cells. Rust retains partition errors and rejects missing requested groups; Java omits error partitions and returns empty maps for missing groups. Bootstrap capability selection does not qualify mixed-node upgrades.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "current-public-api-090-v0-4-1-2",
+      "current-public-api-090-v0-4-2-1",
+      "current-public-api-090-v1-4-2-1",
+      "current-public-api-090-v0-4-3-1",
+      "current-public-api-090-v1-4-3-1"
+    ]
   },
   {
     "id": "full_admin.alter_share_group_offsets",
@@ -1982,11 +2056,14 @@
     "id": "schema_ecosystem.wire_framing",
     "profile": "schema ecosystem",
     "layer": "wire_helper",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline_schema::{encode,decode}",
-    "evidence": "partitionline-schema/src/wire.rs",
-    "notes": "Dependency-free generic five-byte header scaffold; unpublished companion. Generic helpers do not parse Protobuf message indexes; separate protobuf module/Adapter qualified in KL05-26.",
-    "backlog_tasks": [
+    "evidence": "docs/evidence/conformance/generic-schema-header/summary.json",
+    "notes": "Generic five-byte header and borrowed payload in the unpublished companion. Seven Java valid/error vectors and actual Rust reverse checks. Protobuf indexes are separate.",
+    "conformance_case_ids": [
+      "schema-generic-header-independent-java"
+    ],
+    "qualification_backlog_tasks": [
       "KL05-45"
     ]
   },
@@ -2020,11 +2097,14 @@
     "id": "schema_ecosystem.avro",
     "profile": "schema ecosystem",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/schema-companion.md",
-    "notes": "Opt-in Avro serialization/deserialization adapter; companion crate, tracked in KL05-25.",
-    "backlog_tasks": [
+    "disposition": "present",
+    "entrypoint": "partitionline_schema::avro::Adapter",
+    "evidence": "docs/plan/evidence/KL05-43.json",
+    "notes": "Opt-in bounded Avro Adapter with explicit writer/reader schemas and caller-selected Codec. Selected production backend qualified for one finite offline family; no built-in serializer, implicit resolution or live Registry claim.",
+    "conformance_case_ids": [
+      "schema-selected-avro-offline-family"
+    ],
+    "qualification_backlog_tasks": [
       "KL05-43"
     ]
   },
@@ -2045,11 +2125,14 @@
     "id": "schema_ecosystem.json_schema",
     "profile": "schema ecosystem",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/schema-companion.md",
-    "notes": "JSON Schema validation and serialization adapter; companion crate, tracked in KL05-27.",
-    "backlog_tasks": [
+    "disposition": "present",
+    "entrypoint": "partitionline_schema::json_schema::Adapter",
+    "evidence": "docs/evidence/conformance/json-schema-selected-codec/summary.json",
+    "notes": "Opt-in bounded Draft2020-12 Adapter with caller-selected serializer/validator and explicit offline resources. Selected production backend qualified for one finite family with writer/reader checks, no coercion or default insertion. No built-in validator or live Registry claim.",
+    "conformance_case_ids": [
+      "schema-selected-json-offline-family"
+    ],
+    "qualification_backlog_tasks": [
       "KL05-44"
     ]
   },
@@ -2222,14 +2305,14 @@
     "id": "streams.group_heartbeat",
     "profile": "streams",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "tests/conformance/broker/api-matrix.json",
-    "notes": "Required public broker StreamsGroupHeartbeat88 v0;4.1.2 unstable and4.2.1/4.3.1 stable. Codec/client entrypoint remains missing; Java framework runtime exclusion does not cover this API.",
-    "backlog_tasks": [
-      "KL05-31",
-      "KL05-32"
-    ]
+    "disposition": "present",
+    "entrypoint": "partitionline::streams::StreamsClient::heartbeat",
+    "evidence": "tests/streams_heartbeat.rs",
+    "notes": "Caller-driven bounded API88 v0 with explicit opt-in, full typed request/response, GROUP discovery, per-connection negotiation, cached warm heartbeat, owned cancellation/close and one total deadline. No Streams framework or broker coordinator implementation.",
+    "qualification_backlog_tasks": [
+      "KL01-14"
+    ],
+    "conformance_case_ids": []
   },
   {
     "id": "streams.group_describe",

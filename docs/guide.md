@@ -1,12 +1,7 @@
 # Operator guide
 
-**What this is:** tutorial (Produce through Admin, in order) plus task
-recipes and troubleshooting. The [documentation map](index.md) lists the
-one authoritative location for each kind of information.
-
-**Conventions:** Rust behavior and ownership explanations below are
-authoritative. Java client/method names appear only as porting
-cross-references; they never substitute for the Rust semantics.
+Examples, configuration, recipes, and troubleshooting for the client.
+See the [documentation index](index.md) for API and protocol references.
 
 ## Fresh package quickstart
 
@@ -15,7 +10,7 @@ its next offset, and leaves the group. It uses a freshly extracted `.crate`
 outside the checkout. The package built from this revision is **unpublished
 HEAD**, even when its manifest still says `0.1.0`; it is not proof that a
 crates.io release contains every HEAD feature. The recorded run used Apache
-Kafka 4.1.0 and Rust 1.98.1. The library declares Rust 1.85 as its MSRV.
+Kafka 4.1.0 and Rust 1.98.1. Use the latest stable Rust.
 
 Prerequisites: Rust/Cargo, Bash, GNU `timeout`, Docker, a temporary directory,
 and an unused loopback port 9092. Start these commands in the clean repository
@@ -211,6 +206,21 @@ processing idempotent when it changes
 external state. Transactions are the separate recipe below when broker
 records and consumed offsets need one atomic outcome.
 
+Consumer-group coordinator discovery retries errors 14, 15, and 16 using
+`retry_backoff` and `retry_backoff_max`. Connection setup, authentication,
+requests, and retry waits share one `request_timeout` budget. Authorization
+errors fail immediately. This applies to classic and KIP-848 discovery.
+
+Producer initialization also retries errors 14, 15, and 16. Transaction
+coordinator discovery, producer-ID allocation and their backoff share one
+`request_timeout` budget. Authorization, invalid transaction state and fencing
+errors stop initialization. These retries do not resend application records.
+
+InitProducerId negotiates v0–v6. Ordinary producers keep both v6 two-phase
+flags false and use the regular returned producer ID and epoch. Typed codecs
+preserve the ongoing-transaction identity separately. A moved coordinator
+uses its own negotiated version; prepared transaction lifecycle is separate.
+
 The repository's smaller examples also use `KAFKA_BOOTSTRAP` and
 `KAFKA_TOPIC`; `roundtrip` is a one-record smoke, while `consume` is the manual
 assignment loop. Use this packed-package exercise when checking the actual
@@ -313,6 +323,58 @@ admin.close().await?;
 # }
 ```
 
+Reassignment options control whether a replica move may change replication
+factor. The default allows it. Explicit `false` requires API45 version1 and
+fails before reassignment on a version0 controller. Per-partition errors stay
+in the returned results.
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::{Admin, AlterPartitionReassignmentsOptions, PartitionReassignment};
+use std::time::Duration;
+
+let mut admin = Admin::connect("127.0.0.1:9092").await?;
+let results = admin
+    .alter_partition_reassignments_with_options(
+        &[PartitionReassignment::assign(("events", 0), [1, 2])],
+        AlterPartitionReassignmentsOptions::default()
+            .allow_replication_factor_change(false)
+            .timeout(Duration::from_secs(10)),
+    )
+    .await?;
+# let _ = results;
+admin.close().await?;
+# Ok(())
+# }
+```
+
+Transaction listings query every discovered broker. Typed options can filter by
+transaction ID, state, producer ID and duration. A complete query fails if any
+broker fails. For partial results, use
+`list_transactions_by_broker_with_options`; each entry keeps its broker ID and
+individual result.
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::{Admin, ListTransactionsOptions};
+
+let mut admin = Admin::connect("127.0.0.1:9092").await?;
+let options = ListTransactionsOptions {
+    transactional_id_pattern: Some("orders-.*".into()),
+    ..Default::default()
+};
+let listings = admin.list_transactions_with_options(&options).await?;
+# let _ = listings;
+admin.close().await?;
+# Ok(())
+# }
+```
+
+Nonempty patterns require ListTransactions v2 on every selected broker. Null or
+empty patterns mean no filter. The broker evaluates the regex and returns any
+invalid-pattern error. Pattern text is limited to256 KiB; filter arrays and
+returned listings use the bounds documented on the Admin methods.
+
 ## TLS and SASL
 
 ```rust,no_run
@@ -403,8 +465,12 @@ retry. Do not unbounded-buffer in the application.
 from accept until broker ack or terminal failure — not encoded batch size, socket
 buffers, or process RSS. Both `metrics().bytes_buffered` and
 `metrics().bytes_queued` count uncompressed record key, value, and header bytes
-(header keys and values). Header-heavy, zero-value, shared-backing, and
-compressed records cannot bypass the declared budget. When `bytes_buffered`
+(header keys and values). Header-heavy, zero-value, and compressed records count
+toward this byte budget. Admission copies shared or custom-owned `Bytes` into
+buffers sized to their visible length, and compacts uniquely owned allocations
+with excess capacity or a hidden slice prefix. Exact unique allocations can be
+reused. Header strings and the header vector also release excess capacity.
+When `bytes_buffered`
 reaches `buffer_memory`, `try_send` returns `QueueFull` (even for zero-value
 records) and `send` waits up to `max_block` then returns `Timeout`.
 `metrics().bytes_buffered` stays `≤ buffer_memory` under saturating load and
@@ -418,8 +484,10 @@ preventing producer stall.
 
 Process RSS is **not** bounded by `bytes_buffered` or `buffer_memory`; process
 memory includes allocator overhead, heap fragmentation, Tokio task allocations,
-TLS contexts, socket buffers, batch headers, and wire framing. This is a KL-02
-contract honesty slice, not a process RSS bound.
+TLS contexts, socket buffers, batch headers, and wire framing. Caller-owned
+aliases, records waiting for admission, and unprocessed `send_all` inputs are
+outside the accepted-payload budget. Allocator size rounding and record objects
+also add memory beyond the charged bytes.
 
 Mock coverage: `tests/buffer_ownership.rs`.
 
@@ -720,6 +788,19 @@ exactly-once equivalence. Regression evidence:
 `full_surface` transactional cases, and
 `consumer_fetch_semantics::committed_transaction_after_abort_for_same_pid_must_be_visible`.
 
+## zstd codec (optional feature)
+
+Enable `zstd` to read and write compression-ID-4 record batches. Decoding checks the
+caller's byte budget, a 64 MiB maximum output/window and at most 1,024 frames.
+Encoding supports levels 1 through 19 (default 3), selected with
+`protocol::records::ZstdLevel` and `ProducerConfig::zstd_level`. Dictionaries
+return `Error::Unsupported`. See
+[zstd-spike.md](zstd-spike.md) for the tested profile and limits.
+
+```sh
+cargo test --locked --features zstd --test zstd_decode
+```
+
 ## gzip backend (default feature)
 
 The default `zlib-rs` feature compresses and decompresses gzip with zlib-rs.
@@ -767,6 +848,34 @@ Authoritative first stop for failures. Pair symptoms with
 
 If the symptom persists, record the metric snapshot, broker version and
 client version, then check [support.md](support.md) for what is covered.
+
+## Streams heartbeats
+
+`StreamsClient` sends caller-supplied Streams group heartbeats. The caller owns
+the member ID, epochs, topology, tasks and assignment reconciliation. Set
+`allow_unstable` explicitly: v0 alone does not identify the broker release’s
+stability policy. Routine heartbeats reuse the coordinator connection.
+
+```rust,no_run
+# async fn example(request: partitionline::protocol::streams::StreamsGroupHeartbeatRequest) -> partitionline::Result<()> {
+use partitionline::{StreamsClient, StreamsConfig};
+
+let mut config = StreamsConfig::bootstrap(["127.0.0.1:9092"]);
+config.allow_unstable = true;
+let mut client = StreamsClient::new(config)?;
+let response = client.heartbeat(&request).await?;
+println!("member epoch: {}, error: {}", response.member_epoch, response.error_code);
+client.close();
+# Ok(())
+# }
+```
+
+Join uses epoch0, updates use the broker’s returned epoch, and leave uses-1
+(or-2 for a static member that will rejoin). Terminal broker errors remain in
+the typed response. `heartbeat_timeout` gives discovery, authentication, retries
+and the RPC one total deadline. Cancellation discards its connections; a lost
+reply can still follow an accepted heartbeat. `close` closes the cached socket
+without sending a leave. This client does not run a Streams application.
 
 ## Integrity / benchmarks
 

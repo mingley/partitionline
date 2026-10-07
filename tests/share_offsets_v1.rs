@@ -56,6 +56,65 @@ fn response(version: i16, groups: &[DescribedShareGroupOffsetsWithLag]) -> Vec<u
     wire.to_vec()
 }
 
+#[test]
+fn nonnullable_share_offset_fields_reject_null_before_projection() {
+    let mut request = BytesMut::new();
+    encode_describe_share_group_offsets_request(
+        &mut request,
+        &[DescribeShareGroupOffsetsGroup {
+            group_id: "g".into(),
+            topics: Some(vec![DescribeShareGroupOffsetsTopic::new("t", vec![0])]),
+        }],
+    )
+    .unwrap();
+    let mut accepted = Vec::new();
+    for offset in [0, 1, 4, 6] {
+        assert_eq!(request[offset], 2);
+        let mut changed = request.to_vec();
+        changed[offset] = 0;
+        if decode_describe_share_group_offsets_request(&mut changed.as_slice()).is_ok() {
+            accepted.push(format!("request:{offset}"));
+        }
+    }
+    for version in [0, 1] {
+        let wire = response(version, &[group("g", 7, 0)]);
+        for offset in [4, 5, 7, 8, 26] {
+            assert_eq!(wire[offset], 2);
+            let mut changed = wire.clone();
+            changed[offset] = 0;
+            if decode_describe_share_group_offsets_response_versioned(
+                &mut changed.as_slice(),
+                version,
+            )
+            .is_ok()
+            {
+                accepted.push(format!("response{version}:{offset}"));
+            }
+            if version == 0
+                && decode_describe_share_group_offsets_response(&mut changed.as_slice()).is_ok()
+            {
+                accepted.push(format!("legacy-response:{offset}"));
+            }
+        }
+    }
+    assert!(accepted.is_empty(), "accepted null fields: {accepted:?}");
+}
+
+#[test]
+fn impossible_share_offset_counts_fail_before_nested_allocation() {
+    for (wire, version) in [
+        (vec![0, 0, 0, 0, 2, 0, 0], 0),
+        (vec![0, 0, 0, 0, 2, 0, 0], 1),
+    ] {
+        let error =
+            decode_describe_share_group_offsets_response_versioned(&mut wire.as_slice(), version)
+                .unwrap_err();
+        assert!(error.to_string().contains("count exceeds remaining input"));
+    }
+    let error = decode_describe_share_group_offsets_request(&mut [2, 0, 0].as_slice()).unwrap_err();
+    assert!(error.to_string().contains("count exceeds remaining input"));
+}
+
 #[tokio::test]
 async fn typed_and_existing_operations_negotiate_and_consume_lag() {
     for (range, version) in [((0, 0), 0), ((1, 1), 1), ((0, 1), 1)] {
@@ -102,6 +161,7 @@ async fn typed_and_existing_operations_negotiate_and_consume_lag() {
         }
         assert!(!peer.requests(FIND_COORDINATOR).is_empty());
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -129,6 +189,7 @@ async fn unsupported_share_offsets_fail_before_coordinator_or_metadata_work() {
             .unwrap()
             .is_empty());
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -152,6 +213,7 @@ async fn group_hop_errors_refresh_coordinator_while_partition_errors_remain_resu
         assert_eq!(peer.requests(DESCRIBE_SHARE_GROUP_OFFSETS).len(), 2);
         assert!(peer.requests(FIND_COORDINATOR).len() >= 2);
         admin.close().await.unwrap();
+        peer.close().await;
     }
     let peer = Peer::start(None, Some((1, 1))).await;
     let mut result = group("g", -1, 0);
@@ -170,6 +232,7 @@ async fn group_hop_errors_refresh_coordinator_while_partition_errors_remain_resu
     );
     assert_eq!(peer.requests(DESCRIBE_SHARE_GROUP_OFFSETS).len(), 1);
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[tokio::test]
@@ -198,6 +261,7 @@ async fn duplicate_request_groups_and_reordered_results_preserve_request_order()
         vec![("a", Some(1)), ("b", Some(20)), ("a", Some(2))]
     );
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[tokio::test]
@@ -219,6 +283,7 @@ async fn missing_group_truncated_and_trailing_responses_fail_without_fabricated_
             Err(Error::Protocol(_))
         ));
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -243,6 +308,7 @@ async fn share_retry_and_stalled_rpc_use_one_absolute_deadline() {
     assert!(started.elapsed() < Duration::from_secs(1));
     assert!(peer.requests(DESCRIBE_SHARE_GROUP_OFFSETS).len() > 1);
     admin.close().await.unwrap();
+    peer.close().await;
 
     let peer = Peer::start(None, Some((1, 1))).await;
     {
@@ -265,6 +331,7 @@ async fn share_retry_and_stalled_rpc_use_one_absolute_deadline() {
     peer.release.notify_one();
     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[tokio::test]
@@ -289,6 +356,7 @@ async fn canceled_share_request_leaves_unrelated_operation_usable() {
     peer.release.notify_one();
     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[test]
@@ -390,4 +458,288 @@ fn pinned_schema_reference_frame_keeps_lag_before_partition_error() {
     assert_eq!(actual, vec![group("g", 1, 0)]);
     assert_eq!(throttle, 13);
     assert!(cursor.is_empty());
+}
+
+#[test]
+#[ignore = "requires actual pinned SDK fixtures and retained reverse output"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "synchronous fixture test has no async runtime"
+)]
+fn actual_apache_share_fixtures_and_reverse_frames() {
+    use partitionline::protocol::header::{
+        decode_request_header, decode_response_header, encode_request_header,
+        encode_response_header,
+    };
+    use std::io::Write;
+    let root = std::path::PathBuf::from(std::env::var("PARTITIONLINE_SHARE_ORACLE_DIR").unwrap());
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let mut supported = 0;
+    let mut unsupported = 0;
+    let mut null_controls = 0;
+    for release in ["4.1.2", "4.2.1", "4.3.1"] {
+        let directory = root.join(release);
+        let index = std::fs::read_to_string(directory.join("cases.tsv")).unwrap();
+        assert!(index.len() < 65_536);
+        let mut reverse = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(directory.join("rust-emitted.tsv"))
+            .unwrap();
+        let mut count = 0;
+        for line in index.lines() {
+            let fields: Vec<_> = line.split('\t').collect();
+            assert_eq!(fields.len(), 4);
+            assert_eq!(fields[1], "90");
+            count += 1;
+            let name = fields[0];
+            assert!(
+                name.len() <= 96 && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+            );
+            let version: i16 = fields[2].parse().unwrap();
+            if fields[3] == "unsupported" {
+                assert_eq!((release, version), ("4.1.2", 1));
+                unsupported += 1;
+                continue;
+            }
+            assert_eq!(fields[3], "supported");
+            let read = |suffix| {
+                let path = directory.join(format!("{name}.{suffix}.bin"));
+                assert!(std::fs::metadata(&path).unwrap().len() <= 65_536);
+                std::fs::read(path).unwrap()
+            };
+            let request = read("request");
+            let response = read("response");
+            let mut cursor = request.as_slice();
+            let header = decode_request_header(&mut cursor).unwrap();
+            assert_eq!(
+                (header.api_key, header.api_version, header.correlation_id),
+                (90, version, 7)
+            );
+            let request_body = cursor;
+            let groups = decode_describe_share_group_offsets_request(&mut cursor).unwrap();
+            assert!(cursor.is_empty());
+            assert_eq!(groups.len(), 1);
+            assert_eq!(groups[0].group_id, "g");
+            if name.ends_with("topics-empty") {
+                assert_eq!(groups[0].topics, Some(vec![]));
+            } else if name.ends_with("topics-named") || name.contains("partition-error-") {
+                assert_eq!(
+                    groups[0].topics,
+                    Some(vec![DescribeShareGroupOffsetsTopic::new("t", vec![0, 1])])
+                );
+            } else {
+                assert!(groups[0].topics.is_none());
+            }
+            for end in 0..request_body.len() {
+                assert!(
+                    decode_describe_share_group_offsets_request(&mut &request_body[..end]).is_err()
+                );
+            }
+            let mut cursor = response.as_slice();
+            let rh = decode_response_header(&mut cursor, 90, version).unwrap();
+            header.check_correlation(&rh).unwrap();
+            let response_body = cursor;
+            let (values, throttle) =
+                decode_describe_share_group_offsets_response_versioned(&mut cursor, version)
+                    .unwrap();
+            assert!(cursor.is_empty());
+            assert_eq!(throttle, 13);
+            if let Some((_, raw)) = name.split_once("-lag-") {
+                let raw: i64 = raw.parse().unwrap();
+                let value = &values[0].topics[0].partitions[0];
+                let expected = if version == 0 { -1 } else { raw };
+                assert_eq!(value.raw_lag, expected);
+                assert_eq!(
+                    value.lag(),
+                    if expected < 0 { None } else { Some(expected) }
+                );
+            }
+            for end in 0..response_body.len() {
+                assert!(decode_describe_share_group_offsets_response_versioned(
+                    &mut &response_body[..end],
+                    version
+                )
+                .is_err());
+            }
+            if version == 0 {
+                let mut legacy_cursor = response_body;
+                let (legacy, t) =
+                    decode_describe_share_group_offsets_response(&mut legacy_cursor).unwrap();
+                assert_eq!(t, throttle);
+                assert_eq!(
+                    legacy,
+                    values
+                        .clone()
+                        .into_iter()
+                        .map(DescribedShareGroupOffsetsWithLag::into_legacy)
+                        .collect::<Vec<_>>()
+                );
+            }
+            let mut req = BytesMut::new();
+            encode_request_header(&mut req, &header).unwrap();
+            encode_describe_share_group_offsets_request_versioned(&mut req, version, &groups)
+                .unwrap();
+            let mut resp = BytesMut::new();
+            encode_response_header(&mut resp, 90, version, 7).unwrap();
+            encode_describe_share_group_offsets_response_versioned(
+                &mut resp, version, &values, throttle,
+            )
+            .unwrap();
+            if !name.ends_with("unknown-tags") {
+                assert_eq!(req.as_ref(), request.as_slice());
+                assert_eq!(resp.as_ref(), response.as_slice());
+            }
+            writeln!(
+                reverse,
+                "{name}\t90\t{version}\t{}\t{}",
+                hex(&req),
+                hex(&resp)
+            )
+            .unwrap();
+            supported += 1;
+        }
+        assert_eq!(count, 40);
+        let nulls = std::fs::read_to_string(directory.join("null-controls.tsv")).unwrap();
+        assert!(nulls.len() < 65_536);
+        for line in nulls.lines() {
+            let fields: Vec<_> = line.split('\t').collect();
+            assert_eq!(fields.len(), 5);
+            let version: i16 = fields[2].parse().unwrap();
+            assert!(fields[0]
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-'));
+            let path = directory.join(format!("{}.bin", fields[0]));
+            assert!(std::fs::metadata(&path).unwrap().len() <= 65_536);
+            let frame = std::fs::read(path).unwrap();
+            let mut cursor = frame.as_slice();
+            if fields[1] == "request" {
+                let _header = decode_request_header(&mut cursor).unwrap();
+                assert!(decode_describe_share_group_offsets_request(&mut cursor).is_err());
+            } else {
+                assert_eq!(fields[1], "response");
+                let _header = decode_response_header(&mut cursor, 90, version).unwrap();
+                let mut legacy_cursor = cursor;
+                assert!(decode_describe_share_group_offsets_response_versioned(
+                    &mut cursor,
+                    version
+                )
+                .is_err());
+                if version == 0 {
+                    assert!(
+                        decode_describe_share_group_offsets_response(&mut legacy_cursor).is_err()
+                    );
+                }
+            }
+            null_controls += 1;
+        }
+    }
+    assert_eq!((supported, unsupported, null_controls), (100, 20, 45));
+    eprintln!("Actual SDK share pairs:{supported};unsupported:{unsupported};null rejections:{null_controls}");
+}
+
+#[tokio::test]
+#[ignore = "requires actual pinned public Java Admin and retained input/output paths"]
+async fn serve_share_admin_probe() {
+    let directory = std::env::var("PARTITIONLINE_CAPABILITY_PEER_DIR").unwrap();
+    let directory = std::path::PathBuf::from(directory);
+    let mode = "share";
+    let version: i16 = std::env::var("PARTITIONLINE_CAPABILITY_PEER_VERSION")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let maximum: i16 = std::env::var("PARTITIONLINE_CAPABILITY_PEER_MAX")
+        .map_or(version, |value| value.parse().unwrap());
+    let omitted =
+        std::env::var("PARTITIONLINE_CAPABILITY_PEER_OMIT").is_ok_and(|value| value == "1");
+    assert_eq!(mode, "share");
+    assert!((0..=3).contains(&version) && (version..=3).contains(&maximum));
+    let responses = directory.join("responses.bin");
+    let metadata = tokio::fs::metadata(&responses).await.unwrap();
+    assert!(metadata.is_file() && metadata.len() <= 65_536);
+    let bytes = tokio::fs::read(&responses).await.unwrap();
+    let mut cursor = bytes.as_slice();
+    let mut declared = Vec::new();
+    while !cursor.is_empty() {
+        assert!(declared.len() < 8 && cursor.len() >= 4);
+        let length = usize::try_from(u32::from_be_bytes(cursor[..4].try_into().unwrap())).unwrap();
+        cursor = &cursor[4..];
+        assert!(length <= 65_536 && cursor.len() >= length);
+        declared.push(cursor[..length].to_vec());
+        cursor = &cursor[length..];
+    }
+    assert!(!declared.is_empty());
+    let range = (!omitted).then_some((version, maximum));
+    let peer = if mode == "abort" {
+        Peer::start(range, None).await
+    } else {
+        Peer::start(None, range).await
+    };
+    {
+        let mut state = peer.state.lock();
+        if mode == "abort" {
+            state.marker_responses.extend(declared)
+        } else {
+            state.share_responses.extend(declared)
+        }
+    }
+    tokio::fs::write(directory.join("ready"), &peer.bootstrap)
+        .await
+        .unwrap();
+    let started = Instant::now();
+    while !tokio::fs::try_exists(directory.join("stop")).await.unwrap() {
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "finite actual SDK peer deadline"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let history = {
+        let state = peer.state.lock();
+        let hex = |data: &[u8]| {
+            data.iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        };
+        let mut history = String::new();
+        for row in &state.observed {
+            use std::fmt::Write;
+            writeln!(
+                history,
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                row.node,
+                row.key,
+                row.version,
+                row.correlation,
+                hex(&row.body),
+                hex(&row.request_payload),
+                row.response_payload
+                    .as_ref()
+                    .map_or_else(String::new, |data| hex(data)),
+                row.response_written,
+            )
+            .unwrap();
+        }
+        history
+    };
+    tokio::fs::write(directory.join("actual-requests.tsv"), history)
+        .await
+        .unwrap();
+    let addresses = peer.addresses;
+    peer.close().await;
+    assert_eq!(
+        tokio::runtime::Handle::current()
+            .metrics()
+            .num_alive_tasks(),
+        0
+    );
+    tokio::fs::write(
+        directory.join("closure.json"),
+        format!(
+            "{{\"listeners_joined\":true,\"socket_workers_joined\":true,\"runtime_tasks\":0,\"ports_closed_and_reusable\":[{},{}]}}\n",
+            addresses[0].port(), addresses[1].port()
+        ),
+    )
+    .await
+    .unwrap();
 }

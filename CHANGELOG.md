@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Development and CI use the latest stable Rust only. Package manifests now
+  require Rust 1.99; Rust 1.85 is no longer supported.
+- The schema companion checks a bounded Apache Avro Rust 0.22.0 codec against
+  Java Avro 1.12.1 in both directions (KL05-43). The bridge rejects truncated
+  strings that the pinned backend can otherwise resolve as null.
+
 - Consumer negotiates Fetch18 per broker. KIP-1166 HighWatermark tag1 is
   supported through added replica sidecar helpers while ordinary consumers omit
   its default; existing `FetchPartition` and encoder/decoder signatures remain.
@@ -339,7 +345,7 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 
 ### Added
 
-- Pure-Rust Kafka client: produce, fetch, classic groups, cooperative-sticky,
+- Kafka client: produce, fetch, classic groups, cooperative-sticky,
   KIP-848 consumer groups, KIP-932 share groups, transactions / EOS, and
   Kafka 3.x/4.x admin APIs.
 - TLS via rustls (no OpenSSL); SASL PLAIN, SCRAM-SHA-256/512, OAUTHBEARER,

@@ -420,9 +420,9 @@ pub struct ProducerMetrics {
     pub records_acked: u64,
     /// Records that failed (broker error, timeout, closed).
     pub produce_errors: u64,
-    /// Key plus value bytes of queued records.
+    /// Visible key, value and header bytes of queued records.
     pub bytes_queued: u64,
-    /// Key plus value bytes still queued and not yet acked (`buffer.memory` in-flight).
+    /// Visible key, value and header bytes reserved until acknowledgment or failure.
     pub bytes_buffered: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
@@ -443,7 +443,7 @@ pub struct TopicProduceMetrics {
     pub records_acked: u64,
     /// Records that failed for this topic.
     pub produce_errors: u64,
-    /// Key plus value bytes queued for this topic.
+    /// Visible key, value and header bytes queued for this topic.
     pub bytes_queued: u64,
     /// Queue-to-ack latency for this topic.
     pub ack_latency: LatencyStats,

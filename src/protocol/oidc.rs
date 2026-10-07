@@ -164,72 +164,149 @@ pub async fn fetch_client_credentials_token(
         .map(|resp| resp.access_token)
 }
 
-/// Fingerprint identifying one OIDC credential set for manager sharing.
-/// Secrets enter only as SHA-256 digests; the key is never logged.
-#[derive(Clone, Hash, PartialEq, Eq)]
-struct SharedManagerKey {
-    token_url: String,
-    client_id: String,
-    secret_sha256: [u8; 32],
-    tls_sha256: Option<[u8; 32]>,
-}
+// The cache retains at most 64 credential configurations and HTTP token bodies.
+// Config input (including all TLS PEMs) is capped before cloning or hashing.
+const SHARED_MANAGER_CAPACITY: usize = 64;
+const MAX_SHARED_CONFIG_BYTES: usize = 64 * 1024;
+
+/// Domain-separated fingerprint; neither credentials nor endpoint strings are
+/// retained in keys. Optional TLS fields include their presence and field role.
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+struct SharedManagerKey([u8; 32]);
 
 impl SharedManagerKey {
     fn for_config(cfg: &OidcConfig) -> Self {
-        let secret_sha256: [u8; 32] = Sha256::digest(cfg.client_secret.as_bytes()).into();
-        let tls_sha256 = cfg.tls.as_ref().map(|tls| {
-            let mut hasher = Sha256::new();
-            for bytes in [
+        let mut hasher = Sha256::new();
+        fn field(hasher: &mut Sha256, value: Option<&[u8]>) {
+            hasher.update([u8::from(value.is_some())]);
+            if let Some(bytes) = value {
+                hasher.update((bytes.len() as u64).to_be_bytes());
+                hasher.update(bytes);
+            }
+        }
+        for text in [&cfg.token_url, &cfg.client_id, &cfg.client_secret] {
+            field(&mut hasher, Some(text.as_bytes()));
+        }
+        hasher.update([u8::from(cfg.tls.is_some())]);
+        if let Some(tls) = &cfg.tls {
+            for value in [
                 tls.ca_pem.as_deref(),
                 tls.client_cert_pem.as_deref(),
                 tls.client_key_pem.as_deref(),
+                tls.server_name.as_deref().map(str::as_bytes),
+            ] {
+                field(&mut hasher, value);
+            }
+        }
+        Self(hasher.finalize().into())
+    }
+}
+
+struct SharedManagerEntry {
+    manager: Arc<OidcTokenManager>,
+    last_used: Instant,
+    active_leases: usize,
+}
+
+#[derive(Default)]
+struct SharedManagerCache {
+    entries: parking_lot::Mutex<HashMap<SharedManagerKey, SharedManagerEntry>>,
+}
+
+impl SharedManagerCache {
+    fn acquire(&self, cfg: &OidcConfig) -> Result<SharedManagerLease<'_>> {
+        let mut config_bytes = cfg
+            .token_url
+            .len()
+            .saturating_add(cfg.client_id.len())
+            .saturating_add(cfg.client_secret.len());
+        if let Some(tls) = &cfg.tls {
+            for value in [
+                tls.ca_pem.as_deref(),
+                tls.client_cert_pem.as_deref(),
+                tls.client_key_pem.as_deref(),
+                tls.server_name.as_deref().map(str::as_bytes),
             ]
             .into_iter()
             .flatten()
             {
-                hasher.update((bytes.len() as u64).to_be_bytes());
-                hasher.update(bytes);
+                config_bytes = config_bytes.saturating_add(value.len());
             }
-            if let Some(name) = tls.server_name.as_deref() {
-                hasher.update((name.len() as u64).to_be_bytes());
-                hasher.update(name.as_bytes());
+        }
+        if config_bytes > MAX_SHARED_CONFIG_BYTES {
+            return Err(Error::protocol(
+                "oidc shared configuration exceeds 65536 bytes",
+            ));
+        }
+        let key = SharedManagerKey::for_config(cfg);
+        let mut entries = self.entries.lock();
+        if !entries.contains_key(&key) {
+            if entries.len() == SHARED_MANAGER_CAPACITY {
+                // Never evict an active credential set: that would break single-flight.
+                let idle_key = entries
+                    .iter()
+                    .filter(|(_, entry)| {
+                        entry.active_leases == 0
+                            && Arc::strong_count(&entry.manager.inner) == 1
+                            && !entry.manager.inner.has_unfinished_work()
+                    })
+                    .min_by_key(|(_, entry)| entry.last_used)
+                    .map(|(key, _)| *key)
+                    .ok_or(Error::QueueFull)?;
+                drop(entries.remove(&idle_key));
             }
-            hasher.finalize().into()
-        });
-        Self {
-            token_url: cfg.token_url.clone(),
-            client_id: cfg.client_id.clone(),
-            secret_sha256,
-            tls_sha256,
+            drop(entries.insert(
+                key,
+                SharedManagerEntry {
+                    manager: Arc::new(OidcTokenManager::new_shared(cfg.clone())),
+                    last_used: Instant::now(),
+                    active_leases: 0,
+                },
+            ));
+        }
+        let entry = entries
+            .get_mut(&key)
+            .ok_or_else(|| Error::protocol("oidc shared manager unavailable"))?;
+        entry.last_used = Instant::now();
+        entry.active_leases = entry.active_leases.checked_add(1).ok_or(Error::QueueFull)?;
+        Ok(SharedManagerLease {
+            cache: self,
+            key,
+            manager: Arc::clone(&entry.manager),
+        })
+    }
+}
+
+struct SharedManagerLease<'a> {
+    cache: &'a SharedManagerCache,
+    key: SharedManagerKey,
+    manager: Arc<OidcTokenManager>,
+}
+
+impl Drop for SharedManagerLease<'_> {
+    fn drop(&mut self) {
+        // Serialize retirement with acquisition of the next lease. The cache
+        // retains a bounded idle token for sequential reuse, but no idle work.
+        let mut entries = self.cache.entries.lock();
+        if let Some(entry) = entries.get_mut(&self.key) {
+            entry.active_leases = entry.active_leases.saturating_sub(1);
+            if entry.active_leases == 0 {
+                self.manager.inner.cancel_background_work();
+            }
         }
     }
 }
 
-/// One [`OidcTokenManager`] per distinct OIDC credential set, shared by
-/// every connection open in the process (KL09-59). Entries are retained
-/// for process lifetime — one per distinct endpoint/client pair, tokens
-/// refreshing in place — so sequential opens reuse the cached token and
-/// concurrent opens single-flight onto one IdP fetch.
-static SHARED_MANAGERS: LazyLock<
-    parking_lot::Mutex<HashMap<SharedManagerKey, Arc<OidcTokenManager>>>,
-> = LazyLock::new(|| parking_lot::Mutex::new(HashMap::new()));
+static SHARED_MANAGERS: LazyLock<SharedManagerCache> = LazyLock::new(SharedManagerCache::default);
 
-/// Valid token from the manager shared by `cfg`'s credential set.
-///
-/// Concurrent opens coalesce onto one IdP fetch; sequential opens reuse
-/// the cached token until the manager refreshes. Expiry, fail-closed
-/// errors and redaction are the manager's (KL06), unchanged.
+/// Shared single-flight token acquisition. Idle managers retain cached tokens
+/// within the fixed LRU capacity, with all acquisition/refresh work cancelled.
 pub(crate) async fn shared_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
-    let key = SharedManagerKey::for_config(cfg);
-    let manager = SHARED_MANAGERS
-        .lock()
-        .entry(key)
-        .or_insert_with(|| Arc::new(OidcTokenManager::new(cfg.clone())))
-        .clone();
-    manager.token(request_timeout).await
+    let lease = SHARED_MANAGERS.acquire(cfg)?;
+    lease.manager.token(request_timeout).await
 }
 
 /// POST `grant_type=client_credentials` and return parsed [`OidcTokenResponse`].
@@ -1597,6 +1674,7 @@ struct ManagerState {
     state: TokenLifecycleState,
     terminal_error: Option<String>,
     token_epoch: u64,
+    retirement_epoch: u64,
     in_flight_rx: Option<tokio::sync::watch::Receiver<Option<Result<TokenData>>>>,
     in_flight_tx: Option<tokio::sync::watch::Sender<Option<Result<TokenData>>>>,
 }
@@ -1609,29 +1687,79 @@ enum RefreshAction {
 
 struct OidcTokenManagerInner {
     fetcher: Arc<dyn TokenFetcher>,
+    automatic_refresh: bool,
     config: OidcRefreshConfig,
     clock: Arc<dyn Clock>,
     jitter: Arc<dyn JitterSource>,
     state: parking_lot::RwLock<ManagerState>,
     refresh_abort_handle: parking_lot::Mutex<Option<tokio::task::AbortHandle>>,
+    acquisition_abort_handle: parking_lot::Mutex<Option<tokio::task::AbortHandle>>,
 }
 
 impl Drop for OidcTokenManagerInner {
     fn drop(&mut self) {
-        if let Some(handle) = self.refresh_abort_handle.lock().take() {
-            handle.abort();
+        self.cancel_background_work();
+    }
+}
+
+// Background futures may temporarily own `inner`; they are not public owners.
+// This separate lease family makes last-public-owner cancellation independent
+// of those strong references (including pending third-party TokenFetchers).
+struct OidcManagerOwner(Weak<OidcTokenManagerInner>);
+
+impl Drop for OidcManagerOwner {
+    fn drop(&mut self) {
+        if let Some(inner) = self.0.upgrade() {
+            inner.cancel_background_work();
         }
     }
 }
 
 impl OidcTokenManagerInner {
-    async fn execute_acquisition(self: Arc<Self>) {
+    fn has_unfinished_work(&self) -> bool {
+        self.refresh_abort_handle
+            .lock()
+            .as_ref()
+            .is_some_and(|handle| !handle.is_finished())
+            || self
+                .acquisition_abort_handle
+                .lock()
+                .as_ref()
+                .is_some_and(|handle| !handle.is_finished())
+    }
+
+    fn cancel_background_work(&self) {
+        let refresh = self.refresh_abort_handle.lock();
+        if let Some(handle) = refresh.as_ref() {
+            handle.abort();
+        }
+        if let Some(handle) = self.acquisition_abort_handle.lock().as_ref() {
+            handle.abort();
+        }
+        let mut state = self.state.write();
+        state.token_epoch = state.token_epoch.wrapping_add(1);
+        state.retirement_epoch = state.retirement_epoch.wrapping_add(1);
+        drop(state.in_flight_rx.take());
+        drop(state.in_flight_tx.take());
+        if state.state != TokenLifecycleState::FailedClosed {
+            state.state = if state.cached.is_some() {
+                TokenLifecycleState::Active
+            } else {
+                TokenLifecycleState::Uninitialized
+            };
+        }
+    }
+
+    async fn execute_acquisition(self: Arc<Self>, epoch: u64) {
         let timeout_duration = self.config.request_timeout;
         let res = self.fetcher.fetch(timeout_duration).await;
         let now = self.clock.now();
 
         let (result_to_send, scheduled_opt, tx) = {
             let mut state = self.state.write();
+            if state.retirement_epoch != epoch {
+                return;
+            }
             let tx = state.in_flight_tx.take();
             let _ = state.in_flight_rx.take();
 
@@ -1688,13 +1816,19 @@ impl OidcTokenManagerInner {
     }
 
     fn schedule_refresh(self: &Arc<Self>, scheduled: Instant, epoch: u64) {
+        if !self.automatic_refresh {
+            return;
+        }
+        let mut handle_guard = self.refresh_abort_handle.lock();
+        if self.state.read().token_epoch != epoch {
+            return;
+        }
         let weak_self = Arc::downgrade(self);
         let abort_handle = tokio::spawn(async move {
             Self::run_refresh_loop_scheduled(weak_self, scheduled, epoch).await;
         })
         .abort_handle();
 
-        let mut handle_guard = self.refresh_abort_handle.lock();
         if let Some(prev) = handle_guard.replace(abort_handle) {
             prev.abort();
         }
@@ -1834,10 +1968,14 @@ impl OidcTokenManagerInner {
 /// Bounded OIDC token cache and proactive refresh owner.
 ///
 /// Manages token lifecycle, single-flight coalescing to prevent stampedes,
-/// proactive background refresh, and deterministic clock support.
+/// proactive background refresh, and deterministic clock support. Dropping the
+/// final manager clone cancels acquisition and refresh tasks, including an
+/// in-flight fetch. Cancelling one token caller leaves other owners intact.
 #[derive(Clone)]
 pub struct OidcTokenManager {
     inner: Arc<OidcTokenManagerInner>,
+    // Cloned solely to track public handles, never by a background task.
+    _owner: Arc<OidcManagerOwner>,
 }
 
 impl fmt::Debug for OidcTokenManager {
@@ -1858,6 +1996,18 @@ impl OidcTokenManager {
         let clock = Arc::new(SystemClock);
         let jitter = Arc::new(RandomJitter);
         Self::with_fetcher(fetcher, refresh_config, clock, jitter)
+    }
+
+    // Shared connect-time callers own demand refresh only. Retaining an idle
+    // cached token must not retain timers or proactively fetch unused tokens.
+    fn new_shared(config: OidcConfig) -> Self {
+        Self::with_fetcher_policy(
+            Arc::new(OidcHttpFetcher::new(config)),
+            OidcRefreshConfig::default(),
+            Arc::new(SystemClock),
+            Arc::new(RandomJitter),
+            false,
+        )
     }
 
     /// Create a token manager with custom refresh configuration.
@@ -1889,8 +2039,19 @@ impl OidcTokenManager {
         clock: Arc<dyn Clock>,
         jitter: Arc<dyn JitterSource>,
     ) -> Self {
+        Self::with_fetcher_policy(fetcher, refresh_config, clock, jitter, true)
+    }
+
+    fn with_fetcher_policy(
+        fetcher: Arc<dyn TokenFetcher>,
+        refresh_config: OidcRefreshConfig,
+        clock: Arc<dyn Clock>,
+        jitter: Arc<dyn JitterSource>,
+        automatic_refresh: bool,
+    ) -> Self {
         let inner = Arc::new(OidcTokenManagerInner {
             fetcher,
+            automatic_refresh,
             config: refresh_config,
             clock,
             jitter,
@@ -1899,12 +2060,18 @@ impl OidcTokenManager {
                 state: TokenLifecycleState::Uninitialized,
                 terminal_error: None,
                 token_epoch: 0,
+                retirement_epoch: 0,
                 in_flight_rx: None,
                 in_flight_tx: None,
             }),
             refresh_abort_handle: parking_lot::Mutex::new(None),
+            acquisition_abort_handle: parking_lot::Mutex::new(None),
         });
-        Self { inner }
+        let owner = Arc::new(OidcManagerOwner(Arc::downgrade(&inner)));
+        Self {
+            inner,
+            _owner: owner,
+        }
     }
 
     /// Retrieve a valid token, acquiring one synchronously if uninitialized or expired,
@@ -1949,42 +2116,54 @@ impl OidcTokenManager {
         }
 
         // 2. Slow path: Acquire write lock
-        let (rx, is_leader) = {
-            let mut state = self.inner.state.write();
-            if state.state == TokenLifecycleState::FailedClosed {
-                let msg = state
-                    .terminal_error
-                    .as_deref()
-                    .unwrap_or("oidc authentication failed closed");
-                return Err(Error::protocol(msg));
-            }
-            if let Some(ref cached) = state.cached {
-                let skew = compute_skew(cached.lifetime, self.inner.config.clock_skew);
-                let now = self.inner.clock.now();
-                if cached.is_valid(now, skew) {
-                    return Ok(TokenData::new(cached.token.clone(), cached.expires_at));
+        let rx = {
+            let mut acquisition = self.inner.acquisition_abort_handle.lock();
+            let (rx, is_leader, epoch) = {
+                let mut state = self.inner.state.write();
+                if state.state == TokenLifecycleState::FailedClosed {
+                    let msg = state
+                        .terminal_error
+                        .as_deref()
+                        .unwrap_or("oidc authentication failed closed");
+                    return Err(Error::protocol(msg));
                 }
-            }
-            state.cached = None;
-            if state.state != TokenLifecycleState::Acquiring {
-                state.state = TokenLifecycleState::Acquiring;
-            }
-            if let Some(ref existing_rx) = state.in_flight_rx {
-                (existing_rx.clone(), false)
-            } else {
-                let (tx, rx) = tokio::sync::watch::channel(None);
-                state.in_flight_rx = Some(rx.clone());
-                state.in_flight_tx = Some(tx);
-                (rx, true)
-            }
-        };
+                if let Some(ref cached) = state.cached {
+                    let skew = compute_skew(cached.lifetime, self.inner.config.clock_skew);
+                    let now = self.inner.clock.now();
+                    if cached.is_valid(now, skew) {
+                        return Ok(TokenData::new(cached.token.clone(), cached.expires_at));
+                    }
+                }
+                state.cached = None;
+                if state.state != TokenLifecycleState::Acquiring {
+                    state.state = TokenLifecycleState::Acquiring;
+                }
+                if let Some(ref existing_rx) = state.in_flight_rx {
+                    (existing_rx.clone(), false, state.retirement_epoch)
+                } else {
+                    if acquisition
+                        .as_ref()
+                        .is_some_and(|handle| !handle.is_finished())
+                    {
+                        return Err(Error::QueueFull);
+                    }
+                    let (tx, rx) = tokio::sync::watch::channel(None);
+                    state.in_flight_rx = Some(rx.clone());
+                    state.in_flight_tx = Some(tx);
+                    (rx, true, state.retirement_epoch)
+                }
+            };
 
-        if is_leader {
-            let inner = Arc::clone(&self.inner);
-            drop(tokio::spawn(async move {
-                inner.execute_acquisition().await;
-            }));
-        }
+            if is_leader {
+                let inner = Arc::clone(&self.inner);
+                let abort = tokio::spawn(async move {
+                    inner.execute_acquisition(epoch).await;
+                })
+                .abort_handle();
+                drop(acquisition.replace(abort));
+            }
+            rx
+        };
 
         let time_remaining = deadline
             .checked_duration_since(Instant::now())
@@ -1993,6 +2172,9 @@ impl OidcTokenManager {
     }
 
     fn maybe_trigger_proactive_refresh(&self) {
+        if !self.inner.automatic_refresh {
+            return;
+        }
         let mut handle_guard = self.inner.refresh_abort_handle.lock();
         if handle_guard.is_some() {
             return;
@@ -2119,6 +2301,229 @@ mod tests {
     use super::*;
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
+
+    #[test]
+    fn shared_cache_caps_active_managers_and_evicts_only_idle_entries() {
+        let cache = SharedManagerCache::default();
+        let mut leases = Vec::new();
+        for index in 0..SHARED_MANAGER_CAPACITY {
+            leases.push(
+                cache
+                    .acquire(&OidcConfig::new(
+                        "http://issuer/token",
+                        format!("client-{index}"),
+                        "secret",
+                    ))
+                    .unwrap(),
+            );
+        }
+        let same = cache
+            .acquire(&OidcConfig::new(
+                "http://issuer/token",
+                "client-0",
+                "secret",
+            ))
+            .unwrap();
+        assert!(Arc::ptr_eq(&same.manager, &leases.first().unwrap().manager));
+        drop(same);
+        let next = OidcConfig::new("http://issuer/token", "new-client", "secret");
+        assert!(matches!(cache.acquire(&next), Err(Error::QueueFull)));
+        assert_eq!(cache.entries.lock().len(), SHARED_MANAGER_CAPACITY);
+        let released = leases.pop().unwrap();
+        let retired = Arc::downgrade(&released.manager.inner);
+        drop(released);
+        let admitted = cache.acquire(&next).unwrap();
+        assert!(
+            retired.upgrade().is_none(),
+            "idle configuration must be freed on eviction"
+        );
+        assert_eq!(cache.entries.lock().len(), SHARED_MANAGER_CAPACITY);
+        drop(admitted);
+        drop(leases);
+    }
+
+    #[test]
+    fn shared_cache_bounds_repeated_credentials_and_large_configurations() {
+        let cache = SharedManagerCache::default();
+        let mut retired = Vec::new();
+        for index in 0..1024 {
+            let lease = cache
+                .acquire(&OidcConfig::new(
+                    "http://issuer/token",
+                    "client",
+                    format!("secret-{index}"),
+                ))
+                .unwrap();
+            retired.push(Arc::downgrade(&lease.manager.inner));
+            drop(lease);
+            assert!(cache.entries.lock().len() <= SHARED_MANAGER_CAPACITY);
+        }
+        assert_eq!(
+            retired
+                .iter()
+                .filter(|weak| weak.upgrade().is_some())
+                .count(),
+            SHARED_MANAGER_CAPACITY
+        );
+        let too_large = OidcConfig::new(
+            "http://issuer/token",
+            "client",
+            "s".repeat(MAX_SHARED_CONFIG_BYTES),
+        );
+        assert!(matches!(cache.acquire(&too_large), Err(Error::Protocol(_))));
+        let too_large_tls =
+            OidcConfig::new("http://issuer/token", "client", "secret").tls(crate::net::TlsConfig {
+                client_key_pem: Some(vec![0; MAX_SHARED_CONFIG_BYTES]),
+                ..Default::default()
+            });
+        assert!(matches!(
+            cache.acquire(&too_large_tls),
+            Err(Error::Protocol(_))
+        ));
+        assert_eq!(cache.entries.lock().len(), SHARED_MANAGER_CAPACITY);
+        drop(cache);
+        assert!(retired.iter().all(|weak| weak.upgrade().is_none()));
+    }
+
+    #[tokio::test]
+    async fn shared_cache_single_flight_and_sequential_reuse_have_no_idle_tasks() {
+        // Independent literal HTTP response, no production encoder on the peer.
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            loop {
+                let byte = socket.read_u8().await.unwrap();
+                request.push(byte);
+                assert!(request.len() < 4096);
+                if request.ends_with(b"grant_type=client_credentials") {
+                    break;
+                }
+            }
+            let body = r#"{"access_token":"cache-token","token_type":"Bearer","expires_in":3600}"#;
+            socket
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .unwrap();
+            // A second HTTP connection would mean duplicate acquisition.
+            assert!(
+                tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                    .await
+                    .is_err()
+            );
+        });
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "client", "secret");
+        let cache = Arc::new(SharedManagerCache::default());
+        let barrier = Arc::new(tokio::sync::Barrier::new(16));
+        let mut tasks = tokio::task::JoinSet::new();
+        for _ in 0..16 {
+            let cache = Arc::clone(&cache);
+            let cfg = cfg.clone();
+            let barrier = Arc::clone(&barrier);
+            drop(tasks.spawn(async move {
+                let lease = cache.acquire(&cfg).unwrap();
+                let _wait = barrier.wait().await;
+                lease.manager.token(Duration::from_secs(1)).await
+            }));
+        }
+        while let Some(result) = tasks.join_next().await {
+            assert_eq!(result.unwrap().unwrap(), "cache-token");
+        }
+        let lease = cache.acquire(&cfg).unwrap();
+        assert_eq!(
+            lease.manager.token(Duration::from_secs(1)).await.unwrap(),
+            "cache-token"
+        );
+        let inner = Arc::clone(&lease.manager.inner);
+        drop(lease);
+        assert!(inner.refresh_abort_handle.lock().is_none());
+        assert!(inner
+            .acquisition_abort_handle
+            .lock()
+            .as_ref()
+            .is_some_and(tokio::task::AbortHandle::is_finished));
+        for _ in 0..4 {
+            let lease = cache.acquire(&cfg).unwrap();
+            assert_eq!(
+                lease.manager.token(Duration::from_secs(1)).await.unwrap(),
+                "cache-token"
+            );
+            drop(lease);
+        }
+        tokio::time::timeout(Duration::from_secs(2), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn shared_cache_last_lease_closes_pending_http_acquisition() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            while !request.ends_with(b"grant_type=client_credentials") {
+                request.push(socket.read_u8().await.unwrap());
+                assert!(request.len() < 4096);
+            }
+            entered_tx.send(()).unwrap();
+            assert_eq!(
+                socket.read_u8().await.unwrap_err().kind(),
+                std::io::ErrorKind::UnexpectedEof
+            );
+        });
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "client", "secret");
+        let cache = SharedManagerCache::default();
+        let lease = cache.acquire(&cfg).unwrap();
+        let mut request = Box::pin(lease.manager.token(Duration::from_secs(10)));
+        tokio::select! {
+            result = &mut request => panic!("acquisition completed unexpectedly: {result:?}"),
+            entered = entered_rx => entered.unwrap(),
+        }
+        drop(request);
+        let inner = Arc::clone(&lease.manager.inner);
+        drop(lease);
+        tokio::time::timeout(Duration::from_secs(1), peer)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!inner.has_unfinished_work());
+    }
+
+    #[test]
+    fn shared_manager_key_separates_tls_field_roles() {
+        let ca = OidcConfig::new("https://issuer/token", "client", "secret").tls(
+            crate::net::TlsConfig {
+                ca_pem: Some(b"same".to_vec()),
+                ..Default::default()
+            },
+        );
+        let cert = OidcConfig::new("https://issuer/token", "client", "secret").tls(
+            crate::net::TlsConfig {
+                client_cert_pem: Some(b"same".to_vec()),
+                ..Default::default()
+            },
+        );
+        assert!(SharedManagerKey::for_config(&ca) != SharedManagerKey::for_config(&cert));
+        let absent = OidcConfig::new("https://issuer/token", "client", "secret")
+            .tls(crate::net::TlsConfig::default());
+        let empty = OidcConfig::new("https://issuer/token", "client", "secret").tls(
+            crate::net::TlsConfig {
+                ca_pem: Some(Vec::new()),
+                ..Default::default()
+            },
+        );
+        assert!(SharedManagerKey::for_config(&absent) != SharedManagerKey::for_config(&empty));
+    }
 
     #[test]
     fn parse_ipv4_and_ipv6_urls() {

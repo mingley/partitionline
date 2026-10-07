@@ -2,7 +2,7 @@
 name = "runtime"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 description = "Null-broker runtime measurement harness for producer cells (KL09-09). Standalone: never a dependency of partitionline."
 

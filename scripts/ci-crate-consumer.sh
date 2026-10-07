@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compile the real documented surface and shared operator program from an
-# extracted .crate. Root defaults currently approve only default and tracing.
-# PL_PACKAGE_TOOLCHAINS='current' by default; CI also checks Rust 1.85.0.
+# extracted .crate with each approved optional feature and their combination.
+# PL_PACKAGE_TOOLCHAINS='stable' by default; only latest stable is supported.
 # PL_PACKAGE_ALLOW_DIRTY=1 is an explicit local-development opt-in.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,7 +37,7 @@ PY
 src="$tmpdir/${name}-${ver}"
 python3 -B scripts/check-package-docs.py "$src" --report "$report_dir/package-docs.json"
 reports=()
-for toolchain in ${PL_PACKAGE_TOOLCHAINS:-current}; do
+for toolchain in ${PL_PACKAGE_TOOLCHAINS:-stable}; do
   [[ "$toolchain" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo 'ci-crate-consumer: invalid toolchain' >&2; exit 1; }
   cargo_command=(cargo)
   doc_args=()
@@ -46,11 +46,15 @@ for toolchain in ${PL_PACKAGE_TOOLCHAINS:-current}; do
     doc_args+=(--toolchain "$toolchain")
   fi
   export CARGO_TARGET_DIR="${PL_PACKAGE_CONSUMER_TARGET_DIR:-$package_target/package-consumer-targets}/$toolchain"
-  for features in default tracing; do
+  for features in default tracing zstd all; do
     cons="$tmpdir/consumer-$toolchain-$features"
     mkdir -p "$cons/src"
     selected='[]'
-    if [[ "$features" == tracing ]]; then selected='["tracing"]'; fi
+    case "$features" in
+      tracing) selected='["tracing"]' ;;
+      zstd) selected='["zstd"]' ;;
+      all) selected='["tracing","zstd"]' ;;
+    esac
     python3 - "$cons/Cargo.toml" "$name" "$src" "$selected" <<'PY'
 import json,sys
 from pathlib import Path
@@ -59,7 +63,7 @@ Path(manifest).write_text(f'''[package]
 name = "{name}-crate-consumer"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 publish = false
 [workspace]
 [dependencies]
@@ -89,7 +93,7 @@ if any(r['package_sha256'] != package_sha or r['package_vcs_info'] != vcs for r 
 if not reports or any(r['compiled_snippets'] == 0 or r['ignored_snippets'] for r in reports):
     raise SystemExit('ci-crate-consumer: missing or skipped actual snippet compilation')
 summary = {'package_sha256': package_sha, 'source_vcs_info': vcs,
-           'feature_matrix': reports, 'all_features_alias': 'tracing (the only approved optional feature)',
+           'feature_matrix': reports, 'approved_optional_features': ['tracing', 'zstd'],
            'operator_lock_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [output / path.name.replace('snippets-', 'operator-').replace('.json', '.lock') for path in report_paths]}}
 (output / 'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(f'ci-crate-consumer: {len(reports)} actual package feature/toolchain cells passed; source/package/version and license inventory retained in {output}')

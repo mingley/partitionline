@@ -1,14 +1,12 @@
-# Companion crate design: `partitionline-schema` (WP-6.3)
+# Schema companion
 
-**Status:** wire-framing **scaffold landed** under `partitionline-schema/`
-(workspace-excluded, `publish = false`). Core `partitionline` `0.1.0` is on
-crates.io — the publish gate for starting the companion is met. Do **not**
-crates.io-publish this companion until survey
-[#85](https://github.com/mingley/partitionline/issues/85) (or equivalent
-adopter demand) justifies HTTP/codecs. Schema Registry support stays out of
-the core client (`docs/gaps.md`).
+`partitionline-schema` provides bounded Confluent framing, read-only Schema
+Registry lookup/cache and adapters for explicitly selected Protobuf, Avro and
+JSON Schema codecs. It is separate from the Kafka client and remains unpublished
+(`publish = false`). Applications supply their serializer/validator; the selected
+production codec tests qualify finite offline families.
 
-Prove scaffold anytime: `bash scripts/check-schema-companion-scaffold.sh`
+Run `bash scripts/check-schema-companion-scaffold.sh` to check the crate boundary.
 
 ## Lookup client (KL05-23, landed)
 

@@ -58,10 +58,12 @@ fn good(code: i16) -> WritableTxnMarkerResult {
 async fn public_abort_negotiates_v2_and_default_transaction_version() {
     for (range, expected) in [((0, 0), 0), ((1, 1), 1), ((2, 2), 2), ((1, 2), 2)] {
         let peer = Peer::start(Some(range), None).await;
+        let mut response = BytesMut::new();
+        encode_write_txn_markers_response(&mut response, expected, &[good(0)]).unwrap();
         peer.state
             .lock()
             .marker_responses
-            .push_back(response(&[good(0)]));
+            .push_back(response.to_vec());
         let mut admin = peer.admin().await;
         admin.abort_transaction(spec()).await.unwrap();
         let requests = peer.requests(WRITE_TXN_MARKERS);
@@ -75,6 +77,7 @@ async fn public_abort_negotiates_v2_and_default_transaction_version() {
         assert_eq!(values[0].transaction_version, 0);
         assert!(peer.requests(METADATA).iter().any(|row| row.node == 1));
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -91,6 +94,7 @@ async fn unsupported_abort_fails_before_metadata_or_marker_work() {
         assert_eq!(peer.state.lock().observed.len(), before);
         assert!(peer.requests(METADATA).is_empty());
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -145,6 +149,7 @@ async fn omitted_duplicate_or_unrelated_abort_results_cannot_succeed() {
         assert_eq!(peer.requests(WRITE_TXN_MARKERS).len(), 1);
         assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -167,6 +172,7 @@ async fn broker_and_replica_unavailability_refresh_the_selected_partition_leader
             .iter()
             .all(|row| row.node == 2 && row.version == 2));
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -184,6 +190,7 @@ async fn authorization_and_producer_or_coordinator_fencing_are_terminal() {
         );
         assert_eq!(peer.requests(WRITE_TXN_MARKERS).len(), 1);
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -205,6 +212,7 @@ async fn retry_deadline_is_one_absolute_budget() {
     assert!(started.elapsed() < Duration::from_secs(1));
     assert!(peer.requests(WRITE_TXN_MARKERS).len() > 1);
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[tokio::test]
@@ -227,6 +235,7 @@ async fn canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable() {
     peer.release.notify_one();
     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
     admin.close().await.unwrap();
+    peer.close().await;
 
     let peer = Peer::start(Some((1, 2)), None).await;
     {
@@ -245,6 +254,7 @@ async fn canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable() {
     peer.release.notify_one();
     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
     admin.close().await.unwrap();
+    peer.close().await;
 }
 
 #[tokio::test]
@@ -263,6 +273,7 @@ async fn truncated_or_trailing_marker_response_is_a_protocol_error() {
             Err(Error::Protocol(_))
         ));
         admin.close().await.unwrap();
+        peer.close().await;
     }
 }
 
@@ -405,22 +416,223 @@ fn pinned_schema_reference_frame_keeps_v2_field_after_coordinator_epoch() {
     assert!(cursor.is_empty());
 }
 
+#[test]
+fn nonnullable_marker_fields_reject_null_on_the_wire() {
+    use partitionline::protocol::txn::{
+        decode_write_txn_markers_request_with_transaction_versions,
+        decode_write_txn_markers_response, encode_write_txn_markers_request,
+    };
+    let mut accepted = Vec::new();
+    for version in [1, 2] {
+        let mut request = BytesMut::new();
+        encode_write_txn_markers_request(&mut request, version, &[marker()]).unwrap();
+        for (name, offset) in [
+            ("markers", 0),
+            ("topics", 12),
+            ("name", 13),
+            ("partitions", 15),
+        ] {
+            assert_eq!(request[offset], 2, "pinned schema field boundary");
+            let mut changed = request.to_vec();
+            changed[offset] = 0;
+            if decode_write_txn_markers_request_with_transaction_versions(
+                &mut changed.as_slice(),
+                version,
+            )
+            .is_ok()
+            {
+                accepted.push(format!("request{version}:{name}"));
+            }
+        }
+        let mut response = BytesMut::new();
+        encode_write_txn_markers_response(&mut response, version, &[good(0)]).unwrap();
+        for (name, offset) in [
+            ("markers", 0),
+            ("topics", 9),
+            ("name", 10),
+            ("partitions", 12),
+        ] {
+            assert_eq!(response[offset], 2, "pinned schema field boundary");
+            let mut changed = response.to_vec();
+            changed[offset] = 0;
+            if decode_write_txn_markers_response(&mut changed.as_slice(), version).is_ok() {
+                accepted.push(format!("response{version}:{name}"));
+            }
+        }
+    }
+    assert!(accepted.is_empty(), "accepted null fields: {accepted:?}");
+}
+
+#[test]
+#[ignore = "requires freshly generated pinned Apache fixtures and reverse-parse output"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "this synchronous fixture test runs without a Tokio runtime"
+)]
+fn actual_apache_marker_fixtures_and_reverse_frames() {
+    use partitionline::protocol::header::{
+        decode_request_header, decode_response_header, encode_request_header,
+        encode_response_header,
+    };
+    use partitionline::protocol::txn::{
+        decode_write_txn_markers_request_with_transaction_versions,
+        decode_write_txn_markers_response,
+        encode_write_txn_markers_request_with_transaction_versions,
+    };
+    use std::io::Write;
+    let root = std::path::PathBuf::from(std::env::var("PARTITIONLINE_MARKER_ORACLE_DIR").unwrap());
+    let mut supported = 0;
+    let mut unsupported = 0;
+    let mut null_controls = 0;
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    for release in ["4.1.2", "4.2.1", "4.3.1"] {
+        let directory = root.join(release);
+        let index = std::fs::read_to_string(directory.join("cases.tsv")).unwrap();
+        assert!(index.len() < 65_536);
+        let mut reverse = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(directory.join("rust-emitted.tsv"))
+            .unwrap();
+        let mut cases = 0;
+        for line in index.lines() {
+            let fields: Vec<_> = line.split('\t').collect();
+            assert_eq!(fields.len(), 4);
+            if fields[1] != "27" {
+                continue;
+            }
+            cases += 1;
+            let name = fields[0];
+            assert!(
+                name.len() <= 96 && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+            );
+            let version: i16 = fields[2].parse().unwrap();
+            if fields[3] == "unsupported" {
+                assert!(version == 0 || release == "4.1.2" && version == 2);
+                assert!(!directory.join(format!("{name}.request.bin")).exists());
+                unsupported += 1;
+                continue;
+            }
+            assert_eq!(fields[3], "supported");
+            let read = |suffix| {
+                let path = directory.join(format!("{name}.{suffix}.bin"));
+                assert!(std::fs::metadata(&path).unwrap().len() <= 65_536);
+                std::fs::read(path).unwrap()
+            };
+            let request = read("request");
+            let response = read("response");
+            let mut cursor = request.as_slice();
+            let header = decode_request_header(&mut cursor).unwrap();
+            assert_eq!(
+                (header.api_key, header.api_version, header.correlation_id),
+                (27, version, 7)
+            );
+            let body = cursor;
+            let markers =
+                decode_write_txn_markers_request_with_transaction_versions(&mut cursor, version)
+                    .unwrap();
+            assert!(cursor.is_empty());
+            assert_eq!(markers.len(), 1);
+            assert_eq!(markers[0].marker, marker());
+            let expected = if version != 2 {
+                0
+            } else if name.ends_with("unknown-tags") {
+                2
+            } else if let Some((_, number)) = name.rsplit_once("tv-") {
+                number.parse::<i8>().unwrap()
+            } else {
+                0
+            };
+            assert_eq!(markers[0].transaction_version, expected);
+            for end in 0..body.len() {
+                assert!(decode_write_txn_markers_request_with_transaction_versions(
+                    &mut &body[..end],
+                    version
+                )
+                .is_err());
+            }
+            let mut cursor = response.as_slice();
+            let response_header = decode_response_header(&mut cursor, 27, version).unwrap();
+            header.check_correlation(&response_header).unwrap();
+            let values = decode_write_txn_markers_response(&mut cursor, version).unwrap();
+            assert!(cursor.is_empty());
+            let mut encoded_request = BytesMut::new();
+            encode_request_header(&mut encoded_request, &header).unwrap();
+            encode_write_txn_markers_request_with_transaction_versions(
+                &mut encoded_request,
+                version,
+                &markers,
+            )
+            .unwrap();
+            if !name.ends_with("unknown-tags") {
+                assert_eq!(encoded_request.as_ref(), request.as_slice());
+            }
+            let mut encoded_response = BytesMut::new();
+            encode_response_header(&mut encoded_response, 27, version, 7).unwrap();
+            encode_write_txn_markers_response(&mut encoded_response, version, &values).unwrap();
+            assert_eq!(encoded_response.as_ref(), response.as_slice());
+            writeln!(
+                reverse,
+                "{name}\t27\t{version}\t{}\t{}",
+                hex(&encoded_request),
+                hex(&encoded_response)
+            )
+            .unwrap();
+            supported += 1;
+        }
+        assert_eq!(cases, 75);
+        let controls = std::fs::read_to_string(directory.join("null-controls.tsv")).unwrap();
+        assert!(controls.len() < 65_536);
+        for line in controls.lines() {
+            let fields: Vec<_> = line.split('\t').collect();
+            assert_eq!(fields.len(), 5);
+            assert!(fields[0]
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-'));
+            let version: i16 = fields[2].parse().unwrap();
+            let path = directory.join(format!("{}.bin", fields[0]));
+            assert!(std::fs::metadata(&path).unwrap().len() <= 65_536);
+            let frame = std::fs::read(path).unwrap();
+            let mut cursor = frame.as_slice();
+            if fields[1] == "request" {
+                let _header = decode_request_header(&mut cursor).unwrap();
+                assert!(decode_write_txn_markers_request_with_transaction_versions(
+                    &mut cursor,
+                    version
+                )
+                .is_err());
+            } else {
+                assert_eq!(fields[1], "response");
+                let _header = decode_response_header(&mut cursor, 27, version).unwrap();
+                assert!(decode_write_txn_markers_response(&mut cursor, version).is_err());
+            }
+            null_controls += 1;
+        }
+    }
+    assert_eq!((supported, unsupported), (125, 100));
+    assert_eq!(null_controls, 40);
+    eprintln!("Actual Apache marker pairs:{supported}; explicit unsupported cells:{unsupported}; null controls:{null_controls}");
+}
+
 /// Opt-in actual SDK socket lane. It is a bounded scripted peer, never a
 /// production broker. Inputs and full requests are retained by the outer
-/// independent runner; ordinary test runs return without opening a listener.
+/// independent runner; ordinary test runs leave this lane ignored.
 #[tokio::test]
+#[ignore = "requires actual pinned public Java Admin and retained input/output paths"]
 async fn serve_public_admin_probe() {
-    let Ok(directory) = std::env::var("PARTITIONLINE_CAPABILITY_PEER_DIR") else {
-        return;
-    };
+    let directory = std::env::var("PARTITIONLINE_CAPABILITY_PEER_DIR").unwrap();
     let directory = std::path::PathBuf::from(directory);
     let mode = std::env::var("PARTITIONLINE_CAPABILITY_PEER_MODE").unwrap();
     let version: i16 = std::env::var("PARTITIONLINE_CAPABILITY_PEER_VERSION")
         .unwrap()
         .parse()
         .unwrap();
+    let maximum: i16 = std::env::var("PARTITIONLINE_CAPABILITY_PEER_MAX")
+        .map_or(version, |value| value.parse().unwrap());
+    let omitted =
+        std::env::var("PARTITIONLINE_CAPABILITY_PEER_OMIT").is_ok_and(|value| value == "1");
     assert!(matches!(mode.as_str(), "abort" | "share"));
-    assert!((0..=2).contains(&version));
+    assert!((0..=3).contains(&version) && (version..=3).contains(&maximum));
     let responses = directory.join("responses.bin");
     let metadata = tokio::fs::metadata(&responses).await.unwrap();
     assert!(metadata.is_file() && metadata.len() <= 65_536);
@@ -436,8 +648,9 @@ async fn serve_public_admin_probe() {
         cursor = &cursor[length..];
     }
     assert!(!declared.is_empty());
+    let range = (!omitted).then_some((version, maximum));
     let peer = if mode == "abort" {
-        Peer::start(Some((version, version)), None).await
+        Peer::start(range, None).await
     } else {
         Peer::start(None, Some((version, version))).await
     };
@@ -491,4 +704,21 @@ async fn serve_public_admin_probe() {
     tokio::fs::write(directory.join("actual-requests.tsv"), history)
         .await
         .unwrap();
+    let addresses = peer.addresses;
+    peer.close().await;
+    assert_eq!(
+        tokio::runtime::Handle::current()
+            .metrics()
+            .num_alive_tasks(),
+        0
+    );
+    tokio::fs::write(
+        directory.join("closure.json"),
+        format!(
+            "{{\"listeners_joined\":true,\"socket_workers_joined\":true,\"runtime_tasks\":0,\"ports_closed_and_reusable\":[{},{}]}}\n",
+            addresses[0].port(), addresses[1].port()
+        ),
+    )
+    .await
+    .unwrap();
 }

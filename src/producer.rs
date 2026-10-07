@@ -15,7 +15,7 @@ use crate::partitioner::{
 };
 use crate::protocol::api::{
     decode_metadata_response, decode_produce_response, decode_produce_response_with_topic_ids,
-    encode_metadata_request, ApiVersion, ProduceRequest,
+    encode_metadata_request, ApiVersion, ApiVersionsResponse, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -73,8 +73,11 @@ pub struct ProducerConfig {
     pub batch_records: usize,
     /// Max bytes in one Produce batch.
     pub batch_bytes: usize,
-    /// Kafka `buffer.memory`. Key plus value bytes of records queued and not
-    /// yet acked. Default 32 MiB (Java). Zero means no client-side cap (the
+    /// Kafka `buffer.memory`. Visible key, value and header bytes of accepted
+    /// records not yet acknowledged. Admission compacts shared or oversized
+    /// backing buffers; exact unique allocations may be reused. Allocator and
+    /// record-object overhead, encoding scratch and socket buffers are separate.
+    /// Default 32 MiB (Java). Zero means no client-side cap (the
     /// per-connection channel still bounds how many records sit in memory).
     /// [`crate::Producer::send`] waits up to [`Self::max_block`];
     /// [`crate::Producer::try_send`] returns [`crate::Error::QueueFull`].
@@ -133,6 +136,9 @@ pub struct ProducerConfig {
     pub allow_auto_topic_creation: bool,
     /// Record batch compression.
     pub compression: Compression,
+    /// Validated zstd compression level (default 3); requires the `zstd` feature.
+    #[cfg(feature = "zstd")]
+    pub zstd_level: crate::protocol::records::ZstdLevel,
     /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
     /// SASL SCRAM-SHA-256 `(username, password)`.
@@ -170,7 +176,10 @@ pub struct ProducerConfig {
 
 impl fmt::Debug for ProducerConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ProducerConfig")
+        let mut config = f.debug_struct("ProducerConfig");
+        #[cfg(feature = "zstd")]
+        let _ = config.field("zstd_level", &self.zstd_level);
+        config
             .field("bootstrap", &self.bootstrap)
             .field("client_id", &self.client_id)
             .field("acks", &self.acks)
@@ -241,6 +250,8 @@ impl Default for ProducerConfig {
             connections_max_idle: crate::config::DEFAULT_CONNECTIONS_MAX_IDLE,
             allow_auto_topic_creation: false,
             compression: Compression::None,
+            #[cfg(feature = "zstd")]
+            zstd_level: crate::protocol::records::ZstdLevel::default(),
             sasl_plain: None,
             sasl_scram: None,
             sasl_scram_sha512: None,
@@ -347,6 +358,15 @@ impl ProducerConfig {
     #[must_use]
     pub fn compression(mut self, compression: Compression) -> Self {
         self.compression = compression;
+        self
+    }
+
+    /// Select a validated zstd encoder level (1 through 19, default 3).
+    /// This does not change the selected compression codec.
+    #[cfg(feature = "zstd")]
+    #[must_use]
+    pub fn zstd_level(mut self, level: crate::protocol::records::ZstdLevel) -> Self {
+        self.zstd_level = level;
         self
     }
 
@@ -915,12 +935,19 @@ impl BrokerThrottle {
     }
 }
 
+// Keep the exact coordinator negotiation beside its connection, so a moved
+// coordinator cannot inherit an InitProducerId version from the old socket.
+struct CoordinatorConnection {
+    conn: BrokerConn,
+    init_producer_id_version: Option<i16>,
+}
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
     meta: Mutex<BrokerConn>,
     /// Transaction coordinator. `None` when `transactional.id` is unset.
-    txn: Mutex<Option<BrokerConn>>,
+    txn: Mutex<Option<CoordinatorConnection>>,
     metadata_version: i16,
     /// Fixed at initialization: finalized transaction.version >= 2 and EndTxn v5.
     transaction_v2: bool,
@@ -1310,6 +1337,29 @@ fn rec_bytes(rec: &ProduceRecord) -> u64 {
     k.saturating_add(v).saturating_add(h)
 }
 
+// Admission owns buffers sized to the visible payload. Converting through Vec
+// exposes the whole allocation, including a prefix hidden by Bytes::slice.
+// Shared or custom owners copy; an exact, unique allocation can be reused.
+fn compact_payload(bytes: Bytes) -> Bytes {
+    let visible: Vec<u8> = bytes.into();
+    Bytes::from(visible.into_boxed_slice())
+}
+
+fn compact_record_backing(rec: &mut ProduceRecord) {
+    rec.key = rec.key.take().map(compact_payload);
+    rec.value = rec.value.take().map(compact_payload);
+    let headers = std::mem::take(&mut rec.headers);
+    rec.headers = headers.into_boxed_slice().into_vec();
+    for header in &mut rec.headers {
+        if header.key.capacity() != header.key.len() {
+            header.key = std::mem::take(&mut header.key)
+                .into_boxed_str()
+                .into_string();
+        }
+        header.value = header.value.take().map(compact_payload);
+    }
+}
+
 fn reject_java_producer_record(rec: &ProduceRecord) -> Result<()> {
     if let Some(timestamp) = rec.timestamp {
         if timestamp < 0 {
@@ -1473,33 +1523,44 @@ impl Producer {
         let mut producer_id = RecordBatch::NO_PRODUCER_ID;
         let mut producer_epoch = RecordBatch::NO_PRODUCER_EPOCH;
         let mut init_producer_id_version = 0i16;
+        // Coordinator discovery and producer-ID allocation are one startup
+        // phase. Rediscovery and backoff cannot renew its original budget.
+        let initialization_deadline = tokio::time::Instant::now() + cfg.request_timeout;
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
             Some(
-                discover_typed_coord(
-                    &cfg,
-                    tid,
-                    COORDINATOR_TRANSACTION,
-                    required_find_coordinator(find_coord_version)?,
+                tokio::time::timeout_at(
+                    initialization_deadline,
+                    discover_typed_coord(
+                        &cfg,
+                        tid,
+                        COORDINATOR_TRANSACTION,
+                        required_find_coordinator(find_coord_version)?,
+                    ),
                 )
-                .await?,
+                .await
+                .map_err(|_| Error::Timeout)??,
             )
         } else {
             None
         };
         if cfg.enable_idempotence {
-            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 5).ok_or_else(|| {
+            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 6).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
-            init_producer_id_version = ipid_version;
-            let body = init_producer_id_roundtrip(
-                &cfg,
-                &mut txn,
-                &mut meta,
-                ipid_version,
-                find_coord_version,
-                (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+            let (body, ipid_version) = tokio::time::timeout_at(
+                initialization_deadline,
+                init_producer_id_roundtrip(
+                    &cfg,
+                    &mut txn,
+                    Some(&mut meta),
+                    ipid_version,
+                    find_coord_version,
+                    (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+                ),
             )
-            .await?;
+            .await
+            .map_err(|_| Error::Timeout)??;
+            init_producer_id_version = ipid_version;
             let (err, pid, epoch, ..) =
                 decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
             if err != 0 {
@@ -1799,16 +1860,20 @@ impl Producer {
             self.ensure_ready(&mut rec, block_deadline).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             self.wait_buffer(bytes, block_deadline).await?;
+            let mut reservation = BufferReservation {
+                shared: &self.inner.shared,
+                bytes,
+                active: true,
+            };
             if self.inner.shared.closed.load(Ordering::SeqCst) {
-                self.inner.shared.release_buffer(bytes);
                 return Err(Error::Closed);
             }
+            compact_record_backing(&mut rec);
             let now = Instant::now();
             let deadline = now + self.inner.shared.cfg.delivery_timeout;
             let topic = rec.topic.clone();
             let rest_block = block_deadline.saturating_duration_since(now);
             if rest_block.is_zero() {
-                self.inner.shared.release_buffer(bytes);
                 return Err(Error::Timeout);
             }
             let send_res = tokio::time::timeout(
@@ -1831,13 +1896,11 @@ impl Producer {
             )
             .await;
             match send_res {
-                Ok(Ok(())) => {}
+                Ok(Ok(())) => reservation.active = false,
                 Ok(Err(_)) => {
-                    self.inner.shared.release_buffer(bytes);
                     return Err(Error::Closed);
                 }
                 Err(_) => {
-                    self.inner.shared.release_buffer(bytes);
                     return Err(Error::Timeout);
                 }
             }
@@ -2018,6 +2081,7 @@ impl Producer {
             bytes,
             active: true,
         };
+        compact_record_backing(&mut pending.as_mut().ok_or(Error::Closed)?.rec);
         loop {
             if shared.closed.load(Ordering::SeqCst) {
                 return Err(Error::Closed);
@@ -2171,6 +2235,7 @@ impl Producer {
                 bytes,
                 active: true,
             };
+            compact_record_backing(&mut rec);
             let unkeyed = rec.partition.is_none() && rec.key.is_none();
             let now = Instant::now();
             let topic = Arc::clone(&rec.topic);
@@ -2211,6 +2276,12 @@ impl Producer {
         if !self.inner.shared.try_reserve_buffer(bytes) {
             return Err(Error::QueueFull);
         }
+        let mut reservation = BufferReservation {
+            shared: &self.inner.shared,
+            bytes,
+            active: true,
+        };
+        compact_record_backing(&mut rec);
         if let Err(e) = w.data.try_send(Pending {
             sticky_record: None,
             sticky: None,
@@ -2226,12 +2297,12 @@ impl Producer {
             skip_meta_refresh: false,
             retry_after: now,
         }) {
-            self.inner.shared.release_buffer(bytes);
             return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Closed,
             });
         }
+        reservation.active = false;
         self.inner.shared.note_queued_n(&topic, 1, bytes);
         Ok(())
     }
@@ -2966,6 +3037,14 @@ fn pick(
 }
 
 async fn open_conn(addr: &str, cfg: &ProducerConfig, transaction_v2: bool) -> Result<BrokerConn> {
+    Ok(open_conn_with_versions(addr, cfg, transaction_v2).await?.0)
+}
+
+async fn open_conn_with_versions(
+    addr: &str,
+    cfg: &ProducerConfig,
+    transaction_v2: bool,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
@@ -3007,7 +3086,7 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig, transaction_v2: bool) -> Re
         cfg.request_timeout,
     )
     .await?;
-    Ok(conn)
+    Ok((conn, versions_resp))
 }
 
 async fn discover_typed_coord(
@@ -3015,52 +3094,104 @@ async fn discover_typed_coord(
     key: &str,
     key_type: i8,
     version: i16,
-) -> Result<BrokerConn> {
-    let timeout = cfg.request_timeout;
-    let mut last = Error::protocol("find coordinator failed");
-    // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
-    for _ in 0..3 {
-        for addr in &cfg.bootstrap {
-            let mut hop = match open_conn(addr, cfg, false).await {
-                Ok(c) => c,
-                Err(e) => {
-                    last = e;
-                    continue;
-                }
-            };
-            let body = match hop
-                .roundtrip(
-                    FIND_COORDINATOR,
-                    version,
-                    |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
-                    timeout,
-                )
-                .await
-            {
-                Ok(b) => b,
-                Err(e) => {
-                    last = e;
-                    continue;
-                }
-            };
-            let (err, _node, host, port) =
-                decode_find_coordinator_response(&mut body.clone(), version)?;
-            if err != 0 {
-                last = Error::broker(err, "FindCoordinator");
-                continue;
-            }
-            let coord_addr = format!("{host}:{port}");
-            if coord_addr == hop.addr() {
-                return Ok(hop);
-            }
-            return open_conn(&coord_addr, cfg, false).await;
+) -> Result<CoordinatorConnection> {
+    let deadline = Instant::now() + cfg.request_timeout;
+    let mut attempt = 0u32;
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(Error::Timeout);
         }
-        match &last {
-            Error::Broker { code, .. } if error::coordinator_retriable(*code) => {}
-            _ => break,
+        let mut attempt_cfg = cfg.clone();
+        attempt_cfg.request_timeout = remaining;
+        attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
+        let result = tokio::time::timeout_at(
+            deadline.into(),
+            discover_typed_coord_once(&attempt_cfg, key, key_type, version),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?;
+        match result {
+            Err(error)
+                if error
+                    .broker_code()
+                    .is_some_and(error::coordinator_retriable) =>
+            {
+                crate::config::sleep_retry_backoff(
+                    cfg.retry_backoff.max(Duration::from_millis(1)),
+                    cfg.retry_backoff_max.max(Duration::from_millis(1)),
+                    attempt,
+                    deadline,
+                )
+                .await;
+                attempt = attempt.saturating_add(1);
+            }
+            result => return result,
         }
     }
+}
+
+async fn discover_typed_coord_once(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+) -> Result<CoordinatorConnection> {
+    let timeout = cfg.request_timeout;
+    let mut last = Error::protocol("find coordinator failed");
+    for addr in &cfg.bootstrap {
+        let (mut hop, hop_versions) = match open_conn_with_versions(addr, cfg, false).await {
+            Ok(c) => c,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let body = match hop
+            .roundtrip(
+                FIND_COORDINATOR,
+                version,
+                |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+                timeout,
+            )
+            .await
+        {
+            Ok(b) => b,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let (err, _node, host, port) =
+            decode_find_coordinator_response(&mut body.clone(), version)?;
+        if err != 0 {
+            last = Error::broker(err, "FindCoordinator");
+            if !error::coordinator_retriable(err) {
+                return Err(last);
+            }
+            continue;
+        }
+        let coord_addr = format!("{host}:{port}");
+        if coord_addr == hop.addr() {
+            return Ok(coordinator_connection(hop, &hop_versions));
+        }
+        let (conn, versions) = open_conn_with_versions(&coord_addr, cfg, false).await?;
+        return Ok(coordinator_connection(conn, &versions));
+    }
     Err(last)
+}
+
+fn coordinator_connection(
+    conn: BrokerConn,
+    versions: &ApiVersionsResponse,
+) -> CoordinatorConnection {
+    let init_producer_id_version = versions
+        .api_version(INIT_PRODUCER_ID)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6));
+    CoordinatorConnection {
+        conn,
+        init_producer_id_version,
+    }
 }
 
 fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
@@ -3069,80 +3200,119 @@ fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
 
 async fn init_producer_id_roundtrip(
     cfg: &ProducerConfig,
-    txn: &mut Option<BrokerConn>,
-    meta: &mut BrokerConn,
+    txn: &mut Option<CoordinatorConnection>,
+    mut meta: Option<&mut BrokerConn>,
     version: i16,
     find_coord_version: Option<i16>,
     identity: (i64, i16),
-) -> Result<Bytes> {
+) -> Result<(Bytes, i16)> {
     let txn_id = cfg.transactional_id.clone();
-    let timeout = cfg.request_timeout;
+    let deadline = Instant::now() + cfg.request_timeout;
     let txn_timeout_ms = i32::try_from(cfg.transaction_timeout.as_millis())
         .unwrap_or(i32::MAX)
         .max(0);
     let (producer_id, producer_epoch) = identity;
-    let first = {
-        let conn = txn.as_mut().unwrap_or(meta);
-        conn.roundtrip(
-            INIT_PRODUCER_ID,
-            version,
-            |buf| {
-                encode_init_producer_id_request(
-                    buf,
-                    version,
-                    txn_id.as_deref(),
-                    txn_timeout_ms,
-                    producer_id,
-                    producer_epoch,
-                )
-            },
-            timeout,
+    let mut attempt = 0u32;
+    let mut rediscover = false;
+    let mut transport_retry_used = false;
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(Error::Timeout);
+        }
+        if rediscover {
+            let mut attempt_cfg = cfg.clone();
+            attempt_cfg.request_timeout = remaining;
+            attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
+            let tid = txn_id
+                .as_deref()
+                .ok_or_else(|| Error::protocol("no transactional id"))?;
+            let new = tokio::time::timeout_at(
+                deadline.into(),
+                discover_typed_coord(
+                    &attempt_cfg,
+                    tid,
+                    COORDINATOR_TRANSACTION,
+                    required_find_coordinator(find_coord_version)?,
+                ),
+            )
+            .await
+            .map_err(|_| Error::Timeout)??;
+            *txn = Some(new);
+        }
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let (conn, version) = match txn.as_mut() {
+            Some(coord) => (
+                &mut coord.conn,
+                coord.init_producer_id_version.ok_or_else(|| {
+                    Error::Unsupported("coordinator does not support InitProducerId v0-6".into())
+                })?,
+            ),
+            None => (
+                meta.as_deref_mut()
+                    .ok_or_else(|| Error::protocol("missing initialization connection"))?,
+                version,
+            ),
+        };
+        if txn_id.is_some() && producer_id >= 0 && version < 3 {
+            return Err(Error::Unsupported(
+                "coordinator does not support InitProducerId epoch recovery v3+".into(),
+            ));
+        }
+        let result = tokio::time::timeout_at(
+            deadline.into(),
+            conn.roundtrip(
+                INIT_PRODUCER_ID,
+                version,
+                |buf| {
+                    encode_init_producer_id_request(
+                        buf,
+                        version,
+                        txn_id.as_deref(),
+                        txn_timeout_ms,
+                        producer_id,
+                        producer_epoch,
+                    )
+                },
+                timeout,
+            ),
         )
         .await
-    };
-    let Some(tid) = txn_id else {
-        return first;
-    };
-    match first {
-        Ok(body) => {
-            let err = decode_init_producer_id_response(&mut body.clone(), version)?.0;
-            if !error::coordinator_retriable(err) {
-                return Ok(body);
+        .map_err(|_| Error::Timeout)?;
+        match result {
+            Ok(body) => {
+                let err = decode_init_producer_id_response(&mut body.clone(), version)?.0;
+                if !error::coordinator_retriable(err) {
+                    return Ok((body, version));
+                }
+                // Loading can recover on the current connection. Missing/moved
+                // transactional coordinators require rediscovery before retry.
+                rediscover = txn_id.is_some() && err != error::COORDINATOR_LOAD_IN_PROGRESS;
             }
+            // Preserve the existing one transport retry for transactions. Typed
+            // startup retries do not replay application Produce requests.
+            Err(e)
+                if txn_id.is_some()
+                    && !transport_retry_used
+                    && (e.is_retriable() || matches!(e, Error::Closed)) =>
+            {
+                transport_retry_used = true;
+                rediscover = true;
+            }
+            Err(e) => return Err(e),
         }
-        // `Closed` is a dead socket, not a dead producer: rediscover and
-        // retry once like any other transport failure (KL03-10). Without
-        // this, one broker-side close bricks the coordinator channel.
-        Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
-        Err(e) => return Err(e),
+        crate::config::sleep_retry_backoff(
+            cfg.retry_backoff.max(Duration::from_millis(1)),
+            cfg.retry_backoff_max.max(Duration::from_millis(1)),
+            attempt,
+            deadline,
+        )
+        .await;
+        attempt = attempt.saturating_add(1);
     }
-    let new = discover_typed_coord(
-        cfg,
-        &tid,
-        COORDINATOR_TRANSACTION,
-        required_find_coordinator(find_coord_version)?,
-    )
-    .await?;
-    *txn = Some(new);
-    let conn = txn
-        .as_mut()
-        .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-    conn.roundtrip(
-        INIT_PRODUCER_ID,
-        version,
-        |buf| {
-            encode_init_producer_id_request(
-                buf,
-                version,
-                Some(tid.as_str()),
-                txn_timeout_ms,
-                producer_id,
-                producer_epoch,
-            )
-        },
-        timeout,
-    )
-    .await
 }
 
 /// KIP-360 epoch bump: InitProducerId with the last producer id and epoch.
@@ -3159,33 +3329,21 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     if pid < 0 {
         return Ok(());
     }
-    let tid = shared
-        .cfg
-        .transactional_id
-        .clone()
-        .ok_or_else(reject_java_no_transaction_manager)?;
-    let timeout = shared.cfg.request_timeout;
-    let txn_timeout_ms = i32::try_from(shared.cfg.transaction_timeout.as_millis())
-        .unwrap_or(i32::MAX)
-        .max(0);
-    let body = txn_roundtrip(
-        shared,
-        INIT_PRODUCER_ID,
-        version,
-        |buf| {
-            encode_init_producer_id_request(
-                buf,
-                version,
-                Some(tid.as_str()),
-                txn_timeout_ms,
-                pid,
-                epoch,
-            )
-        },
-        timeout,
-        |body| Ok(decode_init_producer_id_response(&mut { body }, version)?.0),
-    )
-    .await?;
+    let deadline = tokio::time::Instant::now() + shared.cfg.request_timeout;
+    let (body, version) = tokio::time::timeout_at(deadline, async {
+        let mut txn = shared.txn.lock().await;
+        init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut txn,
+            None,
+            version,
+            shared.find_coord_version,
+            (pid, epoch),
+        )
+        .await
+    })
+    .await
+    .map_err(|_| Error::Timeout)??;
     let (err, new_pid, new_epoch, ..) =
         decode_init_producer_id_response(&mut body.clone(), version)?;
     if err != 0 {
@@ -3210,18 +3368,22 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
 /// the transactional KIP-360 bump above is a separate path and is untouched.
 async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
     let version = shared.init_producer_id_version;
-    let mut txn: Option<BrokerConn> = None;
-    let mut meta = shared.meta.lock().await;
-    let body = init_producer_id_roundtrip(
-        &shared.cfg,
-        &mut txn,
-        &mut meta,
-        version,
-        shared.find_coord_version,
-        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
-    )
-    .await?;
-    drop(meta);
+    let deadline = tokio::time::Instant::now() + shared.cfg.request_timeout;
+    let (body, version) = tokio::time::timeout_at(deadline, async {
+        let mut txn: Option<CoordinatorConnection> = None;
+        let mut meta = shared.meta.lock().await;
+        init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut txn,
+            Some(&mut meta),
+            version,
+            shared.find_coord_version,
+            (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+        )
+        .await
+    })
+    .await
+    .map_err(|_| Error::Timeout)??;
     let (err, new_pid, new_epoch, ..) =
         decode_init_producer_id_response(&mut body.clone(), version)?;
     if err != 0 {
@@ -3267,13 +3429,14 @@ async fn txn_roundtrip(
         let conn = guard
             .as_mut()
             .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-        conn.roundtrip(
-            api_key,
-            api_version,
-            |buf| encode_body(buf),
-            request_timeout,
-        )
-        .await
+        conn.conn
+            .roundtrip(
+                api_key,
+                api_version,
+                |buf| encode_body(buf),
+                request_timeout,
+            )
+            .await
     };
     match first {
         Ok(body) if !error::coordinator_retriable(error_of(&body)?) => return Ok(body),
@@ -3296,13 +3459,14 @@ async fn txn_roundtrip(
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-    conn.roundtrip(
-        api_key,
-        api_version,
-        |buf| encode_body(buf),
-        request_timeout,
-    )
-    .await
+    conn.conn
+        .roundtrip(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            request_timeout,
+        )
+        .await
 }
 
 #[expect(
@@ -3323,6 +3487,7 @@ async fn group_coord_roundtrip(
     let mut coord =
         discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
     let body = coord
+        .conn
         .roundtrip(
             api_key,
             api_version,
@@ -3335,6 +3500,7 @@ async fn group_coord_roundtrip(
     }
     coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
     coord
+        .conn
         .roundtrip(
             api_key,
             api_version,
@@ -4445,6 +4611,12 @@ impl Worker {
         let timeout_ms =
             i32::try_from(self.shared.cfg.request_timeout.as_millis()).unwrap_or(i32::MAX);
         let compression = self.shared.cfg.compression;
+        #[cfg(feature = "zstd")]
+        self.compress_scratch
+            .set_zstd_level(self.shared.cfg.zstd_level);
+        #[cfg(feature = "zstd")]
+        self.compress_scratch
+            .set_zstd_max_batch_bytes(self.shared.cfg.max_request_size);
         self.write_buf.clear();
         self.write_buf.put_i32(0);
         let correlation = self.conn.next_correlation();
@@ -5298,6 +5470,11 @@ fn encode_produce_body(
     transactional_id: Option<&str>,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
+    if version < 7 && compression.id() == 4 {
+        return Err(Error::Unsupported(
+            "zstd produce requires Produce v7 or newer".into(),
+        ));
+    }
     // v9–v12 share this compact request layout (v10+ CurrentLeader is
     // response-only; v12 transaction V2 is Produce-does-AddPartitionsToTxn).
     // v13 substitutes the retained UUID for each compact topic name.
@@ -5601,6 +5778,50 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compact_payload_preserves_bytes_and_reuses_an_exact_unique_allocation() {
+        let original = Bytes::from(vec![b'v'; 64]);
+        let pointer = original.as_ptr();
+        let compact = compact_payload(original);
+        assert_eq!(compact.as_ptr(), pointer);
+        let actual: Vec<u8> = compact.into();
+        assert_eq!(actual, vec![b'v'; 64]);
+        assert_eq!(actual.capacity(), actual.len());
+    }
+
+    #[test]
+    fn compact_payload_drops_hidden_prefix_and_excess_tail_capacity() {
+        let large = Bytes::from(vec![b'v'; 4 * 1024 * 1024]);
+        let tail = large.slice(large.len() - 64..);
+        drop(large);
+        let actual: Vec<u8> = compact_payload(tail).into();
+        assert_eq!(actual, vec![b'v'; 64]);
+        assert_eq!(actual.capacity(), 64);
+        let mut excessive = Vec::with_capacity(4 * 1024 * 1024);
+        excessive.extend_from_slice(b"small");
+        let actual: Vec<u8> = compact_payload(Bytes::from(excessive)).into();
+        assert_eq!(actual, b"small");
+        assert_eq!(actual.capacity(), 5);
+    }
+
+    #[test]
+    fn compact_record_bounds_header_string_and_vector_capacity_preserving_nulls() {
+        let mut headers = Vec::with_capacity(4096);
+        let mut key = String::with_capacity(4 * 1024 * 1024);
+        key.push_str("世界");
+        headers.push(RecordHeader { key, value: None });
+        headers.push(RecordHeader::new("empty", Bytes::new()));
+        let mut record = ProduceRecord::to("t").value(Bytes::new()).headers(headers);
+        compact_record_backing(&mut record);
+        assert!(record.key.is_none());
+        assert_eq!(record.value, Some(Bytes::new()));
+        assert_eq!(record.headers.capacity(), 2);
+        assert_eq!(record.headers[0].key, "世界");
+        assert_eq!(record.headers[0].key.capacity(), "世界".len());
+        assert!(record.headers[0].value.is_none());
+        assert_eq!(record.headers[1].value, Some(Bytes::new()));
+    }
 
     #[test]
     fn broker_throttle_extends_without_zero_or_negative_unmute() {

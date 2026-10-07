@@ -1,4 +1,4 @@
-//! Magic-v2 RecordBatch codec (gzip, snappy, lz4).
+//! Magic-v2 RecordBatch codec (gzip, snappy, LZ4; optional zstd).
 
 use std::fmt;
 use std::io::{Read, Write};
@@ -14,7 +14,7 @@ pub const MAGIC_V2: i8 = 2;
 /// Default upper bound on decompressed record-batch bytes (64 MiB).
 ///
 /// This ceiling protects against decompression bombs during gzip, snappy,
-/// and LZ4 decoding. It is set strictly above `ConsumerConfig::max_partition_fetch_bytes`
+/// LZ4 and optional zstd decoding. It is set strictly above `ConsumerConfig::max_partition_fetch_bytes`
 /// (16 MiB default) so that legitimate oversized first batches can still make
 /// progress under Kafka's oversized-first-batch delivery rule.
 pub const DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES: usize = 64 * 1024 * 1024;
@@ -173,9 +173,45 @@ fn next_batch_size(buffer: &[u8], max_message_size: i32) -> Result<Option<i32>> 
     Ok(Some(record_size.wrapping_add(Records::LOG_OVERHEAD)))
 }
 
+/// Validated zstd encoder level for the optional `zstd` feature.
+///
+/// Levels 1 through 19 are supported; 3 is the default. Zero, negative levels
+/// and levels above 19 are rejected rather than silently mapped by a backend.
+#[cfg(feature = "zstd")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZstdLevel(i32);
+
+#[cfg(feature = "zstd")]
+impl ZstdLevel {
+    /// Lowest supported compression level.
+    pub const MIN: i32 = 1;
+    /// Highest supported compression level.
+    pub const MAX: i32 = 19;
+    /// Validate an explicitly selected level.
+    pub fn new(level: i32) -> Result<Self> {
+        if !(Self::MIN..=Self::MAX).contains(&level) {
+            return Err(Error::protocol("zstd level must be between 1 and 19"));
+        }
+        Ok(Self(level))
+    }
+    /// The selected level.
+    #[must_use]
+    pub const fn get(self) -> i32 {
+        self.0
+    }
+}
+
+#[cfg(feature = "zstd")]
+impl Default for ZstdLevel {
+    fn default() -> Self {
+        Self(3)
+    }
+}
+
 /// Kafka record-batch compression codec.
 ///
-/// zstd is not implemented (the usual ecosystem codec is C).
+/// The optional `zstd` feature enables bounded decoding and encoding with
+/// explicit levels 1 through 19 (default 3).
 ///
 /// [`std::fmt::Display`] is Java `CompressionType.toString` (`gzip`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -191,6 +227,9 @@ pub enum Compression {
     Snappy = 2,
     /// LZ4 frame.
     Lz4 = 3,
+    /// Zstandard, enabled by the optional `zstd` feature.
+    #[cfg(feature = "zstd")]
+    Zstd = 4,
 }
 
 impl Compression {
@@ -201,18 +240,26 @@ impl Compression {
             1 => Ok(Self::Gzip),
             2 => Ok(Self::Snappy),
             3 => Ok(Self::Lz4),
+            #[cfg(feature = "zstd")]
+            4 => Ok(Self::Zstd),
+            #[cfg(not(feature = "zstd"))]
+            4 => Err(Error::Unsupported("zstd requires the zstd feature".into())),
             n => Err(Error::protocol(format!("unsupported compression {n}"))),
         }
     }
 
     /// Java `CompressionType.forName` (`none` / `gzip` / `snappy` / `lz4`).
-    /// Empty is [`Self::None`]. zstd is not spoken.
+    /// Empty is [`Self::None`]. `zstd` requires the optional feature.
     pub fn from_name(name: &str) -> Result<Self> {
         match name {
             "none" | "" => Ok(Self::None),
             "gzip" => Ok(Self::Gzip),
             "snappy" => Ok(Self::Snappy),
             "lz4" => Ok(Self::Lz4),
+            #[cfg(feature = "zstd")]
+            "zstd" => Ok(Self::Zstd),
+            #[cfg(not(feature = "zstd"))]
+            "zstd" => Err(Error::Unsupported("zstd requires the zstd feature".into())),
             other => Err(Error::protocol(format!(
                 "Unknown compression name: {other}"
             ))),
@@ -227,11 +274,12 @@ impl Compression {
             Self::Gzip => 1,
             Self::Snappy => 2,
             Self::Lz4 => 3,
+            #[cfg(feature = "zstd")]
+            Self::Zstd => 4,
         }
     }
 
-    /// Java `CompressionType.forId`. Unknown ids (including zstd `4`) return
-    /// `None`.
+    /// Java `CompressionType.forId`. Unknown or disabled ids return `None`.
     #[must_use]
     pub fn from_id(id: i32) -> Option<Self> {
         match id {
@@ -239,6 +287,8 @@ impl Compression {
             1 => Some(Self::Gzip),
             2 => Some(Self::Snappy),
             3 => Some(Self::Lz4),
+            #[cfg(feature = "zstd")]
+            4 => Some(Self::Zstd),
             _ => None,
         }
     }
@@ -250,6 +300,8 @@ impl Compression {
             Self::Gzip => "gzip",
             Self::Snappy => "snappy",
             Self::Lz4 => "lz4",
+            #[cfg(feature = "zstd")]
+            Self::Zstd => "zstd",
         }
     }
 
@@ -275,12 +327,13 @@ impl Compression {
 
     /// Java `CompressionType.defaultLevel`.
     ///
-    /// [`Self::None`] / [`Self::Snappy`] are [`Error::Unsupported`]. zstd is
-    /// not spoken.
+    /// Codecs without an encoder level are [`Error::Unsupported`].
     pub fn default_level(self) -> Result<i32> {
         match self {
             Self::Gzip => Ok(Self::GZIP_DEFAULT_LEVEL),
             Self::Lz4 => Ok(Self::LZ4_DEFAULT_LEVEL),
+            #[cfg(feature = "zstd")]
+            Self::Zstd => Ok(ZstdLevel::default().get()),
             other => Err(other.levels_unsupported()),
         }
     }
@@ -292,6 +345,8 @@ impl Compression {
         match self {
             Self::Gzip => Ok(Self::GZIP_MIN_LEVEL),
             Self::Lz4 => Ok(Self::LZ4_MIN_LEVEL),
+            #[cfg(feature = "zstd")]
+            Self::Zstd => Ok(ZstdLevel::MIN),
             other => Err(other.levels_unsupported()),
         }
     }
@@ -303,6 +358,8 @@ impl Compression {
         match self {
             Self::Gzip => Ok(Self::GZIP_MAX_LEVEL),
             Self::Lz4 => Ok(Self::LZ4_MAX_LEVEL),
+            #[cfg(feature = "zstd")]
+            Self::Zstd => Ok(ZstdLevel::MAX),
             other => Err(other.levels_unsupported()),
         }
     }
@@ -316,6 +373,11 @@ impl Compression {
             Self::Gzip => gzip_compress_into(src, &mut out)?,
             Self::Snappy => snappy_compress_into(src, &mut out)?,
             Self::Lz4 => lz4_compress_into(src, &mut out)?,
+            #[cfg(feature = "zstd")]
+            Self::Zstd => {
+                let mut context = None;
+                zstd_compress_into(src, &mut out, &mut context, ZstdLevel::default())?;
+            }
         }
         Ok(out)
     }
@@ -340,8 +402,88 @@ impl Compression {
             Self::Gzip => gzip_decompress(src, max_bytes),
             Self::Snappy => snappy_decompress(src, max_bytes),
             Self::Lz4 => lz4_decompress(src, max_bytes),
+            #[cfg(feature = "zstd")]
+            Self::Zstd => zstd_decompress(src, max_bytes),
         }
     }
+}
+
+/// Decode a finite sequence of ordinary/skippable zstd frames. Header checks
+/// run before backend allocation. Limits concern decoded bytes and declared
+/// windows, not allocator capacity or process RSS.
+#[cfg(feature = "zstd")]
+fn zstd_decompress(mut src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    const MAX_FRAMES: usize = 1024;
+    let max_bytes = max_bytes.min(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
+    let max_u64 = u64::try_from(max_bytes)
+        .map_err(|_| Error::protocol("zstd decode limit does not fit u64"))?;
+    let window_limit = u64::try_from(DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+        .map_err(|_| Error::protocol("zstd window limit does not fit u64"))?;
+    if src.is_empty() {
+        return Err(Error::protocol("empty zstd frame sequence"));
+    }
+    let mut out = Vec::new();
+    let mut decoder = None;
+    let mut frames = 0;
+    while !src.is_empty() {
+        frames += 1;
+        if frames > MAX_FRAMES {
+            return Err(Error::protocol("zstd frame count exceeds 1024"));
+        }
+        let magic = u32::from_le_bytes(
+            src.get(..4)
+                .ok_or_else(|| Error::protocol("truncated zstd magic"))?
+                .try_into()
+                .map_err(|_| Error::protocol("truncated zstd magic"))?,
+        );
+        let consumed = if magic & 0xfffffff0 == 0x184d2a50 {
+            let size = u32::from_le_bytes(
+                src.get(4..8)
+                    .ok_or_else(|| Error::protocol("truncated zstd skippable header"))?
+                    .try_into()
+                    .map_err(|_| Error::protocol("truncated zstd skippable header"))?,
+            );
+            8usize
+                .checked_add(
+                    usize::try_from(size)
+                        .map_err(|_| Error::protocol("zstd skippable size overflow"))?,
+                )
+                .filter(|&end| end <= src.len())
+                .ok_or_else(|| Error::protocol("truncated zstd skippable frame"))?
+        } else {
+            let header = zstd_rs::FrameHeader::parse(src)
+                .map_err(|e| Error::protocol(format!("zstd frame header: {e}")))?;
+            if header.window_size > window_limit {
+                return Err(Error::protocol("zstd window exceeds 64 MiB"));
+            }
+            if header.dict_id != 0 {
+                return Err(Error::Unsupported(
+                    "zstd dictionaries are not supported".into(),
+                ));
+            }
+            let used = u64::try_from(out.len())
+                .map_err(|_| Error::protocol("zstd decoded size overflow"))?;
+            if header
+                .content_size
+                .is_some_and(|size| size > max_u64.saturating_sub(used))
+            {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            }
+            decoder
+                .get_or_insert_with(zstd_rs::Decompressor::new)
+                .decompress_frame(src, None, max_bytes, &mut out)
+                .map_err(|e| Error::protocol(format!("zstd decode: {e}")))?
+        };
+        if consumed == 0 || out.len() > max_bytes {
+            return Err(Error::protocol("invalid zstd decoder progress or size"));
+        }
+        src = src
+            .get(consumed..)
+            .ok_or_else(|| Error::protocol("invalid zstd frame extent"))?;
+    }
+    Ok(out)
 }
 
 impl fmt::Display for Compression {
@@ -1936,6 +2078,12 @@ pub struct CompressScratch {
     packed: Vec<u8>,
     section_cap: usize,
     packed_cap: usize,
+    #[cfg(feature = "zstd")]
+    zstd_level: ZstdLevel,
+    #[cfg(feature = "zstd")]
+    zstd_max_batch_bytes: usize,
+    #[cfg(feature = "zstd")]
+    zstd_encoder: Option<zstd_rs::Compressor>,
 }
 
 impl CompressScratch {
@@ -1952,10 +2100,38 @@ impl CompressScratch {
             packed: Vec::new(),
             section_cap: section_cap.max(1024),
             packed_cap: packed_cap.max(1024),
+            #[cfg(feature = "zstd")]
+            zstd_level: ZstdLevel::default(),
+            #[cfg(feature = "zstd")]
+            zstd_max_batch_bytes: 0,
+            #[cfg(feature = "zstd")]
+            zstd_encoder: None,
         }
     }
 
+    /// Select a validated zstd level; changing it drops the old encoder context.
+    #[cfg(feature = "zstd")]
+    pub fn set_zstd_level(&mut self, level: ZstdLevel) {
+        if self.zstd_level != level {
+            self.zstd_encoder = None;
+            self.zstd_level = level;
+        }
+    }
+
+    /// Limit the complete encoded zstd batch, including its Kafka header.
+    /// Zero disables this extra cap; the codec's 64 MiB input limit still applies.
+    #[cfg(feature = "zstd")]
+    pub fn set_zstd_max_batch_bytes(&mut self, bytes: usize) {
+        self.zstd_max_batch_bytes = bytes;
+    }
+
     fn shrink_to_caps(&mut self) {
+        #[cfg(feature = "zstd")]
+        if self.section.capacity() > self.section_cap.saturating_mul(2)
+            || self.packed.capacity() > self.packed_cap.saturating_mul(2)
+        {
+            self.zstd_encoder = None;
+        }
         if self.section.capacity() > self.section_cap.saturating_mul(2) {
             self.section = BytesMut::with_capacity(self.section_cap);
         }
@@ -1992,6 +2168,66 @@ where
     I: Iterator<Item = EncodeRecord<'a>>,
 {
     let compression = Compression::from_attributes(header.attributes)?;
+    #[cfg(feature = "zstd")]
+    if compression == Compression::Zstd {
+        return write_zstd_record_batch(buf, header, records, scratch);
+    }
+    let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+    match compression {
+        Compression::None => {
+            for (i, rec) in records.enumerate() {
+                encode_record(
+                    buf,
+                    &rec,
+                    buf::i32_from_usize(i)?,
+                    rec.timestamp.wrapping_sub(header.base_timestamp),
+                )?;
+            }
+        }
+        Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
+            // KL09-33: 1 KiB floor kills the early doubling steps for real
+            // batches; exact one-pass sizing belongs to KL09-32. `reserve`
+            // is a no-op once reused capacity covers it.
+            let section = &mut scratch.section;
+            section.clear();
+            section.reserve(1024);
+            for (i, rec) in records.enumerate() {
+                encode_record(
+                    section,
+                    &rec,
+                    buf::i32_from_usize(i)?,
+                    rec.timestamp.wrapping_sub(header.base_timestamp),
+                )?;
+            }
+            let packed = &mut scratch.packed;
+            match compression {
+                Compression::Gzip => gzip_compress_into(section, packed)?,
+                Compression::Snappy => snappy_compress_into(section, packed)?,
+                Compression::Lz4 => lz4_compress_into(section, packed)?,
+                Compression::None => {
+                    return Err(Error::protocol("internal: none after compressed branch"));
+                }
+                #[cfg(feature = "zstd")]
+                Compression::Zstd => {
+                    return Err(Error::Unsupported(
+                        "internal: zstd after non-zstd encoder branch".into(),
+                    ))
+                }
+            }
+            buf.extend_from_slice(packed);
+            scratch.shrink_to_caps();
+        }
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => {
+            return Err(Error::Unsupported(
+                "internal: zstd after non-zstd encoder branch".into(),
+            ))
+        }
+    }
+    finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
+}
+
+fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize, usize, usize) {
     let batch_start = buf.len();
     buf.put_i64(header.base_offset);
     let batch_len_pos = buf.len();
@@ -2014,45 +2250,16 @@ where
     buf.put_i16(header.producer_epoch);
     buf.put_i32(header.base_sequence);
     buf.put_i32(header.count);
-    match compression {
-        Compression::None => {
-            for (i, rec) in records.enumerate() {
-                encode_record(
-                    buf,
-                    &rec,
-                    buf::i32_from_usize(i)?,
-                    rec.timestamp - header.base_timestamp,
-                )?;
-            }
-        }
-        Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
-            // KL09-33: 1 KiB floor kills the early doubling steps for real
-            // batches; exact one-pass sizing belongs to KL09-32. `reserve`
-            // is a no-op once reused capacity covers it.
-            let section = &mut scratch.section;
-            section.clear();
-            section.reserve(1024);
-            for (i, rec) in records.enumerate() {
-                encode_record(
-                    section,
-                    &rec,
-                    buf::i32_from_usize(i)?,
-                    rec.timestamp - header.base_timestamp,
-                )?;
-            }
-            let packed = &mut scratch.packed;
-            match compression {
-                Compression::Gzip => gzip_compress_into(section, packed)?,
-                Compression::Snappy => snappy_compress_into(section, packed)?,
-                Compression::Lz4 => lz4_compress_into(section, packed)?,
-                Compression::None => {
-                    return Err(Error::protocol("internal: none after compressed branch"));
-                }
-            }
-            buf.extend_from_slice(packed);
-            scratch.shrink_to_caps();
-        }
-    }
+    (batch_start, batch_len_pos, crc_pos, crc_start)
+}
+
+fn finish_record_batch(
+    buf: &mut BytesMut,
+    batch_start: usize,
+    batch_len_pos: usize,
+    crc_pos: usize,
+    crc_start: usize,
+) -> Result<()> {
     let end = buf.len();
     let batch_len = buf::i32_from_usize(end.saturating_sub(batch_len_pos + 4))?;
     buf::patch_i32(buf, batch_len_pos, batch_len)?;
@@ -2066,6 +2273,107 @@ where
         Records::LOG_OVERHEAD as usize + buf::usize_from_i32(batch_len).unwrap_or(0)
     );
     Ok(())
+}
+
+#[cfg(feature = "zstd")]
+fn zstd_compress_into(
+    src: &[u8],
+    out: &mut Vec<u8>,
+    context: &mut Option<zstd_rs::Compressor>,
+    level: ZstdLevel,
+) -> Result<()> {
+    if src.len() > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
+        return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+    }
+    out.clear();
+    if context.is_none() {
+        *context = Some(
+            zstd_rs::Compressor::new(zstd_rs::CompressionConfig {
+                level: level.get(),
+                window_log: 23,
+                checksum: true,
+                content_size: true,
+                dict_id: false,
+                format: zstd_rs::FrameFormat::Standard,
+            })
+            .map_err(|e| Error::protocol(format!("zstd encoder config: {e}")))?,
+        );
+    }
+    context
+        .as_mut()
+        .ok_or_else(|| Error::protocol("missing zstd encoder"))?
+        .compress(src, None, out)
+        .map_err(|e| Error::protocol(format!("zstd encode: {e}")))?;
+    if out.len() > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES.saturating_add(64 * 1024) {
+        return Err(Error::protocol(
+            "zstd compressed section exceeds output limit",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "zstd")]
+fn write_zstd_record_batch<'a, I>(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+) -> Result<()>
+where
+    I: Iterator<Item = EncodeRecord<'a>>,
+{
+    let original = buf.len();
+    scratch.section.clear();
+    scratch.packed.clear();
+    let result = (|| {
+        let mut count = 0usize;
+        for rec in records {
+            let delta = buf::i32_from_usize(count)?;
+            let timestamp = rec.timestamp.wrapping_sub(header.base_timestamp);
+            let body = record_body_size(&rec, delta, timestamp)?;
+            let size = buf::usize_from_i32(body)?
+                .checked_add(buf::varint_size(body))
+                .and_then(|n| n.checked_add(scratch.section.len()))
+                .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
+            if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
+                return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+            }
+            encode_record(&mut scratch.section, &rec, delta, timestamp)?;
+            count += 1;
+        }
+        if header.count != buf::i32_from_usize(count)? {
+            return Err(Error::protocol("zstd record count differs from header"));
+        }
+        zstd_compress_into(
+            &scratch.section,
+            &mut scratch.packed,
+            &mut scratch.zstd_encoder,
+            scratch.zstd_level,
+        )?;
+        let encoded_bytes = scratch
+            .packed
+            .len()
+            .checked_add(61)
+            .ok_or_else(|| Error::protocol("zstd batch size overflow"))?;
+        if scratch.zstd_max_batch_bytes != 0 && encoded_bytes > scratch.zstd_max_batch_bytes {
+            return Err(Error::RecordTooLarge {
+                size: u64::try_from(encoded_bytes).unwrap_or(u64::MAX),
+                max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
+                config: Error::MAX_REQUEST_SIZE_CONFIG,
+            });
+        }
+        let (start, len, crc, data) = start_record_batch(buf, header);
+        buf.extend_from_slice(&scratch.packed);
+        finish_record_batch(buf, start, len, crc, data)
+    })();
+    if result.is_err() {
+        buf.truncate(original);
+        scratch.section.clear();
+        scratch.packed.clear();
+        scratch.zstd_encoder = None;
+    }
+    scratch.shrink_to_caps();
+    result
 }
 
 fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
@@ -2404,6 +2712,8 @@ fn decode_checked_batch(
         Compression::Gzip => Bytes::from(gzip_decompress(&body, max_decode_bytes)?),
         Compression::Snappy => Bytes::from(snappy_decompress(&body, max_decode_bytes)?),
         Compression::Lz4 => Bytes::from(lz4_decompress(&body, max_decode_bytes)?),
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => Bytes::from(zstd_decompress(&body, max_decode_bytes)?),
     };
     let count_usize = buf::usize_from_i32(count)?;
     if count_usize > records_cur.remaining() {
@@ -2496,8 +2806,8 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         )));
     }
     Ok(Record {
-        offset: base_offset + i64::from(offset_delta),
-        timestamp: base_timestamp + timestamp_delta,
+        offset: base_offset.wrapping_add(i64::from(offset_delta)),
+        timestamp: base_timestamp.wrapping_add(timestamp_delta),
         key,
         value,
         headers,
@@ -2835,7 +3145,10 @@ mod tests {
         assert_eq!(Compression::from_id(1), Some(Compression::Gzip));
         assert_eq!(Compression::from_id(2), Some(Compression::Snappy));
         assert_eq!(Compression::from_id(3), Some(Compression::Lz4));
+        #[cfg(not(feature = "zstd"))]
         assert!(Compression::from_id(4).is_none());
+        #[cfg(feature = "zstd")]
+        assert_eq!(Compression::from_id(4), Some(Compression::Zstd));
         assert!(Compression::from_id(-1).is_none());
         assert_eq!(TimestampType::from_id(0), Some(TimestampType::CreateTime));
         assert_eq!(

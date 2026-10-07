@@ -159,11 +159,12 @@ def compile_against_package(archive, selected, work, feature_mode="tracing", too
     feature_table = package_info.get('features', {})
     defaults = set(feature_table.get('default', []))
     declared = set(feature_table) - {'default'}
-    # zlib-rs is the approved default gzip backend (KL10-05); tracing is the
-    # only approved opt-in feature.
-    if not defaults.issubset({'zlib-rs'}) or not (declared - defaults).issubset({'tracing'}):
+    # Keep every optional feature explicit in the packaged consumer matrix.
+    if not defaults.issubset({'zlib-rs'}) or not (declared - defaults).issubset({'tracing', 'zstd'}):
         raise CheckError('packaged optional-feature matrix needs an explicit update')
-    features = [] if feature_mode == 'default' else sorted(declared - defaults)
+    features = [] if feature_mode == 'default' else (sorted(declared - defaults) if feature_mode == 'all' else [feature_mode])
+    if not set(features).issubset(declared - defaults):
+        raise CheckError('requested optional feature is not declared by the package')
     cargo = ['cargo'] + ([f'+{toolchain}'] if toolchain else [])
     dependency = json.dumps(str(manifests[0].parent))
     (consumer / 'Cargo.toml').write_text(f'''[package]
@@ -203,7 +204,7 @@ def main(argv=None):
     parser.add_argument('--allow-dirty', action='store_true', help='local development packaging only')
     parser.add_argument('--links-only', action='store_true')
     parser.add_argument('--report', type=Path)
-    parser.add_argument('--features', choices=('default', 'tracing', 'all'), default='tracing')
+    parser.add_argument('--features', choices=('default', 'tracing', 'zstd', 'all'), default='tracing')
     parser.add_argument('--toolchain', help='installed Rust toolchain; otherwise current')
     args = parser.parse_args(argv)
     root = args.root.resolve()

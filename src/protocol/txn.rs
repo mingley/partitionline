@@ -2195,25 +2195,41 @@ fn txn_marker_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()>
     Ok(())
 }
 
+fn txn_marker_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<usize> {
+    buf::get_array_len(buf, flexible)?
+        .ok_or_else(|| Error::protocol("WriteTxnMarkers nonnullable array is null"))
+}
+
 fn decode_write_txn_markers_request_items<B: Buf, T>(
     buf: &mut B,
     version: i16,
     mut project: impl FnMut(WritableTxnMarker, i8) -> T,
 ) -> Result<Vec<T>> {
     let flexible = write_txn_markers_flexible(version)?;
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    txn_marker_count(buf, n, if flexible { 17 } else { 19 })?;
+    let n = txn_marker_array_len(buf, flexible)?;
+    txn_marker_count(
+        buf,
+        n,
+        if version == 2 {
+            18
+        } else if flexible {
+            17
+        } else {
+            19
+        },
+    )?;
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
         let producer_epoch = buf::get_i16(buf)?;
         let transaction_result = buf::get_bool(buf)?;
-        let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let tn = txn_marker_array_len(buf, flexible)?;
         txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
-            let name = buf::get_string(buf, flexible)?.unwrap_or_default();
-            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            let name = buf::get_string(buf, flexible)?
+                .ok_or_else(|| Error::protocol("WriteTxnMarkers nonnullable topic name is null"))?;
+            let pn = txn_marker_array_len(buf, flexible)?;
             txn_marker_count(buf, pn, 4)?;
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
@@ -2287,17 +2303,18 @@ pub fn decode_write_txn_markers_response<B: Buf>(
     version: i16,
 ) -> Result<Vec<WritableTxnMarkerResult>> {
     let flexible = write_txn_markers_flexible(version)?;
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let n = txn_marker_array_len(buf, flexible)?;
     txn_marker_count(buf, n, if flexible { 10 } else { 12 })?;
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
-        let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let tn = txn_marker_array_len(buf, flexible)?;
         txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
-            let name = buf::get_string(buf, flexible)?.unwrap_or_default();
-            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            let name = buf::get_string(buf, flexible)?
+                .ok_or_else(|| Error::protocol("WriteTxnMarkers nonnullable topic name is null"))?;
+            let pn = txn_marker_array_len(buf, flexible)?;
             txn_marker_count(buf, pn, if flexible { 7 } else { 6 })?;
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {

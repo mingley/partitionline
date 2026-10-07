@@ -463,7 +463,10 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.compression, Compression::Lz4);
     assert_eq!(p.compression.id(), 3);
     assert_eq!(Compression::from_id(3), Some(Compression::Lz4));
+    #[cfg(not(feature = "zstd"))]
     assert!(Compression::from_id(4).is_none());
+    #[cfg(feature = "zstd")]
+    assert_eq!(Compression::from_id(4), Some(Compression::Zstd));
     assert!(p.enable_idempotence);
     assert!(p.allow_auto_topic_creation);
     assert_eq!(p.connect_timeout, Duration::from_secs(3));

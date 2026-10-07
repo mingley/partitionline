@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-06",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; source snapshots and SHA256 bindings identify actual tested inputs. No commit or hosted CI run claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_policy": "Latest stable only, as requested by the user. Historical MSRV receipts remain historical.",
+  "performance_claims_valid": false,
+  "id": "KL05-44",
+  "status": "done",
+  "acceptance_met": true,
+  "evidence_directory": "docs/evidence/conformance/json-schema-selected-codec",
+  "scope": "One finite offline Draft2020-12 schema family through the actual companion Adapter and production jsonschema0.33.0 validator. Test-only backend, no implicit serializer selection.",
+  "peer_versions": {
+    "jsonschema": "4.26.0",
+    "referencing": "0.37.0",
+    "rpds-py": "2026.6.3",
+    "attrs": "26.1.0",
+    "jsonschema-specifications": "2025.9.1"
+  },
+  "production_backend": {
+    "crate": "jsonschema",
+    "version": "0.33.0",
+    "default_features": false,
+    "checksum": "d46662859bc5f60a145b75f4632fbadc84e829e45df6c5de74cfc8e05acb96b5",
+    "network_retrieval": "explicitly denied"
+  },
+  "cases": {
+    "independent_python_cases": 18,
+    "valid": 9,
+    "invalid": 9,
+    "rust_regressions": 4,
+    "reverse_checked_profiles": [
+      "default registry + json-schema",
+      "all features",
+      "offline json-schema without registry"
+    ],
+    "corrupt_frame_negative_control": "nonzero exit; report not created"
+  },
+  "validation": {
+    "all_features": {
+      "passed": 117,
+      "failed": 0,
+      "ignored": 0
+    },
+    "default_json_schema": {
+      "passed": 96,
+      "failed": 0,
+      "ignored": 0
+    },
+    "offline_json_schema": {
+      "passed": 40,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "resource_profile": {
+    "complete_frame_bytes": 4096,
+    "combined_schema_input_bytes": 16384,
+    "combined_references": 8,
+    "json_nodes_per_value": 512,
+    "json_depth": 16,
+    "object_members_or_array_items": 32,
+    "key_bytes": 128,
+    "string_bytes": 4091,
+    "expanded_schema_nodes_per_inspection": 512,
+    "any_of_branches": 4,
+    "integer_literals": "signed i64 only; independently tested schemas constrain to signed32bit",
+    "floating_spellings": "At most8 fractional digits, exponent-6..6, mantissa/result magnitude<=1e6",
+    "references": "exact explicit URIs, acyclic only; no patterns/dynamic references/anchors"
+  },
+  "retained_failures": [
+    "The first four-test run passed before resource/numeric/version-pin hardening; final whole companion gates and peers bind the final source.",
+    "The independent negative control deliberately changes an actual Rust numeric payload to a string and fails."
+  ],
+  "limits": [
+    "Finite schema family; unsupported keywords, cycles and numeric spellings return explicit errors. No arbitrary schema or arbitrary-decimal qualification.",
+    "Input/value/graph bounds do not establish process RSS, backend allocator quotas or performance ranking. Caller-owned values remain the caller responsibility.",
+    "No live Registry/broker, schema registration or runtime validator dependency. Companion remains unpublished.",
+    "Synchronous test-only compiler/validator work is bounded by the selected finite profile and CI timeout, not a production async execution deadline."
+  ]
+}

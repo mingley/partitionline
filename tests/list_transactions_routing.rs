@@ -16,6 +16,149 @@ use std::time::{Duration, Instant};
 
 include!("fixtures/list-transactions-routing/all_brokers_regression.rs");
 
+/// Explicit external lane: the runner supplies actual SDK response bodies.
+#[tokio::test]
+#[ignore = "requires source-bound actual SDK fixtures and owned process runner"]
+async fn serve_list_transactions_probe() {
+    let directory = std::path::PathBuf::from(
+        std::env::var_os("PARTITIONLINE_LIST_TRANSACTIONS_PEER_DIR").unwrap(),
+    );
+    let fixtures = std::path::PathBuf::from(
+        std::env::var_os("PARTITIONLINE_LIST_TRANSACTIONS_FIXTURES").unwrap(),
+    );
+    let mode = std::env::var("PARTITIONLINE_LIST_TRANSACTIONS_CASE").unwrap();
+    let ranges = match mode.as_str() {
+        "v0" => [Some((0, 0)); 2],
+        "mixed" => [Some((0, 0)), Some((1, 1))],
+        _ => [Some((0, 1)); 2],
+    };
+    let peer = Peer::start(ranges, false).await;
+    async fn load(fixtures: &std::path::Path, name: &str) -> std::sync::Arc<[u8]> {
+        let frame = tokio::fs::read(fixtures.join(name)).await.unwrap();
+        assert_eq!(
+            i32::from_be_bytes(frame[..4].try_into().unwrap()),
+            i32::try_from(frame.len() - 4).unwrap()
+        );
+        assert_eq!(frame[8], 0);
+        std::sync::Arc::<[u8]>::from(&frame[9..])
+    }
+    let first = load(&fixtures, "broker-1-list-v1.response.bin").await;
+    let second = load(&fixtures, "broker-2-list-v1.response.bin").await;
+    peer.script(
+        1,
+        (0..4).map(|_| Reply::Body(std::sync::Arc::clone(&first))),
+    )
+    .await;
+    let mut replies = Vec::new();
+    if let Some(code) = mode.strip_prefix("error-") {
+        let bytes = load(&fixtures, &format!("broker-2-error-{code}-v1.response.bin")).await;
+        replies.extend((0..4).map(|_| Reply::Body(std::sync::Arc::clone(&bytes))));
+    } else {
+        match mode.as_str() {
+            "loading" => replies.push(Reply::Body(
+                load(&fixtures, "broker-2-error-14-v1.response.bin").await,
+            )),
+            "disconnect" | "auth-disconnect" => replies.push(Reply::Disconnect),
+            "stall" => replies.extend([Reply::Stall, Reply::Stall]),
+            _ => {}
+        }
+        replies.extend((0..4).map(|_| Reply::Body(std::sync::Arc::clone(&second))));
+    }
+    peer.script(2, replies).await;
+    if mode == "auth-disconnect" {
+        peer.state.lock().await.sasl = true;
+    }
+    if mode == "delayed-metadata" {
+        peer.state.lock().await.metadata_delay = Duration::from_secs(3);
+    }
+    tokio::fs::write(directory.join("ready"), &peer.bootstrap)
+        .await
+        .unwrap();
+    let closed = if std::env::var_os("PARTITIONLINE_LIST_TRANSACTIONS_INVOKE").is_some() {
+        let mut admin = peer.admin().await.unwrap();
+        let start = Instant::now();
+        let partial = admin
+            .list_transactions_by_broker_timeout(&[], &[], -1, BUDGET)
+            .await;
+        let mut outcome = String::new();
+        match partial {
+            Ok(brokers) => {
+                for broker in brokers {
+                    match broker.listings {
+                        Ok(rows) => {
+                            for row in rows {
+                                outcome.push_str(&format!(
+                                    "listing\t{}\t{}\t{}\t{}\n",
+                                    broker.broker_id,
+                                    row.transactional_id,
+                                    row.producer_id,
+                                    row.state()
+                                ));
+                            }
+                        }
+                        Err(error) => outcome.push_str(&format!(
+                            "broker-error\t{}\t{:?}\t{}\n",
+                            broker.broker_id,
+                            error.broker_code(),
+                            error
+                        )),
+                    }
+                }
+            }
+            Err(error) => outcome.push_str(&format!("discovery-error\t{error}\n")),
+        }
+        outcome.push_str(&format!(
+            "partial-elapsed-ms\t{}\n",
+            start.elapsed().as_millis()
+        ));
+        let start = Instant::now();
+        let complete = admin.list_transactions_all_timeout(BUDGET).await;
+        outcome.push_str(&match complete {
+            Ok(rows) => format!("complete-count\t{}\n", rows.len()),
+            Err(error) => format!("complete-error\t{:?}\t{error}\n", error.broker_code()),
+        });
+        outcome.push_str(&format!(
+            "complete-elapsed-ms\t{}\n",
+            start.elapsed().as_millis()
+        ));
+        tokio::fs::write(directory.join("rust-outcome.tsv"), outcome)
+            .await
+            .unwrap();
+        finish(admin, peer, "probe").await
+    } else {
+        let stop = directory.join("stop");
+        tokio::time::timeout(Duration::from_secs(16), async {
+            while !stop.exists() {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let closed = peer.shutdown().await;
+        socket_peer::retain(&closed, "probe").await;
+        closed
+    };
+    assert_eq!(closed.listener_tasks_joined, 3);
+    assert!(
+        closed.shutdown_failures.is_empty(),
+        "{:?}",
+        closed.shutdown_failures
+    );
+    assert_no_empty_coordinator(&closed);
+    assert_eq!(
+        tokio::runtime::Handle::current()
+            .metrics()
+            .num_alive_tasks(),
+        0
+    );
+    tokio::fs::write(
+        directory.join("closure.txt"),
+        "listeners_joined=3\nworkers_joined=true\nports_closed_and_rebound=3\nruntime_tasks=0\n",
+    )
+    .await
+    .unwrap();
+}
+
 #[tokio::test]
 async fn partial_results_preserve_broker_origin_and_complete_results_reject_terminal_errors() {
     for code in [15, 16, 29, 53] {
@@ -114,7 +257,7 @@ async fn mixed_broker_versions_preserve_unfiltered_v0_and_filtered_v1() {
 
 #[tokio::test]
 async fn duration_on_v0_and_absent_api_fail_complete_but_remain_typed_in_partial() {
-    for first_range in [Some((0, 0)), None, Some((2, 2))] {
+    for first_range in [Some((0, 0)), None, Some((3, 3))] {
         let peer = Peer::start([first_range, Some((1, 1))], false).await;
         peer.script(
             2,

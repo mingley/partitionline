@@ -15,7 +15,7 @@ import tarfile
 import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--toolchain', choices=['stable', '1.85.0'], required=True)
+parser.add_argument('--toolchain', choices=['stable'], required=True)
 parser.add_argument('--features', choices=['default', 'all-features'], required=True)
 args = parser.parse_args()
 os.umask(0o077)
@@ -294,10 +294,7 @@ try:
     rustc = checked('rustc-version', ['rustc', '-Vv']).decode()
     cargo = checked('cargo-version', ['cargo', '-V']).decode()
     checked('openssl-version', ['openssl', 'version'])
-    if args.toolchain == '1.85.0':
-        assert re.search(r'^release: 1\.85\.0$', rustc, re.M)
-    else:
-        assert re.search(r'^release: [0-9]+\.[0-9]+\.[0-9]+$', rustc, re.M)
+    assert re.search(r'^release: [0-9]+\.[0-9]+\.[0-9]+$', rustc, re.M)
     assert os.environ['RUSTUP_TOOLCHAIN'] == args.toolchain
     TOOLCHAIN_VERIFIED = True
     additions = {'STREAMS_REVERSE_OUT': str(REVERSE), 'CARGO_TARGET_DIR': str(BUILD)}

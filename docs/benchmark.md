@@ -13,8 +13,9 @@ crate. Historical tables below remain historical evidence.
 `scripts/lab-a-produce.sh` now automates both clients, randomized order and a
 fresh-topic HW audit per run, retaining logs, C artifacts and independent
 HW counts. The earlier manual C reproduction commands remain historical
-recipes. The automated harness is an unsigned integrity check: its zero-warmup,
-null-key workload does not qualify a benchmark campaign or establish a win.
+recipes. The automated harness defaults to seeded payloads and 16-byte ID
+keys, accepts record-count warmup, and measures CPU and peak RSS with GNU time.
+It remains an unsigned integrity check.
 See the peer README for pins, settings, standalone receipt verification and
 [KL04-04 validation evidence](https://github.com/mingley/partitionline/blob/8920ad999266cd87a8de94450fc6325063105c6c/docs/evidence/perf/KL04-04/README.md). Suite HOLD stays active.
 
@@ -81,8 +82,9 @@ records, but never promotes it to acknowledged throughput. Malformed numeric
 settings and zero work counts fail explicitly. `IDEMPOTENT=1` requires
 `ACKS=-1` rather than silently changing the requested acknowledgment semantics.
 
-Examples without `RECORD_HISTORY` retain their constant-value/null-key workload
-and are labeled unverified. The existing null-broker `VERIFY=1` format remains
+Without `RECORD_HISTORY`, the producer defaults to seeded payloads and ID keys.
+Its output remains unverified until an independent reader checks the records.
+The existing null-broker `VERIFY=1` format remains
 separate from the native history format. SHA generation, journaling, and
 independent validation add work to history runs; compare only matched workloads
 and instrumentation. The retained 128-record isolated Kafka 3.9.1 smoke verifies
@@ -92,6 +94,79 @@ verified three records against an end offset of four. Direct `acks=0` evidence
 retains received IDs with zero acknowledged records. These are correctness
 checks, with no
 throughput qualification, controlled-host signoff, or Suite HOLD lift.
+
+## Producer settings
+
+`bench_produce --print-config` prints the effective settings before connecting.
+Unknown benchmark settings, conflicting aliases, and settings the client would
+silently clamp fail before network or topic operations.
+
+| Setting | Meaning |
+|---|---|
+| `COUNT` | Measured records; otherwise run for `MEASURE_SECS` (default 5) |
+| `WARMUP` | Warmup records, excluded from measured counts and timing |
+| `WARMUP_SECS` | Minimum warmup duration; defaults to 0 with `WARMUP`, otherwise 2 |
+| `BATCH_SIZE` / `BATCH_BYTES` | Batch byte limit; aliases must agree when both are set |
+| `BATCH_RECORDS` | Batch record limit |
+| `CONNECTIONS`, `MAX_IN_FLIGHT` | Connection count and requests per connection |
+| `IDEMPOTENT` | Requires `ACKS=-1` and `MAX_IN_FLIGHT<=5` |
+| `BUFFER_MEMORY` / `QUEUE_KBYTES` | Producer queue budget, in bytes / KiB |
+| `RECORD_SEED` / `SEED` | Decimal or hexadecimal generator seed |
+| `KEY_MODE` | `id` (default) or `none` |
+| `PAYLOAD_MODE` | `seeded` (default) or explicit legacy `constant-x` |
+| `PARTITIONS` | Expected topic partition count; also selects round-robin routing |
+| `RUN_TIMEOUT_MS` | Deadline for each warmup or measurement phase, including flush |
+
+Seeded records use the pinned C peer's byte generator. Each phase starts IDs
+at zero. A separate Java consumer checked all keys, values, partition offsets,
+and counts for a 100,000-record Apache Kafka 4.3.1 run, an idempotent gzip run,
+and a legacy run. These checks qualify the settings implementation, not speed.
+CPU and RSS come from the harness wrapper; they are not measured by the example.
+
+```sh
+COUNT=100000 WARMUP=1000 BATCH_SIZE=1048576 BATCH_RECORDS=32768 \
+ACKS=-1 IDEMPOTENT=1 MAX_IN_FLIGHT=5 \
+cargo +stable run --locked --release --example bench_produce -- --print-config
+```
+
+For the historical constant-value/null-key recipes below, set
+`PAYLOAD_MODE=constant-x KEY_MODE=none` explicitly. The historical measurements
+retain their original workload and dates.
+
+## Fetch settings
+
+`bench_fetch --print-config` prints its limits and mode before connecting.
+`FETCH_MODE=manual` assigns the topic from offset zero. `FETCH_MODE=group`
+joins a classic group, polls, commits each successfully processed batch's next
+offsets, and leaves on completion. Use a fresh `GROUP_ID` for each benchmark.
+
+`COUNT` is the total number of seeded records to consume. `WARMUP` excludes
+the first records from timing and throughput; it must be smaller than `COUNT`.
+The driver preserves a poll batch across the warmup boundary. The request
+that delivered the boundary batch belongs to warmup; timing starts after the
+last warmup record is processed. Output reports total consumed records, warmup
+records, measured records, and actual measured value bytes. MB/s uses decimal
+megabytes and excludes keys, headers, and wire overhead. Verification work and
+group commits after the boundary are included in timing; join and close are
+outside it.
+
+`MAX_BYTES` caps a response. `MAX_PARTITION_BYTES` independently caps each
+partition (default 1 MiB). `MAX_POLL_RECORDS` defaults to 1,000;
+`FETCH_BUFFER_MEMORY` defaults to 32 MiB. `RUN_TIMEOUT_MS` bounds the fetch and
+commit loop, with separate bounded setup and close. Invalid limits fail before
+connecting.
+
+The fetch harness defaults to complete record-history verification. Set
+`VERIFY_HISTORY=0` for a separately labeled raw run. Both modes retain GNU time
+CPU/RSS output and a broker offset audit. Direct `VERIFY=1` uses the separate
+null-broker fixture format; it does not verify the producer's native history
+format.
+
+```sh
+COUNT=1000 WARMUP=17 FETCH_MODE=group PARTITIONS=2 \
+KAFKA_BOOTSTRAP=127.0.0.1:19092 KAFKA_HOME=/path/to/kafka BROKER_BACKEND=native \
+ARTIFACT_DIR=work/fetch-attempt-1 bash scripts/lab-a-fetch.sh
+```
 
 ## Methodology
 
@@ -480,10 +555,9 @@ read from offset 0. Completeness: records consumed **equal** records sent
 (8,000,000). High watermark summed to **8,000,000** before and after the
 pairs.
 
-This is **not** Lab A. This is **not** `rdkafka_performance` C 2.15.0.
-Comparison is rust-rdkafka **0.39.0** (`rdkafka-sys` 4.10.0+2.12.1,
-`cmake-build`, bundled librdkafka **2.12.1**) as a standalone binary
-outside this crate. This crate stays pure Rust (no rdkafka dep, no C/FFI).
+This run compares a separate rust-rdkafka **0.39.0** binary (`rdkafka-sys`
+4.10.0+2.12.1, `cmake-build`, bundled librdkafka **2.12.1**). It is a separate
+experiment from Lab A, which used `rdkafka_performance` 2.15.0.
 
 | | |
 |---|---|
@@ -599,8 +673,7 @@ After each partitionline produce, `Consumer::fetch` from offset 0 until
 at least 10,000 records, timing every non-empty fetch (`max_bytes=4096`,
 `min_bytes=1`, `max_wait_ms=100`). rust-rdkafka fetch latency was **not**
 measured: `BaseConsumer::poll` returns one record from an internal queue
-and is not a Fetch RPC. This crate stays pure Rust (no rdkafka dep, no
-C/FFI).
+and is not a Fetch RPC.
 
 Percentile is nearest-rank on the sorted sample vector: index
 `ceil(n * p / 100) - 1` (same as `examples/bench_latency.rs`).

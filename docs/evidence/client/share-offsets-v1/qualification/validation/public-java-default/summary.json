@@ -1,0 +1,657 @@
+{
+  "status": "pass",
+  "profiles": 72,
+  "results": [
+    {
+      "release": "4.1.2",
+      "name": "lag--9223372036854775808",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "lag--2",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "lag--1",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "lag-0",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "lag-1",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "lag-9223372036854775807",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "topics-empty",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "topics-named",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "partition-error-3",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "partition-error-29",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "partition-error-87",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "unknown-tags",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "group-error-14",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "group-error-15",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "group-error-16",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "group-error-30",
+      "outcome": "org.apache.kafka.common.errors.GroupAuthorizationException",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "group-error-69",
+      "outcome": "org.apache.kafka.common.errors.GroupIdNotFoundException",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "missing-group",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "duplicate-group",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "empty-groups",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "range0to1",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "future-v2",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "unsupported-v1",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag--9223372036854775808",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag--2",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag--1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag-0",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag-1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "lag-9223372036854775807",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "topics-empty",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "topics-named",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "partition-error-3",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "partition-error-29",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "partition-error-87",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "unknown-tags",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "group-error-14",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "group-error-15",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "group-error-16",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "group-error-30",
+      "outcome": "org.apache.kafka.common.errors.GroupAuthorizationException",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "group-error-69",
+      "outcome": "org.apache.kafka.common.errors.GroupIdNotFoundException",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "missing-group",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "duplicate-group",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "empty-groups",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "range0to1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "future-v2",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "downgrade-v0",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag--9223372036854775808",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag--2",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag--1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag-0",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag-1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "lag-9223372036854775807",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "topics-empty",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "topics-named",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "partition-error-3",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "partition-error-29",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "partition-error-87",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "unknown-tags",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "group-error-14",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "group-error-15",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "group-error-16",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "group-error-30",
+      "outcome": "org.apache.kafka.common.errors.GroupAuthorizationException",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "group-error-69",
+      "outcome": "org.apache.kafka.common.errors.GroupIdNotFoundException",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "missing-group",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "duplicate-group",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "empty-groups",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "range0to1",
+      "outcome": "completed",
+      "share_version": 1,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "future-v2",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "share_version": null,
+      "share_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "downgrade-v0",
+      "outcome": "completed",
+      "share_version": 0,
+      "share_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    }
+  ],
+  "genuine_public_sdk": true,
+  "broker_transaction_state_qualified": false,
+  "performance_claims_valid": false
+}

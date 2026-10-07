@@ -2,7 +2,7 @@
 name = "codec"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
@@ -20,6 +20,7 @@ snap = "1"
 # the miniz_oxide fallback (KL10-05).
 default = ["zlib-rs"]
 zlib-rs = ["partitionline/zlib-rs"]
+zstd = ["partitionline/zstd"]
 
 [dev-dependencies]
 criterion = "0.8"
@@ -51,3 +52,13 @@ disallowed_types = "allow"
 [[bin]]
 name = "json1k-census"
 path = "src/json1k-census.rs"
+
+[[bin]]
+name = "zstd-census"
+path = "src/zstd-census.rs"
+required-features = ["zstd"]
+
+[[bench]]
+name = "zstd"
+harness = false
+required-features = ["zstd"]

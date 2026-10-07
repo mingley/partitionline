@@ -7,7 +7,7 @@
 | Application | The process using this crate is trusted. Config (bootstrap, credentials, TLS material) comes from the operator. |
 | Network | On plaintext listeners, an on-path attacker can read and modify traffic. Use TLS (`TlsConfig`) for confidentiality and integrity in transit. |
 | Broker | A compromised or malicious broker can return arbitrary protocol bytes. The client must not panic, UB, or silently invent offsets from truncated/malformed frames. Broker authz (ACLs) is enforced by the cluster, not this client. |
-| Dependencies | Default features stay pure Rust (no librdkafka, OpenSSL, libzstd, Cyrus SASL). Supply-chain risk is crates.io Rust crates only. |
+| Dependencies | Review direct and transitive dependencies, including native code used by Ring and unsafe code in compression libraries. See `deny.toml` and the audit checks. |
 
 This crate forbids `unsafe_code`. That removes a class of memory-safety bugs
 inside the client, not broker or network trust problems. Dependencies are not
@@ -19,9 +19,9 @@ miniz_oxide instead, which forbids `unsafe`; its gzip CRC-32 still comes from
 ## Auth and transport
 
 - **TLS:** `rustls` + `ring`. Custom CA PEM or Mozilla roots; optional mTLS.
-- **SASL:** PLAIN, SCRAM-SHA-256/512 (pure Rust), OAUTHBEARER, OIDC token
+- **SASL:** PLAIN, SCRAM-SHA-256/512, OAUTHBEARER, OIDC token
   endpoint over HTTP(S) with rustls.
-- **Not in default features:** GSSAPI / Kerberos (C), zstd (typically C).
+- **Unfinished authentication:** GSSAPI / Kerberos.
 
 Prefer SCRAM or OIDC over PLAIN. Prefer TLS (or SASL_SSL) on any network you
 do not fully control.
@@ -63,32 +63,36 @@ Metrics snapshots (`ProducerMetrics` / `ConsumerMetrics` / `ShareMetrics` /
 `AdminMetrics`) expose counters, latency, and topic names only — not credentials.
 Optional `tracing` instruments `skip(self)` (and `skip(self, rec)` on produce) so
 configs holding secrets are not recorded as span fields; recorded fields are
-limited to topic / protocol names. This is a KL-06 honesty slice for
-log/span/error/metrics dumps — it does **not** cover credential rotation/outage
-recovery, and topic names remain operator-chosen (do not put secrets in topic names).
+limited to topic and protocol names. These checks cover logs, spans, errors,
+and metrics. Rotation and outage recovery have separate lifecycle tests.
+Topic names are operator-chosen; keep secrets out of them.
 
 Mock coverage: `tests/credential_redact.rs`.
 
-## Auth recovery (current behavior)
+## Token acquisition and lifecycle
 
-OIDC `client_credentials` runs on each new SASL authenticate
-(`fetch_client_credentials_token`). The client does **not** parse `expires_in`,
-does **not** cache/refresh tokens mid-connection, and does **not** act on broker
-`session_lifetime_ms`. A dropped TCP/TLS connection re-runs full SASL (and may
-re-fetch OIDC); that is reconnect re-auth, not proactive rotation.
+OIDC connection opens share token acquisition for the same endpoint, credentials,
+and TLS configuration. The shared cache holds at most 64 configurations; each is
+limited to 64 KiB of URL, credentials, server name, and PEM input. New distinct
+configurations evict the least recently used idle entry. If every slot is active
+or still finishing cancellation, acquisition returns `Error::QueueFull`.
 
-Token-endpoint responses: non-200 → `Error::Protocol` with
-`oidc token endpoint HTTP {status}` only (no IdP body). A hung IdP surfaces
-`Error::Timeout` bounded by the caller's request timeout. Transient failures
-(HTTP 5xx, I/O, timeout) get **bounded** retries (3 attempts, short exponential
-backoff) inside that same timeout; HTTP 4xx fails immediately. Mid-connection refresh / rotation / outage soak still open (KL-06).
+Concurrent opens share one fetch. Sequential opens reuse a valid cached token.
+Idle cache entries start no refresh work. When the last active caller leaves,
+any unfinished acquisition is cancelled. Tokens past their expiry/skew limit
+must be acquired again; terminal authentication failures stay closed.
 
-For the complete token acquisition, expiry, proactive refresh, reconnect, and broker-requested reauthentication ownership contract, see [docs/auth-refresh.md](auth-refresh.md).
+For application-owned proactive refresh, use `OidcTokenManager`. Manager clones
+share acquisition and refresh. Dropping the last clone cancels both, including
+an in-flight fetch. Cancelling one caller leaves other manager owners intact.
+Broker session renewal is separate from token refresh; see
+[token and session lifecycle](auth-refresh.md) for the integration contract.
 
-Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
-`fetch_token_hang_times_out_fail_closed`,
-`fetch_token_retries_transient_503_then_succeeds`,
-`fetch_token_does_not_retry_http_401` in `src/protocol/oidc.rs`.
+Token endpoint errors report the HTTP status without response bodies. Transient
+5xx, I/O, and timeout failures receive up to three attempts within the original
+request timeout. HTTP 4xx fails immediately. Lifecycle tests cover expiry,
+outages, cancellation, and redaction; sustained external-service qualification
+remains separate.
 
 ## Reporting
 

@@ -1,9 +1,8 @@
 # Support matrix
 
-Authoritative supported combinations for **partitionline 0.1.x** while the crate
-is on 0.x. This is a KL-08 honesty document: it states what CI and maintainers
-actually cover today. It is **not** a 1.0 support contract and does **not** lift
-Suite HOLD.
+Tested versions and platforms for partitionline 0.1.x. The tables describe the
+CI coverage and its limits. API stability follows the [0.x policy](api-stability.md);
+production and benchmark qualification remain in progress.
 
 For API churn rules see [api-stability.md](api-stability.md). For how cuts are
 published see [RELEASE.md](RELEASE.md). For adopter steps see [ADOPTION.md](ADOPTION.md).
@@ -22,11 +21,11 @@ still tracks broader correctness, fault and performance work.
 | Dimension | Supported now | Evidence |
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
-| MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `test (1.85)` and `test (stable)` CI; raising MSRV is a 0.x minor + CHANGELOG note |
+| Rust | Latest stable; currently **1.99** (`rust-version` in `Cargo.toml`) | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
 | Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on **3.9.1** / **4.1.0** | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
-| Default features | Pure Rust (no librdkafka / OpenSSL / libzstd / Cyrus SASL) | `Cargo.toml` defaults + deny/audit lanes |
+| Default features | gzip through `zlib-rs`; TLS through rustls and Ring | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
 
 KL01-10 qualifies the three current broker distributions at source `8bec4f2`
@@ -60,20 +59,21 @@ historical smoke checks do not qualify a failed current profile. Published
 
 ## Explicitly unsupported / not promised
 
-KL08-05 qualifies native macOS arm64 on `macos-15`, for Rust 1.85.0
-and stable, with default/tracing runtime, TLS mock paths and actual packed-crate
-consumers. Both hosted toolchains passed; broker/performance qualification
+KL08-05 retains native macOS arm64 results on `macos-15`, with default/tracing
+runtime, TLS mock paths and actual packed-crate consumers. Current CI uses
+latest stable Rust only. The recorded hosted runs passed; broker/performance qualification
 remains in the Linux lanes. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
 Bash 5+ / OpenSSL 3 on PATH. Apple Bash 3.2 cannot run the package/documentation
 scripts' empty arrays under `set -u`. OpenSSL generates ephemeral mock certificates
 and is a test executable,
 not a crate dependency. The lane records actual OS, architecture, compiler,
-OpenSSL, Bash and Python versions with complete logs/package reports. Linux MSRV,
-broker and performance lanes remain in place.
+OpenSSL, Bash and Python versions with complete logs/package reports.
+The retained runs apply to their recorded sources. Broker and performance
+lanes remain separate.
 
-KL08-14 qualifies native `windows-2025` x86_64 MSVC for Rust 1.85.0 and
-stable, with default/tracing runtime, mandatory public TLS mock paths and actual
-packed-consumer checks. Both hosted toolchains passed at source `5b02bc5`;
+KL08-14 retains native `windows-2025` x86_64 MSVC results with default/tracing
+runtime, public TLS mock paths and actual packed-consumer checks. Recorded
+hosted runs passed at source `5b02bc5`; current CI uses latest stable Rust only.
 Windows live-broker, external auth-service and performance campaigns remain
 unqualified. Prerequisites are MSVC C build tools for Ring, native 64-bit Python
 3.11+ in UTF-8 mode (`PYTHONUTF8=1`), Git Bash 5+ and OpenSSL 3 on PATH. The driver maps package scripts'
@@ -83,19 +83,20 @@ compilation-only result qualifies this cell.
 
 Each row names its KL05-01
 [feature-registry](../tests/conformance/features.json) entry where one exists;
-registry status was re-checked at source `ca50ca1` (KL07-07).
+Implementation status comes from the current registry; platform and production
+qualification remain separate.
 
 | Item | Status | Registry |
 |---|---|---|
 | Kerberos / GSSAPI | Not in default features; no CI promise | `auth.sasl_gssapi` (`missing`) |
-| zstd (C) as a default dependency | Denied / out of default features (`deny.toml` bans `zstd-sys`) | `codecs.zstd.decode/encode/wire_helper` (`missing`) |
-| Schema Registry as part of this crate | Outside core; unpublished companion has bounded read-only lookups/cache and Protobuf indexes with a caller-selected codec. Built-in Avro/JSON serializers remain pending. | `schema_ecosystem.registry_client/cache/protobuf` (`present`, companion scope); `avro/json_schema` (`missing`); generic `wire_framing` (`partial`) |
+| zstd | Optional bounded encoding/decoding with `zstd-rs`; default dependencies unchanged | `codecs.zstd.decode/encode/wire_helper` (`present`, finite qualification) |
+| Schema Registry as part of this crate | Outside core; unpublished companion has bounded read-only lookups/cache and Protobuf indexes with a caller-selected codec. Applications select Avro/JSON serializers explicitly. | `schema_ecosystem.registry_client/cache/protobuf` (`present`, companion scope); `avro/json_schema` and generic `wire_framing` (`present`, bounded offline qualification) |
 | Multi-broker chaos / HA proof | KL-03 still open | `manual_consumer.fetch` (`partial`); heartbeat/throttle scheduling `partial` |
-| Proactive OIDC token refresh | Not implemented | `auth.sasl_oidc_refresh` (`missing`) |
+| OIDC token lifecycle | Application-owned `OidcTokenManager` supports refresh; shared connection-open caching has bounded idle retention. Broader connection renewal qualification remains separate. | `auth.sasl_oidc_refresh`; see [security](security.md#token-acquisition-and-lifecycle) |
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire` (`present`); `manual_consumer.v18_wire` (`missing`) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire` (`present`); `manual_consumer.v18_wire` (`present`) |
 
 Produce13 topic IDs are qualified by independent Apache 4.1.2/4.2.1/4.3.1
 serialization and live Java decoding of fresh Rust requests/responses, plus
@@ -111,12 +112,25 @@ the ListOffsets request; caller deadlines cover metadata/connect/negotiation/RPC
 and retries. Independent Apache bytes and mock paths qualify the delta. No live
 tiered-storage deployment or pending-upload boundary is qualified.
 
+ListTransactions supports v0–v2 with complete and per-broker results. Typed
+options retain duration and transaction-ID pattern filters. A nonempty pattern
+requires v2; it is never silently dropped on an older broker. Three actual
+Apache SDKs qualify selected wire and public-call behavior against bounded
+scripted peers. Live transaction-state recovery remains separate work.
+
 DescribeLogDirs now negotiates each selected broker’s v1–v5 range and exposes
 typed `IsCordoned` at v5 (older versions default to false). Each attempt adds one
 ApiVersions control RPC within that broker hop’s deadline. Independent Apache
 4.3.1 bytes and mixed-version mock brokers qualify this delta; live v5 broker
 behavior remains unqualified. Public struct literals for `DescribeLogDirsResult`
 need the new `is_cordoned` field; its existing constructor defaults it to false.
+
+Streams v0 codecs and caller-driven heartbeats preserve typed topology, tasks,
+offsets, endpoints and status fields. Heartbeats use GROUP coordinator discovery,
+actual connection capabilities and one caller deadline, with explicit v0 opt-in.
+Three pinned Apache SDKs check selected public Rust socket histories and typed
+responses. This does not implement a Streams execution engine or broker
+coordinator. Public Streams group descriptions remain separate work.
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and
 `add_raft_voter` / `remove_raft_voter` Admin methods. Both membership operations

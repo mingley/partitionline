@@ -33,9 +33,9 @@ cargo test --test protocol_oracles
 echo "== ci-branch-lite: adopter pin =="
 bash scripts/check-adopter-pin.sh
 
-echo "== ci-branch-lite: MSRV (Installable) =="
-# Declared rust-version must actually compile/test — not just a Cargo.toml string.
-bash scripts/ci-msrv.sh
+echo "== ci-branch-lite: stable Rust (Installable) =="
+# Compile and test with the supported stable toolchain.
+bash scripts/ci-stable.sh
 
 echo "== ci-branch-lite: deny (Independent) =="
 # No C Kafka/OpenSSL/zstd defaults — supply-chain bans, not docs alone.

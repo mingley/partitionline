@@ -68,12 +68,10 @@ for key in ("license", "readme", "repository", "documentation", "homepage"):
         bad(f"missing package.{key}")
 
 dlow = desc.lower()
-if ("no c" in dlow or "pure rust" in dlow or "pure-rust" in dlow) and "librdkafka" in dlow:
-    ok("description states pure-Rust / no-C / no-librdkafka identity")
-elif "no c" in dlow or "pure rust" in dlow:
-    ok("description states pure-Rust / no-C identity")
+if "kafka" in dlow and "client" in dlow:
+    ok("description identifies the Kafka client")
 else:
-    bad("description should state pure-Rust / no-C identity for crates.io discoverability")
+    bad("description should identify the Kafka client")
 
 kw = pkg.get("keywords") or []
 if 1 <= len(kw) <= 5:

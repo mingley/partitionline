@@ -15,6 +15,20 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Opt-in codec lane owns fresh native brokers on both required historical lines.
+# Missing pinned peer inputs fail; an external smoke broker cannot qualify it.
+if [[ "${PL_CODEC_MATRIX:-0}" == 1 ]]; then
+  : "${PL_CODEC_BROKER_HOMES:?required checked Apache archives and extracted homes}"
+  : "${PL_CODEC_JAVA_JAR:?required pinned Kafka client jar}"
+  : "${PL_CODEC_JAVA_LIBS:?required pinned Java codec dependencies}"
+  : "${PL_CODEC_RDKAFKA_ROOT:?required pinned native SDK build}"
+  : "${PL_CODEC_NATIVE_OUTPUT:?required fresh evidence directory}"
+  exec python3 "$ROOT/tests/conformance/run-codec-matrix.py" native \
+    --homes "$PL_CODEC_BROKER_HOMES" --jar "$PL_CODEC_JAVA_JAR" \
+    --libs "$PL_CODEC_JAVA_LIBS" --rdkafka-root "$PL_CODEC_RDKAFKA_ROOT" \
+    --output "$PL_CODEC_NATIVE_OUTPUT"
+fi
+
 # Current cells require exact histories and immutable peer identity.
 # The historical 3.9.1/4.1.0 examples below retain their existing scope.
 if [[ -n "${PL_CURRENT_BROKER_CELL:-}" ]]; then

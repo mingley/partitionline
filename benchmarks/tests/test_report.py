@@ -620,5 +620,45 @@ class BenchmarkReportValidationTests(unittest.TestCase):
             Path(valid_file).unlink(missing_ok=True)
 
 
+class ZstdComparisonContract(unittest.TestCase):
+    def fixture(self):
+        data=build_valid_fixture()
+        data['scenario']['scenario_id']='bulk-req-idempotent-acks-all-zstd'
+        data['scenario']['equal_semantics']['compression']={'codec':'zstd','level':3}
+        data['provenance']['config']['effective_settings']['compression']={
+            'codec':'zstd','level':3,'backend':'zstd-rs','backend_version':'0.1.0',
+            'encoded_batches_sha256':'a'*64,'compressed_record_bytes':500,'uncompressed_record_bytes':1000}
+        return data
+
+    def test_declared_backend_and_level_are_eligible_format(self):
+        data=self.fixture()
+        valid,errors,_=BenchmarkValidator().validate(data)
+        self.assertTrue(valid,errors)
+
+    def test_missing_backend_unknown_version_wrong_level_and_missing_corpus_fail(self):
+        for field,value in [('backend','unknown'),('backend_version','unknown'),('level',1),
+                            ('level',True),('encoded_batches_sha256',''),('compressed_record_bytes',0)]:
+            with self.subTest(field=field,value=value):
+                data=self.fixture()
+                data['provenance']['config']['effective_settings']['compression'][field]=value
+                valid,errors,_=BenchmarkValidator().validate(data)
+                self.assertFalse(valid)
+                self.assertTrue(any('Zstd' in error for error in errors),errors)
+        data=self.fixture()
+        del data['scenario']['equal_semantics']['compression']
+        valid,errors,_=BenchmarkValidator().validate(data)
+        self.assertFalse(valid)
+        self.assertTrue(any('zstd' in error for error in errors),errors)
+
+    def test_both_zstd_cells_remain_required_and_unexecuted(self):
+        registry=json.loads((REPO_ROOT/'benchmarks/scenarios.json').read_text())
+        cells={c['id']:c for p in registry['profiles'].values() for c in p['cells']}
+        self.assertEqual(set(registry['claim_gate']['zstd_required_cells']),
+                         {'bulk-req-idempotent-acks-all-zstd','fetch-req-standard-6p-zstd'})
+        for identity in registry['claim_gate']['zstd_required_cells']:
+            self.assertEqual(cells[identity]['tier'],'required')
+            self.assertEqual(cells[identity]['disposition'],'not_run')
+
+
 if __name__ == "__main__":
     unittest.main()

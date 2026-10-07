@@ -752,10 +752,8 @@ pub fn murmur2(data: &[u8]) -> i32 {
     let len = u32::try_from(data.len()).unwrap_or(u32::MAX);
     let mut h = SEED ^ len;
     let (chunks, rest) = data.split_at(data.len() / 4 * 4);
-    for chunk in chunks.chunks_exact(4) {
-        let &[a, b, c, d] = chunk else {
-            continue;
-        };
+    for chunk in chunks.as_chunks::<4>().0 {
+        let &[a, b, c, d] = chunk;
         let mut k =
             u32::from(a) | (u32::from(b) << 8) | (u32::from(c) << 16) | (u32::from(d) << 24);
         k = k.wrapping_mul(M);

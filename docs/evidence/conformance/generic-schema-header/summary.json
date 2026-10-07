@@ -1,0 +1,38 @@
+{
+  "id": "KL05-45",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-05",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate. Current source-input hashes and release binary hashes pin the final candidate. No commit or hosted CI run is claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_override": "User requested latest stable Rust only; historical Rust 1.85 requirements are superseded.",
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/conformance/generic-schema-header",
+  "release_binary_sha256": {},
+  "provenance_limits": "Draft compiler/lint/test failures are retained, but exact draft source snapshots were not captured. Early successful cohorts used earlier group-discovery or output-metadata variants and are supporting evidence only. Final producer/fetch and fresh cold-group cohorts qualify the final production behavior; source hashes cover that behavior. Current fetch output has the final settings metadata.",
+  "scope": "Generic magic-byte plus unsigned big-endian schema-ID header and opaque payload only.",
+  "independent_peer": {
+    "implementation": "Java21 ByteBuffer",
+    "valid_vectors": 7,
+    "invalid_vectors": 7,
+    "deadline_seconds": 30,
+    "heap_mib": 64,
+    "successful_processes_exited": true
+  },
+  "contract": "Encode writes exactly5+payload bytes into caller output; decode borrows the exact payload slice. Truncation takes precedence over invalid magic. Full u32 wire IDs are covered.",
+  "validation": {
+    "companion_default_passed": 76,
+    "companion_all_features_passed": 113,
+    "ignored": 0,
+    "negative_control": "Corrupt Rust byte-order frame caused independent Java assertion and exit1"
+  },
+  "scope_review": "Generic helper functionality is qualified. The partial ecosystem row also represents the unpublished companion and broader schema integrations; it must not be interpreted as proof of those integrations. Protobuf message indexes, schema semantics and live Registry remain separate.",
+  "acceptance_evidence": [
+    "validation/rust-default-full.log",
+    "validation/rust-all-features.log",
+    "validation/default-full-peer.json",
+    "validation/all-features-peer-final.json",
+    "validation/corrupted-peer.json"
+  ]
+}

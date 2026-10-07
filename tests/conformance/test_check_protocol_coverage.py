@@ -76,8 +76,8 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(len(results["unclassified_drift"]), 0)
         self.assertEqual(results["summary"]["total_pinned_apis"], 93)
         self.assertEqual(results["summary"]["total_catalog_keys"], 93)
-        self.assertEqual(results["summary"]["implemented_client_apis_count"], 71)
-        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 2)
+        self.assertEqual(results["summary"]["implemented_client_apis_count"], 72)
+        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 1)
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 20)
         self.assertEqual(results["gap_counts"]["unclassified_drift"], 0)
 
@@ -139,7 +139,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
 
         # All cataloged client-facing admin keys now have runtime wiring.
         unimpl_keys = {ma["api_key"] for ma in results["missing_runtime_wiring"]["unimplemented_apis"]}
-        self.assertEqual(unimpl_keys, {88, 89})
+        self.assertEqual(unimpl_keys, {89})
 
     def test_synthetic_unclassified_api_fails_check(self):
         """
@@ -242,7 +242,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 2. Missing runtime wiring
         self.assertIn("missing_runtime_wiring", results)
         unimpl_apis = results["missing_runtime_wiring"]["unimplemented_apis"]
-        self.assertEqual(len(unimpl_apis), 2)
+        self.assertEqual(len(unimpl_apis), 1)
         for item in unimpl_apis:
             self.assertFalse(item["has_runtime_operation"])
             self.assertIn("StreamsGroup", item["name"])
@@ -276,8 +276,8 @@ class TestProtocolCoverageChecker(unittest.TestCase):
 
         # Missing features in missing_features list
         missing_features = {f["feature_id"] for f in results["missing_runtime_wiring"]["missing_features"]}
-        self.assertIn("codecs.zstd.decode", missing_features)
-        self.assertIn("codecs.zstd.encode", missing_features)
+        self.assertNotIn("codecs.zstd.decode", missing_features)
+        self.assertNotIn("codecs.zstd.encode", missing_features)
         self.assertIn("auth.sasl_gssapi", missing_features)
         partial_features = {f["feature_id"] for f in results["missing_runtime_wiring"]["partial_features"]}
         self.assertNotIn("manual_consumer.incremental_fetch_runtime", partial_features)
@@ -443,8 +443,14 @@ class TestProtocolCoverageChecker(unittest.TestCase):
                                   '        DESCRIBE_SHARE_GROUP_OFFSETS =>', 1)
         path = self.temp_path / "api_keys.rs"
         path.write_text(catalog)
+        rows = json.loads(FEATURES_PATH.read_text())
+        for row in rows:
+            if row["id"] in ("streams.group_heartbeat", "streams.group_describe"):
+                row.update(disposition="missing", entrypoint="none")
+        features = self.temp_path / "features.json"
+        features.write_text(json.dumps(rows))
         with patch.dict(cpc.CLIENT_SPOKEN_VERSIONS, {88: [0], 89: [0]}):
-            report = cpc.evaluate_protocol_coverage(api_keys_path=path)
+            report = cpc.evaluate_protocol_coverage(api_keys_path=path, features_path=features)
         self.assertEqual(report["summary"]["exit_code"], 1)
         self.assertTrue({88, 89}.isdisjoint({r["api_key"] for r in report["implemented_client_operations"]}))
         self.assertEqual({d["api_key"] for d in report["unclassified_drift"]
@@ -498,18 +504,34 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         report = cpc.evaluate_protocol_coverage()
         self.assertEqual(report["summary"]["exit_code"], 0)
         self.assertFalse(report["full_current_protocol_complete"])
-        self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, {88, 89})
+        self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, {89})
         caps = {(r["api_key"], r["version"]) for r in report["version_gaps"] if r["direction"] == "upstream_cap"}
-        self.assertTrue({(8, 10), (9, 10), (22, 6), (45, 1), (66, 2), (80, 1), (24, 4), (24, 5)} <= caps)
+        self.assertTrue({(8, 10), (9, 10), (80, 1), (24, 4), (24, 5)} <= caps)
+        self.assertNotIn((66, 2), caps)
+        listing = next(r for r in report["implemented_client_operations"] if r["api_key"] == 66)
+        self.assertEqual(listing["client_advertised_max"], 2)
+        self.assertNotIn((45, 1), caps)
+        reassignment = next(r for r in report["implemented_client_operations"] if r["api_key"] == 45)
+        self.assertEqual(reassignment["client_advertised_max"], 1)
+        self.assertNotIn((22, 6), caps)
+        init = next(r for r in report["implemented_client_operations"] if r["api_key"] == 22)
+        self.assertEqual(init["client_advertised_max"], 6)
 
-    def test_new_current_public_cases_preserve_unqualified_status(self):
+    def test_current_public_cases_require_retained_independent_artifacts(self):
         rows = json.loads(CASES_PATH.read_text())["cases"]
         current = [r for r in rows if r["id"].startswith("current-public-api-")]
         self.assertEqual(len(current), 31)
         for row in current:
             self.assertTrue(row["denominator"])
-            self.assertIn(row["disposition"], ("not_run", "unsupported"))
-            self.assertNotIn("artifacts", row)
+            if row["id"].startswith(("current-public-api-027-", "current-public-api-090-")):
+                self.assertEqual(row["disposition"], "independent_pass")
+                self.assertEqual(row["qualification_scope"], "client_component_public_Admin_wire_and_handler")
+                self.assertTrue(row["artifacts"])
+                for artifact in row["artifacts"]:
+                    self.assertTrue((REPO_ROOT / artifact).is_file())
+            else:
+                self.assertIn(row["disposition"], ("not_run", "unsupported"))
+                self.assertNotIn("artifacts", row)
         old = next(r for r in rows if r["id"] == "api-broker-internal-027-write-txn-markers")
         self.assertEqual(old["disposition"], "not_applicable")
         self.assertEqual(old["immutable_source_pin"], "cb7e97d3b92a8555aea34d59266a2990c206395f")
@@ -699,9 +721,9 @@ class TestConformanceBacklogModes(unittest.TestCase):
         backlog = cpc.evaluate_protocol_coverage(mode='backlog')
         self.assertEqual(backlog['summary']['exit_code'], 0)
         self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
-        self.assertEqual(backlog['conformance_backlog']['required_cases'], 164)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 16)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 148)
+        self.assertEqual(backlog['conformance_backlog']['required_cases'], 182)
+        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 45)
+        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 137)
         for mode in ('core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)

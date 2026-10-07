@@ -173,9 +173,7 @@ use partitionline::protocol::group::{
     OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
-use partitionline::protocol::idem::{
-    decode_init_producer_id_request, encode_init_producer_id_response,
-};
+use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::oauth;
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
@@ -335,6 +333,7 @@ struct State {
     hidden_brokers: HashSet<i32>,
     /// Override advertised ApiVersions max per api key.
     api_max: HashMap<i16, i16>,
+    api_min: HashMap<i16, i16>,
     /// Override advertised ApiVersions max per node and api key.
     node_api_max: HashMap<(i32, i16), i16>,
     /// Last Produce version received per node.
@@ -692,6 +691,10 @@ struct State {
     last_init_producer_id_producer_epoch: Option<i16>,
     init_producer_id_nodes: Vec<i32>,
     init_producer_id_not_coordinator: u32,
+    init_producer_id_faults: VecDeque<i16>,
+    init_producer_id_delay: Option<Duration>,
+    last_init_producer_id_flags: Option<(bool, bool)>,
+    init_producer_id_ongoing: Option<(i64, i16)>,
     stale_txn_finds: u32,
     last_add_partitions_node: Option<i32>,
     last_add_offsets_node: Option<i32>,
@@ -809,6 +812,7 @@ fn new_state(
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
         api_max: HashMap::new(),
+        api_min: HashMap::new(),
         node_api_max: HashMap::new(),
         last_produce_version_by_node: HashMap::new(),
         last_fetch_version_by_node: HashMap::new(),
@@ -1160,6 +1164,10 @@ fn new_state(
         last_init_producer_id_producer_epoch: None,
         init_producer_id_nodes: Vec::new(),
         init_producer_id_not_coordinator: 0,
+        init_producer_id_faults: VecDeque::new(),
+        init_producer_id_delay: None,
+        last_init_producer_id_flags: None,
+        init_producer_id_ongoing: None,
         stale_txn_finds: 0,
         last_add_partitions_node: None,
         last_add_offsets_node: None,
@@ -2292,6 +2300,12 @@ impl Mock {
 
     pub fn set_api_max(&self, api_key: i16, max: i16) {
         let _ = self.state.lock().api_max.insert(api_key, max);
+    }
+
+    pub fn set_api_range(&self, api_key: i16, min: i16, max: i16) {
+        let mut state = self.state.lock();
+        state.api_min.insert(api_key, min);
+        state.api_max.insert(api_key, max);
     }
 
     pub fn set_node_api_max(&self, node_id: i32, api_key: i16, max: i16) {
@@ -3768,6 +3782,22 @@ impl Mock {
         self.state.lock().init_producer_id_not_coordinator
     }
 
+    pub fn last_init_producer_id_flags(&self) -> Option<(bool, bool)> {
+        self.state.lock().last_init_producer_id_flags
+    }
+
+    pub fn set_init_producer_id_ongoing(&self, pid: i64, epoch: i16) {
+        self.state.lock().init_producer_id_ongoing = Some((pid, epoch));
+    }
+
+    pub fn fail_init_producer_id_once(&self, code: i16) {
+        self.state.lock().init_producer_id_faults.push_back(code);
+    }
+
+    pub fn set_init_producer_id_delay(&self, delay: Duration) {
+        self.state.lock().init_producer_id_delay = Some(delay);
+    }
+
     pub fn last_add_partitions_node(&self) -> Option<i32> {
         self.state.lock().last_add_partitions_node
     }
@@ -4504,7 +4534,7 @@ fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
             .filter(|(api_key, _, _)| !st.hidden_apis.contains(api_key))
             .map(|(api_key, min_version, max_version)| ApiVersion {
                 api_key,
-                min_version,
+                min_version: st.api_min.get(&api_key).copied().unwrap_or(min_version),
                 max_version: st
                     .node_api_max
                     .get(&(node_id, api_key))
@@ -6152,15 +6182,40 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             INIT_PRODUCER_ID => {
-                let (tid, txn_timeout, producer_id, producer_epoch) =
-                    decode_init_producer_id_request(&mut frame, header.api_version).unwrap();
+                let response_body_start = body.len();
+                let decoded = partitionline::protocol::idem::decode_init_producer_id_request_data(
+                    &mut frame,
+                    header.api_version,
+                )
+                .unwrap();
+                let flags = (decoded.enable_2pc, decoded.keep_prepared_txn);
+                let (tid, txn_timeout, producer_id, producer_epoch) = (
+                    decoded.transactional_id,
+                    decoded.transaction_timeout_ms,
+                    decoded.producer_id,
+                    decoded.producer_epoch,
+                );
+                let delay = state.lock().init_producer_id_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.last_init_producer_id_timeout = Some(txn_timeout);
+                st.last_init_producer_id_flags = Some(flags);
                 st.last_init_producer_id_version = Some(header.api_version);
                 st.last_init_producer_id_producer_id = Some(producer_id);
                 st.last_init_producer_id_producer_epoch = Some(producer_epoch);
                 st.init_producer_id_nodes.push(node_id);
-                if tid.is_some() && st.txn_coord_node != node_id {
+                if let Some(error) = st.init_producer_id_faults.pop_front() {
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        error,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else if tid.is_some() && st.txn_coord_node != node_id {
                     st.init_producer_id_not_coordinator =
                         st.init_producer_id_not_coordinator.saturating_add(1);
                     encode_init_producer_id_response(
@@ -6212,6 +6267,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     encode_init_producer_id_response(&mut body, header.api_version, 0, pid, epoch)
                         .unwrap();
+                }
+                if header.api_version >= 6 {
+                    if let Some((pid, epoch)) = st.init_producer_id_ongoing {
+                        let mut response =
+                            partitionline::protocol::idem::decode_init_producer_id_response_data(
+                                &mut &body[response_body_start..],
+                                header.api_version,
+                            )
+                            .unwrap();
+                        response.ongoing_txn_producer_id = pid;
+                        response.ongoing_txn_producer_epoch = epoch;
+                        body.truncate(response_body_start);
+                        partitionline::protocol::idem::encode_init_producer_id_response_data(
+                            &mut body,
+                            header.api_version,
+                            &response,
+                        )
+                        .unwrap();
+                    }
                 }
             }
             ADD_PARTITIONS_TO_TXN => {

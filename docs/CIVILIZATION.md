@@ -6,9 +6,9 @@
 The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) supersedes broad completion
 inferences from this file's capability checklist.
 
-**North star:** Critical event infrastructure can run on a memory-safe Kafka
-client without librdkafka or C protocol code, auditable and efficient to operate.
-TLS uses rustls/ring, whose build includes native code.
+**Goal:** A Kafka client with documented behavior, reliable operation and
+reproducible performance measurements. TLS uses rustls/ring, whose build
+includes native code.
 
 The older WP packages below preserve foundation history; do not pick them
 as new session assignments. Do not lift
@@ -18,24 +18,17 @@ dependencies. `unsafe_code` stays forbidden.
 
 ## Why this matters
 
-Kafka is how much of civilization moves state: payments, logistics, energy
-telemetry, health systems, public services. Today most non-Java clients lean
-on librdkafka (C). That couples memory-safety, supply-chain, and build
-reproducibility to a C FFI stack.
-
-partitionline already speaks modern Kafka 3.x/4.x protocol surfaces, matches
-Java-shaped APIs for produce / fetch / groups / transactions / admin / share
-groups, and has measured produce / fetch / latency writeups on Lab A and
-this-VM (see `benchmark.md`). Lab A produce is vs C when locked; this-VM fetch
-and latency samples are vs rust-rdkafka and are **unsigned** — latency is not
-claimed as a win. The remaining gap is not “write a client.” It is **make the
-client something operators and ecosystems can trust and adopt**.
+partitionline provides producer, consumer, group, transaction, Admin and share
+group APIs. The current task registry tracks correctness, compatibility and
+operational gaps. `benchmark.md` records the available produce, fetch and
+latency measurements. Lab A and local VM results have different qualification
+requirements; the local latency samples do not establish a performance win.
 
 ## Non-negotiable constraints
 
-1. Pure Rust default features. No C Kafka client. No C compression/SASL as
-   default. Optional `zstd` / GSSAPI remain **blocked on C** unless a pure-Rust
-   path is proven Kafka-compatible (`gaps.md`).
+1. No librdkafka client dependency or native compression/SASL dependency in
+   default features. Optional zstd and GSSAPI require a compatible backend and
+   an approved dependency decision (`gaps.md`).
 2. `unsafe_code = "forbid"`. No exceptions for “hot path.”
 3. Honesty about numbers. Unsigned this-VM results stay unsigned. Do not
    claim Suite HOLD lifts without Kernel Integrity / Lab A process.
@@ -141,7 +134,7 @@ standard service without reading `design.md` wire notes.
 
 ### WP-5 — Performance honesty pipeline
 
-**Goal:** Civilization-grade claims stay reproducible and labeled.
+**Goal:** Retain reproducible measurements and state what they support.
 
 | ID | Task | Acceptance |
 |---|---|---|
@@ -158,7 +151,7 @@ without a deployment need written here.
 | ID | Task | Acceptance |
 |---|---|---|
 | WP-6.1 | Survey: open GitHub Discussions/Issues for “what blocks you from adopting?” after crates.io | Issue templates exist; first survey issue filed |
-| WP-6.2 | Pure-Rust zstd research spike: Kafka frame compatibility without `zstd-sys` | Spike doc: feasible / not; no default C dep |
+| WP-6.2 | Evaluate zstd backends and Kafka frame compatibility | Record feasibility and dependency requirements |
 | WP-6.3 | Companion `partitionline-schema` (optional, separate crate) for Confluent-compatible wire if demand is real | Only after WP-0 publish; stays out of core crate |
 | WP-6.4 | Compression / auth optional features matrix in README | Table of codecs and SASL mechanisms vs C |
 

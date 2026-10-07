@@ -1,7 +1,7 @@
-//! A Kafka client written in Rust. No C, no librdkafka.
+//! An asynchronous Kafka client with producer, consumer, group, transaction and Admin APIs.
 //!
 //! Application entry points: [`Producer`], [`Consumer`], [`ConsumerGroup`],
-//! [`ShareGroup`], [`Admin`]. Auth is [`Sasl`] and [`TlsConfig`]. The rest of
+//! [`ShareGroup`], [`StreamsClient`], [`Admin`]. Auth is [`Sasl`] and [`TlsConfig`]. The rest of
 //! this crate rustdoc is the Java-shaped API catalog (protocol helpers,
 //! version ranges, and option names). Codecs live under [`protocol`].
 //!
@@ -52,7 +52,7 @@
 //! `ProduceRequest.validateRecords` (empty or more than one batch, or
 //! magic other than v2, is `InvalidRecordException`; `version` below 7
 //! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
-//! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
+//! [`RecordBatch::magic`] is always v2; zstd requires the optional `zstd` feature).
 //! [`protocol::api::ProduceRequest::build`] is Java
 //! `ProduceRequest.Builder.build` (validates each partition's records;
 //! empty Topics is success).
@@ -66,28 +66,18 @@
 //! [`protocol::api::ProduceRequest::error_counts`] is Java
 //! `ProduceRequest.errorCounts(Throwable)` (unique `partitionSizes` keys;
 //! empty is `{error: 0}`, not an empty map; does not look at `acks`).
-//! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
-//! first init [`RecordBatch::NO_PRODUCER_ID`] /
-//! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
-//! id/epoch). Java `InitProducerIdRequest.getErrorResponse` writes those
-//! sentinels ([`protocol::idem::InitProducerIdRequest::error_response`];
-//! throttle `0` even when the Java `throttleTimeMs` argument is non-zero).
-//! [`protocol::idem::InitProducerIdRequest::build`] is Java
-//! `InitProducerIdRequest.Builder.build` (rejects a non-positive
-//! `transaction.timeout.ms` and an empty (non-null) transactional id;
-//! encode still writes independently after this helper).
-//! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
-//! `InitProducerIdResponse.shouldClientThrottle` (v1+).
-//! [`protocol::idem::InitProducerIdResponse::error_counts`] is Java
-//! `InitProducerIdResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`).
-//! ThrottleTimeMs is JSON `0+`
-//! ([`protocol::idem::encode_init_producer_id_response_with_throttle`];
-//! encode previously always wrote `0` on v1+ and omitted the field on v0;
-//! decode discarded it; convenience encode still writes `0`; official Java
-//! `InitProducerIdResponse.throttleTimeMs` /
-//! `InitProducerIdResponseData.throttleTimeMs`; Java `getErrorResponse`
-//! sets `throttleTimeMs` to `0` even when the argument is non-zero).
+//! InitProducerId supports v0–v6. v2+ uses flexible framing; v3+ carries
+//! the last producer ID/epoch for recovery. First allocation sends -1/-1.
+//! The typed [`protocol::idem::InitProducerIdRequestData`] preserves both v6
+//! flags; [`protocol::idem::InitProducerIdResponseData`] keeps ongoing
+//! transaction identity separate from the newly allocated identity.
+//! Ordinary producers send both flags false. Prepared transaction lifecycle
+//! operations remain separate from this wire/default initialization support.
+//! Older peers reject true flags before a request is sent. Compatibility
+//! wrappers use false flags and -1 ongoing identity sentinels.
+//! Responses carry throttle time on every supported version; error responses
+//! use zero throttle and -1 identities. Client throttling starts at v1.
+//! Both decoders require complete input and use bounded tagged-field helpers.
 //! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
 //! and IncludeClusterAuthorizedOperations; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
@@ -809,7 +799,7 @@
 //! `0`);
 //! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
 //! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
-//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994; ThrottleTimeMs is JSON `0+`;
+//! ListTransactions v0–v2 (v1 DurationFilter, v2 TransactionalIdPattern; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ListTransactionsRequest::build`] is Java
 //! `ListTransactionsRequest.Builder.build` (rejects a non-negative
 //! DurationFilter on v0; encode still writes independently after this helper);
@@ -1043,7 +1033,7 @@
 //! `PushTelemetryRequest.metricsContentType` (`OTLP`);
 //! [`protocol::admin::PushTelemetryRequest::metrics_data`] is Java
 //! `PushTelemetryRequest.metricsData` (`NONE` returns stored bytes; gzip /
-//! snappy / lz4 decompress; zstd is not spoken)),
+//! snappy / lz4 decompress; optional zstd)),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
 //! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;
@@ -1482,7 +1472,7 @@
 //! `ProduceRequest.validateRecords` (empty or more than one batch, or
 //! magic other than v2, is `InvalidRecordException`; `version` below 7
 //! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
-//! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
+//! [`RecordBatch::magic`] is always v2; zstd requires the optional `zstd` feature).
 //! [`protocol::api::ProduceRequest::builder`] is Java
 //! `ProduceRequest.builder` (oldest 3; latest 11 when transaction V1,
 //! otherwise 12).
@@ -2029,7 +2019,7 @@
 //! [`Compression::id`] /
 //! [`Compression::from_id`] / [`Compression::from_name`] are Java
 //! `CompressionType.id` / `forId` / `forName`
-//! (zstd `4` is `None`; this crate does not speak zstd).
+//! (zstd `4` requires the optional `zstd` feature).
 //! [`Compression::default_level`] / [`Compression::min_level`] /
 //! [`Compression::max_level`] are Java `CompressionType.defaultLevel` /
 //! `minLevel` / `maxLevel` (`gzip` / `lz4`; [`Error::Unsupported`] for
@@ -3129,7 +3119,7 @@
 //! Kafka `retry.backoff.ms` / `retry.backoff.max.ms` on admin RPCs
 //! (`NOT_CONTROLLER`, coordinator moves, retriable IO; default 100ms / 1s).
 //! [`ProducerConfig::transaction_timeout`] is Kafka `transaction.timeout.ms`
-//! on InitProducerId v0–v5 (default 60s, same as Java).
+//! on InitProducerId v0–v6 (default 60s, same as Java).
 //! [`ProducerConfig::metadata_max_age`] / [`ConsumerConfig::metadata_max_age`]
 //! are Kafka `metadata.max.age.ms` (default 5 minutes; zero refreshes every
 //! lookup).
@@ -3145,7 +3135,7 @@
 //!
 //! [`Admin`] covers topics, partitions, configs, ACLs, groups, transactions,
 //! quotas, telemetry, log dirs, and delegation tokens. See the [`admin`]
-//! module. Still missing versus librdkafka: zstd and Kerberos (C libraries)
+//! module. Still missing versus librdkafka: Kerberos
 //! and Schema Registry. Tracker: `docs/gaps.md`.
 
 #![forbid(unsafe_code)]
@@ -3176,24 +3166,25 @@ pub mod producer;
 pub mod protocol;
 /// Share groups (KIP-932).
 pub mod share;
+pub mod streams;
 
 pub use admin::{
     AbortTransactionSpec, AccessControlEntry, AccessControlEntryFilter, AclBinding,
     AclBindingFilter, AclCreationResult, AclOperation, AclPatternType, AclPermission,
     AclResourceType, ActiveProducer, AddRaftVoterOptions, AddRaftVoterResponse, Admin, AdminConfig,
     AlterConfig, AlterConfigOp, AlterConfigOpType, AlterConfigsResourceResult,
-    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
-    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
-    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
-    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
-    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
-    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
-    AssignReplicasToDirsTopic, BrokerTransactionListings, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
-    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription,
-    ClusterResource, Config, ConfigEntry, ConfigReplacement, ConfigResource, ConfigResourceType,
-    ConfigResourceUpdate, ConfigSource, ConfigType, ConsumerGroupAssignment,
+    AlterPartitionReassignmentsOptions, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
+    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
+    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, BrokerTransactionListings,
+    ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry,
+    ClientQuotaFilter, ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue,
+    ClusterDescription, ClusterResource, Config, ConfigEntry, ConfigReplacement, ConfigResource,
+    ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, ConsumerGroupAssignment,
     ConsumerGroupDescription, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteAclsMatchingAcl, DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedRecords,
@@ -3213,11 +3204,11 @@ pub use admin::{
     ElectLeadersTopic, ElectionType, EndpointType, ExpireDelegationTokenRequest,
     ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
     FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, GroupState,
-    GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove,
-    NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetDeleteResult,
-    OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, QuorumInfo,
-    RaftVoterEndpoint, ReassignmentResult, RecordsToDelete, RemoveRaftVoterOptions,
-    RemoveRaftVoterResponse, RemovedMember, RenewDelegationTokenRequest,
+    GroupType, ListConsumerGroupOffsetsSpec, ListTransactionsOptions, ListedConfigResource,
+    ListedGroup, MemberToRemove, NewPartitionReassignment, NewPartitions, NewTopic, Node,
+    OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    PushTelemetryResponse, QuorumInfo, RaftVoterEndpoint, ReassignmentResult, RecordsToDelete,
+    RemoveRaftVoterOptions, RemoveRaftVoterResponse, RemovedMember, RenewDelegationTokenRequest,
     RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter,
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection, TopicDescription,
@@ -3284,6 +3275,7 @@ pub use share::{
     AcknowledgeType, ShareAcquireMode, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata,
     SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE, SHARE_ACK_RENEW,
 };
+pub use streams::{StreamsClient, StreamsConfig, StreamsLimits};
 
 /// Software name sent in ApiVersions v3–v4.
 pub const CLIENT_NAME: &str = "partitionline";

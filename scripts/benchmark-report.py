@@ -549,6 +549,31 @@ class BenchmarkValidator:
                     f"but client effective_settings configured acks={config_acks}."
                 )
 
+        # Required zstd cells compare a declared level and resolved backend.
+        compression = scenario.get("equal_semantics", {}).get("compression", {})
+        if (str(scenario.get("scenario_id", "")).endswith("-zstd")
+                or isinstance(compression, dict) and compression.get("codec") == "zstd"):
+            if scenario.get("cell_disposition") in ("executed", "failed"):
+                effective_compression = provenance.get("config", {}).get("effective_settings", {}).get("compression", {})
+                if not isinstance(compression, dict) or compression.get("codec") != "zstd" or compression.get("level") != 3:
+                    errors.append("Required zstd scenario must declare encoder level3")
+                if not isinstance(effective_compression, dict):
+                    errors.append("Zstd effective compression must be an object")
+                else:
+                    if effective_compression.get("codec") != "zstd" or type(effective_compression.get("level")) is not int or effective_compression.get("level") != 3:
+                        errors.append("Zstd configured encoder level must match level3")
+                    if effective_compression.get("backend") not in ("zstd-rs", "libzstd", "klauspost/compress"):
+                        errors.append("Zstd backend must be resolved as zstd-rs, libzstd or klauspost/compress")
+                    version = effective_compression.get("backend_version")
+                    if not isinstance(version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+.][A-Za-z0-9.-]+)?", version):
+                        errors.append("Zstd backend version is missing or unknown")
+                    if not HEX_SHA256_REGEX.fullmatch(str(effective_compression.get("encoded_batches_sha256", ""))):
+                        errors.append("Zstd encoded batch corpus hash is missing")
+                    for field in ("compressed_record_bytes", "uncompressed_record_bytes"):
+                        value = effective_compression.get(field)
+                        if type(value) is not int or value <= 0:
+                            errors.append(f"Zstd {field} must describe actual positive batch bytes")
+
         # 7. Integrity & High-Watermark Audit Verification
         # Requirements: "The validator must reject a fixture with excellent throughput but missing record IDs or mismatched acks."
         integrity = data.get("integrity", {})

@@ -1,0 +1,657 @@
+{
+  "status": "pass",
+  "profiles": 72,
+  "results": [
+    {
+      "release": "4.1.2",
+      "name": "tv-0",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "empty",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "no-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "no-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "duplicate-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "duplicate-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "duplicate-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "unrelated-zero",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "unrelated-error",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-3",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-6",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-8",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-9",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-31",
+      "outcome": "org.apache.kafka.common.errors.ClusterAuthorizationException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-47",
+      "outcome": "org.apache.kafka.common.errors.InvalidProducerEpochException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "error-52",
+      "outcome": "org.apache.kafka.common.errors.TransactionCoordinatorFencedException",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "removed-v0",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "future-v3",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "range1to2",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.1.2",
+      "name": "unsupported-v2",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "tv-0",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "empty",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "no-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "no-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "duplicate-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "duplicate-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "duplicate-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "unrelated-zero",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "unrelated-error",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-3",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-6",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-8",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-9",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-31",
+      "outcome": "org.apache.kafka.common.errors.ClusterAuthorizationException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-47",
+      "outcome": "org.apache.kafka.common.errors.InvalidProducerEpochException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "error-52",
+      "outcome": "org.apache.kafka.common.errors.TransactionCoordinatorFencedException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "removed-v0",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "future-v3",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "range1to2",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.2.1",
+      "name": "downgrade-v1",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "tv-0",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "empty",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "no-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "no-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "duplicate-producer",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "duplicate-topic",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "duplicate-partition",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "unrelated-zero",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "unrelated-error",
+      "outcome": "org.apache.kafka.common.KafkaException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-3",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-6",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-8",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-9",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 2,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-31",
+      "outcome": "org.apache.kafka.common.errors.ClusterAuthorizationException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-47",
+      "outcome": "org.apache.kafka.common.errors.InvalidProducerEpochException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "error-52",
+      "outcome": "org.apache.kafka.common.errors.TransactionCoordinatorFencedException",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "removed-v0",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "future-v3",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "absent-api",
+      "outcome": "org.apache.kafka.common.errors.UnsupportedVersionException",
+      "marker_version": null,
+      "marker_requests": 0,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "range1to2",
+      "outcome": "completed",
+      "marker_version": 2,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    },
+    {
+      "release": "4.3.1",
+      "name": "downgrade-v1",
+      "outcome": "completed",
+      "marker_version": 1,
+      "marker_requests": 1,
+      "runtime_tasks": 0,
+      "clients_and_listeners_closed": true
+    }
+  ],
+  "genuine_public_sdk": true,
+  "broker_transaction_state_qualified": false,
+  "performance_claims_valid": false
+}

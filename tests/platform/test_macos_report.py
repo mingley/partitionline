@@ -12,7 +12,7 @@ spec.loader.exec_module(report)
 
 def versions():
     return {'system': 'Darwin', 'machine': 'arm64', 'rustc_host': 'aarch64-apple-darwin',
-            'requested_toolchain': '1.85.0', 'rustc_release': '1.85.0',
+            'requested_toolchain': 'stable', 'rustc_release': '1.99.0',
             'python_version': '3.13.1', 'bash_version': '5.2.37(1)-release',
             'source_sha': '0' * 40, 'openssl_version': 'OpenSSL 3.5.0 fixture'}
 
@@ -23,10 +23,10 @@ def package():
             'feature_matrix': [
                 {'feature_mode': mode, 'dependency_features': features,
                  'package_vcs_info': copy.deepcopy(vcs), 'package_sha256': '1' * 64,
-                 'toolchain': '1.85.0', 'rustc': 'rustc 1.85.0 (synthetic fixture)',
+                 'toolchain': 'stable', 'rustc': 'rustc 1.99.0 (synthetic fixture)',
                  'compiled_snippets': 1, 'snippets': [{}], 'ignored_snippets': []}
                 for mode, features in [('default', []), ('tracing', ['tracing'])]],
-            'operator_lock_sha256': {f'operator-1.85.0-{mode}.lock': '2' * 64
+            'operator_lock_sha256': {f'operator-stable-{mode}.lock': '2' * 64
                                      for mode in ('default', 'tracing')}}
 
 
@@ -40,6 +40,26 @@ class ReportTest(unittest.TestCase):
         report.validate_versions(versions())
         self.assertEqual(report.test_counts(runtime())['passed'], 4)
         self.assertEqual(report.validate_package(package(), versions()), 2)
+
+    def test_current_zstd_package_requires_each_declared_feature_cell(self):
+        data = package()
+        data['approved_optional_features'] = ['tracing', 'zstd']
+        for mode, features in [('zstd', ['zstd']), ('all', ['tracing', 'zstd'])]:
+            cell = copy.deepcopy(data['feature_matrix'][0])
+            cell.update(feature_mode=mode, dependency_features=features)
+            data['feature_matrix'].append(cell)
+            data['operator_lock_sha256'][f'operator-stable-{mode}.lock'] = '2' * 64
+        self.assertEqual(report.validate_package(data, versions()), 4)
+        incomplete = copy.deepcopy(data)
+        incomplete['feature_matrix'].pop()
+        with self.assertRaises(ValueError): report.validate_package(incomplete, versions())
+        unsupported = copy.deepcopy(data)
+        unsupported['approved_optional_features'].append('unknown')
+        with self.assertRaises(ValueError): report.validate_package(unsupported, versions())
+
+    def test_legacy_toolchain_is_not_a_supported_current_profile(self):
+        data = versions(); data['requested_toolchain'] = '1.85.0'
+        with self.assertRaises(ValueError): report.validate_versions(data)
 
     def test_wrong_native_platform_or_compiler_rejected(self):
         for field, value in [('system', 'Linux'), ('machine', 'x86_64'),
@@ -76,7 +96,7 @@ class ReportTest(unittest.TestCase):
             with self.assertRaises(ValueError): report.validate_package(data, versions())
 
     def test_cell_revision_package_or_compiler_mismatch_rejected(self):
-        for field, value in [('package_sha256', '3' * 64), ('toolchain', 'stable'),
+        for field, value in [('package_sha256', '3' * 64), ('toolchain', 'nightly'),
                              ('rustc', 'rustc 1.86.0 (fixture)'),
                              ('package_vcs_info', {'git': {'sha1': '3' * 40}})]:
             data = package(); data['feature_matrix'][0][field] = value
@@ -89,8 +109,7 @@ class ReportTest(unittest.TestCase):
             with self.assertRaises(ValueError): report.validate_package(data, versions())
 
     def test_operator_lock_manifest_must_match_both_feature_cells(self):
-        for locks in [{}, {'operator-stable-default.lock': '2' * 64,
-                          'operator-stable-tracing.lock': '2' * 64}]:
+        for locks in [{}, {'operator-stable-default.lock': '2' * 64}]:
             data = package(); data['operator_lock_sha256'] = locks
             with self.assertRaises(ValueError): report.validate_package(data, versions())
 

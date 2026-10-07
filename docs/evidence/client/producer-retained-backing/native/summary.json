@@ -1,0 +1,12 @@
+{
+  "status": "pass",
+  "broker": "4.3.1",
+  "producer_records": 45,
+  "independent_readbacks": 10,
+  "early_owner_drop_assertions": true,
+  "all_fields_verified": true,
+  "high_watermark": 9,
+  "all_commands_parent_waited": true,
+  "ports_closed_and_reusable": true,
+  "performance_claims_valid": false
+}

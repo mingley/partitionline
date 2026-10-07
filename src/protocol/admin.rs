@@ -4605,13 +4605,96 @@ fn get_compact_nullable_i32_array<B: Buf>(buf: &mut B) -> Result<Option<Vec<i32>
     Ok(Some(out))
 }
 
-/// AlterPartitionReassignments v0 (flexible from v0; KIP-455).
-pub fn encode_alter_partition_reassignments_request(
+/// Maximum partitions or topics in a reassignment request or response.
+pub const MAX_REASSIGNMENT_PARTITIONS: usize = 10_000;
+/// Maximum total replica IDs in a reassignment request.
+pub const MAX_REASSIGNMENT_REPLICAS: usize = 100_000;
+const MAX_REASSIGNMENT_BODY_BYTES: usize = 16 * 1024 * 1024;
+
+/// Complete AlterPartitionReassignments v0–v1 request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterPartitionReassignmentsRequestData {
+    /// Broker-side request timeout in milliseconds.
+    pub timeout_ms: i32,
+    /// Whether target replica lists may change a partition's replication factor.
+    /// Version0 can represent only `true`.
+    pub allow_replication_factor_change: bool,
+    /// Topic and partition assignments; null replica lists cancel a move.
+    pub topics: Vec<ReassignableTopic>,
+}
+
+impl Default for AlterPartitionReassignmentsRequestData {
+    fn default() -> Self {
+        Self {
+            timeout_ms: 60_000,
+            allow_replication_factor_change: true,
+            topics: Vec::new(),
+        }
+    }
+}
+
+/// Complete response, including the policy field added in version1.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterPartitionReassignmentsResponseData {
+    /// Throttle, top-level error and per-partition result tree.
+    pub response: AlterPartitionReassignmentsResponse,
+    /// Policy reported by the broker; version0 has the default `true`.
+    pub allow_replication_factor_change: bool,
+}
+
+fn reassignment_version(version: i16) -> Result<()> {
+    if !(0..=1).contains(&version) {
+        return Err(crate::Error::Unsupported(format!(
+            "AlterPartitionReassignments version {version}"
+        )));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_reassignment_topics(topics: &[ReassignableTopic]) -> Result<()> {
+    if topics.len() > MAX_REASSIGNMENT_PARTITIONS {
+        return Err(crate::Error::protocol("too many reassignment topics"));
+    }
+    let mut partitions = 0usize;
+    let mut replicas = 0usize;
+    for topic in topics {
+        if topic.name.len() > 249 {
+            return Err(crate::Error::protocol(
+                "reassignment topic name exceeds249 bytes",
+            ));
+        }
+        partitions = partitions.saturating_add(topic.partitions.len());
+        if partitions > MAX_REASSIGNMENT_PARTITIONS {
+            return Err(crate::Error::protocol("too many reassignment partitions"));
+        }
+        for partition in &topic.partitions {
+            replicas = replicas.saturating_add(partition.replicas.as_ref().map_or(0, Vec::len));
+            if replicas > MAX_REASSIGNMENT_REPLICAS {
+                return Err(crate::Error::protocol("too many reassignment replica IDs"));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn encode_reassignment_request_fields(
     buf: &mut BytesMut,
+    version: i16,
     timeout_ms: i32,
+    allow: bool,
     topics: &[ReassignableTopic],
-) -> crate::error::Result<()> {
+) -> Result<()> {
+    reassignment_version(version)?;
+    if version == 0 && !allow {
+        return Err(crate::Error::Unsupported(
+            "AllowReplicationFactorChange=false requires AlterPartitionReassignments v1".into(),
+        ));
+    }
+    validate_reassignment_topics(topics)?;
     buf.put_i32(timeout_ms);
+    if version >= 1 {
+        buf.put_u8(u8::from(allow));
+    }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for t in topics {
         buf::put_compact_string(buf, Some(&t.name))?;
@@ -4627,20 +4710,101 @@ pub fn encode_alter_partition_reassignments_request(
     Ok(())
 }
 
-/// Decode an AlterPartitionReassignments request.
-pub fn decode_alter_partition_reassignments_request<B: Buf>(
+/// Encode all fields for version0 or1; reject an unrepresentable policy before output.
+pub fn encode_alter_partition_reassignments_request_data(
+    buf: &mut BytesMut,
+    version: i16,
+    request: &AlterPartitionReassignmentsRequestData,
+) -> Result<()> {
+    encode_reassignment_request_fields(
+        buf,
+        version,
+        request.timeout_ms,
+        request.allow_replication_factor_change,
+        &request.topics,
+    )
+}
+
+/// AlterPartitionReassignments v0 with the default `true` policy.
+pub fn encode_alter_partition_reassignments_request(
+    buf: &mut BytesMut,
+    timeout_ms: i32,
+    topics: &[ReassignableTopic],
+) -> crate::error::Result<()> {
+    encode_reassignment_request_fields(buf, 0, timeout_ms, true, topics)
+}
+
+fn reassignment_count<B: Buf>(input: &mut B, remaining: &mut usize) -> Result<usize> {
+    let count = buf::get_array_len(input, true)?
+        .ok_or_else(|| crate::Error::protocol("null required reassignment array"))?;
+    if count > *remaining {
+        return Err(crate::Error::protocol(
+            "reassignment array exceeds local limit",
+        ));
+    }
+    *remaining -= count;
+    Ok(count)
+}
+
+fn reassignment_bool<B: Buf>(input: &mut B) -> Result<bool> {
+    match buf::get_i8(input)? {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(crate::Error::protocol(
+            "invalid reassignment policy boolean",
+        )),
+    }
+}
+
+fn reassignment_name<B: Buf>(input: &mut B) -> Result<String> {
+    let name = buf::get_compact_string(input)?
+        .ok_or_else(|| crate::Error::protocol("null reassignment topic name"))?;
+    if name.len() > 249 {
+        return Err(crate::Error::protocol(
+            "reassignment topic name exceeds249 bytes",
+        ));
+    }
+    Ok(name)
+}
+
+/// Decode a complete bounded version0–1 request; default the absent v0 policy to `true`.
+pub fn decode_alter_partition_reassignments_request_data<B: Buf>(
     buf: &mut B,
-) -> Result<(i32, Vec<ReassignableTopic>)> {
+    version: i16,
+) -> Result<AlterPartitionReassignmentsRequestData> {
+    reassignment_version(version)?;
+    if buf.remaining() > MAX_REASSIGNMENT_BODY_BYTES {
+        return Err(crate::Error::protocol(
+            "reassignment request body exceeds16MiB",
+        ));
+    }
     let timeout_ms = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let allow_replication_factor_change = version == 0 || reassignment_bool(buf)?;
+    let mut topic_budget = MAX_REASSIGNMENT_PARTITIONS;
+    let n = reassignment_count(buf, &mut topic_budget)?;
     let mut topics = Vec::with_capacity(n);
+    let mut partition_budget = MAX_REASSIGNMENT_PARTITIONS;
+    let mut replica_budget = MAX_REASSIGNMENT_REPLICAS;
     for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let name = reassignment_name(buf)?;
+        let pn = reassignment_count(buf, &mut partition_budget)?;
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition_index = buf::get_i32(buf)?;
-            let replicas = get_compact_nullable_i32_array(buf)?;
+            let replicas = match buf::get_array_len(buf, true)? {
+                None => None,
+                Some(count) => {
+                    if count > replica_budget {
+                        return Err(crate::Error::protocol("too many reassignment replica IDs"));
+                    }
+                    replica_budget -= count;
+                    let mut replicas = Vec::with_capacity(count);
+                    for _ in 0..count {
+                        replicas.push(buf::get_i32(buf)?);
+                    }
+                    Some(replicas)
+                }
+            };
             buf::skip_tagged_fields(buf)?;
             partitions.push(ReassignablePartition {
                 partition_index,
@@ -4651,15 +4815,68 @@ pub fn decode_alter_partition_reassignments_request<B: Buf>(
         topics.push(ReassignableTopic { name, partitions });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok((timeout_ms, topics))
+    if buf.has_remaining() {
+        return Err(crate::Error::protocol(
+            "trailing reassignment request bytes",
+        ));
+    }
+    Ok(AlterPartitionReassignmentsRequestData {
+        timeout_ms,
+        allow_replication_factor_change,
+        topics,
+    })
 }
 
-/// Encode an AlterPartitionReassignments response.
-pub fn encode_alter_partition_reassignments_response(
+/// Decode the version0 request with its default policy.
+pub fn decode_alter_partition_reassignments_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(i32, Vec<ReassignableTopic>)> {
+    let request = decode_alter_partition_reassignments_request_data(buf, 0)?;
+    Ok((request.timeout_ms, request.topics))
+}
+
+fn encode_reassignment_response_fields(
     buf: &mut BytesMut,
+    version: i16,
+    allow: bool,
     resp: &AlterPartitionReassignmentsResponse,
 ) -> crate::error::Result<()> {
+    reassignment_version(version)?;
+    let mut partitions = 0usize;
+    let mut bytes = 16usize.saturating_add(resp.error_message.as_ref().map_or(0, String::len));
+    if resp.results.len() > MAX_REASSIGNMENT_PARTITIONS {
+        return Err(crate::Error::protocol(
+            "too many reassignment response topics",
+        ));
+    }
+    for topic in &resp.results {
+        if topic.name.len() > 249 {
+            return Err(crate::Error::protocol(
+                "reassignment topic name exceeds249 bytes",
+            ));
+        }
+        partitions = partitions.saturating_add(topic.partitions.len());
+        if partitions > MAX_REASSIGNMENT_PARTITIONS {
+            return Err(crate::Error::protocol(
+                "too many reassignment response partitions",
+            ));
+        }
+        bytes = bytes.saturating_add(topic.name.len()).saturating_add(16);
+        for partition in &topic.partitions {
+            bytes = bytes
+                .saturating_add(16)
+                .saturating_add(partition.error_message.as_ref().map_or(0, String::len));
+        }
+    }
+    if bytes > MAX_REASSIGNMENT_BODY_BYTES {
+        return Err(crate::Error::protocol(
+            "reassignment response body exceeds16MiB",
+        ));
+    }
     buf.put_i32(resp.throttle_time_ms);
+    if version >= 1 {
+        buf.put_u8(u8::from(allow));
+    }
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_array_len(buf, true, Some(resp.results.len()))?;
@@ -4678,18 +4895,50 @@ pub fn encode_alter_partition_reassignments_response(
     Ok(())
 }
 
-/// Decode an AlterPartitionReassignments response.
-pub fn decode_alter_partition_reassignments_response<B: Buf>(
+/// Encode a complete version0–1 response; v0 omits its ignorable policy field.
+pub fn encode_alter_partition_reassignments_response_data(
+    buf: &mut BytesMut,
+    version: i16,
+    response: &AlterPartitionReassignmentsResponseData,
+) -> Result<()> {
+    encode_reassignment_response_fields(
+        buf,
+        version,
+        response.allow_replication_factor_change,
+        &response.response,
+    )
+}
+
+/// Encode the version0 response.
+pub fn encode_alter_partition_reassignments_response(
+    buf: &mut BytesMut,
+    response: &AlterPartitionReassignmentsResponse,
+) -> Result<()> {
+    encode_reassignment_response_fields(buf, 0, true, response)
+}
+
+/// Decode the complete bounded result tree and the version1 policy field.
+pub fn decode_alter_partition_reassignments_response_data<B: Buf>(
     buf: &mut B,
-) -> Result<AlterPartitionReassignmentsResponse> {
+    version: i16,
+) -> Result<AlterPartitionReassignmentsResponseData> {
+    reassignment_version(version)?;
+    if buf.remaining() > MAX_REASSIGNMENT_BODY_BYTES {
+        return Err(crate::Error::protocol(
+            "reassignment response body exceeds16MiB",
+        ));
+    }
     let throttle_time_ms = buf::get_i32(buf)?;
+    let allow_replication_factor_change = version == 0 || reassignment_bool(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topic_budget = MAX_REASSIGNMENT_PARTITIONS;
+    let n = reassignment_count(buf, &mut topic_budget)?;
     let mut results = Vec::with_capacity(n);
+    let mut partition_budget = MAX_REASSIGNMENT_PARTITIONS;
     for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let name = reassignment_name(buf)?;
+        let pn = reassignment_count(buf, &mut partition_budget)?;
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition_index = buf::get_i32(buf)?;
@@ -4706,12 +4955,27 @@ pub fn decode_alter_partition_reassignments_response<B: Buf>(
         results.push(ReassignmentTopicResult { name, partitions });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(AlterPartitionReassignmentsResponse {
-        throttle_time_ms,
-        error_code,
-        error_message,
-        results,
+    if buf.has_remaining() {
+        return Err(crate::Error::protocol(
+            "trailing reassignment response bytes",
+        ));
+    }
+    Ok(AlterPartitionReassignmentsResponseData {
+        allow_replication_factor_change,
+        response: AlterPartitionReassignmentsResponse {
+            throttle_time_ms,
+            error_code,
+            error_message,
+            results,
+        },
     })
+}
+
+/// Decode the version0 response with its absent policy default.
+pub fn decode_alter_partition_reassignments_response<B: Buf>(
+    buf: &mut B,
+) -> Result<AlterPartitionReassignmentsResponse> {
+    Ok(decode_alter_partition_reassignments_response_data(buf, 0)?.response)
 }
 
 /// One topic in ListPartitionReassignments v0 (flexible; topics nullable).
@@ -8267,18 +8531,17 @@ pub fn decode_describe_transactions_response<B: Buf>(
 ///
 /// v0 is StateFilters / ProducerIdFilters plus tagged fields. v1 adds
 /// DurationFilter INT64 (KIP-994; negative means no duration filter). Kafka
-/// 4.0 `validVersions` is `0-1`. This crate speaks 0–1. v2
-/// (TransactionalIdPattern) is not spoken.
+/// v2 adds nullable TransactionalIdPattern. All versions are flexible.
 fn list_transactions_flexible(version: i16) -> Result<bool> {
     match version {
-        0..=1 => Ok(true),
+        0..=2 => Ok(true),
         other => Err(Error::protocol(format!(
             "ListTransactions version {other} is not implemented"
         ))),
     }
 }
 
-/// One transactional.id listing from ListTransactions (api 66) v0–v1.
+/// One transactional.id listing from ListTransactions (api 66) v0–v2.
 ///
 /// Java `TransactionListing`. This is not [`TransactionState`]
 /// (DescribeTransactions api 65).
@@ -8327,11 +8590,11 @@ impl fmt::Display for TransactionListing {
     }
 }
 
-/// ListTransactions v0–v1 body (api 66).
+/// ListTransactions v0–v2 body (api 66).
 ///
 /// Official Apache JSON (`apiKey: 66`, `validVersions: "0-1"`,
-/// `flexibleVersions: "0+"`). This crate speaks 0–1. v1 is DurationFilter
-/// (KIP-994). v2 TransactionalIdPattern is not spoken. v0–v1 are flexible.
+/// `flexibleVersions: "0+"`). This crate speaks 0–2. v1 is DurationFilter
+/// (KIP-994); v2 adds TransactionalIdPattern. v0–v2 are flexible.
 /// Request: compact `StateFilters` `[]string`, compact
 /// `ProducerIdFilters` `[]INT64`, `DurationFilter` INT64 on v1, tagged.
 /// Response: `ThrottleTimeMs` INT32, top-level `ErrorCode` INT16,
@@ -8409,6 +8672,34 @@ impl ListTransactionsResponse {
 /// Java `ListTransactionsRequest` helpers.
 pub struct ListTransactionsRequest;
 
+/// Typed API66 request fields, including the nullable v2 transaction-ID pattern.
+///
+/// Raw non-null patterns, including an empty string, require v2. Public Admin
+/// options normalize an empty pattern to no filter. Patterns are interpreted by
+/// the broker; the client does not compile or evaluate regular expressions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListTransactionsRequestData {
+    /// Broker transaction-state names; empty selects every state.
+    pub state_filters: Vec<String>,
+    /// Producer IDs; empty selects every ID.
+    pub producer_id_filters: Vec<i64>,
+    /// Minimum transaction duration; negative means unfiltered.
+    pub duration_ms: i64,
+    /// Nullable broker regular expression, available in v2.
+    pub transactional_id_pattern: Option<String>,
+}
+
+impl Default for ListTransactionsRequestData {
+    fn default() -> Self {
+        Self {
+            state_filters: Vec::new(),
+            producer_id_filters: Vec::new(),
+            duration_ms: -1,
+            transactional_id_pattern: None,
+        }
+    }
+}
+
 impl ListTransactionsRequest {
     /// Java `ListTransactionsRequest.getErrorResponse`.
     ///
@@ -8429,19 +8720,34 @@ impl ListTransactionsRequest {
     ///
     /// A non-negative DurationFilter on v0 is `UnsupportedVersionException`
     /// (Java `durationFilter() >= 0`). `-1` is allowed on v0. Encode still
-    /// writes independently after this helper. This crate speaks 0–1.
+    /// writes independently after this helper. This crate speaks 0–2.
     /// This is not [`Self::error_response`].
     pub fn build(version: i16, duration_ms: i64) -> Result<()> {
+        Self::build_with_pattern(version, duration_ms, None)
+    }
+
+    /// Validate duration and raw nullable-pattern representability.
+    pub fn build_with_pattern(version: i16, duration_ms: i64, pattern: Option<&str>) -> Result<()> {
+        if !(0..=2).contains(&version) {
+            return Err(Error::Unsupported(
+                "ListTransactions supports versions0–2".into(),
+            ));
+        }
         if version < 1 && duration_ms >= 0 {
             return Err(Error::Unsupported(
                 "Duration filter can be set only when using API version 1 or higher. If client is connected to an older broker, do not specify duration filter or set duration filter to -1.".into(),
+            ));
+        }
+        if version < 2 && pattern.is_some() {
+            return Err(Error::Unsupported(
+                "TransactionalIdPattern requires ListTransactions v2".into(),
             ));
         }
         Ok(())
     }
 }
 
-/// Encode a ListTransactions v0–v1 request.
+/// Encode a ListTransactions v0–v2 request.
 ///
 /// [`ListTransactionsRequest::build`] is Java
 /// `ListTransactionsRequest.Builder.build` (rejects a non-negative
@@ -8454,8 +8760,58 @@ pub fn encode_list_transactions_request(
     producer_id_filters: &[i64],
     duration_ms: i64,
 ) -> crate::error::Result<()> {
+    encode_list_transactions_request_with_pattern(
+        buf,
+        version,
+        state_filters,
+        producer_id_filters,
+        duration_ms,
+        None,
+    )
+}
+
+/// Encode a typed v0–v2 request. All option checks precede output writes.
+pub fn encode_list_transactions_request_data(
+    buf: &mut BytesMut,
+    version: i16,
+    request: &ListTransactionsRequestData,
+) -> Result<()> {
+    encode_list_transactions_request_with_pattern(
+        buf,
+        version,
+        &request.state_filters,
+        &request.producer_id_filters,
+        request.duration_ms,
+        request.transactional_id_pattern.as_deref(),
+    )
+}
+
+/// Encode borrowed v0–v2 fields with a raw nullable pattern.
+///
+/// Filters have at most8,192 elements, state text and pattern at most256 KiB
+/// each. A non-null pattern on v0/v1 is refused without changing `buf`.
+pub fn encode_list_transactions_request_with_pattern(
+    buf: &mut BytesMut,
+    version: i16,
+    state_filters: &[String],
+    producer_id_filters: &[i64],
+    duration_ms: i64,
+    pattern: Option<&str>,
+) -> Result<()> {
     let _flexible = list_transactions_flexible(version)?;
-    ListTransactionsRequest::build(version, duration_ms)?;
+    ListTransactionsRequest::build_with_pattern(version, duration_ms, pattern)?;
+    let text_bytes = state_filters
+        .iter()
+        .try_fold(0usize, |sum, state| sum.checked_add(state.len()));
+    if state_filters.len() > 8_192
+        || producer_id_filters.len() > 8_192
+        || text_bytes.is_none_or(|n| n > 256 * 1024)
+        || pattern.is_some_and(|p| p.len() > 256 * 1024)
+    {
+        return Err(Error::protocol(
+            "ListTransactions request exceeds local filter limits",
+        ));
+    }
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
         buf::put_compact_string(buf, Some(state))?;
@@ -8467,38 +8823,113 @@ pub fn encode_list_transactions_request(
     if version >= 1 {
         buf.put_i64(duration_ms);
     }
+    if version >= 2 {
+        buf::put_compact_string(buf, pattern)?;
+    }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a ListTransactions request: `(states, producer_ids, duration_ms)`.
 ///
-/// `duration_ms` is `-1` on v0 (no DurationFilter).
+/// `duration_ms` is `-1` on v0. This legacy tuple decoder accepts v0/v1;
+/// use [`decode_list_transactions_request_data`] to retain the v2 pattern.
 pub fn decode_list_transactions_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<String>, Vec<i64>, i64)> {
-    let _flexible = list_transactions_flexible(version)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut state_filters = Vec::with_capacity(n);
-    for _ in 0..n {
-        state_filters.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    if version >= 2 {
+        return Err(Error::Unsupported(
+            "use typed ListTransactions v2 decoder to retain TransactionalIdPattern".into(),
+        ));
     }
-    let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let request = decode_list_transactions_request_data(buf, version)?;
+    Ok((
+        request.state_filters,
+        request.producer_id_filters,
+        request.duration_ms,
+    ))
+}
+
+fn list_transactions_bounded_string<B: Buf>(
+    buf: &mut B,
+    nullable: bool,
+    limit: usize,
+) -> Result<Option<String>> {
+    let length = buf::get_unsigned_varint(buf)?;
+    if length == 0 {
+        return if nullable {
+            Ok(None)
+        } else {
+            Err(Error::protocol("null ListTransactions state string"))
+        };
+    }
+    let length = usize::try_from(length - 1)
+        .map_err(|_| Error::protocol("ListTransactions string length overflow"))?;
+    if length > limit {
+        return Err(Error::protocol(
+            "ListTransactions string exceeds local limit",
+        ));
+    }
+    buf::need(buf, length)?;
+    let bytes = buf.copy_to_bytes(length);
+    let value = std::str::from_utf8(&bytes)
+        .map_err(|_| Error::protocol("invalid ListTransactions UTF-8"))?;
+    Ok(Some(value.to_owned()))
+}
+
+/// Decode bounded v0–v2 fields while retaining null versus empty raw patterns.
+pub fn decode_list_transactions_request_data<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ListTransactionsRequestData> {
+    let _flexible = list_transactions_flexible(version)?;
+    let n = buf::get_array_len(buf, true)?
+        .ok_or_else(|| Error::protocol("null ListTransactions state filters"))?;
+    if n > 8_192 || n > buf.remaining() {
+        return Err(Error::protocol(
+            "ListTransactions state count exceeds local input limits",
+        ));
+    }
+    let mut state_filters = Vec::with_capacity(n);
+    let mut text_bytes = 0usize;
+    for _ in 0..n {
+        let value = list_transactions_bounded_string(buf, false, 256 * 1024 - text_bytes)?
+            .ok_or_else(|| Error::protocol("null ListTransactions state filter"))?;
+        text_bytes += value.len();
+        state_filters.push(value);
+    }
+    let pn = buf::get_array_len(buf, true)?
+        .ok_or_else(|| Error::protocol("null ListTransactions producer filters"))?;
+    if pn > 8_192 || pn > buf.remaining() / 8 {
+        return Err(Error::protocol(
+            "ListTransactions producer count exceeds local input limits",
+        ));
+    }
     let mut producer_id_filters = Vec::with_capacity(pn);
     for _ in 0..pn {
         producer_id_filters.push(buf::get_i64(buf)?);
     }
     let duration_ms = if version >= 1 { buf::get_i64(buf)? } else { -1 };
+    let transactional_id_pattern = if version >= 2 {
+        list_transactions_bounded_string(buf, true, 256 * 1024)?
+    } else {
+        None
+    };
     buf::skip_tagged_fields(buf)?;
-    Ok((state_filters, producer_id_filters, duration_ms))
+    Ok(ListTransactionsRequestData {
+        state_filters,
+        producer_id_filters,
+        duration_ms,
+        transactional_id_pattern,
+    })
 }
 
-/// Encode a ListTransactions v0–v1 response.
+/// Encode a ListTransactions v0–v2 response.
 ///
 /// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
-/// `0`). v0 and v1 response bodies match. Kafka 4.0 `validVersions` is
-/// `0-1`. This crate speaks 0–1. v2+ is not spoken. Top-level ErrorCode
+/// `0`). v0, v1 and v2 response bodies match. Kafka 4.0 `validVersions` is
+/// `0-1`. This crate speaks 0–2. Top-level ErrorCode
 /// is at bytes 4–5.
 pub fn encode_list_transactions_response(
     buf: &mut BytesMut,
@@ -11769,17 +12200,20 @@ pub fn encode_describe_share_group_offsets_request(
 pub fn decode_describe_share_group_offsets_request<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<DescribeShareGroupOffsetsGroup>> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = share_offsets_array_len(buf)?;
+    share_offsets_count(buf, n, 3)?;
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_id = share_offsets_name(buf)?;
         let topics = match buf::get_array_len(buf, true)? {
             None => None,
             Some(tn) => {
+                share_offsets_count(buf, tn, 3)?;
                 let mut topics = Vec::with_capacity(tn);
                 for _ in 0..tn {
-                    let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
-                    let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+                    let topic_name = share_offsets_name(buf)?;
+                    let pn = share_offsets_array_len(buf)?;
+                    share_offsets_count(buf, pn, 4)?;
                     let mut partitions = Vec::with_capacity(pn);
                     for _ in 0..pn {
                         partitions.push(buf::get_i32(buf)?);
@@ -11814,7 +12248,7 @@ pub fn encode_describe_share_group_offsets_response(
 /// Encode DescribeShareGroupOffsets v0 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `0+`. Kafka 4.1 `validVersions` is `"0"`.
-/// Official trunk v1 adds `Lag` (KIP-1226); this crate does not speak it.
+/// Versioned helpers expose v1 `Lag` (KIP-1226); this legacy helper encodes v0.
 pub fn encode_describe_share_group_offsets_response_with_throttle(
     buf: &mut BytesMut,
     groups: &[DescribedShareGroupOffsets],
@@ -11854,52 +12288,14 @@ pub fn encode_describe_share_group_offsets_response_with_throttle(
 pub fn decode_describe_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<(Vec<DescribedShareGroupOffsets>, i32)> {
-    let throttle_time_ms = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut groups = Vec::with_capacity(n);
-    for _ in 0..n {
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut topics = Vec::with_capacity(tn);
-        for _ in 0..tn {
-            let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
-            let topic_id = buf::get_uuid(buf)?;
-            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-            let mut partitions = Vec::with_capacity(pn);
-            for _ in 0..pn {
-                let partition_index = buf::get_i32(buf)?;
-                let start_offset = buf::get_i64(buf)?;
-                let leader_epoch = buf::get_i32(buf)?;
-                let error_code = buf::get_i16(buf)?;
-                let error_message = buf::get_compact_string(buf)?;
-                buf::skip_tagged_fields(buf)?;
-                partitions.push(DescribedShareGroupOffsetsPartition {
-                    partition_index,
-                    start_offset,
-                    leader_epoch,
-                    error_code,
-                    error_message,
-                });
-            }
-            buf::skip_tagged_fields(buf)?;
-            topics.push(DescribedShareGroupOffsetsTopic {
-                topic_name,
-                topic_id,
-                partitions,
-            });
-        }
-        let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_compact_string(buf)?;
-        buf::skip_tagged_fields(buf)?;
-        groups.push(DescribedShareGroupOffsets {
-            group_id,
-            topics,
-            error_code,
-            error_message,
-        });
-    }
-    buf::skip_tagged_fields(buf)?;
-    Ok((groups, throttle_time_ms))
+    let (groups, throttle) = decode_describe_share_group_offsets_response_versioned(buf, 0)?;
+    Ok((
+        groups
+            .into_iter()
+            .map(DescribedShareGroupOffsetsWithLag::into_legacy)
+            .collect(),
+        throttle,
+    ))
 }
 
 /// A share-offset partition retaining the version1 raw lag field.
@@ -11981,6 +12377,16 @@ fn share_offsets_version(version: i16) -> Result<()> {
     Ok(())
 }
 
+fn share_offsets_array_len<B: Buf>(buf: &mut B) -> Result<usize> {
+    buf::get_array_len(buf, true)?
+        .ok_or_else(|| Error::protocol("DescribeShareGroupOffsets nonnullable array is null"))
+}
+
+fn share_offsets_name<B: Buf>(buf: &mut B) -> Result<String> {
+    buf::get_compact_string(buf)?
+        .ok_or_else(|| Error::protocol("DescribeShareGroupOffsets nonnullable name is null"))
+}
+
 fn share_offsets_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()> {
     if count
         .checked_mul(minimum)
@@ -12053,18 +12459,18 @@ pub fn decode_describe_share_group_offsets_response_versioned<B: Buf>(
 ) -> Result<(Vec<DescribedShareGroupOffsetsWithLag>, i32)> {
     share_offsets_version(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = share_offsets_array_len(buf)?;
     share_offsets_count(buf, n, 6)?;
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let group_id = share_offsets_name(buf)?;
+        let tn = share_offsets_array_len(buf)?;
         share_offsets_count(buf, tn, 19)?;
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
-            let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topic_name = share_offsets_name(buf)?;
             let topic_id = buf::get_uuid(buf)?;
-            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let pn = share_offsets_array_len(buf)?;
             share_offsets_count(buf, pn, if version >= 1 { 28 } else { 20 })?;
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
@@ -27540,8 +27946,8 @@ mod tests {
             "ListTransactions v1 request must be leftover-empty"
         );
         assert!(
-            encode_list_transactions_request(&mut BytesMut::new(), 2, &states, &pids, -1).is_err(),
-            "ListTransactions v2 TransactionalIdPattern is not spoken"
+            encode_list_transactions_request(&mut BytesMut::new(), 3, &states, &pids, -1).is_err(),
+            "ListTransactions versions above2 are not spoken"
         );
         let err = encode_list_transactions_request(&mut BytesMut::new(), 0, &states, &pids, 0)
             .unwrap_err();
@@ -27579,8 +27985,8 @@ mod tests {
             "ListTransactions v1 response must be leftover-empty"
         );
         assert!(
-            encode_list_transactions_response(&mut BytesMut::new(), 2, &resp).is_err(),
-            "ListTransactions v2 is not spoken"
+            encode_list_transactions_response(&mut BytesMut::new(), 3, &resp).is_err(),
+            "ListTransactions versions above2 are not spoken"
         );
     }
 

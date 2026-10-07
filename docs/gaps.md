@@ -1,144 +1,47 @@
-# Gaps vs librdkafka
+# Client capabilities
 
-This is the API inventory measured against **behavior a Kafka application
-needs from librdkafka**. It is not a parity claim and not a promise that
-every row ships in the next commit. Status is the contract:
+The client provides asynchronous producer, consumer, group, transaction and Admin
+APIs. This page summarizes the callable surface. See the
+[support matrix](support.md) for tested broker versions and platforms, and the
+[feature registry](../tests/conformance/features.json) for implementation and
+qualification details.
 
-**Audit qualification:** the inventory's **done** label means the API is
-callable in current source, not that the runtime behavior is complete and
-not that independent conformance or production qualification is complete.
-The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) reproduces five consumer
-defects and separates codec helpers from runtime support. Per-entry runtime
-status — `present`, `partial`, `missing`, `out_of_scope` — lives in the
-KL05-01 [feature registry](../tests/conformance/features.json), which
-qualifies several rows below (see Registry cross-check). Use
-[the small-session queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md) for repairs and major-feature
-completion; do not infer an all-features/all-versions pass from this table.
-
-| Status | Meaning |
+| Capability | Current implementation |
 |---|---|
-| **done** | Callers can use it in this crate today |
-| **in progress** | Work has started in-tree |
-| **not started** | Tracked, not implemented |
-| **blocked on C** | Typical Kafka ecosystem implementation is a C library; default features will not take that dependency |
+| Producer | Batching, routing, acknowledgments, retries, idempotence, delivery deadlines, interceptors and custom partitioners. |
+| Manual consumer | Assignment, seek, pause/resume, wakeup, bounded polls, leader recovery, incremental Fetch sessions and committed isolation. |
+| Classic groups | Range, sticky and cooperative-sticky assignment; subscriptions, commits, rebalance callbacks and static membership. |
+| Consumer protocol | KIP-848 group join, heartbeat and polling APIs. |
+| Share groups | Join, polling, accept/release/reject, version negotiation, acquisition modes and lock renewal. |
+| Transactions | Initialize, begin, commit/abort and send group offsets with output records. |
+| Admin | Topics, configs, ACLs, offsets, groups, transactions, quotas, log directories, leader elections and typed quorum operations. |
+| Compression | None, gzip, Snappy and LZ4. Enable `zstd` for bounded zstd encoding and decoding. |
+| TLS | `rustls`, custom CA certificates or Mozilla roots, and optional mutual TLS. |
+| SASL | PLAIN, SCRAM-SHA-256/512 and OAUTHBEARER; OIDC token acquisition and application-owned refresh. |
+| Kerberos/GSSAPI | Not implemented. Provider selection and platform credential lifecycle remain open. |
+| Diagnostics | Producer, consumer, share and Admin metric snapshots; optional `tracing`. |
+| Schema Registry | Separate unpublished companion with lookup, bounded caches and caller-selected format adapters. |
 
-librdkafka is the C client. Matching it means matching **behavior a Kafka
-application needs**, not cloning `rd_kafka_*` symbols.
+Method-level rustdoc describes Kafka API versions, options, fallbacks and error
+results. Feature availability depends on the connected broker's negotiated APIs
+and enabled features.
 
-## Inventory
+## Remaining work
 
-| Capability | partitionline | librdkafka | Status |
-|---|---|---|---|
-| Produce (acks, linger, batches, offsets, `delivery.timeout.ms`, `max.block.ms`, `buffer.memory`, `max.request.size`, `retry.backoff.ms`, `reconnect.backoff.ms`, `connections.max.idle.ms`, `metadata.max.age.ms`) | yes (Produce v3–v13; v9+ flexible; v10+ KIP-951 CurrentLeader tagged fields applied when the leader is a known broker, NodeEndpoints inserted first when it is not; v12/v13 skip AddPartitionsToTxn only with finalized transaction.version >=2 and EndTxn5, KIP-890 Part 2; v13 uses nonzero Metadata topic IDs and sent response identity snapshots, with UNKNOWN_TOPIC_ID refresh/retry; Metadata v1–v13, v13 top-level ErrorCode; to Metadata leader; retriable errors refresh and retry with exponential `retry_backoff` / `retry_backoff_max`; failed broker TCP/handshake retries with exponential `reconnect_backoff` / `reconnect_backoff_max`; idle TCP connections close after `connections_max_idle`; `delivery_timeout` caps queue-to-ack; `max_block` caps `send` metadata and `buffer.memory` wait; `buffer_memory` caps queued key+value bytes; `max_request_size` rejects oversized records with `Error::RecordTooLarge` and caps Produce batches; `metadata_max_age` refreshes cached Metadata) | yes | **done** |
-| Fetch with manual assignment | yes (Fetch v4–v18; v12+ flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903; v16 same request as v15; v12+ CurrentLeader tagged field 1 applied when the leader is a known broker; v16+ NodeEndpoints tagged field 0 inserted first when it is not; v17 omits ReplicaDirectoryId, KIP-853; to Metadata leader; retriable errors wait `retry.backoff.ms` then refresh and retry; preferred-replica redirects are immediate; failed broker TCP/handshake retries with `reconnect.backoff.ms`; idle TCP connections close after `connections.max.idle.ms`; `metadata.max.age.ms` refreshes cached Metadata; Fetch sends Metadata `leader_epoch`; `ConsumerRecords` including `nextOffsets`; `allow.auto.create.topics` on Metadata; `fetch.max.bytes` / `max.partition.fetch.bytes` are independent, `max_bytes()` sets both) | yes | **done** |
-| OffsetForLeaderEpoch / fetch fencing | yes (api 23; Topics/Partitions of N per leader; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
-| ListOffsets, seek, `isolation.level` | yes (earliest/latest/max-timestamp/earliest-local/latest-tiered/earliest-pending-upload; ListOffsets v1–v11; v10+ TimeoutMs is the remaining caller budget; `offsets_for_times` with `OffsetAndTimestamp.leader_epoch`; Fetch isolation 0 or 1; `FetchedRecord.leader_epoch`) | yes | **done** |
-| Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; several topics via `join_topics`; cooperative-sticky / KIP-429; `join_with_assignors` JoinGroup Protocols of N; `group.instance.id`; heartbeat loop; rebalance; LeaveGroup v0–v5, v3 Members / GroupInstanceId, v4 flexible, v5 Reason: leave/close `"the consumer is being closed"`, unsubscribe `"the consumer unsubscribed from all topics"`, max poll `"consumer poll timeout has expired."`; FindCoordinator v1–v6, v3+ flexible, v4+ CoordinatorKeys; OffsetCommit v2–v9, v2–v4 retention `-1`, v6+ epoch, v7 GroupInstanceId, v8+ flexible; OffsetFetch v1–v9, v2 top-level error, v3 throttle, v5 epoch, v6+ flexible, v7 RequireStable, v8 Groups, v9 MemberId; Heartbeat v0–v4, v1+ throttle, v3 GroupInstanceId, v4 flexible; SyncGroup v0–v5, v1+ throttle, v3 GroupInstanceId, v4+ flexible, v5 ProtocolType / ProtocolName; JoinGroup v2–v9, v5 GroupInstanceId, v6+ flexible, v8 Reason (`enforce_rebalance_with`), v9 SkipAssignment; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
-| gzip | yes (`flate2`; zlib-rs default, miniz_oxide without default features) | yes | **done** |
-| snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
-| SASL PLAIN | yes (SaslHandshake v0–v1; SaslAuthenticate v0–v2, v2 flexible) | yes | **done** |
-| SASL SCRAM-SHA-256 | yes (RFC 5802/7677, PBKDF2-HMAC-SHA-256, no C SASL library) | yes | **done** |
-| Java murmur2 partitioner | yes | optional (`murmur2`) | **done** |
-| TLS / SSL | yes (`rustls` + `ring`, no OpenSSL; custom CA PEM or webpki-roots; optional mTLS) | yes (OpenSSL) | **done** |
-| lz4 | yes (`lz4_flex` frame, independent 64KiB blocks, magic ≥ 1) | yes | **done** |
-| zstd | no | yes (libzstd C) | **blocked on C** |
-| SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
-| SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
-| SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
-| SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials `http://` or `https://` rustls POST, then OAUTHBEARER) | yes | **done** |
-| Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v0–v5, v2+ flexible, v3+ KIP-360 ProducerId on the request with first-init `-1`; UNKNOWN_PRODUCER_ID bumps the epoch locally and retries; per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
-| Transactions / EOS | yes (`transactional.id`, `transaction.timeout.ms` on InitProducerId, `init_transactions`, begin/commit/abort, FindCoordinator v1–v6 for the txn coordinator, AddPartitionsToTxn v0–v3 with v3 flexible, AddOffsetsToTxn v0–v4 with v3+ flexible, EndTxn v0–v5 with v3+ flexible and v5 ProducerId / ProducerEpoch apply, TxnOffsetCommit v0–v5 with v3+ flexible, GenerationId / MemberId / GroupInstanceId, v5 skipping AddOffsetsToTxn, and Produce v12/v13 skipping AddPartitionsToTxn only with finalized transaction.version >=2; after UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH / INVALID_PRODUCER_ID_MAPPING, abort still EndTxn-aborts then re-inits with the last producer id and epoch when EndTxn is below v5) | yes | **done** |
-| Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (CreateTopics v0–7, v5+ flexible, v5 KIP-525 configs, v7 TopicId, `create_topics_timeout`, `create_topics_with_quota_retry`, `NewTopic::with_assignments`, `NewTopic::broker_defaults`, `NewTopic::configs`; DeleteTopics v0–6, v4+ flexible, v5 ErrorMessage, v6 TopicId, `delete_topics_timeout`, `delete_topics_with_quota_retry`, `delete_topics_by_id` TopicCollection.ofTopicIds, `delete_topics_by_id_with_quota_retry`; DescribeConfigs v0–4, v4 flexible, v3 IncludeDocumentation / ConfigType, `describe_configs_timeout`); CreatePartitions v0–3, v2+ flexible, `create_partitions_timeout`, `create_partitions_with_quota_retry`); `NewPartitions` / `NewPartitions::with_assignments` for CreatePartitions; admin RPCs wait exponential `retry.backoff.ms` / `retry.backoff.max.ms` on `NOT_CONTROLLER`, coordinator moves, and retriable IO; idle bootstrap sockets close after `connections.max.idle.ms` | yes | **done** |
-| Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete (`delete_offsets_timeout`, `delete_consumer_group_offsets_timeout`), OffsetFetch (`listConsumerGroupOffsets`, `list_all_consumer_group_offsets`, `list_all_consumer_group_offsets_timeout`, `list_consumer_group_offsets_with`, `list_consumer_group_offsets_for_groups`, `list_consumer_group_offsets_for_groups_timeout`; OffsetFetch v8+ Groups of N, FindCoordinator v4+ CoordinatorKeys of N), OffsetCommit (`alterConsumerGroupOffsets`, `alter_consumer_group_offsets_timeout`), ListOffsets (`listOffsets` v1–v11, one RPC per leader, `list_offsets_with_isolation`, `list_offsets_timeout`), FenceProducers (`fenceProducers`, `fence_producers_timeout`), AbortTransaction (`abortTransaction`, WriteTxnMarkers v0–1, `abort_transaction_timeout`), LeaveGroup v3–v5 (`removeMembersFromConsumerGroup`, `removeAll`, `remove_members_from_consumer_group_with_reason` / `remove_all_members_from_consumer_group_with_reason`, `remove_members_from_consumer_group_timeout` / `remove_all_members_from_consumer_group_timeout`), DescribeFeatures (`describeFeatures`, ApiVersions v3–v4, KAFKA-17011 MinVersion 0, `describe_features_timeout`), AlterPartitionReassignments (`alter_partition_reassignments_timeout`), ListPartitionReassignments (`list_partition_reassignments_timeout`), UpdateFeatures (v0–2, v1 UpgradeType / ValidateOnly, v2 omits Results, `update_features_with`, `update_features_timeout`), AlterUserScramCredentials (`alter_user_scram_credentials_timeout`), DescribeUserScramCredentials (`describe_user_scram_credentials_timeout`), AlterClientQuotas (v0–v1, `alter_client_quotas_timeout`), DescribeClientQuotas (v0–v1, `describe_client_quotas_timeout`), DescribeProducers (`describe_producers_for` Topics of N, `describe_producers_timeout`), AllocateProducerIds (`allocate_producer_ids_timeout`), DescribeTransactions (`describe_transactions_timeout`, FindCoordinator v4+ CoordinatorKeys of N), ListTransactions (`list_transactions` v0–v1, `list_transactions_with_duration`, `list_transactions_timeout`), UnregisterBroker (`unregister_broker_timeout`), ConsumerGroupDescribe (v0–v1, FindCoordinator v4+ CoordinatorKeys of N, `consumer_group_describe_timeout`), DescribeGroups (`describe_classic_groups`, `describe_groups_timeout`, v0–v6, FindCoordinator v4+ CoordinatorKeys of N), describeConsumerGroups (`describe_consumer_groups` / `ConsumerGroupDescription`, ConsumerGroupDescribe then DescribeGroups on 35/69), ListGroups (`list_consumer_groups`, v0–v5, `list_groups_timeout`), DeleteGroups (`delete_share_groups`, `delete_consumer_groups`, `delete_groups_timeout`, v0–v2, FindCoordinator v4+ CoordinatorKeys of N), ShareGroupDescribe (`describe_share_groups`, `share_group_describe_timeout`, `describe_share_groups_timeout`, v0–v1, FindCoordinator v4+ CoordinatorKeys of N), DescribeShareGroupOffsets (`list_share_group_offsets`, `describe_share_group_offsets_timeout`, `list_share_group_offsets_timeout`, FindCoordinator v4+ CoordinatorKeys of N), AlterShareGroupOffsets (`alter_share_group_offsets_timeout`), DeleteShareGroupOffsets (`delete_share_group_offsets_timeout`), DescribeTopicPartitions (`describe_topic_partitions_timeout`), ListConfigResources (`list_client_metrics_resources`, v0–v1, `list_config_resources_timeout`), GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs (`assign_replicas_to_dirs_timeout`), AlterReplicaLogDirs (v1–v2, `alter_replica_log_dirs_timeout`), DescribeLogDirs (v1–v5, `describe_log_dirs_timeout`), CreateDelegationToken (v1–v3, `create_delegation_token_timeout`), RenewDelegationToken (v1–v2, `renew_delegation_token_timeout`), ExpireDelegationToken (v1–v2, `expire_delegation_token_timeout`), DescribeDelegationToken (v1–v3, `describe_delegation_token_timeout`) | yes (`incremental_alter_configs` / `incremental_alter_configs_for` / `incremental_alter_configs_timeout` v0–1, v1 flexible, Resources of N; CreateAcls / DescribeAcls / DeleteAcls v0–3, v1 ResourcePatternType, v2+ flexible, `describe_acls_with`, `delete_acls_with`, `create_acls_timeout` / `describe_acls_timeout` / `delete_acls_timeout`; DescribeClientQuotas / AlterClientQuotas v0–1, v1 flexible, `describe_client_quotas_timeout` / `alter_client_quotas_timeout`; ListConfigResources v0–1, v0 names only, v1 ResourceTypes, `list_config_resources_timeout`; AlterReplicaLogDirs v1–2, v2 flexible; DescribeLogDirs v1–5, v3 ErrorCode, v4 TotalBytes / UsableBytes, v5 IsCordoned; CreateDelegationToken v1–3, v1 classic, v2 flexible, v3 owner/requester, `create_delegation_token_timeout`; RenewDelegationToken v1–2, v1 classic, v2 flexible, `renew_delegation_token_timeout`; ExpireDelegationToken v1–2, v1 classic, v2 flexible, `expire_delegation_token_timeout`; DescribeDelegationToken v1–3, v1 classic, v2 flexible, v3 TokenRequester, `describe_delegation_token_timeout`; ConsumerGroupDescribe v0–1, v1 MemberType; DescribeGroups v0–6, v5+ flexible, v6 ErrorMessage; ListGroups v0–5, v3+ flexible, v4 StatesFilter, v5 TypesFilter, `list_groups_timeout`; DeleteGroups v0–2, v2 flexible, throttle v0+; `alter_configs` / `alter_configs_for` / `alter_configs_timeout` take `ConfigResource` / `ConfigReplacement`; `ConfigResourceType`; `ScramMechanism`; `AlterConfig::set` / `delete` / `append` / `subtract`; `list_consumer_group_offsets` / `list_all_consumer_group_offsets` / `list_consumer_group_offsets_for_groups` / `alter_consumer_group_offsets`; `list_offsets` / `list_offsets_with_isolation` / `list_offsets_timeout`; `list_transactions` / `list_transactions_with_duration`; `fence_producers` / `force_terminate_transaction`; `abort_transaction` (WriteTxnMarkers v0–1); `remove_members_from_consumer_group` / `remove_all_members_from_consumer_group` / `remove_members_from_consumer_group_with_reason`; `describe_features` / `describe_features_timeout`; `update_features` / `update_features_with` / `update_features_timeout`) | yes | **done** |
-| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33 v0–2, v2 flexible, `alter_configs_for` Resources of N; DeleteRecords 21 v0–2, v2 flexible, `delete_records_for` Topics/Partitions of N, `delete_records_timeout`; DescribeCluster 60 v0–2, v1 EndpointType, v2 IncludeFencedBrokers / IsFenced; `describe_cluster_with`, `describe_cluster_timeout`); `Admin::close` / `Admin::close_timeout`; `delete_records` / `describe_producers` / `describe_producers_for` / `describe_producers_for_on_broker` / `describe_producers_timeout` / `list_offsets` / `delete_offsets` / `delete_consumer_group_offsets` take `TopicPartition`; `PartitionReassignment::assign` takes `TopicPartition`; `AclBinding::allow_topic` / `AclResourceType` / `AclOperation` / `AclPermission`; `list_topics` / `list_topics_with` / `list_topics_timeout` (`ListTopicsOptions.listInternal` / `timeoutMs`) / `describe_topics` (`TopicListing` / `TopicDescription`, DescribeTopicPartitions api 75 for names, Metadata fallback when api 75 is missing, `describe_topics_with` TopicAuthorizedOperations, `describe_topics_timeout` `DescribeTopicsOptions.timeoutMs`, `describe_topics_by_id` TopicCollection.ofTopicIds); `describe_replica_log_dirs` (`TopicPartitionReplica` / `ReplicaLogDirInfo`); `describe_broker_log_dirs` (Java `describeLogDirs(Collection<Integer>)`); `describe_log_dirs_timeout` / `describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` (`DescribeLogDirsOptions.timeoutMs`) | yes | **done** |
-| KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
-| Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
-| Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`seek_with_metadata`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; `seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)` and sends Fetch `LastFetchedEpoch`; `assign_partitions` is Java `assign(Collection)` using `auto.offset.reset`; rebalance listener too) | yes | **done** |
-| `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`; `committed_timeout` is Java `committed(Duration)`; group/share RPCs use `request_timeout`) | yes | **done** |
-| Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
-| `partitionsFor` | yes (`Producer::partitions_for` / `Producer::partitions_for_timeout` / `Consumer::partitions_for` / `Consumer::partitions_for_timeout`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
-| Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` counters plus produce-ack / fetch-round / Admin-RPC latency min/mean/max and p50/p99 over the last 1024 samples; per-topic rows on produce/fetch `topics`; share includes bytes/errors; `AdminMetrics.errors` is I/O not broker `error_code`) | yes | **done** |
-| `clientInstanceId` | yes (`Producer` / `Consumer` / `ConsumerGroup` / `ShareGroup` / `Admin`; `client_instance_id_timeout` is Java `clientInstanceId(Duration)`; KIP-714 GetTelemetrySubscriptions, cached after first call) | yes | **done** |
-| `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
-| `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
-| Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
-| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch `LastFetchedEpoch`); `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `commit_async` / `commit_async_with` are Java `commitAsync` (queued OffsetCommit on poll / leave); `ConsumerRecords::next_offsets`; OffsetCommit v2–v9 epoch + metadata, v8+ flexible) | yes | **done** |
-| `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
-| `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` / `enforce_rebalance_with` on next poll; JoinGroup v8+ Reason, default `"rebalance enforced by user"`) | yes | **done** |
-| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `assign_partitions` / `unassign`) | yes | **done** |
-| `listTopics` / `ConsumerGroupMetadata` | yes (`list_topics_timeout` is Java `listTopics(Duration)`; `partitions_for_timeout` / `beginning_offsets_timeout` / `end_offsets_timeout` / `offsets_for_times_timeout` match the Java `Duration` overloads) | yes | **done** |
-| `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
-| `close(Duration)` | yes (`Producer::close_timeout`; `Consumer::close_timeout` drops fetch connections; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`; `Admin::close_timeout` unused duration) | yes | **done** |
-| TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`; v3+ sends generation / member / instance from `ConsumerGroupMetadata`) | yes | **done** |
-| Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `reject` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76 v0–v1, ShareFetch 78 v0–v1, ShareAcknowledge 79 v0–v1; `client.rack`; ACCEPT/RELEASE/REJECT; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
-| Schema Registry | no | via extras | **not started** (out of scope) |
+Production qualification is ongoing. The [task registry](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/docs/plan/tasks.json)
+tracks protocol option gaps, fault histories, security lifecycle tests, resource
+limits, diagnostics and platform checks. Common deployment support and optional
+enterprise features have separate test profiles.
 
-## Registry cross-check
+Producer byte counters charge the visible key, value and header bytes. Admission
+compacts backing allocations; allocator and record-object overhead, encoding
+scratch, TLS and socket buffers add memory. See
+[buffer ownership](guide.md#buffer-ownership-and-overload-mock).
 
-`done` above means callable in source. The
-[feature registry](../tests/conformance/features.json) (KL05-01, 173 entries)
-narrows the runtime claim for these rows; every entry names its entrypoint:
+Codec interoperability checks are described in [the codec guide](zstd-spike.md).
+Schema adapter scope is described in [the companion guide](schema-companion.md).
+Streams, Connect and a drop-in librdkafka C ABI are outside this client's scope.
 
-| Inventory row | Registry entry | Registry status |
-|---|---|---|
-| Produce (batches, `buffer.memory`) | `producer.buffer_memory` | `partial` — headers, metadata, encoded buffers, and socket memory sit outside the cap |
-| Fetch with manual assignment | `manual_consumer.fetch` | `present` — audit A01–A05 repaired and covered by mock/fixture consumer and commit tests; incremental sessions/new wire deltas are separate gaps |
-| Fetch with manual assignment | `manual_consumer.incremental_fetch_runtime` | `present` — broker-local v7–v18 sessions, v4–v6 fallback, bounded recovery, response validation and terminal close; named 32-partition reset scenario; broad fault campaigns remain separate |
-| Fetch with manual assignment | `manual_consumer.v18_wire` | `present` — KIP-1166 partition HighWatermark tag1, i64MAX omission/default, explicit replica sidecar and consumer18 negotiation; no follower/quorum acknowledgment semantics |
-| Produce topic IDs | `producer.v13_wire` | `present` — Apache 4.1.2/4.2.1/4.3.1 independent fixtures, live Java decoding of Rust bytes, and deterministic runtime identity/fallback tests; no live-cluster qualification |
-| Pause / resume, position | `manual_consumer.seek` | `present` — whole-batch records below the requested offset are filtered (KL03-04) |
-| `auto.offset.reset`, `committed` | `manual_consumer.auto_offset_reset` | `present` — None fails without advancing; Earliest/Latest resolve leader log bounds (KL03-05) |
-| KIP-848 next-gen consumer groups | `group.kip848_heartbeat_scheduling` | `partial` — heartbeat loop uses fixed 150 ms, not the broker response interval |
-| Share groups | `share.heartbeat_scheduling` | `partial` — share heartbeat interval hard-coded to 150 ms |
-| Share groups | `share.v2_wire_delta`, `share.v2_runtime` | `missing` — ShareFetch/ShareAcknowledge v2 not implemented |
-| ListOffsets, seek, `isolation.level` | `transactions.read_committed_consumer` | `present` — ABORT ends the matching interval; later committed records remain visible (KL03-03) |
-| gzip / snappy / lz4 | `codecs.gzip`, `codecs.snappy`, `codecs.lz4` | `present` — hard decoded-byte budget enforced during expansion (KL02-03); process RSS is a separate concern |
-| zstd | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` | `missing` — explicit gap of the complete-codec profile |
-| SASL GSSAPI / Kerberos | `auth.sasl_gssapi` | `missing` — explicit gap (Cyrus SASL C) |
-| SASL OIDC (token endpoint) | `auth.sasl_oidc_refresh` | `missing` — no proactive refresh before expiry |
-| Produce / Fetch (throttle) | `quotas.producer_throttle`, `quotas.consumer_throttle` | `partial` — `throttle_time_ms` decoded but never slept on |
-| Custom partitioner | `producer.sticky_partitioner` | `missing` — unkeyed records round-robin instead of sticky batching |
-| Admin leader election | `full_admin.elect_leaders` | `present` — typed `Admin::elect_leaders`, pinned v0–v2 fixtures and mock routing/error/deadline checks; no live unclean-election qualification |
-| Metadata quorum inspection | `full_admin.describe_quorum` | `present` — read-only `Admin::describe_quorum`, broker forwarding, v0–v2 state, deadline/error checks and isolated live read; no quorum mutation |
-| Admin (full) | `full_admin.add_raft_voter`, `full_admin.remove_raft_voter`, `full_admin.describe_log_dirs_v5` | `present` — typed Admin methods with independent wire fixtures and mock runtime evidence (KL05-20/21/22); no real voter mutation or live v5 claim |
-| Schema Registry | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` | `missing`; `schema_ecosystem.wire_framing` is `partial` (unpublished scaffold) |
-
-Out of scope in both documents: `streams.runtime`, `connect.framework`,
-`c_abi.librdkafka`, and `broker_internal.*` (replication internals).
-
-TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
-listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C
-**were measured** on SASL_PLAINTEXT `localhost:9095` (admin `localhost:9096`).
-OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
-(admin `localhost:9098`). Fetch writeup vs rust-rdkafka **0.39.0** **was
-recorded** on this-VM 2026-08-28 against Apache Kafka 3.9.1 KRaft
-(`examples/bench_fetch.rs` vs a standalone `rdkafka` 0.39.0 `BaseConsumer`,
-not in this crate). Produce-ack latency vs rust-rdkafka **0.39.0**
-`FutureProducer` **was recorded** on this-VM 2026-08-28
-(`examples/bench_latency.rs` vs a standalone crate, not in this package).
-Both writeups are **unsigned** until Kernel Integrity signs. See
-`docs/benchmark.md` and `docs/STATUS.md`. Mock produce over
-OAUTH is `sasl_oauthbearer_then_produce` in `tests/full_surface.rs`. Real-broker
-SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER is `scripts/ci-auth-smoke.sh`. Mock
-admin is `admin_create_then_produce_fetch`.
-
-## Notes on the C-blocked rows
-
-- **zstd**: Kafka-world zstd is almost always `libzstd` (`zstd-sys`). A default
-  feature that links it would violate the no-C-codec rule. Pure-Rust zstd
-  exists as research; it is not the Kafka ecosystem default.
-- **GSSAPI**: librdkafka talks to Cyrus SASL. No plan to vendor that as a
-  default feature.
-
-## Next implementation order
-
-1. Schema Registry stays out of crate scope. Latency vs C 2.15.0 / Java is
-   not claimed. This-VM produce-ack vs rust-rdkafka 0.39.0 is recorded and
-   **unsigned** (see `docs/benchmark.md`).
-
-## What “done” on this list does *not* mean
-
-It does not mean a drop-in `rd_kafka_*` C API or rust-rdkafka types. Fetch
-throughput vs rust-rdkafka 0.39.0 is recorded in `docs/benchmark.md` and is
-**unsigned**. Produce-ack latency vs the same rust-rdkafka 0.39.0 on this-VM
-is also recorded there and is **unsigned**. Neither is a Suite HOLD lift.
+[Benchmark results](benchmark.md) describe their tested workloads and hardware.
+Current comparative performance and broader client/server production
+qualification remain open.

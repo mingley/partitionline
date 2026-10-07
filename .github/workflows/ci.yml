@@ -25,6 +25,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  resource-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build the finite resource driver
+        run: cargo +stable build --locked --example resource_soak
+      - name: Overload, stalled replies, slow processing and interrupted resume
+        env:
+          PL_RESOURCE_SOAK_BINARY: ${{ github.workspace }}/target/debug/examples/resource_soak
+          PL_RESOURCE_SOAK_OUTPUT: ${{ github.workspace }}/target/resource-soak
+        run: |
+          mkdir -p target/resource-soak
+          python3 -B -m unittest discover -s tests/ci -p test_resource_soak.py -v
+      - name: Retain every resource attempt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: resource-soak-${{ github.sha }}
+          path: target/resource-soak
+          if-no-files-found: error
+          retention-days: 30
+
   fmt:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -65,21 +89,154 @@ jobs:
           retention-days: 30
       - name: Markdown gate negative tests
         run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
-      - name: Install MSRV for the packed-crate feature matrix
-        run: rustup toolchain install 1.85.0 --profile minimal
       - name: Compile public Markdown and operator examples from the extracted package
         env:
-          PL_PACKAGE_TOOLCHAINS: stable 1.85.0
+          PL_PACKAGE_TOOLCHAINS: stable
         run: bash scripts/ci-crate-consumer.sh
 
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Independent JSON Schema peer
+        run: python3 -m pip install 'jsonschema==4.26.0' 'referencing==0.37.0' 'rpds-py==2026.6.3' 'attrs==26.1.0' 'jsonschema-specifications==2025.9.1'
+      - name: Benchmark result and process orchestration tests
+        run: python3 -B -m unittest discover -s benchmarks/tests -p 'test_*.py' -v
+      - name: Schema companion format and lint
+        run: |
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Default registry and selected codec tests
+        env:
+          PL_AVRO_SELECTED_OUTPUT: ${{ github.workspace }}/target/avro-selected/default
+          PL_GENERIC_HEADER_OUTPUT: ${{ github.workspace }}/target/schema-header/default
+          PL_JSON_SCHEMA_SELECTED_OUTPUT: ${{ github.workspace }}/target/json-schema-selected/default
+        run: |
+          mkdir -p target/avro-selected
+          cargo test --locked --manifest-path partitionline-schema/Cargo.toml --features avro,json-schema > target/avro-selected/default.log 2>&1
+          python3 tests/conformance/run-avro-selected-codec.py --rust-output target/avro-selected/default --peer-cache target/avro-peer-cache --report target/avro-selected/default-peer.json
+          python3 tests/conformance/run-generic-schema-header.py --rust-output target/schema-header/default --report target/schema-header/default-peer.json
+          timeout 30s python3 tests/conformance/run-json-schema-selected-codec.py --rust-output target/json-schema-selected/default --report target/json-schema-selected/default-peer.json
+      - name: All-feature tests and independent Avro readback
+        env:
+          PL_AVRO_SELECTED_OUTPUT: ${{ github.workspace }}/target/avro-selected/all-features
+          PL_GENERIC_HEADER_OUTPUT: ${{ github.workspace }}/target/schema-header/all-features
+          PL_JSON_SCHEMA_SELECTED_OUTPUT: ${{ github.workspace }}/target/json-schema-selected/all-features
+        run: |
+          cargo test --locked --manifest-path partitionline-schema/Cargo.toml --all-features > target/avro-selected/all-features.log 2>&1
+          python3 tests/conformance/run-avro-selected-codec.py --rust-output target/avro-selected/all-features --peer-cache target/avro-peer-cache --report target/avro-selected/all-features-peer.json
+          python3 tests/conformance/run-generic-schema-header.py --rust-output target/schema-header/all-features --report target/schema-header/all-features-peer.json
+          timeout 30s python3 tests/conformance/run-json-schema-selected-codec.py --rust-output target/json-schema-selected/all-features --report target/json-schema-selected/all-features-peer.json
+      - name: Retain Rust output and peer receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: avro-selected-stable-${{ github.sha }}
+          path: |
+            target/avro-selected
+            target/schema-header
+            target/json-schema-selected
+          if-no-files-found: error
+          retention-days: 30
+
+  init-producer-id:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Default InitProducerId fields and runtime
+        env:
+          PL_INIT_PRODUCER_ID_V6_OUTPUT: ${{ github.workspace }}/target/init-producer-id/default
+        run: |
+          mkdir -p target/init-producer-id
+          cargo test --locked --test init_producer_id_v6 --test producer_initialization > target/init-producer-id/default.log 2>&1
+          python3 tests/conformance/run-init-producer-id-v6.py --peer-cache target/init-producer-id/peers --rust-output target/init-producer-id/default --report target/init-producer-id/default-peer.json
+      - name: All-feature InitProducerId fields and runtime
+        env:
+          PL_INIT_PRODUCER_ID_V6_OUTPUT: ${{ github.workspace }}/target/init-producer-id/all-features
+        run: |
+          cargo test --locked --all-features --test init_producer_id_v6 --test producer_initialization > target/init-producer-id/all-features.log 2>&1
+          python3 tests/conformance/run-init-producer-id-v6.py --peer-cache target/init-producer-id/peers --rust-output target/init-producer-id/all-features --report target/init-producer-id/all-features-peer.json
+      - name: Retain InitProducerId peer checks
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: init-producer-id-stable-${{ github.sha }}
+          path: target/init-producer-id
+          if-no-files-found: error
+          retention-days: 30
+
   # Default fast path: mock / unit tests, no Docker.
+  zstd-decode:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Pinned Java decoder dependencies
+        run: |
+          mkdir -p target/zstd-peers/libs
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/4.3.1/kafka-clients-4.3.1.jar -o target/zstd-peers/kafka-clients.jar
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/com/github/luben/zstd-jni/1.5.6-10/zstd-jni-1.5.6-10.jar -o target/zstd-peers/libs/zstd-jni.jar
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar -o target/zstd-peers/libs/slf4j-api.jar
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/xerial/snappy/snappy-java/1.1.10.7/snappy-java-1.1.10.7.jar -o target/zstd-peers/libs/snappy-java.jar
+          curl --fail --location --max-time 60 https://repo.maven.apache.org/maven2/org/lz4/lz4-java/1.10.2/lz4-java-1.10.2.jar -o target/zstd-peers/libs/lz4-java.jar
+          echo 'd3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0  target/zstd-peers/libs/slf4j-api.jar' | sha256sum --check
+      - name: Independent Java decoder and fixture pins
+        run: python3 tests/conformance/run-zstd-decode.py verify --jar target/zstd-peers/kafka-clients.jar --libs target/zstd-peers/libs --fixtures tests/fixtures/zstd-decode --report target/zstd-peers/report.json
+      - name: Feature and budget boundaries
+        env:
+          PL_ZSTD_ENCODE_OUTPUT: ${{ github.workspace }}/target/zstd-peers/rust-output
+        run: |
+          cargo test --locked --all-features --test zstd_encode --test zstd_decode --test fuzz_decode_smoke
+          python3 tests/conformance/run-zstd-decode.py verify --jar target/zstd-peers/kafka-clients.jar --libs target/zstd-peers/libs --fixtures tests/fixtures/zstd-decode --rust-output target/zstd-peers/rust-output --report target/zstd-peers/encoder-report.json
+          cargo test --locked --test zstd_decode
+          cargo test --locked --no-default-features --features zstd --test zstd_decode
+      - name: Independent codec fixture matrix
+        env:
+          PL_CODEC_MATRIX_OUTPUT: ${{ github.workspace }}/target/zstd-peers/codec-rust-output
+        run: |
+          cargo test --locked --all-features --test codec_matrix
+          python3 tests/conformance/run-codec-matrix.py verify --jar target/zstd-peers/kafka-clients.jar --libs target/zstd-peers/libs --rust-output target/zstd-peers/codec-rust-output --output target/zstd-peers/codec-report
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: zstd-decode-stable-${{ github.sha }}
+          path: |
+            target/zstd-peers/report.json
+            target/zstd-peers/encoder-report.json
+            target/zstd-peers/rust-output
+            target/zstd-peers/codec-rust-output
+            target/zstd-peers/codec-report
+
   test:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        rust: ["1.85", "stable"]
+        rust: [stable]
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
@@ -89,6 +246,10 @@ jobs:
       - run: openssl version
       # verifiable_contract launches standalone examples, not test harnesses.
       - run: cargo build --locked --example verifiable_producer --example verifiable_consumer
+      - name: Benchmark settings
+        run: |
+          cargo build --locked --example bench_produce --example bench_fetch
+          PL_BENCH_PRODUCE_BINARY=target/debug/examples/bench_produce PL_BENCH_FETCH_BINARY=target/debug/examples/bench_fetch python3 -B -m unittest discover -s tests/ci -p 'test_bench_*_settings.py'
       - run: cargo test --locked --all-targets
 
   # KL08-05: native macOS arm64 runtime + actual packed-consumer evidence.
@@ -100,7 +261,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: ['1.85.0', stable]
+        rust: [stable]
     defaults:
       run:
         shell: bash
@@ -164,7 +325,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: ['1.85.0', stable]
+        rust: [stable]
     defaults:
       run:
         shell: bash
@@ -343,37 +504,28 @@ jobs:
       - name: Publish dry-run
         run: cargo publish --dry-run --allow-dirty
 
-  # Optional-feature compile gate (tracing spans).
+  # Optional features and gzip fallback.
   features:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo clippy --all-targets --features tracing -- -D warnings
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - run: cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
-      - run: cargo test --locked --all-targets --features tracing
+      - run: cargo test --locked --all-targets --all-features
       # gzip fallback without the default zlib-rs feature (docs/gzip-backend.md).
       - run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget
 
-  # libFuzzer smoke (nightly). Short wall-clock per target.
+  # Deterministic decoder mutations on the supported stable toolchain.
   fuzz-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src
-      - name: Install C++ toolchain for libFuzzer
-        run: sudo apt-get update && sudo apt-get install -y g++
-      - name: Install cargo-fuzz
-        run: cargo install cargo-fuzz --locked
-      - name: Fuzz smoke
-        env:
-          FUZZ_SECONDS: "15"
-          CXX: g++
-        run: bash scripts/ci-fuzz-smoke.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --locked --all-features --test fuzz_decode_smoke
 
   # Real Apache Kafka broker smoke (separate from mock suite).
   # Matrix: Kafka 3.9.x and 4.x KRaft images.

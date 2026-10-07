@@ -21,7 +21,7 @@ use crate::protocol::acl::{
 };
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
-    decode_alter_configs_resource_results, decode_alter_partition_reassignments_response,
+    decode_alter_configs_resource_results, decode_alter_partition_reassignments_response_data,
     decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response, decode_create_delegation_token_response,
@@ -41,7 +41,7 @@ use crate::protocol::admin::{
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_resources_request,
-    encode_alter_partition_reassignments_request, encode_alter_replica_log_dirs_request,
+    encode_alter_partition_reassignments_request_data, encode_alter_replica_log_dirs_request,
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_request,
@@ -56,7 +56,7 @@ use crate::protocol::admin::{
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
     encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_resources_request,
     encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request_with_pattern,
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
@@ -1893,6 +1893,42 @@ impl NewPartitionReassignment {
     }
 }
 
+/// Options for [`Admin::alter_partition_reassignments_with_options`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AlterPartitionReassignmentsOptions {
+    /// Permit changes to replication factor. Default `true`, matching Java.
+    /// Explicit `false` requires a controller supporting API45 version1.
+    pub allow_replication_factor_change: bool,
+    /// One deadline for discovery, connection, negotiation and all retries.
+    /// `None` uses [`AdminConfig::request_timeout`].
+    pub timeout: Option<Duration>,
+}
+
+impl Default for AlterPartitionReassignmentsOptions {
+    fn default() -> Self {
+        Self {
+            allow_replication_factor_change: true,
+            timeout: None,
+        }
+    }
+}
+
+impl AlterPartitionReassignmentsOptions {
+    /// Select whether target replica lists may change replication factor.
+    #[must_use]
+    pub fn allow_replication_factor_change(mut self, allow: bool) -> Self {
+        self.allow_replication_factor_change = allow;
+        self
+    }
+
+    /// Set the overall timeout, also used for the broker-side request timeout.
+    #[must_use]
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+}
+
 /// One partition in `Admin::alter_partition_reassignments`.
 ///
 /// `replicas = None` cancels a pending reassignment (KIP-455).
@@ -2844,7 +2880,6 @@ pub struct Admin {
     metadata_version: i16,
     find_coord_version: Option<i16>,
     offset_delete_version: Option<i16>,
-    reassign_version: Option<i16>,
     list_reassign_version: Option<i16>,
     update_features_version: Option<i16>,
     alter_user_scram_version: Option<i16>,
@@ -2894,6 +2929,21 @@ pub struct BrokerTransactionListings {
     pub broker_id: i32,
     /// Listings in the broker's response order, or that broker's failure.
     pub listings: Result<Vec<TransactionListing>>,
+}
+
+/// Bounded transaction-list filters shared by every broker query.
+///
+/// Defaults select every transaction. Public calls normalize a null or empty
+/// pattern to no filter. Nonempty patterns require API66 v2 on each broker;
+/// invalid regular expressions remain broker errors. See the raw protocol type
+/// for serialization that preserves an explicitly empty pattern.
+pub type ListTransactionsOptions = crate::protocol::admin::ListTransactionsRequestData;
+
+struct ListTransactionsQuery<'a> {
+    states: &'a [String],
+    producer_ids: &'a [i64],
+    duration_ms: i64,
+    pattern: Option<&'a str>,
 }
 
 #[derive(Default)]
@@ -3951,9 +4001,6 @@ impl Admin {
         let offset_delete_version = versions
             .get(&OFFSET_DELETE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
-        let reassign_version = versions
-            .get(&ALTER_PARTITION_REASSIGNMENTS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let list_reassign_version = versions
             .get(&LIST_PARTITION_REASSIGNMENTS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -4054,7 +4101,6 @@ impl Admin {
             metadata_version,
             find_coord_version,
             offset_delete_version,
-            reassign_version,
             list_reassign_version,
             update_features_version,
             alter_user_scram_version,
@@ -5520,7 +5566,7 @@ impl Admin {
         timeout_ms: i32,
     ) -> Result<Vec<ReassignmentResult>> {
         let timeout = self.cfg.request_timeout;
-        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout)
+        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout, true)
             .await
     }
 
@@ -5535,7 +5581,7 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<ReassignmentResult>> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout)
+        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout, true)
             .await
     }
 
@@ -5557,6 +5603,7 @@ impl Admin {
     {
         let collected: Vec<PartitionReassignment> = assignments
             .into_iter()
+            .take(crate::protocol::admin::MAX_REASSIGNMENT_PARTITIONS + 1)
             .map(|(tp, assignment)| PartitionReassignment::from_new(tp, assignment))
             .collect();
         self.alter_partition_reassignments(&collected, timeout_ms)
@@ -5580,10 +5627,38 @@ impl Admin {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         let collected: Vec<PartitionReassignment> = assignments
             .into_iter()
+            .take(crate::protocol::admin::MAX_REASSIGNMENT_PARTITIONS + 1)
             .map(|(tp, assignment)| PartitionReassignment::from_new(tp, assignment))
             .collect();
-        self.alter_partition_reassignments_with(&collected, timeout_ms, timeout)
+        self.alter_partition_reassignments_with(&collected, timeout_ms, timeout, true)
             .await
+    }
+
+    /// Alter assignments with an explicit replication-factor policy.
+    ///
+    /// The controller connection negotiates API45 version0–1 on each attempt.
+    /// Version0 permits only the default `true`; explicit `false` fails before
+    /// any reassignment frame. Null replica lists cancel a pending move.
+    /// Per-partition errors remain in the returned result tree.
+    ///
+    /// Requests contain at most10,000 partitions and100,000 total replica IDs;
+    /// responses contain at most10,000 partition results and16MiB of wire data.
+    /// Discovery, reconnects, negotiation and retries share one timeout. A lost
+    /// acknowledgement may retry the same intended assignment and policy.
+    pub async fn alter_partition_reassignments_with_options(
+        &mut self,
+        assignments: &[PartitionReassignment],
+        options: AlterPartitionReassignmentsOptions,
+    ) -> Result<Vec<ReassignmentResult>> {
+        let timeout = options.timeout.unwrap_or(self.cfg.request_timeout);
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.alter_partition_reassignments_with(
+            assignments,
+            timeout_ms,
+            timeout,
+            options.allow_replication_factor_change,
+        )
+        .await
     }
 
     async fn alter_partition_reassignments_with(
@@ -5591,64 +5666,95 @@ impl Admin {
         assignments: &[PartitionReassignment],
         timeout_ms: i32,
         timeout: Duration,
+        allow: bool,
     ) -> Result<Vec<ReassignmentResult>> {
-        let topics = group_reassignments(assignments);
-        let version = self.reassign_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support AlterPartitionReassignments".into())
-        })?;
         let deadline = Instant::now() + timeout;
-        let mut attempt = 0u32;
+        validate_reassignments(assignments)?;
+        let request = crate::protocol::admin::AlterPartitionReassignmentsRequestData {
+            timeout_ms,
+            allow_replication_factor_change: allow,
+            topics: group_reassignments(assignments),
+        };
+        tokio::time::timeout_at(
+            tokio::time::Instant::from_std(deadline),
+            self.alter_partition_reassignments_until(request, deadline),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+    }
+
+    async fn alter_partition_reassignments_until(
+        &mut self,
+        mut request: crate::protocol::admin::AlterPartitionReassignmentsRequestData,
+        deadline: Instant,
+    ) -> Result<Vec<ReassignmentResult>> {
+        let original_timeout_ms = request.timeout_ms;
+        let mut attempt = 0;
         loop {
-            if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
             }
-            let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_partition_reassignments conn"))?;
-                conn.roundtrip(
-                    ALTER_PARTITION_REASSIGNMENTS,
-                    version,
-                    |buf| encode_alter_partition_reassignments_request(buf, timeout_ms, &topics),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let result = async {
+                if self.cluster.controller().is_err() {
+                    if self.conn.is_closed() {
+                        let addr = self.conn.addr().to_owned();
+                        self.conn = self.open_node_conn(&addr).await?;
+                    }
+                    self.refresh_metadata(None).await?;
                 }
-                Err(e) => return Err(e),
-            };
-            let resp = decode_alter_partition_reassignments_response(&mut body.clone())?;
-            if resp.error_code == error::NOT_CONTROLLER
-                || resp.results.iter().any(|t| {
-                    t.partitions
-                        .iter()
-                        .any(|p| p.error_code == error::NOT_CONTROLLER)
-                })
-            {
-                // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
-                continue;
+                let node = self.cluster.controller()?;
+                if self.conns.get(&node).is_some_and(BrokerConn::is_closed) {
+                    let _removed = self.conns.remove(&node);
+                }
+                self.connect_node(node).await?;
+                let conn = self.conns.get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing reassignment controller connection"))?;
+                let capabilities = crate::protocol::api::negotiate_api_versions(
+                    conn, deadline.saturating_duration_since(Instant::now()),
+                ).await?;
+                let version = capabilities.api_keys.iter()
+                    .find(|api| api.api_key == ALTER_PARTITION_REASSIGNMENTS)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 1))
+                    .ok_or_else(|| Error::Unsupported("controller does not support AlterPartitionReassignments v0-1".into()))?;
+                if version == 0 && !request.allow_replication_factor_change {
+                    return Err(Error::Unsupported("AllowReplicationFactorChange=false requires AlterPartitionReassignments v1".into()));
+                }
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                request.timeout_ms = original_timeout_ms.min(crate::consumer::duration_millis_i32(remaining));
+                let body = conn.roundtrip(
+                    ALTER_PARTITION_REASSIGNMENTS, version,
+                    |buf| encode_alter_partition_reassignments_request_data(buf, version, &request),
+                    remaining,
+                ).await?;
+                let response = decode_alter_partition_reassignments_response_data(&mut body.as_ref(), version)?.response;
+                if response.error_code == error::NOT_CONTROLLER
+                    || response.results.iter().any(|topic| topic.partitions.iter().any(|partition| partition.error_code == error::NOT_CONTROLLER)) {
+                    return Err(Error::broker(error::NOT_CONTROLLER, "AlterPartitionReassignments"));
+                }
+                if response.error_code != 0 {
+                    return Err(Error::broker(response.error_code, "AlterPartitionReassignments"));
+                }
+                Ok(flatten_reassignment_results(&response.results))
+            }.await;
+            match result {
+                Err(error)
+                    if error.is_retriable()
+                        || error.broker_code() == Some(error::NOT_CONTROLLER) =>
+                {
+                    if let Ok(node) = self.cluster.controller() {
+                        let _removed = self.conns.remove(&node);
+                    }
+                    self.cluster.invalidate_controller();
+                    if attempt >= 8 {
+                        return Err(Error::Timeout);
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                other => return other,
             }
-            if resp.error_code != 0 {
-                return Err(Error::broker(
-                    resp.error_code,
-                    "AlterPartitionReassignments",
-                ));
-            }
-            return Ok(flatten_reassignment_results(&resp.results));
         }
     }
 
@@ -7081,7 +7187,7 @@ impl Admin {
     /// `ListTransactionsRequest.Builder.build` rejects a non-negative
     /// DurationFilter on v0 ([`Error::Unsupported`]). Kafka 4.0
     /// `validVersions` is `0-1`. This crate speaks 0–1. v2
-    /// TransactionalIdPattern is not spoken. ListTransactions has no
+    /// Pattern filters use [`Self::list_transactions_with_options`]. ListTransactions has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use
     /// [`Self::list_transactions_with_duration_timeout`].
@@ -7147,7 +7253,7 @@ impl Admin {
     /// Exceeding a limit returns an error rather than a partial-only success.
     ///
     /// Duration filters require API66 v1 on every broker. This operation speaks
-    /// versions 0 and 1 and negotiates separately on each selected connection.
+    /// versions 0–2 and negotiates separately on each selected connection.
     /// All work is awaited by this future; dropping it cancels its active wait.
     pub async fn list_transactions_by_broker(
         &mut self,
@@ -7178,6 +7284,81 @@ impl Admin {
         duration_ms: i64,
         timeout: Duration,
     ) -> Result<Vec<BrokerTransactionListings>> {
+        self.list_transactions_by_broker_inner(
+            state_filters,
+            producer_id_filters,
+            duration_ms,
+            None,
+            timeout,
+        )
+        .await
+    }
+
+    /// Query every broker with typed state, producer, duration and pattern options.
+    pub async fn list_transactions_with_options(
+        &mut self,
+        options: &ListTransactionsOptions,
+    ) -> Result<Vec<TransactionListing>> {
+        self.list_transactions_with_options_timeout(options, self.cfg.request_timeout)
+            .await
+    }
+
+    /// Typed complete-only query under one original caller deadline.
+    pub async fn list_transactions_with_options_timeout(
+        &mut self,
+        options: &ListTransactionsOptions,
+        timeout: Duration,
+    ) -> Result<Vec<TransactionListing>> {
+        let brokers = self
+            .list_transactions_by_broker_with_options_timeout(options, timeout)
+            .await?;
+        let mut all = Vec::new();
+        for broker in brokers {
+            all.extend(broker.listings?);
+        }
+        Ok(all)
+    }
+
+    /// Typed query preserving broker origins and partial errors.
+    pub async fn list_transactions_by_broker_with_options(
+        &mut self,
+        options: &ListTransactionsOptions,
+    ) -> Result<Vec<BrokerTransactionListings>> {
+        self.list_transactions_by_broker_with_options_timeout(options, self.cfg.request_timeout)
+            .await
+    }
+
+    /// Typed per-broker query with shared deadline and the ordinary listing bounds.
+    ///
+    /// Pattern text is limited to256 KiB before discovery or request writes.
+    /// Nonempty patterns require v2; unsupported brokers remain explicit errors.
+    pub async fn list_transactions_by_broker_with_options_timeout(
+        &mut self,
+        options: &ListTransactionsOptions,
+        timeout: Duration,
+    ) -> Result<Vec<BrokerTransactionListings>> {
+        let pattern = options
+            .transactional_id_pattern
+            .as_deref()
+            .filter(|p| !p.is_empty());
+        self.list_transactions_by_broker_inner(
+            &options.state_filters,
+            &options.producer_id_filters,
+            options.duration_ms,
+            pattern,
+            timeout,
+        )
+        .await
+    }
+
+    async fn list_transactions_by_broker_inner<S: AsRef<str>>(
+        &mut self,
+        state_filters: &[S],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
+        pattern: Option<&str>,
+        timeout: Duration,
+    ) -> Result<Vec<BrokerTransactionListings>> {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
@@ -7189,15 +7370,26 @@ impl Admin {
                 "ListTransactions filter count exceeds local limit",
             ));
         }
-        let text_bytes = state_filters
-            .iter()
-            .try_fold(0usize, |total, value| total.checked_add(value.len()));
-        if text_bytes.is_none_or(|bytes| bytes > 256 * 1024) {
+        let text_bytes = state_filters.iter().try_fold(0usize, |total, value| {
+            total.checked_add(value.as_ref().len())
+        });
+        if text_bytes.is_none_or(|bytes| bytes > 256 * 1024)
+            || pattern.is_some_and(|p| p.len() > 256 * 1024)
+        {
             return Err(Error::protocol(
                 "ListTransactions filter text exceeds local limit",
             ));
         }
-        let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();
+        let states: Vec<String> = state_filters
+            .iter()
+            .map(|s| s.as_ref().to_owned())
+            .collect();
+        let query = ListTransactionsQuery {
+            states: &states,
+            producer_ids: producer_id_filters,
+            duration_ms,
+            pattern,
+        };
         let nodes = tokio::time::timeout_at(
             tokio::time::Instant::from_std(deadline),
             self.list_transactions_broker_ids(deadline),
@@ -7209,14 +7401,7 @@ impl Admin {
         for node in nodes {
             let listings = tokio::time::timeout_at(
                 tokio::time::Instant::from_std(deadline),
-                self.list_transactions_on_broker(
-                    node,
-                    &states,
-                    producer_id_filters,
-                    duration_ms,
-                    deadline,
-                    &mut budget,
-                ),
+                self.list_transactions_on_broker(node, &query, deadline, &mut budget),
             )
             .await
             .unwrap_or(Err(Error::Timeout));
@@ -7277,9 +7462,7 @@ impl Admin {
     async fn list_transactions_on_broker(
         &mut self,
         node: i32,
-        states: &[String],
-        pids: &[i64],
-        duration_ms: i64,
+        query: &ListTransactionsQuery<'_>,
         deadline: Instant,
         budget: &mut ListTransactionsBudget,
     ) -> Result<Vec<TransactionListing>> {
@@ -7308,24 +7491,29 @@ impl Admin {
                     .api_keys
                     .iter()
                     .find(|v| v.api_key == LIST_TRANSACTIONS)
-                    .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+                    .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
                     .ok_or_else(|| {
                         Error::Unsupported(format!(
-                            "broker {node} does not support ListTransactions v0-1"
+                            "broker {node} does not support ListTransactions v0-2"
                         ))
                     })?;
-                crate::protocol::admin::ListTransactionsRequest::build(version, duration_ms)?;
+                crate::protocol::admin::ListTransactionsRequest::build_with_pattern(
+                    version,
+                    query.duration_ms,
+                    query.pattern,
+                )?;
                 let body = conn
                     .roundtrip(
                         LIST_TRANSACTIONS,
                         version,
                         |buf| {
-                            encode_list_transactions_request(
+                            encode_list_transactions_request_with_pattern(
                                 buf,
                                 version,
-                                states,
-                                pids,
-                                duration_ms,
+                                query.states,
+                                query.producer_ids,
+                                query.duration_ms,
+                                query.pattern,
                             )
                         },
                         deadline.saturating_duration_since(Instant::now()),
@@ -12794,6 +12982,23 @@ impl Admin {
             return Err(Error::broker(err, "FindCoordinator"));
         }
     }
+}
+
+fn validate_reassignments(assignments: &[PartitionReassignment]) -> Result<()> {
+    if assignments.len() > crate::protocol::admin::MAX_REASSIGNMENT_PARTITIONS {
+        return Err(Error::protocol("too many reassignment partitions"));
+    }
+    let mut replicas = 0usize;
+    for assignment in assignments {
+        if assignment.topic.len() > 249 {
+            return Err(Error::protocol("reassignment topic name exceeds249 bytes"));
+        }
+        replicas = replicas.saturating_add(assignment.replicas.as_ref().map_or(0, Vec::len));
+        if replicas > crate::protocol::admin::MAX_REASSIGNMENT_REPLICAS {
+            return Err(Error::protocol("too many reassignment replica IDs"));
+        }
+    }
+    Ok(())
 }
 
 fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<ReassignableTopic> {

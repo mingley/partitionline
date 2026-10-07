@@ -47,7 +47,7 @@ starved by perpetual tip `branch-lite` re-queues). Tip gate locally:
 bash scripts/ci-branch-lite.sh   # fmt, clippy, lib + fuzz_decode_smoke, docs
 ```
 
-Full matrix (MSRV, broker smoke, fuzz, deny, package, …) runs on pull requests,
+Full matrix (latest stable Rust, broker smoke, fuzz, deny, package, …) runs on pull requests,
 `main`, and `workflow_dispatch`. Open a PR (or dispatch the workflow) for the
 full gate. If Actions stay queued, owner: `bash scripts/owner-cancel-stuck-runs.sh`.
 
@@ -78,7 +78,7 @@ Supply-chain (`deny.toml`):
 bash scripts/ci-deny.sh
 ```
 
-Civilization bar self-check (package + deny + docs gates; broker optional):
+Combined package, dependency, and documentation checks (broker optional):
 
 ```
 bash scripts/ci-civilization-check.sh
@@ -115,8 +115,8 @@ steps use `pl_timeout` (`scripts/lib/pl-timeout.sh`): GNU `timeout` or Homebrew
 
 Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.
 
-MSRV is 1.85. Mock TLS fixtures use the `openssl` CLI (not `rcgen`) so the
-dev graph stays free of `time` / RUSTSEC-2026-0009 without raising MSRV.
+Use the latest stable Rust (`rustup update stable`). Older compilers are not supported. Mock TLS fixtures use the `openssl` CLI (not `rcgen`) so the
+dev graph stays free of the affected `time` dependency (RUSTSEC-2026-0009).
 
 Do not claim Suite HOLD / signed bench wins without the process in `docs/STATUS.md` and `docs/benchmark.md`.
 

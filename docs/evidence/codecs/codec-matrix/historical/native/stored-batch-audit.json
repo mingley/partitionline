@@ -1,0 +1,848 @@
+{
+  "status": "pass",
+  "cells": 60,
+  "cross_client_readbacks": 120,
+  "stored_batches": [
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335516608,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-none-producer/00000000000000000000.log",
+          "sha256": "2223527ca6ab3f4bf6345f7dd4afb0364431b6725ab3853b298f9038e99657d3"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335523322,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-none-producer/00000000000000000000.log",
+          "sha256": "4f90e5668d8cdede0620d91c5ce7b74b98ca25b533774ebe41cb67136149b27e"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335529139,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-none-producer/00000000000000000000.log",
+          "sha256": "4e2ad932f130726192af0748bb97628c6b2003e814ec12385d1762eff5d593f8"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335534511,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-gzip-producer/00000000000000000000.log",
+          "sha256": "a4141255c6241a1b1d18545b7e5be035cb4852119c0e4ad74ed2fc758340ae80"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335541336,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-gzip-producer/00000000000000000000.log",
+          "sha256": "20041cbffb9ad515d11252a54e72f3683368392dc225de376a5febd288ef265a"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335547573,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-gzip-producer/00000000000000000000.log",
+          "sha256": "c9a87820d45c96942da352a1d3ee3b464fe2fb99cfcbdb27f25778513ee4cc2d"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335552658,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-snappy-producer/00000000000000000000.log",
+          "sha256": "246eea375b0236db8200891dea9f7399f6b2f8c65a07d1cc947548e86f98d6ca"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335558922,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-snappy-producer/00000000000000000000.log",
+          "sha256": "de31b20550afd7aaecd355ac054833366b92aa9029c7098cb4df1eac5e8441c3"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335565371,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-snappy-producer/00000000000000000000.log",
+          "sha256": "64657a9c56d1ff211cf16f64c3a1a923437336934998338e188ec91a081889cd"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335571257,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-lz4-producer/00000000000000000000.log",
+          "sha256": "175d5f6ca4374bf3cbc36d24a738fe850c3f085b2bfb8ea17ef8e07187aa90db"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335577716,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-lz4-producer/00000000000000000000.log",
+          "sha256": "96c72a461cf4d649526e360f50b2a0c1cb163e3e58dd8c311ebbe417e4b6cec9"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335583674,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-lz4-producer/00000000000000000000.log",
+          "sha256": "6c771c5838fd0b8bced6ef172fced4fa9353dd9399d9f78ded142d878254e277"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335588877,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-zstd-producer/00000000000000000000.log",
+          "sha256": "999bb3ffafb746c40daff6b9eb90de097a451de172ee799ba733717386c11227"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335594987,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-zstd-producer/00000000000000000000.log",
+          "sha256": "a6623ed23b2126cd09d17e3e75c900250897920dc47acb4a7c1c05aa603198fe"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335600614,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-zstd-producer/00000000000000000000.log",
+          "sha256": "078f79ed38848a40e7cb1606c27a73ccff0f13c1b7a08f6f10f791b9056ecbbd"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335605952,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-none-gzip/00000000000000000000.log",
+          "sha256": "cb1da5ef1712e4c4c5acd912821076e34bf40d95e4022754c70b9d5ae3903725"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335612164,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-none-gzip/00000000000000000000.log",
+          "sha256": "7b92ef9cb0ebf4275eb5e9b93d317930d480e70aeca80164d1aa230a688706ba"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335618024,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-none-gzip/00000000000000000000.log",
+          "sha256": "a311a06a764e1e2795f3993f409b9e032f19e12abc1a4458c444434b1f27c3cc"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335622908,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-gzip-gzip/00000000000000000000.log",
+          "sha256": "7c250001e982352dd85bdd15a8f58cffea9ae810ec06f4dca33737e85d52cd42"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335629433,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-gzip-gzip/00000000000000000000.log",
+          "sha256": "37993f77ef3f8c0beb157ef82a508a9da63804f7a077be8ae7661a013789985a"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335635697,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-gzip-gzip/00000000000000000000.log",
+          "sha256": "ddb337bc25cc280d4e59160118495c1a6196004df310f526452ac55d8d4d8f1f"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335643498,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-snappy-gzip/00000000000000000000.log",
+          "sha256": "c4f24ef50a26c8a5f8e26bfbfe90cab87516d3124297eb1b65693442301ddba2"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335654379,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-snappy-gzip/00000000000000000000.log",
+          "sha256": "bb8584626cacb097d70ac8d4b0e16438e3f6c2c1f1e85f64aa57f12b562ea01c"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335663983,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-snappy-gzip/00000000000000000000.log",
+          "sha256": "c5339316f67ebd447025faab52eb2e974cd1fa2776fe7c9cb49e688bcc953d7a"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335674250,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-lz4-gzip/00000000000000000000.log",
+          "sha256": "b3ee53a4928e7a606d1c709389e07db40485c0841d2903ef04e901e6f887b909"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335685896,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-lz4-gzip/00000000000000000000.log",
+          "sha256": "47b8a55d5c426ed67f28d5bb13f8f002ccb0017bef12dfc76678111128ce1b3a"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335695528,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-lz4-gzip/00000000000000000000.log",
+          "sha256": "cb6bba5b52ea157c95411cf9504b2d79d9c8b9984494e52474015a339e97c3b5"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-rust-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335704081,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-rust-zstd-gzip/00000000000000000000.log",
+          "sha256": "44fc49336f2a34de8d6f8fe354684b601802533f2ce1d3ab4274e5f5b9304332"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-java-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335712947,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-java-zstd-gzip/00000000000000000000.log",
+          "sha256": "e51b005b5ff7581d573f68ce88c99a7cb24f2b9a5c3fd31724b5309f83a3537a"
+        }
+      ]
+    },
+    {
+      "broker": "3.9.1",
+      "topic": "codec-c-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335723548,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "3.9.1/batches/codec-c-zstd-gzip/00000000000000000000.log",
+          "sha256": "cc993c7c1123241b3a5a042525c4ecd743fd1c3a8a9e717146d99fbe8d911cb9"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335743211,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-none-producer/00000000000000000000.log",
+          "sha256": "77e42109af2cc1ab5d3c12e8dd8e5fe066b7193bd39963dc268e60c50e0af83b"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335752953,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-none-producer/00000000000000000000.log",
+          "sha256": "6977cea21001d9ac6618775016b3602a6e929bcb5ec92b87678eb53714ee192e"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-none-producer",
+      "codec_id": 0,
+      "timestamp": 1791335759911,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-none-producer/00000000000000000000.log",
+          "sha256": "8988da70237baf67288e4b02ab89a03de48a25a2bf5368de2d16fa4374119f98"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335765574,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-gzip-producer/00000000000000000000.log",
+          "sha256": "5eed7911007e21194e26e9af44c628dc6c21c3db8fb9ab38f5525c8f37c42f08"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335771636,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-gzip-producer/00000000000000000000.log",
+          "sha256": "a25cab7706c3acb135e00235396eea0b0d5e1219cd853140c85122f02acd0a22"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-gzip-producer",
+      "codec_id": 1,
+      "timestamp": 1791335778026,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-gzip-producer/00000000000000000000.log",
+          "sha256": "2cd6234be1b6c5a2e8fca69d6c0e6fe0ccf53b0539ef096446e4a42d9fd1c67b"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335783841,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-snappy-producer/00000000000000000000.log",
+          "sha256": "685abc2f1db87492cbdb968e21937d5055b251b11fd6bee6aa45c312f0a9170c"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335790662,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-snappy-producer/00000000000000000000.log",
+          "sha256": "25bfa7bbcc68bbd6a7a457c2204485312141e10cfc5d08d481f3d0cdae015d03"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-snappy-producer",
+      "codec_id": 2,
+      "timestamp": 1791335796938,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-snappy-producer/00000000000000000000.log",
+          "sha256": "a3e3cd898fe9098bb62c1a7587dde9a3f8ff91f51ced41083bebb1efbce8a025"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335802741,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-lz4-producer/00000000000000000000.log",
+          "sha256": "726b7630a6e2155e01ace7821275f7686abdcd8e7a977defb3118b031b0642c8"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335809676,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-lz4-producer/00000000000000000000.log",
+          "sha256": "80b5c528a3fe5ef84da78f16f0d09be3dc935de36b82fef4276b9a78548c1c3f"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-lz4-producer",
+      "codec_id": 3,
+      "timestamp": 1791335816359,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-lz4-producer/00000000000000000000.log",
+          "sha256": "fa185cd804f3246822358b9c4d256ab2ed35a6c54254df80209cb4a58723999d"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335821731,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-zstd-producer/00000000000000000000.log",
+          "sha256": "4131a117891056cd4b2ca287a96d2be66acf6f99e6a5000e8d6cbb1cedcd1fc5"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335828252,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-zstd-producer/00000000000000000000.log",
+          "sha256": "4ad56f609b355b7c48b80a7d737182c17cc4706e6580e5f133f1c4c991a11239"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-zstd-producer",
+      "codec_id": 4,
+      "timestamp": 1791335834439,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-zstd-producer/00000000000000000000.log",
+          "sha256": "6dc7e63abc44d6d2d28ba41164c5ecbee31db888635bd5e8e7480c6511eace81"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335840417,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-none-gzip/00000000000000000000.log",
+          "sha256": "cde10c78024cc70e9e6f6b86c6331092e6f8ae328be28147db67b270b652af04"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335847483,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-none-gzip/00000000000000000000.log",
+          "sha256": "7fa61e4526a06c9af1cd4f3b85860c214cfd739ab4fd36be7df38e9ba0e325c6"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-none-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335853720,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-none-gzip/00000000000000000000.log",
+          "sha256": "2985a1d68db6d0d64b1a9e76fe441d492a308ef5118cda297472514aed091c9a"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335859782,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-gzip-gzip/00000000000000000000.log",
+          "sha256": "0aa7d2d5da49bf38b2c4cb96719b5b293638d1eaf256a385168edfe0a3809e2b"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335866364,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-gzip-gzip/00000000000000000000.log",
+          "sha256": "13d0efe3bd6add98b4554a49e4ec67415f167b6eb05857402aa38386f331280b"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-gzip-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335872492,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-gzip-gzip/00000000000000000000.log",
+          "sha256": "c0bf633d012fe58833c825a5bc4d8835026c798e8268f2e763cc5beb4656918a"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335878398,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-snappy-gzip/00000000000000000000.log",
+          "sha256": "281b9d181aea47364c69e944e944133c686716fad8f4999129e3f8a0de0379e5"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335885283,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-snappy-gzip/00000000000000000000.log",
+          "sha256": "2828230fdd9ec7829d27d8f9ea59706679777605b646944eb6d665e7ce523997"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-snappy-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335891324,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-snappy-gzip/00000000000000000000.log",
+          "sha256": "afb79009ddd2cd6b71970be21cce2044e133fc4dbea99998abab9f0cebc1be89"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335896924,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-lz4-gzip/00000000000000000000.log",
+          "sha256": "914df1a6b8ef2ea6435ab541fac22b504cc932d27c0a67b9f897b3eed2278457"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335903937,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-lz4-gzip/00000000000000000000.log",
+          "sha256": "966052d130564b82b6cf5065d8b01bc71a69d074a8ca7f54652b75baf0d2304e"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-lz4-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335910831,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-lz4-gzip/00000000000000000000.log",
+          "sha256": "fe3210e543c5cd73efd24de26c06e479ebcbdb5f8663620c1a8d1ac8e6bfa232"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-rust-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335916831,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-rust-zstd-gzip/00000000000000000000.log",
+          "sha256": "385b09dbdf613a85ff1da6f671775254d2390904774e83496f3ced438443e39f"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-java-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335923606,
+      "records": 9,
+      "batches": 9,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-java-zstd-gzip/00000000000000000000.log",
+          "sha256": "92338c2cb8ef66290f4efa06121b12ba7e0253c88e8348d7016524d93e804762"
+        }
+      ]
+    },
+    {
+      "broker": "4.1.0",
+      "topic": "codec-c-zstd-gzip",
+      "codec_id": 1,
+      "timestamp": 1791335930041,
+      "records": 9,
+      "batches": 1,
+      "segments": [
+        {
+          "path": "4.1.0/batches/codec-c-zstd-gzip/00000000000000000000.log",
+          "sha256": "64a82ffd0c7b27bfca2df1be10c0615bdd93d2e826060be7c78543d288884cdb"
+        }
+      ]
+    }
+  ],
+  "performance_claims_valid": false
+}

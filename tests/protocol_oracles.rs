@@ -4283,7 +4283,7 @@ fn share_seq16(start: u8) -> [u8; 16] {
 
 /// KL05-14: decode a hex descriptor field into bytes.
 fn share_hex_bytes(hex: &str) -> Vec<u8> {
-    assert!(hex.len() % 2 == 0, "hex length");
+    assert!(hex.len().is_multiple_of(2), "hex length");
     hex.as_bytes()
         .chunks(2)
         .map(|c| {

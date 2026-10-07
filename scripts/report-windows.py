@@ -20,10 +20,10 @@ def validate_versions(data):
     if (data['system'], data['machine'], data['pointer_bits'], data['rustc_host']) != (
             'Windows', 'AMD64', 64, 'x86_64-pc-windows-msvc'):
         raise ValueError('native Windows x86_64 MSVC compiler/runtime required')
-    if data['requested_toolchain'] not in ('stable', '1.85.0'):
+    if data['requested_toolchain'] != 'stable':
         raise ValueError('unqualified Rust toolchain')
-    if data['requested_toolchain'] == '1.85.0' and data['rustc_release'] != '1.85.0':
-        raise ValueError('MSRV compiler mismatch')
+    if not re.fullmatch(r'1\.\d+\.\d+', data['rustc_release']) or tuple(map(int, data['rustc_release'].split('.'))) < (1, 99, 0):
+        raise ValueError('latest stable Rust required')
     if tuple(map(int, data['python_version'].split('.')[:2])) < (3, 11):
         raise ValueError('Python 3.11+ package-check prerequisite missing')
     if data['python_utf8_mode'] != 1:
@@ -97,7 +97,7 @@ def finish(directory):
             'limits': ['Native x86_64 Windows MSVC mock/runtime and package qualification only.',
                        'Live broker, auth-service and performance campaigns remain Linux lanes.',
                        'Pre-existing opt-in live tests remain explicitly reported as ignored.',
-                       'Clippy runs on stable; both Rust toolchains run default/tracing and strict docs.']}
+                       'Latest stable Rust runs strict Clippy, docs and the declared package feature matrix.']}
 
 
 def main():

@@ -1,4 +1,4 @@
-/* Source-only preparation. Actual JVM outcomes must be captured after approval. */
+/* Actual bounded serializers, aggregation components and public Admin probes. */
 package org.apache.kafka.clients.admin;
 
 import org.apache.kafka.clients.admin.internals.AllBrokersStrategy;
@@ -214,6 +214,8 @@ public final class ListTransactionsOracle {
             .append(quote(release)).append(",\"framing\":\"four-byte length+header+body\",\"cases\":[\n");
         vector(root, manifest, "metadata-empty-topics-v1", ApiKeys.METADATA, (short) 1,
                new MetadataRequestData().setTopics(List.of()), metadata());
+        vector(root, manifest, "metadata-all-topics-v4", ApiKeys.METADATA, (short) 4,
+               new MetadataRequestData().setTopics(null).setAllowAutoTopicCreation(false), metadata());
         for (short version : new short[] {0, 1}) {
             ListTransactionsRequestData unfiltered = new ListTransactionsRequestData()
                 .setStateFilters(List.of()).setProducerIdFilters(List.of()).setDurationFilter(-1);
@@ -275,6 +277,12 @@ public final class ListTransactionsOracle {
         config.setProperty("retry.backoff.max.ms", "20");
         config.setProperty("reconnect.backoff.ms", "0");
         config.setProperty("reconnect.backoff.max.ms", "0");
+        String mode = System.getenv("PARTITIONLINE_LIST_TRANSACTIONS_CASE");
+        if ("auth-disconnect".equals(mode)) {
+            config.setProperty("security.protocol", "SASL_PLAINTEXT");
+            config.setProperty("sasl.mechanism", "PLAIN");
+            config.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"qualification-user\" password=\"qualification-pass\";");
+        }
         Files.createDirectories(root);
         StringBuilder out = new StringBuilder("{\"schema_version\":1,\"release\":")
             .append(quote(release)).append(",\"genuine_public_Admin_listTransactions\":true,\"by_broker\":{");
@@ -301,7 +309,8 @@ public final class ListTransactionsOracle {
                 }
                 catch (ExecutionException e) {
                     allSucceeded = false;
-                    out.append("{\"error_class\":").append(quote(e.getCause().getClass().getName())).append('}');
+                    out.append("{\"error_class\":").append(quote(e.getCause().getClass().getName()))
+                        .append(",\"error_code\":").append(org.apache.kafka.common.protocol.Errors.forException(e.getCause()).code()).append('}');
                 }
             }
             out.append("},\"all\":");
@@ -317,6 +326,13 @@ public final class ListTransactionsOracle {
                 try { result.allByBrokerId().get(3,TimeUnit.SECONDS); throw new AssertionError("allByBrokerId silently partial"); }
                 catch (ExecutionException expected) { check(true,"public aggregate fails"); }
             }
+        } catch (ExecutionException error) {
+            if (!"delayed-metadata".equals(mode)) throw error;
+            check(error.getCause() instanceof org.apache.kafka.common.errors.TimeoutException,
+                  "discovery has one original deadline");
+            out.setLength(0);
+            out.append("{\"schema_version\":1,\"release\":").append(quote(release))
+                .append(",\"discovery_error\":").append(quote(error.getCause().getClass().getName()));
         } finally { admin.close(Duration.ofSeconds(2)); }
         out.append(",\"actual_checks\":").append(checks).append("}\n");
         Files.writeString(root.resolve("public-outcome.json"),out,StandardCharsets.UTF_8);
