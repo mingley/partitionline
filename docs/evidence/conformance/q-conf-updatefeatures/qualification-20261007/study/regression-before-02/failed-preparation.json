@@ -1,0 +1,7 @@
+{
+  "stage": "sparse_checkout_command",
+  "tests_executed": 0,
+  "actual_cargo_exit_code": 101,
+  "source_guards_passed": true,
+  "reason": "Git sparse-checkout add rejected --no-cone. The source layout and1085-file map did not expand; the console preparation message was incorrect. This corrected stage verifies actual example files, a larger pin map and all prior file hashes before retry."
+}

@@ -1,0 +1,108 @@
+{
+  "actual_sdk_tags": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "reverse_bodies": 303,
+  "public_native_cases": 42,
+  "results": [
+    {
+      "release": "4.1.2",
+      "cluster_id": "jyOulsmTQ4SGEivfIqQUVg",
+      "broker": "127.0.0.1:46497",
+      "controller": "127.0.0.1:43517",
+      "parent_waited": true,
+      "pid": 871369,
+      "command": [
+        "python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/update-features-source-06d3f7/benchmarks/runtime/tools/parent-bound-exec.py",
+        "870435",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/update-features-20261007/default-qualification-01/4.1.2-native/server.properties"
+      ],
+      "actual_public_cases_per_caller": 7,
+      "actual_public_outcomes_match": true,
+      "finalized_features_unchanged": true,
+      "adopted_children": [],
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 46497,
+          "reusable": true
+        },
+        {
+          "port": 43517,
+          "reusable": true
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "cluster_id": "QyI-RoMhTM-IwpG1ypNl5A",
+      "broker": "127.0.0.1:44853",
+      "controller": "127.0.0.1:35115",
+      "parent_waited": true,
+      "pid": 872624,
+      "command": [
+        "python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/update-features-source-06d3f7/benchmarks/runtime/tools/parent-bound-exec.py",
+        "870435",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/update-features-20261007/default-qualification-01/4.2.1-native/server.properties"
+      ],
+      "actual_public_cases_per_caller": 7,
+      "actual_public_outcomes_match": true,
+      "finalized_features_unchanged": true,
+      "adopted_children": [],
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 44853,
+          "reusable": true
+        },
+        {
+          "port": 35115,
+          "reusable": true
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "cluster_id": "buzF3E8hR56tIVpbi_gYRg",
+      "broker": "127.0.0.1:48351",
+      "controller": "127.0.0.1:47479",
+      "parent_waited": true,
+      "pid": 873864,
+      "command": [
+        "python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/update-features-source-06d3f7/benchmarks/runtime/tools/parent-bound-exec.py",
+        "870435",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/update-features-20261007/default-qualification-01/4.3.1-native/server.properties"
+      ],
+      "actual_public_cases_per_caller": 7,
+      "actual_public_outcomes_match": true,
+      "finalized_features_unchanged": true,
+      "adopted_children": [],
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 48351,
+          "reusable": true
+        },
+        {
+          "port": 47479,
+          "reusable": true
+        }
+      ]
+    }
+  ],
+  "qualification_limit": "Finite wire and native public cases. Controller migration and original-deadline retries require separate qualification."
+}

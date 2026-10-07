@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: duplicate feature first-match contract
+	at ConformanceUpdateFeatures.generate(ConformanceUpdateFeatures.java:152)
+	at ConformanceUpdateFeatures.main(ConformanceUpdateFeatures.java:294)

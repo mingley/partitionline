@@ -1,0 +1,1 @@
+Both safety regressions pass on default/all-feature builds; source guards and owned process closure passed

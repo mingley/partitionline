@@ -1,0 +1,1 @@
+Both before-fix safety regressions failed as expected; source guards and owned process closure passed

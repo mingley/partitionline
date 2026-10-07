@@ -1,0 +1,33 @@
+{
+  "task": "KL01-28",
+  "status": "in_progress",
+  "source_before_fix": "68c114794442085582c53c7cd93c11cb4c6a5f84",
+  "qualified_source": "06d3f769eebd54d8156e97d721b51b8c2e7647f8",
+  "toolchain": "stable Rust 1.99.0",
+  "actual_before_fix_failed_tests": 2,
+  "actual_after_fix_passed_tests_per_build": 2,
+  "qualified_builds": [
+    "default",
+    "all-features"
+  ],
+  "sdk_tags": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "fixture_bodies_per_sdk": 101,
+  "independent_reverse_parses": 606,
+  "native_public_cases_both_callers": 84,
+  "owned_native_brokers_joined": 6,
+  "ports_rebound": 12,
+  "qualification_limit": "Finite API57 wire and public native cohorts pass. Source-case/controller migration/retry-deadline applicability remains open; initial registered cases are not promoted.",
+  "remaining": [
+    "Map every source test and parameter invocation to a qualified case or explicit applicability reason.",
+    "Independently qualify NOT_CONTROLLER retry/controller migration and absolute timeout behavior.",
+    "Check public error-count and invalid value/deletion behavior against exact SDK source."
+  ],
+  "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007",
+  "manifest_sha256": "93a5de161f28fd514ac1a17baa66ed8eaa6a380dcbf63f3d3cbfdb3a884914ed",
+  "initial_registered_cases_disposition_preserved": true,
+  "conformance_denominators_unchanged": true
+}

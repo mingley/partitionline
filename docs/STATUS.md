@@ -22,6 +22,11 @@ and retries, with checks against all three current SDKs and native brokers. Admi
 capability checks use actual Apache SDK frames and public Java calls. Their
 scripted peers do not implement broker transaction or share state.
 
+UpdateFeatures v0 now rejects validation-only requests before encoding or dispatch.
+The finite wire corpus and seven native public cases match each of the three
+current Apache SDKs on default and all-feature builds. Controller migration and
+retry-deadline qualification for that API remain open.
+
 Current gaps include prepared transaction initialization. Fault recovery, session reauthentication and
 mixed-version behavior need further implementation or independent checks.
 

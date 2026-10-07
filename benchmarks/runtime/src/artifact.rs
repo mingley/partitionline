@@ -377,14 +377,8 @@ pub fn build_result(
     let commit = git(repo_root, &["rev-parse", "HEAD"])?;
     let tree = git(repo_root, &["rev-parse", "HEAD^{tree}"])?;
     let branch = git(repo_root, &["rev-parse", "--abbrev-ref", "HEAD"])?;
-    let dirty = Command::new("git")
-        .arg("-C")
-        .arg(repo_root)
-        .args(["status", "--porcelain"])
-        .output()
-        .ok()
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(true);
+    let dirty = !git(repo_root, &["status", "--porcelain"])?.is_empty();
+    let repo_url = git(repo_root, &["remote", "get-url", "origin"])?;
 
     let (bin_sha, bin_size) = sha256_file(harness_exe)?;
     let exe_name = harness_exe
@@ -393,13 +387,29 @@ pub fn build_result(
         .unwrap_or_else(|| "runtime".to_owned());
 
     let mut effective = ctx.effective_settings.clone();
-    effective
+    let settings = effective
         .as_object_mut()
-        .ok_or("effective settings must be an object")?
-        .insert("runtime".into(), ctx.runtime_config.clone());
-    let mut cfg_hasher = Sha256::new();
-    cfg_hasher.update(serde_json::to_string(&effective).unwrap_or_default());
-    let cfg_sha = hex::encode(cfg_hasher.finalize());
+        .ok_or("effective settings must be an object")?;
+    settings.insert("runtime".into(), ctx.runtime_config.clone());
+    if ctx.profile == "fetch" {
+        settings.insert("idempotence".into(), Value::Null);
+    }
+    let config_path = result_path.with_extension("config.json");
+    let config_bytes = serde_json::to_vec_pretty(&effective)
+        .map_err(|error| format!("encode effective config: {error}"))?;
+    std::fs::write(&config_path, &config_bytes)
+        .map_err(|error| format!("write effective config: {error}"))?;
+    let cfg_sha = hex::encode(Sha256::digest(&config_bytes));
+    let tokio_version = include_str!("../Cargo.lock")
+        .split("[[package]]")
+        .find(|package| package.lines().any(|line| line == "name = \"tokio\""))
+        .and_then(|package| {
+            package.lines().find_map(|line| {
+                line.strip_prefix("version = \"")
+                    .and_then(|version| version.strip_suffix('"'))
+            })
+        })
+        .ok_or("retained lockfile has no Tokio version")?;
 
     let (broker_sha, broker_size) = sha256_file(&ctx.broker.artifact_path)?;
     let mut broker_artifacts = vec![json!({
@@ -426,7 +436,10 @@ pub fn build_result(
         .broker
         .end_offsets
         .iter()
-        .map(|(t, p, o)| json!({"topic": t, "partition": p, "start_offset": 0, "end_offset": o}))
+        .map(|(t, p, o)| {
+            json!({"topic": t, "partition": p, "start_offset": 0,
+            "end_offset": o, "offset_delta": o})
+        })
         .collect();
 
     // Send-based modes verify per-record offsets; `try_send` modes
@@ -447,14 +460,34 @@ pub fn build_result(
         .collect();
 
     let seed = ctx.seed;
-    let equal_semantics = ctx.equal_semantics.clone();
+    let mut equal_semantics = ctx.equal_semantics.clone();
+    let semantics = equal_semantics
+        .as_object_mut()
+        .ok_or("semantics must be an object")?;
+    semantics.insert("durability".into(), Value::Null);
+    semantics.insert(
+        "security".into(),
+        json!({"protocol":"PLAINTEXT","mechanism":"NONE"}),
+    );
+    if ctx.profile == "fetch" {
+        semantics.insert("acks".into(), Value::Null);
+        semantics.insert("idempotence".into(), Value::Null);
+    } else {
+        semantics
+            .entry("idempotence")
+            .or_insert_with(|| effective["idempotence"].clone());
+        semantics.insert("isolation".into(), Value::Null);
+    }
+    let repetition = ctx
+        .repetition
+        .checked_add(1)
+        .ok_or("repetition index overflow")?;
     let mut doc = json!({
-        "schema_version": "1.0.0",
+        "schema_version": "2.0.0",
         "contract_version": "1.1.0",
-        "suite_hold": {"status": "active"},
+        "suite_hold": {"status": "active", "policy":"A local fixture does not qualify a scenario or lift Suite HOLD."},
         "scenario": {
             "scenario_id": ctx.cell_id,
-            "cell_id": ctx.cell_id,
             "peer": "partitionline",
             "profile": ctx.profile,
             "tier": "exploratory",
@@ -467,6 +500,8 @@ pub fn build_result(
                 "git_branch": branch,
                 "tree_hash": tree,
                 "dirty_tree": dirty,
+                "clean": !dirty,
+                "repo_url": repo_url,
             },
             "binary": {
                 "name": exe_name,
@@ -475,19 +510,20 @@ pub fn build_result(
                 "size_bytes": bin_size,
             },
             "config": {
+                "path": config_path.display().to_string(),
                 "sha256": cfg_sha,
                 "effective_settings": effective,
             },
             "toolchains": {
                 "compiler": tool_version("rustc", "--version"),
-                "runtime": tool_version("rustc", "--version"),
+                "runtime": format!("tokio {tokio_version}"),
                 "build_tool": tool_version("cargo", "--version"),
             },
             "broker": {
                 "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
                 "version": env!("CARGO_PKG_VERSION"),
-                "mode": "null-broker loopback",
-                "cluster_id": if ctx.endpoints.len() > 1 { "nb-serve-multi" } else { "nb-serve-single" },
+                "mode": "null",
+                "cluster_id": null,
                 "node_count": ctx.endpoints.len().max(1),
                 "endpoints": ctx.endpoints.clone(),
             },
@@ -531,8 +567,17 @@ pub fn build_result(
             "artifacts": broker_artifacts_plus_latency(broker_artifacts, &ctx.latency_path, &lat_sha, lat_size),
         },
         "execution": {
+            "phase": "bounded_fixture",
+            "warmup_completed": false,
+            "warmup_records": 0,
+            "warmup_duration_seconds": 0,
+            "steady_state_duration_seconds": null,
+            "measured_duration_seconds": ctx.wall_seconds,
+            "total_repetitions": null,
+            "pairing_order": "unreported",
+            "coordinated_omission_avoidance": {"enabled": false, "schedule_type":"closed_loop"},
             "cell_id": ctx.cell_id,
-            "repetition_index": ctx.repetition,
+            "repetition_index": repetition,
             "result_path": result_path.display().to_string(),
             "drive_mode": ctx.drive_mode.clone(),
             "records_offered": offered,
@@ -581,7 +626,10 @@ pub fn build_result(
                 },
                 "raw_histogram": {
                     "bucket_unit": "microseconds",
-                    "buckets": stats.buckets.iter().map(|(b, c)| json!({"upper_bound_us": b, "count": c})).collect::<Vec<_>>(),
+                    "buckets": stats.buckets.iter().map(|(b, c)| json!({
+                        "min_us": if *b == 1 { 0 } else { b / 2 + u64::from(*b == u64::MAX) },
+                        "max_us": b.saturating_sub(u64::from(*b != u64::MAX)),
+                        "upper_bound_us": b, "count": c})).collect::<Vec<_>>(),
                 },
             },
             "client_resources": {
@@ -622,6 +670,7 @@ pub fn build_result(
             "errors": errors,
         },
         "integrity": {
+            "idempotence_sequence_verified": null,
             "verified": !failed,
             "integrity_failure": failed,
             "high_watermark_audit": {
@@ -636,7 +685,8 @@ pub fn build_result(
                 "verified_count": checksummed,
                 "missing_ids_count": delivered.saturating_sub(checksummed),
                 "duplicate_ids_count": 0,
-                "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+                "checksum_algorithm": if ctx.profile == "fetch" { "client fixture ID and payload verification" }
+                    else { "broker batch-CRC validation (KL09-06) + client offset accounting" },
                 "payload_checksum_matches": !failed,
             },
         },
@@ -645,9 +695,12 @@ pub fn build_result(
             "failed_attempts": if failed { 1 } else { 0 },
             "attempts": [
                 {
-                    "repetition_index": ctx.repetition,
+                    "attempt_number": 1,
+                    "repetition_index": repetition,
                     "status": if failed { "failed_integrity" } else { "passed_measurement" },
                     "integrity_failure": failed,
+                    "error_message": if failed { Some("Measured fixture failed; retained error and outcome fields describe the failure.") } else { None },
+                    "timestamp_utc": ctx.timestamps.1,
                 },
             ],
         },

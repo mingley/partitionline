@@ -1,0 +1,11 @@
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/update-features-source-68c114)
+    Finished `test` profile [unoptimized] target(s) in 12.81s
+     Running tests/update_features_conformance.rs (/workspace/work/target-update-features/debug/deps/update_features_conformance-eb77ddc21d197077)
+
+thread 'v0_validation_request_rejected_before_body_changes' (868954) panicked at tests/update_features_conformance.rs:20:5:
+v0 validation-only must be unsupported before a request is written; got Ok(())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'v0_public_validation_does_not_dispatch_or_mutate' (868953) panicked at tests/update_features_conformance.rs:38:5:
+v0 validation-only must fail locally: outcome=Ok([FeatureUpdateResult { name: "metadata.version", error_code: 0, error_message: None }]), dispatched=Some(0), finalized=Some(17)
+error: test failed, to rerun pass `-p partitionline --test update_features_conformance`

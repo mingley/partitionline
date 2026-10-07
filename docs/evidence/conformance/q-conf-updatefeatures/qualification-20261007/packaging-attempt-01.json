@@ -1,0 +1,5 @@
+{
+  "passed": false,
+  "cause": "Repository-relative packaging paths were run from the evidence subdirectory. No archive or registry evidence was changed, and no checksum manifest was created. Corrected invocation uses repository root.",
+  "captured_test_results_unchanged": true
+}

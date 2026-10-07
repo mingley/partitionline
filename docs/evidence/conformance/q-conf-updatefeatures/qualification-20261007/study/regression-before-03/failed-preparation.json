@@ -1,0 +1,6 @@
+{
+  "tests_executed": 0,
+  "qualification": false,
+  "cause": "Unresolved UPDATE_FEATURES import prevented integration test compilation; no runtime failure proof.",
+  "stderr_sha256": "ec5793f52658e0c5d10dc0e91aba8b964551eeda4173c42bfcc570bfb21e8f66"
+}

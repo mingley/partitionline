@@ -1,0 +1,16 @@
+[
+  "tests/conformance/java/ConformanceUpdateFeatures.java",
+  "tests/conformance/java/generate_update_features.py",
+  "docs/plan/tasks.json",
+  "docs/STATUS.md",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/validate-only-candidate-01.json",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/fixture-preflight-01.json",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/README.md",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/fixture-preflight-02.json",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/source-method-inventory-01.json",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/upstream-source-inputs-01.json",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-02/generate_update_features.py",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-02/ConformanceUpdateFeatures.java",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-01/generate_update_features.py",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-01/ConformanceUpdateFeatures.java"
+]

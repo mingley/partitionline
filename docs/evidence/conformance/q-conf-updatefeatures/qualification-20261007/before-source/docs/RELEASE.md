@@ -1,0 +1,266 @@
+# Release policy
+
+partitionline stays on **0.x** until the API stability bar in
+[`api-stability.md`](api-stability.md) is met. Semver for 0.x:
+
+| Change | Version bump |
+|---|---|
+| Breaking change to a **Stable** public item | `0.MINOR` (treat minor as major while on 0.x) |
+| Additive API, bugfix, docs, perf | `0.MINOR` or `0.PATCH` — prefer patch for fixes-only |
+| **Evolving** / protocol-helper churn | patch allowed; document in CHANGELOG |
+
+MSRV is declared in `Cargo.toml` (`rust-version`). Raising MSRV is a minor
+bump on 0.x and must be called out in the CHANGELOG. The broker/MSRV/feature
+support matrix lives in [`support.md`](support.md) (KL-08 partial).
+
+
+## Publication path (KL-08)
+
+**Canonical publisher:** annotated tag `vX.Y.Z` → `.github/workflows/release.yml`, or
+`bash scripts/owner-cut-release.sh` (which invokes `scripts/owner-publish.sh`). Both require:
+- clean working tree on `main`
+- final version format `X.Y.Z` (no prereleases/hyphens)
+- exact-SHA green `ci` (`scripts/check-main-ci.sh` with `REQUIRE_MAIN_CI=1`)
+- package-consumer evidence (`scripts/ci-crate-consumer.sh` / `scripts/ci-publish-ready.sh`)
+- crates.io probe soft-skip when version is already published (safe re-entry; no re-cuts)
+
+**Shared non-cancelling release lock (KL08-03):** release execution in `.github/workflows/release.yml`
+is serialized via a single shared concurrency group (`release-publish-lock`) with `cancel-in-progress: false`.
+This ensures competing tags, same-tag reruns, and obsolete dispatch attempts queue in strict serial
+order rather than running concurrently or cancelling an in-progress publish. Interrupted publish,
+crates.io index confirmation, and GitHub release note creation steps are idempotent and safe to rerun.
+
+**Retired obsolete publisher:** `.github/workflows/first-publish.yml` is retired and fails closed.
+Version `0.1.0` was published on crates.io on 2026-09-05; `0.1.0` must never be recut. All future
+releases use the canonical `.github/workflows/release.yml` or `scripts/owner-cut-release.sh`.
+
+**release-plz** opens version PRs only — it must not publish to crates.io (token presence
+must not enable auto-release; command is `release-pr`). Do not re-cut `0.1.0`.
+
+## No-publish recovery rehearsal (KL08-07)
+
+The [executed source `3109514` report](https://github.com/mingley/partitionline/blob/90ebae57bf87a420d5fa69bd14fe7cdfa7553ac9/docs/evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json)
+records all 15 cases passing with six actual release stages left as owner actions.
+
+From a clean committed checkout, run:
+
+```sh
+bash scripts/rehearse-partial-release.sh --self-test
+bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+```
+
+Each execution creates a fresh artifact directory named with the candidate's
+exact source SHA and a unique attempt ID. Its report retains all 15 scenario
+outcomes, raw stdout/stderr, command histories, source-file hashes and unchanged
+tag-reference checks. The `release-rehearsal` CI job executes the same profile
+and retains its reports for 30 days.
+
+The driver executes the checked-in workflow shell and local publisher in
+isolated copies. Local substitutes model an already-published version, a truly
+absent version, registry outages, an API-visible version missing from the sparse
+index, missing exact-source CI, interruption during confirmation, confirmation
+resumption and repeated release-note creation. Both publishers refuse an unknown
+registry status before publication. The confirmation and note stages are
+exercised separately after a simulated prior publication; that simulation is
+explicit in every report.
+
+The artifact reports six actual release stages as owner actions: complete
+candidate CI/package qualification, next-version authorization, authentication
+and upload, tag publication, real registry confirmation and GitHub release notes.
+Passing the rehearsal does not complete a release. The substitutes cannot invoke
+the real publication tools, read credentials or request an OIDC token; a new
+unexpected command fails the rehearsal. No tags, uploads, permissions or secret
+changes occur.
+
+## Cadence
+
+Cut a crates.io release when there is a user-facing batch (fix, feature, or
+docs that change how operators depend on the crate), not on every protocol
+helper map commit. Mock-only internal refactors can wait.
+
+## Owner publish checklist (WP-0.5)
+
+> **Status (2026-09-05):** crates.io `partitionline` `0.1.0` is published; day1
+> four-file pins and post-cut parks are on `main`. This checklist remains for
+> **future** cuts. Do not re-cut `0.1.0`. Parks stayed off main until after the
+> first cut (**expected pre-Installable**).
+
+
+Requires a crates.io token owned by a crate owner. Agents without the token
+stop after a successful `cargo package` dry-run. Owner one-shot checklist:
+`bash scripts/owner-unblock.sh`.
+
+### Preferred: GitHub Actions tag publish
+
+One-time setup (first crates.io cut):
+
+1. Create a crates.io API token at https://crates.io/settings/tokens — for the
+   **first** cut of a new crate select **`publish-new`** (and usually also
+   **`publish-update`** for later versions). `publish-update` alone cannot
+   create `partitionline` on crates.io. After 0.1.0 exists, prefer Trusted
+   Publishing and keep only a short-lived or narrowly scoped token as backup.
+2. Add `CARGO_REGISTRY_TOKEN` in **two** places (same crates.io token value):
+   - **Cursor Cloud Agent** → Cloud Agents → Environments → this env → Secrets
+     (name exactly `CARGO_REGISTRY_TOKEN` — not `CARGO_TOKEN` / `CRATES_IO_TOKEN`;
+     restart/re-run the agent after save so `owner-finish-installable` can
+     PUBLISH_LOCAL without waiting on Actions). Or mount a file and export
+     `CARGO_REGISTRY_TOKEN_FILE=/path` (finish/probe load it into the shell).
+     Direct link (override with `PARTITIONLINE_CURSOR_ENV_SECRETS_URL` if the env
+     moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets
+   - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
+     `release.yml` (and post-cut Trusted Publishing fallback).
+   Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
+   0 = crates.io accepted the token for publish-new auth via a structured
+   empty-tarball PUT that cannot create a crate, 1 = rejected). Misnamed env
+   vars WARN with length-only hints. `bash scripts/check-registry-token.sh
+   --self-test` proves fake tokens fail.
+   Required for the **first** publish — Trusted Publishing can only be
+   configured after the crate exists on crates.io.
+3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
+   to show the crates.io dependency line after the run.
+
+Before merging/tagging, run `bash scripts/check-merge-ready.sh` (add `FULL=1` for tip Verifiable proxy). Does not require a token.
+
+Fastest first cut when `CARGO_REGISTRY_TOKEN` is already in the environment
+(Cloud Agent or owner shell) and Actions runners are starved:
+
+```bash
+bash scripts/check-installable-preflight.sh   # ALREADY_INSTALLABLE after 0.1.0; historically READY_EXCEPT_TOKEN before cut
+bash scripts/owner-finish-installable.sh
+# DRY_RUN=1 to rehearse; PUBLISH_LOCAL=0 to tag → release.yml instead
+# ALLOW_RED_MAIN=1 overrides a red main CI refuse (not recommended)
+# REQUIRE_MAIN_CI defaults to 1 on real cuts (0 on DRY_RUN); set 0 to override
+```
+
+Preflight `READY_EXCEPT_TOKEN` means structural + Verifiable + tip⊆parks stack
+are OK; parks themselves stay off `origin/main` until after crates.io `0.1.0`
+(**expected pre-Installable** — not a cut blocker). Land parks via post-cut
+handoff after Installable.
+
+That fast-forwards `main` to the civilization tip, publishes locally, runs
+day1, and proves Installable. Before cut it probes main CI via
+`scripts/check-main-ci.sh` so a known-red or still-running Verifiable tip
+cannot silently ship (real cuts require terminal green unless overridden).
+
+### Historical note on Actions first-publish (0.1.0 bootstrap)
+
+`first-publish.yml` was the one-time manual bootstrap workflow for initial crates.io creation.
+Now that `0.1.0` is published, `first-publish.yml` is **retired and fails closed**.
+Do not attempt to dispatch it or recut 0.1.0. All subsequent cuts use tag → `release.yml`
+or `owner-cut-release.sh`.
+
+If the token was only in **GitHub Actions** secrets (historical reference):
+
+1. Merge/FF civilization tip → `main` first — GitHub only lists
+   `workflow_dispatch` workflows from the default branch, so
+   `first-publish.yml` is not runnable until it exists on `main`.
+Tip `first-publish.yml` must match `main` while Installable is unmet (`check-post-cut-parks-stack` gates tip↔main match + park **publish-new**). Main may already document **publish-new** for the Actions alternate; tip must not drift the workflow header.
+2. Cancel stuck queued runs (`bash scripts/owner-cancel-stuck-runs.sh`).
+3. Actions secret `CARGO_REGISTRY_TOKEN` must include crates.io **`publish-new`**
+   (+ usually `publish-update`) — same scope rule as the in-env cut.
+4. Actions → **First publish** → `confirm=publish` (optional `ref`, default
+   `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
+   Cut-path and tip Verifiable rehearse visibility with
+   `DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh` (no dispatch).
+   Cut-path also rehearses `DRY_RUN=1 bash scripts/day1-after-publish.sh` and
+   surfaces stale Actions queues via `bash scripts/check-actions-hygiene.sh`
+   (also WARN if the Dependabot `dependencies` label is missing — owner:
+   `gh label create dependencies --repo mingley/partitionline --color 0366d6`).
+
+Prefer `bash scripts/owner-finish-installable.sh` when the token is already
+in-env — it FF-merges, publishes locally, and does not wait on runners.
+
+To FF tip → `main` without cutting: `CONFIRM=1 bash scripts/owner-sync-main.sh`.
+That refuses while main HEAD CI is still running (protects in-flight Verifiable)
+unless `ALLOW_BUSY_MAIN=1`. While crates.io `0.1.0` is still absent, it also
+refuses docs/scripts-only tip→main unless `ALLOW_DOCS_THRASH=1` — leave tip
+ahead and let `owner-finish-installable` FF once at cut time.
+
+One-shot on clean `main`: `bash scripts/owner-cut-release.sh` (pushes
+`vX.Y.Z`, waits for crates.io, runs day1, then `audit-civilization-bars`).
+When `CARGO_REGISTRY_TOKEN` is already in-env and `PUBLISH_LOCAL` is unset,
+cut-release defaults to **local publish** (same token-day preference as
+`owner-finish-installable`); set `PUBLISH_LOCAL=0` to force tag →
+`release.yml` / Actions. Explicit `PUBLISH_LOCAL=1` always uses
+`owner-publish`. `DRY_RUN=1` prints actions only (allowed on the
+civilization tip for rehearsal — still no tag/push);
+`REQUIRE_ACTIONS_SECRET=1` refuses to cut if Actions lacks
+`CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+`bash scripts/owner-cut-release.sh --self-test` proves the auto-default.
+
+Then (on `main`, after civilization is merged):
+
+```bash
+# Final version only — must match Cargo.toml exactly (e.g. 0.1.0 → v0.1.0).
+# Do not use v0.1.0-rc.1 here: RC tags are git install pins and do not
+# trigger a publish job (tag glob is final vX.Y.Z; job also refuses '-'/'+').
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Workflow: `.github/workflows/release.yml` (fmt / clippy / test / package / publish).
+The tag filter is GitHub's workflow glob (`+` = one-or-more of the preceding
+character), not regex. The Release-notes step must keep shell strings indented
+under `run: |` (a flush-left multiline string is invalid YAML and used to create
+empty-job `release` failures on branch pushes). A job-level `if` also skips
+non-tag evaluations.
+
+Auth: the job requests `id-token: write` and tries
+[`rust-lang/crates-io-auth-action`](https://github.com/rust-lang/crates-io-auth-action)
+(OIDC Trusted Publishing) first, then falls back to `CARGO_REGISTRY_TOKEN`.
+See [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing).
+
+### After 0.1.0: prefer OIDC (no long-lived Actions token)
+
+Probe anytime: `bash scripts/check-trusted-publishing-ready.sh`
+Owner one-shot after first cut: `bash scripts/owner-enable-trusted-publishing.sh`
+(`REQUIRE_INSTALLABLE=1` after crates.io cut).
+
+Re-enter the full post-Installable path (Installable + adopter pin + registry
+consumer + bars + Trusted Publishing + optional parks land) anytime — including
+after an Actions-alternate cut or when finish soft-failed TP/parks:
+
+```bash
+bash scripts/owner-post-installable-handoff.sh
+LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh
+DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh   # cut-path rehearses this
+```
+
+1. crates.io → `partitionline` → Settings → Trusted Publishing → Add.
+2. Platform: GitHub. Owner: `mingley`. Repository: `partitionline`.
+   Workflow filename: `release.yml`.
+3. Re-tag / next release: OIDC should mint a ~30-minute token; the secret
+   becomes optional. Remove `CARGO_REGISTRY_TOKEN` from Actions secrets once
+   a trusted-publishing publish has succeeded.
+
+### Manual publish
+
+From a **clean `main`** checkout with `CARGO_REGISTRY_TOKEN` exported:
+
+```bash
+bash scripts/ci-publish-ready.sh
+bash scripts/owner-publish.sh
+bash scripts/day1-after-publish.sh    # crates.io confirm + adopter consumer check + README/ADOPTION/guide/migrate flip
+bash scripts/owner-post-installable-handoff.sh  # TP + parks + full bars (LAND_PARKS=1 if needed)
+# or: bash scripts/check-installable.sh  # Installable bar probe only
+#     bash scripts/verify-crates-io-consumer.sh  # adopter cargo-depend compile proof
+git tag "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
+git push origin "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
+```
+
+Or run the individual `cargo fmt` / `clippy` / `test` / `package` / `publish`
+steps yourself. Prefer the tag → Actions path when runners are healthy.
+
+After publish:
+
+1. Tag `vX.Y.Z` matching `Cargo.toml` (if not already tagged by Actions).
+2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]` if anything remains.
+3. Run `bash scripts/day1-after-publish.sh` (crates.io confirm + adopter consumer compile + README/ADOPTION/guide/migrate flip)
+   and commit those docs if needed. Then
+   `bash scripts/owner-post-installable-handoff.sh` (Trusted Publishing + parks + bars;
+   `LAND_PARKS=1` if parks were skipped).
+
+## Honesty
+
+Do not claim Suite HOLD / signed bench wins in release notes without the
+process in [`STATUS.md`](STATUS.md) and [`benchmark.md`](benchmark.md).

@@ -1,0 +1,50 @@
+F.F.....FF.....F....
+======================================================================
+FAIL: test_all_seven_outcomes_strictly_required (test_report.BenchmarkReportValidationTests.test_all_seven_outcomes_strictly_required)
+All 7 outcome categories must be explicitly present and non-negative.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/tests/test_report.py", line 454, in test_all_seven_outcomes_strictly_required
+    self.assertTrue(any(f"Missing required outcome category: '{outcome_key}'" in e for e in errors))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_consumer_lag_validation (test_report.BenchmarkReportValidationTests.test_consumer_lag_validation)
+Validate consumer lag structure and units when present.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/tests/test_report.py", line 507, in test_consumer_lag_validation
+    self.assertTrue(any("Consumer lag unit mismatch" in e for e in errors_bad))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_reject_excellent_throughput_with_missing_record_ids (test_report.BenchmarkReportValidationTests.test_reject_excellent_throughput_with_missing_record_ids)
+The validator must reject a fixture with excellent throughput but missing record IDs.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/tests/test_report.py", line 336, in test_reject_excellent_throughput_with_missing_record_ids
+    self.assertTrue(any("Missing required integrity.record_ids" in e for e in errors))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_reject_incompatible_units (test_report.BenchmarkReportValidationTests.test_reject_incompatible_units)
+Reject incompatible units for latency, throughput, cpu, rss, or lag.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/tests/test_report.py", line 380, in test_reject_incompatible_units
+    self.assertTrue(
+AssertionError: False is not true : Missing expected error message for measurements.throughput.records_per_second_unit: ["Schema measurements.throughput.records_per_second_unit: 'items/sec' is not one of ['records/s']"]
+
+======================================================================
+FAIL: test_suite_hold_active_enforced (test_report.BenchmarkReportValidationTests.test_suite_hold_active_enforced)
+Suite HOLD must remain active; a result file cannot claim cell disposition passed.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/tests/test_report.py", line 516, in test_suite_hold_active_enforced
+    self.assertTrue(any("Suite HOLD violation" in e for e in errors))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.596s
+
+FAILED (failures=5)

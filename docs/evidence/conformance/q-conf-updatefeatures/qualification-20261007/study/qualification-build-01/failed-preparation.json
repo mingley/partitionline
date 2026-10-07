@@ -1,0 +1,5 @@
+{
+  "tests_executed": 0,
+  "cause": "Public test helper used absent serde_json dev dependency; replaced with bounded output for exact verified ASCII feature identities.",
+  "qualification": false
+}

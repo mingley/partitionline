@@ -1,0 +1,6 @@
+{
+  "api": "ConsumerGroupHeartbeat", "api_key": 68, "version": 0,
+  "apache_version": "4.3.1", "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+  "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e", "generator": "tests/conformance/java/CurrentGroupFixtures.java",
+  "response_sha256": "c451538d6afd4bc3642c98ce1559a93373b07e472da3018dd4ee161a081b39f4"
+}

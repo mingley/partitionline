@@ -66,7 +66,11 @@ fn run_cell_with_args(cell: &str, extra: &[&str]) -> (serde_json::Value, PathBuf
         assert!(doc.get(section).is_some(), "missing section '{section}'");
     }
     assert_eq!(doc["scenario"]["scenario_id"].as_str(), Some(cell));
-    assert_eq!(doc["execution"]["repetition_index"], 0);
+    assert_eq!(doc["execution"]["repetition_index"], 1);
+    assert_eq!(doc["schema_version"], "2.0.0");
+    assert_eq!(doc["provenance"]["broker"]["mode"], "null");
+    assert_eq!(doc["execution"]["warmup_completed"], false);
+    assert!(PathBuf::from(doc["provenance"]["config"]["path"].as_str().unwrap()).is_file());
     assert_eq!(
         doc["scenario"]["cell_disposition"].as_str(),
         Some("executed"),

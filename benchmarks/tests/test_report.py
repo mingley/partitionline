@@ -333,7 +333,7 @@ class BenchmarkReportValidationTests(unittest.TestCase):
         del f_no_rec["integrity"]["record_ids"]
         is_valid, errors, _ = self.validator.validate(f_no_rec)
         self.assertFalse(is_valid)
-        self.assertTrue(any("Missing required integrity.record_ids" in e for e in errors))
+        self.assertTrue(any("integrity.record_ids" in e for e in errors))
 
     def test_reject_mismatched_acks_scenario_vs_config(self):
         """Validator must reject when scenario equal_semantics acks differ from client config."""
@@ -658,6 +658,101 @@ class ZstdComparisonContract(unittest.TestCase):
         for identity in registry['claim_gate']['zstd_required_cells']:
             self.assertEqual(cells[identity]['tier'],'required')
             self.assertEqual(cells[identity]['disposition'],'not_run')
+
+
+class CompleteResultSchemaTests(unittest.TestCase):
+    def null_fixture(self, fetch=False):
+        data = build_valid_fixture()
+        data['schema_version'] = '2.0.0'
+        data['scenario']['tier'] = 'exploratory'
+        semantics = data['scenario']['equal_semantics']
+        semantics['durability'] = None
+        semantics['isolation'] = 'read_uncommitted' if fetch else None
+        data['provenance']['broker'].update(mode='null', cluster_id=None)
+        data['execution'].update(phase='bounded_fixture', warmup_completed=False,
+            warmup_records=0, warmup_duration_seconds=0, steady_state_duration_seconds=None,
+            measured_duration_seconds=60.0, total_repetitions=None, pairing_order='unreported')
+        data['integrity']['idempotence_sequence_verified'] = None
+        if fetch:
+            data['scenario']['profile'] = 'fetch'
+            semantics.update(acks=None, idempotence=None)
+            effective = data['provenance']['config']['effective_settings']
+            for key in ['acks', 'linger_ms', 'batch_size_bytes', 'max_in_flight', 'idempotence']:
+                effective[key] = None
+            data['outcomes'].update(acknowledged=0, consumed=data['outcomes']['accepted'])
+            data['integrity']['high_watermark_audit']['matches_acknowledged'] = False
+        return data
+
+    def test_complete_null_produce_and_fetch_formats(self):
+        for fetch in [False, True]:
+            with self.subTest(fetch=fetch):
+                valid, errors, _ = BenchmarkValidator().validate(self.null_fixture(fetch))
+                self.assertTrue(valid, errors)
+
+    def test_schema_only_required_fields_rejected(self):
+        paths = [('suite_hold', 'policy'), ('provenance', 'config', 'path'),
+            ('execution', 'phase'), ('execution', 'warmup_records'),
+            ('measurements', 'latency', 'raw_histogram', 'buckets', 0, 'min_us'),
+            ('repetition_history', 'attempts', 0, 'attempt_number')]
+        for path in paths:
+            with self.subTest(path=path):
+                data = self.null_fixture()
+                parent = data
+                for key in path[:-1]:
+                    parent = parent[key]
+                del parent[path[-1]]
+                valid, errors, _ = BenchmarkValidator().validate(data)
+                self.assertFalse(valid)
+                self.assertTrue(any(error.startswith('Schema ') for error in errors), errors)
+
+    def test_null_labels_cannot_claim_kafka_durability_or_warmup(self):
+        changes = [(('scenario', 'tier'), 'required'),
+            (('scenario', 'equal_semantics', 'durability'), {'replication_factor':1, 'min_insync_replicas':1}),
+            (('provenance', 'broker', 'mode'), 'kraft'),
+            (('provenance', 'broker', 'cluster_id'), 'fabricated-cluster'),
+            (('execution', 'warmup_completed'), True),
+            (('execution', 'steady_state_duration_seconds'), 60),
+            (('integrity', 'idempotence_sequence_verified'), True)]
+        for path, value in changes:
+            with self.subTest(path=path):
+                data = self.null_fixture()
+                parent = data
+                for key in path[:-1]:
+                    parent = parent[key]
+                parent[path[-1]] = value
+                self.assertFalse(BenchmarkValidator().validate(data)[0])
+
+    def test_fetch_producer_fields_are_not_applicable(self):
+        for key, value in [('acks', -1), ('idempotence', False), ('linger_ms', 0),
+                           ('batch_size_bytes', 1024), ('max_in_flight', 1)]:
+            with self.subTest(key=key):
+                data = self.null_fixture(fetch=True)
+                data['provenance']['config']['effective_settings'][key] = value
+                self.assertFalse(BenchmarkValidator().validate(data)[0])
+        data = self.null_fixture(fetch=True)
+        data['outcomes']['acknowledged'] = 1
+        self.assertFalse(BenchmarkValidator().validate(data)[0])
+
+    def test_native_fields_stay_required_and_extra_fields_fail(self):
+        data = build_valid_fixture()
+        data['provenance']['config']['effective_settings']['linger_ms'] = None
+        self.assertFalse(BenchmarkValidator().validate(data)[0])
+        data = build_valid_fixture()
+        data['scenario']['cell_id'] = 'unexpected'
+        self.assertFalse(BenchmarkValidator().validate(data)[0])
+        data['schema_version'] = '9.0.0'
+        self.assertFalse(BenchmarkValidator().validate(data)[0])
+
+    def test_missing_schema_and_dependency_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = Path(directory) / 'result.json'
+            result.write_text(json.dumps(self.null_fixture()))
+            with self.assertRaises(RuntimeError):
+                BenchmarkValidator(Path(directory) / 'missing-schema.json')
+            command = [sys.executable, '-S', str(SCRIPT_PATH), str(result), '--json']
+            checked = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            self.assertEqual(checked.returncode, 2, checked.stderr)
+            self.assertIn('requires jsonschema', checked.stderr)
 
 
 if __name__ == "__main__":

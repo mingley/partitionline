@@ -1,0 +1,3 @@
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/update-features-source-e6fe76)
+    Finished `test` profile [unoptimized] target(s) in 13.96s
+     Running tests/update_features_conformance.rs (/workspace/work/target-update-features/debug/deps/update_features_conformance-eb77ddc21d197077)

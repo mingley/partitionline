@@ -1,0 +1,3 @@
+Add the public v0 validation-only safety regression and bounded SDK live checks
+
+Keep UpdateFeatures implementation unchanged for an actual before-fix regression run. Assert unsupported validation-only behavior before body changes and prove the public caller dispatches no mutating v0 request. Preserve public SDK preparation and its source hashes; qualification remains open.

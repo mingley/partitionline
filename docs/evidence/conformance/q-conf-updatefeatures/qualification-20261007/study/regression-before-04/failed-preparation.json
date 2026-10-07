@@ -1,0 +1,6 @@
+{
+  "tests_executed": 0,
+  "qualification": false,
+  "cause": "Repository missing-docs lint prevented integration test compilation; no runtime failure proof.",
+  "stderr_sha256": "0aa70a368fc0feec5ae14cae3e51701e1f5a879e883c0ef01834f8f86856871f"
+}

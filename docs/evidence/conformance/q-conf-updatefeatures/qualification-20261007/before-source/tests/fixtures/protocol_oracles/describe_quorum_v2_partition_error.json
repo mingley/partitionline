@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "describe-quorum-v2-partition-error",
+  "api": "DescribeQuorum",
+  "api_key": 55,
+  "api_version": 2,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-18 standalone DescribeQuorum fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-18.json",
+  "description": "DescribeQuorum v2 partition-level error from Java getPartitionLevelErrorResponse(NOT_CONTROLLER): both request partitions copied with error 41 and broker message, zero leader state; top-level message is the Java ignorable-field empty-string default on the wire",
+  "request": {
+    "file": "describe_quorum_v2_partition_error_request.bin",
+    "size_bytes": 33,
+    "sha256": "908d13b15e032435bec8b63c4122cd405c9f1216c2d7f01bfded4f936e58dbe9",
+    "hex": "02135f5f636c75737465725f6d6574616461746103000000000000000001000000"
+  },
+  "response": {
+    "file": "describe_quorum_v2_partition_error_response.bin",
+    "size_bytes": 183,
+    "sha256": "5b37698a896703f1132bd90f1dcb85cfa19d55e453e27918102574de717a09e5",
+    "hex": "00000102135f5f636c75737465725f6d65746164617461030000000000293554686973206973206e6f742074686520636f727265637420636f6e74726f6c6c657220666f72207468697320636c75737465722e000000000000000000000000000000000101000000000100293554686973206973206e6f742074686520636f727265637420636f6e74726f6c6c657220666f72207468697320636c75737465722e00000000000000000000000000000000010100000100"
+  }
+}

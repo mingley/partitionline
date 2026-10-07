@@ -1,0 +1,3 @@
+Prepare bounded UpdateFeatures qualification and track the null-result schema failure
+
+Enumerate finite API57 source cases and add an uncompiled, guarded three-SDK generator. Record a v0 validate-only safety candidate before implementation. Keep KL01-28 open; add KL09-73 for actual null benchmark schema failures and reconcile the 342-card board. No Rust source or benchmark executable changes.

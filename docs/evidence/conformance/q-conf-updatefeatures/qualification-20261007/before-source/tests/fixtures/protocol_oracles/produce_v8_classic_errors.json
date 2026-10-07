@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v8-classic-errors",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 8,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v8 classic wire format boundary before flexible transition, with record_errors and error_message",
+  "request": {
+    "file": "produce_v8_classic_errors_request.bin",
+    "size_bytes": 73,
+    "sha256": "450f887d29395c179085b8e07d75c76760345046a741cfc649dd989d9a1b50b7",
+    "hex": "000e74786e2d70726f647563652d7638ffff00001d4c00000001001970726f647563652d76382d636c61737369632d6572726f727300000002000000000000000000000001ffffffff"
+  },
+  "response": {
+    "file": "produce_v8_classic_errors_response.bin",
+    "size_bytes": 180,
+    "sha256": "1b9de4a9f80e4c76e8fcc6ec3513cc09b00936c47287d2e642cf55f7641f2d6f",
+    "hex": "00000001001970726f647563652d76382d636c61737369632d6572726f727300000002000000000000000000000000012c0000018e23f153d0000000000000007800000000ffff000000010006ffffffffffffffffffffffffffffffffffffffffffffffff0000000200000000000e5265636f726420696e76616c69640000000100134f6666736574206f7574206f662072616e676500184e6f74206c656164657220666f7220706172746974696f6e0000003c"
+  }
+}

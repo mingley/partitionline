@@ -1,0 +1,7 @@
+{
+  "api": "AddRaftVoter", "api_key": 80, "version": 0,
+  "apache_version": "4.1.0", "upstream_commit": "13f70256db3c994c590e5d262a7cc50b9e973204",
+  "jar_origin": "apache/kafka:4.1.0 distribution", "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+  "generator": "tests/conformance/java/AddRaftVoterFixtures.java",
+  "request_sha256": "3e450a6ca6a1ea6013df02777f2a2b706c572df957ad7bb755a0e84dbba6e219", "response_sha256": "9c321b8328934c434b19b338928560d1d3857bbafaedae765e3f711cc8485d30"
+}

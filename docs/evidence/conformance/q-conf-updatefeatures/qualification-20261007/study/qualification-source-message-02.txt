@@ -1,0 +1,1 @@
+Keep UpdateFeatures public test independent of extra dev dependencies

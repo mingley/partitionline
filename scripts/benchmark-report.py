@@ -71,13 +71,16 @@ class BenchmarkValidator:
     """Fail-closed validator for benchmark result documents."""
 
     def __init__(self, schema_path: Optional[Path] = None):
-        self.schema_path = schema_path
-        self.schema: Optional[Dict[str, Any]] = None
-        if schema_path and schema_path.is_file():
-            try:
-                self.schema = json.loads(schema_path.read_text(encoding="utf-8"))
-            except Exception as e:
-                raise RuntimeError(f"Failed to load schema from {schema_path}: {e}") from e
+        self.schema_path = schema_path or Path(__file__).resolve().parent.parent / "benchmarks/result-schema.json"
+        try:
+            from jsonschema import Draft7Validator
+            self.schema = json.loads(self.schema_path.read_text(encoding="utf-8"))
+            Draft7Validator.check_schema(self.schema)
+            self.schema_validator = Draft7Validator(self.schema)
+        except ImportError as e:
+            raise RuntimeError("Full result validation requires jsonschema; install benchmarks/requirements.txt") from e
+        except Exception as e:
+            raise RuntimeError(f"Failed to load result schema from {self.schema_path}: {e}") from e
 
     def validate(
         self, data: Dict[str, Any], require_clean: bool = False
@@ -102,6 +105,15 @@ class BenchmarkValidator:
         if not isinstance(data, dict):
             return False, ["Root benchmark result must be a JSON object"], summary
 
+        schema_errors = sorted(self.schema_validator.iter_errors(data), key=lambda error: str(list(error.path)))
+        errors.extend(
+            f"Schema {'.'.join(map(str, error.path)) or '$'}: {error.message}"
+            for error in schema_errors
+        )
+        # Semantic arithmetic and object access require correctly typed fields.
+        if any(error.validator == "type" for error in schema_errors):
+            return False, errors, summary
+
         # 1. Required Top-Level Sections
         required_top_level = [
             "schema_version",
@@ -119,7 +131,7 @@ class BenchmarkValidator:
             if key not in data:
                 errors.append(f"Missing required top-level section: '{key}'")
 
-        if errors:
+        if any(key not in data for key in required_top_level):
             # Stop early if fundamental skeleton is absent
             return False, errors, summary
 
@@ -230,6 +242,8 @@ class BenchmarkValidator:
                 errors.append("provenance.broker must be an object")
             else:
                 for b_key in ("image", "version", "mode", "cluster_id", "node_count", "endpoints"):
+                    if b_key == "cluster_id" and data.get("schema_version") == "2.0.0" and broker.get("mode") == "null":
+                        continue
                     if b_key not in broker or broker[b_key] is None or broker[b_key] == "":
                         errors.append(f"Missing required broker provenance: '{b_key}'")
                 endpoints = broker.get("endpoints")
@@ -855,7 +869,11 @@ def main() -> int:
         sys.stderr.write(f"Error reading JSON from {args.result_file}: {e}\n")
         return 2
 
-    validator = BenchmarkValidator(schema_path=schema_path)
+    try:
+        validator = BenchmarkValidator(schema_path=schema_path)
+    except RuntimeError as error:
+        sys.stderr.write(f"Error: {error}\n")
+        return 2
     is_valid, errors, summary = validator.validate(data, require_clean=args.require_clean)
 
     if args.json_output:

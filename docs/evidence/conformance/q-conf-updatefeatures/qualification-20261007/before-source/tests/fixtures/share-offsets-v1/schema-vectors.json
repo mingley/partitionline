@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "scope": "reference controls only; actual SDK proof pending",
+  "cases": [
+    {
+      "name": "schema-lag-minus9223372036854775808",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-minus9223372036854775808.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-minus9223372036854775808.response.bin",
+          "sha256": "083b5c6624c9ffbeeb462e1b32f2f3df475b19b95b7c85939c5ccdefd9a047f9",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": -9223372036854775808
+    },
+    {
+      "name": "schema-lag-minus2",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-minus2.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-minus2.response.bin",
+          "sha256": "3ddb48d92ce4b11a3b21f4382e7fafc923e3f4e97bb61bec0343fe5dcb97edd6",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": -2
+    },
+    {
+      "name": "schema-lag-minus1",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-minus1.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-minus1.response.bin",
+          "sha256": "d54736c9b6d7b6b0145e9c86c13316fe6b02f9ef9498e27f94c9869c5a04292b",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": -1
+    },
+    {
+      "name": "schema-lag-0",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-0.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-0.response.bin",
+          "sha256": "f8dcad67e0041bd20b98a886462488e454e3b12afab05acba8f46f769afa45b3",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": 0
+    },
+    {
+      "name": "schema-lag-1",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-1.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-1.response.bin",
+          "sha256": "8a7361f248d66c97ebefc7ee8fd4213538946fd6d8da41591eb8414498ac7b0b",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": 1
+    },
+    {
+      "name": "schema-lag-9223372036854775807",
+      "api_key": 90,
+      "api_version": 1,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-lag-9223372036854775807.request.bin",
+          "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+          "bytes": 34
+        },
+        {
+          "file": "schema-lag-9223372036854775807.response.bin",
+          "sha256": "7574c32758df97cbbfef77ebe97b9392669a62a474cfffee4a9a6ac534b48cdb",
+          "bytes": 66
+        }
+      ],
+      "raw_lag": 9223372036854775807
+    }
+  ]
+}

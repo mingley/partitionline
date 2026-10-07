@@ -1,0 +1,7 @@
+{
+  "stage": "manifest_resolution",
+  "tests_executed": 0,
+  "actual_cargo_exit_code": 101,
+  "source_guards_passed": true,
+  "reason": "Sparse source omitted the24 examples declared in Cargo.toml; manifest parse failed before compilation. Original attempt and logs retained."
+}

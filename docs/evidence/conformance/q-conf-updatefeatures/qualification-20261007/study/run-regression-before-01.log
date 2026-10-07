@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/work/open-cards-20261006/update-features-20261007/run-regression-before-01.py", line 19, in <module>
+    text=(out/'default-regression.stdout').read_text();assert '2 failed' in text and 'v0_public_validation_does_not_dispatch_or_mutate' in text and 'v0_validation_request_rejected_before_body_changes' in text,text
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

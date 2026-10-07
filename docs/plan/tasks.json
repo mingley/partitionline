@@ -52384,14 +52384,19 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-28.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceUpdateFeatures.java",
         "tests/conformance/java/generate_update_features.py",
         "tests/update_features_conformance.rs",
         "tests/fixtures/update_features/",
         "docs/evidence/conformance/q-conf-updatefeatures/",
-        "src/protocol/admin.rs"
+        "src/protocol/admin.rs",
+        "tests/conformance/run-update-features.py",
+        "docs/plan/evidence/KL01-28.json"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52416,7 +52421,7 @@
         "current-public-api-057-v2-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "qualification_limit": "Finite API57 wire and public native cohorts pass. Source-case/controller migration/retry-deadline applicability remains open; initial registered cases are not promoted.",
       "preparation_scope": "Finite API57 upstream inventory and uncompiled Java generator. Defer Rust edits and SDK compilation until KL09-62 timing ends. Candidate v0 validate-only rejection will receive actual independent tests before qualification."
     },
     {
@@ -53331,8 +53336,8 @@
       "title": "Emit schema-valid null-broker benchmark results and enforce full-schema checks",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL04-02",
         "KL09-02",
@@ -53364,7 +53369,11 @@
         "scripts/benchmark-report.py",
         "benchmarks/tests/test_report.py",
         "docs/evidence/perf/null-result-schema/",
-        "docs/plan/evidence/KL09-73.json"
+        "docs/plan/evidence/KL09-73.json",
+        "benchmarks/requirements.txt",
+        "docs/benchmark-results.md",
+        "benchmarks/runtime/tests/e2e.rs",
+        "tests/ci/test_bench_produce_settings.py"
       ],
       "root_integration_only": [
         "docs/plan/tasks.json",

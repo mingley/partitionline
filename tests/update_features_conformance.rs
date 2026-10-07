@@ -3,8 +3,8 @@ mod common;
 
 use bytes::{Buf, Bytes, BytesMut};
 use partitionline::protocol::admin::{
-    decode_update_features_request, decode_update_features_response, encode_update_features_request,
-    encode_update_features_response, FeatureUpdateKey,
+    decode_update_features_request, decode_update_features_response,
+    encode_update_features_request, encode_update_features_response, FeatureUpdateKey,
 };
 use partitionline::protocol::api_keys::UPDATE_FEATURES;
 use partitionline::{Admin, AdminConfig, Error, FeatureUpdate};
@@ -76,11 +76,10 @@ async fn native_public_update_features_history() {
     use std::time::Duration;
     let address = std::env::var("UPDATE_FEATURES_BROKER").unwrap();
     let output = std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_OUTPUT").unwrap());
-    let mut admin = Admin::new(
-        AdminConfig::bootstrap([address]).request_timeout(Duration::from_secs(2)),
-    )
-    .await
-    .unwrap();
+    let mut admin =
+        Admin::new(AdminConfig::bootstrap([address]).request_timeout(Duration::from_secs(2)))
+            .await
+            .unwrap();
     let outcome = tokio::time::timeout(Duration::from_secs(25), async {
         let before = admin.describe_features().await.unwrap();
         let level = before
@@ -153,9 +152,7 @@ async fn native_public_update_features_history() {
     .await;
     admin.close().await.unwrap();
     let observed = outcome.unwrap();
-    tokio::fs::write(output, observed)
-        .await
-        .unwrap();
+    tokio::fs::write(output, observed).await.unwrap();
 }
 
 #[tokio::test]
@@ -173,6 +170,12 @@ async fn v0_public_validation_does_not_dispatch_or_mutate() {
         matches!(outcome, Err(Error::Unsupported(_))),
         "v0 validation-only must fail locally: outcome={outcome:?}, dispatched={dispatched:?}, finalized={finalized:?}"
     );
-    assert_eq!(dispatched, None, "validation-only sent a mutating v0 request");
-    assert_eq!(finalized, None, "validation-only changed finalized features");
+    assert_eq!(
+        dispatched, None,
+        "validation-only sent a mutating v0 request"
+    );
+    assert_eq!(
+        finalized, None,
+        "validation-only changed finalized features"
+    );
 }

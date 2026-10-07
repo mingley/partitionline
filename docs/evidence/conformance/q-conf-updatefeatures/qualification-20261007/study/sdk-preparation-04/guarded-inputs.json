@@ -1,0 +1,13 @@
+{
+  "/workspace/work/open-cards-20261006/update-features-source-e6fe76/tests/conformance/java/generate_update_features.py": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+  "/workspace/work/open-cards-20261006/update-features-source-e6fe76/tests/conformance/java/ConformanceUpdateFeatures.java": "2cfa228312420115fdd5da54860f439ba004ea98230a3c4450151d3406b86488",
+  "/workspace/work/open-cards-20261006/update-features-source-e6fe76/scripts/run-benchmark-matrix.py": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+  "/workspace/work/open-cards-20261006/update-features-source-e6fe76/benchmarks/runtime/tools/parent-bound-exec.py": "78332295936b700de1674e3affb77f7ef203cc6c3efa712431c86a0a0601201c",
+  "/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.1.2.jar": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+  "/workspace/work/open-cards-20261006/update-features-20261007/sdk-preparation-04/4.1.2-classes/ConformanceUpdateFeatures.class": "fce1a0fb7b947aaf30e79db3c68e7eb72791574c00f7d1ce697fbb8ef1e9d0e0",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+  "/workspace/work/open-cards-20261006/update-features-20261007/sdk-preparation-04/4.2.1-classes/ConformanceUpdateFeatures.class": "fce1a0fb7b947aaf30e79db3c68e7eb72791574c00f7d1ce697fbb8ef1e9d0e0",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "/workspace/work/open-cards-20261006/update-features-20261007/sdk-preparation-04/4.3.1-classes/ConformanceUpdateFeatures.class": "fce1a0fb7b947aaf30e79db3c68e7eb72791574c00f7d1ce697fbb8ef1e9d0e0"
+}

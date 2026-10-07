@@ -1,0 +1,25 @@
+error: Cargo.toml: can't find `admin` example at `examples/admin.rs` or `examples/admin/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `bench_fetch` example at `examples/bench_fetch.rs` or `examples/bench_fetch/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `bench_latency` example at `examples/bench_latency.rs` or `examples/bench_latency/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `bench_produce` example at `examples/bench_produce.rs` or `examples/bench_produce/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `consume` example at `examples/consume.rs` or `examples/consume/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `consume_intercept` example at `examples/consume_intercept.rs` or `examples/consume_intercept/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `cooperative` example at `examples/cooperative.rs` or `examples/cooperative/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `eos` example at `examples/eos.rs` or `examples/eos/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `group` example at `examples/group.rs` or `examples/group/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `intercept` example at `examples/intercept.rs` or `examples/intercept/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `kip848` example at `examples/kip848.rs` or `examples/kip848/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `metrics` example at `examples/metrics.rs` or `examples/metrics/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `oauth` example at `examples/oauth.rs` or `examples/oauth/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `offsets` example at `examples/offsets.rs` or `examples/offsets/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `pause` example at `examples/pause.rs` or `examples/pause/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `produce` example at `examples/produce.rs` or `examples/produce/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `roundtrip` example at `examples/roundtrip.rs` or `examples/roundtrip/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `sasl` example at `examples/sasl.rs` or `examples/sasl/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `share` example at `examples/share.rs` or `examples/share/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `tls` example at `examples/tls.rs` or `examples/tls/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `txn` example at `examples/txn.rs` or `examples/txn/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `verifiable_consumer` example at `examples/verifiable_consumer.rs` or `examples/verifiable_consumer/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `verifiable_producer` example at `examples/verifiable_producer.rs` or `examples/verifiable_producer/main.rs`. Please specify example.path if you want to use a non-default path.
+error: Cargo.toml: can't find `wakeup` example at `examples/wakeup.rs` or `examples/wakeup/main.rs`. Please specify example.path if you want to use a non-default path.
+error: could not parse `partitionline` (manifest) due to 24 previous errors

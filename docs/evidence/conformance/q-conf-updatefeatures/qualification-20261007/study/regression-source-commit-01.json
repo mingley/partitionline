@@ -1,0 +1,16 @@
+{
+  "commit": "82cf32f535f5503e3aee7da7662b7fbcd1e7f35f",
+  "parent": "25b3f11f65654a20093ab842bd9188ff9d97d96f",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "tests/conformance/java/ConformanceUpdateFeatures.java": "75dd02526588c30d179f9bf089048a6d2f36c7e77832e19b5822609669622e81",
+    "tests/conformance/java/generate_update_features.py": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+    "tests/update_features_conformance.rs": "545e81712cccfa9240e063f6a5369700495289d9b0020c354d8bf8fb97c3b8d7",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/generate_update_features.py": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/ConformanceUpdateFeatures.java": "75dd02526588c30d179f9bf089048a6d2f36c7e77832e19b5822609669622e81",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/fixture-preflight-03.json": "8b644177f17d826f63dc6e0c0558b0ac02b3f744b4dc7a90b6633c5b5ce58d6d"
+  },
+  "scope": "Review branch only; no merge or release"
+}

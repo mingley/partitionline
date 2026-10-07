@@ -1,0 +1,8 @@
+[
+  "tests/conformance/java/ConformanceUpdateFeatures.java",
+  "tests/conformance/java/generate_update_features.py",
+  "tests/update_features_conformance.rs",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/generate_update_features.py",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/ConformanceUpdateFeatures.java",
+  "docs/evidence/conformance/q-conf-updatefeatures/preflight-03/fixture-preflight-03.json"
+]

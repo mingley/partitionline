@@ -1,0 +1,36 @@
+{
+  "source_commit": "68c114794442085582c53c7cd93c11cb4c6a5f84",
+  "expected_regression_tests_failed": 2,
+  "source_guards_passed": true,
+  "process_receipt": {
+    "command": [
+      "python3",
+      "-B",
+      "/workspace/work/open-cards-20261006/update-features-source-68c114/benchmarks/runtime/tools/parent-bound-exec.py",
+      "868812",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/open-cards-20261006/update-features-source-68c114/Cargo.toml",
+      "--package",
+      "partitionline",
+      "--test",
+      "update_features_conformance",
+      "--",
+      "--nocapture"
+    ],
+    "started": 1791416043.6945596,
+    "parent_waited": true,
+    "pid": 868854,
+    "exit_code": 101,
+    "ended": 1791416056.5561247,
+    "artifacts": {
+      "default-regression.stdout": "d871ee1ee96b3c42724474d66a406eee76e65457bd10702ca50cab48f012d43f",
+      "default-regression.stderr": "eb244bd5e639a8e0983fda05fada6e4f82e9f75aa4985630933e58afd95446b5"
+    }
+  },
+  "qualification": "Actual before-fix safety regression; not a passing implementation."
+}

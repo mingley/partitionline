@@ -29,7 +29,7 @@ class ProducerBenchmarkSettings(unittest.TestCase):
                                'MAX_IN_FLIGHT': '3', 'CONNECTIONS': '2', 'QUEUE_KBYTES': '1024'})
         self.assertEqual(process.returncode, 0, process.stderr)
         row = json.loads(process.stdout)['effective_settings']
-        required = json.loads((ROOT / 'benchmarks/result-schema.json').read_text())['properties']['provenance']['properties']['config']['properties']['effective_settings']['required']
+        required = json.loads((ROOT / 'benchmarks/result-schema.json').read_text())['definitions']['kafka_result']['properties']['provenance']['properties']['config']['properties']['effective_settings']['required']
         self.assertTrue(set(required) <= set(row))
         self.assertEqual(row['batch_size_bytes'], 8192)
         self.assertEqual(row['batch_records'], 7)

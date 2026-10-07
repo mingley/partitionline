@@ -1,0 +1,84 @@
+{
+  "bytes": 9959,
+  "candidate_source_identity": {
+    "files": {
+      "src/lib.rs": {
+        "bytes": 211645,
+        "mode": "0o600",
+        "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a"
+      },
+      "src/partitioner.rs": {
+        "bytes": 43985,
+        "mode": "0o600",
+        "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a"
+      },
+      "src/producer.rs": {
+        "bytes": 218265,
+        "mode": "0o600",
+        "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+      },
+      "src/protocol/buf.rs": {
+        "bytes": 61797,
+        "mode": "0o600",
+        "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+      },
+      "src/protocol/records.rs": {
+        "bytes": 171836,
+        "mode": "0o600",
+        "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+      },
+      "tests/sticky_partitioner.rs": {
+        "bytes": 37620,
+        "mode": "0o600",
+        "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+      }
+    },
+    "no_Cargo_JVM_benchmark": true,
+    "observed_main": "d267c294d91c8c43f3b37d42538075f212f1c37c",
+    "schema": 1,
+    "scope": "Current actual candidate source observation; earlier89dd snapshot remains historical"
+  },
+  "case_names": [
+    "exact_B_actual_cohort_full",
+    "B_deferred_until_all_real_tails_sealed",
+    "two_B_forces_switch_with_incomplete_tail",
+    "same_partition_redraw_is_new_generation",
+    "one_partition_still_rotates_generation",
+    "only_leader_eligible_indices_at_new_draws",
+    "all_unavailable_state_machine_fallback_only",
+    "partial_drain_below_B_preserves_counter",
+    "mixed_empty_key_participates_without_unkeyed_charge",
+    "explicit_tail_owns_initial_overhead",
+    "record_count_seals_true_tail",
+    "leader_loss_and_failed_peeks_are_pure"
+  ],
+  "cases": 12,
+  "events": 72,
+  "expected_outputs_present": false,
+  "generated_classes_present": false,
+  "genuine_caller_file": {
+    "bytes": 7703,
+    "mode": "0o600",
+    "sha256": "ec994c3cb46b5463c5378b11425b1ae7904c99b49d2b944d56e1c3b38782b5fa"
+  },
+  "input_file": {
+    "bytes": 9959,
+    "mode": "0o600",
+    "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a"
+  },
+  "nonclaims": [
+    "Java RecordAccumulator/compressed-size identity",
+    "Java RNG identity or exact modulo bias equivalence",
+    "Whole-producer partition-history equivalence",
+    "Live broker proof",
+    "Performance"
+  ],
+  "prepared_cases": 12,
+  "prepared_events": 72,
+  "record_accounting": "Independently prescribed public Record upper-bound bytes plus61 only when a new Rust cohort opens; Rust fixture consumer must assert actual plan.delta and actual tail state against input",
+  "schema": 1,
+  "scope": "One topic per case, uniform adaptive=false transitions and Rust explicit batch notifications. All-unavailable case is policy selection only, not acquired/routed live delivery.",
+  "seed_draws": "Offline fixed SplitMix64 arithmetic produces accepted Java override values; no Java RNG identity and no production execution",
+  "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a",
+  "status": "Source-only reference input checkpoint; caller/input uncompiled and unexecuted"
+}

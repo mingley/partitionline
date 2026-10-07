@@ -1,0 +1,13 @@
+
+running 2 tests
+test v0_validation_request_rejected_before_body_changes ... FAILED
+test v0_public_validation_does_not_dispatch_or_mutate ... FAILED
+
+failures:
+
+failures:
+    v0_public_validation_does_not_dispatch_or_mutate
+    v0_validation_request_rejected_before_body_changes
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

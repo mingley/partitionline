@@ -1,0 +1,7 @@
+
+running 2 tests
+test v0_validation_request_rejected_before_body_changes ... ok
+test v0_public_validation_does_not_dispatch_or_mutate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

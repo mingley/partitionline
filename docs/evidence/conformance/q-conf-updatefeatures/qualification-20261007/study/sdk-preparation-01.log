@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/workspace/work/open-cards-20261006/update-features-source-82cf32/tests/conformance/java/generate_update_features.py", line 114, in <module>
+    main()
+  File "/workspace/work/open-cards-20261006/update-features-source-82cf32/tests/conformance/java/generate_update_features.py", line 104, in main
+    results = generate(args.jars.resolve(), args.slf4j.resolve(), args.output.resolve())
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/update-features-source-82cf32/tests/conformance/java/generate_update_features.py", line 76, in generate
+    owner.execute(['java', '--add-modules', 'jdk.compiler', 'com.sun.tools.javac.Main', '-source', '21',
+  File "/workspace/work/open-cards-20261006/update-features-source-82cf32/tests/conformance/java/generate_update_features.py", line 38, in parent_bound_execute
+    result = original_execute(['python3', '-B', str(helper), str(os.getpid())] + command,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/update-features-source-82cf32/scripts/run-benchmark-matrix.py", line 201, in execute
+    if receipt['exit_code']: raise ValueError('command failed; retained ' + label + ' process receipt')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: command failed; retained 4.1.2-compile process receipt

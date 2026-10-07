@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: duplicate feature lookup contract
+	at ConformanceUpdateFeatures.generate(ConformanceUpdateFeatures.java:153)
+	at ConformanceUpdateFeatures.main(ConformanceUpdateFeatures.java:295)

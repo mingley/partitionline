@@ -1,0 +1,60 @@
+{
+  "scope": "Inactive generated alternate publication indexes only; excluded from all immutable evidence archives. Main index, source and receipts preserved.",
+  "files": [
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/source-commit-01.json.index",
+      "bytes": 16421544,
+      "sha256": "6cd7e5c76bb89ad5e253300d73f9672c1e1aef348bc6bf569328adb45fd5ff34"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/corrected-source-publication-04.json.index",
+      "bytes": 16874898,
+      "sha256": "e28b543a47def154c6e90750d2eb8ee22875ffd6b6613d7a8ceafa9b4c3c3893"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/regression-source-commit-01.json.index",
+      "bytes": 16874898,
+      "sha256": "6fc849d747eee45e022d21ba4fd0bae61b491856568fd659a85eb0a8edb0aa09"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/qualification-source-publication-01.json.index",
+      "bytes": 16913925,
+      "sha256": "5d487d0e3eeb5247a16345f9799ef547604c54593274e7475a207072e539bb3b"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/corrected-source-publication-05.json.index",
+      "bytes": 16874898,
+      "sha256": "c28fab9e1f8c5346724a75fa330056aee2fee9cf2998ed9d50a684e49cd86518"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/update-features-20261007/fix-source-publication-01.json.index",
+      "bytes": 16874898,
+      "sha256": "a63d0f1552ba3e8bda9b2e571f266267249b97ce56de018fb320dff91f473d47"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/source-commit-01.json.index",
+      "bytes": 16419312,
+      "sha256": "af749714b28230fbc82f9f54065cc95baa462c1566e9c7ce0c3b90af9ba44fa9"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/driver-commit-01.json.index",
+      "bytes": 16419424,
+      "sha256": "0b889bab020b9704a9f9bbbf4237ef75bd38a2101c2fcf2a7ce1215b676fb3a8"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analysis-commit-01.json.index",
+      "bytes": 16421544,
+      "sha256": "580f8b61ff8cb62480a6beb84f2d087c822ceadbbdecedc29d50a6fe81a25686"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/driver-commit-02.json.index",
+      "bytes": 16419424,
+      "sha256": "0e9d348312335de7764b9e4481f6aeea0ab4de28c3563fd6c7c16f010214928b"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/closure-commit-01.json.index",
+      "bytes": 16874293,
+      "sha256": "90cc5d995a13c36f2c0e4e79a63a6911a153c87a7791614dec88f934cf3bb446"
+    }
+  ]
+}

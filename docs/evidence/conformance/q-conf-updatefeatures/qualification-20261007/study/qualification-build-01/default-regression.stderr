@@ -1,0 +1,23 @@
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/update-features-source-0c6a4b)
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> tests/update_features_conformance.rs:138:9
+    |
+138 |         serde_json::json!({"actual_public_Admin":true,"metadata_version":level,"cases":rows,
+    |         ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> tests/update_features_conformance.rs:129:23
+    |
+129 |             rows.push(serde_json::json!({"case":index,"validate_only":validate,
+    |                       ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> tests/update_features_conformance.rs:144:30
+    |
+144 |     tokio::fs::write(output, serde_json::to_vec_pretty(&observed).unwrap())
+    |                              ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+    |
+    = help: if you wanted to use a crate named `serde_json`, use `cargo add serde_json` to add it to your `Cargo.toml`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `partitionline` (test "update_features_conformance") due to 3 previous errors

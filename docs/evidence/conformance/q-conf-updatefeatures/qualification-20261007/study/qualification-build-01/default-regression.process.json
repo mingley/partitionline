@@ -1,0 +1,30 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-source-0c6a4b/benchmarks/runtime/tools/parent-bound-exec.py",
+    "870066",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/update-features-source-0c6a4b/Cargo.toml",
+    "--package",
+    "partitionline",
+    "--test",
+    "update_features_conformance",
+    "--",
+    "--nocapture"
+  ],
+  "started": 1791416414.5700731,
+  "parent_waited": true,
+  "pid": 870089,
+  "exit_code": 101,
+  "ended": 1791416426.2133605,
+  "artifacts": {
+    "default-regression.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "default-regression.stderr": "210cc49d3dedc3f5151bfbb2398546cdd9aa6bab89e4cf4c2779af416d953482"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "commit": "779eab6b922931297ff5bffe2ab50a299e3fbfaa",
+  "parent": "7667b6d5bfe39d867359282f26084b09aaae65e8",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "tests/conformance/java/ConformanceUpdateFeatures.java": "4d1d442cb6d9ed9b620b376a503724ce2d08811755b2a19421a211bb45b4d25f",
+    "tests/conformance/java/generate_update_features.py": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+    "docs/plan/tasks.json": "ddb5f604d1f0274280cd24af9f2b41dd09d7e5f3c4383d996640e207d14d31d0",
+    "docs/STATUS.md": "38e770ecc067290ff84a18ccfe8994fe68335117c78089c5305cf318f6868eb7",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/validate-only-candidate-01.json": "82e124e4cb2f20d0e238064a19a2e93b324fa3cac06099fd77e84235f52c308a",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/fixture-preflight-01.json": "c470ccda1b5d178964ea9ab5310dc00dd171cf5121c053b6c80fd04d538f5e9d",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/README.md": "7869adc5c822e890bee66fb7a16a9525ec4e0ae1d4119a041bf66363d21be28d",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/fixture-preflight-02.json": "fcf3b390b56e40047a682718650b9cc35f37b7212b4387e674d81bdd2018b052",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/source-method-inventory-01.json": "8a8050ff30440eb1a8d2c229fb52531d2eed9b538237176df66052d28ae091f5",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/upstream-source-inputs-01.json": "f9320634e1aa4d3bbfedd09ebfc8351da845290e790401460500cc489637a31a",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-02/generate_update_features.py": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-02/ConformanceUpdateFeatures.java": "4d1d442cb6d9ed9b620b376a503724ce2d08811755b2a19421a211bb45b4d25f",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-01/generate_update_features.py": "d92d15015c9a1706d086e3ef70ba05eec1d37cf45bfe5652974908a9e873e0bf",
+    "docs/evidence/conformance/q-conf-updatefeatures/preflight-20261007/preparation-source-01/ConformanceUpdateFeatures.java": "4d1d442cb6d9ed9b620b376a503724ce2d08811755b2a19421a211bb45b4d25f"
+  },
+  "scope": "Review branch only; no merge or release"
+}

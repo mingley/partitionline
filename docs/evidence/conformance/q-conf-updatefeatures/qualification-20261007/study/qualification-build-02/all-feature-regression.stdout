@@ -1,0 +1,9 @@
+
+running 4 tests
+test actual_sdk_update_features_bodies ... ignored, requires guarded Apache SDK fixtures and independent reverse parsing
+test native_public_update_features_history ... ignored, requires an owned Apache Kafka broker and independent public Admin caller
+test v0_validation_request_rejected_before_body_changes ... ok
+test v0_public_validation_does_not_dispatch_or_mutate ... ok
+
+test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
