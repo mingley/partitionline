@@ -5717,6 +5717,11 @@ pub fn encode_update_features_request(
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let _ = update_features_spoken(version)?;
+    if version == 0 && validate_only {
+        return Err(Error::Unsupported(
+            "validateOnly is not supported in version 0 of UpdateFeaturesRequest".into(),
+        ));
+    }
     for u in updates {
         if u.max_version_level == 0 && u.upgrade_type == UPGRADE_TYPE_UPGRADE {
             return Err(Error::protocol(format!(
