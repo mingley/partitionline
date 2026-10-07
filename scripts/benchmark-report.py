@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -104,6 +105,16 @@ class BenchmarkValidator:
 
         if not isinstance(data, dict):
             return False, ["Root benchmark result must be a JSON object"], summary
+
+        pending = [data]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, float) and not math.isfinite(value):
+                return False, ["Result contains a non-finite number"], summary
+            if isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, list):
+                pending.extend(value)
 
         schema_errors = sorted(self.schema_validator.iter_errors(data), key=lambda error: str(list(error.path)))
         errors.extend(

@@ -754,6 +754,14 @@ class CompleteResultSchemaTests(unittest.TestCase):
             self.assertEqual(checked.returncode, 2, checked.stderr)
             self.assertIn('requires jsonschema', checked.stderr)
 
+    def test_nonfinite_measurements_rejected(self):
+        for value in [float('nan'), float('inf'), float('-inf')]:
+            data = self.null_fixture()
+            data['measurements']['latency']['p99'] = value
+            valid, errors, _ = BenchmarkValidator().validate(data)
+            self.assertFalse(valid)
+            self.assertIn('non-finite', ' '.join(errors))
+
 
 if __name__ == "__main__":
     unittest.main()
