@@ -1,3 +1,4 @@
+//! Independent UpdateFeatures safety and wire conformance checks.
 mod common;
 
 use bytes::BytesMut;

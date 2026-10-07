@@ -148,8 +148,9 @@ public final class ConformanceUpdateFeatures {
             var duplicate = request(version, "duplicate", (short)1, (byte)1);
             duplicate.featureUpdates().add(request(version, "duplicate", (short)2, (byte)2).featureUpdates().iterator().next());
             var wrapper = new UpdateFeaturesRequest.Builder(duplicate).build(version);
-            if (wrapper.featureUpdates().size() != 2 || wrapper.featureUpdates().stream().anyMatch(item -> item.versionLevel() != 1)) {
-                throw new AssertionError("duplicate feature first-match contract");
+            var selected = wrapper.getFeature("duplicate");
+            if (wrapper.featureUpdates().size() != 2 || wrapper.featureUpdates().stream().anyMatch(item -> item.versionLevel() != selected.versionLevel())) {
+                throw new AssertionError("duplicate feature lookup contract");
             }
             write(out, version, count++, "request", duplicate);
             var tagged = request(version, "\u00fc-" + (char)0, (short)1, (byte)1);
