@@ -1,0 +1,46 @@
+{
+  "id": "KL03-23",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-05",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate. Current source-input hashes and release binary hashes pin the final candidate. No commit or hosted CI run is claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_override": "User requested latest stable Rust only; historical Rust 1.85 requirements are superseded.",
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/group-coordinator-startup",
+  "release_binary_sha256": {
+    "bench_produce": "b4ec26a6f15ce3061f71f24f249d7d24ae7bb0d848495fe66dd8c16e724ae3c3",
+    "bench_fetch": "418b7e9ab4b080d4b55b6549137a949955df128d4f8742aa21416acf42020ca4"
+  },
+  "provenance_limits": "Draft compiler/lint/test failures are retained, but exact draft source snapshots were not captured. Early successful cohorts used earlier group-discovery or output-metadata variants and are supporting evidence only. Final producer/fetch and fresh cold-group cohorts qualify the final production behavior; source hashes cover that behavior. Current fetch output has the final settings metadata.",
+  "scope": "Classic and KIP-848 coordinator discovery retries typed errors14/15/16 with configured backoff under the original request deadline; terminal broker errors stop immediately.",
+  "regression": {
+    "before": "Two of three original tests failed",
+    "after": "Four bounded regressions pass: recovery, terminal errors across hosts, persistent errors deadline, and slow bootstrap negotiation deadline"
+  },
+  "native_acceptance": {
+    "peer": "Fresh Apache Kafka 4.3.1 KRaft broker with no offsets topic before this group",
+    "seeded_and_verified": 1000,
+    "committed_offsets": [
+      500,
+      500
+    ],
+    "lag": 0,
+    "members_after_close": 0
+  },
+  "validation": {
+    "core_all_targets_passed": 1957,
+    "core_all_targets_ignored": 5,
+    "focused_all_features": "Public API/full surface, group startup, share semantics and WriteTxnMarkers pass; one external share case remains opt-in"
+  },
+  "acceptance_evidence": [
+    "validation/before-fix.log",
+    "validation/after-fix-v2.log",
+    "validation/core-all-targets-final.log",
+    "validation/all-feature-final.log",
+    "validation/native-cold-group/verdict.json",
+    "validation/native-cold-group/java-committed-offsets.log",
+    "validation/native-cold-group/java-group-state.log"
+  ]
+}

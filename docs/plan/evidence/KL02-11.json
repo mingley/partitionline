@@ -1,0 +1,138 @@
+{
+  "id": "KL02-11",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; actual native executable and all Rust source hashes retained. Native and final source snapshots match. No hosted CI or commit claimed.",
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable only",
+  "ownership_policy": "After reservation and before acceptance, normalize payload Bytes through Vec and boxed slices; shared/custom/static backings copy visible bytes, excess capacity and hidden prefixes shrink, exact-size unique allocations can reuse memory. Header strings and header Vec capacity also shrink.",
+  "reservation": "One guard owns bytes until transfer to the pending record. Cancellation while waiting on a full nonsticky channel now releases its reservation. Queue/in-flight/retry own accepted bytes until success or terminal release.",
+  "validation": {
+    "default": {
+      "passed": 1990,
+      "failed": 0,
+      "ignored": 9
+    },
+    "all-features": {
+      "passed": 2002,
+      "failed": 0,
+      "ignored": 10
+    },
+    "ownership-extended": {
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "strict_checks": [
+    {
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 5.359426736831665
+    },
+    {
+      "check": "clippy-default",
+      "command": [
+        "cargo",
+        "clippy",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 79.47946000099182
+    },
+    {
+      "check": "clippy-all",
+      "command": [
+        "cargo",
+        "clippy",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 28.073258638381958
+    },
+    {
+      "check": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 3.102552652359009
+    }
+  ],
+  "unit_capacity_cases": 3,
+  "independent": {
+    "broker": "Apache Kafka4.3.1, fresh RF1 plaintext single-partition topics",
+    "java": "Actual loaded KafkaSDK4.3.1 and codec jar hashes checked",
+    "c": "Actual librdkafka2.15.0 public consumer, pinned source/library, destroyed context and joined threads",
+    "codecs": [
+      "none",
+      "gzip",
+      "snappy",
+      "lz4",
+      "zstd"
+    ],
+    "producer_records": 45,
+    "independent_readbacks": 10,
+    "backing": "2MiB custom-owned allocations and 1MiB header string capacities; original payload owners drop after acceptance before acknowledgement",
+    "fields": "All offsets, timestamps, nullable/empty keys/values, UTF8, headers and boundary-sized high/low entropy values match Java/C expectations; HW9 each topic",
+    "closure": "All22 commands and broker parent-waited; both listener ports closed/reusable; raw stored codec IDs, CRC and counts checked"
+  },
+  "package": {
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "sha256": "95a7914b09f4f0aa1751f684637122769e66d69e0a7f3baff2dcaca80c29c33d",
+    "compiled_snippets_per_profile": [
+      19,
+      19,
+      19,
+      19
+    ]
+  },
+  "retained_failures": [
+    "First probe draft failed compilation for an unused result; retained.",
+    "Original source ownership regressions:1 passed,4 failed; original owners remain retained before acknowledgement.",
+    "Original source full-channel cancellation:0 passed,1 failed; cancelled unaccepted record retains one byte through flush.",
+    "First ledger audit ran before new native artifacts were retained:2 of82 checks failed for unavailable evidence; final rerun retained separately."
+  ],
+  "memory_scope": "Accepted visible key/value/header payload bytes. Caller aliases, unaccepted/waiting inputs, metadata, record objects, allocator rounding, encoding scratch/context, socket/kernel buffers and RSS are additional memory.",
+  "limits": [
+    "Shared/custom/static normalization may add copying; no speed measurement or world ranking.",
+    "Native RF1 correctness profile does not establish multi-broker faults, security, 24-hour soak or whole-repo production readiness."
+  ],
+  "performance_claims_valid": false,
+  "production_ready": false,
+  "evidence_directory": "docs/evidence/client/producer-retained-backing",
+  "ledger_validation": {
+    "tests_passed": 82,
+    "backlog_complete": true,
+    "required_cases": 179,
+    "independent_cases": 32,
+    "unqualified_cases": 147,
+    "core_complete": false,
+    "full_complete": false
+  }
+}

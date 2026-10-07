@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "task": "KL05-39",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "implementation": "Typed ListTransactionsOptions and API66 v2 nullable TransactionalIdPattern. Bounded public complete/partial filters apply to each broker; reconnect re-negotiation and all validation use the original absolute caller deadline. Invalid regex remains a broker error128.",
+  "source_bindings": {
+    "default": "validation/binary-binding-default.json",
+    "all_features": "validation/binary-binding-all.json"
+  },
+  "bounds": {
+    "pattern_bytes": 262144,
+    "filter_elements": 8192,
+    "aggregate_state_filter_bytes": 262144,
+    "brokers": 256,
+    "listings": 100000,
+    "cumulative_response_bytes": 16777216,
+    "active_requests": 1
+  },
+  "validation": {
+    "full-default": {
+      "passed": 2011,
+      "failed": 0,
+      "ignored": 18
+    },
+    "full-all": {
+      "passed": 2023,
+      "failed": 0,
+      "ignored": 19
+    },
+    "focused_each_profile": {
+      "passed": 7,
+      "ignored_external_lanes": 2,
+      "external_lanes_actually_executed": true
+    },
+    "coverage_checker_tests": 53,
+    "strict_fmt_clippy_rustdoc": "pass"
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "raw_cases_per_sdk_profile": 144,
+  "supported_pairs_per_sdk_profile": 58,
+  "explicit_unsupported_cases_per_sdk_profile": 86,
+  "actual_reverse_frames_per_sdk_profile": 116,
+  "sdk_wire_identity": true,
+  "public_process_profiles_each_build": 66,
+  "public_calls_each_build": {
+    "java": 33,
+    "rust_partial": 33,
+    "rust_complete": 33
+  },
+  "public_modes": [
+    "null",
+    "empty",
+    "match",
+    "no-match",
+    "invalid",
+    "combined",
+    "mixed",
+    "disconnect",
+    "downgrade",
+    "v0",
+    "v1"
+  ],
+  "all_final_processes_waited": true,
+  "closure": "Each bounded peer joins3 listeners and workers, checks closed/rebindable ports and runtime0 tasks. Each final JVM/Rust process parent-waited; no final forced kill.",
+  "package": {
+    "sha256": "704e3e975dc2491bf1d2f7f0541d3a65c8664b4fd41f63123b197687255d0dca",
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "compiled_snippets_each": 21,
+    "registered_links_each": 37,
+    "toolchain": "stable1.99.0"
+  },
+  "retained_failures": [
+    "Initial helper compiler failure retained; corrected failing-first run produced3 expected v2 request/response/routing failures.",
+    "First public-test compile omitted Duration/Instant. Wrapper continued an older binary for the wire lane, then refused the absent serving lane. This run does not qualify the latest source; final runner verifies both required binary lanes before execution.",
+    "Invalid regex exposed malformed Java JSON caused by writing a prefix before Future.get threw. Actual SDK class is InvalidRegularExpression. Exact earlier sources/logs/outcomes retained.",
+    "Strict Clippy rejected redundant references, default field reassignment and synchronous I/O in an external fixture lane. Scoped sync-only expectation and source fixes passed final strict checks."
+  ],
+  "limits": [
+    "Selected independent wire fixtures model broker filtering and errors; no live Kafka regex evaluation, transaction-state, persistence or failover qualification.",
+    "Public null/empty patterns normalize to unfiltered calls; explicit non-null raw requests, including empty strings, require API66 v2.",
+    "No allocator-peak, throughput, production soak, hosted CI, push or world-speed ranking claim. Source remains locally uncommitted.",
+    "API66 current-version coverage remains a component qualification; broad conformance registries still have45 independently qualified cases of182 and core/full remain incomplete.",
+    "Package archive was created before this card closure and STATUS count update; its source and examples are separately retained."
+  ],
+  "full_protocol_complete": false,
+  "core_protocol_complete": false,
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/list-transactions-pattern-v2/qualification"
+}

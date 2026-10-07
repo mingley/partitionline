@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "task": "KL02-09",
+  "status": "done",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "source_files_sha256": {
+    "Cargo.lock": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc",
+    "Cargo.toml": "55749f41cee87b061a07b541c389b39ddacb76b7af7be86f3782427ac4cd5c88",
+    "examples/common/resource_peer.rs": "e0b99821c7692b74d87828a5692badc4baf2c4a870de905e15146c500d17b50d",
+    "examples/resource_soak.rs": "d4ddd963c81adffd94df4996e00042fee2f596fe2a724755a588ff29a59fe587",
+    "rust-toolchain.toml": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+    "scripts/resource-soak.py": "72352da5c95fe31dcae7637098dedbf7b3632eb0433b949a8e2180ee526cebf5",
+    "scripts/run-resource-soak.sh": "90457b3ce588c846e4777b41ae86dd2b20ae0bada4fcd04844e39a91ec9f8ee7",
+    "src/admin.rs": "586c94141c87e861e06f48b512e60435897a8baaee33a0f7f234dfa079692024",
+    "src/cluster.rs": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa",
+    "src/config.rs": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/group.rs": "dbf9de6dec97890cdfe907e38d6bb7bf3aa58d15bfb4af35a34148c798f4ac83",
+    "src/interceptor.rs": "15e71dbacfc19bd5716d82ea0afd2f1f61f63e78faa2c01cef812aaf34a0d7ab",
+    "src/lib.rs": "cec5e357990885c097f273efe75ddba9e9943a8816ac4561240d60e9ab9706d6",
+    "src/metrics.rs": "bf0db9254b07106e15110fb70ad7bc71ce4f2a1dd32f8daccdc9c638001d76ee",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/partitioner.rs": "b84142ce7f31f6036f4d264367f91c20a30b79d3b73870fd9dca7ee7be9aba9a",
+    "src/producer.rs": "e2476f2ce78578e077e51085b1ee147d53f84bd7aeb768d12ca0a23ee891c6b4",
+    "src/protocol/acl.rs": "39a9d56f0d586eaff84bd8e1f28d1d0f033a653dac46b5cdc4f2b18cef79f6f8",
+    "src/protocol/admin.rs": "ec286cd8331c8956d376702d0365c41e9bf5196f569e0aad225fff84b57914b2",
+    "src/protocol/api.rs": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+    "src/protocol/api_keys.rs": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "src/protocol/cgheartbeat.rs": "49311de5e97fb0e9402260c3dcea0534582952cc7c6d8777128e431c464932f4",
+    "src/protocol/epoch.rs": "76ec51fd15879b027f4bd499a5b58dcac30004b63e37e8aee117367ffade143d",
+    "src/protocol/fetch.rs": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+    "src/protocol/group.rs": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+    "src/protocol/header.rs": "39d3a51966bdb3d7ff580865e51c977c9e37cd2330c5e4e141b9f2729c0be8ba",
+    "src/protocol/idem.rs": "ac24caf3369db13a8aac24b1debdc1a2ddd04a3413f5fd73c499a5cd4f242de0",
+    "src/protocol/mod.rs": "fa09149d89ac3076dada38a0c8d0692d379d2d8b3ecf443b7161a28b3571af23",
+    "src/protocol/oauth.rs": "0ce921f988b4058ad8a207cb609c920b20f9a0589da6773f57b4d090a109066f",
+    "src/protocol/offsets.rs": "be167364402bf33631717a3f45685b84680c4ffbb40a7093ff60f4fe7aeb7126",
+    "src/protocol/oidc.rs": "3c8bf1f299065bbb12924818aa7fd242fe607a2176a7b1639cf675f2736672a8",
+    "src/protocol/records.rs": "c06f67cc1070d80d4f53f9aaeb1aac26389819fda9a0b658421afde8003b58a0",
+    "src/protocol/sasl.rs": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50",
+    "src/protocol/scram.rs": "ed474ed5eb62d3cd6b0865653cec6c2d033acb2be0f88a6e9af785075402636c",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "src/protocol/streams.rs": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+    "src/protocol/txn.rs": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "tests/ci/test_resource_soak.py": "b63dd1b4e1c554b42712826a0f938b7e7517c2992c71a19197a816b879a8371a",
+    "docs/resource-contract.md": "0e40d4147004c2c5a22a779fff8b2959896b29bf488ad8bb8ab9a1829d30c8c6",
+    "docs/resource-soak.md": "4a142aab1f60e3f935a84dccd336324e02d8c30bc1588d622a3a4c8235a32c38",
+    ".github/workflows/ci.yml": "2f42dc96a8af71a574a37a207516a072082116c245f2072b14e666c0dd430f9c"
+  },
+  "binary_sha256": "0f239aa286bb0bc56b70ac9cbf76862c4026ff4583955c9b2e842ce9b102aee9",
+  "scope": "Resumable Linux overload/resource driver, actual finite owned-peer lifecycle rehearsals and a development Kafka4.3.1 controlled-mode rehearsal.",
+  "short_tests_passed": 10,
+  "short_checks": {
+    "nominal": {
+      "attempts": 1,
+      "load_elapsed_ms": 1100,
+      "completed": true,
+      "production_qualification": false,
+      "performance_claims_valid": false
+    },
+    "stalled": {
+      "attempts": 1,
+      "load_elapsed_ms": 1101,
+      "completed": true,
+      "production_qualification": false,
+      "performance_claims_valid": false
+    },
+    "slow": {
+      "attempts": 1,
+      "load_elapsed_ms": 1101,
+      "completed": true,
+      "production_qualification": false,
+      "performance_claims_valid": false
+    },
+    "resumed": {
+      "attempts": 2,
+      "load_elapsed_ms": 2202,
+      "completed": true,
+      "production_qualification": false,
+      "performance_claims_valid": false
+    }
+  },
+  "native_controlled_rehearsal": {
+    "status": "pass",
+    "finite_calibration_records_per_second": 797.6945244956772,
+    "requested_offered_records_per_second": 1755,
+    "actual_offered_records_per_second": 1754.1229385307347,
+    "minimum_two_times_baseline": 1595.3890489913545,
+    "controlled_result": {
+      "samples": 40,
+      "host_samples": 40,
+      "final": {
+        "kind": "sample",
+        "utc_ms": 1791343136538,
+        "elapsed_ms": 2003,
+        "offered": 3510,
+        "accepted": 1600,
+        "completed": 1600,
+        "failed": 1910,
+        "ambiguous": 0,
+        "pending": 0,
+        "producer_queue_bytes": 0,
+        "consumer_buffered_bytes": 0,
+        "application_decoded_bytes": 0,
+        "delivered": 75,
+        "delivered_bytes": 19200,
+        "fetch_errors": 0,
+        "runtime_tasks": 3,
+        "peer_connections": 0,
+        "final": true
+      },
+      "load_elapsed_ms": 2001,
+      "interrupted": false,
+      "rss_bound_claimed": false,
+      "production_qualification": false
+    },
+    "development_only": true,
+    "production_qualification": false,
+    "performance_claims_valid": false
+  },
+  "native_broker_closure": {
+    "pid": 277270,
+    "parent_waited": true,
+    "exit_code": 143,
+    "ports": [
+      {
+        "port": 39641,
+        "closed": true,
+        "reusable": true
+      },
+      {
+        "port": 42875,
+        "closed": true,
+        "reusable": true
+      }
+    ]
+  },
+  "default_tests": {
+    "passed": 2002,
+    "failed": 0,
+    "ignored": 11
+  },
+  "all_feature_tests": {
+    "passed": 2014,
+    "failed": 0,
+    "ignored": 12
+  },
+  "strict_checks": [
+    "stable rustfmt",
+    "default all-target Clippy -D warnings",
+    "all-feature all-target Clippy -D warnings",
+    "all-feature rustdoc -D warnings"
+  ],
+  "package": {
+    "sha256": "fc15bc0c93ea3d207166439a6804194c2a010814ff6b194e5df61b74cc9eb702",
+    "profiles": 4,
+    "compiled_snippets_each": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "local_links_each": [
+      37,
+      37,
+      37,
+      37
+    ],
+    "actual_example_and_peer_in_archive": true
+  },
+  "additional_checks": {
+    "documentation_negative_tests_passed": 18,
+    "main_ci_offline_tests_passed": 9,
+    "workflows_yaml_passed": true,
+    "hosted_ci_run": false
+  },
+  "retained_first_failures": [
+    "First retention check caught Cargo output executable replacement after full-suite example builds. Earlier native/short runs retained as candidate evidence; final native and10tests use a separately copied immutable default-feature executable with before/after hashes.",
+    "First frozen-copy test run copied read-only permissions into its deliberate binary-mutation fixture:9 passed,1 PermissionError. Test now makes only its disposable fixture writable before mutation; the actual qualified binary remains read-only.",
+    "Four draft compiler failures: extra parenthesis, wrong public types/methods, assignment tuple shape and unused results. Logs retained; exact pre-edit draft sources are unavailable and not claimed.",
+    "A workflow unittest command targeted nonexistent test_main_ci.py:0 tests, exit5. Replaced with the existing check-main-ci.sh --self-test:9 actual cases.",
+    "First documentation negative tests lacked rustdoc on PATH:2 failures among18. Corrected toolchain environment:18 passed.",
+    "First package command omitted the explicit local dirty-tree flag:exit101; corrected PL_PACKAGE_ALLOW_DIRTY/REPORT_DIR flags and all4 actual cells passed."
+  ],
+  "limits": [
+    "Short peer is authored and generates fetch records separately; no producer/consumer integrity oracle.",
+    "RSS includes allocator and peer memory; no process RSS bound or long-run drift claim.",
+    "Finite saturated-window calibration is a development baseline; native run lasted2 seconds above twice that observed rate. No sustainable long-run capacity or global speed claim.",
+    "Native broker is fresh plaintext RF1 with one controller. Secure, replicated HA and long-running workloads remain separate.",
+    "Controlled topic ownership must be established by operator; prefix checks and no destructive defaults are safeguards, not external ownership proof.",
+    "No24-hour qualification; KL02-10 remains open and requires its own frozen controlled-host evidence.",
+    "Hosted resource-soak CI lane is wired and YAML-checked; no hosted run is claimed.",
+    "Owned generated package-consumer cache removed with receipt; package archives/source/results retained."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/resource-soak/KL02-09"
+}

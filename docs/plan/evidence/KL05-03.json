@@ -1,0 +1,79 @@
+{
+  "id": "KL05-03",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; exact source snapshots/hashes, peer pins and command logs retained. No hosted CI or commit claimed.",
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable only",
+  "scope": "Optional nondefault zstd-rs0.1.0 record/telemetry decoding with unchanged default dependency graph. No encoder shipped by this card.",
+  "limits": {
+    "decoded_bytes": "min(caller budget,64MiB)",
+    "declared_window_bytes": 67108864,
+    "frames_per_batch": 1024,
+    "dictionaries": "Unsupported",
+    "memory_scope": "decoded length and declared windows, not scratch/capacity/record-object/process RSS",
+    "error_publication": "partial backend output discarded; no RecordBatch returned"
+  },
+  "independent": {
+    "apache": "Kafka4.3.1 Java + zstd-jni1.5.6-10, actual loaded jar SHA checks",
+    "native_variants": "libzstd1.5.7 known/unknown content size, level1/19, checksum on/off, window256KiB/1MiB/2MiB/64MiB, concatenated/skippable and1024-frame boundary",
+    "java_verified_batches": 11,
+    "records_per_java_batch": 6,
+    "librdkafka": "2.15.0 commit9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab; actual C producer configured zstd,128 acknowledged records retained from fresh Kafka4.3.1 RF1 segment; Java byte-for-byte readback and Rust ID/key/value verification",
+    "native_process_closure": "all commands parent-waited; broker joined; two ports closed/reusable",
+    "negative_control": "actual corrupt inner checksum with repaired Kafka outer CRC rejected by Java"
+  },
+  "validation": {
+    "all_features": {
+      "passed": 1981,
+      "failed": 0,
+      "ignored": 6
+    },
+    "default": {
+      "passed": 1975,
+      "failed": 0,
+      "ignored": 6
+    },
+    "fallback_records": {
+      "passed": 40,
+      "failed": 0,
+      "ignored": 0
+    },
+    "fallback_integration": {
+      "passed": 14,
+      "failed": 0,
+      "ignored": 0
+    },
+    "strict_clippy_default_and_all_features": "pass",
+    "format_and_strict_rustdoc": "pass",
+    "doctests": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "actual_packed_profiles": "default,tracing,zstd,all;19 snippets and36 local links per cell; archive hash bound",
+    "documentation_checker_tests": 18,
+    "synthetic_platform_report_checks": 15,
+    "protocol_coverage_negative_controls": 53,
+    "backlog_structure": "pass;171 required,23 independent,148 unqualified; core/full/current upstream gates remain false"
+  },
+  "retained_failures": [
+    "First Java fixture imports used pre4.3 record class namespace; compiler rejected before any fixture was generated. Corrected to actual internal package.",
+    "First generator called integer stat.st_size as a function after successful Java checks; corrected and regenerated manifest.",
+    "Initial Clippy rejected an unused fixture-helper lint expectation; removed it.",
+    "An intermediate filtered records command executed no integration cases; retained as records-only, never counted as zstd conformance. The final whole suites and fallback integration execute them.",
+    "First whole all-feature run hit a stale public API test assuming codec4 always absent; changed the feature-aware expectation.",
+    "First backlog run was ahead of the new evidence paths and had an obsolete missing-decoder assertion; final53 tests and backlog gate pass.",
+    "First actual package consumer rejected the new optional feature as intended; added four explicit feature cells and validated the package source, actual compiler runs and report guards."
+  ],
+  "incidental_integration": "Current package and native-platform report tooling use latest stable only; old1.85 choices removed from active broker-interop runner. Synthetic report tests do not qualify macOS/Windows. CI uses stable bounded mutation tests instead of a nightly compiler.",
+  "provenance_limits": [
+    "The native C production/readback precedes Rust decoder compilation. C build/adapter source pins, actual stored frames, Java readback log and all process closures are retained.",
+    "The frozen actual package precedes two additional synthetic platform negative-control tests; production codec/Cargo/public documentation were unchanged afterward. Its exact archive and SHA are retained.",
+    "No encoder, full bidirectional live-codec matrix, production readiness or performance ranking is inferred."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/codecs/zstd-decode"
+}

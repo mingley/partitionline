@@ -1,0 +1,84 @@
+{
+  "id": "KL05-35",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; actual source snapshots/hashes and command logs identify final production inputs. No commit or hosted CI claimed.",
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_policy": "Latest stable only, per user instruction.",
+  "scope": "Complete v6 request/response wire fields, compatible ordinary wrappers and normal Producer negotiation. Each coordinator socket retains its own InitProducerId version. Initialization and epoch recovery share bounded original phase deadlines; ordinary flags false and regular identities stay separate from ongoing transaction fields.",
+  "independent_fields": {
+    "releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "pairs_per_release": 13,
+    "total_pairs": 39,
+    "directions": "Java factories/serializers produce fixtures; Rust reads and emits actual frames; Java serializers/parsers check known fields and complete consumption. Unknown tags are skipped and omitted on re-encoding.",
+    "profiles": [
+      "default",
+      "all features"
+    ],
+    "negative_control": "Flipped Enable2Pc bit on actual Rust flags11 output fails the Apache check."
+  },
+  "native_ordinary_history": {
+    "peer": "Fresh Kafka4.3.1 KRaftRF1; unstable API advertisement explicitly enabled",
+    "rust_init_version": 6,
+    "java_init_version": 5,
+    "rust_flags": [
+      false,
+      false
+    ],
+    "captured_init_pairs": 3,
+    "rust_and_java_committed_visible": 5,
+    "rust_and_java_aborted_absent": 2,
+    "ordinary_producer_and_consumer_closed": true,
+    "broker_and_proxy_joined": true,
+    "listeners_closed_and_reusable": true
+  },
+  "validation": {
+    "all_features": {
+      "passed": 1975,
+      "failed": 0,
+      "ignored": 6
+    },
+    "default": {
+      "passed": 1974,
+      "failed": 0,
+      "ignored": 6
+    },
+    "focused_default": {
+      "passed": 17,
+      "failed": 0,
+      "ignored": 1
+    },
+    "strict_all_features_clippy": "pass",
+    "strict_rustdoc_and_doctests": "pass;4 doctests",
+    "actual_packed_default_and_tracing": "2 cells;19 snippets and35 local links per cell",
+    "protocol_coverage_negative_controls": "53 pass",
+    "backlog_structure": "pass;170 required cases,22 independent,148 unqualified; complete upstream/core/full gates still false"
+  },
+  "retained_failures": [
+    "First Java fixture used generated default empty transaction ID; the public factory rejected it. Ordinary fixtures now explicitly use null.",
+    "Three draft Rust test compilations failed before execution; raw compiler logs retained.",
+    "First executable draft had6 pass/5 fail: mock response injection included a Kafka response header, and a raw guard test reused a connection after a terminal encode error. Corrected test fixtures; production body codecs passed their independent cases.",
+    "First native attempt stopped at a test compiler error; zero initialization pairs/application records were qualified. Broker/proxy closure is retained.",
+    "Initial strict Clippy rejected test-helper lint attributes and panicking helper operations; narrowed expectations with reasons and retained final pass.",
+    "First final-all peer wrapper ran before the Rust output existed and rejected the incomplete78-file set; subsequent complete output checks pass.",
+    "Protocol backlog checks exposed three stale companion feature descriptions, then fixed case-count expectations after registering six qualified finite cohorts. No full ecosystem or complete upstream qualification was inferred."
+  ],
+  "provenance_limits": [
+    "Native successful run predates only fixture-helper lint corrections, a codec documentation comment and documentation/registry/CI edits. Its exact executed production/test/Java source and harness hash are retained. No functional production or native test function changed afterward.",
+    "Final whole default/all tests and independent frame peers bind the final source. Earlier successful or failed draft profiles remain their original scope.",
+    "The observation proxy forwards application bytes unchanged and captures only initialization bodies; this development harness does not qualify arbitrary deployments or network failure histories."
+  ],
+  "limits": [
+    "Full prepared/resume/2PC transaction lifecycle remains separate; normal Producer exposes no true flag option.",
+    "RF1 development broker, no multi-broker transactional crash/soak qualification or performance ranking.",
+    "Missing current APIs/versions, broader conformance, security and release gates remain open."
+  ],
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/init-producer-id-v6"
+}

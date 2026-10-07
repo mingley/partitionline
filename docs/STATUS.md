@@ -33,14 +33,14 @@ records the remaining work.
 
 ## Development checks
 
-Latest-stable Rust1.99.0 passed2,079 default-feature tests and2,091 all-feature
+Latest-stable Rust1.99.0 passed2,082 default-feature tests and2,094 all-feature
 tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
 tracing, zstd and combined-feature builds each compiled24 documentation examples.
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has203 completed cards and137 open cards. The client
-conformance registry has51 independently qualified cases out of182 required
+The task registry has204 completed cards and136 open cards. The client
+conformance registry has54 independently qualified cases out of182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
 

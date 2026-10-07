@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "task": "KL05-32",
+  "status": "done",
+  "date": "2026-10-07",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_published_commit": "16b7a14d42e77e4541135182d80f0038e1784c5c",
+  "source_branch": "codex/finish-open-cards-20261007",
+  "source_url": "https://github.com/mingley/partitionline/tree/16b7a14d42e77e4541135182d80f0038e1784c5c",
+  "working_branch_unchanged": true,
+  "working_source_uncommitted_to_head": true,
+  "source_publication": "validation/source-publication.json",
+  "implementation": "StreamsClient with caller-driven typed API88 v0 heartbeats, explicit opt-in, actual GROUP discovery and per-connection negotiation. Full terminal responses retain errors/assignments/status. Warm calls reuse one coordinator socket. Retries, encoding, auth/discovery and I/O share one deadline; no background membership tasks.",
+  "bounds": {
+    "bootstrap_servers": 16,
+    "attempts": 8,
+    "concurrent_operations_per_client": 1,
+    "operation_connections": 2,
+    "cached_connections": 1,
+    "FindCoordinator_body_bytes": 65536,
+    "heartbeat_limits": "StreamsLimits defaults:wire1MiB,strings64KiB each/1MiB aggregate,elements8192 each/32768 aggregate,tags64 each/1024 aggregate,payload64KiB,decoded requested4MiB"
+  },
+  "validation": {
+    "full-default": {
+      "passed": 2023,
+      "failed": 0,
+      "ignored": 19
+    },
+    "full-all": {
+      "passed": 2035,
+      "failed": 0,
+      "ignored": 20
+    }
+  },
+  "focused_tests_each_profile": 12,
+  "ignored_external_lane_each_profile": 1,
+  "external_lanes_actually_run": true,
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "each_feature_profile": {
+    "strict_java_compiles": 3,
+    "fresh_generation_processes": 6,
+    "builder_error_cases_per_sdk": 15,
+    "public_Rust_calls_per_sdk": 45,
+    "public_Rust_calls_total": 135,
+    "actual_heartbeat_frames": 162,
+    "actual_GROUP_frames": 162,
+    "typed_returned_responses_actual_sdk_parsed": 135
+  },
+  "feature_profiles": 2,
+  "sdk_fixture_trees_exactly_equal": true,
+  "FindCoordinator_versions": [
+    1,
+    3,
+    6
+  ],
+  "epochs": [
+    0,
+    7,
+    -1,
+    -2
+  ],
+  "behavioral_tests": [
+    "Explicit policy/invalid limits no I/O",
+    "Missing/disjoint bootstrap API before discovery",
+    "Actual coordinator capability and downgrade after reconnect",
+    "All typed fields/null-empty and terminal authorization/member/topology errors",
+    "Coordinator14/15/16 and lost socket refresh with identical request",
+    "One original stalled/delayed deadline and eight-attempt cap",
+    "Actual EOF/zero workers after cancel while client lives; same client works again",
+    "Warm four heartbeat calls use one GROUP lookup; socket close/group change force new discovery without implicit leave",
+    "Correlation/trailing/truncated response and request limits"
+  ],
+  "all_final_processes_parent_waited": true,
+  "closure": "Each peer joins three listeners/workers, checks three closed/rebindable ports and zero runtime tasks. Cancellation/close also observe worker EOF before client destruction. No detached client tasks.",
+  "strict_checks": "Latest-stable1.99 default/all Clippy -Dwarnings, rustfmt and rustdoc pass. Fifty-three coverage checker tests pass.",
+  "package": {
+    "sha256": "0a355a538bdd811238374faf475314511202b264544805b2427a5d0e16e52259",
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "compiled_snippets_each": 22,
+    "registered_links_each": 37,
+    "toolchain": "latest stable1.99.0",
+    "debug_symbols": 0,
+    "prose_card_count_precedes_closure": true
+  },
+  "docs_navigation": {
+    "documents": [
+      "README.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
+      "docs/RELEASE.md",
+      "docs/ROADMAP.md",
+      "docs/STATUS.md",
+      "docs/adopter-exercise.md",
+      "docs/api-stability.md",
+      "docs/auth-refresh.md",
+      "docs/benchmark-contract.md",
+      "docs/benchmark.md",
+      "docs/design.md",
+      "docs/gaps.md",
+      "docs/guide.md",
+      "docs/gzip-backend.md",
+      "docs/index.md",
+      "docs/migrate-from-rdkafka.md",
+      "docs/open-loop-latency.md",
+      "docs/resource-contract.md",
+      "docs/sasl-reauthentication.md",
+      "docs/schema-companion.md",
+      "docs/security.md",
+      "docs/support.md",
+      "docs/zstd-spike.md",
+      "docs/resource-soak.md"
+    ],
+    "local_links": 184,
+    "status": "pass"
+  },
+  "retained_failures": [
+    "Initial helper compile rejected an unused owned AbortHandle; scoped visibility warnings corrected. Exact source/log retained.",
+    "External fixture copy result and four warm-test results violated strict unused-results. Exact failures and sources retained; assertions now consume responses and the redundant copy was removed.",
+    "An early wrapper attempted SDK startup after a failed compile and missing binary binding; it stopped before executing any SDK/public call. Final runner verifies bound source/binary and mandatory external lane before all execution.",
+    "Initial strict Clippy rejected ignored must-use cleanup results and dropping a Pin reference. Named cleanup outcomes and lexical future scope pass strict checks; EOF tests prove actual cancellation.",
+    "A subsequent strict check rejected fixture expect; the finite assertion uses the explicitly scoped unwrap policy. First failures and prior independently passing uncached histories remain distinct from final cached qualification."
+  ],
+  "limits": [
+    "Public Rust heartbeat with selected independent scripted GROUP peers and actual Apache builders, error factories and parsers. No Java Streams execution engine, live coordinator, membership persistence or failover qualification.",
+    "Opt-in is a conservative Rust policy for API88 v0. The version cannot identify release stability; all three actual default builders accepted explicit build0. No false builder-refusal claim.",
+    "Wire/decode limits apply to heartbeat bodies; FindCoordinator bodies have a64KiB operation cap. ApiVersions and TLS/SASL use unchanged shared transport/control limits. No allocator-peak or RSS bound qualification.",
+    "Successful calls cache one coordinator socket; cancellation/error discard operation-owned sockets. Close does not leave membership. Lost replies/cancellation can follow accepted broker mutations.",
+    "The review branch publishes exact tested source. Large execution archives remain locally retained; no main merge, release, hosted CI result, production-readiness or speed ranking.",
+    "Conformance implementation classification is updated for API88 and API66v2. Independently qualified required case count remains45/182; core/full completion remain false."
+  ],
+  "full_protocol_complete": false,
+  "core_protocol_complete": false,
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/streams-heartbeat/qualification"
+}

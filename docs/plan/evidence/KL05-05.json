@@ -1,0 +1,86 @@
+{
+  "id": "KL05-05",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; exact executed native sources and SDK/binary hashes retained. Historical and current profiles retain their separate sources. No hosted CI execution or commit claimed.",
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable only",
+  "scope": "All5 codecs, bidirectional Rust/Java/C,3 current and2 historical Apache broker lines; finite RF1 plaintext correctness profile.",
+  "independent": {
+    "broker_versions": [
+      "3.9.1",
+      "4.1.0",
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "java_sdk": "Kafka4.3.1 with actual loaded Kafka/Snappy/LZ4/zstd jar hashes checked",
+    "c_sdk": "librdkafka2.15.0; actual pinned native library, compiled public producer/consumer",
+    "cells": 150,
+    "cross_client_readbacks": 300,
+    "records_per_cell": 9,
+    "broker_records": 1350,
+    "topic_compression": [
+      "producer",
+      "gzip"
+    ],
+    "stored_batches": "all150 topic segments retain the expected codec ID/CRC/count; Rust independently checks every stored field against genuine Java record fixtures",
+    "raw_snappy": "Native libsnappy1.2.2 raw fixture checked by Java JNI and Rust; live SDKs use framed Snappy",
+    "fields": [
+      "offsets",
+      "timestamps",
+      "null/empty keys and values",
+      "UTF8",
+      "nullable headers",
+      "low/high entropy",
+      "65536/131071/131072/131073/200000-byte values"
+    ],
+    "signed_boundary": "Actual JavaMAX+1 wrapping independently reproduced; actual Rust5codec boundary outputs read by Java; unchecked Rust signed arithmetic fixed",
+    "closure": "All completed SDK commands and5 brokers parent-waited, C contexts destroyed/background threads joined, all10 owned listener ports closed/reusable"
+  },
+  "validation": {
+    "default": {
+      "passed": 1979,
+      "failed": 0,
+      "ignored": 8
+    },
+    "all_features": {
+      "passed": 1991,
+      "failed": 0,
+      "ignored": 9
+    },
+    "counts_include_doctests": 4,
+    "fallback": {
+      "passed": 52,
+      "failed": 0,
+      "ignored": 4
+    },
+    "strict_default_and_all_clippy": "pass; final all-target clippy also compiles the next card probes",
+    "rustdoc": "strict pass",
+    "native_segment_negative_controls": "12 checks pass against each historical/current artifact cohort",
+    "actual_java_negative_controls": "3: mutated zstd checksum with repaired KafkaCRC, signed-offset substitution, raw-fixture hash mismatch; all rejected",
+    "ledger_negative_controls": 53,
+    "backlog_structure": "178 required,31 independent,147 unqualified; full/core/current-upstream gates remain false",
+    "package": "4 actual extracted-crate default/tracing/zstd/all profiles;19 snippets and37 local links each"
+  },
+  "retained_failures": [
+    "Unchecked signed record arithmetic:1 fixture case passed and1 panicked before fix. Original production source/log retained.",
+    "First native driver disappeared after17 completed historical cells. Partial commands/logs retained; orphan broker exit observed via pidfd and ports closed; no full-pass or parent-join attributed to that attempt.",
+    "First stored-audit Rust draft used unavailable serde_json and a wrong method name; compiler rejected it. Corrected without adding dependencies.",
+    "Unused clippy expectation was rejected; removed.",
+    "First negative-control hard links crossed the /tmp filesystem;12 setup errors retained in a compressed log. Tests now allocate on the same filesystem and exclude broker data/WAL."
+  ],
+  "limits": [
+    "RF1, plaintext, one partition, nine records per cell; no multi-broker fault/security/long-running/resource-RSS qualification.",
+    "SignedMAX wire helpers are a serialization profile; not physical broker log-offset qualification.",
+    "No ratio, CPU, latency or world ranking measurements. Compressed leadership cells and independent x86_64/arm64 reproduction remain open."
+  ],
+  "provenance_limits": [
+    "Full default/all-feature suites ran the codec candidate before KL02-11 backing probes were added. Those separate probes intentionally reproduce an existing ownership gap (1pass4fail); they are not codec regressions or qualified production behavior.",
+    "Packed API/snippet checks include the prepared probes in the archive but do not execute their tests. Publishing or release qualification is not claimed."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/codecs/codec-matrix"
+}

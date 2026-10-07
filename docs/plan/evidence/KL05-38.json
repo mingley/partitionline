@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "task": "KL05-38",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "implementation": "Initial bounded Metadata membership snapshot, per-broker API66 v0/v1 negotiation, sequential owned queries, complete-only aggregate and explicit per-broker partial results. Conflicting duplicate IDs retained; every operation uses one absolute caller deadline.",
+  "bounds": {
+    "brokers": 256,
+    "listings": 100000,
+    "cumulative_response_bytes": 16777216,
+    "metadata_body_bytes": 1048576,
+    "active_requests": 1,
+    "attempts_per_broker": 8,
+    "metadata_refreshes": 3,
+    "filter_elements": 8192,
+    "state_filter_bytes": 262144
+  },
+  "source_bindings": {
+    "default": "validation/binary-binding-default.json",
+    "all_features": "validation/binary-binding-all.json"
+  },
+  "validation": {
+    "full-default": {
+      "passed": 2004,
+      "failed": 0,
+      "ignored": 16
+    },
+    "full-all": {
+      "passed": 2016,
+      "failed": 0,
+      "ignored": 17
+    }
+  },
+  "focused_tests": 17,
+  "external_lane_ignored_per_profile": 1,
+  "external_lane_actually_executed": true,
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "actual_sdk_pairs_per_release": 17,
+  "source_bound_profiles": {
+    "default": 72,
+    "all_features": 72
+  },
+  "public_calls_per_profile": {
+    "java": 36,
+    "rust_partial": 36,
+    "rust_complete": 36
+  },
+  "profiles": [
+    "success",
+    "v0-only",
+    "mixed0/1",
+    "terminal15/16/29/53",
+    "loading14",
+    "disconnect",
+    "stalled-broker",
+    "SASL_PLAIN_authenticated_reconnect",
+    "delayed_Metadata"
+  ],
+  "old_source_regression": {
+    "commit": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+    "positive_controls": 1,
+    "expected_failures": 1,
+    "actual_rows": 2,
+    "expected_rows": 4,
+    "production_source_unchanged": true,
+    "peer": "Metadata4 allows legacy discovery options to reach the real empty-key coordinator undercount; same assertion/helper supports final source."
+  },
+  "actual_sdk_wire_identity": true,
+  "all_processes_waited": true,
+  "closure": "Every final peer joins3 listeners and all workers, checks3 closed/rebindable ports and runtime0 tasks. Every Java JVM parent-waited; actual node2 reconnect performs a second SASL authentication.",
+  "strict_checks": "Latest stable1.99 default/all Clippy -Dwarnings; rustfmt; all-feature rustdoc -Dwarnings pass.",
+  "docs_navigation": {
+    "local_links": 192,
+    "status": "pass"
+  },
+  "retained_failures": [
+    "First Java compile used a consumer CloseOptions class for Admin; actual strict compiler rejected it. Admin.close(Duration) is the correct supported method in all3 SDKs. Exact source/log retained.",
+    "First old-source regression refused Metadata1 auto-create options before reaching the listing bug. Retained separately; Metadata4 is a valid independently encoded peer capability and reaches the2-versus4 listing failure without changing old production source.",
+    "Initial Metadata4 helper left Vec.splice results unused; strict compile/lint rejected them. Explicitly dropping those finite fixture iterators fixes the helper; failed sources/logs retained.",
+    "Documentation navigation rejects directory-only links. The new benchmark evidence link now names README.md;192 local links pass."
+  ],
+  "limits": [
+    "Scripted wire peers model selected transaction listings and error policies, not a live broker transaction state, persistence or failover.",
+    "SASL_PLAIN uses disposable publicly documented fixture credentials over loopback; this qualifies authentication on reconnect, not TLS or session reauthentication.",
+    "Sequential fanout is bounded; no fanout throughput comparison is claimed. Metadata membership is an initial snapshot and address refresh applies to those IDs.",
+    "API66 v2 TransactionalIdPattern remains a separate open card. No current-version complete conformance promotion; core/full registries remain incomplete.",
+    "Limits are checked before operation decoding, after the unchanged transport frame cap. No allocator-peak or long production-soak claim.",
+    "Source is locally uncommitted; no push, hosted CI, production readiness or speed ranking."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/list-transactions-routing/qualification"
+}

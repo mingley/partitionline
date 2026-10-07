@@ -1,0 +1,42 @@
+{
+  "id": "KL09-02",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-05",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate. Current source-input hashes and release binary hashes pin the final candidate. No commit or hosted CI run is claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_override": "User requested latest stable Rust only; historical Rust 1.85 requirements are superseded.",
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/perf/KL09-02",
+  "release_binary_sha256": {
+    "bench_produce": "b4ec26a6f15ce3061f71f24f249d7d24ae7bb0d848495fe66dd8c16e724ae3c3",
+    "bench_fetch": "418b7e9ab4b080d4b55b6549137a949955df128d4f8742aa21416acf42020ca4"
+  },
+  "provenance_limits": "Draft compiler/lint/test failures are retained, but exact draft source snapshots were not captured. Early successful cohorts used earlier group-discovery or output-metadata variants and are supporting evidence only. Final producer/fetch and fresh cold-group cohorts qualify the final production behavior; source hashes cover that behavior. Current fetch output has the final settings metadata.",
+  "scope": "Producer benchmark settings, bounded phases, seeded keys/payloads and effective output; no throughput ranking.",
+  "primary_native_cohort": "validation/native-matched-terminal-final",
+  "native_acceptance": {
+    "peer": "Apache Kafka 4.3.1",
+    "partitions": 6,
+    "warmup_records": 1000,
+    "timed_records": 100000,
+    "acknowledged_total": 101000,
+    "high_watermark_delta": 101000,
+    "independent_java_readback": 101000
+  },
+  "additional_cohorts": [
+    "native-plain-v2",
+    "native-idempotent-v2",
+    "native-legacy"
+  ],
+  "known_failure": "Original cold InitProducerId returned code14 and wrote zero records. Later warm-broker success does not resolve this; KL03-24 remains pending.",
+  "independent_generator": "Golden keys and payload bytes extracted and compiled from maintained librdkafka peer.c, not duplicated Rust generation.",
+  "acceptance_evidence": [
+    "validation/settings-final.log",
+    "validation/blackbox-final.log",
+    "validation/c-generator-golden.json",
+    "validation/native-matched-terminal-final/java-audit.log",
+    "validation/native-matched-terminal-final/1-partitionline.resources.log"
+  ]
+}

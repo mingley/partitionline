@@ -3677,61 +3677,148 @@
       ]
     },
     {
-      "adapter": "none",
+      "adapter": "apache-java",
       "api_family": "AllocateProducerIds",
       "api_key": 67,
       "api_version": 0,
       "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
       "denominator": true,
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "id": "current-claimed-api-067-v0-4-1-2",
       "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
-      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "reason": "Actual pinned generated builders/parsers and bounded public Rust BrokerConn/Java raw socket calls to fresh native Kafka controllers qualify the declared API67v0 cohort. Both builds verify complete fields, defaults/errors/truncation/opaque tag normalization, nonoverlapping1000-ID blocks and stale broker epochs. Ordinary broker Admin policy is Unsupported. No Java Admin method or live allocator failover/exhaustion is inferred.",
       "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "backlog_tasks": [
         "KL01-31"
-      ]
+      ],
+      "original_registered_result": {
+        "adapter": "none",
+        "api_family": "AllocateProducerIds",
+        "api_key": 67,
+        "api_version": 0,
+        "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+        "denominator": true,
+        "disposition": "not_run",
+        "id": "current-claimed-api-067-v0-4-1-2",
+        "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "peer_pin": "4.1.2",
+        "peer_version_pin": "4.1.2",
+        "profile": "admin",
+        "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+        "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "backlog_tasks": [
+          "KL01-31"
+        ]
+      },
+      "evidence": "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-all-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/applicability.json"
+      ],
+      "qualification_scope": "client_raw_extension_API67v0_direct_native_controller_and_scalar_wire",
+      "execution_source_commit": "7582bbb70812b645330851f1430f7ef2d935d2a8",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431"
     },
     {
-      "adapter": "none",
+      "adapter": "apache-java",
       "api_family": "AllocateProducerIds",
       "api_key": 67,
       "api_version": 0,
       "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
       "denominator": true,
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "id": "current-claimed-api-067-v0-4-2-1",
       "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
-      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "reason": "Actual pinned generated builders/parsers and bounded public Rust BrokerConn/Java raw socket calls to fresh native Kafka controllers qualify the declared API67v0 cohort. Both builds verify complete fields, defaults/errors/truncation/opaque tag normalization, nonoverlapping1000-ID blocks and stale broker epochs. Ordinary broker Admin policy is Unsupported. No Java Admin method or live allocator failover/exhaustion is inferred.",
       "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "backlog_tasks": [
         "KL01-31"
-      ]
+      ],
+      "original_registered_result": {
+        "adapter": "none",
+        "api_family": "AllocateProducerIds",
+        "api_key": 67,
+        "api_version": 0,
+        "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+        "denominator": true,
+        "disposition": "not_run",
+        "id": "current-claimed-api-067-v0-4-2-1",
+        "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "peer_pin": "4.2.1",
+        "peer_version_pin": "4.2.1",
+        "profile": "admin",
+        "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+        "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "backlog_tasks": [
+          "KL01-31"
+        ]
+      },
+      "evidence": "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-all-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/applicability.json"
+      ],
+      "qualification_scope": "client_raw_extension_API67v0_direct_native_controller_and_scalar_wire",
+      "execution_source_commit": "7582bbb70812b645330851f1430f7ef2d935d2a8",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8"
     },
     {
-      "adapter": "none",
+      "adapter": "apache-java",
       "api_family": "AllocateProducerIds",
       "api_key": 67,
       "api_version": 0,
       "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
       "denominator": true,
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "id": "current-claimed-api-067-v0-4-3-1",
       "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
-      "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+      "reason": "Actual pinned generated builders/parsers and bounded public Rust BrokerConn/Java raw socket calls to fresh native Kafka controllers qualify the declared API67v0 cohort. Both builds verify complete fields, defaults/errors/truncation/opaque tag normalization, nonoverlapping1000-ID blocks and stale broker epochs. Ordinary broker Admin policy is Unsupported. No Java Admin method or live allocator failover/exhaustion is inferred.",
       "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
       "backlog_tasks": [
         "KL01-31"
-      ]
+      ],
+      "original_registered_result": {
+        "adapter": "none",
+        "api_family": "AllocateProducerIds",
+        "api_key": 67,
+        "api_version": 0,
+        "applicability_role": "Rust_raw_extension_no_Java_Admin_equivalent",
+        "denominator": true,
+        "disposition": "not_run",
+        "id": "current-claimed-api-067-v0-4-3-1",
+        "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "peer_pin": "4.3.1",
+        "peer_version_pin": "4.3.1",
+        "profile": "admin",
+        "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
+        "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+        "backlog_tasks": [
+          "KL01-31"
+        ]
+      },
+      "evidence": "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/sdk-all-final/summary.json",
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification/validation/applicability.json"
+      ],
+      "qualification_scope": "client_raw_extension_API67v0_direct_native_controller_and_scalar_wire",
+      "execution_source_commit": "7582bbb70812b645330851f1430f7ef2d935d2a8",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36"
     },
     {
       "adapter": "none",

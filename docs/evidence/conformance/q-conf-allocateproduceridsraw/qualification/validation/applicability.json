@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "task": "KL01-31",
+  "scope": "Declared current v0 raw-extension cohort; no public Java Admin equivalent and no historical peer cells in this cohort.",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "current-claimed-api-067-v0-4-1-2",
+    "current-claimed-api-067-v0-4-2-1",
+    "current-claimed-api-067-v0-4-3-1"
+  ],
+  "peers": [
+    {
+      "release": "4.1.2",
+      "sources": [
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "sha256": "127c2eef0be4ae7d8c60b378503ec4e366c328296f52081947583c44ed9b57d4"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "sha256": "f9df279f563c08855a3683f070960a11f6f9dd6b371eee9baa5d022f09b5cfca"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "sha256": "e9881dcc48d322ad3ab7fe7ab48cb0bbb217c8a88aa3f3468a729089564bce71"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "sha256": "40cc76bcd9987417e0fdaef769974394d1c094a4e6a8094451c27a5c96ab3139"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "sha256": "f782167a8f7e885b0f912e45db36eeef48986244f6fad8b2407d13d161854b2c"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "sha256": "2cb36ac6283ba708be1ae4e9dc10004debfb1d080b72b2d37788fed46c02397b"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "35c97cfa4437d7eac8362976d2e99375abaeae73e4b1e8487219dbfe94d0d884"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "sources": [
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "sha256": "1556141d5913cac338a92008b7476f4ff9c38a1fab404c37fc50765f840ce08e"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "sha256": "f9df279f563c08855a3683f070960a11f6f9dd6b371eee9baa5d022f09b5cfca"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "sha256": "e9881dcc48d322ad3ab7fe7ab48cb0bbb217c8a88aa3f3468a729089564bce71"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "sha256": "40cc76bcd9987417e0fdaef769974394d1c094a4e6a8094451c27a5c96ab3139"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "sha256": "f782167a8f7e885b0f912e45db36eeef48986244f6fad8b2407d13d161854b2c"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "sha256": "2cb36ac6283ba708be1ae4e9dc10004debfb1d080b72b2d37788fed46c02397b"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "960081d4601a6241fc16219b77761eaf4b026c4b39f68a4e3cf0e98b688dcafd"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "sources": [
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/AllocateProducerIdsRequest.json",
+          "sha256": "1556141d5913cac338a92008b7476f4ff9c38a1fab404c37fc50765f840ce08e"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/AllocateProducerIdsResponse.json",
+          "sha256": "f9df279f563c08855a3683f070960a11f6f9dd6b371eee9baa5d022f09b5cfca"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsRequest.java",
+          "sha256": "e9881dcc48d322ad3ab7fe7ab48cb0bbb217c8a88aa3f3468a729089564bce71"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AllocateProducerIdsResponse.java",
+          "sha256": "40cc76bcd9987417e0fdaef769974394d1c094a4e6a8094451c27a5c96ab3139"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/metadata/src/main/java/org/apache/kafka/controller/ProducerIdControlManager.java",
+          "sha256": "f782167a8f7e885b0f912e45db36eeef48986244f6fad8b2407d13d161854b2c"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/metadata/src/test/java/org/apache/kafka/controller/ProducerIdControlManagerTest.java",
+          "sha256": "2cb36ac6283ba708be1ae4e9dc10004debfb1d080b72b2d37788fed46c02397b"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "63d71dbc27c3e129a84138392b0407fd528bab43191c2aced47cfaa12136c9cc"
+        }
+      ]
+    }
+  ],
+  "applicable_source_cases": [
+    {
+      "source": "RequestResponseTest.createAllocateProducerIdsRequest/Response; checkRequest/Response",
+      "invocations": "v0 BrokerId2/BrokerEpoch123; throttle123/error0/start345/len234"
+    },
+    {
+      "source": "AllocateProducerIdsRequest.getErrorResponse; AllocateProducerIdsResponse.error/errorCounts",
+      "invocations": "v0 error0/41/77/31/-1, throttle17; generated default ID fields0"
+    },
+    {
+      "source": "ProducerIdControlManagerTest.testInitialResult/testGenerateProducerIds",
+      "invocations": "Owned live controller: three successive blocks with registered broker1 and actual registration epoch; length1000 and monotonic nonoverlapping ranges. Existing allocator state may make the first start nonzero."
+    },
+    {
+      "source": "ProducerIdControlManagerTest.testUnknownBrokerOrEpoch",
+      "invocations": "Owned live controller: unknown broker99/epoch0 and broker1/stale epoch-1; STALE_BROKER_EPOCH77, start/len0."
+    },
+    {
+      "source": "AllocateProducerIdsRequestData/ResponseData generated schemas",
+      "invocations": "v0 defaults plus signed integer extrema and whole-message unknown tagged fields; truncation of every prefix and malformed tag lengths separately classified."
+    }
+  ],
+  "nonapplicable_source_cases": [
+    {
+      "source": "ProducerIdControlManagerTest.testMonotonic",
+      "reason": "Direct internal replay injection of decreasing/equal ProducerIdsRecord offsets is controller-state validation without a raw request operation; live consecutive block allocation independently checks the exposed monotonic contract."
+    },
+    {
+      "source": "ProducerIdControlManagerTest.testMaxValue",
+      "reason": "Setup directly replays nextProducerId=Long.MAX_VALUE-1 into controller internals; no public raw request sets allocator state. Generated UNKNOWN_SERVER_ERROR factory/serialization is checked; live exhaustion is not claimed."
+    },
+    {
+      "source": "Java Admin",
+      "reason": "No standard allocateProducerIds method exists. Actual generated request builder/parser and raw socket dispatch are used."
+    }
+  ],
+  "limits": [
+    "No historical API67 cells are declared by this card. Existing internal-role exclusions stay unchanged.",
+    "No full controller persistence/failover, authorization campaign, allocator exhaustion or exhaustive upstream-case reconciliation under KL01-14.",
+    "Rust raw BrokerConn controller dispatch is distinct from Admin discovery on ordinary broker listeners; both actual endpoint policies are recorded."
+  ]
+}

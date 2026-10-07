@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "task": "KL09-36",
+  "status": "done",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "source_files_sha256": {
+    "src/admin.rs": "586c94141c87e861e06f48b512e60435897a8baaee33a0f7f234dfa079692024",
+    "src/cluster.rs": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa",
+    "src/config.rs": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+    "src/group.rs": "dbf9de6dec97890cdfe907e38d6bb7bf3aa58d15bfb4af35a34148c798f4ac83",
+    "src/interceptor.rs": "15e71dbacfc19bd5716d82ea0afd2f1f61f63e78faa2c01cef812aaf34a0d7ab",
+    "src/lib.rs": "cec5e357990885c097f273efe75ddba9e9943a8816ac4561240d60e9ab9706d6",
+    "src/metrics.rs": "bf0db9254b07106e15110fb70ad7bc71ce4f2a1dd32f8daccdc9c638001d76ee",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/partitioner.rs": "b84142ce7f31f6036f4d264367f91c20a30b79d3b73870fd9dca7ee7be9aba9a",
+    "src/producer.rs": "e2476f2ce78578e077e51085b1ee147d53f84bd7aeb768d12ca0a23ee891c6b4",
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/acl.rs": "39a9d56f0d586eaff84bd8e1f28d1d0f033a653dac46b5cdc4f2b18cef79f6f8",
+    "src/protocol/admin.rs": "ec286cd8331c8956d376702d0365c41e9bf5196f569e0aad225fff84b57914b2",
+    "src/protocol/api.rs": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+    "src/protocol/api_keys.rs": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "src/protocol/cgheartbeat.rs": "49311de5e97fb0e9402260c3dcea0534582952cc7c6d8777128e431c464932f4",
+    "src/protocol/epoch.rs": "76ec51fd15879b027f4bd499a5b58dcac30004b63e37e8aee117367ffade143d",
+    "src/protocol/fetch.rs": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+    "src/protocol/group.rs": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+    "src/protocol/header.rs": "39d3a51966bdb3d7ff580865e51c977c9e37cd2330c5e4e141b9f2729c0be8ba",
+    "src/protocol/idem.rs": "ac24caf3369db13a8aac24b1debdc1a2ddd04a3413f5fd73c499a5cd4f242de0",
+    "src/protocol/mod.rs": "fa09149d89ac3076dada38a0c8d0692d379d2d8b3ecf443b7161a28b3571af23",
+    "src/protocol/oauth.rs": "0ce921f988b4058ad8a207cb609c920b20f9a0589da6773f57b4d090a109066f",
+    "src/protocol/offsets.rs": "be167364402bf33631717a3f45685b84680c4ffbb40a7093ff60f4fe7aeb7126",
+    "src/protocol/oidc.rs": "3c8bf1f299065bbb12924818aa7fd242fe607a2176a7b1639cf675f2736672a8",
+    "src/protocol/records.rs": "c06f67cc1070d80d4f53f9aaeb1aac26389819fda9a0b658421afde8003b58a0",
+    "src/protocol/sasl.rs": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50",
+    "src/protocol/scram.rs": "ed474ed5eb62d3cd6b0865653cec6c2d033acb2be0f88a6e9af785075402636c",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "src/protocol/streams.rs": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+    "src/protocol/txn.rs": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+    "Cargo.toml": "55749f41cee87b061a07b541c389b39ddacb76b7af7be86f3782427ac4cd5c88",
+    "Cargo.lock": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc",
+    "rust-toolchain.toml": "7458b2d74495e6fb1c1edeea4d5a793705476431dadb60627187111f91441e13",
+    "benchmarks/codec/Cargo.toml": "ec2e7bdf7ccf5b94f8698851d1a604069df62b7d15e61cfb25b5caebf397cddb",
+    "benchmarks/codec/Cargo.lock": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709",
+    "benchmarks/codec/src/json1k-census.rs": "c3e57753496e71e80a3ce900a1166744b03c8bfb70b5868bfce1e10f1d6bb399",
+    "benchmarks/codec/src/json1k.rs": "064e33b3718760b8d9a70f1defd3a1dce68e4ba78b991c6aa4f6ac3712e9c8f4",
+    "benchmarks/codec/src/lib.rs": "ad8b5a6426166adf17216d13337e218fafaf8806df696c6700bd41c859a8919e",
+    "benchmarks/codec/src/main.rs": "ab79bd2f918516cf5747f731e25fdc78b0e614a7af194b04a9f11bdd013f3780",
+    "benchmarks/codec/src/zstd.rs": "8b3a79f59f1dcd3e2ca57b658a205697053ea3edf79837faf8af20bc4af55402",
+    "benchmarks/codec/src/zstd-census.rs": "c39b66ef7865f7ada0d1da1b8a28746fb959a964a6c69256cfcd2a69354688ab",
+    "benchmarks/codec/benches/zstd.rs": "21f6f87eedd15bb5a98a5b74088003149da400f0183e235e897baecec3d86ef7",
+    "benchmarks/codec/ZSTD.md": "f4e2b91c132a067afadeb5a10aa1f192ac8692ee352933314135a4605602bc1e",
+    "benchmarks/scenarios.json": "ebcb00df239398b43f7598367cf767cdd3bb960196d9345aa1cc88c56d3ae1e8",
+    "scripts/benchmark-report.py": "b03f0acd4ba5ab043f7aee5d05824f248c6587186b413bb1f0b7e0cafe4c3460",
+    "benchmarks/tests/test_report.py": "c4b0f63306f72c458b494906635598976944af794dcb136f50a774c36af1d97b"
+  },
+  "binary_sha256": "49b974a3e298df9efd2ce49d6faecc76797fc3239bf452452ab94317e7fd3ee8",
+  "scope": "Latest-stable zstd batch microbenchmarks, allocation/timing diagnostic driver and required produce/fetch scenario definitions with backend/level/corpus format guards.",
+  "default_benchmark_tests": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0
+  },
+  "default_plus_zstd_benchmark_tests": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0
+  },
+  "criterion_smoke_cases": 72,
+  "diagnostic_rows": 72,
+  "workloads": 24,
+  "levels": [
+    1,
+    3,
+    19
+  ],
+  "entropies": [
+    "random",
+    "text"
+  ],
+  "operations": [
+    "encode_cold",
+    "encode_reused",
+    "decode"
+  ],
+  "metrics": [
+    "compressed/uncompressed section ratio",
+    "payload bytes/s",
+    "allocation calls",
+    "requested allocation bytes"
+  ],
+  "reporter_tests_passed": 20,
+  "strict_all_target_all_feature_clippy": true,
+  "rustfmt": true,
+  "required_zstd_cells": [
+    "bulk-req-idempotent-acks-all-zstd",
+    "fetch-req-standard-6p-zstd"
+  ],
+  "required_cells_disposition": "not_run",
+  "format_guard": "Executed zstd reports require level3, resolved zstd-rs/libzstd/klauspost backend version, encoded corpus hash and positive actual section byte totals; missing/unequal declarations rejected.",
+  "first_failures": [
+    "Initial zstd feature build exposed nonexhaustive legacy JSON1K raw helper matches. Dedicated zstd batch path retained; those legacy helper paths explicitly reject zstd.",
+    "Extra fallback test build exhausted generated-cache disk and failed linking. Log retained, cache removed with receipt and low-debug build completed.",
+    "The fallback benchmark profile then failed its preexisting gzip allocation ratchet:21 calls vs default-backend16. Exactly the same row fails WITHOUT zstd. No budget raised, failure hidden or fallback qualification claimed."
+  ],
+  "limits": [
+    "No broker benchmark, paired comparisons, statistical capacity baseline or performance ranking qualified.",
+    "Criterion run was smoke mode; census3-iteration timing is diagnostic, not a confidence interval.",
+    "C/Java/Rust wrapper native libraries must be resolved and retained for each campaign; no current benchmark peer qualification is inferred from conformance peer pins.",
+    "Go adapter uses a backend default with unresolved level mapping; it is ineligible for the required level3 cells until explicitly configured and disclosed.",
+    "Backend/hash validation checks result declarations; it does not independently establish an actual library build, corpus or speed claim.",
+    "Optional miniz benchmark profile has an existing default-gzip budget mismatch. Its distinct baseline needs reconciliation under KL09-12; no changed allocation threshold or skipped test.",
+    "Core crate code, dependency policy, defaults and unsafe prohibition unchanged. Instrumentation remains in the existing workspace-excluded benchmark crate."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/perf/KL09-36"
+}

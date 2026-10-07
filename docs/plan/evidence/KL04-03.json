@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "task": "KL04-03",
+  "status": "done",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "sources_sha256": {
+    "benchmarks/peers/java/BenchmarkPeer.java": "5db069f1b64a4ff5b252faf637b1044a2ea1bdde2bd1b508a61df6226483f405",
+    "benchmarks/peers/java/Build.java": "37205b5cadc9105c4ab0ee5986d82ee6297c7acbdb5e62edb9386707b1b51e99",
+    "benchmarks/peers/java/build.py": "bf0be38103774b07c6d4487b76f408acffaa2f27f53a7f873892ce6a1f43f914",
+    "benchmarks/peers/java/run.py": "c62405e4c04e427d4794d4c1d09faae90054c346370a235b7917e20d5f85cc8e",
+    "benchmarks/peers/java/source-pin.json": "cc3134cc9ae74a0cecd4cfe371ebf1e6880ea574ec952434959faac6797b2fdd",
+    "benchmarks/peers/librdkafka/run.py": "836a34d0c66d770d13fc256a155b5c025f1a8755f56ca089f98e1c32a7b20da6",
+    "benchmarks/peers/java/README.md": "2a2370068a18f2e977530c3bf30d36da0f0d62f074368d899feb878e2eb0887e",
+    "benchmarks/peers/java/test_adapter.py": "6934568c51af7d03ac0a150d6ccbb159716d0e49c6702d9e3f49a1f936fa249c",
+    "benchmarks/scenarios.json": "0f1bbe62150fea4ab6ed2ddfd1abd726e92e0ad6a19b9377c1cfff7220e84305",
+    "benchmarks/result-schema.json": "faae8686985df634986226c7aa1e9811ff14fc189d5a53b682f7d6aa7a304111",
+    "scripts/benchmark-report.py": "b03f0acd4ba5ab043f7aee5d05824f248c6587186b413bb1f0b7e0cafe4c3460"
+  },
+  "binary_sha256": "ea8e0f08072e7002ce5927c1f6fe8e275b945a43c728e7cca4279e429f155f6c",
+  "scope": "Pinned Apache4.3.1/JDK21.0.12.1 asynchronous producer, manual receipt audit and shared result packaging; diagnostic driver qualification only.",
+  "toolchain": "Rust unchanged, latest stable1.99 only; Java peer pinned JDK21.0.12.1 compiler/runtime",
+  "offline_tests_passed": 10,
+  "reporter_tests_passed": 20,
+  "reproducible_jar": true,
+  "maven_url_download_pins_verified": true,
+  "native_peer": "Apache Kafka4.3.1 verified official distribution / RF1 / minISR1 / loopback / two topic partitions",
+  "cohorts": 6,
+  "timed_acknowledged_and_fully_verified": 768,
+  "excluded_warmup_records": 96,
+  "codecs": [
+    "none",
+    "gzip",
+    "snappy",
+    "lz4",
+    "zstd"
+  ],
+  "independent_audits": [
+    "Kafka CLI per-partition end offsets",
+    "Full Draft7 schema validation",
+    "Stored segment compression IDs, CRC32C and exact record counts"
+  ],
+  "broker_rejection": {
+    "accepted": 16,
+    "callback_failures": 16,
+    "acknowledged": 0,
+    "unknown": 16,
+    "failed_result_schema_valid": true
+  },
+  "acks_zero": {
+    "accepted": 16,
+    "acknowledged": 0,
+    "unknown": 16
+  },
+  "no_overwrite_negative": true,
+  "all_owned_processes_waited": true,
+  "client_kafka_threads_after_close": 0,
+  "broker_exit": 143,
+  "listeners_closed": true,
+  "frozen_scenarios_unchanged": true,
+  "unsupported_java_driver_cells": 18,
+  "backlog_gate": "pass",
+  "first_failures": [
+    "Distribution kafka-clients jar differs from Maven release pin and was rejected; the exact pinned Maven jar was used.",
+    "Host JDK lacks release21 cross-compilation symbols. Same pinned JDK21 compiler uses -source21 -target21 instead; no cross-JDK build claim.",
+    "Actual current SDK deprecated consumer.close(Duration); strict build rejected it. CloseOptions.timeout replaced it.",
+    "The first complete broker negative exposed missing required error.name in failed results. Original failed attempt/raw data retained; final schema validation succeeds for both successful and failed attempts.",
+    "One checker invocation used --json as a path option; exit2 retained, corrected --output invocation passes."
+  ],
+  "limits": [
+    "No frozen campaign, statistical speed comparison, world ranking, production soak or Suite HOLD change.",
+    "Driver is a named pipelined producer diagnostic, not a synchronous one-record benchmark. Latency is admission-attempt to completion, including backpressure; no open-loop claim.",
+    "Byte-based batching has no record-count cap; seeded-ID keys do not match frozen null/UUID distribution. All applicable frozen cells explicitly excluded for this driver, not claimed as SDK capability limits.",
+    "TLS/SASL, transactions, groups/share, null-key ID audits, open-loop and standalone timed fetch are unsupported; manual consumption is receipt validation only.",
+    "Zstd level3/JNI/backend pins work in actual roundtrip; required zstd comparison still needs retained encoded corpus and matching peer backend campaign.",
+    "Process CPU/RSS cover entire JVM run; allocation, average RSS and broker resources unmeasured. Host OS/JDK install is not a hermetic image.",
+    "Older failed build input sources are available only where actually retained; no reconstructed snapshot is represented as an executed source. Future build attempts freeze inputs before toolchain/dependency/compiler checks.",
+    "Unchanged dependency jars are retained once in validation/retained-build; older attempt manifests/logs/class archives remain, without duplicate jar copies."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/perf/KL04-03"
+}

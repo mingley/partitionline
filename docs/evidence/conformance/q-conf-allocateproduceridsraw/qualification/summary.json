@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "task": "KL01-31",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_published_commit": "7582bbb70812b645330851f1430f7ef2d935d2a8",
+  "source_branch": "codex/finish-open-cards-20261007",
+  "source_url": "https://github.com/mingley/partitionline/tree/7582bbb70812b645330851f1430f7ef2d935d2a8",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_source_uncommitted_to_head": true,
+  "implementation": "Current AllocateProducerIds0 scalar/default/error/opaque-tag/truncation checks and actual bounded Rust/Java controller raw dispatch; ordinary broker Admin unsupported policy measured.",
+  "validation": {
+    "default": {
+      "passed": 2082,
+      "failed": 0,
+      "ignored": 26
+    },
+    "all": {
+      "passed": 2094,
+      "failed": 0,
+      "ignored": 27
+    }
+  },
+  "ordinary_tests_each_profile": 3,
+  "SDK_profiles": {
+    "default": {
+      "independent_wire_bodies": 81,
+      "independent_live_body_parses": 60,
+      "raw_controller_requests": 30,
+      "successful_blocks": 18,
+      "stale_epoch_errors": 12
+    },
+    "all": {
+      "independent_wire_bodies": 81,
+      "independent_live_body_parses": 60,
+      "raw_controller_requests": 30,
+      "successful_blocks": 18,
+      "stale_epoch_errors": 12
+    }
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "native_archive_bindings": [
+    {
+      "release": "4.1.2",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2.tgz",
+      "sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "matched_native_input_files": 204
+    },
+    {
+      "release": "4.2.1",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1.tgz",
+      "sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "matched_native_input_files": 203
+    },
+    {
+      "release": "4.3.1",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1.tgz",
+      "sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "matched_native_input_files": 203
+    }
+  ],
+  "strict_checks": [
+    "latest stable Rust1.99.0",
+    "focused default/all Clippy and default/all-target/full-feature Clippy -Dwarnings",
+    "rustfmt"
+  ],
+  "product_source_changed": false,
+  "qualified_case_ids": [
+    "current-claimed-api-067-v0-4-1-2",
+    "current-claimed-api-067-v0-4-2-1",
+    "current-claimed-api-067-v0-4-3-1"
+  ],
+  "limits": [
+    "Selected current v0 raw-extension cohort, authentic generated Apache requests/parsers and disposable native controller calls. No standard Java Admin allocateProducerIds method exists. The tested Rust raw dispatch uses public BrokerConn; ordinary broker Admin negotiation returns Unsupported.",
+    "The live profile uses a single combined broker/controller with fresh storage per release and feature build. Registered broker epochs are captured from actual registration. Three blocks per caller are nonoverlapping across callers; each has1000 IDs. Unknown broker99/epoch0 and broker1/epoch-1 return STALE_BROKER_EPOCH77.",
+    "No native partitionline broker is tested here. No controller failover/persistence campaign, permission enforcement, concurrency stress, int64 allocator exhaustion or global production/resource/performance result is claimed.",
+    "The declared applicability file records exact upstream scalar/error tests and the internal replay/state-injection cases outside this raw-client contract. KL01-14 retains exhaustive upstream source/parameter reconciliation. Existing historical broker-internal exclusions and original current-case pins remain unchanged.",
+    "Fixed codecs have no nested arrays. All declared current SDK bodies are checked through the entire input; every prefix of the scalar fixtures fails. Rust skips unknown tagged payloads and returns known fields; Java retains opaque payloads. The independent normalized comparison records this intentional difference.",
+    "Each native Rust raw call sequence shares a five-second deadline, including socket setup and actual API18v0 capability discovery. Java raw calls have a five-second read budget and the parent owns a finite15-second process deadline. This is not a secure transport/hostile response size or RSS qualification.",
+    "All executed native bin/libs/config hashes match the retained native archives. Every broker and JVM/Rust test process is parent-waited, broker exits143 after requested TERM, and both listener ports are closed and rebound. All raw sockets close. No detached broker or soak job remains.",
+    "Three current registered cells advance to independent_pass while prior pin/peer/status/reason are retained. The denominator stays182; independent cases increase51 to54. Core/full remain incomplete and performance Suite HOLD remains active."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "evidence_directory": "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification"
+}

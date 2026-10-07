@@ -1,0 +1,47 @@
+{
+  "id": "KL09-03",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-05",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate. Current source-input hashes and release binary hashes pin the final candidate. No commit or hosted CI run is claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_override": "User requested latest stable Rust only; historical Rust 1.85 requirements are superseded.",
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/perf/KL09-03",
+  "release_binary_sha256": {
+    "bench_produce": "b4ec26a6f15ce3061f71f24f249d7d24ae7bb0d848495fe66dd8c16e724ae3c3",
+    "bench_fetch": "418b7e9ab4b080d4b55b6549137a949955df128d4f8742aa21416acf42020ca4"
+  },
+  "provenance_limits": "Draft compiler/lint/test failures are retained, but exact draft source snapshots were not captured. Early successful cohorts used earlier group-discovery or output-metadata variants and are supporting evidence only. Final producer/fetch and fresh cold-group cohorts qualify the final production behavior; source hashes cover that behavior. Current fetch output has the final settings metadata.",
+  "scope": "Fetch warmup, actual value MB/s, independent response/partition limits, group polling, explicit commits and verification labels; no throughput ranking.",
+  "primary_native_cohorts": [
+    "validation/native-final-manual",
+    "validation/native-final-group"
+  ],
+  "native_acceptance": {
+    "peer": "Apache Kafka 4.3.1",
+    "seeded": 1000,
+    "verified_each_mode": 1000,
+    "warmup": 17,
+    "timed_records": 983,
+    "timed_value_bytes": 98300,
+    "partitions": 2,
+    "committed_offsets": [
+      500,
+      500
+    ],
+    "lag": 0,
+    "group_members_after_close": 0
+  },
+  "measurement_boundary": "Records after the warmup boundary in the same poll use data fetched during warmup. Small runs are diagnostic; wire bytes, keys and verification overhead are not isolated throughput measurements.",
+  "known_failure": "Original cold group discovery returned code15; bounded retry implementation and fresh-broker qualification are retained under KL03-23.",
+  "acceptance_evidence": [
+    "validation/measurement-metadata-final.log",
+    "validation/blackbox-metadata-final.log",
+    "validation/native-final-manual/verdict.json",
+    "validation/native-final-group/verdict.json",
+    "validation/native-final-group/java-committed-offsets.log",
+    "validation/native-final-group/java-group-state.log"
+  ]
+}

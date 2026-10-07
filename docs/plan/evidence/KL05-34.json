@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "task": "KL05-34",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_published_commit": "bc4560eee43dc3a0fcc63256f0d075b147446a6d",
+  "source_branch": "codex/finish-open-cards-20261007",
+  "source_url": "https://github.com/mingley/partitionline/tree/bc4560eee43dc3a0fcc63256f0d075b147446a6d",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_source_uncommitted_to_head": true,
+  "implementation": "Bounded OffsetCommit/OffsetFetch8-10 models and caller-driven OffsetClient; ConsumerGroup/Admin UUID routing, assignment-bound synchronous/queued commits, captured metadata projection for named/batched Admin calls, actual-socket negotiation and one offset operation deadline.",
+  "validation": {
+    "default": {
+      "passed": 2062,
+      "failed": 0,
+      "ignored": 22
+    },
+    "all": {
+      "passed": 2074,
+      "failed": 0,
+      "ignored": 23
+    }
+  },
+  "ordinary_socket_tests_each_profile": 24,
+  "ordinary_codec_tests_each_profile": 4,
+  "external_lanes_actually_executed": true,
+  "SDK_profiles": {
+    "default-final2": {
+      "process_profiles": 96,
+      "supported_profiles": 81,
+      "expected_refusals": 15,
+      "independently_parsed_Rust_offset_bodies": 180,
+      "actual_commit_frames": 60,
+      "actual_fetch_frames": 93,
+      "actual_metadata_frames": 114,
+      "parsed_actual_responses": 414,
+      "successful_Java_public_calls": 45,
+      "successful_Rust_public_calls": 96
+    },
+    "all-final": {
+      "process_profiles": 96,
+      "supported_profiles": 81,
+      "expected_refusals": 15,
+      "independently_parsed_Rust_offset_bodies": 180,
+      "actual_commit_frames": 60,
+      "actual_fetch_frames": 93,
+      "actual_metadata_frames": 114,
+      "parsed_actual_responses": 414,
+      "successful_Java_public_calls": 45,
+      "successful_Rust_public_calls": 96
+    }
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "bounds": {
+    "typed_attempts": 8,
+    "metadata_attempts": 3,
+    "typed_groups": 256,
+    "bootstrap_addresses": 16,
+    "metadata_brokers": 256,
+    "additional_operation_connections": 2,
+    "FindCoordinator_response_body_bytes": 65536,
+    "cumulative_FindCoordinator_bytes": 1048576,
+    "cumulative_offset_response_bytes": "eight times configured wire_bytes",
+    "default_limits": "wire1MiB; each string64KiB/aggregate1MiB; array8192/aggregate32768; tags64/aggregate1024; payload64KiB; requested decoded4MiB"
+  },
+  "owned_shutdown": "Every final owned peer joins three listeners/workers, rebinds its ports and records zero tasks. The runner parent-waits every final process; Java closes its Admin/manual Consumer and records zero Kafka threads. Typed cancellation observes physical EOF while OffsetClient lives and then reuses it.",
+  "strict_checks": [
+    "latest stable Rust1.99.0",
+    "default/all-target and all-feature Clippy -Dwarnings",
+    "rustfmt",
+    "all-feature rustdoc -Dwarnings",
+    "53 protocol-coverage checker tests"
+  ],
+  "package": {
+    "sha256": "b2f0cc854989b5f0350b2fb1dd56c9b31c95039d919e9e2a1231324157fbbc64",
+    "feature_cells": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "compiled_examples_each": 24,
+    "local_links_each": 37,
+    "prose_counts_precede_task_closure": true
+  },
+  "navigation": {
+    "documents": [
+      "README.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
+      "docs/RELEASE.md",
+      "docs/ROADMAP.md",
+      "docs/STATUS.md",
+      "docs/adopter-exercise.md",
+      "docs/api-stability.md",
+      "docs/auth-refresh.md",
+      "docs/benchmark-contract.md",
+      "docs/benchmark.md",
+      "docs/design.md",
+      "docs/gaps.md",
+      "docs/guide.md",
+      "docs/gzip-backend.md",
+      "docs/index.md",
+      "docs/migrate-from-rdkafka.md",
+      "docs/open-loop-latency.md",
+      "docs/resource-contract.md",
+      "docs/resource-soak.md",
+      "docs/sasl-reauthentication.md",
+      "docs/schema-companion.md",
+      "docs/security.md",
+      "docs/support.md",
+      "docs/zstd-spike.md"
+    ],
+    "local_links": 184,
+    "excluded_historical_documents": [
+      "docs/ADOPTION.md",
+      "docs/CIVILIZATION.md"
+    ],
+    "status": "pass"
+  },
+  "retained_failures": [
+    "All prototype compile/focused/SDK failures and their source captures remain in validation, including4.1 builder signature, private test constructor, old nullable-metadata projection, actual capability wrapper and source-binding selection fixes.",
+    "Strict checks rejected blocking test filesystem calls, unused lint expectations, redundant match guards, expect calls, a standard mutex and a manual range pattern. Corrected source and each actual failed command remain; no suppression was added.",
+    "Post-review legacy Admin timeout/string admission fix was compiled and tested before final source binding. Earlier accepted SDK/full-suite prototypes remain distinct from final evidence.",
+    "An invalid backlog CLI mode is retained separately; only the actual backlog mode supplies the accepted report."
+  ],
+  "limits": [
+    "Selected Apache SDK schemas/factories and genuine Java public Admin/manual Consumer calls against bounded scripted peers. No live coordinator persistence, native broker recreation, membership churn or failover qualification.",
+    "Java name-based public factories still cap OffsetCommit/OffsetFetch at9 and refuse10-only peers. Genuine generated UUID builders and full data schemas accept10. These are different public surfaces; no v10 Java manual Consumer operation is invented.",
+    "Typed offset requests preserve raw UUIDs, nullable metadata and terminal errors. Legacy named projections retain their existing empty-string metadata projection and fail on unmapped UUIDs; all-topic raw results preserve unknown UUIDs.",
+    "UUID mutations retry the same request at most eight times; lost replies, timeout and cancellation remain ambiguous. The tests simulate same-name recreation by changing Metadata/assignment UUIDs, including rebalance and queued commits.",
+    "New typed operations own at most two additional sockets and no background task. Existing Admin/group/consumer connections, caches, heartbeat workers and asynchronous-commit queue policies are unchanged; this is not a global resource ceiling.",
+    "Requested storage limits do not measure allocator overhead or RSS. Shared bounded ApiVersions/TLS/SASL/frame transport is unchanged. New decoding validates body/count/string/tag/storage budgets before its own collection allocations.",
+    "Names use legacy8/9 in the typed client; UUID intent never falls back. Existing name-based methods retain earlier-version layouts and re-negotiate actual coordinator ranges. Named Admin calls use fresh bounded Metadata10-13; group commits use captured assignment IDs.",
+    "The new UUID path and existing Admin offset methods use an original operation deadline. Existing group membership/rejoin and general metadata refresh APIs have their own lifecycle limits; no overall group startup deadline is newly qualified.",
+    "Warm connection reuse and throughput are not measured here. No fastest-client/server, production, core/full conformance, hosted CI, main merge or release claim. Required conformance denominator and independent-case count stay182/51."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "evidence_directory": "docs/evidence/client/offset-topic-ids-v10/qualification"
+}

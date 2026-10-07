@@ -1,0 +1,64 @@
+{
+  "id": "KL05-04",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; exact source snapshots, actual frame hashes, package archive and command logs retained. No hosted CI or commit claimed.",
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable only",
+  "scope": "Optional zstd encoder, typed validated levels1\u201319/default3, reusable context, unchanged default dependency graph. Standard frames, content size/checksum, no dictionary, window at most8MiB.",
+  "limits": {
+    "record_section_bytes": 67108864,
+    "compressed_section_bytes": 67174400,
+    "configured_batch_cap": "Producer max_request_size checked after compression, including the61-byte Kafka header; zero disables the extra cap. Raw scratch callers may select the same cap explicitly.",
+    "rollback": "length/count/input-cap/output-cap errors preserve output prefix, reset encoder scratch; producer failures roll back sequence allocation and release buffer memory before application send",
+    "memory_scope": "logical byte lengths; backend scratch, retained context and allocator capacity are additional memory, not process RSS bound"
+  },
+  "independent": {
+    "apache": "Kafka4.3.1 + zstd-jni1.5.6-10, actual loaded jar pins; all19 encoder levels and9 record/block boundaries,28 actual Rust frames with per-frame/expected SHA records",
+    "native": "Fresh Apache Kafka4.3.1 RF1:128 Rust records at levels1,3,19 independently read byte-for-byte by Java and actual librdkafka2.15.0 consumer; HW128",
+    "native_closure": "all Rust/Java/C commands waited; C consumer closed and background threads joined; broker waited; two ports closed/reusable",
+    "negative_control": "Actual level19 Rust frame inner checksum mutated and outer Kafka CRC repaired: Apache Java rejects it"
+  },
+  "validation": {
+    "all_features": {
+      "passed": 1987,
+      "failed": 0,
+      "ignored": 7
+    },
+    "default": {
+      "passed": 1975,
+      "failed": 0,
+      "ignored": 6
+    },
+    "fallback_integration": {
+      "passed": 50,
+      "failed": 0,
+      "ignored": 2
+    },
+    "strict_default_and_all_clippy": "pass",
+    "format_and_strict_rustdoc": "pass",
+    "doctests": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "packed_profiles": "default,tracing,zstd,all;19 snippets and37 local links each; exact final archive retained",
+    "ledger_negative_controls": 53,
+    "backlog_structure": "pass;172 required,24 independent,148 unqualified; full/core/current upstream gates remain false"
+  },
+  "retained_failures": [
+    "First draft tests used nonexistent constructor/header-builder names; compiler rejected before execution. Corrected to existing public APIs. A replacement-script mismatch retained a second identical failed compile; no execution claimed.",
+    "First executable mock used a nonexistent topic and one unspecific is_err assertion passed at metadata lookup. Corrected to the actual t topic, explicit backend-limit error and records_queued==1 before accepting the reservation tests.",
+    "First compression-expansion fixture was only1000 bytes and fit its estimated cap. Increased the incompressible payload across the128KiB block boundary; actual encoded expansion now exceeds the cap and fails before send.",
+    "Initial native C build warned about an upstream header qualifier and local indentation. Treat the dependency include as a system header, fix local formatting; strict -Wall -Wextra -Werror build and final native run pass."
+  ],
+  "provenance_limits": [
+    "Two earlier successful native attempts retain their own scope and sources. The final native attempt executes final production source and captures exact Rust/C/Java inputs plus C binary/library hashes.",
+    "Whole final default/all suites bind final production source. Later edits are documentation/registry text only; the final package and Python ledger checks bind those final documents.",
+    "The complete bidirectional matrix on required broker lines, broader production/security/platform qualification and comparative performance remain separate."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/codecs/zstd-encode"
+}

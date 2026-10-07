@@ -1,0 +1,84 @@
+{
+  "status": "pass",
+  "actual_sdk": true,
+  "actual_native_controllers": true,
+  "source_bound": true,
+  "all_processes_parent_waited": true,
+  "independent_wire_bodies": 81,
+  "independent_live_body_parses": 60,
+  "raw_controller_requests": 30,
+  "successful_blocks": 18,
+  "stale_epoch_errors": 12,
+  "results": [
+    {
+      "release": "4.1.2",
+      "cluster_id": "_oIaK7auTr6nxt-ud9iQdg",
+      "parent_waited": true,
+      "controller": "127.0.0.1:58025",
+      "broker": "127.0.0.1:33439",
+      "pid": 538347,
+      "command": [
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/allocate-producer-ids-raw/sdk-default-final/4.1.2-native/server.properties"
+      ],
+      "registered_broker_epoch": 9,
+      "actual_raw_requests": 10,
+      "successful_blocks": 6,
+      "stale_epoch_errors": 4,
+      "independent_live_body_parses": 20,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    },
+    {
+      "release": "4.2.1",
+      "cluster_id": "7VRchnn5Rya0EXpiFKOPqA",
+      "parent_waited": true,
+      "controller": "127.0.0.1:54667",
+      "broker": "127.0.0.1:51889",
+      "pid": 540695,
+      "command": [
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/allocate-producer-ids-raw/sdk-default-final/4.2.1-native/server.properties"
+      ],
+      "registered_broker_epoch": 11,
+      "actual_raw_requests": 10,
+      "successful_blocks": 6,
+      "stale_epoch_errors": 4,
+      "independent_live_body_parses": 20,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    },
+    {
+      "release": "4.3.1",
+      "cluster_id": "lCeNjtKBS22OiKfSd3vCdQ",
+      "parent_waited": true,
+      "controller": "127.0.0.1:35697",
+      "broker": "127.0.0.1:37819",
+      "pid": 543240,
+      "command": [
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/allocate-producer-ids-raw/sdk-default-final/4.3.1-native/server.properties"
+      ],
+      "registered_broker_epoch": 12,
+      "actual_raw_requests": 10,
+      "successful_blocks": 6,
+      "stale_epoch_errors": 4,
+      "independent_live_body_parses": 20,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    }
+  ],
+  "scope": "API67 v0 raw-extension cohort only; no Java Admin method, live allocator exhaustion, failover or production/performance qualification."
+}

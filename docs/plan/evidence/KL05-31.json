@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "task": "KL05-31",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "published_codec_source": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "published_product_identity": "validation/published-source.json",
+  "implementation": "Typed bounded StreamsGroupHeartbeat/API88 and StreamsGroupDescribe/API89 v0 codecs preserving all reachable nested fields, null/empty, signed defaults, unsigned endpoint ports and canonical flexible headers.",
+  "new_work": "Source-bound execution of all24 existing codec tests and genuine three-SDK reverse parsing; new independent Apache header/body reverse oracle and reproducible owned runner.",
+  "validation": {
+    "focused_default": 24,
+    "focused_all": 24,
+    "ignored": 0,
+    "strict_fmt_clippy_rustdoc": "pass",
+    "full_default": 2011,
+    "full_all": 2023,
+    "full_suite_source_identity": "validation/shared-full-suite/source-identity.json",
+    "full_suite_reused": true
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "per_feature_profile": {
+    "strict_compiles": 3,
+    "independent_generation_processes": 6,
+    "version_scoped_vectors": 159,
+    "emitted_vectors": 318,
+    "fixture_files_per_sdk": 55,
+    "reverse_bodies_per_sdk": 26,
+    "reverse_header_body_messages_per_sdk": 12
+  },
+  "feature_profiles": 2,
+  "complete_fresh_generation_trees_match_installed": true,
+  "all_processes_parent_waited": true,
+  "input_source_guards_passed": true,
+  "bounds": {
+    "wire_bytes": 1048576,
+    "single_string_bytes": 65536,
+    "total_string_bytes": 1048576,
+    "per_array_elements": 8192,
+    "total_elements": 32768,
+    "per_structure_tags": 64,
+    "total_tags": 1024,
+    "total_tag_bytes": 65536,
+    "decoded_requested_bytes": 4194304
+  },
+  "historical_failures": "Unchanged preparation, oracle-correction-01 and actual-three-sdk-03 receipts retain initial compiler and filename-guard failures. No first failure in this final run.",
+  "limits": [
+    "Codec-only component qualification; no public heartbeat/Admin runtime, Streams coordinator, broker persistence or Kafka Streams framework claim.",
+    "Strict UTF8, whole-input and ascending unique unknown tags are local policies. Actual Apache reader leniency and parsed/rejected outcomes remain separately recorded.",
+    "Decoded limits cover requested vector slots and copied strings, not allocator rounding or resident memory.",
+    "Product codec and existing tests match live origin/main; newly added header oracle and qualification runner are local uncommitted changes. No new push or hosted CI performed.",
+    "Core/full conformance remain incomplete;45 independently qualified cases of182 unchanged. No production readiness or performance rank."
+  ],
+  "full_protocol_complete": false,
+  "core_protocol_complete": false,
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/streams-codecs/qualification"
+}

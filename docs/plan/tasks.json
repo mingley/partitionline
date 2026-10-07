@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-03",
+  "updated": "2026-10-07",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -1173,14 +1173,45 @@
     {
       "id": "KL02-09",
       "title": "Create a repeatable overload and resource soak driver",
-      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "codex-env-goal-20261002",
-      "write_set": ["examples/resource_soak.rs", "scripts/run-resource-soak.sh", "scripts/resource-soak.py", "tests/ci/test_resource_soak.py", "docs/resource-soak.md", "docs/plan/evidence/KL02-09.json", "docs/evidence/resource-soak/KL02-09/", "docs/plan/tasks.json"],
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "codex-root-open-cards-20261007",
+      "write_set": ["examples/resource_soak.rs", "scripts/run-resource-soak.sh", "scripts/resource-soak.py", "tests/ci/test_resource_soak.py", "docs/resource-soak.md", "docs/plan/evidence/KL02-09.json", "docs/evidence/resource-soak/KL02-09/", "docs/plan/tasks.json",
+        "examples/common/resource_peer.rs",
+        "docs/resource-contract.md",
+        ".github/workflows/ci.yml"
+      ],
       "depends_on": ["KL02-02", "KL02-05", "KL02-08", "KL03-18"],
       "files": ["new: examples/resource_soak.rs", "new: scripts/run-resource-soak.sh", "docs/resource-contract.md"],
       "deliverable": "A resumable driver for 2x sustainable offered load, stalled peers and slow processing.",
       "acceptance": ["Record offered/accepted/completed/failed/ambiguous work, queue/decoded bytes, RSS, tasks and connection counts.", "A short deterministic mode runs in CI without real external systems; a controlled-host mode retains timestamped raw samples.", "Use owned resources, explicit stop/deadline conditions and no destructive shared-topic defaults."],
       "validation": ["Run the short deterministic soak and assert its budget/outcome invariants.", "Interrupt and resume an isolated rehearsal without losing its evidence manifest."],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "commands": [
+            "PL_RESOURCE_SOAK_BINARY=<frozen copied stable default example> PL_RESOURCE_SOAK_OUTPUT=<retained> python3 -B -m unittest discover -s tests/ci -p test_resource_soak.py -v:10 passed",
+            "Pinned fresh Kafka4.3.1 development calibration plus controlled-mode run/audit:all commands waited, both ports closed",
+            "cargo +stable test --locked --offline:2002 passed,11 ignored; --all-features:2014 passed,12 ignored",
+            "stable fmt/default+all strict Clippy/strict rustdoc passed; actual packaged default/tracing/zstd/all cells passed"
+          ],
+          "results": "Implemented finite driver with frozen hashes, append-only attempts, PID/wait/deadline receipts and raw timestamped payload/outcome/RSS/task/socket measurements. Short overloaded, stalled and slow-processing runs plus actual signal/resume and corrupted-artifact probes pass. Native controlled mode executes above2x a finite measured development baseline. Resource docs now describe current bounds simply.",
+          "artifacts": [
+            "docs/plan/evidence/KL02-09.json",
+            "docs/evidence/resource-soak/KL02-09"
+          ],
+          "limits": [
+            "Short peer is authored and generates fetch records separately; no producer/consumer integrity oracle.",
+            "RSS includes allocator and peer memory; no process RSS bound or long-run drift claim.",
+            "Finite saturated-window calibration is a development baseline; native run lasted2 seconds above twice that observed rate. No sustainable long-run capacity or global speed claim.",
+            "Native broker is fresh plaintext RF1 with one controller. Secure, replicated HA and long-running workloads remain separate.",
+            "Controlled topic ownership must be established by operator; prefix checks and no destructive defaults are safeguards, not external ownership proof.",
+            "No24-hour qualification; KL02-10 remains open and requires its own frozen controlled-host evidence.",
+            "Hosted resource-soak CI lane is wired and YAML-checked; no hosted run is claimed.",
+            "Owned generated package-consumer cache removed with receipt; package archives/source/results retained."
+          ]
+        }
+      ],
+      "claim_note": "Root takes over serial work after KL05-37 evidence freeze; no other active agent. User requests all open cards."
     },
     {
       "id": "KL02-10",
@@ -2194,14 +2225,44 @@
     {
       "id": "KL04-03",
       "title": "Check in a pinned Apache Java benchmark peer",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-env-goal-20261002",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "codex-root-open-cards-20261007",
       "write_set": ["benchmarks/peers/java/", "benchmarks/scenarios.json", "docs/plan/evidence/KL04-03.json", "docs/evidence/perf/KL04-03/", "docs/plan/tasks.json"],
       "depends_on": ["KL04-01", "KL04-02"],
       "files": ["new: benchmarks/peers/java/", "benchmarks/scenarios.json"],
       "deliverable": "A reproducibly built Java producer/consumer peer for the shared contract.",
       "acceptance": ["Pin dependencies/toolchain and emit the resolved effective configuration.", "Use the same delivery/latency definitions and deterministic record IDs as partitionline.", "Report unsupported scenarios explicitly; do not compare a synchronous API with a pipelined one without a separate named cell."],
       "validation": ["Build and run the peer's offline unit/config tests from its checked-in manifest.", "Run one isolated acknowledged round trip and validate its result artifact."],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "Pinned offline JavaCompiler strict build and independent reproducible rebuild:identical SHA-256",
+            "Actual SDK offline unit/config tests:10 passed",
+            "Real Kafka4.3.1 roundtrip six cohorts:768 timed records fully verified;96 warmup excluded",
+            "Real broker rejection and acks0:no fabricated acknowledgments;failed result schema validated",
+            "Full Draft7 structural + benchmark-report semantic validation;independent CLI offset and stored codec/CRC/count audit",
+            "Reporter20 tests and protocol backlog gate:passed"
+          ],
+          "results": "Pinned pipelined Java producer and direct-assignment consumer audit with exact effective config, deterministic Rust/C record bytes, delivery accounting, retained failures, process ownership and result provenance. Frozen settings unchanged and driver exclusions explicit.",
+          "artifacts": [
+            "docs/plan/evidence/KL04-03.json",
+            "docs/evidence/perf/KL04-03"
+          ],
+          "limits": [
+            "No frozen campaign, statistical speed comparison, world ranking, production soak or Suite HOLD change.",
+            "Driver is a named pipelined producer diagnostic, not a synchronous one-record benchmark. Latency is admission-attempt to completion, including backpressure; no open-loop claim.",
+            "Byte-based batching has no record-count cap; seeded-ID keys do not match frozen null/UUID distribution. All applicable frozen cells explicitly excluded for this driver, not claimed as SDK capability limits.",
+            "TLS/SASL, transactions, groups/share, null-key ID audits, open-loop and standalone timed fetch are unsupported; manual consumption is receipt validation only.",
+            "Zstd level3/JNI/backend pins work in actual roundtrip; required zstd comparison still needs retained encoded corpus and matching peer backend campaign.",
+            "Process CPU/RSS cover entire JVM run; allocation, average RSS and broker resources unmeasured. Host OS/JDK install is not a hermetic image.",
+            "Older failed build input sources are available only where actually retained; no reconstructed snapshot is represented as an executed source. Future build attempts freeze inputs before toolchain/dependency/compiler checks.",
+            "Unchanged dependency jars are retained once in validation/retained-build; older attempt manifests/logs/class archives remain, without duplicate jar copies."
+          ]
+        }
+      ],
+      "claim_note": "Root takes over the absent Java driver after freezing KL09-36. Source/config tests and one isolated acknowledged round trip required; no performance ranking."
     },
     {
       "id": "KL04-04",
@@ -2752,13 +2813,48 @@
     {
       "id": "KL04-08",
       "title": "Automate paired randomized benchmark runs",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "codex-root-open-cards-20261007",
       "depends_on": ["KL04-03", "KL04-04", "KL04-05", "KL04-06", "KL04-07"],
       "files": ["new: scripts/run-benchmark-matrix.py", "benchmarks/scenarios.json", "benchmarks/tests/"],
       "deliverable": "One resumable orchestrator for matched peers and contract-defined scenario cells.",
       "acceptance": ["Randomize paired A/B order, warm up, repeat and preserve every failed/skipped cell.", "Allocate unique owned topics/resources; require explicit approval for provisioning or destructive reset, with safe interrupted-run cleanup.", "Record actual effective settings and refuse incomparable durability/security/integrity configurations."],
       "validation": ["Run orchestration tests with fake peer processes, including crash, timeout and resume.", "Rehearse a tiny complete matrix on an approved isolated broker."],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "python3 -B -m unittest discover -s benchmarks/tests -p test_*.py -v:35 passed",
+            "Two source-bound native Kafka4.3.1 rehearsals; final four rows pass; owned topics deleted; broker waited/ports reusable",
+            "Actual Java emit-config incompatibility rejected before create",
+            "Parsed CI workflow and verified installed pinned dependencies; hosted job not run",
+            "Protocol backlog gate passed"
+          ],
+          "results": "Linux paired diagnostic orchestration, immutable attempt retention, explicit owned provisioning, resume, bounded process groups and result comparability checks.",
+          "artifacts": [
+            "docs/plan/evidence/KL04-08.json",
+            "docs/evidence/perf/KL04-08"
+          ],
+          "limits": [
+            "Same C driver in both native control arms; this is not an independent peer performance comparison. Actual Java arm is refused before provisioning because required comparable settings are absent.",
+            "No frozen scenario IDs, settings or driver exclusions changed. Suite HOLD remains active.",
+            "Nonsecret trusted operator manifests only; secure credential adapters are outside this qualification.",
+            "SIGINT/SIGTERM, timeout and ordinary child crashes tested; orchestrator SIGKILL, host failure and children deliberately escaping their process group are unqualified.",
+            "Unconfirmed or ambiguous create outcomes are retained for operator review; cleanup deletes only confirmed owned topics.",
+            "Chained hashes and pinned inputs detect changes against retained local records, not adversarial re-signing or externally authenticated provenance.",
+            "Local source uncommitted; no remote publication, hosted CI, production soak, speed comparison or world ranking."
+          ]
+        }
+      ],
+      "write_set": [
+        "scripts/run-benchmark-matrix.py",
+        "benchmarks/tests/test_matrix.py",
+        "benchmarks/README-matrix.md",
+        "docs/evidence/perf/KL04-08/",
+        "docs/plan/evidence/KL04-08.json",
+        ".github/workflows/ci.yml"
+      ]
     },
     {
       "id": "KL04-09",
@@ -2988,35 +3084,127 @@
     {
       "id": "KL05-03",
       "title": "Implement bounded zstd record-batch decoding",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "codex-open-cards-20261007",
       "depends_on": ["KL05-02", "KL02-03"],
       "files": ["src/protocol/records.rs", "Cargo.toml", "tests/fixtures/protocol_oracles/"],
       "deliverable": "Compression-ID-4 decoding through the approved backend and byte budget.",
       "acceptance": ["Decode independent Kafka/Java/librdkafka zstd frames, including varied frame/window/content-size forms.", "Reject corrupt or over-budget output explicitly and fuzz the new path.", "Feature-disabled behavior is explicit Unsupported; default dependency policy and existing codecs are unchanged."],
       "validation": ["cargo test --locked --lib protocol::records", "Run the new codec's feature-enabled and feature-disabled fixture cases."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL05-03.json",
+        "docs/evidence/codecs/zstd-decode/summary.json"
+      ],
+      "write_set": [
+        "src/protocol/records.rs (compression-ID4 decoder/feature guards only)",
+        "Cargo.toml",
+        "Cargo.lock",
+        "tests/zstd_decode.rs",
+        "tests/fixtures/zstd-decode/",
+        "tests/conformance/java/ZstdDecodeFixtures.java",
+        "tests/conformance/run-zstd-decode.py",
+        "tests/fuzz_decode_smoke.rs (bounded zstd mutation corpus)",
+        "docs/zstd-spike.md (current decoder status)",
+        "docs/guide.md (opt-in decoder scope)",
+        "docs/evidence/codecs/zstd-decode/",
+        "docs/plan/evidence/KL05-03.json",
+        "docs/plan/tasks.json",
+        "README.md (compression status)",
+        "src/lib.rs (compression API docs)",
+        "docs/gaps.md (current capability text)",
+        "deny.toml (native-backend reason wording only)",
+        "tests/conformance/features.json (decoder status)",
+        "tests/conformance/cases.json (bounded decoder cohort)",
+        "tests/conformance/test_check_protocol_coverage.py (cohort counts)",
+        ".github/workflows/ci.yml (stable-only codec/mutation checks)",
+        "tests/client_api.rs (optional codec expectation)",
+        "scripts/check-doc-examples.py (explicit optional profiles)",
+        "scripts/ci-crate-consumer.sh (four real package cells)",
+        "scripts/report-macos-arm64.py (package-cell validation/stable-only guard)",
+        "scripts/report-windows.py (stable-only guard)",
+        "tests/platform/test_macos_report.py",
+        "tests/platform/test_windows_report.py",
+        "scripts/broker-interop.py (stable-only toolchain selection)"
+      ],
+      "serialization_note": "Root integrates this optional decoder after freezing KL05-35 qualification. Existing record-encoding/performance owner scopes remain unchanged; no encoder or bidirectional codec feature completion is inferred."
     },
     {
       "id": "KL05-04",
       "title": "Implement interoperable zstd record-batch encoding",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "codex-open-cards-20261007",
       "depends_on": ["KL05-03"],
       "files": ["src/protocol/records.rs", "src/producer.rs", "tests/protocol_oracles.rs"],
       "deliverable": "The approved encoder with a typed compression configuration and explicit level policy.",
       "acceptance": ["Produce frames decode with the pinned independent peers, not only the new local decoder.", "CRC, record lengths, compressed/uncompressed limits and error-path reservations remain correct.", "Update capability docs only for actually shipped backend/feature combinations."],
       "validation": ["cargo test --locked --lib protocol::records", "cargo test --locked --test protocol_oracles", "Run independent zstd decoding of emitted frames."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL05-04.json",
+        "docs/evidence/codecs/zstd-encode/summary.json"
+      ],
+      "write_set": [
+        "src/protocol/records.rs (typed zstd encoder/levels)",
+        "src/producer.rs (compression level config/writer)",
+        "tests/zstd_encode.rs",
+        "tests/zstd_decode.rs (encoder capability expectation)",
+        "tests/conformance/java/ZstdDecodeFixtures.java (independent emitted-frame readback)",
+        "tests/conformance/run-zstd-decode.py (Rust output checks)",
+        "tests/fixtures/zstd-decode/manifest.json (oracle source pins)",
+        "docs/zstd-spike.md",
+        "docs/guide.md",
+        "README.md",
+        "src/lib.rs",
+        "tests/conformance/features.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        ".github/workflows/ci.yml (emitted frame readback)",
+        "docs/evidence/codecs/zstd-encode/",
+        "docs/plan/evidence/KL05-04.json",
+        "docs/plan/tasks.json",
+        "tests/conformance/librdkafka/zstd_consume.c (independent native reader)",
+        "docs/gaps.md (current optional codec status)",
+        "docs/migrate-from-rdkafka.md (optional codec guidance)",
+        "docs/design.md (codec description)",
+        "docs/support.md (current feature/stable policy)",
+        "docs/ROADMAP.md (current codec/companion implementation)"
+      ],
+      "serialization_note": "Root starts encoder after freezing KL05-03 exact source/qualification. Full live bidirectional matrix KL05-05 remains a separate open gate."
     },
     {
       "id": "KL05-05",
       "title": "Qualify all Kafka codecs bidirectionally",
-      "priority": "P1", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "conformance", "status": "done", "owner": "codex-open-cards-20261007",
       "depends_on": ["KL05-04", "KL01-10"],
       "files": ["tests/conformance/cases.json", "scripts/ci-broker-smoke.sh", "benchmarks/scenarios.json"],
       "deliverable": "A Java/C/Rust encode-decode matrix for none, gzip, snappy, LZ4 and zstd.",
       "acceptance": ["Cover raw/framed snappy, headers/nulls, high/low entropy, boundary sizes and broker/topic compression behavior.", "Check client-to-broker-to-other-client and the reverse direction on required broker lines.", "Record correctness separately from ratio/CPU/latency results and keep unsupported feature cells visible."],
       "validation": ["Run all codec fixture cases and the live codec matrix.", "Validate resulting conformance and benchmark artifacts."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL05-05.json",
+        "docs/evidence/codecs/codec-matrix/summary.json"
+      ],
+      "write_set": [
+        "tests/codec_matrix.rs",
+        "tests/fixtures/codec-matrix/",
+        "tests/conformance/java/CodecMatrix.java",
+        "tests/conformance/librdkafka/codec_matrix.c",
+        "tests/conformance/run-codec-matrix.py",
+        "src/protocol/records.rs (Java signed delta behavior if independently reproduced)",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "scripts/ci-broker-smoke.sh",
+        "benchmarks/scenarios.json",
+        "docs/zstd-spike.md",
+        "docs/evidence/codecs/codec-matrix/",
+        "docs/plan/evidence/KL05-05.json",
+        "docs/plan/tasks.json",
+        ".github/workflows/ci.yml",
+        "docs/security.md",
+        "docs/guide.md",
+        "docs/api-stability.md",
+        "docs/ROADMAP.md",
+        "tests/conformance/test_codec_matrix.py"
+      ],
+      "serialization_note": "Root freezes all5codec Java/C/Rust native correctness evidence:150 cells/300cross-readbacks on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1, independent signed/raw-frame fixtures, stored fields, owned shutdown and current source hashes. Separate KL02-11 probes preserve the backing-retention gap. Performance qualification remains open."
     },
     {
       "id": "KL05-06",
@@ -3293,7 +3481,10 @@
           "src/lib.rs"
         ]
       },
-      "integration_coordinator": "Sole producer/partitioner writer implements opt-in uniform nonadaptive Java4.3 state-machine semantics with explicitly conservative Rust packed byte accounting. Default round-robin and keyed murmur2 remain. Only successful channel admissions affect accounting; cancellation, bounded cohort sealing, backpressure and checked resource limits require actual public behavioral evidence. No exact Java compression or partition-history equivalence claim. Root owns exports/shared registries/task status; freeze/push source before actual immutable qualification and matched keyed/unkeyed measurements."
+      "integration_coordinator": "Sole producer/partitioner writer implements opt-in uniform nonadaptive Java4.3 state-machine semantics with explicitly conservative Rust packed byte accounting. Default round-robin and keyed murmur2 remain. Only successful channel admissions affect accounting; cancellation, bounded cohort sealing, backpressure and checked resource limits require actual public behavioral evidence. No exact Java compression or partition-history equivalence claim. Root owns exports/shared registries/task status; freeze/push source before actual immutable qualification and matched keyed/unkeyed measurements.",
+      "integration_notes": [
+        "Root updated the active sticky benchmark rust-version from1.85 to current stable1.99 under explicit user policy. Historical frozen cohorts are retained; any new build/performance qualification must bind the new manifest, not reuse an old manifest hash."
+      ]
     },
     {
       "id": "KL05-11",
@@ -10837,24 +11028,65 @@
     {
       "id": "KL09-02",
       "title": "Make bench_produce honor every frozen scenario knob",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "codex-goal-completion-20261005",
       "depends_on": ["KL04-07"],
       "files": ["examples/bench_produce.rs", "benchmarks/scenarios.json", "scripts/lab-a-produce.sh"],
       "deliverable": "bench_produce implements every knob the matched scenario passes (warmup records, batch bytes, batch records, idempotence, max in-flight, key mode, seeded payload entropy) and prints its effective configuration.",
       "acceptance": ["WARMUP and BATCH_SIZE (passed by the matched scenario but ignored today) are implemented; any unknown benchmark variable exits non-zero instead of being silently dropped.", "Payloads are seeded pseudorandom bytes with optional 16-byte keys and a recorded seed; repeated-byte payloads remain only as an explicitly labeled legacy mode so historical Lab A runs stay reproducible.", "Output JSON carries the effective settings required by benchmarks/result-schema.json; CPU and peak RSS are captured by the harness wrapper (/usr/bin/time or /proc sampling), not by unsafe FFI in the example."],
       "validation": ["cargo build --locked --release --example bench_produce", "Matched-scenario invocation at COUNT=100000 on an isolated local broker: scripts/lab-a-produce.sh HW delta equals acked; an unknown knob exits non-zero."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL09-02.json",
+        "docs/evidence/perf/KL09-02/summary.json"
+      ],
+      "write_set": [
+        "examples/bench_produce.rs",
+        "examples/common/bench_produce_settings.rs",
+        "tests/bench_produce_settings.rs",
+        "tests/ci/test_bench_produce_settings.py",
+        "scripts/lab-a-produce.sh",
+        "docs/benchmark.md",
+        "docs/evidence/perf/KL09-02/",
+        "docs/plan/evidence/KL09-02.json",
+        "docs/plan/tasks.json",
+        "tests/conformance/java/ConformanceBenchProduceSettings.java",
+        "src/partitioner.rs (stable-only array chunk lint migration)",
+        "tests/protocol_oracles.rs (stable-only is_multiple_of lint migration)"
+      ],
+      "read_only_held": [
+        "benchmarks/scenarios.json",
+        "src/producer.rs",
+        "src/net.rs",
+        "src/protocol/records.rs",
+        "benchmarks/peers/java/"
+      ],
+      "validation_toolchain_override": "Latest stable Rust only, per user instruction; Rust1.85 is not a validation target.",
+      "scope_note": "User requested completion across the plan. The two existing-source lint migrations are required by the latest-stable-only policy and preserve behavior; other owners and feature holds remain unchanged."
     },
     {
       "id": "KL09-03",
       "title": "Extend bench_fetch with MB/s, warmup and group-poll modes",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "codex-goal-completion-20261005",
       "depends_on": ["KL04-07"],
       "files": ["examples/bench_fetch.rs", "scripts/lab-a-fetch.sh"],
       "deliverable": "A fetch driver reporting records/s and MB/s after a declared warmup, with manual-assign, ConsumerGroup::poll and payload-verification modes.",
       "acceptance": ["Warmup records are excluded from timing; partition max bytes is an independent knob (MAX_BYTES sets only the response maximum today).", "Group mode joins, polls and commits per the contract; verification mode checks KL04-07 record IDs/hashes and is labeled separately from raw-speed mode.", "Effective configuration is printed; CPU and RSS are captured by the harness wrapper."],
       "validation": ["cargo build --locked --release --example bench_fetch", "Seed a small isolated topic, run each mode, and confirm consumed == seeded with every ID/hash verified in verification mode."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL09-03.json",
+        "docs/evidence/perf/KL09-03/summary.json"
+      ],
+      "write_set": [
+        "examples/bench_fetch.rs",
+        "examples/common/bench_fetch_settings.rs",
+        "tests/ci/test_bench_fetch_settings.py",
+        "scripts/lab-a-fetch.sh",
+        "docs/benchmark.md",
+        "docs/evidence/perf/KL09-03/",
+        "docs/plan/evidence/KL09-03.json",
+        "docs/plan/tasks.json",
+        ".github/workflows/ci.yml (benchmark settings check integration)"
+      ],
+      "validation_toolchain_override": "Latest stable Rust only, per user instruction; Rust1.85 is not a validation target."
     },
     {
       "id": "KL09-04",
@@ -10953,7 +11185,15 @@
       "deliverable": "Pinned-SHA local measurements for every section 4 cell that is runnable at that SHA (micro, nb and lb cells), used as the shared reference for KL09 ranking.",
       "acceptance": ["At least 5 repetitions per cell with medians and bootstrap 95% CIs; host CPU, frequency policy, toolchain and SHA are recorded; everything is labeled local/unsigned.", "Cells that cannot run yet (for example lb-latency-openloop before KL04-06) are listed as not_run with the reason.", "No README/benchmark.md numbers, public claim or Suite HOLD change."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Re-run one nb cell and one lb cell and show both reproduce within the stated noise."],
-      "evidence": []
+      "evidence": [],
+      "qualification_notes": [
+        {
+          "source": "docs/evidence/perf/KL09-36",
+          "issue": "Optional miniz benchmark allocation profile fails same gzip row with and without zstd:21 allocations vs default zlib-rs budget16. Backend-specific baseline reconciliation remains required; default ratchet unchanged.",
+          "status": "unqualified",
+          "budget_raise_approved": false
+        }
+      ]
     },
     {
       "id": "KL09-13",
@@ -11265,13 +11505,56 @@
     {
       "id": "KL09-36",
       "title": "Add zstd microbenchmarks and leadership cells",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "codex-root-open-cards-20261007",
       "depends_on": ["KL05-04", "KL04-09", "KL09-01", "KL09-04"],
       "files": ["benchmarks/codec/", "benchmarks/scenarios.json"],
       "deliverable": "zstd encode/decode microbenches and required zstd bulk/fetch cells in the contract, once zstd encode and decode exist.",
       "acceptance": ["Microbenches use realistic entropy and sizes and report ratio, bytes/s and allocations.", "Scenario cells disclose each peer's zstd backend (pure Rust vs libzstd) and level; unequal levels are not comparable.", "The KL09-01 gate lists the zstd cells as required for the global claim."],
       "validation": ["cargo test --locked --manifest-path benchmarks/codec/Cargo.toml", "python3 -m json.tool benchmarks/scenarios.json >/dev/null"],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "cargo +stable test --locked --manifest-path benchmarks/codec/Cargo.toml:3 passed; --features zstd:4 passed",
+            "cargo +stable clippy --locked --manifest-path benchmarks/codec/Cargo.toml --all-targets --all-features -- -D warnings:passed",
+            "cargo +stable bench --locked --manifest-path benchmarks/codec/Cargo.toml --features zstd --bench zstd -- --test:72 actual smoke cases passed",
+            "Frozen optimized zstd-census --iterations3:72 complete actual rows; invalid iterations0:rejected exit1",
+            "python3 -B -m unittest discover -s benchmarks/tests -p test_report.py -v:20 passed"
+          ],
+          "results": "Added fresh/reused encoder and decoder benchmarks with realistic batch sizes and entropy, exact-field preflight, ratios, bytes/s and allocation census. Required level3 bulk/fetch cells disclose each peer backend and unresolved settings; executed-result format guards reject unknown backends/levels/corpora. Benchmark graph uses stable Rust1.99.",
+          "artifacts": [
+            "docs/plan/evidence/KL09-36.json",
+            "docs/evidence/perf/KL09-36"
+          ],
+          "limits": [
+            "No broker benchmark, paired comparisons, statistical capacity baseline or performance ranking qualified.",
+            "Criterion run was smoke mode; census3-iteration timing is diagnostic, not a confidence interval.",
+            "C/Java/Rust wrapper native libraries must be resolved and retained for each campaign; no current benchmark peer qualification is inferred from conformance peer pins.",
+            "Go adapter uses a backend default with unresolved level mapping; it is ineligible for the required level3 cells until explicitly configured and disclosed.",
+            "Backend/hash validation checks result declarations; it does not independently establish an actual library build, corpus or speed claim.",
+            "Optional miniz benchmark profile has an existing default-gzip budget mismatch. Its distinct baseline needs reconciliation under KL09-12; no changed allocation threshold or skipped test.",
+            "Core crate code, dependency policy, defaults and unsafe prohibition unchanged. Instrumentation remains in the existing workspace-excluded benchmark crate."
+          ]
+        }
+      ],
+      "write_set": [
+        "benchmarks/codec/Cargo.toml",
+        "benchmarks/codec/Cargo.lock",
+        "benchmarks/codec/src/zstd.rs",
+        "benchmarks/codec/src/zstd-census.rs",
+        "benchmarks/codec/src/lib.rs",
+        "benchmarks/codec/benches/zstd.rs",
+        "benchmarks/codec/ZSTD.md",
+        "benchmarks/scenarios.json",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL09-36.json",
+        "docs/evidence/perf/KL09-36/",
+        "benchmarks/codec/src/json1k.rs",
+        "scripts/benchmark-report.py",
+        "benchmarks/tests/test_report.py"
+      ]
     },
     {
       "id": "KL09-37",
@@ -27040,7 +27323,7 @@
     "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
   ],
   "validation": [
-    "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+    "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
     "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
   ],
   "evidence": [],
@@ -29105,11 +29388,13 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": [
-        "docs/evidence/broker/KL11-14/application/proposal-02/handoff.json"
+        "docs/evidence/broker/KL11-14/application/proposal-02/handoff.json",
+        "docs/evidence/integration/latest-stable-20261005/summary.json",
+        "docs/evidence/integration/open-cards-20261006/summary.json"
       ],
       "write_set": [
         "docs/evidence/broker/KL11-14/",
@@ -32566,7 +32851,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32591,7 +32876,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32617,7 +32902,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32642,7 +32927,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32667,7 +32952,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32693,7 +32978,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32719,7 +33004,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32745,7 +33030,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32771,7 +33056,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32797,7 +33082,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32823,7 +33108,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32849,7 +33134,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32874,7 +33159,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32900,7 +33185,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32926,7 +33211,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32951,7 +33236,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -32977,7 +33262,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -33003,7 +33288,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -33029,7 +33314,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34057,10 +34342,10 @@
     "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
     "Qualified online mode uses bounded HTTPS discovery/JWKS and explicit revocation authority; static pinned JWKS alone is a documented signed-JWT profile and cannot close full OIDC.",
     "Typed issuer/subject authority never inherits SCRAM administrator permission through matching subject names. Expiry/revocation interrupts idle/read/permit/handler/write admission; an already admitted durable mutation may complete without a delivered receipt.",
-    "Default dependency activation remains unchanged; OIDC optional graph, RS256/ES256 signatures and strict stable/MSRV checks are required. Actual Java/C/Rust token acquisition/reconnect, authority rotation/outage, negative signed-token schemas and bounded shutdown histories remain required; no client-credential/token persistence in evidence."
+    "Default dependency activation remains unchanged; OIDC optional graph, RS256/ES256 signatures and strict latest-stable Rust checks are required. Actual Java/C/Rust token acquisition/reconnect, authority rotation/outage, negative signed-token schemas and bounded shutdown histories remain required; no client-credential/token persistence in evidence."
   ],
   "validation": [
-    "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+    "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
     "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
   ],
   "evidence": [],
@@ -34126,7 +34411,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34152,7 +34437,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34177,7 +34462,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34204,7 +34489,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34231,7 +34516,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34257,7 +34542,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34286,7 +34571,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34316,7 +34601,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34342,7 +34627,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34369,7 +34654,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34400,7 +34685,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34426,7 +34711,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34458,7 +34743,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34483,7 +34768,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34511,7 +34796,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34538,7 +34823,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34569,7 +34854,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34601,7 +34886,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -34848,7 +35133,12 @@
         "KL11-62",
         "KL11-63",
         "KL11-70",
-        "KL11-71"
+        "KL11-71",
+        "KL03-23",
+        "KL03-24",
+        "KL05-43",
+        "KL05-45",
+        "KL06-13"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -34861,7 +35151,7 @@
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
-        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
@@ -43723,7 +44013,7 @@
         "Prove directory fencing, pre-vote without premature persistent vote/epoch mutation, mixed-version fallback and safe membership/successor handling. Retain narrowv0 regressions and unsupported-profile boundaries."
       ],
       "validation": [
-        "Pinned current Apache protocol and independent controller histories stable/MSRV.",
+        "Pinned current Apache protocol and independent controller histories latest-stable Rust.",
         "Partition/quorum-loss/stale-directory/pre-vote counterexamples and strict bounded resource gates."
       ],
       "evidence": []
@@ -43759,7 +44049,8 @@
       "evidence": [
         "docs/evidence/broker/KL11-71/source-03/handoff.json",
         "docs/evidence/broker/KL11-71/independent-review-02/validation.json",
-        "docs/evidence/broker/KL11-71/root-parser-02/validation.json"
+        "docs/evidence/broker/KL11-71/root-parser-02/validation.json",
+        "docs/evidence/integration/open-cards-20261006/summary.json"
       ],
       "write_set": [
         "docs/sasl-reauthentication.md",
@@ -49436,10 +49727,10 @@
         "Execute actual three/five-node TCP election, replication, partitions/reordering, minority failures, snapshot catch-up and restart; commit safety must be independently checked from captured bytes and causal receipts.",
         "Bound peer frames/chunks/queues/bytes/tasks/DNS admissions/deadlines; retain in-flight owners through cancellation and join every task before successful shutdown.",
         "Bind configured peer/group/directory/config identities and isolate trusted private peer framing explicitly. A private exchange alone does not advertise or qualify native Kafka Fetch/FetchSnapshot or modern KRaft compatibility under70.",
-        "Preserve fixed and dynamic membership/image/WAL regressions; run actual-source stable/MSRV and independent fault/negative controls."
+        "Preserve fixed and dynamic membership/image/WAL regressions; run actual-source latest-stable Rust and independent fault/negative controls."
       ],
       "validation": [
-        "Whole broker stable/Rust1.85 default/all strict checks with fresh real TCP fault histories.",
+        "Whole broker latest-stable Rust default/all strict checks with fresh real TCP fault histories.",
         "Independent byte/causal history checker and ownership saturation/shutdown guards."
       ],
       "evidence": [
@@ -49467,7 +49758,9 @@
           "full_stable_msrv_default_all_qualified": false
         },
         "docs/evidence/broker/raft-runtime-tcp/preparation/revision-04/handoff.json",
-        "docs/evidence/broker/KL11-76/runtime/observer-busy-01/handoff.json"
+        "docs/evidence/broker/KL11-76/runtime/observer-busy-01/handoff.json",
+        "docs/evidence/integration/latest-stable-20261005/summary.json",
+        "docs/evidence/integration/open-cards-20261006/summary.json"
       ],
       "write_set": [
         "partitionline-broker/src/raft/runtime.rs",
@@ -49492,8 +49785,8 @@
       "title": "Implement WriteTxnMarkers v2 and qualify public Admin negotiation",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-avro-adapter-20261003",
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03"
@@ -49727,12 +50020,12 @@
         "Fail invalid/unsupported versions before unrelated metadata/coordinator/network work. Positive nested-count/minimum-byte and frame/resource checks precede allocation; full successful body/header consumption and exact correlation/version are asserted.",
         "Preserve the existing operation routing/retry implementation once; both legacy projection and new typed operation share the same coordinator/leader invalidation and absolute deadline.",
         "Pin actual Apache4.1.2/4.2.1/4.3.1 jars, schemas and source. Execute independent fixtures in applicable versions and retain actual unsupported outcomes on4.1.2; do not claim fabricated full broker transaction/share semantics.",
-        "Freeze and push exact source before immutable stable+1.85 default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
+        "Freeze and push exact source before immutable latest stable Rust only default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
       ],
       "validation": [
         "Independent pinned Java fixture generation/replay + Rust-emitted-byte reverse parsing",
         "Actual TCP/public Rust Admin and applicable genuine official Java Admin cases with retained request/response/correlation/profile traces",
-        "Focused default/all-feature tests then exact-source full client stable and1.85 required gates"
+        "Focused default/all-feature tests then exact-source full client latest stable Rust only required gates"
       ],
       "write_set": [
         "src/protocol/txn.rs",
@@ -49740,7 +50033,8 @@
         "tests/write_txn_markers_v2.rs",
         "tests/fixtures/write-txn-markers-v2/",
         "docs/evidence/client/write-txn-markers-v2/",
-        "docs/plan/evidence/KL05-29.json"
+        "docs/plan/evidence/KL05-29.json",
+        "tests/conformance/run-write-txn-markers-v2.py"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -49748,19 +50042,46 @@
           "scripts/check-protocol-coverage.py",
           "tests/conformance/cases.json",
           "tests/conformance/features.json",
-          "docs/plan/tasks.json"
+          "docs/plan/tasks.json",
+          "tests/conformance/test_check_protocol_coverage.py"
         ]
       },
-      "integration_coordinator": "Both27/90 cards share one sole Admin writer with disjoint API semantics; common Admin changes are checkpointed together and each API retains separate actual fixtures/outcomes. Root owns exports/shared registries/task status. Original drafts and source-only corrections are preserved; no compiler or runtime success is claimed by this ownership record.",
-      "evidence": []
+      "integration_coordinator": "Root serializes the shared Admin writer and registry changes. API27 and API90 retain separate fixtures and outcomes. Immutable local source snapshots and executable hashes bind actual latest-stable runs; historical source preparation is preserved separately.",
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "Latest stable full default:2002 passed;all features:2014 passed",
+            "Focused default/all:12 passed,2 explicit ignored external lanes;actual fixture lanes executed separately",
+            "Actual Apache125 pairs/100 unsupported cells/40 null rejections/250 reverse-frame parses",
+            "Genuine public Java abortTransaction:72 default+72 all-feature profiles",
+            "Strict fmt/Clippy default+all/rustdoc;packaged four profiles\u00d720 documentation examples",
+            "Coverage checker53 tests+broker compatibility5 tests;classification and backlog gates passed"
+          ],
+          "results": "Typed signed TransactionVersion INT8 atv2, legacy struct literals and helpers preserved; public force-abort negotiates0..2/default0, exact target response identity, scoped leader refresh for8/9 and one absolute deadline. Nonnullable arrays/names reject before nested allocations.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-29.json",
+            "docs/evidence/client/write-txn-markers-v2/qualification"
+          ],
+          "limits": [
+            "This peer qualifies client-component framing, routing, handler outcomes, version negotiation and owned deadlines. It implements no broker transaction state or TXV2 producer recovery.",
+            "Bootstrap version selection is not target-node mixed-version rolling-upgrade qualification.",
+            "Apache4.1.2 supportsv1 only;4.2.1/4.3.1 supportv1/v2. Legacyv0 is a local compatibility control, never mislabeled an actual current SDK pass.",
+            "Typed generic markers support signed INT8 values, while public abort sends0. Unknown request tags are safely skipped, not retained by the typed projection.",
+            "Latest stable only. Historical1.85 and source-preparation receipts remain historical. Source is locally uncommitted; no remote publication or hosted CI result is claimed."
+          ]
+        }
+      ]
     },
     {
       "id": "KL05-30",
       "title": "Implement DescribeShareGroupOffsets v1 and qualify public Admin negotiation",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-avro-adapter-20261003",
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03"
@@ -49955,12 +50276,12 @@
         "Fail invalid/unsupported versions before unrelated metadata/coordinator/network work. Positive nested-count/minimum-byte and frame/resource checks precede allocation; full successful body/header consumption and exact correlation/version are asserted.",
         "Preserve the existing operation routing/retry implementation once; both legacy projection and new typed operation share the same coordinator/leader invalidation and absolute deadline.",
         "Pin actual Apache4.1.2/4.2.1/4.3.1 jars, schemas and source. Execute independent fixtures in applicable versions and retain actual unsupported outcomes on4.1.2; do not claim fabricated full broker transaction/share semantics.",
-        "Freeze and push exact source before immutable stable+1.85 default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
+        "Freeze and push exact source before immutable latest stable Rust only default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
       ],
       "validation": [
         "Independent pinned Java fixture generation/replay + Rust-emitted-byte reverse parsing",
         "Actual TCP/public Rust Admin and applicable genuine official Java Admin cases with retained request/response/correlation/profile traces",
-        "Focused default/all-feature tests then exact-source full client stable and1.85 required gates"
+        "Focused default/all-feature tests then exact-source full client latest stable Rust only required gates"
       ],
       "write_set": [
         "src/protocol/admin.rs",
@@ -49968,7 +50289,8 @@
         "tests/share_offsets_v1.rs",
         "tests/fixtures/share-offsets-v1/",
         "docs/evidence/client/share-offsets-v1/",
-        "docs/plan/evidence/KL05-30.json"
+        "docs/plan/evidence/KL05-30.json",
+        "tests/conformance/run-share-offsets-v1.py"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -49976,19 +50298,46 @@
           "scripts/check-protocol-coverage.py",
           "tests/conformance/cases.json",
           "tests/conformance/features.json",
-          "docs/plan/tasks.json"
+          "docs/plan/tasks.json",
+          "tests/conformance/test_check_protocol_coverage.py"
         ]
       },
       "integration_coordinator": "Both27/90 cards share one sole Admin writer with disjoint API semantics; common Admin changes are checkpointed together and each API retains separate actual fixtures/outcomes. Root owns exports/shared registries/task status. Original drafts and source-only corrections are preserved; no compiler or runtime success is claimed by this ownership record.",
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "Latest stable full default:2004 passed;all features:2016 passed",
+            "Focused default/all:12 passed;actual external fixture/socket lanes executed separately",
+            "Actual SDK100 pairs/20 unsupported/45 null controls/200 reverse-frame parses",
+            "Genuine public Java listShareGroupOffsets:72 default+72 all-feature profiles",
+            "Strict fmt/Clippy/rustdoc;packaged4 profiles\u00d720 examples",
+            "Coverage checker53+broker compatibility5 tests;classification/backlog passed;core/full remain incomplete"
+          ],
+          "results": "DescribeShareGroupOffsets0..1 typed signed lag, negative-is-absent accessor, unchanged legacy struct literals and projection, one shared public routing/retry path and absolute deadline. Scoped nonnullable arrays/names and per-element bounds before allocation; legacy response decoder shares the typedv0 implementation.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-30.json",
+            "docs/evidence/client/share-offsets-v1/qualification"
+          ],
+          "limits": [
+            "This wire peer has no share-group broker state, locks or persistence. It qualifies only the selected client components.",
+            "Bootstrap capability selection does not establish target-node mixed-version negotiation or rolling upgrades.",
+            "The original historical source-preparation packet and handwritten schema controls remain separately labeled, never reclassified as SDK runs.",
+            "Raw unknown tags are consumed and safely skipped; typed projections do not preserve them.",
+            "Latest stable only. Historical1.85 material is retained as history. Source is uncommitted; no remote publication, hosted CI, production readiness or ranking claimed."
+          ]
+        }
+      ]
     },
     {
       "id": "KL05-31",
       "title": "Implement bounded typed Streams v0 request and response codecs",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-zstd-decision-20261003",
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL01-03",
         "KL05-28"
@@ -50003,7 +50352,8 @@
         "tests/streams_protocol.rs",
         "tests/fixtures/streams/",
         "docs/evidence/client/streams-codecs/",
-        "docs/plan/evidence/KL05-31.json"
+        "docs/plan/evidence/KL05-31.json",
+        "tests/conformance/run-streams-codecs.py"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -50023,7 +50373,7 @@
         "Push exact source before immutable qualification; retain first failures, actual commands, source/archive/class hashes, full file modes and ownership cleanup evidence."
       ],
       "validation": [
-        "Focused stable/1.85 default/all-feature codec and malformed-input tests; strict fmt/Clippy/rustdoc.",
+        "Focused latest-stable Rust default/all-feature codec and malformed-input tests; strict fmt/Clippy/rustdoc.",
         "Actual pinned Java fixture generation and reverse parsing; source registration alone cannot become runtime coverage."
       ],
       "evidence": [
@@ -50081,6 +50431,29 @@
           "core_protocol_complete": false,
           "evidence_prefix": "docs/evidence/client/streams-codecs/actual-three-sdk-03/",
           "precise_provenance": "docs/evidence/client/streams-codecs/actual-three-sdk-03/revision-10/java-fixture-provenance-clarification.json"
+        },
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "disposition": "accepted",
+          "commands": [
+            "Latest-stable24 focused tests default/all, strict fmt/Clippy/rustdoc",
+            "Three pinned SDKs per build:3 strict compiles,6 generation processes,159 version-scoped vectors,318 emissions",
+            "26 body and12 flexible header/body genuine reverse parses per SDK/profile",
+            "Read-only live origin/main matches exact published product codecs and existing tests",
+            "Reused immediately preceding2011/2023 full suites with identical all product Rust/Cargo input hashes"
+          ],
+          "results": "Source-bound execution of all24 existing codec tests and genuine three-SDK reverse parsing; new independent Apache header/body reverse oracle and reproducible owned runner.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-31.json",
+            "docs/evidence/client/streams-codecs/qualification"
+          ],
+          "limits": [
+            "Codec-only component qualification; no public heartbeat/Admin runtime, Streams coordinator, broker persistence or Kafka Streams framework claim.",
+            "Strict UTF8, whole-input and ascending unique unknown tags are local policies. Actual Apache reader leniency and parsed/rejected outcomes remain separately recorded.",
+            "Decoded limits cover requested vector slots and copied strings, not allocator rounding or resident memory.",
+            "Product codec and existing tests match live origin/main; newly added header oracle and qualification runner are local uncommitted changes. No new push or hosted CI performed.",
+            "Core/full conformance remain incomplete;45 independently qualified cases of182 unchanged. No production readiness or performance rank."
+          ]
         }
       ]
     },
@@ -50089,8 +50462,8 @@
       "title": "Add caller-driven Streams heartbeat client operation",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL05-31"
       ],
@@ -50103,7 +50476,16 @@
         "tests/streams_heartbeat.rs",
         "tests/fixtures/streams-heartbeat/",
         "docs/evidence/client/streams-heartbeat/",
-        "docs/plan/evidence/KL05-32.json"
+        "docs/plan/evidence/KL05-32.json",
+        "src/lib.rs",
+        "docs/guide.md",
+        "docs/support.md",
+        "tests/conformance/run-streams-heartbeat.py",
+        "tests/conformance/features.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/cases.json",
+        "docs/gaps.md"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -50123,17 +50505,53 @@
       ],
       "validation": [
         "Actual public Rust socket peer and applicable genuine Apache heartbeat request/response outcomes.",
-        "Focused stable/1.85 default/all-feature behavioral and strict gates; broader immutable client regressions."
+        "Focused latest-stable Rust default/all-feature behavioral and strict gates; broader immutable client regressions."
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "16b7a14d42e77e4541135182d80f0038e1784c5c",
+          "working_source_uncommitted_to_head": true,
+          "disposition": "accepted",
+          "commands": [
+            "Latest-stable default2023/all2035 full tests;12 focused each;both external lanes run",
+            "Each build:3 genuine SDKs15 generated cases each,135 public Rust calls,324 actual application frames and135 typed response parses",
+            "Strict default/all Clippy/fmt/rustdoc;53 checker tests;four packaged feature consumers22 examples each",
+            "Published exact source to review branch and independently verified live remote SHA before immutable retention"
+          ],
+          "results": "StreamsClient with caller-driven typed API88 v0 heartbeats, explicit opt-in, actual GROUP discovery and per-connection negotiation. Full terminal responses retain errors/assignments/status. Warm calls reuse one coordinator socket. Retries, encoding, auth/discovery and I/O share one deadline; no background membership tasks.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-32.json",
+            "docs/evidence/client/streams-heartbeat/qualification"
+          ],
+          "limits": [
+            "Public Rust heartbeat with selected independent scripted GROUP peers and actual Apache builders, error factories and parsers. No Java Streams execution engine, live coordinator, membership persistence or failover qualification.",
+            "Opt-in is a conservative Rust policy for API88 v0. The version cannot identify release stability; all three actual default builders accepted explicit build0. No false builder-refusal claim.",
+            "Wire/decode limits apply to heartbeat bodies; FindCoordinator bodies have a64KiB operation cap. ApiVersions and TLS/SASL use unchanged shared transport/control limits. No allocator-peak or RSS bound qualification.",
+            "Successful calls cache one coordinator socket; cancellation/error discard operation-owned sockets. Close does not leave membership. Lost replies/cancellation can follow accepted broker mutations.",
+            "The review branch publishes exact tested source. Large execution archives remain locally retained; no main merge, release, hosted CI result, production-readiness or speed ranking.",
+            "Conformance implementation classification is updated for API88 and API66v2. Independently qualified required case count remains45/182; core/full completion remain false."
+          ]
+        },
+        {
+          "disposition": "accepted",
+          "scope": "Three current API88v0 component case promotions after immutable operation closure",
+          "artifacts": [
+            "docs/evidence/client/streams-heartbeat/registry-integration"
+          ],
+          "independent_required_cases": 48,
+          "required_cases": 182,
+          "core_protocol_complete": false,
+          "full_protocol_complete": false
+        }
+      ]
     },
     {
       "id": "KL05-33",
       "title": "Expose typed public Admin Streams group description",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL05-31",
         "KL05-30"
@@ -50147,7 +50565,19 @@
         "tests/streams_describe.rs",
         "tests/fixtures/streams-describe/",
         "docs/evidence/client/streams-describe/",
-        "docs/plan/evidence/KL05-33.json"
+        "docs/plan/evidence/KL05-33.json",
+        "src/admin/streams.rs",
+        "src/protocol/streams.rs",
+        "src/lib.rs",
+        "tests/conformance/run-streams-describe.py",
+        "tests/conformance/features.json",
+        "tests/conformance/cases.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "scripts/check-protocol-coverage.py",
+        "docs/guide.md",
+        "docs/support.md",
+        "docs/gaps.md",
+        "docs/STATUS.md"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -50168,17 +50598,51 @@
       ],
       "validation": [
         "Focused socket/fixture tests and real pinned Java Admin operation traces.",
-        "Stable/1.85 default/all-feature strict and immutable full-client gates."
+        "Latest-stable Rust default/all-feature strict and immutable full-client gates."
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "ade80f6b289a187a881daa4090cf201057c5ec39",
+          "disposition": "accepted",
+          "artifacts": [
+            "docs/plan/evidence/KL05-33.json",
+            "docs/evidence/client/streams-describe/qualification"
+          ],
+          "commands": [
+            "Latest-stable default2034/all2046 full tests",
+            "Each feature:24 actual Java Admin calls +24 public Rust calls across three SDKs",
+            "Strict default/all Clippy/fmt/rustdoc;53 checker tests;four extracted package consumers23 examples each",
+            "Exact source pushed and live remote checked before immutable qualification"
+          ],
+          "results": "Admin::describe_streams_groups: full typed group/topology/member fields, explicit opt-in, actual GROUP coordinator address authority, per-connection API89v0 negotiation, ordered duplicates, distinct per-group failure provenance, bounded retained/expanded results and one owned deadline.",
+          "limits": [
+            "Selected scripted GROUP peers and genuine public Java Admin calls/builders/parsers. This does not qualify a live Streams coordinator, membership persistence, a broker implementation or a Streams execution engine.",
+            "Rust requires explicit v0 opt-in; a wire version cannot identify release stability. No assertion about the default Java policy is inferred from the explicitly configured calls.",
+            "Response-entry fields are preserved. Java returns a deduplicated Map and future errors; Rust returns caller order/duplicates, raw API89 terminal errors and separately sourced discovery/capability/transport failures. Root throttle is not part of the returned per-group description.",
+            "Local malformed/budget failures and the whole deadline fail the operation; successful groups survive other groups retrying or terminal discovery/capability failures. Cancellation sends no membership mutation.",
+            "Encoding/decoding and aggregate result limits cover requested slot/string storage, not allocator rounding/RSS. Shared ApiVersions/TLS/SASL transport limits are unchanged; response admission occurs after the shared bounded frame read.",
+            "Operation sockets are new and owned by the Admin mutable lease; no additional socket is cached after return. Existing Admin connection requirements/caches remain. No warm-latency or speed claim.",
+            "Exact tested source is pushed to a review branch; the working HEAD/index stay unchanged. Local checks do not claim hosted CI, main merge, release or production readiness.",
+            "The required conformance ledger remains incomplete; this qualification is a client component and public-call cohort."
+          ]
+        },
+        {
+          "disposition": "accepted",
+          "scope": "Root registry integration after immutable qualification",
+          "artifacts": [
+            "docs/evidence/client/streams-describe/registry-integration"
+          ],
+          "results": "Three component/public Admin API89 cases accepted:51/182 independent,131 unqualified;53 checker tests and backlog gate pass. Core/full remain false."
+        }
+      ]
     },
     {
       "id": "KL05-34",
       "title": "Implement OffsetCommit/OffsetFetch v10 topic identity through group and Admin callers",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03",
@@ -50206,9 +50670,37 @@
       "validation": [
         "All3 actual Apache serializers/parsers for8/9v10, including nested tags/truncation and response topic IDs.",
         "Actual configured public Java Consumer commit and Admin offset methods versus Rust caller histories in a bounded reference peer harness or pinned broker; retain any Java factory version cap and unsupported cell honestly.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "bc4560eee43dc3a0fcc63256f0d075b147446a6d",
+          "disposition": "accepted",
+          "artifacts": [
+            "docs/plan/evidence/KL05-34.json",
+            "docs/evidence/client/offset-topic-ids-v10/qualification"
+          ],
+          "commands": [
+            "Latest stable:default2062/all2074 full tests",
+            "Each profile:96 owned actual SDK/public-call process profiles;180 independent Rust offset body parses",
+            "24 socket/4 codec regressions;strict default/all Clippy/fmt/rustdoc;53 checker tests",
+            "Four package consumers with24 compiled examples each",
+            "Exact source pushed and remote verified before immutable qualification"
+          ],
+          "results": "Bounded OffsetCommit/OffsetFetch8-10 models and caller-driven OffsetClient; ConsumerGroup/Admin UUID routing, assignment-bound synchronous/queued commits, captured metadata projection for named/batched Admin calls, actual-socket negotiation and one offset operation deadline.",
+          "limits": [
+            "Selected Apache SDK schemas/factories and genuine Java public Admin/manual Consumer calls against bounded scripted peers. No live coordinator persistence, native broker recreation, membership churn or failover qualification.",
+            "Java name-based public factories still cap OffsetCommit/OffsetFetch at9 and refuse10-only peers. Genuine generated UUID builders and full data schemas accept10. These are different public surfaces; no v10 Java manual Consumer operation is invented.",
+            "Typed offset requests preserve raw UUIDs, nullable metadata and terminal errors. Legacy named projections retain their existing empty-string metadata projection and fail on unmapped UUIDs; all-topic raw results preserve unknown UUIDs.",
+            "UUID mutations retry the same request at most eight times; lost replies, timeout and cancellation remain ambiguous. The tests simulate same-name recreation by changing Metadata/assignment UUIDs, including rebalance and queued commits.",
+            "New typed operations own at most two additional sockets and no background task. Existing Admin/group/consumer connections, caches, heartbeat workers and asynchronous-commit queue policies are unchanged; this is not a global resource ceiling.",
+            "Requested storage limits do not measure allocator overhead or RSS. Shared bounded ApiVersions/TLS/SASL/frame transport is unchanged. New decoding validates body/count/string/tag/storage budgets before its own collection allocations.",
+            "Names use legacy8/9 in the typed client; UUID intent never falls back. Existing name-based methods retain earlier-version layouts and re-negotiate actual coordinator ranges. Named Admin calls use fresh bounded Metadata10-13; group commits use captured assignment IDs.",
+            "The new UUID path and existing Admin offset methods use an original operation deadline. Existing group membership/rejoin and general metadata refresh APIs have their own lifecycle limits; no overall group startup deadline is newly qualified.",
+            "Warm connection reuse and throughput are not measured here. No fastest-client/server, production, core/full conformance, hosted CI, main merge or release claim. Required conformance denominator and independent-case count stay182/51."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/group.rs",
         "src/group.rs",
@@ -50216,7 +50708,23 @@
         "src/admin.rs",
         "tests/offset_topic_ids_v10.rs",
         "tests/fixtures/offset-topic-ids-v10/",
-        "docs/evidence/client/offset-topic-ids-v10/"
+        "docs/evidence/client/offset-topic-ids-v10/",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/guide.md",
+        "docs/support.md",
+        "docs/gaps.md",
+        "docs/STATUS.md",
+        "docs/plan/evidence/KL05-34.json",
+        "src/protocol/group/offsets.rs",
+        "src/group/offsets.rs",
+        "src/admin/offsets.rs",
+        "tests/conformance/run-offset-topic-ids.py",
+        "src/offsets.rs",
+        "tests/offset_client.rs"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50251,8 +50759,8 @@
       "title": "Add complete InitProducerId v6 wire fields and normal initialization negotiation",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-open-cards-20261006",
       "depends_on": [
         "KL05-28",
         "KL01-03",
@@ -50279,15 +50787,31 @@
       "validation": [
         "All3 actual Apache22v6 generated serializers/parsers and request factories with true/false flag combinations and -1/nondefault ongoing fields.",
         "Actual public Java ordinary initTransactions/send/commit/abort comparisons where implemented; Java full prepared-resume is explicitly outside this wire/default card.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-35.json",
+        "docs/evidence/client/init-producer-id-v6/summary.json"
+      ],
       "write_set": [
         "src/protocol/idem.rs",
         "src/producer.rs",
         "tests/init_producer_id_v6.rs",
         "tests/fixtures/init-producer-id-v6/",
-        "docs/evidence/client/init-producer-id-v6/"
+        "docs/evidence/client/init-producer-id-v6/",
+        "tests/common/mod.rs (InitProducerId6/moved-coordinator injections)",
+        "tests/conformance/java/InitProducerIdV6Fixtures.java",
+        "tests/conformance/run-init-producer-id-v6.py",
+        "src/lib.rs (InitProducerId documentation)",
+        "docs/guide.md",
+        "docs/plan/evidence/KL05-35.json",
+        "scripts/check-protocol-coverage.py (codec/runtime inventory only)",
+        "tests/conformance/java/InitProducerIdV6Transactions.java",
+        "tests/conformance/features.json (ordinary initialization note)",
+        ".github/workflows/ci.yml (InitProducerId peer checks)",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/cases.json (six independent cohort bindings)",
+        "docs/schema-companion.md (available adapter status)"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50315,7 +50839,8 @@
       ],
       "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
       "proposal_key": "Q-CAP-InitProducerId6",
-      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+      "serialization_note": "Root integrates after KL03-24 qualification is frozen; SASL worker/transport owner scope remains unchanged. No other feature card is qualified by this protocol work."
     },
     {
       "id": "KL05-36",
@@ -50349,7 +50874,7 @@
         "Source-bound actual Java public initTransactions and producer configuration outcomes for all3 SDKs; internal TransactionManager state fixtures are labeled internal only.",
         "Actual generated request6 plus pinned reference broker outcome for true KeepPreparedTxn; expected unsupported is a real negative result, not a skipped test.",
         "Use a genuine native implementation only if its explicit2PC surface exists and is independently pinned; absence is documented rather than fabricated.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
       "evidence": [],
       "write_set": [
@@ -50392,8 +50917,8 @@
       "title": "Expose AlterPartitionReassignments v1 replication-factor-change policy",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-open-cards-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03"
@@ -50417,15 +50942,22 @@
       "validation": [
         "All3 actual AlterPartitionReassignmentsRequest.Builder rejects false<1; compare same genuine public Java Admin option against bounded independent response harness or a real reference cluster.",
         "Preserve exact produced packets/public results; no fabricated successful controller mutation.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-37.json",
+        "docs/evidence/client/reassignment-options-v1/summary.json"
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",
         "tests/reassignment_options_v1.rs",
         "tests/fixtures/reassignment-options-v1/",
-        "docs/evidence/client/reassignment-options-v1/"
+        "docs/evidence/client/reassignment-options-v1/",
+        "tests/conformance/java/ReassignmentOptionsV1.java",
+        "tests/conformance/java/ReassignmentOptionsV1Native.java",
+        "docs/guide.md",
+        "tests/full_surface.rs (reassignment server timeout bounded by remaining overall deadline)"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50438,7 +50970,8 @@
         "src/lib.rs",
         "scripts/check-protocol-coverage.py",
         "tests/conformance/cases.json",
-        "tests/conformance/features.json"
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py (current API45 range and qualified counts)"
       ],
       "implementation_plan": [
         "Add an additive options-bearing method/request type with defaulttrue matching Java. Version1 includes the bool; version0 can represent onlytrue.",
@@ -50453,15 +50986,16 @@
       ],
       "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
       "proposal_key": "Q-CAP-Reassignment1",
-      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+      "serialization_note": "Final root source and option policy qualified with latest-stable default/all-feature suites, strict gates, four packed profiles,3 genuine SDK serializers/public callers, exact fault packets and fresh3-broker reference state. Multi-controller native faults and performance remain separate."
     },
     {
       "id": "KL05-38",
       "title": "Query all brokers for ListTransactions with bounded complete and partial results",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-coordinator-20261003",
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03"
@@ -50487,7 +51021,7 @@
       "validation": [
         "All3 actual public Java Admin.listTransactions and ListTransactionsHandler/AllBrokersStrategy/ListTransactionsResult source/runtime pinned.",
         "Bounded independent multi-broker peer or actual reference cluster proves broker fanout, partial error and concatenation behavior; source comparison alone does not qualify aggregation.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
       "evidence": [
         {
@@ -50513,7 +51047,32 @@
           "core_protocol_complete": false,
           "evidence_prefix": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/"
         },
-        "docs/evidence/ci/github-b814-corrections/root-installation.json"
+        "docs/evidence/ci/github-b814-corrections/root-installation.json",
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "Latest stable full default:2004 passed/all:2016 passed",
+            "17 focused tests each build;external ignored lane executed144 owned profiles",
+            "Actual3SDK17 exact pairs;genuine public Java36 calls per feature build compared with Rustpartial36+complete36",
+            "Old-source1 startup positive/1 expected2-versus4 undercount failure",
+            "Strict default/all Clippy/rustfmt/rustdoc;192 documentation links"
+          ],
+          "results": "Initial bounded Metadata membership snapshot, per-broker API66 v0/v1 negotiation, sequential owned queries, complete-only aggregate and explicit per-broker partial results. Conflicting duplicate IDs retained; every operation uses one absolute caller deadline.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-38.json",
+            "docs/evidence/client/list-transactions-routing/qualification"
+          ],
+          "limits": [
+            "Scripted wire peers model selected transaction listings and error policies, not a live broker transaction state, persistence or failover.",
+            "SASL_PLAIN uses disposable publicly documented fixture credentials over loopback; this qualifies authentication on reconnect, not TLS or session reauthentication.",
+            "Sequential fanout is bounded; no fanout throughput comparison is claimed. Metadata membership is an initial snapshot and address refresh applies to those IDs.",
+            "API66 v2 TransactionalIdPattern remains a separate open card. No current-version complete conformance promotion; core/full registries remain incomplete.",
+            "Limits are checked before operation decoding, after the unchanged transport frame cap. No allocator-peak or long production-soak claim.",
+            "Source is locally uncommitted; no push, hosted CI, production readiness or speed ranking."
+          ]
+        }
       ],
       "write_set": [
         "src/admin.rs",
@@ -50521,7 +51080,10 @@
         "tests/fixtures/list-transactions-routing/",
         "docs/evidence/client/list-transactions-routing/",
         "tests/common/mod.rs",
-        "tests/full_surface.rs"
+        "tests/full_surface.rs",
+        "tests/conformance/run-list-transactions.py",
+        "docs/plan/evidence/KL05-38.json",
+        "benchmarks/README-matrix.md"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50557,8 +51119,8 @@
       "title": "Implement the v2 TransactionalIdPattern public Admin filter",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-open-cards-20261007",
       "depends_on": [
         "KL05-38",
         "KL05-28",
@@ -50583,15 +51145,46 @@
       "validation": [
         "All3 actual ListTransactionsRequest.Builder plus public ListTransactionsOptions.filterOnTransactionalIdPattern.",
         "Run actual bounded public Admin behavior with independent broker/error fixtures or pinned reference brokers; no local Rust regex substitutes for broker policy.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+          "uncommitted_source": true,
+          "disposition": "accepted",
+          "commands": [
+            "Latest-stable default2011/all2023 tests;7 focused tests each;both external lanes actually run",
+            "Three genuine SDKs144 raw cases each/profile:58 supported86 refused;116 actual reverse frames",
+            "66 public process profiles each build with33 Java and66 Rust calls",
+            "Strict fmt/default+all Clippy/rustdoc;53 coverage-checker tests;four packaged feature consumers21 examples each"
+          ],
+          "results": "Typed ListTransactionsOptions and API66 v2 nullable TransactionalIdPattern. Bounded public complete/partial filters apply to each broker; reconnect re-negotiation and all validation use the original absolute caller deadline. Invalid regex remains a broker error128.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-39.json",
+            "docs/evidence/client/list-transactions-pattern-v2/qualification"
+          ],
+          "limits": [
+            "Selected independent wire fixtures model broker filtering and errors; no live Kafka regex evaluation, transaction-state, persistence or failover qualification.",
+            "Public null/empty patterns normalize to unfiltered calls; explicit non-null raw requests, including empty strings, require API66 v2.",
+            "No allocator-peak, throughput, production soak, hosted CI, push or world-speed ranking claim. Source remains locally uncommitted.",
+            "API66 current-version coverage remains a component qualification; broad conformance registries still have45 independently qualified cases of182 and core/full remain incomplete.",
+            "Package archive was created before this card closure and STATUS count update; its source and examples are separately retained."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",
         "tests/list_transactions_pattern_v2.rs",
         "tests/fixtures/list-transactions-pattern-v2/",
-        "docs/evidence/client/list-transactions-pattern-v2/"
+        "docs/evidence/client/list-transactions-pattern-v2/",
+        "src/lib.rs",
+        "tests/conformance/run-list-transactions-pattern.py",
+        "docs/plan/evidence/KL05-39.json",
+        "tests/list_transactions_routing.rs",
+        "docs/guide.md",
+        "docs/support.md",
+        "tests/conformance/features.json"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50653,7 +51246,7 @@
       "validation": [
         "All3 genuine public Java default addRaftVoter version negotiation; actual4.1 v0 and4.2/4.3 v1, not impossible3-way v1 parity.",
         "Ack=false uses authentic generated request/actual Raft handler source and a real bounded quorum; internal proof is not mislabeled a public Java option.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
       "evidence": [],
       "write_set": [
@@ -50696,8 +51289,8 @@
       "title": "Implement current-valid Metadata0 and classic group FindCoordinator0 discovery",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL05-28",
         "KL01-03"
@@ -50726,9 +51319,37 @@
       "validation": [
         "All3 actual MetadataRequest and FindCoordinatorRequest builders/serializers/parsers with their legacy defaults.",
         "Actual configured public SDK operation in a bounded0-only negotiation harness or pinned reference broker; no self-generated Rust broker proof replaces independent public calls.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "94dfa7b59a247875244c09fb1c0400bc59f754ff",
+          "disposition": "accepted",
+          "artifacts": [
+            "docs/plan/evidence/KL05-41.json",
+            "docs/evidence/client/legacy-discovery-v0/qualification"
+          ],
+          "commands": [
+            "Latest stable:default2079/all2091 full tests;17 ordinary regressions each",
+            "Each feature profile:135 owned actual SDK/public-call process profiles;126 independent Rust body parses",
+            "Strict default/all Clippy/fmt/rustdoc;53 checker tests",
+            "Four package consumers with24 compiled examples each;184 local documentation links",
+            "Exact source pushed and remote verified before immutable qualification"
+          ],
+          "results": "Bounded complete Metadata0 codec and GROUP FindCoordinator0; actual-socket negotiation, missing-field preservation, representable creation/type policy, IPv6/stale coordinator routing and original startup/discovery deadlines.",
+          "limits": [
+            "Owned scripted peers and actual pinned SDK public callers qualify these discovery paths. No live old broker, quorum persistence, membership-churn campaign, RSS measurement, throughput or independent architecture comparison.",
+            "Raw Metadata0 layouts are supported. Current Java MetadataRequest.Builder refuses0; Rust preserves that helper policy while runtime callers can negotiate0. Named queries require representable automatic creation; Admin named policy and empty-none selection refuse0.",
+            "FindCoordinator0 is GROUP-only. Java TRANSACTION builder rejects0. Java SHARE builder accepts0 but serialization rejects it. Rust typed runtime rejects both before discovery dispatch.",
+            "Java Admin treats discovery NOT_COORDINATOR16 as terminal; Java Consumer and Rust Admin retry. Java Admin reuses a live cached same-node-ID socket when discovery changes only its address; Rust Admin and Java Consumer follow the returned address. All follow the tested node7-to8 movement.",
+            "At the original1500ms public deadline Java Admin reports DisconnectException from cancellation of its in-flight coordinator request; Java Consumer reports TimeoutException. Six final Java receipts per build retain the measured operation time; no offset frame is dispatched. Rust has separate60ms original-budget tests.",
+            "Legacy decoders bound requested owned storage, strings, counts, body bytes and derived sparse-route slots before allocation. This does not measure allocator overhead or establish a process RSS ceiling. Existing shared transport, modern Metadata decoder and global client queues are unchanged.",
+            "IPv6 returned coordinator and broker addresses are bracketed. Legacy GROUP loops have eight attempts and constructors admit at most sixteen bootstrap addresses; coordinator responses are bounded64KiB and Metadata0 bodies1MiB/decoded requested4MiB.",
+            "No required Metadata0 case exists in the current ledger. Historical Metadata1/13 rows retain their original4.1.0 pins/dispositions. No new independent case is inferred; the ledger remains51/182 and core/full fail closed.",
+            "No production-readiness, fastest-client/server, hosted-CI, main-merge or release claim. Source is published on an isolated review branch; large immutable execution archives remain local."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/api.rs",
         "src/protocol/group.rs",
@@ -50738,7 +51359,19 @@
         "src/admin.rs",
         "tests/legacy_discovery_v0.rs",
         "tests/fixtures/legacy-discovery-v0/",
-        "docs/evidence/client/legacy-discovery-v0/"
+        "docs/evidence/client/legacy-discovery-v0/",
+        "src/protocol/api/metadata_legacy.rs",
+        "tests/conformance/run-legacy-discovery-v0.py",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/features.json",
+        "docs/guide.md",
+        "docs/support.md",
+        "docs/gaps.md",
+        "docs/STATUS.md",
+        "docs/plan/evidence/KL05-41.json",
+        "src/cluster.rs",
+        "src/admin/offsets.rs"
       ],
       "read_only_held": [
         "src/net.rs",
@@ -50803,7 +51436,7 @@
       "validation": [
         "Genuine configured3SDK public classic group calls plus independently pinned protocol serializer/parser reference. Internal-only tests and local Rust group mock behavior are separately labeled.",
         "Successful old group lifecycle is not inferred from a JoinGroup field roundtrip.",
-        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+        "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
       "evidence": [],
       "write_set": [
@@ -50870,7 +51503,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -50940,7 +51573,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51014,7 +51647,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51086,7 +51719,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51156,7 +51789,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51216,7 +51849,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51274,7 +51907,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51330,7 +51963,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51386,7 +52019,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51442,7 +52075,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51499,7 +52132,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51563,7 +52196,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51625,7 +52258,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51666,8 +52299,8 @@
       "title": "Qualify current AllocateProducerIds raw extension cells",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL01-03"
       ],
@@ -51689,16 +52322,45 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "7582bbb70812b645330851f1430f7ef2d935d2a8",
+          "disposition": "accepted",
+          "artifacts": [
+            "docs/plan/evidence/KL01-31.json",
+            "docs/evidence/conformance/q-conf-allocateproduceridsraw/qualification"
+          ],
+          "commands": [
+            "Latest stable full default2082/all2094 tests;3 ordinary regressions each",
+            "Each build:3 genuine SDK peers/native controllers;81 independent wire bodies/60 live parses/30 raw requests",
+            "Strict focused/suite default/all Clippy and formatting",
+            "Exact source pushed and remote verified before immutable qualification"
+          ],
+          "results": "Current AllocateProducerIds0 scalar/default/error/opaque-tag/truncation checks and actual bounded Rust/Java controller raw dispatch; ordinary broker Admin unsupported policy measured.",
+          "limits": [
+            "Selected current v0 raw-extension cohort, authentic generated Apache requests/parsers and disposable native controller calls. No standard Java Admin allocateProducerIds method exists. The tested Rust raw dispatch uses public BrokerConn; ordinary broker Admin negotiation returns Unsupported.",
+            "The live profile uses a single combined broker/controller with fresh storage per release and feature build. Registered broker epochs are captured from actual registration. Three blocks per caller are nonoverlapping across callers; each has1000 IDs. Unknown broker99/epoch0 and broker1/epoch-1 return STALE_BROKER_EPOCH77.",
+            "No native partitionline broker is tested here. No controller failover/persistence campaign, permission enforcement, concurrency stress, int64 allocator exhaustion or global production/resource/performance result is claimed.",
+            "The declared applicability file records exact upstream scalar/error tests and the internal replay/state-injection cases outside this raw-client contract. KL01-14 retains exhaustive upstream source/parameter reconciliation. Existing historical broker-internal exclusions and original current-case pins remain unchanged.",
+            "Fixed codecs have no nested arrays. All declared current SDK bodies are checked through the entire input; every prefix of the scalar fixtures fails. Rust skips unknown tagged payloads and returns known fields; Java retains opaque payloads. The independent normalized comparison records this intentional difference.",
+            "Each native Rust raw call sequence shares a five-second deadline, including socket setup and actual API18v0 capability discovery. Java raw calls have a five-second read budget and the parent owns a finite15-second process deadline. This is not a secure transport/hostile response size or RSS qualification.",
+            "All executed native bin/libs/config hashes match the retained native archives. Every broker and JVM/Rust test process is parent-waited, broker exits143 after requested TERM, and both listener ports are closed and rebound. All raw sockets close. No detached broker or soak job remains.",
+            "Three current registered cells advance to independent_pass while prior pin/peer/status/reason are retained. The denominator stays182; independent cases increase51 to54. Core/full remain incomplete and performance Suite HOLD remains active."
+          ]
+        }
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceAllocateProducerIdsRaw.java",
         "tests/conformance/java/generate_allocate_producer_ids_raw.py",
         "tests/allocate_producer_ids_raw_conformance.rs",
         "tests/fixtures/allocate_producer_ids_raw/",
-        "docs/evidence/conformance/q-conf-allocateproduceridsraw/"
+        "docs/evidence/conformance/q-conf-allocateproduceridsraw/",
+        "tests/conformance/run-allocate-producer-ids-raw.py",
+        "docs/plan/evidence/KL01-31.json",
+        "tests/conformance/test_check_protocol_coverage.py"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -51717,7 +52379,12 @@
         "current-claimed-api-067-v0-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "read_only_product_source": [
+        "src/admin.rs",
+        "src/protocol/admin.rs",
+        "src/net.rs"
+      ]
     },
     {
       "id": "KL01-32",
@@ -51747,7 +52414,7 @@
         "No unbounded all-oracles job; all owned peers join and failures remain in the report."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51782,8 +52449,8 @@
       "title": "Bound backing allocations retained by producer admission",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-open-cards-20261007",
       "depends_on": [
         "KL02-01",
         "KL02-02"
@@ -51800,14 +52467,21 @@
         "Keep encoding scratch, socket/kernel buffers, allocator overhead and process RSS outside any claim unless separately budgeted; expose their exclusion truthfully."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL02-11.json",
+        "docs/evidence/client/producer-retained-backing/summary.json"
+      ],
       "write_set": [
         "src/producer.rs",
         "tests/producer_retained_backing.rs",
-        "docs/evidence/client/producer-retained-backing/"
+        "docs/evidence/client/producer-retained-backing/",
+        "src/metrics.rs (counter rustdoc only)",
+        "docs/guide.md",
+        "docs/gaps.md",
+        "docs/plan/evidence/KL02-11.json"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -51817,7 +52491,8 @@
         "docs/plan/tasks.json",
         "tests/conformance/cases.json",
         "tests/conformance/features.json",
-        "Cargo manifests/lock if needed"
+        "Cargo manifests/lock if needed",
+        "tests/conformance/test_check_protocol_coverage.py (updated qualification counts)"
       ],
       "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
       "proposal_key": "Q-IMPL-ProducerBacking",
@@ -51825,7 +52500,8 @@
       "caller_scopes": [
         "One ownership family: accepted key/value/header Bytes and header strings, including shared backing slices; explicit payload-budget contract, not process RSS."
       ],
-      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required.",
+      "serialization_note": "Root froze the admitted-backing and cancelled-channel source with default/all-feature, strict, packed-consumer and independent Java/C native evidence. Encoding/socket/RSS and performance qualification remain separate."
     },
     {
       "id": "KL06-11",
@@ -51854,7 +52530,7 @@
         "Cover Producer bootstrap/metadata and transaction RPC connections as well as workers, using Kafka SaslHandshake then SaslAuthenticate for renewal and preserving unsupported/expired/failure outcomes."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51917,7 +52593,7 @@
         "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
       "evidence": [],
@@ -51957,8 +52633,8 @@
       "title": "Bound and retire shared OIDC manager ownership",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-oidc-ownership-20261005",
       "depends_on": [
         "KL06-03",
         "KL09-59"
@@ -51979,12 +52655,34 @@
         "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL06-13.json"
+      ],
       "write_set": [
+        "CONTRIBUTING.md",
+        "Cargo.toml",
+        "README.md",
+        "docs/ADOPTION.md",
+        "docs/benchmark.md",
+        "docs/design.md",
+        "docs/evidence/client/oidc-manager-ownership/",
+        "docs/gaps.md",
+        "docs/guide.md",
+        "docs/index.md",
+        "docs/migrate-from-rdkafka.md",
+        "docs/plan/evidence/KL06-13.json",
+        "docs/plan/tasks.json",
+        "docs/security.md",
+        "docs/support.md",
+        "docs/zstd-spike.md",
+        "partitionline-broker/README.md",
+        "partitionline-schema/README.md",
+        "scripts/audit-civilization-bars.sh",
+        "scripts/check-crate-metadata.sh",
+        "scripts/check-crates-io-description.sh",
+        "src/lib.rs",
         "src/protocol/oidc.rs",
-        "src/protocol/sasl.rs",
-        "tests/oidc_manager_ownership.rs",
-        "docs/evidence/client/oidc-manager-ownership/"
+        "tests/oidc_manager_ownership.rs"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52009,8 +52707,8 @@
       "title": "Qualify one selected production Avro Codec through the companion Adapter",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-selected-avro-20261005",
       "depends_on": [
         "KL05-25"
       ],
@@ -52030,12 +52728,42 @@
         "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-43.json"
+      ],
       "write_set": [
+        "partitionline-schema/Cargo.toml",
+        "partitionline-schema/Cargo.lock",
         "partitionline-schema/tests/avro_selected_codec_conformance.rs",
+        "partitionline-schema/tests/support/selected_avro.rs",
+        "partitionline-schema/README.md",
         "tests/conformance/java/ConformanceAvroSelectedCodec.java",
         "tests/fixtures/avro_selected_codec/",
-        "docs/evidence/conformance/avro-selected-codec/"
+        "docs/evidence/conformance/avro-selected-codec/",
+        "docs/plan/evidence/KL05-43.json",
+        "docs/plan/tasks.json",
+        "tests/conformance/run-avro-selected-codec.py",
+        "rust-toolchain.toml",
+        "Cargo.toml",
+        "partitionline-broker/Cargo.toml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/broker.yml",
+        ".github/workflows/capabilities.yml",
+        "CONTRIBUTING.md",
+        "CHANGELOG.md",
+        "docs/support.md",
+        "docs/guide.md",
+        "scripts/ci-stable.sh",
+        "scripts/ci-msrv.sh",
+        "scripts/ci-branch-lite.sh",
+        "scripts/check-cut-path.sh",
+        "scripts/ci-crate-consumer.sh",
+        "scripts/ci-civilization-check.sh",
+        "scripts/audit-civilization-bars.sh",
+        "scripts/check-main-ci.sh",
+        "README.md",
+        "docs/ADOPTION.md",
+        "docs/index.md"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52053,23 +52781,26 @@
       "caller_scopes": [
         "One declared opt-in caller-selected Avro codec and writer/reader resolution family; no built-in general parser is inferred from Adapter<C>."
       ],
-      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+      "qualification_limit": "Guarded test bridge and declared finite offline datum family only. No built-in/general serializer, live registry/broker, publication, production deployment, RSS measurement or performance/fastest claim.",
+      "validation_toolchain_override": "Latest stable Rust only, as requested by the user on 2026-10-05; Rust 1.85 is not a validation target.",
+      "user_requested_scope": "Also apply the 2026-10-05 instruction to use latest stable Rust only: manifests, toolchain selection, active CI matrices and current support docs. Preserve historical evidence."
     },
     {
       "id": "KL05-44",
       "title": "Qualify one selected production Draft 2020-12 Codec through the companion Adapter",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-open-cards-20261006",
       "depends_on": [
         "KL05-27"
       ],
       "files": [
         "partitionline-schema/tests/json_schema_selected_codec_conformance.rs",
-        "tests/conformance/java/ConformanceJsonSchemaSelectedCodec.java",
         "tests/fixtures/json_schema_selected_codec/",
-        "docs/evidence/conformance/json-schema-selected-codec/"
+        "docs/evidence/conformance/json-schema-selected-codec/",
+        "tests/conformance/run-json-schema-selected-codec.py",
+        "partitionline-schema/tests/support/selected_json_schema.rs"
       ],
       "deliverable": "One declared JSON Schema dialect and explicit offline-reference family; fixture-only validator coverage does not establish arbitrary schemas. Name/pin a production parser/validator and its resource limits; exercise actual writer and reader validation plus explicit URI/reference resolution.",
       "acceptance": [
@@ -52078,15 +52809,23 @@
         "Retain unknown-dialect and missing-reference fail-closed behavior; no hidden network resolution or complete ecosystem/live Registry claim."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-44.json",
+        "docs/evidence/conformance/json-schema-selected-codec/summary.json",
+        "tests/conformance/cases.json:schema-selected-json-offline-family"
+      ],
       "write_set": [
         "partitionline-schema/tests/json_schema_selected_codec_conformance.rs",
-        "tests/conformance/java/ConformanceJsonSchemaSelectedCodec.java",
         "tests/fixtures/json_schema_selected_codec/",
-        "docs/evidence/conformance/json-schema-selected-codec/"
+        "docs/evidence/conformance/json-schema-selected-codec/",
+        "partitionline-schema/Cargo.toml (test-only validator)",
+        "partitionline-schema/Cargo.lock",
+        "partitionline-schema/tests/support/selected_json_schema.rs",
+        "tests/conformance/run-json-schema-selected-codec.py",
+        ".github/workflows/ci.yml (schema qualification integration)"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52104,15 +52843,16 @@
       "caller_scopes": [
         "One declared JSON Schema dialect and explicit offline-reference family; fixture-only validator coverage does not establish arbitrary schemas."
       ],
-      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required.",
+      "peer_selection": "Independent Python jsonschema4.26.0 Draft202012Validator with explicit offline referencing.Registry, replacing the suggested Java fixture path. Rust production validator is jsonschema0.33.0 with default features disabled. Neither is a library runtime dependency."
     },
     {
       "id": "KL05-45",
       "title": "Qualify the generic five-byte header scope independently",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-goal-completion-20261005",
       "depends_on": [
         "KL05-26"
       ],
@@ -52129,15 +52869,22 @@
         "Keep caller-owned allocation and companion publication scope explicit; review whether partial denotes broader ecosystem scope rather than missing generic-header functionality."
       ],
       "validation": [
-        "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
+        "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-45.json",
+        "docs/evidence/conformance/generic-schema-header/summary.json"
+      ],
       "write_set": [
         "partitionline-schema/tests/generic_schema_header_conformance.rs",
         "tests/conformance/java/ConformanceGenericSchemaHeader.java",
         "tests/fixtures/generic_schema_header/",
-        "docs/evidence/conformance/generic-schema-header/"
+        "docs/evidence/conformance/generic-schema-header/",
+        "tests/conformance/run-generic-schema-header.py",
+        "partitionline-schema/README.md",
+        "docs/plan/evidence/KL05-45.json",
+        ".github/workflows/ci.yml (schema job integration)"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52155,7 +52902,118 @@
       "caller_scopes": [
         "One generic magic-byte/schema-ID wire-helper family; Protobuf message indexes remain a distinct module and row."
       ],
-      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required.",
+      "validation_toolchain_override": "Latest stable Rust only, per user instruction."
+    },
+    {
+      "id": "KL03-23",
+      "title": "Retry consumer-group coordinator startup within the request deadline",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "done",
+      "owner": "codex-goal-completion-20261005",
+      "depends_on": [
+        "KL03-01"
+      ],
+      "files": [
+        "src/group.rs",
+        "tests/group_coordinator_startup.rs"
+      ],
+      "deliverable": "Classic and KIP-848 consumer group discovery retries typed coordinator startup/move errors with configured backoff under one request deadline.",
+      "acceptance": [
+        "A cold Kafka offsets-topic creation can outlast three immediate discovery attempts without aborting group startup.",
+        "Coordinator errors 14/15/16 retry with backoff; terminal authorization and other broker errors fail without retry.",
+        "TCP connect, negotiation, authentication, requests, retries and sleeps share the original discovery deadline."
+      ],
+      "validation": [
+        "cargo +stable test --locked --test group_coordinator_startup --test share_semantics --test client_capabilities",
+        "Fresh isolated Apache Kafka consumer-group startup plus independent committed-offset and membership audit."
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-23.json",
+        "docs/evidence/client/group-coordinator-startup/summary.json"
+      ],
+      "write_set": [
+        "src/group.rs",
+        "tests/group_coordinator_startup.rs",
+        "docs/guide.md",
+        "docs/evidence/client/group-coordinator-startup/",
+        "docs/plan/evidence/KL03-23.json",
+        "docs/plan/tasks.json"
+      ],
+      "read_only_held": [
+        "tests/common/mod.rs",
+        "src/net.rs",
+        "src/producer.rs"
+      ],
+      "trigger": "KL09-03 real Kafka 4.3.1 cold group run failed with code15 after three immediate FindCoordinator attempts; original raw failure retained.",
+      "validation_toolchain_override": "Latest stable Rust only, per user instruction."
+    },
+    {
+      "id": "KL03-24",
+      "title": "Retry idempotent producer ID allocation during cold broker startup",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "done",
+      "owner": "codex-open-cards-20261006",
+      "depends_on": [
+        "KL03-09",
+        "KL03-10",
+        "KL06-03",
+        "KL06-04"
+      ],
+      "files": [
+        "src/producer.rs",
+        "tests/producer_initialization.rs"
+      ],
+      "deliverable": "Bound typed transient InitProducerId startup retries under one initialization deadline without repeating application produce.",
+      "acceptance": [
+        "Errors14/15/16 during initialization retry with configured backoff within the original deadline.",
+        "Authentication, authorization, invalid transaction and fencing errors are terminal.",
+        "A fresh isolated broker first-use producer-ID allocation succeeds and independent readback proves every acknowledged application record."
+      ],
+      "validation": [
+        "Run actual failing-before/fixed-after initialization regression cases and latest-stable default/all-feature checks.",
+        "Retain the original Kafka4.3.1 code14 failure and independent fresh-broker rerun receipts."
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-24.json",
+        "docs/evidence/client/producer-initialization/summary.json"
+      ],
+      "trigger": "Original native-idempotent cohort under KL09-02 failed with InitProducerId code14 and zero records; a later warm-broker rerun passed. The failure remains unresolved by benchmark or group discovery changes.",
+      "read_only_held": [
+        "src/producer.rs (SASL/worker integration remains owned by KL06-11; bounded startup helpers integrated serially)"
+      ],
+      "write_set": [
+        "src/producer.rs (coordinator discovery and InitProducerId deadline/retry helpers only)",
+        "tests/common/mod.rs (InitProducerId failure injection only)",
+        "tests/producer_initialization.rs",
+        "docs/guide.md",
+        "docs/plan/evidence/KL03-24.json",
+        "docs/evidence/client/producer-initialization/"
+      ],
+      "serialization_note": "User requests all open cards. Root integrates these bounded startup helpers serially, preserving the unchanged SASL/worker scope owned by KL06-11. The previous KL06-11 dependency represented a shared-file serialization hold, not a required startup behavior; completed coordinator/transaction/SASL foundations are the actual prerequisites. No KL06-11 feature or qualification is inferred."
     }
-  ]
+  ],
+  "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
+  "root_integration_20261005": {
+    "scope": "Latest stable Rust only, documentation edits and bounded task/test integration under user instruction to finish the plan. Existing feature owners are unchanged.",
+    "toolchain": "stable1.99.0",
+    "completed_cards": [
+      "KL06-13",
+      "KL05-43",
+      "KL09-02",
+      "KL09-03",
+      "KL03-23",
+      "KL05-45"
+    ],
+    "fixture_changes": [
+      "WriteTxnMarkers v0 response uses v0 encoding",
+      "Raft snapshot test budget matches live-entry limit",
+      "Raft/metadata test leader selection waits for current-term committed prefix and readiness"
+    ],
+    "broker_source_changes": "Stable Clippy migrations and local lint explanations only; no Raft or metadata algorithm change is claimed.",
+    "full_broker_gate": "Failed; actual TCP fault qualification remains under KL11-76.",
+    "evidence": "docs/evidence/integration/latest-stable-20261005/summary.json"
+  }
 }

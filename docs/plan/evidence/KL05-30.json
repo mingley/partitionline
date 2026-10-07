@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "task": "KL05-30",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "source_binding": "Immutable local default/all binaries and hashes of all production sources/test/helper/Java oracles/Python runner match actual execution. No push or hosted CI result claimed.",
+  "toolchain": "Latest stable rustc1.99.0 (b940084d7 2026-09-28), default/all features",
+  "implementation": "DescribeShareGroupOffsets0..1 typed signed lag, negative-is-absent accessor, unchanged legacy struct literals and projection, one shared public routing/retry path and absolute deadline. Scoped nonnullable arrays/names and per-element bounds before allocation; legacy response decoder shares the typedv0 implementation.",
+  "apache_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "apache_fixture_pairs": 100,
+  "unsupported_sdk_cells": 20,
+  "actual_sdk_null_field_rejections": 45,
+  "rust_emitted_frame_parses_by_actual_sdk": 200,
+  "default_all_rust_emitted_frames_identical": true,
+  "public_java_profiles": {
+    "default": 72,
+    "all_features": 72
+  },
+  "official_public_behavior": "Kafka4.1.2 returns OffsetAndMetadata with no lag accessor.4.2.1/4.3.1 return SharePartitionOffsetInfo.startOffset/leaderEpoch/Optional lag. Every negative lag absent;0 and positive inclMAX retained. Group15/16 refresh coordinator;14 retries. Error partitions omitted; missing groups complete with empty map; duplicate response group resolves to last value.",
+  "rust_policy": "Raw signed lag retained. Partition errors remain typed results. Missing requested groups return Protocol. Duplicate requested groups preserve request order through FIFO matching; extra response groups are not projected into requested results. These policies are explicitly distinct from Java public map projection.",
+  "old_source_regression": {
+    "positive_control_passed": 1,
+    "expected_failures": 2,
+    "failures": [
+      "v1-only operation unsupported",
+      "0..1 range selected0 instead of1"
+    ]
+  },
+  "nullable_fail_first": {
+    "unexpected_accepted_fields_or_projections": 14,
+    "expected_failures": 1
+  },
+  "count_fail_first": "Request count1 with only2 remaining bytes failed at field decoding in old candidate; new3-byte element minimum fails before Vec allocation. Generic buffer count bound was already present and remains unchanged.",
+  "validation": {
+    "full-default": {
+      "passed": 2004,
+      "failed": 0,
+      "ignored": 15
+    },
+    "full-all": {
+      "passed": 2016,
+      "failed": 0,
+      "ignored": 16
+    }
+  },
+  "focused": {
+    "default": 12,
+    "all_features": 12,
+    "ignored_external_lanes_per_profile": 2,
+    "external_lanes_actually_executed": true
+  },
+  "strict_checks": [
+    {
+      "name": "full-default",
+      "command": [
+        "cargo",
+        "test",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 153.94408464431763
+    },
+    {
+      "name": "full-all",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 195.63854122161865
+    },
+    {
+      "name": "fmt-final",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 3.2651028633117676
+    },
+    {
+      "name": "clippy-default",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 26.505247592926025
+    },
+    {
+      "name": "clippy-all",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 0.10725617408752441
+    },
+    {
+      "name": "rustdoc-strict",
+      "command": [
+        "cargo",
+        "doc",
+        "--offline",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 3.362351179122925
+    }
+  ],
+  "package": {
+    "sha256": "aa63b14b9d77493857a6ecbcde62c69f3c2e8613b04bcbe0ae077f0df6476eb3",
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "snippets_per_profile": 20,
+    "snippet_links_per_profile": 37,
+    "consumer_debug_symbols": false
+  },
+  "ledger": {
+    "required_cases": 182,
+    "independent_cases": 45,
+    "unqualified_cases": 137,
+    "backlog_complete": true,
+    "core_complete": false,
+    "full_complete": false,
+    "checker_tests": 53,
+    "broker_compatibility_tests": 5
+  },
+  "closure": "Every final Java JVM and scripted Rust peer parent-waited. Owned peer listeners/workers joined; runtime task count zero; both ports closed/reusable. Regular public Rust TCP tests explicitly close all peer tasks.",
+  "retained_failures": [
+    "First count assertion selected a huge array length already rejected by the generic buffer guard and expected the wrong message; corrected to isolate the missing per-element request check. Original source/log retained.",
+    "Null-field regression accepted14 request/response/legacy projections. Actual Java rejects45 nonnullable controls; scoped Rust fix rejects them.",
+    "The initial actual fixture test reused a cursor after an expected decoder failure and tried cloning an immutable slice. Its failure/warning and exact test source remain retained. Independent cursors now replay each original malformed body; both legacy and typed decoders reject."
+  ],
+  "limits": [
+    "This wire peer has no share-group broker state, locks or persistence. It qualifies only the selected client components.",
+    "Bootstrap capability selection does not establish target-node mixed-version negotiation or rolling upgrades.",
+    "The original historical source-preparation packet and handwritten schema controls remain separately labeled, never reclassified as SDK runs.",
+    "Raw unknown tags are consumed and safely skipped; typed projections do not preserve them.",
+    "Latest stable only. Historical1.85 material is retained as history. Source is uncommitted; no remote publication, hosted CI, production readiness or ranking claimed."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/share-offsets-v1/qualification"
+}

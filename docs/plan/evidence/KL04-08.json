@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "task": "KL04-08",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "sources_sha256": {
+    "scripts/run-benchmark-matrix.py": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+    "benchmarks/tests/test_matrix.py": "f1a9b2a8e85715c899cca9414145edbc4348d7a9c7c68bb24c7ccaeffcd61724",
+    "benchmarks/README-matrix.md": "ef98f8d56a2444c9b823c23c6a7905b752290467c58bc72b2b5dab0e246dfa3c",
+    ".github/workflows/ci.yml": "6ecc9dfb35cbca1064c384a3b6667d5367a58b025f2429ec51896e14f92aee08",
+    "scripts/benchmark-report.py": "b03f0acd4ba5ab043f7aee5d05824f248c6587186b413bb1f0b7e0cafe4c3460",
+    "benchmarks/result-schema.json": "faae8686985df634986226c7aa1e9811ff14fc189d5a53b682f7d6aa7a304111",
+    "benchmarks/scenarios.json": "0f1bbe62150fea4ab6ed2ddfd1abd726e92e0ad6a19b9377c1cfff7220e84305"
+  },
+  "scope": "Linux paired diagnostic orchestration, immutable attempt retention, explicit owned provisioning, resume, bounded process groups and result comparability checks.",
+  "tests": {
+    "process_tests": 15,
+    "reporter_tests": 20,
+    "total": 35,
+    "actual_subprocesses": true,
+    "synthetic_unit_results": true
+  },
+  "native_control": {
+    "status": "pass",
+    "actual_control_arms": 2,
+    "repetitions": 2,
+    "valid_control_results": 4,
+    "timed_records_acknowledged_and_verified": 256,
+    "excluded_warmup_records": 32,
+    "independent_cli_offsets": [
+      36,
+      36
+    ],
+    "unique_topics": 4,
+    "all_topics_deleted": true,
+    "actual_java_incompatibility_rejected_before_create": true,
+    "unsupported_cell_retained": true,
+    "scope": "Same C driver in both native control arms. Orchestration correctness, not an independent peer speed comparison.",
+    "performance_claims_valid": false
+  },
+  "closure": {
+    "parent_waited": true,
+    "exit_code": 143,
+    "ports": [
+      {
+        "port": 37597,
+        "closed": true,
+        "reusable": true
+      },
+      {
+        "port": 43709,
+        "closed": true,
+        "reusable": true
+      }
+    ]
+  },
+  "source_inputs_verified_before_and_after": true,
+  "ci": {
+    "workflow_parse": "pass",
+    "local_test_command": "pass",
+    "hosted_execution": "not_run",
+    "existing_main_ci_query": "missing; gh run list unavailable, warning retained"
+  },
+  "retained_failures": [
+    "First test fixture falsely combined verified integrity with zero consumption; the stricter runner rejected it. Executed initial sources and attempts retained.",
+    "Second test expected both A/B orders from an arbitrary seed; randomization permits identical orders. The fixed regression seed exercises both orders without constraining the algorithm.",
+    "A mismatch test initially assumed the unchanged arm ran first; corrected the reproducible test order.",
+    "Repeated empty cleanup used a history-length directory and would collide on its third call. UUID cleanup receipts and three consecutive cleanup calls now pass."
+  ],
+  "limits": [
+    "Same C driver in both native control arms; this is not an independent peer performance comparison. Actual Java arm is refused before provisioning because required comparable settings are absent.",
+    "No frozen scenario IDs, settings or driver exclusions changed. Suite HOLD remains active.",
+    "Nonsecret trusted operator manifests only; secure credential adapters are outside this qualification.",
+    "SIGINT/SIGTERM, timeout and ordinary child crashes tested; orchestrator SIGKILL, host failure and children deliberately escaping their process group are unqualified.",
+    "Unconfirmed or ambiguous create outcomes are retained for operator review; cleanup deletes only confirmed owned topics.",
+    "Chained hashes and pinned inputs detect changes against retained local records, not adversarial re-signing or externally authenticated provenance.",
+    "Local source uncommitted; no remote publication, hosted CI, production soak, speed comparison or world ranking."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/perf/KL04-08"
+}

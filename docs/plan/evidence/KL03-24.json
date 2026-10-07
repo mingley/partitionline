@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-06",
+  "source_sha": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_state": "Uncommitted candidate; source snapshots and SHA256 bindings identify actual tested inputs. No commit or hosted CI run claimed.",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "toolchain_policy": "Latest stable only, as requested by the user. Historical MSRV receipts remain historical.",
+  "performance_claims_valid": false,
+  "id": "KL03-24",
+  "status": "done",
+  "acceptance_met": true,
+  "evidence_directory": "docs/evidence/client/producer-initialization",
+  "scope": "Typed transient startup errors14/15/16 retry with bounded backoff. Initial transaction discovery and producer-ID allocation share one original phase deadline. Terminal broker errors do not retry; no application Produce replay added.",
+  "regression": {
+    "actual_parent": "1 passed,4 failed against retained old producer source and failure injection",
+    "candidate": "Six regression cases pass in the public API/full-surface run, including a shared discovery/allocation deadline"
+  },
+  "native_acceptance": {
+    "peer": "Fresh Apache Kafka4.3.1 KRaft RF1 broker; first producer-ID allocation on this data directory",
+    "kafka_clients_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "acknowledged": 101000,
+    "warmup": 1000,
+    "measured": 100000,
+    "independent_java_readback": 101000,
+    "restart_readback": true,
+    "client_closed": true,
+    "broker_parent_waited": true,
+    "listeners_closed_and_reusable": true
+  },
+  "validation": {
+    "client_all_features": {
+      "passed": 1964,
+      "failed": 0,
+      "ignored": 5
+    },
+    "strict_all_features_clippy": "pass",
+    "release_bench_produce": "pass",
+    "client_default": {
+      "passed": 1963,
+      "failed": 0,
+      "ignored": 5
+    }
+  },
+  "release_binary_sha256": {
+    "bench_produce": "3a8895c94c90729c6d9e70c2403db3f7771c460ce385530bcb73b98427f7af47"
+  },
+  "retained_failures": [
+    "Original cold InitProducerId14 remains in the immutable KL09-02 native-idempotent receipt.",
+    "Initial draft test did not compile: wrong configuration method; corrected before failing-before execution.",
+    "Incorrect regression target names selected no tests; the following explicit targets execute111+330+6 cases.",
+    "First native wrapper used the wrong KAFKA_HOME variable and executed no application producer.",
+    "First Java reader was interrupted by premature broker shutdown and failed. Restarted the same data without new produces; Java independently verified all101000 persisted records."
+  ],
+  "limits": [
+    "RF1 local development broker; no replicated fault/soak or production throughput ranking.",
+    "Before snapshot retains producer source and regression injection, not a complete isolated repository.",
+    "Earlier five-test success predates the added shared-phase deadline regression; final six-test/full-suite run qualifies it.",
+    "SASL reauthentication card KL06-11 and Raft/security qualification cards remain open."
+  ]
+}

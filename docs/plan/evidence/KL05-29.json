@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "task": "KL05-29",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "uncommitted_source": true,
+  "source_binding": "Final default/all executable SHA-256 and all production sources/test/helper/oracle/runner hashes match before and after actual SDK execution. Local source qualification; no push or hosted CI claimed.",
+  "toolchain": "latest stable rustc1.99.0 (b940084d7 2026-09-28), default/all features only",
+  "implementation": "Typed signed TransactionVersion INT8 atv2, legacy struct literals and helpers preserved; public force-abort negotiates0..2/default0, exact target response identity, scoped leader refresh for8/9 and one absolute deadline. Nonnullable arrays/names reject before nested allocations.",
+  "apache_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "apache_fixture_pairs": 125,
+  "unsupported_sdk_cells": 100,
+  "actual_sdk_nonnullable_field_rejections": 40,
+  "rust_emitted_frames_reparsed_by_actual_sdk": 250,
+  "default_all_rust_emitted_frames_identical": true,
+  "public_java_profiles": {
+    "default": 72,
+    "all_features": 72
+  },
+  "scripted_socket_scope": true,
+  "old_source_regression": {
+    "positive_controls_passed": 1,
+    "expected_failures": 4,
+    "empty_response_actual_result": "Ok(())",
+    "other_failures": [
+      "error8 returned terminal Broker",
+      "error9 returned terminal Broker",
+      "v2-only broker rejected"
+    ]
+  },
+  "nonnullable_fail_first": {
+    "failed": 1,
+    "unexpected_accepted_null_arrays": 12,
+    "actual_java_rejections": 40
+  },
+  "validation": {
+    "full-default-final": {
+      "passed": 2002,
+      "failed": 0,
+      "ignored": 13
+    },
+    "full-all-final": {
+      "passed": 2014,
+      "failed": 0,
+      "ignored": 14
+    }
+  },
+  "strict_checks": [
+    {
+      "name": "fmt-clean",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 3.2412798404693604
+    },
+    {
+      "name": "focused-clean",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--test",
+        "write_txn_markers_v2"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 1.3759679794311523
+    },
+    {
+      "name": "focused-all-clean",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--all-features",
+        "--test",
+        "write_txn_markers_v2"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 1.2430415153503418
+    },
+    {
+      "name": "clippy-all-clean",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 4.361437797546387
+    },
+    {
+      "name": "full-default-final",
+      "command": [
+        "cargo",
+        "test",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 70.73568177223206
+    },
+    {
+      "name": "full-all-final",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 203.82889533042908
+    },
+    {
+      "name": "clippy-default-clean",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 19.545315742492676
+    },
+    {
+      "name": "rustdoc-clean",
+      "command": [
+        "cargo",
+        "doc",
+        "--offline",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "parent_waited": true,
+      "seconds": 3.1022889614105225
+    },
+    {
+      "name": "rustdoc-strict",
+      "command": "RUSTDOCFLAGS=-D warnings cargo doc --offline --all-features --no-deps",
+      "exit_code": 0
+    }
+  ],
+  "package": {
+    "sha256": "c9f62c1fab47431b519307e99b1e3e9f2599a167d520a6a367432faff99774f3",
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "snippets_per_profile": 20,
+    "snippet_links_per_profile": 37
+  },
+  "ledger": {
+    "required_cases": 182,
+    "independent_cases": 40,
+    "unqualified_cases": 142,
+    "backlog_complete": true,
+    "core_complete": false,
+    "full_complete": false,
+    "coverage_checker_tests": 53,
+    "broker_compatibility_tests": 5
+  },
+  "closure": "Every final public SDK peer/JVM process was parent-waited. Listener and socket worker tasks joined; runtime tasks zero; both ports closed/reusable.",
+  "retained_failures": [
+    "Baseline preparation referenced a toolchain file absent in403; failed archive/manifest logs retained before corrected named regression execution.",
+    "Initial test header decode values violated unused-result lint; corrected named bindings.",
+    "Actual malformed-frame regression accepted12 nonnullable arrays; scoped decoder fix follows actual Java rejection.",
+    "Strict lint first found ignored JoinHandle result, then four sync fixture I/O diagnostics; named join result and a function-scoped expectation explicitly outside any async runtime correct the test harness.",
+    "Registry expectations still counted35 independent cells and required all current-public cells to be unrun. Both failed; corrected to preserve only the five independently executed API27 cells and require retained artifacts."
+  ],
+  "limits": [
+    "This peer qualifies client-component framing, routing, handler outcomes, version negotiation and owned deadlines. It implements no broker transaction state or TXV2 producer recovery.",
+    "Bootstrap version selection is not target-node mixed-version rolling-upgrade qualification.",
+    "Apache4.1.2 supportsv1 only;4.2.1/4.3.1 supportv1/v2. Legacyv0 is a local compatibility control, never mislabeled an actual current SDK pass.",
+    "Typed generic markers support signed INT8 values, while public abort sends0. Unknown request tags are safely skipped, not retained by the typed projection.",
+    "Latest stable only. Historical1.85 and source-preparation receipts remain historical. Source is locally uncommitted; no remote publication or hosted CI result is claimed."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "evidence_directory": "docs/evidence/client/write-txn-markers-v2/qualification"
+}
