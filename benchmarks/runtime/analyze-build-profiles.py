@@ -109,6 +109,24 @@ def main():
             reproduction=dict(config='none_16_portable',metrics=rerun,
                 rejections=[row['outcomes']['rejected'] for row in reproduce],
                 failed_repetitions=[row['rep'] for row in reproduce if row.get('disposition','executed')!='executed'])))
+        factors=[]
+        for factor,first_name,second_name in (
+                ('thin_lto','none_16_portable','thin_16_portable'),
+                ('fat_vs_thin_lto','thin_16_portable','fat_16_portable'),
+                ('single_codegen_unit','thin_16_portable','thin_1_portable'),
+                ('native_cpu','thin_16_portable','thin_16_native'),
+                ('pgo','thin_16_native','pgo_use')):
+            first_arm=arms[first_name];second_arm=arms[second_name];deltas={}
+            for name,metric in second_arm['metrics'].items():
+                first=first_arm['metrics'][name]['values'];second=metric['values']
+                if any(value==0 for value in first):
+                    deltas[name]=dict(status='not_computed',reason='observed baseline includes zero; no finite ratio')
+                else:
+                    deltas[name]=signed_interval([100*(b/a-1) for a,b in zip(first,second)],SEED+index)
+            factors.append(dict(factor=factor,baseline=first_name,candidate=second_name,
+                comparison_eligible=not first_arm['failed_repetitions'] and not second_arm['failed_repetitions'],
+                paired_percent_delta=deltas))
+        results[-1]['factor_comparisons']=factors
     result=dict(scope='local/unsigned',suite_hold='active',inputs_sha256=inputs,analyzer_sha256=sha(Path(__file__).resolve()),
         method='Per-arm medians bootstrap five observed repetitions with replacement. Paired percent deltas bootstrap the five matched B_i/A_i-1 values. 20,000 resamples; percentile indices499/19499; seed962 plus cell index. Reproduction is a fresh cohort, not a paired intervention.',
         primary_repetitions=5,resamples=RESAMPLES,base_seed=SEED,rows=len(rows),
@@ -118,6 +136,7 @@ def main():
             'Bulk timing bounds are not individual acknowledgment latency.',
             'Null-broker fixtures have 20,000 records; native bulk has eight million timed records and 10,000 warmup records.',
             'The native target depends on this CPU. PGO is trained on these same workload families.',
+            'Intervals describe each exploratory comparison; they are not adjusted for multiple comparisons.',
             'These exploratory cells do not establish production performance, every frozen timing floor, or a ranking.'],cells=results)
     with a.output.open('x') as file:json.dump(result,file,indent=2,allow_nan=False);file.write('\n')
     print(len(results),'cell/load groups;',len(rows),'retained result rows')
