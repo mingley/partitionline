@@ -18782,13 +18782,26 @@
     {
       "id": "KL09-62",
       "title": "Measure build-profile options for benchmark binaries",
-      "priority": "P2", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "evidence", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
       "files": ["benchmarks/runtime/", "new: docs/evidence/perf/build-profiles/"],
       "deliverable": "Labeled exploratory results for thin vs fat LTO, codegen-units, target-cpu and PGO on nb-produce-bulk, nb-fetch-bulk and lb-bulk.",
       "acceptance": ["The library's own Cargo profile and dependencies are unchanged; only benchmark builds vary.", "Every configuration and toolchain is recorded; host- or workload-specific gains are labeled as such."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Reproduce one configuration on a second run."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "benchmarks/runtime/measure-build-profiles.py",
+        "benchmarks/runtime/BUILD-PROFILES.md",
+        "docs/evidence/perf/build-profiles/",
+        "docs/plan/evidence/KL09-62.json",
+        "benchmarks/runtime/measure-runtime-flavors.py"
+      ],
+      "read_only_held": [
+        "src/",
+        "examples/",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "id": "KL09-63",

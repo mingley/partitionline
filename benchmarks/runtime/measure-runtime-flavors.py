@@ -54,8 +54,31 @@ def main():
         parser.add_argument('--'+name,type=Path,required=True)
     for name in ('kafka-homes','sdk-jar','slf4j'):
         parser.add_argument('--'+name,type=Path)
+    parser.add_argument('--build-matrix',type=Path)
+    parser.add_argument('--bulk-only',action='store_true')
+    parser.add_argument('--repetitions',type=int,choices=range(1,6),default=5)
+    parser.add_argument('--skip-reproduction',action='store_true')
     parser.add_argument('--commit',required=True)
     a = parser.parse_args()
+    configs=CONFIGS
+    build_matrix=None
+    if a.build_matrix:
+        build_matrix=json.loads(a.build_matrix.read_text())
+        configs=build_matrix['configs']
+        if not 1<=len(configs)<=16 or len({c['name'] for c in configs})!=len(configs):
+            raise ValueError('nonempty unique build configurations required')
+        for config in configs:
+            if (config['flavor']!='current_thread' or config['workers']!=0
+                    or not 1<=len(config['name'])<=64 or not config['name'].isascii()
+                    or not config['name'].replace('_','').isalnum()):
+                raise ValueError('build comparisons require named current-thread configurations')
+            if set(config['binaries'])!={'runtime','nb-serve','native-produce-runtime','native-latency-runtime'}:
+                raise ValueError('all four compiled binary bindings required')
+            for binary in config['binaries'].values():
+                path=Path(binary['path'])
+                if not path.is_absolute() or not path.is_file():raise ValueError('existing absolute binary path required')
+        if len({c['binaries']['nb-serve']['sha256'] for c in configs})!=1:
+            raise ValueError('client build comparisons require one fixed null-broker binary')
     source = a.source.resolve()
     tools = source/'benchmarks/runtime/tools'
     def interrupt(signum, frame):
@@ -65,16 +88,39 @@ def main():
     adapter = module(tools/'native-result.py','runtime_native_result')
     replay = module(tools/'open-loop-replay.py','runtime_open_loop_replay')
     args = argparse.Namespace(source=source,source_pins=a.source_pins,output=a.output,commit=a.commit,
-        family='runtime-'+a.family,repetitions=5,seed=961,cpus='2,4',cells=None,
+        family='runtime-'+a.family,repetitions=a.repetitions,seed=961,cpus='2,4',cells=None,
         binary=[(name,a.binaries/name) for name in
             ('runtime','nb-serve','native-produce-runtime','native-latency-runtime')])
     r = baseline.Recorder(args)
+    if build_matrix:
+        r.input_pins[str(a.build_matrix.resolve())]=baseline.sha(a.build_matrix)
+        for config in configs:
+            for binary in config['binaries'].values():
+                if baseline.sha(binary['path'])!=binary['sha256']:raise ValueError('compiled binary hash differs')
+                r.input_pins[binary['path']]=binary['sha256']
+        r.guard()
     r.host_observation = json.loads((r.output/'host-before.json').read_text())
     if r.host_observation['cpu_affinity'] != [0,1,2,3,4]:
         raise ValueError('the declared five-CPU host policy does not match the observed affinity')
     r.tree_hash = subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD^{tree}'],text=True).strip()
     base_command = r.command
     def command(argv,directory,label,timeout=400,extra_env=None):
+        if build_matrix:
+            matches=[c for c in configs if '-'+c['name']+'-' in directory.name]
+            if len(matches)>1:raise ValueError('ambiguous build arm')
+            if matches:
+                config=matches[0]
+                sidecar=directory/'benchmark-build.json'
+                specification=dict(name=config['name'],build=config['build'],binaries=config['binaries'],
+                    instrumented_training=config.get('instrumented_training',False))
+                if sidecar.exists():
+                    if json.loads(sidecar.read_text())!=specification:raise ValueError('build sidecar differs')
+                else:baseline.save(sidecar,specification)
+                replacements={str(path):config['binaries'][name]['path'] for name,path in r.binaries.items()}
+                argv=[replacements.get(str(arg),arg) for arg in argv]
+                extra_env=dict(extra_env or {})
+                if config.get('instrumented_training'):
+                    extra_env['LLVM_PROFILE_FILE']=str(directory/'profile-%m-%p.profraw')
         return base_command([sys.executable,'-B',tools/'parent-bound-exec.py',str(os.getpid()),*argv],
             directory,label,timeout,extra_env)
     r.command = command
@@ -87,21 +133,22 @@ def main():
         if path.is_file(): r.input_pins[str(path)]=baseline.sha(path)
     rng = random.Random(961)
     primary=[]
-    cells=['nb-produce-bulk','nb-fetch-bulk'] if a.family=='nb' else ['lb-bulk','lb-latency-openloop']
-    for rep in range(1,6):
+    cells=['nb-produce-bulk','nb-fetch-bulk'] if a.family=='nb' else (['lb-bulk'] if a.bulk_only else ['lb-bulk','lb-latency-openloop'])
+    for rep in range(1,a.repetitions+1):
         jobs=[dict(config=config,cell=cell,rep=rep,cohort='primary',load=load)
-            for config in CONFIGS for cell in cells
+            for config in configs for cell in cells
             for load in ([10,50,80] if cell=='lb-latency-openloop' else [None])]
         rng.shuffle(jobs)
         primary.extend(jobs)
     reproduce=[]
-    for rep in range(1,6):
+    for rep in ([] if a.skip_reproduction else range(1,a.repetitions+1)):
         for cell in cells:
             for load in ([10,50,80] if cell=='lb-latency-openloop' else [None]):
-                reproduce.append(dict(config=CONFIGS[0],cell=cell,rep=rep,cohort='reproduce',load=load))
+                reproduce.append(dict(config=configs[0],cell=cell,rep=rep,cohort='reproduce',load=load))
     baseline.save(r.output/'matrix-plan.json',dict(scope='local/unsigned',suite_hold='active',
-        source_commit=a.commit,configs=CONFIGS,client_cpus=[2,4],native_broker_cpus=[0,1],
-        N_definition='5 is the observed host affinity CPU count, fixed before measurement. Four/five workers oversubscribe the two client CPUs; no extra CPU is granted.',
+        source_commit=a.commit,configs=configs,client_cpus=[2,4],native_broker_cpus=[0,1],
+        N_definition=('All build-profile arms use current_thread with zero background workers on the same two client CPUs.'
+            if build_matrix else '5 is the observed host affinity CPU count, fixed before measurement. Four/five workers oversubscribe the two client CPUs; no extra CPU is granted.'),
         primary=primary,reproduce=reproduce,random_seed=961,repetitions=5,
         native_bulk=dict(timed_records=8_000_000,warmup=10_000,payload_bytes=100,partitions=6,
             key_mode='id',payload_mode='seeded',seed=1592590337,acks=1,idempotence=False,
@@ -111,8 +158,9 @@ def main():
             failed_capacity_runs='Retain normal exit1 and every raw rejection; independently verify all acknowledged payloads and offsets. Never relabel as executed.',
             payload='100 bytes of x; null key; partition0; no unique payload IDs',batch_records=1,
             max_in_flight=1,connections=1,linger_ms=0,max_pending=1024),
-        uncertainty='Five matched repetitions; paired bootstrap comparisons and per-arm median bootstrap CIs. Raw per-run normal mean intervals are diagnostic.',
-        reproduce_policy='Five fresh current-thread repetitions after the primary matrix; retain all differences and report median deltas without treating noisy local observations as a production gate.'))
+        uncertainty=str(a.repetitions)+' matched repetitions; inferential comparisons require the five-repetition matrix. Instrumented training is not a comparison. Raw per-run normal mean intervals are diagnostic.',
+        reproduce_policy=('Skipped explicitly for training' if a.skip_reproduction else
+            str(a.repetitions)+' fresh baseline-configuration repetitions after the primary matrix; retain all differences and report median deltas without treating noisy local observations as a production gate.')))
     baseline.save(r.output/'runner-inputs.json',r.input_pins)
     report = module(source/'scripts/benchmark-report.py','runtime_report_controls')
     def validator(path,directory):
@@ -240,7 +288,7 @@ log.segment.delete.delay.ms=0
                 PAYLOAD_BYTES='100',ACKS='1',LINGER_MS='0',MAX_PENDING='1024',SAMPLE_FLOOR='10000',
                 BUFFER_MEMORY='33554432',MAX_BLOCK_MS='1000',DELIVERY_TIMEOUT_MS='30000',REQUEST_TIMEOUT_MS='30000')
             calibrations=[]
-            for rep in range(1,6):
+            for rep in ([] if a.bulk_only else range(1,6)):
                 directory=r.output/f'calibration-{rep:02d}';directory.mkdir()
                 topic=f'pl-runtime-{owner.pid}-cal-{rep}';create(directory,topic,1)
                 print('start '+directory.name,flush=True)
@@ -257,8 +305,8 @@ log.segment.delete.delay.ms=0
                 row=dict(rep=rep,diagnostic=values[0],records_per_second=capacity,java=actual_java)
                 calibrations.append(row);baseline.save(directory/'validated.json',row)
                 print('done '+directory.name,flush=True)
-            median=statistics.median(row['records_per_second'] for row in calibrations)
-            rates={percent:max(1,round(median*percent/100)) for percent in (10,50,80)}
+            median=statistics.median(row['records_per_second'] for row in calibrations) if calibrations else None
+            rates={percent:max(1,round(median*percent/100)) for percent in (10,50,80)} if calibrations else {}
             baseline.save(r.output/'calibrated-rates.json',dict(capacity_values=[x['records_per_second'] for x in calibrations],
                 current_thread_median_capacity=median,rates=rates,scope='Five fresh current-thread sequential means, integer-microsecond resolution; identical absolute arrivals across all flavors'))
             for index,job in enumerate(primary+reproduce):
