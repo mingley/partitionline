@@ -22,3 +22,12 @@ Actual Java and Rust callers run against owned scripted peers. The current
 Java Metadata builder refuses v0; those refusals remain part of the results.
 Java GROUP discovery v0 succeeds when Metadata is newer. These checks cover
 client behavior; they do not qualify a live broker or comparative performance.
+
+Fault profiles cover loading, unavailable coordinators, wrong coordinators,
+disconnects, address changes, authorization failures and operation deadlines.
+Java Admin treats NOT_COORDINATOR during discovery as terminal; Java Consumer
+and Rust Admin retry it. When the node ID stays the same, Java Admin reuses a
+live socket at the old address; the other callers follow the returned address.
+A move to a different node is followed by all callers. At the original call
+deadline, Java Admin cancels the in-flight request with DisconnectException;
+Java Consumer reports TimeoutException. The checks record elapsed call time.

@@ -164,6 +164,7 @@ async fn serve_legacy_discovery_probe() {
         std::path::PathBuf::from(std::env::var_os("LEGACY_DISCOVERY_DIRECTORY").unwrap());
     let profile = std::env::var("LEGACY_DISCOVERY_PROFILE").unwrap();
     let driver = std::env::var("LEGACY_DISCOVERY_DRIVER").unwrap();
+    let fault = !["legacy", "modern-group0", "mixed"].contains(&profile.as_str());
     let peer = socket_peer::Peer::start().await;
     {
         let mut state = peer.state.lock().await;
@@ -176,6 +177,44 @@ async fn serve_legacy_discovery_probe() {
                 state.metadata = Some((0, 13));
                 state.find = Some((0, 6));
             }
+            "loading" | "unavailable" | "wrong-coordinator" | "terminal" | "deadline"
+            | "disconnect" | "moved" | "same-node-address" => {
+                state.metadata = Some((13, 13));
+                match profile.as_str() {
+                    "disconnect" => state.replies.push_back(socket_peer::Reply::Disconnect),
+                    "moved" | "same-node-address" => {
+                        state.routes.extend([1, 2]);
+                        if profile == "moved" {
+                            state.route_ids[2] = 8;
+                        }
+                        let mut body = socket_peer::offsets();
+                        let at = body.len() - 4;
+                        body[at..at + 2].copy_from_slice(&16i16.to_be_bytes());
+                        state
+                            .offset_replies
+                            .push_back(socket_peer::Reply::Body(body));
+                    }
+                    "deadline" => state.replies.extend((0..8).map(|_| {
+                        socket_peer::Reply::Delay(
+                            std::time::Duration::from_secs(3),
+                            socket_peer::find_error(15),
+                        )
+                    })),
+                    _ => {
+                        state
+                            .replies
+                            .push_back(socket_peer::Reply::Body(socket_peer::find_error(
+                                match profile.as_str() {
+                                    "loading" => 14,
+                                    "unavailable" => 15,
+                                    "wrong-coordinator" => 16,
+                                    "terminal" => 30,
+                                    _ => panic!("unknown error"),
+                                },
+                            )))
+                    }
+                }
+            }
             _ => panic!("unknown profile"),
         }
     }
@@ -184,19 +223,28 @@ async fn serve_legacy_discovery_probe() {
         .unwrap();
     if driver.starts_with("rust") {
         let address = peer.addresses[0].to_string();
+        let mut calls = if driver == "rust-producer" { 1 } else { 2 };
         match driver.as_str() {
             "rust-admin" => {
                 let mut admin = partitionline::Admin::new(peer.config()).await.unwrap();
-                assert_eq!(admin.list_topics().await.unwrap().len(), 1);
-                assert_eq!(
-                    admin
-                        .list_consumer_group_offsets("group", [("topic", 0)])
-                        .await
-                        .unwrap()[0]
-                        .1
-                        .offset,
-                    123
-                );
+                if !fault {
+                    assert_eq!(admin.list_topics().await.unwrap().len(), 1);
+                }
+                let result = admin
+                    .list_consumer_group_offsets("group", [("topic", 0)])
+                    .await;
+                if profile == "terminal" {
+                    assert_eq!(result.unwrap_err().broker_code(), Some(30));
+                    calls = 0;
+                } else if profile == "deadline" {
+                    assert!(matches!(result, Err(partitionline::Error::Timeout)));
+                    calls = 0;
+                } else {
+                    assert_eq!(result.unwrap()[0].1.offset, 123);
+                    if fault {
+                        calls = 1;
+                    }
+                }
                 admin.close().await.unwrap();
             }
             "rust-consumer" => {
@@ -221,7 +269,7 @@ async fn serve_legacy_discovery_probe() {
             directory.join("rust-outcome.json"),
             &format!(
                 "{{\"status\":\"pass\",\"successful_public_calls\":{}}}\n",
-                if driver == "rust-producer" { 1 } else { 2 }
+                calls
             ),
         )
         .await

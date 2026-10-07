@@ -14,6 +14,14 @@ pub(crate) enum Reply {
     Delay(Duration, Vec<u8>),
     Disconnect,
 }
+
+pub(crate) fn find_error(code: i16) -> Vec<u8> {
+    let mut body = code.to_be_bytes().to_vec();
+    body.extend_from_slice(&(-1i32).to_be_bytes());
+    body.extend_from_slice(&0i16.to_be_bytes());
+    body.extend_from_slice(&(-1i32).to_be_bytes());
+    body
+}
 #[derive(Clone)]
 pub(crate) struct Frame {
     pub slot: usize,
@@ -28,6 +36,7 @@ pub(crate) struct State {
     pub metadata: Option<(i16, i16)>,
     pub find: Option<(i16, i16)>,
     pub routes: VecDeque<usize>,
+    pub route_ids: [i32; 3],
     pub replies: VecDeque<Reply>,
     pub offset_replies: VecDeque<Reply>,
     pub startup: VecDeque<Reply>,
@@ -57,24 +66,29 @@ fn count(out: &mut Vec<u8>, n: usize, flexible: bool) {
     }
 }
 pub(crate) fn metadata(address: SocketAddr, version: i16) -> Vec<u8> {
+    metadata_members(address, version, None)
+}
+fn metadata_members(address: SocketAddr, version: i16, extra: Option<SocketAddr>) -> Vec<u8> {
     let f = version >= 9;
     let mut out = Vec::new();
     if version >= 3 {
         out.extend_from_slice(&0i32.to_be_bytes());
     }
-    count(&mut out, 1, f);
-    out.extend_from_slice(&7i32.to_be_bytes());
-    string(&mut out, "::1", f);
-    out.extend_from_slice(&i32::from(address.port()).to_be_bytes());
-    if version >= 1 {
+    count(&mut out, if extra.is_some() { 2 } else { 1 }, f);
+    for (broker, node) in std::iter::once((address, 7i32)).chain(extra.map(|addr| (addr, 8))) {
+        out.extend_from_slice(&node.to_be_bytes());
+        string(&mut out, "::1", f);
+        out.extend_from_slice(&i32::from(broker.port()).to_be_bytes());
+        if version >= 1 {
+            if f {
+                out.push(0);
+            } else {
+                out.extend_from_slice(&(-1i16).to_be_bytes());
+            }
+        }
         if f {
             out.push(0);
-        } else {
-            out.extend_from_slice(&(-1i16).to_be_bytes());
         }
-    }
-    if f {
-        out.push(0);
     }
     if version >= 2 {
         string(&mut out, "cluster", f);
@@ -125,7 +139,7 @@ pub(crate) fn metadata(address: SocketAddr, version: i16) -> Vec<u8> {
     }
     out
 }
-fn find(address: SocketAddr, version: i16, body: &[u8]) -> Vec<u8> {
+fn find(address: SocketAddr, version: i16, body: &[u8], node: i32) -> Vec<u8> {
     let mut out = Vec::new();
     if version >= 1 {
         out.extend_from_slice(&0i32.to_be_bytes());
@@ -136,7 +150,7 @@ fn find(address: SocketAddr, version: i16, body: &[u8]) -> Vec<u8> {
         out.push(2);
         let len = usize::from(*body.get(2).unwrap());
         out.extend_from_slice(body.get(2..2 + len).unwrap());
-        out.extend_from_slice(&7i32.to_be_bytes());
+        out.extend_from_slice(&node.to_be_bytes());
         string(&mut out, "::1", true);
         out.extend_from_slice(&i32::from(address.port()).to_be_bytes());
         out.extend_from_slice(&[0, 0, 0, 0, 0]);
@@ -149,7 +163,7 @@ fn find(address: SocketAddr, version: i16, body: &[u8]) -> Vec<u8> {
                 out.extend_from_slice(&(-1i16).to_be_bytes());
             }
         }
-        out.extend_from_slice(&7i32.to_be_bytes());
+        out.extend_from_slice(&node.to_be_bytes());
         string(&mut out, "::1", version >= 3);
         out.extend_from_slice(&i32::from(address.port()).to_be_bytes());
         if version >= 3 {
@@ -254,13 +268,25 @@ async fn worker(
                         if version == 0 { 0 } else { 35 },
                     ))
                 }),
-                3 => s
-                    .metadata_replies
-                    .pop_front()
-                    .unwrap_or_else(|| Reply::Body(metadata(addresses[1], version))),
+                3 => s.metadata_replies.pop_front().unwrap_or_else(|| {
+                    Reply::Body(metadata_members(
+                        addresses[1],
+                        version,
+                        if s.route_ids[2] == 8 {
+                            Some(addresses[2])
+                        } else {
+                            None
+                        },
+                    ))
+                }),
                 10 => s.replies.pop_front().unwrap_or_else(|| {
                     let target = s.routes.pop_front().unwrap_or(1);
-                    Reply::Body(find(*addresses.get(target).unwrap(), version, &body))
+                    Reply::Body(find(
+                        *addresses.get(target).unwrap(),
+                        version,
+                        &body,
+                        *s.route_ids.get(target).unwrap(),
+                    ))
                 }),
                 9 => s
                     .offset_replies
@@ -328,6 +354,7 @@ impl Peer {
             metadata: Some((0, 0)),
             find: Some((0, 0)),
             routes: VecDeque::new(),
+            route_ids: [7; 3],
             replies: VecDeque::new(),
             offset_replies: VecDeque::new(),
             startup: VecDeque::new(),

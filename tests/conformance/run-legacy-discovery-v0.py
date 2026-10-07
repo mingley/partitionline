@@ -20,6 +20,8 @@ SLF4J = 'd3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0'
 SOURCES = [REPO / 'tests/fixtures/legacy-discovery-v0' / name for name in
            ['LegacyDiscoveryOracle.java', 'LegacyDiscoveryPublic.java']]
 PROFILES = ['legacy', 'modern-group0', 'mixed']
+FAULTS = ['loading', 'unavailable', 'wrong-coordinator', 'disconnect', 'moved', 'same-node-address', 'terminal', 'deadline']
+GROUP_DRIVERS = ['rust-admin', 'java-admin-offset', 'java-consumer-offset']
 DRIVERS = ['rust-admin', 'rust-consumer', 'rust-producer', 'java-admin-offset',
            'java-consumer-offset', 'java-consumer-metadata', 'java-producer-metadata']
 spec = importlib.util.spec_from_file_location('process_owner', REPO / 'scripts/run-benchmark-matrix.py')
@@ -62,7 +64,7 @@ def run_case(args, release, profile, driver, classes, cp):
             if driver.startswith('java'):
                 owner.execute(['java', '-Xmx128m', '-cp', str(classes) + os.pathsep + cp,
                                'LegacyDiscoveryPublic', (directory / 'ready').read_text(),
-                               driver.removeprefix('java-'), 'legacy-policy' if unsupported else 'supported',
+                               driver.removeprefix('java-'), 'legacy-policy' if unsupported else 'not-coordinator' if profile == 'wrong-coordinator' and driver == 'java-admin-offset' else profile if profile in ['terminal', 'deadline'] else 'supported',
                                str(directory / 'java-outcome.json')], env, directory, 'java', 6)
             else:
                 peer.wait(timeout=8)
@@ -101,13 +103,22 @@ def run_case(args, release, profile, driver, classes, cp):
     if unsupported:
         if outcome['successful_public_calls'] != 0 or metadata:
             raise ValueError('SDK legacy Metadata factory refusal dispatched a Metadata frame')
+    elif profile in ['terminal', 'deadline'] or profile == 'wrong-coordinator' and driver == 'java-admin-offset':
+        if not find or offsets or outcome['successful_public_calls'] != 0:
+            raise ValueError('failed discovery dispatched an offset request')
+    elif profile in ['moved', 'same-node-address']:
+        expected_slots = ['1', '1'] if profile == 'same-node-address' and driver == 'java-admin-offset' else ['1', '2']
+        if len(find) < 2 or [row['slot'] for row in offsets] != expected_slots:
+            raise ValueError('coordinator address movement was not observed')
     elif driver.endswith('offset') or driver == 'rust-admin':
         if not find or not offsets or any(row['slot'] != '1' for row in offsets):
             raise ValueError('missing public coordinator route')
     elif not metadata:
         raise ValueError('missing public Metadata call')
+    if (profile in ['loading', 'unavailable', 'disconnect'] or profile == 'wrong-coordinator' and driver != 'java-admin-offset') and len(find) < 2:
+        raise ValueError('coordinator retry was not observed')
     counts.update(release=release, profile=profile, driver=driver, public_outcome=outcome,
-                  status='expected_legacy_policy' if unsupported else 'pass')
+                  status='expected_legacy_policy' if unsupported else 'expected_discovery_failure' if profile in ['terminal', 'deadline'] else 'expected_reference_policy' if profile == 'wrong-coordinator' and driver == 'java-admin-offset' else 'pass')
     return counts
 
 
@@ -172,6 +183,9 @@ def main():
             raise ValueError('missing independently parsed legacy bodies')
         for profile in PROFILES:
             for driver in DRIVERS:
+                results.append(run_case(args, release, profile, driver, classes, cp))
+        for profile in FAULTS:
+            for driver in GROUP_DRIVERS:
                 results.append(run_case(args, release, profile, driver, classes, cp))
     for name, digest in guard.items():
         if sha(name) != digest:
