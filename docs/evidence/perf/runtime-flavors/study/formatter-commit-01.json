@@ -1,0 +1,14 @@
+{
+  "commit": "63a89f4c3475a75bf57557515b7ffab3202eebea",
+  "parent": "17a6344b019e65ad209800e1f93481f7bf50ad36",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "benchmarks/runtime/tools/native-result.py": "1cc1da8744da6cda4d99973006edf9cba2652f7abfb088c0e36d5ad8a60d7591",
+    "benchmarks/runtime/canonical-native-views.py": "870db3de69cb206f3c0ff7b1a7bf26fc66045172f15f793116df2772b5636220",
+    "benchmarks/runtime/RUNTIME-FLAVORS.md": "97ba368d53fb0909f330710964e9576650ac4da5af491925e55ecdfa5b086990",
+    "docs/plan/tasks.json": "1f815662d02d01ce058b84da294f7934fbd5c3ba6e9734e032d5068f2d67e3e4"
+  },
+  "scope": "Review branch only; no merge or release"
+}

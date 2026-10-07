@@ -1,0 +1,30 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/parent-bound-exec.py",
+    "766657",
+    "java",
+    "-Xms128m",
+    "-Xmx384m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/java-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "AuditAndDelete",
+    "latency",
+    "127.0.0.1:36401",
+    "pl-runtime-767578-30",
+    "30000"
+  ],
+  "started": 1791405568.138819,
+  "parent_waited": true,
+  "pid": 776722,
+  "exit_code": 0,
+  "ended": 1791405569.0475368,
+  "artifacts": {
+    "java-audit-delete.stdout": "6bb62a1327fa688a11256282fee6b66fc1f9075d6d922bd1478d387030bc42fb",
+    "java-audit-delete.stderr": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  }
+}

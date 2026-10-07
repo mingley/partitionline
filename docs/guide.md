@@ -3,6 +3,30 @@
 Examples, configuration, recipes, and troubleshooting for the client.
 See the [documentation index](index.md) for API and protocol references.
 
+## Choosing a Tokio runtime
+
+Use `current_thread` when one application thread can drive the client and its
+other work. Use `multi_thread` when application tasks need parallel scheduling,
+and choose its worker count from measurements of that workload.
+
+The [local runtime comparison](evidence/perf/runtime-flavors/README.md) tested
+current-thread and 1, 2, 4 and 5 background workers on two client CPUs with Kafka
+4.3.1. Median native bulk throughput was 245,443 records/s on current-thread and
+214,721–233,172 records/s on the multithread configurations. Current-thread also
+used less client CPU in that instrumented workload. Null-broker results varied
+by operation; there was no consistent benefit from adding workers.
+
+Open-loop latency does not establish a preferred worker count. Its low-load p99
+varied between repetitions and reruns, two medium-load runs rejected records,
+and every high-load run rejected records. Measure admission failures as well as
+latency when choosing a configuration. These shared-host results do not establish
+performance on other machines or the application's overall performance.
+
+The client does not create an application runtime or change its defaults. The
+benchmark adds a bounded cancellation barrier after close, outside timing, to
+keep repetitions separate. Production shutdown completion remains tracked in
+KL02-12.
+
 ## Fresh package quickstart
 
 This exercise produces one record, verifies application processing, commits

@@ -1,0 +1,250 @@
+start calibration-01
+done calibration-01
+start calibration-02
+done calibration-02
+start calibration-03
+done calibration-03
+start calibration-04
+done calibration-04
+start calibration-05
+done calibration-05
+start 000-primary-r1-current_thread-lb-bulk-0
+done 000-primary-r1-current_thread-lb-bulk-0 executed
+start 001-primary-r1-multi_thread_5-lb-latency-openloop-50
+done 001-primary-r1-multi_thread_5-lb-latency-openloop-50 executed
+start 002-primary-r1-multi_thread_2-lb-latency-openloop-50
+done 002-primary-r1-multi_thread_2-lb-latency-openloop-50 executed
+start 003-primary-r1-multi_thread_4-lb-bulk-0
+done 003-primary-r1-multi_thread_4-lb-bulk-0 executed
+start 004-primary-r1-multi_thread_5-lb-latency-openloop-10
+done 004-primary-r1-multi_thread_5-lb-latency-openloop-10 executed
+start 005-primary-r1-multi_thread_2-lb-latency-openloop-10
+done 005-primary-r1-multi_thread_2-lb-latency-openloop-10 executed
+start 006-primary-r1-multi_thread_4-lb-latency-openloop-80
+done 006-primary-r1-multi_thread_4-lb-latency-openloop-80 failed
+start 007-primary-r1-multi_thread_1-lb-latency-openloop-80
+done 007-primary-r1-multi_thread_1-lb-latency-openloop-80 failed
+start 008-primary-r1-multi_thread_2-lb-latency-openloop-80
+done 008-primary-r1-multi_thread_2-lb-latency-openloop-80 failed
+start 009-primary-r1-multi_thread_1-lb-bulk-0
+done 009-primary-r1-multi_thread_1-lb-bulk-0 executed
+start 010-primary-r1-multi_thread_5-lb-latency-openloop-80
+done 010-primary-r1-multi_thread_5-lb-latency-openloop-80 failed
+start 011-primary-r1-multi_thread_1-lb-latency-openloop-50
+done 011-primary-r1-multi_thread_1-lb-latency-openloop-50 executed
+start 012-primary-r1-multi_thread_1-lb-latency-openloop-10
+done 012-primary-r1-multi_thread_1-lb-latency-openloop-10 executed
+start 013-primary-r1-current_thread-lb-latency-openloop-50
+done 013-primary-r1-current_thread-lb-latency-openloop-50 executed
+start 014-primary-r1-multi_thread_4-lb-latency-openloop-50
+done 014-primary-r1-multi_thread_4-lb-latency-openloop-50 executed
+start 015-primary-r1-multi_thread_2-lb-bulk-0
+done 015-primary-r1-multi_thread_2-lb-bulk-0 executed
+start 016-primary-r1-multi_thread_4-lb-latency-openloop-10
+done 016-primary-r1-multi_thread_4-lb-latency-openloop-10 executed
+start 017-primary-r1-current_thread-lb-latency-openloop-80
+done 017-primary-r1-current_thread-lb-latency-openloop-80 failed
+start 018-primary-r1-current_thread-lb-latency-openloop-10
+done 018-primary-r1-current_thread-lb-latency-openloop-10 executed
+start 019-primary-r1-multi_thread_5-lb-bulk-0
+done 019-primary-r1-multi_thread_5-lb-bulk-0 executed
+start 020-primary-r2-multi_thread_4-lb-latency-openloop-80
+done 020-primary-r2-multi_thread_4-lb-latency-openloop-80 failed
+start 021-primary-r2-multi_thread_1-lb-bulk-0
+done 021-primary-r2-multi_thread_1-lb-bulk-0 executed
+start 022-primary-r2-multi_thread_2-lb-latency-openloop-50
+done 022-primary-r2-multi_thread_2-lb-latency-openloop-50 executed
+start 023-primary-r2-multi_thread_2-lb-latency-openloop-80
+done 023-primary-r2-multi_thread_2-lb-latency-openloop-80 failed
+start 024-primary-r2-multi_thread_5-lb-bulk-0
+done 024-primary-r2-multi_thread_5-lb-bulk-0 executed
+start 025-primary-r2-multi_thread_4-lb-bulk-0
+done 025-primary-r2-multi_thread_4-lb-bulk-0 executed
+start 026-primary-r2-multi_thread_4-lb-latency-openloop-10
+done 026-primary-r2-multi_thread_4-lb-latency-openloop-10 executed
+start 027-primary-r2-current_thread-lb-latency-openloop-80
+done 027-primary-r2-current_thread-lb-latency-openloop-80 failed
+start 028-primary-r2-current_thread-lb-bulk-0
+done 028-primary-r2-current_thread-lb-bulk-0 executed
+start 029-primary-r2-multi_thread_2-lb-latency-openloop-10
+done 029-primary-r2-multi_thread_2-lb-latency-openloop-10 executed
+start 030-primary-r2-current_thread-lb-latency-openloop-50
+done 030-primary-r2-current_thread-lb-latency-openloop-50 executed
+start 031-primary-r2-multi_thread_2-lb-bulk-0
+done 031-primary-r2-multi_thread_2-lb-bulk-0 executed
+start 032-primary-r2-multi_thread_4-lb-latency-openloop-50
+done 032-primary-r2-multi_thread_4-lb-latency-openloop-50 executed
+start 033-primary-r2-multi_thread_1-lb-latency-openloop-50
+done 033-primary-r2-multi_thread_1-lb-latency-openloop-50 executed
+start 034-primary-r2-multi_thread_5-lb-latency-openloop-10
+done 034-primary-r2-multi_thread_5-lb-latency-openloop-10 executed
+start 035-primary-r2-multi_thread_5-lb-latency-openloop-50
+done 035-primary-r2-multi_thread_5-lb-latency-openloop-50 executed
+start 036-primary-r2-multi_thread_5-lb-latency-openloop-80
+done 036-primary-r2-multi_thread_5-lb-latency-openloop-80 failed
+start 037-primary-r2-multi_thread_1-lb-latency-openloop-80
+done 037-primary-r2-multi_thread_1-lb-latency-openloop-80 failed
+start 038-primary-r2-multi_thread_1-lb-latency-openloop-10
+done 038-primary-r2-multi_thread_1-lb-latency-openloop-10 executed
+start 039-primary-r2-current_thread-lb-latency-openloop-10
+done 039-primary-r2-current_thread-lb-latency-openloop-10 executed
+start 040-primary-r3-multi_thread_4-lb-latency-openloop-80
+done 040-primary-r3-multi_thread_4-lb-latency-openloop-80 failed
+start 041-primary-r3-current_thread-lb-bulk-0
+done 041-primary-r3-current_thread-lb-bulk-0 executed
+start 042-primary-r3-multi_thread_2-lb-latency-openloop-50
+done 042-primary-r3-multi_thread_2-lb-latency-openloop-50 executed
+start 043-primary-r3-multi_thread_5-lb-latency-openloop-50
+done 043-primary-r3-multi_thread_5-lb-latency-openloop-50 executed
+start 044-primary-r3-multi_thread_4-lb-bulk-0
+done 044-primary-r3-multi_thread_4-lb-bulk-0 executed
+start 045-primary-r3-multi_thread_5-lb-bulk-0
+done 045-primary-r3-multi_thread_5-lb-bulk-0 executed
+start 046-primary-r3-multi_thread_1-lb-bulk-0
+done 046-primary-r3-multi_thread_1-lb-bulk-0 executed
+start 047-primary-r3-multi_thread_5-lb-latency-openloop-10
+done 047-primary-r3-multi_thread_5-lb-latency-openloop-10 executed
+start 048-primary-r3-multi_thread_4-lb-latency-openloop-10
+done 048-primary-r3-multi_thread_4-lb-latency-openloop-10 executed
+start 049-primary-r3-current_thread-lb-latency-openloop-50
+done 049-primary-r3-current_thread-lb-latency-openloop-50 failed
+start 050-primary-r3-current_thread-lb-latency-openloop-80
+done 050-primary-r3-current_thread-lb-latency-openloop-80 failed
+start 051-primary-r3-multi_thread_2-lb-latency-openloop-10
+done 051-primary-r3-multi_thread_2-lb-latency-openloop-10 executed
+start 052-primary-r3-multi_thread_1-lb-latency-openloop-50
+done 052-primary-r3-multi_thread_1-lb-latency-openloop-50 executed
+start 053-primary-r3-multi_thread_1-lb-latency-openloop-80
+done 053-primary-r3-multi_thread_1-lb-latency-openloop-80 failed
+start 054-primary-r3-multi_thread_5-lb-latency-openloop-80
+done 054-primary-r3-multi_thread_5-lb-latency-openloop-80 failed
+start 055-primary-r3-multi_thread_1-lb-latency-openloop-10
+done 055-primary-r3-multi_thread_1-lb-latency-openloop-10 executed
+start 056-primary-r3-multi_thread_2-lb-bulk-0
+done 056-primary-r3-multi_thread_2-lb-bulk-0 executed
+start 057-primary-r3-current_thread-lb-latency-openloop-10
+done 057-primary-r3-current_thread-lb-latency-openloop-10 executed
+start 058-primary-r3-multi_thread_4-lb-latency-openloop-50
+done 058-primary-r3-multi_thread_4-lb-latency-openloop-50 executed
+start 059-primary-r3-multi_thread_2-lb-latency-openloop-80
+done 059-primary-r3-multi_thread_2-lb-latency-openloop-80 failed
+start 060-primary-r4-multi_thread_1-lb-latency-openloop-10
+done 060-primary-r4-multi_thread_1-lb-latency-openloop-10 executed
+start 061-primary-r4-multi_thread_5-lb-latency-openloop-10
+done 061-primary-r4-multi_thread_5-lb-latency-openloop-10 executed
+start 062-primary-r4-multi_thread_4-lb-latency-openloop-10
+done 062-primary-r4-multi_thread_4-lb-latency-openloop-10 executed
+start 063-primary-r4-multi_thread_2-lb-latency-openloop-50
+done 063-primary-r4-multi_thread_2-lb-latency-openloop-50 executed
+start 064-primary-r4-multi_thread_1-lb-latency-openloop-80
+done 064-primary-r4-multi_thread_1-lb-latency-openloop-80 failed
+start 065-primary-r4-multi_thread_5-lb-latency-openloop-80
+done 065-primary-r4-multi_thread_5-lb-latency-openloop-80 failed
+start 066-primary-r4-multi_thread_1-lb-bulk-0
+done 066-primary-r4-multi_thread_1-lb-bulk-0 executed
+start 067-primary-r4-multi_thread_1-lb-latency-openloop-50
+done 067-primary-r4-multi_thread_1-lb-latency-openloop-50 executed
+start 068-primary-r4-multi_thread_4-lb-bulk-0
+done 068-primary-r4-multi_thread_4-lb-bulk-0 executed
+start 069-primary-r4-current_thread-lb-latency-openloop-10
+done 069-primary-r4-current_thread-lb-latency-openloop-10 executed
+start 070-primary-r4-multi_thread_5-lb-latency-openloop-50
+done 070-primary-r4-multi_thread_5-lb-latency-openloop-50 executed
+start 071-primary-r4-multi_thread_5-lb-bulk-0
+done 071-primary-r4-multi_thread_5-lb-bulk-0 executed
+start 072-primary-r4-current_thread-lb-latency-openloop-50
+done 072-primary-r4-current_thread-lb-latency-openloop-50 executed
+start 073-primary-r4-multi_thread_2-lb-bulk-0
+done 073-primary-r4-multi_thread_2-lb-bulk-0 executed
+start 074-primary-r4-multi_thread_2-lb-latency-openloop-80
+done 074-primary-r4-multi_thread_2-lb-latency-openloop-80 failed
+start 075-primary-r4-current_thread-lb-latency-openloop-80
+done 075-primary-r4-current_thread-lb-latency-openloop-80 failed
+start 076-primary-r4-multi_thread_4-lb-latency-openloop-50
+done 076-primary-r4-multi_thread_4-lb-latency-openloop-50 executed
+start 077-primary-r4-multi_thread_4-lb-latency-openloop-80
+done 077-primary-r4-multi_thread_4-lb-latency-openloop-80 failed
+start 078-primary-r4-current_thread-lb-bulk-0
+done 078-primary-r4-current_thread-lb-bulk-0 executed
+start 079-primary-r4-multi_thread_2-lb-latency-openloop-10
+done 079-primary-r4-multi_thread_2-lb-latency-openloop-10 executed
+start 080-primary-r5-multi_thread_2-lb-latency-openloop-80
+done 080-primary-r5-multi_thread_2-lb-latency-openloop-80 failed
+start 081-primary-r5-multi_thread_1-lb-latency-openloop-50
+done 081-primary-r5-multi_thread_1-lb-latency-openloop-50 executed
+start 082-primary-r5-multi_thread_4-lb-latency-openloop-50
+done 082-primary-r5-multi_thread_4-lb-latency-openloop-50 executed
+start 083-primary-r5-multi_thread_5-lb-latency-openloop-80
+done 083-primary-r5-multi_thread_5-lb-latency-openloop-80 failed
+start 084-primary-r5-multi_thread_4-lb-bulk-0
+done 084-primary-r5-multi_thread_4-lb-bulk-0 executed
+start 085-primary-r5-multi_thread_5-lb-bulk-0
+done 085-primary-r5-multi_thread_5-lb-bulk-0 executed
+start 086-primary-r5-multi_thread_4-lb-latency-openloop-10
+done 086-primary-r5-multi_thread_4-lb-latency-openloop-10 executed
+start 087-primary-r5-current_thread-lb-latency-openloop-10
+done 087-primary-r5-current_thread-lb-latency-openloop-10 executed
+start 088-primary-r5-multi_thread_2-lb-latency-openloop-50
+done 088-primary-r5-multi_thread_2-lb-latency-openloop-50 failed
+start 089-primary-r5-current_thread-lb-latency-openloop-80
+done 089-primary-r5-current_thread-lb-latency-openloop-80 failed
+start 090-primary-r5-multi_thread_5-lb-latency-openloop-50
+done 090-primary-r5-multi_thread_5-lb-latency-openloop-50 executed
+start 091-primary-r5-multi_thread_1-lb-latency-openloop-80
+done 091-primary-r5-multi_thread_1-lb-latency-openloop-80 failed
+start 092-primary-r5-current_thread-lb-bulk-0
+done 092-primary-r5-current_thread-lb-bulk-0 executed
+start 093-primary-r5-multi_thread_1-lb-bulk-0
+done 093-primary-r5-multi_thread_1-lb-bulk-0 executed
+start 094-primary-r5-current_thread-lb-latency-openloop-50
+done 094-primary-r5-current_thread-lb-latency-openloop-50 executed
+start 095-primary-r5-multi_thread_5-lb-latency-openloop-10
+done 095-primary-r5-multi_thread_5-lb-latency-openloop-10 executed
+start 096-primary-r5-multi_thread_1-lb-latency-openloop-10
+done 096-primary-r5-multi_thread_1-lb-latency-openloop-10 executed
+start 097-primary-r5-multi_thread_4-lb-latency-openloop-80
+done 097-primary-r5-multi_thread_4-lb-latency-openloop-80 failed
+start 098-primary-r5-multi_thread_2-lb-bulk-0
+done 098-primary-r5-multi_thread_2-lb-bulk-0 executed
+start 099-primary-r5-multi_thread_2-lb-latency-openloop-10
+done 099-primary-r5-multi_thread_2-lb-latency-openloop-10 executed
+start 100-reproduce-r1-current_thread-lb-bulk-0
+done 100-reproduce-r1-current_thread-lb-bulk-0 executed
+start 101-reproduce-r1-current_thread-lb-latency-openloop-10
+done 101-reproduce-r1-current_thread-lb-latency-openloop-10 executed
+start 102-reproduce-r1-current_thread-lb-latency-openloop-50
+done 102-reproduce-r1-current_thread-lb-latency-openloop-50 executed
+start 103-reproduce-r1-current_thread-lb-latency-openloop-80
+done 103-reproduce-r1-current_thread-lb-latency-openloop-80 failed
+start 104-reproduce-r2-current_thread-lb-bulk-0
+done 104-reproduce-r2-current_thread-lb-bulk-0 executed
+start 105-reproduce-r2-current_thread-lb-latency-openloop-10
+done 105-reproduce-r2-current_thread-lb-latency-openloop-10 executed
+start 106-reproduce-r2-current_thread-lb-latency-openloop-50
+done 106-reproduce-r2-current_thread-lb-latency-openloop-50 executed
+start 107-reproduce-r2-current_thread-lb-latency-openloop-80
+done 107-reproduce-r2-current_thread-lb-latency-openloop-80 failed
+start 108-reproduce-r3-current_thread-lb-bulk-0
+done 108-reproduce-r3-current_thread-lb-bulk-0 executed
+start 109-reproduce-r3-current_thread-lb-latency-openloop-10
+done 109-reproduce-r3-current_thread-lb-latency-openloop-10 executed
+start 110-reproduce-r3-current_thread-lb-latency-openloop-50
+done 110-reproduce-r3-current_thread-lb-latency-openloop-50 executed
+start 111-reproduce-r3-current_thread-lb-latency-openloop-80
+done 111-reproduce-r3-current_thread-lb-latency-openloop-80 failed
+start 112-reproduce-r4-current_thread-lb-bulk-0
+done 112-reproduce-r4-current_thread-lb-bulk-0 executed
+start 113-reproduce-r4-current_thread-lb-latency-openloop-10
+done 113-reproduce-r4-current_thread-lb-latency-openloop-10 executed
+start 114-reproduce-r4-current_thread-lb-latency-openloop-50
+done 114-reproduce-r4-current_thread-lb-latency-openloop-50 executed
+start 115-reproduce-r4-current_thread-lb-latency-openloop-80
+done 115-reproduce-r4-current_thread-lb-latency-openloop-80 failed
+start 116-reproduce-r5-current_thread-lb-bulk-0
+done 116-reproduce-r5-current_thread-lb-bulk-0 executed
+start 117-reproduce-r5-current_thread-lb-latency-openloop-10
+done 117-reproduce-r5-current_thread-lb-latency-openloop-10 executed
+start 118-reproduce-r5-current_thread-lb-latency-openloop-50
+done 118-reproduce-r5-current_thread-lb-latency-openloop-50 executed
+start 119-reproduce-r5-current_thread-lb-latency-openloop-80
+done 119-reproduce-r5-current_thread-lb-latency-openloop-80 failed

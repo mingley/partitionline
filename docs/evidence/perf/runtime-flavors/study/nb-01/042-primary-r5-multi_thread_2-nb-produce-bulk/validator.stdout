@@ -1,0 +1,35 @@
+==============================================================================
+PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT
+==============================================================================
+Scenario:    nb-produce-bulk
+Profile:     bulk (exploratory tier)
+Peer:        partitionline
+Disposition: executed
+Suite HOLD:  active
+------------------------------------------------------------------------------
+PROVENANCE:
+  Source:     17a6344b019e65ad209800e1f93481f7bf50ad36 on branch 'HEAD'
+  Binary:     runtime (sha256: 3f9409ec0c1c6279...)
+  Broker:     nullbroker (KL09-06, workspace-excluded harness broker) (v0.1.0, null-broker loopback)
+  Host:       e852fb1a1688 (Linux 6.18.44, x86_64)
+  CPU:        AMD EPYC 9V74 80-Core Processor (5c/5t)
+------------------------------------------------------------------------------
+OUTCOMES ACCOUNTING:
+  Offered:          20,000  |  Accepted:         20,000
+  Acknowledged:     20,000  |  Consumed:              0
+  Rejected:              0  |  Timed Out:             0
+  Unknown:               0
+------------------------------------------------------------------------------
+PERFORMANCE MEASUREMENTS:
+  Throughput:      77,195.76 records/s (8.54 MB/s)
+  Latency (us): p50=64960.5  p90=68061.0  p95=68440.0  p99=68774.0  p99.9=68875.0
+  Client Res:   CPU=12.9%  Peak RSS=29.13 MB  Allocations=21,334
+  Broker Res:   CPU=0.0%  Peak RSS=12.51 MB
+------------------------------------------------------------------------------
+INTEGRITY & VERIFICATION:
+  HW Delta:     20,000 (matches acknowledged: True)
+  Record IDs:   Verified=20,000/20,000  Missing=0  Payload OK=True
+  Attempts:     Total=1  Failed=0
+------------------------------------------------------------------------------
+VALIDATION PASSED: Result conforms strictly to fail-closed result schema.
+==============================================================================

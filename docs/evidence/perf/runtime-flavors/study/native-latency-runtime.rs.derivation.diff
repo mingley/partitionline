@@ -1,0 +1,59 @@
+--- /workspace/work/open-cards-20261006/runtime-flavors-source-17a634/examples/bench_latency.rs
++++ /workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/src/bin/native-latency-runtime.rs
+@@ -5,6 +5,10 @@
+ //! per kind with p50/p99 in microseconds, explicitly labeled sequential smoke.
+ //! `LATENCY_MODE=open-loop` offers fixed-rate arrivals independently of delivery,
+ //! retaining all raw outcomes and timing bounds; see docs/open-loop-latency.md.
++
++// Census is process-wide so runtime worker allocations are included.
++#[global_allocator]
++static ALLOCATOR: codec::CountingAlloc = codec::CountingAlloc;
+ 
+ use std::time::{Duration, Instant};
+ 
+@@ -98,8 +102,13 @@
+     Ok((samples, got))
+ }
+ 
+-#[tokio::main]
+-async fn main() -> partitionline::Result<()> {
++fn main() -> partitionline::Result<()> {
++    let config =
++        runtime::executor::RuntimeConfig::from_env().map_err(partitionline::Error::protocol)?;
++    config.run_native(run())
++}
++
++async fn run() -> partitionline::Result<()> {
+     let latency_mode = env_or("LATENCY_MODE", "sequential-smoke");
+     if latency_mode != "sequential-smoke" && latency_mode != "open-loop" {
+         return Err(partitionline::Error::protocol(
+@@ -166,9 +175,29 @@
+     let producer = Producer::new(pcfg).await?;
+     let value = Bytes::from(vec![b'x'; payload]);
+ 
++    let warmup_start = Instant::now();
+     if warmup > 0 {
+         let _ = produce_ack(&producer, &topic, &value, warmup).await?;
+     }
++    let warmup_elapsed_ns = warmup_start.elapsed().as_nanos();
++    let warmup_path = std::env::var("PL_BENCH_WARMUP_OBSERVATION")
++        .map_err(|_| partitionline::Error::protocol("PL_BENCH_WARMUP_OBSERVATION required"))?;
++    let mut warmup_file = std::fs::OpenOptions::new()
++        .write(true)
++        .create_new(true)
++        .open(warmup_path)
++        .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
++    serde_json::to_writer(
++        &mut warmup_file,
++        &serde_json::json!({
++            "records": warmup, "elapsed_ns": warmup_elapsed_ns, "completed": true,
++            "scope": "sequential produce-ack warmup only; metadata setup and output excluded"
++        }),
++    )
++    .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
++    warmup_file
++        .sync_all()
++        .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
+ 
+     if let Some(load) = load {
+         let report = open_loop::run(&producer, &topic, &value, &load).await?;

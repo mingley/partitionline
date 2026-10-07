@@ -1,0 +1,20 @@
+{
+  "examples/bench_produce.rs": {
+    "source_sha256": "a12b9933b5ceec8868c52565ba282255265dbe3591ebf82d88c547f60ba87403",
+    "derived_path": "benchmarks/runtime/src/bin/native-produce-runtime.rs",
+    "derived_before_format_sha256": "a64fc887a4b28f37f36b1d1db31cda373a79c6564c583d8ed7e01d23c985ea61",
+    "changes": [
+      "Replace the Tokio main wrapper with the explicit benchmark executor and mandatory observation sidecar",
+      "Adjust relative shared-helper paths; workload logic and existing bench examples unchanged"
+    ]
+  },
+  "examples/bench_latency.rs": {
+    "source_sha256": "4a5806acbd84bd78bb1ec008eb401a974f296cc5f18808a05c29279ac2e3e4d9",
+    "derived_path": "benchmarks/runtime/src/bin/native-latency-runtime.rs",
+    "derived_before_format_sha256": "a73ef7f11bb833d1c91542591377c0a94152547c8989a71dfff87a50b012e7d1",
+    "changes": [
+      "Replace the Tokio main wrapper with the explicit benchmark executor and mandatory observation sidecar",
+      "Adjust relative shared-helper paths; workload logic and existing bench examples unchanged"
+    ]
+  }
+}

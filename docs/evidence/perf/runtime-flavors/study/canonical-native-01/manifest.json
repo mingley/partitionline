@@ -1,0 +1,1208 @@
+{
+  "formatter_commit": "63a89f4c3475a75bf57557515b7ffab3202eebea",
+  "driver_source_commit": "17a6344b019e65ad209800e1f93481f7bf50ad36",
+  "partial": false,
+  "results": [
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/000-primary-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "7db5a0a249eba54b2c2dcd51910f38d3b45a23d9dc14a0111cf17928b2e2cfbd",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/000-primary-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "aae72cd95240cd7b9104f5ed40cca96262d28644eb465673367cfd2c995fe8b8",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/001-primary-r1-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "d315f5e5d0f90013bbbef11afb5ccf24dcf534d38082caf72e3364216cc20da4",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/001-primary-r1-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "fde4aa5dd9b004f5df0e97e8f95ba8f14962c90fc1358a6da1801f3bc2efad7c",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/002-primary-r1-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "b073c7dc7373d91abb28560f5cb6007d99abf832b53a0f4c0c1f7351605e80cb",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/002-primary-r1-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "021208481c4cdc734bae4bd8ef923a0d88874560125d58be4a4560818eccdee9",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/003-primary-r1-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "217664f178e76fb81c8c49ee92cb8ce83aa210073b2a62b8c90ff61f1ca7b29d",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/003-primary-r1-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "1cddf67e4869d7501e3b356be765ef700c2be2d72dcd5953ea88e28f8d2952d7",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/004-primary-r1-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "912139b51d3bf4ba50775151fe7de713879b380faa20cd2d54a34426675dd7e9",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/004-primary-r1-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "3a716dc03777250fbe060eaecb8f24f97ec0495c641d2070c8661ed506e5e8d2",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/005-primary-r1-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "73cdc4a9a591c51d86f24c6ccd932b64a96606f26072c64bdefea16a5d47153d",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/005-primary-r1-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "093366e3162ee98619f8e53b9b30696453cb84a59ffebf9159040906387095f0",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/006-primary-r1-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "3b061593025548e5b835784b13ef0102c3a370a55d4a1453eeaf3ce19d2159f4",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/006-primary-r1-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "ae6b4e1a7b5c71c6368ce0629dc7e791cb4771d3223abee1c18e760b75fb00fb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/007-primary-r1-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "959df93c50c5d215832a5b912a2724f197544de0e98d18f2ae3c9abeb43eac49",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/007-primary-r1-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "e0c3d22293fd22db4214b3e4a537b41ff89837e6405c8616b268677e0b2fbe57",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/008-primary-r1-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "f8cead30c0df8a8089d3b3265cead1b97c02d2b91ed55177df0f106aa9f1534c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/008-primary-r1-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "52765ab7f620941c471fd2de0898d667acabfb529c9bb56e41532710ba8d1668",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/009-primary-r1-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "85262e2f520535c2bd48ece88d64d815c7118b6b4c3414ec49c89c2e956bb58e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/009-primary-r1-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "8151973889533d35b6fc69760eca77efade7566faebaaa1ee037b26c5ff4fe1c",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/010-primary-r1-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "02392d54dd844c3d0e151efa7785bc0a794a6c9c4cce6ae5d3c33ee2555f5913",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/010-primary-r1-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "83477601de403ba82ad1a5b06e8b72423aaf708aedc1ad347ae8225b6607a543",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/011-primary-r1-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "2c6b4cbea3d36da6ed3efbde32a28524b3c1f46668abcc0004bf3f578ff46190",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/011-primary-r1-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "0067f0e77c0b8599d4d04c000d9224f1d63a6175783b4870fd5b295462aba380",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/012-primary-r1-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "954dd0630a3ba6e3dea69b77729449d8e231e1be386071687f965352aa425d24",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/012-primary-r1-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "827feeefdb99e3f705e0f93dfcb7457c7ab9c40196d0d6bbf29b722d022f0bc6",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/013-primary-r1-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "efc7b04260ffaddc37e367469d3f9326216bcd8bca24967e6ae1be085b125539",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/013-primary-r1-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "5e66b0bd49b0674c8eef4c15906daeb99a3a59f952f27bf7e1fb1a677b2e3b60",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/014-primary-r1-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "9801705a0d6dc67dbfa90aef058b5f2ad5b88b5180907acf7c7970bf819140be",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/014-primary-r1-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "ea94acc088075f6e80eac58f77aa99431b8ec6e928a0e4f7b0c965d7df32692e",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/015-primary-r1-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "6d49f73e1ee1cd4e3080b4773662e80b6e1ef6a88aecc55eab2358994c6297d1",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/015-primary-r1-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "8b13bb50fc5c47233aeb9df7e9b3507ac10a86279723d4b334f0ad1c98d3c160",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/016-primary-r1-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "53a4f0c56a64434e876520d5ef6d4c9a7032ef396ff42f5f14f3b18163c52c9d",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/016-primary-r1-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "5bf1c402ec9db9dbac41530e829a8f9d64b6756de1cc8b210dc2ab7ab72a7290",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/017-primary-r1-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "0a1aa377f2299d202606a42328de92b85a90adc50dff0d05f1b5b2fcfb2e9654",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/017-primary-r1-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "908e4427b34b2665ae69237b10f8dc35474cdf50ceee9a29c9b273b650a09d01",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/018-primary-r1-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "88c514f9368f7dc35ae1250fccca8cc31e736c21eda079ca07d4426308c4deba",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/018-primary-r1-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "5b781b17a982ad76b841827414cf2aed599a91d94ab3c66158ef573989f61c33",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/019-primary-r1-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "15cefb194c207fc3b8086d044da24a2ceb46a3c51c96caa5018ede9a17231db5",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/019-primary-r1-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "d8b82f9886796d27fad456893d54357adcc141d3dbe46d326541b4ead0d7319a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/020-primary-r2-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "a7d586de6216e6631225d9afa4705315a5d7fa7b2bd4fb9ba5581c4a405a3c61",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/020-primary-r2-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "58074401bd6b636a9565e3dd8df2553ed5a7778a4bc3c38d4633db1222e3506a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/021-primary-r2-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "b614d498e1db1a633de9346f72f72a782fc7974f84828e176ce1ad6d40ad1c02",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/021-primary-r2-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "49d582da5a41d53ef1ffa2e1778ad26140fc511df081d6e34280d8f2b75e81a6",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/022-primary-r2-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "e86cacd387a99d2bc6687c5020403a33ccc919d0eb434b27a4ac6ab55e9cae8a",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/022-primary-r2-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "350fd73b8b1e56cb2873f025b1f94a89ef82841e60d74c69facbe6fe33605376",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/023-primary-r2-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "14feb38c6bfcfb82ea7c5329b8c7d3faa4fa6318b067200e177238eaac7ffd11",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/023-primary-r2-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "6d1fe5debe5298eefce1e60762f0bcc1e00cc46766cf16c266072625ef41f420",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/024-primary-r2-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "d519876706f805350819109a2cfeaab6f91c3dfe62b488d89c48afe8fe894ede",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/024-primary-r2-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "a96b306c2bdada48ce05c4dcc6894f6bb05287eb511f864039d058ad350a3356",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/025-primary-r2-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "7a9e6a88a2d7b3410eb7ff14476c929dfc17fdb218949a9306157fdd474e18ec",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/025-primary-r2-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "9006197a8f62d549ac706d4d922931164a16ee810c09d293196064eb17b236b7",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/026-primary-r2-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "f0df59d561fa1eb7f82496541d3295bbfe9b1f580c147fdfddf76a690540c937",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/026-primary-r2-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "3dd85373964d323b412cef71e6e5c568b599935bc709f7fb9dd81ddf6f33f9b7",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/027-primary-r2-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "2ae01b2c65c3f07b3c083218314c5ba462dc66146fe7f255c4836572317456e4",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/027-primary-r2-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "af7570e0b55569b924491876fed3e76e7f345aad9a8e174613275889b1195616",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "09dffbd4bb57e05b57c3e417d5386775fd8462d11ba7c6a83be877365ea2eefc",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/028-primary-r2-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "d0c8c118a2049051c00693943459535c3d867b01d1233620e9d42319281e8b4b",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/029-primary-r2-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "3eb1748dc373ded1cd55967a583f08705ded7765e98147b3166f34e8500b35e4",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/029-primary-r2-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "fe3115f48a6e5d51825579f598da817ebb28d4536a212060a704168e82a971e3",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/030-primary-r2-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "abb1ba911159a7c16b1c7836be732ef2633a5f834c043633dc5d22ff6aa0594c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/030-primary-r2-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "7b4e4270e78267320dcabb5b71850b58f1c3ad83431a264fb928fdded16859cb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/031-primary-r2-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "29bf3f66c576a505f799d28db987f3e5d7e3ba27cfd93e3fb277263f4207b4e2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/031-primary-r2-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "4aa804ab72c275cd7e8393b7ead67799dc49b8a1396192b33d25160a5ffc1c05",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/032-primary-r2-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "a16752309e6796162c6aaeb66f2e7b45d5f5b5132bad63fc1dfc1a7043c24246",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/032-primary-r2-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "12cdcec2f8bfe0e9636c8ba34ac552a7e340145947857ac1864aa985465177a3",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/033-primary-r2-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "d12eebe8193300131022d18a9ebd202679928a49c2b70334f09813b22b591287",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/033-primary-r2-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "cd28b1d6229503fd81de9bb0e900b2a77f6d1aac97a2314dcaf9008b0c137212",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/034-primary-r2-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "e548f4b2131f94351c8a3d5788bac45ac366339bbc4473551c0ca2e40c127b81",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/034-primary-r2-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "f26c2b4f7774b3edf0212e75a914027fa3c9e5e8e92f262ffb490fd799798435",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/035-primary-r2-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "37af87f1aa2638eeca73c28bb74e5fd22e0346dd549407bedbe40e69bbf7ab83",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/035-primary-r2-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "05781a8fb02d83b8594c93df1543402f34e3cf2113e667294d82212a8a74edf4",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/036-primary-r2-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "ce84bd329f560f60e3ea0b6400e88dc0463cef5a9c99823f0613988ca146b2bc",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/036-primary-r2-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "ab3dd07f08df2ca0a714ab38b0977744b709c0e143610fb190c9a34ac279e090",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/037-primary-r2-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "06968ba7b8016f1a9b8bc592ea4890671f9f36b3d8e53d30d4bf421d57d57b89",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/037-primary-r2-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "5155bd99a3fdf37d5ff172f7de11818f23433052f6aa06feebc08b159e6a11aa",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/038-primary-r2-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "d4a4542d42a2e9e13376ab4b79e3318f2a9c2616eb8d3b5f22bfdad9c386d01e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/038-primary-r2-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "30618a309e757bfd54546cf20883d9a07263f1ab794d0707df412c66e342753d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/039-primary-r2-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "06a4a45b5373e8c07ce1dadfd8e21400ed886c4d9733064950af96713d33d29f",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/039-primary-r2-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "766b3b598f13ef612b1d37a585b1bb5ebe98ef6f17e87be1017c79f2dc6a6d56",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/040-primary-r3-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "c4b4874ef2727114cab238e0bb5e397fbbddaaee9eb4a937005c12bbb292ac66",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/040-primary-r3-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "b37152946834adf84a1f1636c4aa127c5428c7203ba3d39f2486b5978ef38ef9",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/041-primary-r3-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "694824ee449af6dbf96e8783ec2b2de27f69b3ef5bb97b4761e8b4c0e0b3b40b",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/041-primary-r3-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "879d3dbd921d89f70eba774662502a3cb94416143ccaed5a31c1975fb54cc744",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/042-primary-r3-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "a82ddcf07a642c30c73da157335ede1333eb664f495e8b03e61095d2622b0f6b",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/042-primary-r3-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "3a74a2ca8d3903dad8487e896df7708238e840b8342e1a45cff7b67f436a2549",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/043-primary-r3-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "0a9b751b97ad2b36548f6964cbd017b3b0a3f0c32931574ea79e83b872b88a58",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/043-primary-r3-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "f44beaffc1ac76169e3daedd7e8a70f642e3ff8d54d196d2b0dedc4a0c067d04",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/044-primary-r3-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "6dc74b80cf1e2a1f9335cd2bf90d64a0dae8c001348baf18cd56a2d17c663b16",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/044-primary-r3-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "9330141469c71b9b7a0b411e38d1e4247c2118bc473bdbacca9687f011a97d01",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/045-primary-r3-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "e2338b3e2ef131664c4f9849384ca05bb32e377e3e4c8378f1a8ecad370e69be",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/045-primary-r3-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "09f37bc836e6df3b988132f99b3094be1f46c052e5d06a22b2c0655fab532476",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/046-primary-r3-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "8323987201807fd89a6330b276d6fc687dfff0a02fe671916a6511bdd3579a7a",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/046-primary-r3-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "0839166a398f03103d949d8fdeabdeaa57a45bf674b608cce5fb009a2de5b451",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/047-primary-r3-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "a06edafc230a981a059260d6f7956d4d0595a6b6c89f3b7c673b64b75a2c5727",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/047-primary-r3-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "8183e6a9e7e4d8ed34cb24ac81746e7a5826ee2394f67c6046973984b76fa99b",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/048-primary-r3-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "41c3f3540eb54d29ffa63099059b1326788abce8688e12b8e90ebd4cbb19f733",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/048-primary-r3-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "086ab9eeaa80e07bdce8c61fd9facf062ff58a6b05653b25b23fbb84e3fb6663",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/049-primary-r3-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "67295354b75934a506b118af9bcb4196039ba3addcb1a6bf63f1c426ceb5a5b6",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/049-primary-r3-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "f0fbb42a4c1dc5cf2a37f54bb4bb9287d3a47e25bea3ae6d50de9102ebf9bdcb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/050-primary-r3-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "044db220ea55a25923f05946f258d843417089589800789aa168583fa31c2a7b",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/050-primary-r3-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "484788b64af210c8a58392f1b5570af470ca7de5ec9332a8431281c8cae58a5d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/051-primary-r3-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "2b8100918c42b18e96205c6cd4f4e0211759b298f76ff31e8d8fd1166de62769",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/051-primary-r3-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "dda5cfc93dc574599fc489bf82c04d5d1e12409e5cef89a14907d20a95d0c120",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/052-primary-r3-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "aaa151541c493f0ed64e6079066d692c825c37e9da61356e536d0125b6b52384",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/052-primary-r3-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "2e6471c0a8389e237060dbcff9be626408c16fe20fc19fc68bbd9b4477e158f8",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/053-primary-r3-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "8c8e69a05cdad988ce17c87891055f6fabd29ecbf78a105c20b05ab3d7396cc7",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/053-primary-r3-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "ab6adf33769e215938b57d65abf725307b7a28df9e25401cf25873f2cb98a10b",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/054-primary-r3-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "cb20ed3dd1765b09b49af456c55fd8c2c260c1895cfd4c53b8ee2bf7cf8ef2a2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/054-primary-r3-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "6eeeed8669eebc04cbfae919357d2a415df430ead89b808cf3524ed99d2453a3",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/055-primary-r3-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "aec0ebfe21649fa4be9a7c247390fac3bc61e7c87d3b9a2df477e33f3077877c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/055-primary-r3-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "0d2ffc7d8f370e77b199a74354fbd65be12612a644d4f9dfb7cde8952743e9ae",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/056-primary-r3-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "b86f2dcd5db9c672f8ac78eb811866143ddcc8e4e9d20eddbb746955be297395",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/056-primary-r3-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "742ab108f53502ac3357aa046bc274f75df560f19fb7f8e9cff711dcc2b17c7d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/057-primary-r3-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "2ff7609f15612ceae19cfee78f19a3a3e7348d27cb9c7320fb9abf50967fea4c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/057-primary-r3-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "49ee9d2a88fa1e20394ad778a620930871c69f969d5bece0ced64f6012557b61",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/058-primary-r3-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "2d4982422530c5234a068865c8b66f14beebcb3f57baf60daaedb2bb813b11b2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/058-primary-r3-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "24d78dfab6c3c6036200568e014d4405e5642bd9c525d72630298457fae469bb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/059-primary-r3-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "a79c3fc8981276728be1dc73b3e17aa2912d3a2519e6036ef680db0c3dba5f9b",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/059-primary-r3-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "8b30fd14483c1cc8e16ca01380c9731118df89f4368fe7572aed852294216482",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/060-primary-r4-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "e0157ea9e29c6a27002b601a933f7f03e0e181d83455c0706157ae6afde911a2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/060-primary-r4-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "c9f437ae2ae2cc02f6d702220f86de7a8d655b91fbff3e56dfd66aa63af32faa",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/061-primary-r4-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "cc5ea36f61904aa92c909993e908215805c6d63facc07efd9174ba90a6d2ff95",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/061-primary-r4-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "251d61890d3246519d7a7719a6743b4687acded3161acf02536fb73ab2077ccd",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/062-primary-r4-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "efa8ee3bff868e20390a4998d63bd1e6f726d0bdc58db52680dea73eed063126",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/062-primary-r4-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "ce634d3f181ef33d3a049d617d732cd6c3ab8111386fdc0d006efa51bf0ca4e6",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/063-primary-r4-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "c95298b82f573a655479d6838239529478e4c9247eeb5254c45ceab28e717ab3",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/063-primary-r4-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "875c503e9ecf54ba89e8ee3109bc4b23857b61ed7720e392eedde8e80673138a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/064-primary-r4-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "671f04b7e3404b98f7c35a04cd66d473dbde81f95a112d84937529d4ba17928a",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/064-primary-r4-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "1659c01463f71b3f0e170869fa2f5c07ed354022545105bab4af3cd9c865d61c",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/065-primary-r4-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "ecd1b6f8bc8cbddc01b9f4ccb62bbaee616ae8c8f61968befd267fc675acec4c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/065-primary-r4-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "c8b30a4ced1df135ac34ec91f7f476e2199f04a3a38f04bf5be545688ba6c30f",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/066-primary-r4-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "a93ae5b84e8307d2904ddfb4353bfcc910d09f0dd88eeceeb11e92af27c32fa7",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/066-primary-r4-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "a70afae59feccaf0ff2101b4de7ee35114b69b5352b73011bf54daa41ebcd104",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/067-primary-r4-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "5ea424a08d58126f0dfa846e0ee0e93b4f2ace97b8745096a3888ae7034a0eab",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/067-primary-r4-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "2c704dd0eccc0f507d88de400caae5736366a6057a26dab6dd8c6083ef892dcf",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/068-primary-r4-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "45446ff8665dcca16e7928c892f4482ae754c148c0d8ea743e4b308335a70227",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/068-primary-r4-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "5e3f3b86e02ba0146f1ae7ccca584a9ce86e513cd876d971f0695543f3139c4d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/069-primary-r4-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "1d3d1853c0165b7cbc2088f23252f6d2e451405290beee18c9107e5b6ac9e792",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/069-primary-r4-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "c71417099b9ca8dd6ba5f6863312273d2c1732a66a984992c77a71e97ef9d94a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/070-primary-r4-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "b7806c3b0efba3ac0c39f08d5d1e8b84be2c7fab5224359d22a0f2598435b38e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/070-primary-r4-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "59f291c23bce0524eed2aed477034f852770df2464e1541fcfe7939ab0763e4e",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/071-primary-r4-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "bc570a68b92de0dc1a275bd2ceb8805f9d3be58a6f1ce2c268ec53ef714095d0",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/071-primary-r4-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "ce0fadc07eae78daf5a1a3c454da57081c80ac3017f4823a7380a76ac19c8eba",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/072-primary-r4-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "15b320aee99b6f73de0f65ba702126a41894bdf4b0d1ab0c561d3515ad0a2725",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/072-primary-r4-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "df535c0c8474a054d3b4ae5687f741705d479d548e500fc72d00a171d22301fd",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/073-primary-r4-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "e7c74bd15a01c70f2f54ed9d0ffddf3b2cdc951d7c04ec3b73d01f3adbd1d36f",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/073-primary-r4-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "4b3ae3dda960b8bd35581bc835bfc434777b093fa1ec16017b943f0aafb58319",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/074-primary-r4-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "2e1c2a82c27ac23effa786bab366e2a6f9996bdbdc2cf13921360929d04e6fcf",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/074-primary-r4-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "5f3b760448c4798c1331f07495e0b118a04d1632b950db12a54c9748f7cb901a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/075-primary-r4-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "e3a3a15d25b41714bde4759f70e7bc83bf49cf10c9349a2fa8a5d9e9777a2318",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/075-primary-r4-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "961adb806116e945d4bca9ea8469f1dccdaaff95da7c08339cc313f1c19d1793",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/076-primary-r4-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "9e80c6b30efec0a264fa7ecaaf351066e6a7b6d9aade0696d09a8ee7f8394a0e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/076-primary-r4-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "fa7ffbdf8444eae39989c48f0303b4564269741eabd7688fb3923c8d62823685",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/077-primary-r4-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "13bdf9bca3f11aba0dbd424286084fda831f60677d83676ad2074ea577de9fa3",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/077-primary-r4-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "28becd691bb26f9b4dda701ed047891acaf5e442ad11fda0ab4d063fab13935d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/078-primary-r4-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "a8afa8d65a97f7344f56921bccaa74739cd949b841627b855d8d04c9d6cff7ca",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/078-primary-r4-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "7938c44f30e9df335acdda4f62fe669aaf538571d1432352951183d8ff929006",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/079-primary-r4-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "3a386a36ac1dbd21bbc77f2c9962fedb6eae4983fd2c628be12d91df8c1a63bc",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/079-primary-r4-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "6fad196bc4808744dcfb3abf870d9c1308720356173b58d9ea326ff4a088f6ef",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/080-primary-r5-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "79f6c1f6f703aff1d46513168dcf43625dbd65e795ed77a91b3d4bc6f3ef176f",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/080-primary-r5-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "0362ab048bfebd8c204209955be7a0baf7054dea9648da89d174bcf6f6ef2930",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/081-primary-r5-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "5fce09bcc56b2a2cc1222932bb1ab210c27538854f940182636446ea323522f5",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/081-primary-r5-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "68b55ced5b38be04174f84e64846525753d1bb50c55de38ed3bf3a3ab9d95131",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/082-primary-r5-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "6ac1a73a30d5cb78993723847b82dad0ba934b0b2d350442efc4df48e22afe05",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/082-primary-r5-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "e73c50f255bd18973616a14c5228e98eb8b8c2641154eaa49719d09a5b698f07",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/083-primary-r5-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "5d0b5445594961ed98578ea890b28feee3c50a30cd812f45023e7b8be20c8623",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/083-primary-r5-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "43f98fcf450d769da4e52737441ae35ebb85a6a35fcc98431c7dc90c73ea41a8",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/084-primary-r5-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "b18003f13fd5a2fd194c58e100b15dd955b40d4006ddcae21f04e31c3e199635",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/084-primary-r5-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "51ebbf2bd551c7b00a38bd929203218e4c39803c2b799ecaf410fc6483cca9b7",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/085-primary-r5-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "514e96f8006fe71b24ce7baf012f7b142bf4fb3c1c86568c44be2e46510371d9",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/085-primary-r5-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "9890bcb36584d6d2a9d4e3c40b2dc30a8f593b5871c13754f2faa78cb5392953",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/086-primary-r5-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "57f94c4bcdb0e18886002e54db24b246300fa06325fdc700bd228887a3a71ee1",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/086-primary-r5-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "fc3867706426d50c0b69b14a38eb2d25dbbc553ef6ed9fb78860f21c0aa8ba6d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/087-primary-r5-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "230c474eae7d7d41c4a53467f60dd5e948b8708843dbfe1759597163aa9c400c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/087-primary-r5-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "90d670978b843dc071a09b6d244011fdccc3d3b4762aaad84b37c164628617cf",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/088-primary-r5-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "2f7a1ad7b6fbd02ee2034a1e9ce1d46d2468e231af0efa05ec37ebff03aabff7",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/088-primary-r5-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "fb14451f7385c46a0d32b3c8d6bf9e0bf78a2167411d3506cb1e3de53f57763b",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/089-primary-r5-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "a28799d764876fa0f96d2fd3683f2f01c2b7865ae198e5e4944b0282b2161174",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/089-primary-r5-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "0010e2ca7bc2664544c04af17103c5e4de470e98402adbe3654bd3b3769ca060",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/090-primary-r5-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "c9195f57dd1ea3860c82d5547ea65a9c4c3afd913db9e476f21666a7427faeb2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/090-primary-r5-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "706f50d4c924a83755a29a1028a5f38b6e56f100ec6497b003484d8047d1897e",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/091-primary-r5-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "3957f2d6e60c34b04f59a1603e539869f54db9cf8a77a7f123d69b6f149898b1",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/091-primary-r5-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "a7ffee1e49f8556544ef835ce27af87cd9f6b3c143c3683e1e1bb0410118df35",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/092-primary-r5-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "bc5d0e0f47ee3a338bbb1f27cda4c69899cbc6dee9be070dd071ea07b7dd48c7",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/092-primary-r5-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "1c42ee8fb30b2e9b4d052bc4471fb5423b97119431b2bd7982aebdc460421f7e",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/093-primary-r5-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "6caec89868218c2d4fb22e9de3e17706d627ce14ec3d981a19d145cc863d01d7",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/093-primary-r5-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "cd159b190bed487d7f98dd498f14978763cad1fa8763e6c34e602fd0cf720d80",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/094-primary-r5-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "403a64b9cebd1a20fd6bb9ac824a1ce144caab9f4fae6562c552fcfc557900c1",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/094-primary-r5-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "f5856eae1bc487f233cde527c5efa7e7a05bcde1c56458ba481d9be30b3c6e76",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/095-primary-r5-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "febd7e2bacf929741cfb6262ce8b4469ea46337599f71fdb1f52ab7c8622deca",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/095-primary-r5-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "1014b91a81efd7590a4e729d2715de3775a07a6f67e25a3b5bf25a0be3ee9869",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/096-primary-r5-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "2ac884d78a3215a2b372a6e66adb4328919dc255cd6818ffe3615602991b5b80",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/096-primary-r5-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "1a2932b48c87a554b951d34c0c5c949cc9e3604aeea79e6b5ed64f65680250fd",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/097-primary-r5-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "68ca9a2347a8939beaece8e0ba77cbeb0b3bab42d47a7b4665f7ad1aa85fd467",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/097-primary-r5-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "a8df8b02f57c40715c49d3713edd4bafb27da6552c656030e86fc0617c47e75e",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/098-primary-r5-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "8d5502e816f9725fc12ef44caf51fe6af79d02adcb223221cef0b45317865953",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/098-primary-r5-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "da3cbb35ca75df4704928ea6f080635361976b77f9e61e530e1cf5520ad73b43",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/099-primary-r5-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "358e42a022c6409ca7ba3241a21eab1b6990865abee6bcd01016242594c16354",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/099-primary-r5-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "587c507467cb3cb99c7e87e87fffd08514b25d1817f54abf0d629838d6abdabb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/100-reproduce-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "e0b138c47c1eb86edc98ff5b4677a2922b58355f9cc74d4b2b2e80933bc28cea",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/100-reproduce-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "2458022c8cd02f71bd11f3e5eacc5ecfdb916c497c79938cd22e25fbe4a7b552",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/101-reproduce-r1-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "ba6de995bd781644c113864d51580458aea893e25e329b5d1db41fbc8333647a",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/101-reproduce-r1-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "ee9ce21938f42b06a8b45d94b5135764f4abee1339f24c0967982d178099d535",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/102-reproduce-r1-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "f2115e59776f07b2e3d835e8958926cfaf1cc749f2cbf827c06ba9988a3a329c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/102-reproduce-r1-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "454de2c651c8edfca63419744646ce4ebbf826d70886508d2d39125414f8df99",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/103-reproduce-r1-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "54ddc79457e47248929b7c8fc546467e9d5f4f937a33781d0dadb5bef7c2bd1e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/103-reproduce-r1-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "df8fea9db13fec251f465ab2a17694aaa3b300148a23211e56d67f490a4a3d8d",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/104-reproduce-r2-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "6ca8a206921f50dfb92cdae667e975a8f2db6075216f7ccae5c73c1d9bf1e77d",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/104-reproduce-r2-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "660272ec7bbd210440b1cf14ee7f25f19da40e4517205ee4f322723243408bfd",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/105-reproduce-r2-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "c39dfcecbdd81582488be665424d90c685ca15e8dc794c3eaff0ef06659704e6",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/105-reproduce-r2-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "c297b8e2496def0e80da97d0cf2837b5ecfdf85a2bef6c580a9a4fcc09f4f860",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/106-reproduce-r2-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "fb16e515ad313101eead86cc8893d1b819fd2bdd114f5bd2576245717040b6dc",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/106-reproduce-r2-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "9fdcac6aa2b5707a95b4f4ff5e2cebd4526f71462409005274c6ea925e802dbf",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/107-reproduce-r2-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "d8f6a951061ee07a84d30e21231d2160f941cda871e7c46227929f8d23f326fb",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/107-reproduce-r2-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "a690bcbfa8ff0c56561a7b3c31f29884245f6f592c57d36225af16ca1d1a17f1",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/108-reproduce-r3-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "4d21e52367390dbd06b4a470d35564522bf45f5c6e3f8422ed4517b14992ce1c",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/108-reproduce-r3-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "68986731d31aae107447cea316eb903bb1607b52d3c4d319e6ce25fb7ee3aabb",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/109-reproduce-r3-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "dec72c5e3940f141b588b519043fc06ac68cbec9fa688532f60e7d6028dfdd03",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/109-reproduce-r3-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "d228ed7d7d569ec38a887e326163cbe07ffae5571f59f07a26bc19169be0ba22",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/110-reproduce-r3-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "fd21b92bb61b95702cb5c0a03306bf84c418e2a63fe4e71cba49457f55ed61f6",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/110-reproduce-r3-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "dbc5b98b87f8d952ec8daa4047029d58e6758fe71cc625187ca19502989c3df5",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/111-reproduce-r3-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "d72a1632fe3d49e4b30e0dea0612c6324a71b570c0fde03107d132c0c72ede19",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/111-reproduce-r3-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "4cd3c2b5fbe9ba9494ae6058cbc59e01f160323c44f27aacc1281879b685dc8f",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/112-reproduce-r4-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "3362ad8b7736d9b4a4c0414012373ba620550062b7e0e2eba3a0a3f131a241f2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/112-reproduce-r4-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "be01d258111d550c8bc5566305a74866c2eeeee13ae51007831e0b37c4343720",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/113-reproduce-r4-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "ef78c0a008623b2060712645818ee86f089b7b7ffabc6596d17de201bcf25dce",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/113-reproduce-r4-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "0d6db0988eec91546b09b1ee914ac3743a07db33a8ea7dec2cb35e644dcedd1f",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/114-reproduce-r4-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "45a82ad223dd1a08d680b5785956a20f55be1af247f25d37c84ebc2934d0be25",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/114-reproduce-r4-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "52f3e094ecb4051e5a96ced316e1daf05eef4bef85e7ad405ce0982243c3aab0",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/115-reproduce-r4-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "9a1ebb59dbf77137f7fabc7cd8e4fdb29f36db1df5b1f68834f010c8f37f6f3d",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/115-reproduce-r4-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "2514feeb1161e64268e7411c937ae5f69316039ad5be1580b6b769ddec7ad57a",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/116-reproduce-r5-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "3a503bb60e92c3ab5aa4f7073c5102bdab5c9e2d58d24693e56dfbb9d1a9db92",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/116-reproduce-r5-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "view_sha256": "2e4cd90d47f10610253fef80d341dcacf545603d590a3ae2293eb3d2f66db860",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/117-reproduce-r5-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "original_sha256": "4d74d832348ed61cf7a3d3bd3c8bd1e5c00ef30daca5076ad13d8b444a4c47e2",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/117-reproduce-r5-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+      "view_sha256": "70e2f0319fb4146008f32144d71d1ce58f1c3ad7ec65b3356667c4e519922e73",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/118-reproduce-r5-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "original_sha256": "869fddce4b326594e8c3c278db1b0a98b3929a42e980378fba0322897c82601e",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/118-reproduce-r5-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+      "view_sha256": "7732c3115394d6f0cdfe906fa8e00635d71eee02fbe7b9d6cbf1e22113a3ead4",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "executed"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/119-reproduce-r5-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "65c5847c5da79f4a555325697acb6a5388c6548fedae2c4483e2054545d19fb4",
+      "view": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/119-reproduce-r5-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "view_sha256": "46e68b84ae7762bdc4d35615645ac8ce7c042af646d9e59f655be9cfe81a967b",
+      "schema_validation": true,
+      "actual_cli_exit_code": 0,
+      "controls": 4,
+      "disposition": "failed"
+    }
+  ],
+  "raw_measurements_unchanged": true
+}

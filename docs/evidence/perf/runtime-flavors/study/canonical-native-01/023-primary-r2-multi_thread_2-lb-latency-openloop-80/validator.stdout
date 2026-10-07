@@ -1,0 +1,35 @@
+==============================================================================
+PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT
+==============================================================================
+Scenario:    lb-latency-openloop
+Profile:     low-latency (exploratory tier)
+Peer:        partitionline
+Disposition: failed
+Suite HOLD:  active
+------------------------------------------------------------------------------
+PROVENANCE:
+  Source:     17a6344b019e65ad209800e1f93481f7bf50ad36 on branch 'detached pinned review source'
+  Binary:     native-latency-runtime (sha256: 8fd16ea937377afd...)
+  Broker:     Apache Kafka distribution archive f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21 (v4.3.1, kraft)
+  Host:       e852fb1a1688 (Linux 6.18.44, x86_64)
+  CPU:        AMD EPYC 9V74 80-Core Processor (5c/5t)
+------------------------------------------------------------------------------
+OUTCOMES ACCOUNTING:
+  Offered:          20,000  |  Accepted:         12,315
+  Acknowledged:     12,315  |  Consumed:              0
+  Rejected:          7,685  |  Timed Out:             0
+  Unknown:               0
+------------------------------------------------------------------------------
+PERFORMANCE MEASUREMENTS:
+  Throughput:       6,335.91 records/s (0.63 MB/s)
+  Latency (us): p50=158430.0  p90=175379.0  p95=180280.0  p99=182806.0  p99.9=184435.0
+  Client Res:   CPU=89.6%  Peak RSS=23.83 MB  Allocations=1,102,893
+  Broker Res:   CPU=43.2%  Peak RSS=611.73 MB
+------------------------------------------------------------------------------
+INTEGRITY & VERIFICATION:
+  HW Delta:     12,315 (matches acknowledged: True)
+  Record IDs:   Verified=12,315/12,315  Missing=0  Payload OK=True
+  Attempts:     Total=1  Failed=1
+------------------------------------------------------------------------------
+VALIDATION PASSED: Result conforms strictly to fail-closed result schema.
+==============================================================================

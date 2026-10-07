@@ -1,0 +1,114 @@
+   Compiling runtime v0.1.0 (/workspace/partitionline/benchmarks/runtime)
+    Finished `test` profile [unoptimized] target(s) in 2.70s
+     Running unittests src/lib.rs (/workspace/work/target-runtime-flavors/debug/deps/runtime-9ac96bbdad213fdc)
+
+running 3 tests
+test executor::tests::inconsistent_unbounded_and_missing_workers_are_rejected ... ok
+test executor::tests::explicit_workers_and_runtime_observations_match ... ok
+test executor::tests::quiescence_rejects_a_live_task_and_accepts_completed_cancellation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running unittests src/bin/native-latency-runtime.rs (/workspace/work/target-runtime-flavors/debug/deps/native_latency_runtime-c63bc5c0f5b79d62)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/native-produce-runtime.rs (/workspace/work/target-runtime-flavors/debug/deps/native_produce_runtime-17c0f314d1b50a2a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/nb-serve.rs (/workspace/work/target-runtime-flavors/debug/deps/nb_serve-b448022cfca080d1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/workspace/work/target-runtime-flavors/debug/deps/runtime-27c39c997ce8a45f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cells.rs (/workspace/work/target-runtime-flavors/debug/deps/cells-4b0aff91a465209e)
+
+running 7 tests
+test cell_modes_and_idempotence ... ok
+test eight_cells_exact_ids_and_counts ... ok
+test ids_and_partitions_round_robin ... ok
+test headers_are_ten_by_sixteen ... ok
+test generation_is_deterministic ... ok
+test mixed_topics_split_evenly ... ok
+test gen_one_regenerates_exactly ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/e2e.rs (/workspace/work/target-runtime-flavors/debug/deps/e2e-b285fbcb0da63707)
+
+running 7 tests
+cell=nb-fetch-capped-paused rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-capped-paused-750039-1791403139239514069/nb-fetch-capped-paused-rep0.result.json
+test capped_paused_cell_prefills_real_client_held_backlog ... ok
+cell=nb-fetch-committed-aborts rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-committed-aborts-750039-1791403139239590439/nb-fetch-committed-aborts-rep0.result.json
+test committed_aborts_cell_verifies_exact_offset_history ... ok
+cell=nb-connect rep=0 failed=false artifact=/tmp/runtime-e2e-nb-connect-750039-1791403139239590414/nb-connect-rep0.result.json
+test connect_matrix_reports_six_cases ... ok
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403140645630087/nb-produce-bulk-rep0.result.json
+cell=nb-connect rep=0 failed=false artifact=/tmp/runtime-e2e-nb-connect-750039-1791403139239590424/nb-connect-rep0.result.json
+test connect_matrix_verifies_stalled_tcp_cases ... ok
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403140656710461/nb-fetch-bulk-rep0.result.json
+test fetch_bulk_verifies_every_record ... ok
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403140645630087/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403143187535198/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403143187535198/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403145840554081/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403145840554081/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403148259481234/nb-fetch-bulk-rep0.result.json
+cell=nb-send-seq rep=0 failed=false artifact=/tmp/runtime-e2e-nb-send-seq-750039-1791403140831481613/nb-send-seq-rep0.result.json
+test smallest_cell_runs_and_emits_artifact ... ok
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403148259481234/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403150963345048/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403150963345048/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403153470857062/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403153470857062/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403156128508604/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403156128508604/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403158517852662/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403158517852662/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403161138876615/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-750039-1791403161138876615/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403163510942327/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-750039-1791403163510942327/nb-fetch-bulk-rep1.result.json
+test explicit_runtime_flavors_preserve_delivery_and_close_clients ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.93s
+
+     Running tests/fcells.rs (/workspace/work/target-runtime-flavors/debug/deps/fcells-22f8ee968b5ad7a0)
+
+running 4 tests
+test fetch_cells_exact_ids_and_shapes ... ok
+test retry_cell_shape ... ok
+test verifier_accepts_genuine_records ... ok
+test verifier_rejects_corruption ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/host_measure.rs (/workspace/work/target-runtime-flavors/debug/deps/host_measure-de3c3f61395065d0)
+
+running 5 tests
+test broker_counts_merge_for_multi_broker_cells ... ok
+test broker_artifact_parses_and_rejects_gaps ... ok
+test host_probe_returns_machine_facts ... ok
+test cpu_and_rss_observe_something ... ok
+test rss_sampler_summarizes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

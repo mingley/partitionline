@@ -1,0 +1,1398 @@
+{
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "source_commit": "17a6344b019e65ad209800e1f93481f7bf50ad36",
+  "configs": [
+    {
+      "name": "current_thread",
+      "flavor": "current_thread",
+      "workers": 0
+    },
+    {
+      "name": "multi_thread_1",
+      "flavor": "multi_thread",
+      "workers": 1
+    },
+    {
+      "name": "multi_thread_2",
+      "flavor": "multi_thread",
+      "workers": 2
+    },
+    {
+      "name": "multi_thread_4",
+      "flavor": "multi_thread",
+      "workers": 4
+    },
+    {
+      "name": "multi_thread_5",
+      "flavor": "multi_thread",
+      "workers": 5
+    }
+  ],
+  "client_cpus": [
+    2,
+    4
+  ],
+  "native_broker_cpus": [
+    0,
+    1
+  ],
+  "N_definition": "5 is the observed host affinity CPU count, fixed before measurement. Four/five workers oversubscribe the two client CPUs; no extra CPU is granted.",
+  "primary": [
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "multi_thread_5",
+        "flavor": "multi_thread",
+        "workers": 5
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_1",
+        "flavor": "multi_thread",
+        "workers": 1
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "multi_thread_4",
+        "flavor": "multi_thread",
+        "workers": 4
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "primary",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "multi_thread_2",
+        "flavor": "multi_thread",
+        "workers": 2
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "primary",
+      "load": 10
+    }
+  ],
+  "reproduce": [
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "reproduce",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "reproduce",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "reproduce",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 1,
+      "cohort": "reproduce",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 2,
+      "cohort": "reproduce",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "reproduce",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "reproduce",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 2,
+      "cohort": "reproduce",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 3,
+      "cohort": "reproduce",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "reproduce",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "reproduce",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 3,
+      "cohort": "reproduce",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 4,
+      "cohort": "reproduce",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "reproduce",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "reproduce",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 4,
+      "cohort": "reproduce",
+      "load": 80
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-bulk",
+      "rep": 5,
+      "cohort": "reproduce",
+      "load": null
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "reproduce",
+      "load": 10
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "reproduce",
+      "load": 50
+    },
+    {
+      "config": {
+        "name": "current_thread",
+        "flavor": "current_thread",
+        "workers": 0
+      },
+      "cell": "lb-latency-openloop",
+      "rep": 5,
+      "cohort": "reproduce",
+      "load": 80
+    }
+  ],
+  "random_seed": 961,
+  "repetitions": 5,
+  "native_bulk": {
+    "timed_records": 8000000,
+    "warmup": 10000,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "key_mode": "id",
+    "payload_mode": "seeded",
+    "seed": 1592590337,
+    "acks": 1,
+    "idempotence": false,
+    "linger_ms": 5,
+    "batch_bytes": 1048576,
+    "batch_records": 32768,
+    "max_in_flight": 5,
+    "connections": 1
+  },
+  "open_loop": {
+    "timed_offers": 20000,
+    "warmup": 10000,
+    "sample_floor": 10000,
+    "offered_load_policy": "Same absolute 10/50/80 percent rates for every runtime, based on five fresh current-thread sequential calibration runs. Percentages refer to the current-thread calibration only, not per-flavor saturation.",
+    "failed_capacity_runs": "Retain normal exit1 and every raw rejection; independently verify all acknowledged payloads and offsets. Never relabel as executed.",
+    "payload": "100 bytes of x; null key; partition0; no unique payload IDs",
+    "batch_records": 1,
+    "max_in_flight": 1,
+    "connections": 1,
+    "linger_ms": 0,
+    "max_pending": 1024
+  },
+  "uncertainty": "Five matched repetitions; paired bootstrap comparisons and per-arm median bootstrap CIs. Raw per-run normal mean intervals are diagnostic.",
+  "reproduce_policy": "Five fresh current-thread repetitions after the primary matrix; retain all differences and report median deltas without treating noisy local observations as a production gate."
+}

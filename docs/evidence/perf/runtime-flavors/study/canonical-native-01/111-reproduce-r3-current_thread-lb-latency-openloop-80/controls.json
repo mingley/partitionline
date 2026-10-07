@@ -1,0 +1,34 @@
+[
+  {
+    "control": "missing_histogram_bound",
+    "schema_errors": [
+      "'min_us' is a required property"
+    ],
+    "semantic_errors": [],
+    "rejected": true
+  },
+  {
+    "control": "invalid_mode",
+    "schema_errors": [
+      "'invented' is not one of ['kraft', 'zookeeper']"
+    ],
+    "semantic_errors": [],
+    "rejected": true
+  },
+  {
+    "control": "missing_attempt_timestamp",
+    "schema_errors": [
+      "'timestamp_utc' is a required property"
+    ],
+    "semantic_errors": [],
+    "rejected": true
+  },
+  {
+    "control": "changed_ack_count",
+    "schema_errors": [],
+    "semantic_errors": [
+      "Mismatched acks: broker high-watermark offset delta (13900) does not match acknowledged record count (13901). Every acknowledged record must be independently proven by log end offset deltas."
+    ],
+    "rejected": true
+  }
+]

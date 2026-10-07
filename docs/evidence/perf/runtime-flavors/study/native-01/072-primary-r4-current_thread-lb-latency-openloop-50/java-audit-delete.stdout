@@ -1,0 +1,2 @@
+{"status":"pass","verified":30000,"consumer_closed":true,"unique_ids_checked":false,"integrity_scope":"contiguous partition offsets and complete fixed payload"}
+{"status":"deletion_requested","topic":"pl-runtime-767578-72","admin_closed":true}

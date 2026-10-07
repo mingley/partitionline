@@ -1,0 +1,33 @@
+{
+  "allocation_count": 1410895,
+  "allocation_scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+  "end_time_utc": "2026-10-07T21:01:53.59530481Z",
+  "host": {
+    "arch": "x86_64",
+    "cpu": {
+      "frequency_mhz": 2596.144,
+      "logical_cores": 5,
+      "model": "AMD EPYC 9V74 80-Core Processor",
+      "physical_cores": 5
+    },
+    "hostname": "e852fb1a1688",
+    "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+    "memory": {
+      "total_bytes": 18882699264,
+      "unit": "bytes"
+    },
+    "os": "Linux 6.18.44",
+    "os_family": "linux"
+  },
+  "process_peak_rss_bytes": 10670080,
+  "rss_sample_mean_bytes": 7678296,
+  "rss_sample_peak_bytes": 9412608,
+  "rss_scope": "10ms samples across workload interval; sampler created before census and joined after census",
+  "scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded",
+  "start_time_utc": "2026-10-07T21:01:49.93022566Z",
+  "system_cpu_seconds": 0.535072,
+  "thread_snapshot_before_workload": "Name:\tnative-latency-\nUmask:\t0077\nState:\tR (running)\nTgid:\t793880\nNgid:\t0\nPid:\t793880\nPPid:\t793879\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t64\nGroups:\t \nNStgid:\t793880\nNSpid:\t793880\nNSpgid:\t793879\nNSsid:\t793879\nKthread:\t0\nVmPeak:\t   11408 kB\nVmSize:\t   11408 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t    3988 kB\nVmRSS:\t    3988 kB\nRssAnon:\t     316 kB\nRssFile:\t    3672 kB\nRssShmem:\t       0 kB\nVmData:\t    2764 kB\nVmStk:\t     132 kB\nVmExe:\t    3676 kB\nVmLib:\t    2228 kB\nVmPTE:\t      60 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t2\nSigQ:\t0/71955\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000001001000\nSigCgt:\t0000000100000440\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t000001ffffffffff\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t0\nSeccomp_filters:\t0\nSpeculation_Store_Bypass:\tvulnerable\nSpeculationIndirectBranch:\talways enabled\nCpus_allowed:\t14\nCpus_allowed_list:\t2,4\nMems_allowed:\t00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t4\nnonvoluntary_ctxt_switches:\t0\n",
+  "total_allocated_bytes": 1854689516,
+  "user_cpu_seconds": 2.209799,
+  "wall_seconds": 3.665074122
+}

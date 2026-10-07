@@ -1,0 +1,22 @@
+{
+  "source_commit": "17a6344b019e65ad209800e1f93481f7bf50ad36",
+  "derivations": [
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/examples/bench_produce.rs",
+      "original_sha256": "a12b9933b5ceec8868c52565ba282255265dbe3591ebf82d88c547f60ba87403",
+      "derived": "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/src/bin/native-produce-runtime.rs",
+      "derived_sha256": "2daf9f58d27a4d0200839157c725e22b9ea461c26a732912075c511972337ae2",
+      "diff": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-produce-runtime.rs.derivation.diff",
+      "diff_sha256": "b377cc35e197dcb0da6545a6301f36b7894c07e4a57a4bb504275ef8a4f2bb64"
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/examples/bench_latency.rs",
+      "original_sha256": "4a5806acbd84bd78bb1ec008eb401a974f296cc5f18808a05c29279ac2e3e4d9",
+      "derived": "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/src/bin/native-latency-runtime.rs",
+      "derived_sha256": "3ffba1918bc7a3f608d46054ceac9d3afb0803e57057468c2ee2b5c17fe49140",
+      "diff": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-latency-runtime.rs.derivation.diff",
+      "diff_sha256": "d678eca05c5c10b4577fc33cc7d74736baa0af2102fd0e90ade72891dfcc5d64"
+    }
+  ],
+  "additions": "Explicit runtime wrapper, process allocation/CPU/RSS observations and bounded post-close cancellation barrier. Bulk sparse admission-to-final-flush bounds and latency warmup sidecars are diagnostic instrumentation. Original examples and core source remain unchanged."
+}

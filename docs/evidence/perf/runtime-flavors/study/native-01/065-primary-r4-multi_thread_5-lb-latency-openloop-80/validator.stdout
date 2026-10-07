@@ -1,0 +1,35 @@
+==============================================================================
+PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT
+==============================================================================
+Scenario:    lb-latency-openloop
+Profile:     low-latency (exploratory tier)
+Peer:        partitionline
+Disposition: failed
+Suite HOLD:  active
+------------------------------------------------------------------------------
+PROVENANCE:
+  Source:     17a6344b019e65ad209800e1f93481f7bf50ad36 on branch 'detached pinned review source'
+  Binary:     native-latency-runtime (sha256: 8fd16ea937377afd...)
+  Broker:     Apache Kafka distribution archive f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21 (v4.3.1, Owned single-node KRaft broker/controller; acks=1 RF=1 minISR=1)
+  Host:       e852fb1a1688 (Linux 6.18.44, x86_64)
+  CPU:        AMD EPYC 9V74 80-Core Processor (5c/5t)
+------------------------------------------------------------------------------
+OUTCOMES ACCOUNTING:
+  Offered:          20,000  |  Accepted:         14,062
+  Acknowledged:     14,062  |  Consumed:              0
+  Rejected:          5,938  |  Timed Out:             0
+  Unknown:               0
+------------------------------------------------------------------------------
+PERFORMANCE MEASUREMENTS:
+  Throughput:       7,232.19 records/s (0.72 MB/s)
+  Latency (us): p50=138484.0  p90=155870.0  p95=164124.0  p99=169424.0  p99.9=171612.0
+  Client Res:   CPU=97.2%  Peak RSS=23.17 MB  Allocations=1,172,786
+  Broker Res:   CPU=42.5%  Peak RSS=691.08 MB
+------------------------------------------------------------------------------
+INTEGRITY & VERIFICATION:
+  HW Delta:     14,062 (matches acknowledged: True)
+  Record IDs:   Verified=14,062/14,062  Missing=0  Payload OK=True
+  Attempts:     Total=1  Failed=1
+------------------------------------------------------------------------------
+VALIDATION PASSED: Result conforms strictly to fail-closed result schema.
+==============================================================================

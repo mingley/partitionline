@@ -1,0 +1,5552 @@
+{
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "inputs_sha256": {
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/rows.json": "16aa5dd86e4f052659afeee289900ac197c336c187d67b34883271c4f502c911",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/completion.json": "c6c2312caee4d3a3611e0186919e44753f44e4d9f79cbdc05fbd359528e3b9c7",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/matrix-plan.json": "fc794e76e36de65bf1f4f7ad80cd01d1385e26ab36d8bae87c512349965aab2c",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/host-before.json": "1aeef70f230410d31efe421dde1c7b406837e6ee550062631f37de87888075a6",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/host-after.json": "4456d3b24de688988984715f1fd8cb1c2d4ebb0424ca735171700cb47aa10c1c",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/rows.json": "c0fb65344d71bd545f3ddcaa1d4c9c36761d5eb14b21df203398761af95013a9",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/completion.json": "a3f76e028d6b0a22d7c0122b31f555440822a33acda3a29ca8be62ae70aecaf3",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/matrix-plan.json": "21acd20ebbef1f530609a7f35c3bfcb944e423aada896a492a29c1b38ec5d703",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/host-before.json": "e6548ef3700c567604a369e20a7be36903bfed1e830303cae67327e51a276b58",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/host-after.json": "54588b9d3ab0f34d6ae5406fb6af9f0f364a68a328ead504502b45182b4e5f65"
+  },
+  "analyzer_sha256": "e752a6abeddd0f1a6767e50e06878eb464129b7663bd101473c226698c5b029e",
+  "method": "Per-arm medians bootstrap five observed repetitions with replacement. Paired percent deltas bootstrap the five matched B_i/A_i-1 values. 20,000 resamples; percentile indices499/19499; seed961 plus cell index. Reproduction is a fresh cohort, not a paired intervention.",
+  "primary_repetitions": 5,
+  "resamples": 20000,
+  "base_seed": 961,
+  "rows": 180,
+  "limitations": [
+    "CPU frequency is not controlled on this shared host.",
+    "Native whole-workload resources include setup, warmup, diagnostic output and close; null-broker resources cover timed work.",
+    "Process-wide allocation instrumentation can affect thread contention; results describe these instrumented drivers.",
+    "Bulk timing bounds are not individual acknowledgment latency. Fixed-payload open-loop readback has no unique producer payload IDs.",
+    "Same absolute loads across runtimes refer to current-thread calibration; failed profiles remain failed."
+  ],
+  "cells": [
+    {
+      "cell": "lb-bulk",
+      "load_percent": null,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                254111.84732960214,
+                242806.15443187702,
+                231081.52856733842,
+                251507.10128728565,
+                245443.1259341987
+              ],
+              "median": 245443.1259341987,
+              "bootstrap_95_ci": [
+                231081.52856733842,
+                254111.84732960214
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                3981.0142500000006,
+                4164.658,
+                4381.75675,
+                4023.715,
+                4119.55825
+              ],
+              "median": 4119.55825,
+              "bootstrap_95_ci": [
+                3981.0142500000006,
+                4381.75675
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.087715875,
+                6.087485,
+                6.087453,
+                6.087349,
+                6.087357
+              ],
+              "median": 6.087453,
+              "bootstrap_95_ci": [
+                6.087349,
+                6.087715875
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                164184064,
+                164126720,
+                164130816,
+                164044800,
+                164065280
+              ],
+              "median": 164126720,
+              "bootstrap_95_ci": [
+                164044800,
+                164184064
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/000-primary-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "7db5a0a249eba54b2c2dcd51910f38d3b45a23d9dc14a0111cf17928b2e2cfbd"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "09dffbd4bb57e05b57c3e417d5386775fd8462d11ba7c6a83be877365ea2eefc"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/041-primary-r3-current_thread-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "694824ee449af6dbf96e8783ec2b2de27f69b3ef5bb97b4761e8b4c0e0b3b40b"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/078-primary-r4-current_thread-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "a8afa8d65a97f7344f56921bccaa74739cd949b841627b855d8d04c9d6cff7ca"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/092-primary-r5-current_thread-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "bc5d0e0f47ee3a338bbb1f27cda4c69899cbc6dee9be070dd071ea07b7dd48c7"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                169903.98895488147,
+                214925.13190492656,
+                209997.33802124392,
+                228046.95965797972,
+                229163.6004099508
+              ],
+              "median": 214925.13190492656,
+              "bootstrap_95_ci": [
+                169903.98895488147,
+                229163.6004099508
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                11674.814875,
+                9233.86875,
+                9458.384624999999,
+                8703.27175,
+                8662.65175
+              ],
+              "median": 9233.86875,
+              "bootstrap_95_ci": [
+                8662.65175,
+                11674.814875
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.083316375,
+                6.08440725,
+                6.085025875,
+                6.0846955,
+                6.083945
+              ],
+              "median": 6.08440725,
+              "bootstrap_95_ci": [
+                6.083316375,
+                6.085025875
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                154128384,
+                157179904,
+                155983872,
+                153108480,
+                155738112
+              ],
+              "median": 155738112,
+              "bootstrap_95_ci": [
+                153108480,
+                157179904
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/009-primary-r1-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "85262e2f520535c2bd48ece88d64d815c7118b6b4c3414ec49c89c2e956bb58e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/021-primary-r2-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "b614d498e1db1a633de9346f72f72a782fc7974f84828e176ce1ad6d40ad1c02"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/046-primary-r3-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "8323987201807fd89a6330b276d6fc687dfff0a02fe671916a6511bdd3579a7a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/066-primary-r4-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "a93ae5b84e8307d2904ddfb4353bfcc910d09f0dd88eeceeb11e92af27c32fa7"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/093-primary-r5-multi_thread_1-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "6caec89868218c2d4fb22e9de3e17706d627ce14ec3d981a19d145cc863d01d7"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                209766.1288586512,
+                226729.24053611603,
+                216800.50529693768,
+                239372.94103738785,
+                215946.5048680281
+              ],
+              "median": 216800.50529693768,
+              "bootstrap_95_ci": [
+                209766.1288586512,
+                239372.94103738785
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                9460.56425,
+                8746.944,
+                9150.62375,
+                8299.74125,
+                9206.476625
+              ],
+              "median": 9150.62375,
+              "bootstrap_95_ci": [
+                8299.74125,
+                9460.56425
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.087836125,
+                6.08471775,
+                6.08421875,
+                6.084809,
+                6.084094125
+              ],
+              "median": 6.08471775,
+              "bootstrap_95_ci": [
+                6.084094125,
+                6.087836125
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                156430336,
+                173957120,
+                173760512,
+                152809472,
+                152940544
+              ],
+              "median": 156430336,
+              "bootstrap_95_ci": [
+                152809472,
+                173957120
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/015-primary-r1-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "6d49f73e1ee1cd4e3080b4773662e80b6e1ef6a88aecc55eab2358994c6297d1"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/031-primary-r2-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "29bf3f66c576a505f799d28db987f3e5d7e3ba27cfd93e3fb277263f4207b4e2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/056-primary-r3-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "b86f2dcd5db9c672f8ac78eb811866143ddcc8e4e9d20eddbb746955be297395"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/073-primary-r4-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "e7c74bd15a01c70f2f54ed9d0ffddf3b2cdc951d7c04ec3b73d01f3adbd1d36f"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/098-primary-r5-multi_thread_2-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "8d5502e816f9725fc12ef44caf51fe6af79d02adcb223221cef0b45317865953"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                188272.95313822656,
+                210836.9840855237,
+                233171.7132749232,
+                240062.44984570288,
+                234757.82720010413
+              ],
+              "median": 233171.7132749232,
+              "bootstrap_95_ci": [
+                188272.95313822656,
+                240062.44984570288
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                10531.771,
+                9420.82275,
+                8513.58875,
+                8268.8135,
+                8445.1315
+              ],
+              "median": 8513.58875,
+              "bootstrap_95_ci": [
+                8268.8135,
+                10531.771
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.08681025,
+                6.08761925,
+                6.086632125,
+                6.08527475,
+                6.087504
+              ],
+              "median": 6.08681025,
+              "bootstrap_95_ci": [
+                6.08527475,
+                6.08761925
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                159485952,
+                157593600,
+                161452032,
+                161415168,
+                162373632
+              ],
+              "median": 161415168,
+              "bootstrap_95_ci": [
+                157593600,
+                162373632
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/003-primary-r1-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "217664f178e76fb81c8c49ee92cb8ce83aa210073b2a62b8c90ff61f1ca7b29d"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/025-primary-r2-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "7a9e6a88a2d7b3410eb7ff14476c929dfc17fdb218949a9306157fdd474e18ec"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/044-primary-r3-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "6dc74b80cf1e2a1f9335cd2bf90d64a0dae8c001348baf18cd56a2d17c663b16"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/068-primary-r4-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "45446ff8665dcca16e7928c892f4482ae754c148c0d8ea743e4b308335a70227"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/084-primary-r5-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "b18003f13fd5a2fd194c58e100b15dd955b40d4006ddcae21f04e31c3e199635"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                219638.46849170857,
+                200262.69458962794,
+                222559.69071770017,
+                208077.20871291062,
+                214721.0151322488
+              ],
+              "median": 214721.0151322488,
+              "bootstrap_95_ci": [
+                200262.69458962794,
+                222559.69071770017
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                9034.999375,
+                9918.831,
+                8920.55075,
+                9556.697625,
+                9253.708625
+              ],
+              "median": 9253.708625,
+              "bootstrap_95_ci": [
+                8920.55075,
+                9918.831
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.084169125,
+                6.084116,
+                6.084366875,
+                6.086902875,
+                6.087055875
+              ],
+              "median": 6.084366875,
+              "bootstrap_95_ci": [
+                6.084116,
+                6.087055875
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                157491200,
+                154845184,
+                154075136,
+                154431488,
+                175489024
+              ],
+              "median": 154845184,
+              "bootstrap_95_ci": [
+                154075136,
+                175489024
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/019-primary-r1-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "15cefb194c207fc3b8086d044da24a2ceb46a3c51c96caa5018ede9a17231db5"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/024-primary-r2-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "d519876706f805350819109a2cfeaab6f91c3dfe62b488d89c48afe8fe894ede"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/045-primary-r3-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "e2338b3e2ef131664c4f9849384ca05bb32e377e3e4c8378f1a8ecad370e69be"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/071-primary-r4-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "bc570a68b92de0dc1a275bd2ceb8805f9d3be58a6f1ce2c268ec53ef714095d0"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/085-primary-r5-multi_thread_5-lb-bulk-0/lb-bulk.result.json",
+              "sha256": "514e96f8006fe71b24ce7baf012f7b142bf4fb3c1c86568c44be2e46510371d9"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -33.138107986557884,
+                -11.482831887926015,
+                -9.124134965184139,
+                -9.327824744999313,
+                -6.632707867570231
+              ],
+              "median": -9.327824744999313,
+              "bootstrap_95_ci": [
+                -33.138107986557884,
+                -6.632707867570231
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                193.26232316299792,
+                121.71973665064453,
+                115.85827704835508,
+                116.2994086310785,
+                110.2810841429418
+              ],
+              "median": 116.2994086310785,
+              "bootstrap_95_ci": [
+                110.2810841429418,
+                193.26232316299792
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.0722684844420396,
+                -0.05055864614039729,
+                -0.03987094438346883,
+                -0.04359040363876021,
+                -0.0560505979853021
+              ],
+              "median": -0.05055864614039729,
+              "bootstrap_95_ci": [
+                -0.0722684844420396,
+                -0.03987094438346883
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -6.124638259654724,
+                -4.232592962315951,
+                -4.963689451224074,
+                -6.666666666666665,
+                -5.075521158407192
+              ],
+              "median": -5.075521158407192,
+              "bootstrap_95_ci": [
+                -6.666666666666665,
+                -4.232592962315951
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -17.45125972557714,
+                -6.621295878342992,
+                -6.180079973912401,
+                -4.824579579579136,
+                -12.017701027030759
+              ],
+              "median": -6.621295878342992,
+              "bootstrap_95_ci": [
+                -17.45125972557714,
+                -4.824579579579136
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                137.64205943246742,
+                110.02790625304644,
+                108.83459014469486,
+                106.27060440413891,
+                123.48213245922666
+              ],
+              "median": 110.02790625304644,
+              "bootstrap_95_ci": [
+                106.27060440413891,
+                137.64205943246742
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.001975289295175209,
+                -0.04545801755568846,
+                -0.05312977365081739,
+                -0.04172588100337382,
+                -0.053600848447032945
+              ],
+              "median": -0.04545801755568846,
+              "bootstrap_95_ci": [
+                -0.053600848447032945,
+                0.001975289295175209
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -4.722582576589163,
+                5.9895183428999355,
+                5.8670859224875915,
+                -6.848938826466922,
+                -6.780676569716637
+              ],
+              "median": -4.722582576589163,
+              "bootstrap_95_ci": [
+                -6.848938826466922,
+                5.9895183428999355
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -25.909415433896555,
+                -13.166540370920766,
+                0.9045226247824889,
+                -4.550428748534641,
+                -4.353472395458002
+              ],
+              "median": -4.550428748534641,
+              "bootstrap_95_ci": [
+                -25.909415433896555,
+                0.9045226247824889
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                164.54994477851966,
+                126.20879673673082,
+                94.29624316776604,
+                105.50196770894557,
+                105.00090027856746
+              ],
+              "median": 105.50196770894557,
+              "bootstrap_95_ci": [
+                94.29624316776604,
+                164.54994477851966
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.014876269172137135,
+                0.0022053442431557713,
+                -0.013484703701194256,
+                -0.034074767193403854,
+                0.002414841120712552
+              ],
+              "median": -0.013484703701194256,
+              "bootstrap_95_ci": [
+                -0.034074767193403854,
+                0.002414841120712552
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -2.861490869174732,
+                -3.980534065385577,
+                -1.6321030171445705,
+                -1.6029962546816434,
+                -1.031082261889904
+              ],
+              "median": -1.6321030171445705,
+              "bootstrap_95_ci": [
+                -3.980534065385577,
+                -1.031082261889904
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -13.566222590629163,
+                -17.5215739245956,
+                -3.687805729203897,
+                -17.267859377364836,
+                -12.5169978523604
+              ],
+              "median": -13.566222590629163,
+              "bootstrap_95_ci": [
+                -17.5215739245956,
+                -3.687805729203897
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                126.95219880210172,
+                138.16675943138668,
+                103.5838879006691,
+                137.5093073192311,
+                124.62866315824033
+              ],
+              "median": 126.95219880210172,
+              "bootstrap_95_ci": [
+                103.5838879006691,
+                138.16675943138668
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.058260767631501675,
+                -0.05534305218001245,
+                -0.05069648997700904,
+                -0.007328723882926713,
+                -0.0049467281120541
+              ],
+              "median": -0.05069648997700904,
+              "bootstrap_95_ci": [
+                -0.058260767631501675,
+                -0.0049467281120541
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -4.076439477098093,
+                -5.655103568754683,
+                -6.1266252401986465,
+                -5.860174781523098,
+                6.96292597678192
+              ],
+              "median": -5.655103568754683,
+              "bootstrap_95_ci": [
+                -6.1266252401986465,
+                6.96292597678192
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              246594.82599051515,
+              254730.76422922863,
+              252204.88544822577,
+              265762.2423210824,
+              246741.15082910267
+            ],
+            "median": 252204.88544822577,
+            "bootstrap_95_ci": [
+              246594.82599051515,
+              265762.2423210824
+            ],
+            "percent_delta_from_primary_median": 2.7549190828998205
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              4107.852749999999,
+              3978.199,
+              4010.0117499999997,
+              3815.06325,
+              4101.772625
+            ],
+            "median": 4010.0117499999997,
+            "bootstrap_95_ci": [
+              3815.06325,
+              4107.852749999999
+            ],
+            "percent_delta_from_primary_median": -2.659180750751622
+          },
+          "client_allocations_per_record": {
+            "values": [
+              6.087349,
+              6.087381,
+              6.087405,
+              6.087373,
+              6.087549
+            ],
+            "median": 6.087381,
+            "bootstrap_95_ci": [
+              6.087349,
+              6.087549
+            ],
+            "percent_delta_from_primary_median": -0.0011827606718362027
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              164134912,
+              164110336,
+              164114432,
+              164130816,
+              164061184
+            ],
+            "median": 164114432,
+            "bootstrap_95_ci": [
+              164061184,
+              164134912
+            ],
+            "percent_delta_from_primary_median": -0.007486897928621339
+          }
+        },
+        "rejections": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "failed_repetitions": []
+      }
+    },
+    {
+      "cell": "lb-latency-openloop",
+      "load_percent": 10,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                1350.876050176867,
+                1350.9704414015632,
+                1350.7585685805755,
+                1350.8738626221686,
+                1350.9443956000216
+              ],
+              "median": 1350.876050176867,
+              "bootstrap_95_ci": [
+                1350.7585685805755,
+                1350.9704414015632
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                176184.4,
+                172871.55,
+                168432.95,
+                150282.0,
+                163586.14999999997
+              ],
+              "median": 168432.95,
+              "bootstrap_95_ci": [
+                150282.0,
+                176184.4
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.55045,
+                70.5511,
+                70.5384,
+                70.5476,
+                70.54345
+              ],
+              "median": 70.5476,
+              "bootstrap_95_ci": [
+                70.5384,
+                70.5511
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                8900608,
+                8839168,
+                9244672,
+                8871936,
+                8945664
+              ],
+              "median": 8900608,
+              "bootstrap_95_ci": [
+                8839168,
+                9244672
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                3784,
+                3799,
+                3699,
+                2400,
+                6074
+              ],
+              "median": 3784,
+              "bootstrap_95_ci": [
+                2400,
+                6074
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/018-primary-r1-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "88c514f9368f7dc35ae1250fccca8cc31e736c21eda079ca07d4426308c4deba"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/039-primary-r2-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "06a4a45b5373e8c07ce1dadfd8e21400ed886c4d9733064950af96713d33d29f"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/057-primary-r3-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "2ff7609f15612ceae19cfee78f19a3a3e7348d27cb9c7320fb9abf50967fea4c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/069-primary-r4-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "1d3d1853c0165b7cbc2088f23252f6d2e451405290beee18c9107e5b6ac9e792"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/087-primary-r5-current_thread-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "230c474eae7d7d41c4a53467f60dd5e948b8708843dbfe1759597163aa9c400c"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                1350.9235650656005,
+                1350.7422230113878,
+                1350.939314312808,
+                1350.8706266965835,
+                1350.9845978282067
+              ],
+              "median": 1350.9235650656005,
+              "bootstrap_95_ci": [
+                1350.7422230113878,
+                1350.9845978282067
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                200475.05,
+                203932.40000000002,
+                209362.05,
+                200046.89999999997,
+                221869.09999999995
+              ],
+              "median": 203932.40000000002,
+              "bootstrap_95_ci": [
+                200046.89999999997,
+                221869.09999999995
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.5159,
+                70.5156,
+                70.51575,
+                70.51535,
+                70.5159
+              ],
+              "median": 70.51575,
+              "bootstrap_95_ci": [
+                70.51535,
+                70.5159
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9166848,
+                9199616,
+                9400320,
+                9322496,
+                9420800
+              ],
+              "median": 9322496,
+              "bootstrap_95_ci": [
+                9166848,
+                9420800
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                3439,
+                4538,
+                3742,
+                3425,
+                5045
+              ],
+              "median": 3742,
+              "bootstrap_95_ci": [
+                3425,
+                5045
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/012-primary-r1-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "954dd0630a3ba6e3dea69b77729449d8e231e1be386071687f965352aa425d24"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/038-primary-r2-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "d4a4542d42a2e9e13376ab4b79e3318f2a9c2616eb8d3b5f22bfdad9c386d01e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/055-primary-r3-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "aec0ebfe21649fa4be9a7c247390fac3bc61e7c87d3b9a2df477e33f3077877c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/060-primary-r4-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "e0157ea9e29c6a27002b601a933f7f03e0e181d83455c0706157ae6afde911a2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/096-primary-r5-multi_thread_1-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "2ac884d78a3215a2b372a6e66adb4328919dc255cd6818ffe3615602991b5b80"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                1350.9495865205915,
+                1350.9341078672312,
+                1350.8916370855575,
+                1350.9407869367933,
+                1350.920981334609
+              ],
+              "median": 1350.9341078672312,
+              "bootstrap_95_ci": [
+                1350.8916370855575,
+                1350.9495865205915
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                219275.95,
+                223714.10000000003,
+                228007.5,
+                216399.9,
+                226753.1
+              ],
+              "median": 223714.10000000003,
+              "bootstrap_95_ci": [
+                216399.9,
+                228007.5
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.5142,
+                70.5144,
+                70.5144,
+                70.51505,
+                70.5142
+              ],
+              "median": 70.5144,
+              "bootstrap_95_ci": [
+                70.5142,
+                70.51505
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9416704,
+                9363456,
+                9302016,
+                9216000,
+                9256960
+              ],
+              "median": 9302016,
+              "bootstrap_95_ci": [
+                9216000,
+                9416704
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                2806,
+                4339,
+                2495,
+                2433,
+                3567
+              ],
+              "median": 2806,
+              "bootstrap_95_ci": [
+                2433,
+                4339
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/005-primary-r1-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "73cdc4a9a591c51d86f24c6ccd932b64a96606f26072c64bdefea16a5d47153d"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/029-primary-r2-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "3eb1748dc373ded1cd55967a583f08705ded7765e98147b3166f34e8500b35e4"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/051-primary-r3-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "2b8100918c42b18e96205c6cd4f4e0211759b298f76ff31e8d8fd1166de62769"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/079-primary-r4-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "3a386a36ac1dbd21bbc77f2c9962fedb6eae4983fd2c628be12d91df8c1a63bc"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/099-primary-r5-multi_thread_2-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "358e42a022c6409ca7ba3241a21eab1b6990865abee6bcd01016242594c16354"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            3,
+            1,
+            1,
+            1
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                1350.884073795805,
+                1350.909463754208,
+                1350.9121815759636,
+                1350.9160808047072,
+                1350.890404361183
+              ],
+              "median": 1350.909463754208,
+              "bootstrap_95_ci": [
+                1350.884073795805,
+                1350.9160808047072
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                215211.9,
+                205876.50000000003,
+                215493.3,
+                219852.25,
+                216380.05
+              ],
+              "median": 215493.3,
+              "bootstrap_95_ci": [
+                205876.50000000003,
+                219852.25
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.51415,
+                70.51455,
+                70.5158,
+                70.5166,
+                70.51635
+              ],
+              "median": 70.5158,
+              "bootstrap_95_ci": [
+                70.51415,
+                70.5166
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9547776,
+                9424896,
+                9560064,
+                9641984,
+                9461760
+              ],
+              "median": 9547776,
+              "bootstrap_95_ci": [
+                9424896,
+                9641984
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                3543,
+                2474,
+                4048,
+                3204,
+                3216
+              ],
+              "median": 3216,
+              "bootstrap_95_ci": [
+                2474,
+                4048
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/016-primary-r1-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "53a4f0c56a64434e876520d5ef6d4c9a7032ef396ff42f5f14f3b18163c52c9d"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/026-primary-r2-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "f0df59d561fa1eb7f82496541d3295bbfe9b1f580c147fdfddf76a690540c937"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/048-primary-r3-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "41c3f3540eb54d29ffa63099059b1326788abce8688e12b8e90ebd4cbb19f733"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/062-primary-r4-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "efa8ee3bff868e20390a4998d63bd1e6f726d0bdc58db52680dea73eed063126"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/086-primary-r5-multi_thread_4-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "57f94c4bcdb0e18886002e54db24b246300fa06325fdc700bd228887a3a71ee1"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            4,
+            4,
+            0,
+            1
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                1350.8789911374813,
+                1350.950660207058,
+                1350.819375224592,
+                1350.8472187289865,
+                1350.9737375783725
+              ],
+              "median": 1350.8789911374813,
+              "bootstrap_95_ci": [
+                1350.819375224592,
+                1350.9737375783725
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                220984.0,
+                218732.3,
+                234681.4,
+                220057.35,
+                228369.55000000005
+              ],
+              "median": 220984.0,
+              "bootstrap_95_ci": [
+                218732.3,
+                234681.4
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.51835,
+                70.5196,
+                70.51425,
+                70.51625,
+                70.51655
+              ],
+              "median": 70.51655,
+              "bootstrap_95_ci": [
+                70.51425,
+                70.5196
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9523200,
+                9527296,
+                9682944,
+                9490432,
+                9527296
+              ],
+              "median": 9527296,
+              "bootstrap_95_ci": [
+                9490432,
+                9682944
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                3841,
+                2975,
+                3146,
+                3172,
+                2968
+              ],
+              "median": 3146,
+              "bootstrap_95_ci": [
+                2968,
+                3841
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/004-primary-r1-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "912139b51d3bf4ba50775151fe7de713879b380faa20cd2d54a34426675dd7e9"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/034-primary-r2-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "e548f4b2131f94351c8a3d5788bac45ac366339bbc4473551c0ca2e40c127b81"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/047-primary-r3-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "a06edafc230a981a059260d6f7956d4d0595a6b6c89f3b7c673b64b75a2c5727"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/061-primary-r4-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "cc5ea36f61904aa92c909993e908215805c6d63facc07efd9174ba90a6d2ff95"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/095-primary-r5-multi_thread_5-lb-latency-openloop-10/lb-latency-openloop.result.json",
+              "sha256": "febd7e2bacf929741cfb6262ce8b4469ea46337599f71fdb1f52ab7c8622deca"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            1,
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.0035173388948095408,
+                -0.016892922537870003,
+                0.013381053908290141,
+                -0.000239543133873088,
+                0.0029758610580854494
+              ],
+              "median": 0.0029758610580854494,
+              "bootstrap_95_ci": [
+                -0.016892922537870003,
+                0.013381053908290141
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                13.78706060241428,
+                17.967589230269553,
+                24.299936562293766,
+                33.11434503134105,
+                35.62829127037954
+              ],
+              "median": 24.299936562293766,
+              "bootstrap_95_ci": [
+                13.78706060241428,
+                35.62829127037954
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.04897204766234342,
+                -0.050318138200533546,
+                -0.03211016977986425,
+                -0.04571381592003432,
+                -0.03905394476738655
+              ],
+              "median": -0.04571381592003432,
+              "bootstrap_95_ci": [
+                -0.050318138200533546,
+                -0.03211016977986425
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                2.991256327657621,
+                4.077849860982385,
+                1.683650863978725,
+                5.078485687903966,
+                5.311355311355315
+              ],
+              "median": 4.077849860982385,
+              "bootstrap_95_ci": [
+                1.683650863978725,
+                5.311355311355315
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -9.117336152219869,
+                19.45248749670967,
+                1.1624763449580966,
+                42.70833333333333,
+                -16.941060256832397
+              ],
+              "median": 1.1624763449580966,
+              "bootstrap_95_ci": [
+                -16.941060256832397,
+                42.70833333333333
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.005443604075661135,
+                -0.0026894396219612204,
+                0.009851390772364077,
+                0.004954149789737627,
+                -0.0017331775822082562
+              ],
+              "median": 0.004954149789737627,
+              "bootstrap_95_ci": [
+                -0.0026894396219612204,
+                0.009851390772364077
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                24.45820969393433,
+                29.41059416659366,
+                35.36989051132808,
+                43.995887731065594,
+                38.613874096309544
+              ],
+              "median": 35.36989051132808,
+              "bootstrap_95_ci": [
+                24.45820969393433,
+                43.995887731065594
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.05138167084688394,
+                -0.05201903301296218,
+                -0.03402402095880053,
+                -0.04613906071928575,
+                -0.04146380705792874
+              ],
+              "median": -0.04613906071928575,
+              "bootstrap_95_ci": [
+                -0.05201903301296218,
+                -0.03402402095880053
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                5.798435342843988,
+                5.9314179796107425,
+                0.6202924235711116,
+                3.878116343490312,
+                3.4798534798534897
+              ],
+              "median": 3.878116343490312,
+              "bootstrap_95_ci": [
+                0.6202924235711116,
+                5.9314179796107425
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -25.84566596194503,
+                14.214266912345352,
+                -32.5493376588267,
+                1.374999999999993,
+                -41.274283832729665
+              ],
+              "median": -25.84566596194503,
+              "bootstrap_95_ci": [
+                -41.274283832729665,
+                14.214266912345352
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.0005939567095714082,
+                -0.004513618173018763,
+                0.011372350245353324,
+                0.003125249788804574,
+                -0.003996555225693754
+              ],
+              "median": 0.0005939567095714082,
+              "bootstrap_95_ci": [
+                -0.004513618173018763,
+                0.011372350245353324
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                22.151507170895957,
+                19.092181449174284,
+                27.940109105730194,
+                46.29313557179169,
+                32.272842169095625
+              ],
+              "median": 27.940109105730194,
+              "bootstrap_95_ci": [
+                19.092181449174284,
+                46.29313557179169
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.051452542117025324,
+                -0.05180642116140444,
+                -0.03203928640286291,
+                -0.04394196258981076,
+                -0.038416040043409705
+              ],
+              "median": -0.04394196258981076,
+              "bootstrap_95_ci": [
+                -0.05180642116140444,
+                -0.03203928640286291
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                7.271053842613906,
+                6.626506024096379,
+                3.4116083296411137,
+                8.679593721144974,
+                5.769230769230771
+              ],
+              "median": 6.626506024096379,
+              "bootstrap_95_ci": [
+                3.4116083296411137,
+                8.679593721144974
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -6.368921775898517,
+                -34.877599368254806,
+                9.434982427683147,
+                33.5,
+                -47.053012841620024
+              ],
+              "median": -6.368921775898517,
+              "bootstrap_95_ci": [
+                -47.053012841620024,
+                33.5
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.00021770765821216287,
+                -0.00146422111831912,
+                0.004501666354816969,
+                -0.0019723450071396087,
+                0.002171960477892476
+              ],
+              "median": 0.00021770765821216287,
+              "bootstrap_95_ci": [
+                -0.0019723450071396087,
+                0.004501666354816969
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                25.427676911236198,
+                26.528801297842254,
+                39.33223873357319,
+                46.42961232882181,
+                39.602007871693345
+              ],
+              "median": 39.33223873357319,
+              "bootstrap_95_ci": [
+                25.427676911236198,
+                46.42961232882181
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.0454993554257932,
+                -0.04464848882583805,
+                -0.034236671089782345,
+                -0.04443808152226891,
+                -0.03813252683276813
+              ],
+              "median": -0.04443808152226891,
+              "bootstrap_95_ci": [
+                -0.0454993554257932,
+                -0.034236671089782345
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                6.994937873907037,
+                7.7849860982390995,
+                4.740806380150642,
+                6.971375807940894,
+                6.501831501831501
+              ],
+              "median": 6.971375807940894,
+              "bootstrap_95_ci": [
+                4.740806380150642,
+                7.7849860982390995
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                1.5063424947145965,
+                -21.689918399578833,
+                -14.9499864828332,
+                32.16666666666668,
+                -51.13598946328614
+              ],
+              "median": -14.9499864828332,
+              "bootstrap_95_ci": [
+                -51.13598946328614,
+                32.16666666666668
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              1350.902346279333,
+              1350.8960458044573,
+              1350.8671621337483,
+              1350.995036816704,
+              1350.904987881022
+            ],
+            "median": 1350.902346279333,
+            "bootstrap_95_ci": [
+              1350.8671621337483,
+              1350.995036816704
+            ],
+            "percent_delta_from_primary_median": 0.001946596244906118
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              158185.95,
+              156691.15,
+              154721.55,
+              153398.05000000002,
+              156621.35
+            ],
+            "median": 156621.35,
+            "bootstrap_95_ci": [
+              153398.05000000002,
+              158185.95
+            ],
+            "percent_delta_from_primary_median": -7.012642122577562
+          },
+          "client_allocations_per_record": {
+            "values": [
+              70.53875,
+              70.53565,
+              70.53275,
+              70.55055,
+              70.53415
+            ],
+            "median": 70.53565,
+            "bootstrap_95_ci": [
+              70.53275,
+              70.55055
+            ],
+            "percent_delta_from_primary_median": -0.016938917837028278
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              8871936,
+              8843264,
+              8851456,
+              8794112,
+              9277440
+            ],
+            "median": 8851456,
+            "bootstrap_95_ci": [
+              8794112,
+              9277440
+            ],
+            "percent_delta_from_primary_median": -0.5522319374137163
+          },
+          "scheduled_ack_p99_us": {
+            "values": [
+              2446,
+              2842,
+              2451,
+              2909,
+              2594
+            ],
+            "median": 2594,
+            "bootstrap_95_ci": [
+              2446,
+              2909
+            ],
+            "percent_delta_from_primary_median": -31.448202959830862
+          }
+        },
+        "rejections": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "failed_repetitions": []
+      }
+    },
+    {
+      "cell": "lb-latency-openloop",
+      "load_percent": 50,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [
+            3
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6751.623766359762,
+                6751.84942363548,
+                6202.142786012028,
+                6751.890682827908,
+                6753.934903429
+              ],
+              "median": 6751.84942363548,
+              "bootstrap_95_ci": [
+                6202.142786012028,
+                6753.934903429
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                123535.25,
+                125740.6,
+                160655.60385961193,
+                134475.75,
+                140800.59999999998
+              ],
+              "median": 134475.75,
+              "bootstrap_95_ci": [
+                123535.25,
+                160655.60385961193
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.57995,
+                70.55055,
+                72.39857915385431,
+                70.542,
+                70.55815
+              ],
+              "median": 70.55815,
+              "bootstrap_95_ci": [
+                70.542,
+                72.39857915385431
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9363456,
+                9084928,
+                22978560,
+                9748480,
+                12673024
+              ],
+              "median": 9748480,
+              "bootstrap_95_ci": [
+                9084928,
+                22978560
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                13579,
+                5815,
+                199887,
+                28159,
+                63462
+              ],
+              "median": 28159,
+              "bootstrap_95_ci": [
+                5815,
+                199887
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            1138,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/013-primary-r1-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "efc7b04260ffaddc37e367469d3f9326216bcd8bca24967e6ae1be085b125539"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/030-primary-r2-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "abb1ba911159a7c16b1c7836be732ef2633a5f834c043633dc5d22ff6aa0594c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/049-primary-r3-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "67295354b75934a506b118af9bcb4196039ba3addcb1a6bf63f1c426ceb5a5b6"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/072-primary-r4-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "15b320aee99b6f73de0f65ba702126a41894bdf4b0d1ab0c561d3515ad0a2725"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/094-primary-r5-current_thread-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "403a64b9cebd1a20fd6bb9ac824a1ce144caab9f4fae6562c552fcfc557900c1"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6753.021694678823,
+                6751.842327953132,
+                6707.2270730213095,
+                6746.6300035811755,
+                6753.442833232216
+              ],
+              "median": 6751.842327953132,
+              "bootstrap_95_ci": [
+                6707.2270730213095,
+                6753.442833232216
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                155332.5,
+                148275.45,
+                171683.2,
+                157693.35,
+                155274.25
+              ],
+              "median": 155332.5,
+              "bootstrap_95_ci": [
+                148275.45,
+                171683.2
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.5229,
+                70.52785,
+                70.51585,
+                70.51535,
+                70.516
+              ],
+              "median": 70.516,
+              "bootstrap_95_ci": [
+                70.51535,
+                70.52785
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                10260480,
+                9920512,
+                13860864,
+                10002432,
+                9297920
+              ],
+              "median": 10002432,
+              "bootstrap_95_ci": [
+                9297920,
+                13860864
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                41889,
+                10364,
+                60612,
+                32254,
+                4219
+              ],
+              "median": 32254,
+              "bootstrap_95_ci": [
+                4219,
+                60612
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/011-primary-r1-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "2c6b4cbea3d36da6ed3efbde32a28524b3c1f46668abcc0004bf3f578ff46190"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/033-primary-r2-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "d12eebe8193300131022d18a9ebd202679928a49c2b70334f09813b22b591287"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/052-primary-r3-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "aaa151541c493f0ed64e6079066d692c825c37e9da61356e536d0125b6b52384"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/067-primary-r4-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "5ea424a08d58126f0dfa846e0ee0e93b4f2ace97b8745096a3888ae7034a0eab"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/081-primary-r5-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "5fce09bcc56b2a2cc1222932bb1ab210c27538854f940182636446ea323522f5"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6750.188529137392,
+                6751.445428851286,
+                6749.031077040683,
+                6747.306044527193,
+                6746.6992745858415
+              ],
+              "median": 6749.031077040683,
+              "bootstrap_95_ci": [
+                6746.6992745858415,
+                6751.445428851286
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                163779.45,
+                165342.7,
+                173960.99999999997,
+                179800.2,
+                170979.28860873482
+              ],
+              "median": 170979.28860873482,
+              "bootstrap_95_ci": [
+                163779.45,
+                179800.2
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.51435,
+                70.51465,
+                70.51435,
+                70.51635,
+                70.53124218320076
+              ],
+              "median": 70.51465,
+              "bootstrap_95_ci": [
+                70.51435,
+                70.53124218320076
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9781248,
+                12726272,
+                10838016,
+                10448896,
+                18817024
+              ],
+              "median": 10838016,
+              "bootstrap_95_ci": [
+                9781248,
+                18817024
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                13690,
+                78347,
+                24839,
+                36456,
+                152208
+              ],
+              "median": 36456,
+              "bootstrap_95_ci": [
+                13690,
+                152208
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            11
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/002-primary-r1-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "b073c7dc7373d91abb28560f5cb6007d99abf832b53a0f4c0c1f7351605e80cb"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/022-primary-r2-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "e86cacd387a99d2bc6687c5020403a33ccc919d0eb434b27a4ac6ab55e9cae8a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/042-primary-r3-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "a82ddcf07a642c30c73da157335ede1333eb664f495e8b03e61095d2622b0f6b"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/063-primary-r4-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "c95298b82f573a655479d6838239529478e4c9247eeb5254c45ceab28e717ab3"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/088-primary-r5-multi_thread_2-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "2f7a1ad7b6fbd02ee2034a1e9ce1d46d2468e231af0efa05ec37ebff03aabff7"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            1,
+            1,
+            1,
+            4
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6752.849626403962,
+                6752.531770628218,
+                6527.506901517544,
+                6753.421953501102,
+                6749.953783910185
+              ],
+              "median": 6752.531770628218,
+              "bootstrap_95_ci": [
+                6527.506901517544,
+                6753.421953501102
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                190537.69999999998,
+                178767.8,
+                180185.3,
+                167253.7,
+                175289.4
+              ],
+              "median": 178767.8,
+              "bootstrap_95_ci": [
+                167253.7,
+                190537.69999999998
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.5144,
+                70.51445,
+                70.5166,
+                70.5141,
+                70.5163
+              ],
+              "median": 70.51445,
+              "bootstrap_95_ci": [
+                70.5141,
+                70.5166
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                11886592,
+                10276864,
+                17248256,
+                9543680,
+                9453568
+              ],
+              "median": 10276864,
+              "bootstrap_95_ci": [
+                9453568,
+                17248256
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                46940,
+                32532,
+                147895,
+                7499,
+                9793
+              ],
+              "median": 32532,
+              "bootstrap_95_ci": [
+                7499,
+                147895
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/014-primary-r1-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "9801705a0d6dc67dbfa90aef058b5f2ad5b88b5180907acf7c7970bf819140be"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/032-primary-r2-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "a16752309e6796162c6aaeb66f2e7b45d5f5b5132bad63fc1dfc1a7043c24246"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/058-primary-r3-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "2d4982422530c5234a068865c8b66f14beebcb3f57baf60daaedb2bb813b11b2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/076-primary-r4-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "9e80c6b30efec0a264fa7ecaaf351066e6a7b6d9aade0696d09a8ee7f8394a0e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/082-primary-r5-multi_thread_4-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "6ac1a73a30d5cb78993723847b82dad0ba934b0b2d350442efc4df48e22afe05"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            1,
+            3,
+            1,
+            1
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6750.616275320204,
+                6747.8320080324165,
+                6750.466861022395,
+                6750.75248013541,
+                6751.031692578872
+              ],
+              "median": 6750.616275320204,
+              "bootstrap_95_ci": [
+                6747.8320080324165,
+                6751.031692578872
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                168943.15,
+                173738.24999999997,
+                167735.9,
+                167723.4,
+                176372.4
+              ],
+              "median": 168943.15,
+              "bootstrap_95_ci": [
+                167723.4,
+                176372.4
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                70.5171,
+                70.5167,
+                70.51505,
+                70.5164,
+                70.5172
+              ],
+              "median": 70.5167,
+              "bootstrap_95_ci": [
+                70.51505,
+                70.5172
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                10121216,
+                10047488,
+                9584640,
+                9945088,
+                9875456
+              ],
+              "median": 9945088,
+              "bootstrap_95_ci": [
+                9584640,
+                10121216
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                18805,
+                20747,
+                9231,
+                23717,
+                10228
+              ],
+              "median": 18805,
+              "bootstrap_95_ci": [
+                9231,
+                23717
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/001-primary-r1-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "d315f5e5d0f90013bbbef11afb5ccf24dcf534d38082caf72e3364216cc20da4"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/035-primary-r2-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "37af87f1aa2638eeca73c28bb74e5fd22e0346dd549407bedbe40e69bbf7ab83"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/043-primary-r3-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "0a9b751b97ad2b36548f6964cbd017b3b0a3f0c32931574ea79e83b872b88a58"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/070-primary-r4-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "b7806c3b0efba3ac0c39f08d5d1e8b84be2c7fab5224359d22a0f2598435b38e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/090-primary-r5-multi_thread_5-lb-latency-openloop-50/lb-latency-openloop.result.json",
+              "sha256": "c9195f57dd1ea3860c82d5547ea65a9c4c3afd913db9e476f21666a7427faeb2"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            1,
+            0,
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.020705068401860593,
+                -0.00010509242583944811,
+                8.143706206642332,
+                -0.0779141649925097,
+                -0.007285681662905219
+              ],
+              "median": -0.00010509242583944811,
+              "bootstrap_95_ci": [
+                -0.0779141649925097,
+                8.143706206642332
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                25.739414458626175,
+                17.921697526495016,
+                6.864121683563851,
+                17.26526901690455,
+                10.279537161063246
+              ],
+              "median": 17.26526901690455,
+              "bootstrap_95_ci": [
+                6.864121683563851,
+                25.739414458626175
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.08083032079222452,
+                -0.03217551103428251,
+                -2.6005056671807414,
+                -0.037778911853936226,
+                -0.059737960816708124
+              ],
+              "median": -0.059737960816708124,
+              "bootstrap_95_ci": [
+                -2.6005056671807414,
+                -0.03217551103428251
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                9.580052493438318,
+                9.197475202885474,
+                -39.679144385026746,
+                2.6050420168067134,
+                -26.632191338073696
+              ],
+              "median": 2.6050420168067134,
+              "bootstrap_95_ci": [
+                -39.679144385026746,
+                9.580052493438318
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                208.48368804772073,
+                78.22871883061049,
+                -69.676867430098,
+                14.542419830249663,
+                -93.3519271374996
+              ],
+              "median": 14.542419830249663,
+              "bootstrap_95_ci": [
+                -93.3519271374996,
+                208.48368804772073
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -0.021257659965023823,
+                -0.005983468511305823,
+                8.817731385708761,
+                -0.0679015481156231,
+                -0.10713204889618577
+              ],
+              "median": -0.021257659965023823,
+              "bootstrap_95_ci": [
+                -0.10713204889618577,
+                8.817731385708761
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                32.57709843951424,
+                31.495077962090214,
+                8.281937150486751,
+                33.70455267957235,
+                21.433636368548736
+              ],
+              "median": 31.495077962090214,
+              "bootstrap_95_ci": [
+                8.281937150486751,
+                33.70455267957235
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.09294424266381718,
+                -0.050885499829556036,
+                -2.6025775310453803,
+                -0.03636131666241438,
+                -0.03813566086871001
+              ],
+              "median": -0.050885499829556036,
+              "bootstrap_95_ci": [
+                -2.6025775310453803,
+                -0.03636131666241438
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                4.461942257217855,
+                40.08115419296663,
+                -52.834224598930476,
+                7.184873949579829,
+                48.480930833872016
+              ],
+              "median": 7.184873949579829,
+              "bootstrap_95_ci": [
+                -52.834224598930476,
+                48.480930833872016
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                0.8174386920980936,
+                1247.3258813413586,
+                -87.57347901564384,
+                29.464824745196914,
+                139.8411647915288
+              ],
+              "median": 29.464824745196914,
+              "bootstrap_95_ci": [
+                -87.57347901564384,
+                1247.3258813413586
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                0.018156521847489948,
+                0.01010607538654007,
+                5.245995242794543,
+                0.02267913900158014,
+                -0.05894518640968682
+              ],
+              "median": 0.018156521847489948,
+              "bootstrap_95_ci": [
+                -0.05894518640968682,
+                5.245995242794543
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                54.2375152031505,
+                42.171899927310655,
+                12.156249561922516,
+                24.374617728475222,
+                24.494781982463152
+              ],
+              "median": 24.494781982463152,
+              "bootstrap_95_ci": [
+                12.156249561922516,
+                54.2375152031505
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.0928734010154475,
+                -0.05116898450827634,
+                -2.5994697352484275,
+                -0.039550905843332984,
+                -0.059312779600939614
+              ],
+              "median": -0.059312779600939614,
+              "bootstrap_95_ci": [
+                -2.5994697352484275,
+                -0.039550905843332984
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                26.94663167104112,
+                13.119927862939583,
+                -24.937611408199643,
+                -2.1008403361344574,
+                -25.404007756948932
+              ],
+              "median": -2.1008403361344574,
+              "bootstrap_95_ci": [
+                -25.404007756948932,
+                26.94663167104112
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                245.68083069445467,
+                459.44969905417025,
+                -26.010696043264446,
+                -73.36908270890301,
+                -84.56871828810942
+              ],
+              "median": -26.010696043264446,
+              "bootstrap_95_ci": [
+                -84.56871828810942,
+                459.44969905417025
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -0.014922203523515254,
+                -0.0595009656021106,
+                8.8408811910462,
+                -0.01685754029449038,
+                -0.04298547278940301
+              ],
+              "median": -0.01685754029449038,
+              "bootstrap_95_ci": [
+                -0.0595009656021106,
+                8.8408811910462
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                36.75703898280045,
+                38.17195877862836,
+                4.407126779452497,
+                24.723900034021007,
+                25.263954841101555
+              ],
+              "median": 25.263954841101555,
+              "bootstrap_95_ci": [
+                4.407126779452497,
+                38.17195877862836
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.08904795200336268,
+                -0.04797978187272012,
+                -2.601610661241871,
+                -0.036290436902830514,
+                -0.058037235953600774
+              ],
+              "median": -0.058037235953600774,
+              "bootstrap_95_ci": [
+                -2.601610661241871,
+                -0.036290436902830514
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                8.092738407699041,
+                10.595130748422,
+                -58.288770053475936,
+                2.0168067226890685,
+                -22.07498383968972
+              ],
+              "median": 2.0168067226890685,
+              "bootstrap_95_ci": [
+                -58.288770053475936,
+                10.595130748422
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                38.48589734148318,
+                256.7841788478074,
+                -95.38189076828408,
+                -15.774707908661533,
+                -83.88326872774259
+              ],
+              "median": -15.774707908661533,
+              "bootstrap_95_ci": [
+                -95.38189076828408,
+                256.7841788478074
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              6751.808613978427,
+              6753.797694381385,
+              6751.975541449342,
+              6736.4956877089135,
+              6752.322171451846
+            ],
+            "median": 6751.975541449342,
+            "bootstrap_95_ci": [
+              6736.4956877089135,
+              6753.797694381385
+            ],
+            "percent_delta_from_primary_median": 0.0018679002736776695
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              137243.55,
+              121176.0,
+              129236.7,
+              127398.2,
+              129857.5
+            ],
+            "median": 129236.7,
+            "bootstrap_95_ci": [
+              121176.0,
+              137243.55
+            ],
+            "percent_delta_from_primary_median": -3.8959068828394727
+          },
+          "client_allocations_per_record": {
+            "values": [
+              70.54475,
+              70.53975,
+              70.5372,
+              70.5455,
+              70.54435
+            ],
+            "median": 70.54435,
+            "bootstrap_95_ci": [
+              70.5372,
+              70.5455
+            ],
+            "percent_delta_from_primary_median": -0.019558335925762282
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              9412608,
+              9760768,
+              9236480,
+              10461184,
+              14925824
+            ],
+            "median": 9760768,
+            "bootstrap_95_ci": [
+              9236480,
+              14925824
+            ],
+            "percent_delta_from_primary_median": 0.12605042016806678
+          },
+          "scheduled_ack_p99_us": {
+            "values": [
+              14790,
+              19500,
+              7176,
+              40472,
+              133918
+            ],
+            "median": 19500,
+            "bootstrap_95_ci": [
+              7176,
+              133918
+            ],
+            "percent_delta_from_primary_median": -30.75038176071594
+          }
+        },
+        "rejections": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "failed_repetitions": []
+      }
+    },
+    {
+      "cell": "lb-latency-openloop",
+      "load_percent": 80,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                5347.739845867246,
+                7618.364835914367,
+                5497.7776421673,
+                6220.425529635863,
+                6999.532844450245
+              ],
+              "median": 6220.425529635863,
+              "bootstrap_95_ci": [
+                5347.739845867246,
+                7618.364835914367
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                200993.46090970284,
+                130243.65830248182,
+                192452.58136924804,
+                164333.69125299415,
+                148455.2893914596
+              ],
+              "median": 164333.69125299415,
+              "bootstrap_95_ci": [
+                130243.65830248182,
+                200993.46090970284
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                98.76074622559861,
+                82.04847113670642,
+                97.56902356902357,
+                90.45783431072933,
+                85.43185537866388
+              ],
+              "median": 90.45783431072933,
+              "bootstrap_95_ci": [
+                82.04847113670642,
+                98.76074622559861
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                34897920,
+                23818240,
+                34172928,
+                30281728,
+                26996736
+              ],
+              "median": 30281728,
+              "bootstrap_95_ci": [
+                23818240,
+                34897920
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                221524,
+                175597,
+                244989,
+                197577,
+                191685
+              ],
+              "median": 197577,
+              "bootstrap_95_ci": [
+                175597,
+                244989
+              ]
+            }
+          },
+          "rejections": [
+            9601,
+            5414,
+            9308,
+            7893,
+            6558
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/017-primary-r1-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "0a1aa377f2299d202606a42328de92b85a90adc50dff0d05f1b5b2fcfb2e9654"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/027-primary-r2-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "2ae01b2c65c3f07b3c083218314c5ba462dc66146fe7f255c4836572317456e4"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/050-primary-r3-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "044db220ea55a25923f05946f258d843417089589800789aa168583fa31c2a7b"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/075-primary-r4-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "e3a3a15d25b41714bde4759f70e7bc83bf49cf10c9349a2fa8a5d9e9777a2318"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/089-primary-r5-current_thread-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "a28799d764876fa0f96d2fd3683f2f01c2b7865ae198e5e4944b0282b2161174"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6434.7464217755505,
+                7620.522699869535,
+                5761.829469113607,
+                7309.761468053125,
+                6906.449188841296
+              ],
+              "median": 6906.449188841296,
+              "bootstrap_95_ci": [
+                5761.829469113607,
+                7620.522699869535
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                205515.88709677418,
+                172451.31480600665,
+                235804.2163316136,
+                173361.08738969543,
+                194882.32229251953
+              ],
+              "median": 194882.32229251953,
+              "bootstrap_95_ci": [
+                172451.31480600665,
+                235804.2163316136
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                89.22298387096774,
+                81.48202758714412,
+                94.28776018502046,
+                83.43289211500142,
+                85.4270189802754
+              ],
+              "median": 85.4270189802754,
+              "bootstrap_95_ci": [
+                81.48202758714412,
+                94.28776018502046
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                26632192,
+                23334912,
+                29917184,
+                24563712,
+                25583616
+              ],
+              "median": 25583616,
+              "bootstrap_95_ci": [
+                23334912,
+                29917184
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                190650,
+                173618,
+                196967,
+                166101,
+                177823
+              ],
+              "median": 177823,
+              "bootstrap_95_ci": [
+                166101,
+                196967
+              ]
+            }
+          },
+          "rejections": [
+            7600,
+            5283,
+            8758,
+            5948,
+            6565
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/007-primary-r1-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "959df93c50c5d215832a5b912a2724f197544de0e98d18f2ae3c9abeb43eac49"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/037-primary-r2-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "06968ba7b8016f1a9b8bc592ea4890671f9f36b3d8e53d30d4bf421d57d57b89"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/053-primary-r3-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "8c8e69a05cdad988ce17c87891055f6fabd29ecbf78a105c20b05ab3d7396cc7"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/064-primary-r4-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "671f04b7e3404b98f7c35a04cd66d473dbde81f95a112d84937529d4ba17928a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/091-primary-r5-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "3957f2d6e60c34b04f59a1603e539869f54db9cf8a77a7f123d69b6f149898b1"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                5980.309846311377,
+                6335.907353618401,
+                7009.168232487336,
+                6042.29403489311,
+                8638.069484441005
+              ],
+              "median": 6335.907353618401,
+              "bootstrap_95_ci": [
+                5980.309846311377,
+                8638.069484441005
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                229102.4801929039,
+                223692.57003654086,
+                191338.95158895158,
+                240217.287731836,
+                162489.27816369676
+              ],
+              "median": 223692.57003654086,
+              "bootstrap_95_ci": [
+                162489.27816369676,
+                240217.287731836
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                92.55744057871168,
+                89.55688185140073,
+                85.31623106623107,
+                91.92147354092224,
+                76.86481425551193
+              ],
+              "median": 89.55688185140073,
+              "bootstrap_95_ci": [
+                76.86481425551193,
+                92.55744057871168
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                25800704,
+                24985600,
+                25026560,
+                26685440,
+                21434368
+              ],
+              "median": 25026560,
+              "bootstrap_95_ci": [
+                21434368,
+                26685440
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                217191,
+                182806,
+                177870,
+                202749,
+                142844
+              ],
+              "median": 182806,
+              "bootstrap_95_ci": [
+                142844,
+                217191
+              ]
+            }
+          },
+          "rejections": [
+            8388,
+            7685,
+            6532,
+            8246,
+            3445
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/008-primary-r1-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "f8cead30c0df8a8089d3b3265cead1b97c02d2b91ed55177df0f106aa9f1534c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/023-primary-r2-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "14feb38c6bfcfb82ea7c5329b8c7d3faa4fa6318b067200e177238eaac7ffd11"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/059-primary-r3-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "a79c3fc8981276728be1dc73b3e17aa2912d3a2519e6036ef680db0c3dba5f9b"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/074-primary-r4-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "2e1c2a82c27ac23effa786bab366e2a6f9996bdbdc2cf13921360929d04e6fcf"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/080-primary-r5-multi_thread_2-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "79f6c1f6f703aff1d46513168dcf43625dbd65e795ed77a91b3d4bc6f3ef176f"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6882.949734046694,
+                7741.099560766403,
+                6333.8253594237885,
+                6398.609225297053,
+                6923.650085811733
+              ],
+              "median": 6882.949734046694,
+              "bootstrap_95_ci": [
+                6333.8253594237885,
+                7741.099560766403
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                207791.23361952102,
+                186144.13686266585,
+                233338.3072407045,
+                224613.87020983553,
+                223673.2148192411
+              ],
+              "median": 223673.2148192411,
+              "bootstrap_95_ci": [
+                186144.13686266585,
+                233338.3072407045
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                85.96558216598885,
+                81.1209671987607,
+                89.7650848010437,
+                89.44381430770477,
+                85.58948311921124
+              ],
+              "median": 85.96558216598885,
+              "bootstrap_95_ci": [
+                81.1209671987607,
+                89.7650848010437
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                24752128,
+                23908352,
+                25337856,
+                24481792,
+                24227840
+              ],
+              "median": 24481792,
+              "bootstrap_95_ci": [
+                23908352,
+                25337856
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                199115,
+                159286,
+                180846,
+                188364,
+                178594
+              ],
+              "median": 180846,
+              "bootstrap_95_ci": [
+                159286,
+                199115
+              ]
+            }
+          },
+          "rejections": [
+            6722,
+            5153,
+            7736,
+            7657,
+            6612
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/006-primary-r1-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "3b061593025548e5b835784b13ef0102c3a370a55d4a1453eeaf3ce19d2159f4"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/020-primary-r2-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "a7d586de6216e6631225d9afa4705315a5d7fa7b2bd4fb9ba5581c4a405a3c61"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/040-primary-r3-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "c4b4874ef2727114cab238e0bb5e397fbbddaaee9eb4a937005c12bbb292ac66"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/077-primary-r4-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "13bdf9bca3f11aba0dbd424286084fda831f60677d83676ad2074ea577de9fa3"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/097-primary-r5-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "68ca9a2347a8939beaece8e0ba77cbeb0b3bab42d47a7b4665f7ad1aa85fd467"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            3,
+            0
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                6023.3409865327685,
+                6910.2556895603175,
+                5624.754467331324,
+                7232.1897852995835,
+                6576.9230891195775
+              ],
+              "median": 6576.9230891195775,
+              "bootstrap_95_ci": [
+                5624.754467331324,
+                7232.1897852995835
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                242248.6202138669,
+                218403.07461567305,
+                267673.8361012796,
+                196756.15132982505,
+                215402.31684408264
+              ],
+              "median": 218403.07461567305,
+              "bootstrap_95_ci": [
+                196756.15132982505,
+                267673.8361012796
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                92.62926871334943,
+                85.76962879640045,
+                95.38651420274073,
+                83.40108092732186,
+                87.77019411396368
+              ],
+              "median": 87.77019411396368,
+              "bootstrap_95_ci": [
+                83.40108092732186,
+                95.38651420274073
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                26222592,
+                24240128,
+                25534464,
+                24297472,
+                24641536
+              ],
+              "median": 24641536,
+              "bootstrap_95_ci": [
+                24240128,
+                26222592
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                200299,
+                184290,
+                243532,
+                169424,
+                187656
+              ],
+              "median": 187656,
+              "bootstrap_95_ci": [
+                169424,
+                243532
+              ]
+            }
+          },
+          "rejections": [
+            8404,
+            6665,
+            8981,
+            5938,
+            7224
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/010-primary-r1-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "02392d54dd844c3d0e151efa7785bc0a794a6c9c4cce6ae5d3c33ee2555f5913"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/036-primary-r2-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "ce84bd329f560f60e3ea0b6400e88dc0463cef5a9c99823f0613988ca146b2bc"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/054-primary-r3-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "cb20ed3dd1765b09b49af456c55fd8c2c260c1895cfd4c53b8ee2bf7cf8ef2a2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/065-primary-r4-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "ecd1b6f8bc8cbddc01b9f4ccb62bbaee616ae8c8f61968befd267fc675acec4c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/083-primary-r5-multi_thread_5-lb-latency-openloop-80/lb-latency-openloop.result.json",
+              "sha256": "5d0b5445594961ed98578ea890b28feee3c50a30cd812f45023e7b8be20c8623"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            0,
+            0,
+            1,
+            1
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                20.326467016684568,
+                0.028324502719989653,
+                4.802882985318679,
+                17.512241457234047,
+                -1.3298552585941925
+              ],
+              "median": 4.802882985318679,
+              "bootstrap_95_ci": [
+                -1.3298552585941925,
+                20.326467016684568
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                2.2500364771085968,
+                32.406688397450026,
+                22.525878662645304,
+                5.49333254055826,
+                31.27341106630237
+              ],
+              "median": 22.525878662645304,
+              "bootstrap_95_ci": [
+                2.2500364771085968,
+                32.406688397450026
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -9.657442576267917,
+                -0.6903767269697436,
+                -3.363017547963709,
+                -7.765985388945651,
+                -0.005661118287836331
+              ],
+              "median": -3.363017547963709,
+              "bootstrap_95_ci": [
+                -9.657442576267917,
+                -0.005661118287836331
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -23.685446009389675,
+                -2.0292347377472097,
+                -12.453553877502099,
+                -18.88272690382794,
+                -5.234410559854352
+              ],
+              "median": -12.453553877502099,
+              "bootstrap_95_ci": [
+                -23.685446009389675,
+                -2.0292347377472097
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -13.937090337841497,
+                -1.1270124204855403,
+                -19.601696402695634,
+                -15.931004114851422,
+                -7.231656102459761
+              ],
+              "median": -13.937090337841497,
+              "bootstrap_95_ci": [
+                -19.601696402695634,
+                -1.1270124204855403
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                11.828735478465436,
+                -16.83376301762586,
+                27.490937042048614,
+                -2.8636544862418956,
+                23.409228535728843
+              ],
+              "median": 11.828735478465436,
+              "bootstrap_95_ci": [
+                -16.83376301762586,
+                27.490937042048614
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                13.985041680450072,
+                71.74929893095481,
+                -0.5786515163232919,
+                46.17653014439864,
+                9.453343716996931
+              ],
+              "median": 13.985041680450072,
+              "bootstrap_95_ci": [
+                -0.5786515163232919,
+                71.74929893095481
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -6.2811449730409645,
+                9.151189060164256,
+                -12.558076379768702,
+                1.6180347908454351,
+                -10.02792352475529
+              ],
+              "median": -6.2811449730409645,
+              "bootstrap_95_ci": [
+                -12.558076379768702,
+                9.151189060164256
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -26.068075117370892,
+                4.901117798796206,
+                -26.764952654920293,
+                -11.876099012579466,
+                -20.60385373994842
+              ],
+              "median": -20.60385373994842,
+              "bootstrap_95_ci": [
+                -26.764952654920293,
+                4.901117798796206
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -1.9559957386107163,
+                4.105423213380632,
+                -27.396740261807672,
+                2.617713600267235,
+                -25.479823669040357
+              ],
+              "median": -1.9559957386107163,
+              "bootstrap_95_ci": [
+                -27.396740261807672,
+                4.105423213380632
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                28.707639721215394,
+                1.6110376372819646,
+                15.207012208789639,
+                2.8644936718922542,
+                -1.0841117589536986
+              ],
+              "median": 2.8644936718922542,
+              "bootstrap_95_ci": [
+                -1.0841117589536986,
+                28.707639721215394
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                3.3820865012479606,
+                42.91992354081384,
+                21.24457130196207,
+                36.68157058800507,
+                50.66705655023207
+              ],
+              "median": 36.68157058800507,
+              "bootstrap_95_ci": [
+                3.3820865012479606,
+                50.66705655023207
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -12.95571828748827,
+                -1.130434150808679,
+                -7.99837743836711,
+                -1.120986380838307,
+                0.18450698495156015
+              ],
+              "median": -1.130434150808679,
+              "bootstrap_95_ci": [
+                -12.95571828748827,
+                0.18450698495156015
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -29.072769953051647,
+                0.3783319002579555,
+                -25.854009349154982,
+                -19.15325307723522,
+                -10.256410256410254
+              ],
+              "median": -19.15325307723522,
+              "bootstrap_95_ci": [
+                -29.072769953051647,
+                0.3783319002579555
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -10.115833950271757,
+                -9.28888306747837,
+                -26.181991844531794,
+                -4.662992149895995,
+                -6.829433706341137
+              ],
+              "median": -9.28888306747837,
+              "bootstrap_95_ci": [
+                -26.181991844531794,
+                -4.662992149895995
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": false,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                12.633395792198643,
+                -9.294765498967617,
+                2.3096027782230966,
+                16.265193608433858,
+                -6.037685153027661
+              ],
+              "median": 2.3096027782230966,
+              "bootstrap_95_ci": [
+                -9.294765498967617,
+                16.265193608433858
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                20.525622633413974,
+                67.68806824240694,
+                39.0856044625916,
+                19.72964875894867,
+                45.09575086684274
+              ],
+              "median": 39.0856044625916,
+              "bootstrap_95_ci": [
+                19.72964875894867,
+                67.68806824240694
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -6.208415536110956,
+                4.53531626871384,
+                -2.236887576043911,
+                -7.8011522574893855,
+                2.737080594744734
+              ],
+              "median": -2.236887576043911,
+              "bootstrap_95_ci": [
+                -7.8011522574893855,
+                4.53531626871384
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -24.859154929577464,
+                1.7712811693895159,
+                -25.278676734987414,
+                -19.761936967401596,
+                -8.72401759975725
+              ],
+              "median": -19.761936967401596,
+              "bootstrap_95_ci": [
+                -25.278676734987414,
+                1.7712811693895159
+              ]
+            },
+            "scheduled_ack_p99_us": {
+              "values": [
+                -9.581354616204118,
+                4.950540157291972,
+                -0.594720579291319,
+                -14.249128187997595,
+                -2.1018859065654594
+              ],
+              "median": -2.1018859065654594,
+              "bootstrap_95_ci": [
+                -14.249128187997595,
+                4.950540157291972
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              6421.870090395129,
+              6781.204957659904,
+              7152.339304852685,
+              7479.089640271881,
+              7515.553733060693
+            ],
+            "median": 7152.339304852685,
+            "bootstrap_95_ci": [
+              6421.870090395129,
+              7515.553733060693
+            ],
+            "percent_delta_from_primary_median": 14.981511647023527
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              157458.9606605148,
+              152733.6150595467,
+              139490.39637436156,
+              135566.81289603788,
+              136706.1555524747
+            ],
+            "median": 139490.39637436156,
+            "bootstrap_95_ci": [
+              135566.81289603788,
+              157458.9606605148
+            ],
+            "percent_delta_from_primary_median": -15.117590732131713
+          },
+          "client_allocations_per_record": {
+            "values": [
+              89.43856240893638,
+              86.94206684594698,
+              83.93978850442414,
+              82.86310145533041,
+              82.33072230694579
+            ],
+            "median": 83.93978850442414,
+            "bootstrap_95_ci": [
+              82.33072230694579,
+              89.43856240893638
+            ],
+            "percent_delta_from_primary_median": -7.20561779526493
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              29097984,
+              30183424,
+              24383488,
+              23982080,
+              23990272
+            ],
+            "median": 24383488,
+            "bootstrap_95_ci": [
+              23982080,
+              30183424
+            ],
+            "percent_delta_from_primary_median": -19.47788448532396
+          },
+          "scheduled_ack_p99_us": {
+            "values": [
+              195515,
+              183579,
+              168489,
+              179618,
+              169133
+            ],
+            "median": 179618,
+            "bootstrap_95_ci": [
+              168489,
+              195515
+            ],
+            "percent_delta_from_primary_median": -9.08962075545231
+          }
+        },
+        "rejections": [
+          7646,
+          6985,
+          6099,
+          5639,
+          5574
+        ],
+        "failed_repetitions": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "cell": "nb-fetch-bulk",
+      "load_percent": null,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                111773.58132932756,
+                107063.95444976905,
+                104431.82614415156,
+                100977.75039081671,
+                106803.11262719317
+              ],
+              "median": 106803.11262719317,
+              "bootstrap_95_ci": [
+                100977.75039081671,
+                111773.58132932756
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                2680.1,
+                2704.25,
+                2714.25,
+                3179.5,
+                2811.85
+              ],
+              "median": 2714.25,
+              "bootstrap_95_ci": [
+                2680.1,
+                3179.5
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255
+              ],
+              "median": 6.77255,
+              "bootstrap_95_ci": [
+                6.77255,
+                6.77255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                55676928,
+                46960640,
+                59232256,
+                47112192,
+                46981120
+              ],
+              "median": 47112192,
+              "bootstrap_95_ci": [
+                46960640,
+                59232256
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/007-primary-r1-current_thread-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "5e8a64ef66c0f4efdd1fd71488a4c4453d3c94ad1cb94e90e5e7063cab40101c"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/011-primary-r2-current_thread-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "1374a51636e0f2c9bc98ef71c21f58794c8a5c4ae627a82da8761651009d2885"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/025-primary-r3-current_thread-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "e87e164a71dc595e3da399b3c88ef6fad353d5566cae6d90505d816267f7dfab"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/034-primary-r4-current_thread-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "ba3baced8db4bcedd8a0ce1bcbbe6112bcd92fd85c318d3f0f1d6ce22f2a45bc"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/044-primary-r5-current_thread-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "fda0aa3183e1e5f678442b1b991513c663c6ab0bc8da1d6f5941c60f2316f505"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                109705.58329068117,
+                113306.91541054667,
+                111159.19178441532,
+                105469.34658159107,
+                90115.63340697192
+              ],
+              "median": 109705.58329068117,
+              "bootstrap_95_ci": [
+                90115.63340697192,
+                113306.91541054667
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                2812.8,
+                2516.9,
+                2816.05,
+                2796.45,
+                2863.1
+              ],
+              "median": 2812.8,
+              "bootstrap_95_ci": [
+                2516.9,
+                2863.1
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255
+              ],
+              "median": 6.77255,
+              "bootstrap_95_ci": [
+                6.77255,
+                6.77255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                46632960,
+                49958912,
+                49856512,
+                52908032,
+                59912192
+              ],
+              "median": 49958912,
+              "bootstrap_95_ci": [
+                46632960,
+                59912192
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/006-primary-r1-multi_thread_1-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "0611cf5402d21896c958e995600c7cb9c3769bbcb814c4b58515671c1d777843"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/016-primary-r2-multi_thread_1-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "c1217db5fedf4626465622895bd3fc7f71c1f5c63af95740585b4d591f629435"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/027-primary-r3-multi_thread_1-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "228006c9ca12b1af37b3b7dae23dab92eaafcc2907c8d79612feb9fef7cdf386"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/037-primary-r4-multi_thread_1-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "cfa63077f5ac2222bfe7891921df13e42d48a939daafeabcbbd7b616d6a8808e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/043-primary-r5-multi_thread_1-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "bdd71316504c80f14c194abfab678413e6e3dedfef254076180d3c9e2c080344"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                102797.5706076293,
+                112216.25292852157,
+                111335.84498834999,
+                113717.36917049797,
+                112435.9842912538
+              ],
+              "median": 112216.25292852157,
+              "bootstrap_95_ci": [
+                102797.5706076293,
+                113717.36917049797
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                3093.25,
+                2638.65,
+                2874.7,
+                2530.4,
+                2624.55
+              ],
+              "median": 2638.65,
+              "bootstrap_95_ci": [
+                2530.4,
+                3093.25
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255
+              ],
+              "median": 6.77255,
+              "bootstrap_95_ci": [
+                6.77255,
+                6.77255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                60391424,
+                51212288,
+                47177728,
+                50114560,
+                49213440
+              ],
+              "median": 50114560,
+              "bootstrap_95_ci": [
+                47177728,
+                60391424
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/001-primary-r1-multi_thread_2-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "27b471730c3892044f18911c136cdc1bdef89c6c9025a083e978a6691d72edff"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/013-primary-r2-multi_thread_2-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "2d882f381a75e9c1f2ae84a4e883650adfd0e8fad9f3f80bb98d43c9493fcf52"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/022-primary-r3-multi_thread_2-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "8c030929b042ab01c5996b45462d3b3532de6152fe3d339e42546d327e2e63b2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/030-primary-r4-multi_thread_2-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "c8612e5a070ce1f3ee151a42181d11be28d5b3c559de67c41620e8a525cbe9ae"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/049-primary-r5-multi_thread_2-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "441e984a4eba5f9f5259c6afb12e3420a13307633e45ad500b5f22dcae0fdf83"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                103636.57422588246,
+                96108.27050303204,
+                105610.69266863879,
+                106715.49910991003,
+                93697.54079654171
+              ],
+              "median": 103636.57422588246,
+              "bootstrap_95_ci": [
+                93697.54079654171,
+                106715.49910991003
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                2833.6,
+                3135.6,
+                3191.45,
+                2808.85,
+                3013.2
+              ],
+              "median": 3013.2,
+              "bootstrap_95_ci": [
+                2808.85,
+                3191.45
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255
+              ],
+              "median": 6.77255,
+              "bootstrap_95_ci": [
+                6.77255,
+                6.77255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                64385024,
+                53841920,
+                54370304,
+                51499008,
+                46256128
+              ],
+              "median": 53841920,
+              "bootstrap_95_ci": [
+                46256128,
+                64385024
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/003-primary-r1-multi_thread_4-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "47ac57739c74bf66fa9afad919cb36a5eea02c20ca342b5a8332800aa9b6f0b6"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/014-primary-r2-multi_thread_4-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "570370fe9894192111ac97910dfcee88f75b13d1807ed4cbe338eaccf7745643"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/024-primary-r3-multi_thread_4-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "f524c6902314d0eae87d3e53920b0d959459a5ba8940e0802ddc3ab35218be9a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/035-primary-r4-multi_thread_4-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "e9581f8cbebdcf2b9aec16f510c20c0e31131f7dcde90080c36dbfa23e1976f1"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/048-primary-r5-multi_thread_4-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "83873bfa6f8f7e590cdb05e72c67b07a8d400cdca3441de01428d3c3cec083f2"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                110522.16367537786,
+                102416.04415335915,
+                92378.99055472396,
+                107855.82691590265,
+                110566.89654648554
+              ],
+              "median": 107855.82691590265,
+              "bootstrap_95_ci": [
+                92378.99055472396,
+                110566.89654648554
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                3029.95,
+                2999.15,
+                3010.1,
+                2881.75,
+                2688.5
+              ],
+              "median": 2999.15,
+              "bootstrap_95_ci": [
+                2688.5,
+                3029.95
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255,
+                6.77255
+              ],
+              "median": 6.77255,
+              "bootstrap_95_ci": [
+                6.77255,
+                6.77255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                49836032,
+                57991168,
+                47132672,
+                58363904,
+                62246912
+              ],
+              "median": 57991168,
+              "bootstrap_95_ci": [
+                47132672,
+                62246912
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/000-primary-r1-multi_thread_5-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "ad5780fc1309cc815e1374c70f1e7213d980baa379778ac095242800a59e028e"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/012-primary-r2-multi_thread_5-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "e994323260301e0f2863eac6e09fec9920eba73894d06086110d87a5a2952f32"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/026-primary-r3-multi_thread_5-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "efcd3b1fa6d3be011a42be11e86dee22950d1026bcae6ad5c5ce7a136dc534ad"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/039-primary-r4-multi_thread_5-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "422df21c15a9f40ba95e879fd663870c0eed7ebc19676c7363fe33b561fd1417"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/046-primary-r5-multi_thread_5-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+              "sha256": "404e9d3dfc81596f5545209b158c0a8efdd7366537c11a6613408c439eb6c73c"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -1.8501671093040128,
+                5.83105770084984,
+                6.441873027268241,
+                4.448104828430455,
+                -15.624525175095371
+              ],
+              "median": 4.448104828430455,
+              "bootstrap_95_ci": [
+                -15.624525175095371,
+                6.441873027268241
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                4.951307787022885,
+                -6.927983729314969,
+                3.75057566546928,
+                -12.047491743984907,
+                1.8226434553763493
+              ],
+              "median": 1.8226434553763493,
+              "bootstrap_95_ci": [
+                -12.047491743984907,
+                4.951307787022885
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "median": 0.0,
+              "bootstrap_95_ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -16.24365482233503,
+                6.384648931530745,
+                -15.82878085886177,
+                12.302208311597983,
+                27.523975588491712
+              ],
+              "median": 6.384648931530745,
+              "bootstrap_95_ci": [
+                -16.24365482233503,
+                27.523975588491712
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -8.0305297682567,
+                4.812355853313655,
+                6.611029509977651,
+                12.616263216772804,
+                5.27407069466479
+              ],
+              "median": 5.27407069466479,
+              "bootstrap_95_ci": [
+                -8.0305297682567,
+                12.616263216772804
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                15.415469572030904,
+                -2.425811223074781,
+                5.911393570968038,
+                -20.415159616291866,
+                -6.661095008624207
+              ],
+              "median": -2.425811223074781,
+              "bootstrap_95_ci": [
+                -20.415159616291866,
+                15.415469572030904
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "median": 0.0,
+              "bootstrap_95_ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                8.467593614360336,
+                9.05364151766246,
+                -20.351289675679418,
+                6.372804729612236,
+                4.751525719267646
+              ],
+              "median": 6.372804729612236,
+              "bootstrap_95_ci": [
+                -20.351289675679418,
+                9.05364151766246
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -7.279901929124355,
+                -10.232840738081528,
+                1.1288383704599614,
+                5.682191073663612,
+                -12.270777047854175
+              ],
+              "median": -7.279901929124355,
+              "bootstrap_95_ci": [
+                -12.270777047854175,
+                5.682191073663612
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                5.727398231409286,
+                15.95081815660535,
+                17.581283964262685,
+                -11.657493316559208,
+                7.160766043707878
+              ],
+              "median": 7.160766043707878,
+              "bootstrap_95_ci": [
+                -11.657493316559208,
+                17.581283964262685
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "median": 0.0,
+              "bootstrap_95_ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                15.640403148679471,
+                14.653292629742687,
+                -8.208284351013074,
+                9.311424100156485,
+                -1.543156059285089
+              ],
+              "median": 9.311424100156485,
+              "bootstrap_95_ci": [
+                -8.208284351013074,
+                15.640403148679471
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -1.1196005702479472,
+                -4.341246613107819,
+                -11.541343318837093,
+                6.811477279366551,
+                3.5240395403364655
+              ],
+              "median": -1.1196005702479472,
+              "bootstrap_95_ci": [
+                -11.541343318837093,
+                6.811477279366551
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                13.053617402335727,
+                10.905056854950534,
+                10.899880261582396,
+                -9.36467998112911,
+                -4.386791614061913
+              ],
+              "median": 10.899880261582396,
+              "bootstrap_95_ci": [
+                -9.36467998112911,
+                13.053617402335727
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "median": 0.0,
+              "bootstrap_95_ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -10.490693739424707,
+                23.48887919755778,
+                -20.42735633773598,
+                23.882802990784203,
+                32.49346120313863
+              ],
+              "median": 23.48887919755778,
+              "bootstrap_95_ci": [
+                -20.42735633773598,
+                32.49346120313863
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              107736.0338533768,
+              91520.76662479989,
+              110007.44552392795,
+              106523.1603693876,
+              108705.73935757496
+            ],
+            "median": 107736.0338533768,
+            "bootstrap_95_ci": [
+              91520.76662479989,
+              110007.44552392795
+            ],
+            "percent_delta_from_primary_median": 0.8734962897945397
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              2741.0,
+              3811.4,
+              2908.5,
+              2922.65,
+              2701.95
+            ],
+            "median": 2908.5,
+            "bootstrap_95_ci": [
+              2701.95,
+              3811.4
+            ],
+            "percent_delta_from_primary_median": 7.156673114119916
+          },
+          "client_allocations_per_record": {
+            "values": [
+              6.77255,
+              6.77255,
+              6.77255,
+              6.77255,
+              6.77255
+            ],
+            "median": 6.77255,
+            "bootstrap_95_ci": [
+              6.77255,
+              6.77255
+            ],
+            "percent_delta_from_primary_median": 0.0
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              58580992,
+              56115200,
+              46796800,
+              50077696,
+              56684544
+            ],
+            "median": 56115200,
+            "bootstrap_95_ci": [
+              46796800,
+              58580992
+            ],
+            "percent_delta_from_primary_median": 19.109720048687183
+          }
+        },
+        "rejections": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "failed_repetitions": []
+      }
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "load_percent": null,
+      "arms": {
+        "current_thread": {
+          "config": {
+            "name": "current_thread",
+            "flavor": "current_thread",
+            "workers": 0
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                76439.25816647796,
+                75802.15977408682,
+                75209.22246772936,
+                75911.11605376823,
+                72746.65931518025
+              ],
+              "median": 75802.15977408682,
+              "bootstrap_95_ci": [
+                72746.65931518025,
+                76439.25816647796
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                1559.8,
+                1490.2,
+                1639.75,
+                1602.35,
+                1601.4
+              ],
+              "median": 1601.4,
+              "bootstrap_95_ci": [
+                1490.2,
+                1639.75
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                1.06875,
+                1.06925,
+                1.06955,
+                1.06845,
+                1.07255
+              ],
+              "median": 1.06925,
+              "bootstrap_95_ci": [
+                1.06845,
+                1.07255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                30502912,
+                28045312,
+                32886784,
+                28127232,
+                27848704
+              ],
+              "median": 28127232,
+              "bootstrap_95_ci": [
+                27848704,
+                32886784
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/008-primary-r1-current_thread-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "bcd8b4cfb699fb23bad5c868834b554d381c44e5491f347653f8c3a4e09c1c7a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/010-primary-r2-current_thread-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "3b11e039f9135c812f86247c1db398d06f3c89bbdefd3707fb5564eccf3d7bfc"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/029-primary-r3-current_thread-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "7aa8579f1ffef3026f679c7d50b00da246e2770dc64d2759fb3018615116eb01"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/038-primary-r4-current_thread-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "083184f5ea0d6369a2d622b638a8f5cca5cdc62d31585acebe33a81a2d1a2289"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/047-primary-r5-current_thread-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "2258c8eb011729f7d03caec990a27ec2773cec147f4e9d3e0ad5e216a1e26c9d"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ]
+        },
+        "multi_thread_1": {
+          "config": {
+            "name": "multi_thread_1",
+            "flavor": "multi_thread",
+            "workers": 1
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                79958.33211396878,
+                75273.08935681611,
+                76961.79077588541,
+                76930.48089008966,
+                77478.95835165468
+              ],
+              "median": 76961.79077588541,
+              "bootstrap_95_ci": [
+                75273.08935681611,
+                79958.33211396878
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                1745.95,
+                1888.65,
+                1803.95,
+                2065.7,
+                1903.55
+              ],
+              "median": 1888.65,
+              "bootstrap_95_ci": [
+                1745.95,
+                2065.7
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                1.06495,
+                1.06245,
+                1.063,
+                1.0667,
+                1.06455
+              ],
+              "median": 1.06455,
+              "bootstrap_95_ci": [
+                1.06245,
+                1.0667
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                27918336,
+                28663808,
+                29638656,
+                29986816,
+                29003776
+              ],
+              "median": 29003776,
+              "bootstrap_95_ci": [
+                27918336,
+                29986816
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/004-primary-r1-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "a26fe82557848fdc61128ad51f0e4d2ef9f3fa7569358560a7dfd08faec77884"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/019-primary-r2-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "734c5b6fac228493ac2639515cd43c0c54b2e9c3246877e1d7aa02968114c1c8"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/028-primary-r3-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "341480da6235b047dcbcf4cae5a5144ca690baf36096ddd7e669ca03147a8f65"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/032-primary-r4-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "73f0cee2a281d45295a8a108c55682c652a0bac4a9961ce5c0cbe83f54e9acca"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/045-primary-r5-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "63866b5c920adf9d1d56f6c594155af53b05a93626c326b0e89eda7cc486b717"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_2": {
+          "config": {
+            "name": "multi_thread_2",
+            "flavor": "multi_thread",
+            "workers": 2
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                69019.95518403171,
+                75290.37077304,
+                74176.2238002299,
+                78122.14243850861,
+                77195.75906570592
+              ],
+              "median": 75290.37077304,
+              "bootstrap_95_ci": [
+                69019.95518403171,
+                78122.14243850861
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                1705.2,
+                1808.65,
+                1773.6,
+                1710.15,
+                1665.75
+              ],
+              "median": 1710.15,
+              "bootstrap_95_ci": [
+                1665.75,
+                1808.65
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                1.07255,
+                1.06435,
+                1.0669,
+                1.0645,
+                1.0667
+              ],
+              "median": 1.0667,
+              "bootstrap_95_ci": [
+                1.06435,
+                1.07255
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                24924160,
+                26165248,
+                25931776,
+                31129600,
+                30547968
+              ],
+              "median": 26165248,
+              "bootstrap_95_ci": [
+                24924160,
+                31129600
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/005-primary-r1-multi_thread_2-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "705c559ce353ff0062a22be063bae1b1239316137a8582533adb11b442f3d2c2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/018-primary-r2-multi_thread_2-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "983c09e400d9b19bcae7677e811b01079f1c6d947db8d1aca61c342c7e41a89d"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/023-primary-r3-multi_thread_2-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "de3abc6af25ac24b3ff3289622fd540d3fffa8d7f544c0301046bbbc7e5528b8"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/031-primary-r4-multi_thread_2-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "baca84c75eedf7c50ba5fa55e8669361790c0733497040fb2222218bab633738"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/042-primary-r5-multi_thread_2-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "90dfc5eb29d03508ddd59ae58808b392c24ae346d75525b99b4d475b59f74c61"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_4": {
+          "config": {
+            "name": "multi_thread_4",
+            "flavor": "multi_thread",
+            "workers": 4
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                66651.00523562642,
+                67812.88158308467,
+                76424.8921513894,
+                66352.80154831873,
+                79070.67101735638
+              ],
+              "median": 67812.88158308467,
+              "bootstrap_95_ci": [
+                66352.80154831873,
+                79070.67101735638
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                1932.2,
+                1724.95,
+                1742.6,
+                1826.6,
+                1614.3
+              ],
+              "median": 1742.6,
+              "bootstrap_95_ci": [
+                1614.3,
+                1932.2
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                1.0735,
+                1.06665,
+                1.0706,
+                1.07435,
+                1.0658
+              ],
+              "median": 1.0706,
+              "bootstrap_95_ci": [
+                1.0658,
+                1.07435
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                27512832,
+                27422720,
+                27521024,
+                24039424,
+                25542656
+              ],
+              "median": 27422720,
+              "bootstrap_95_ci": [
+                24039424,
+                27521024
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/002-primary-r1-multi_thread_4-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "6ed1bba4242f34f8d7831ab2d1793f2000def921341e4680400722dc56240e9a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/017-primary-r2-multi_thread_4-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "698b01acc6f301c65d2bf8ac2219c49205246ed5180f95d3483779a128bca21f"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/021-primary-r3-multi_thread_4-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "539d296f6f3b43f03e8be10910c678f8c8305f2efccfc46ff787416be3d94127"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/036-primary-r4-multi_thread_4-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "7f413a457953368c3ef19412634cd64f4559055a1c5793c5ec81121b0a49e2e2"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/040-primary-r5-multi_thread_4-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "da5c4835653d6a771f23e3f0f7c944e2d4148bf5d72e9fb8779d72da48618fc6"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "multi_thread_5": {
+          "config": {
+            "name": "multi_thread_5",
+            "flavor": "multi_thread",
+            "workers": 5
+          },
+          "failed_repetitions": [],
+          "metrics": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                79587.71209339343,
+                75843.38996775416,
+                80633.45773409437,
+                78466.72042186283,
+                75769.00482314419
+              ],
+              "median": 78466.72042186283,
+              "bootstrap_95_ci": [
+                75769.00482314419,
+                80633.45773409437
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                1629.1,
+                1809.95,
+                1779.8,
+                1664.75,
+                1769.4
+              ],
+              "median": 1769.4,
+              "bootstrap_95_ci": [
+                1629.1,
+                1809.95
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                1.06875,
+                1.0703,
+                1.0685,
+                1.0684,
+                1.0753
+              ],
+              "median": 1.06875,
+              "bootstrap_95_ci": [
+                1.0684,
+                1.0753
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                32837632,
+                31830016,
+                28368896,
+                28020736,
+                30404608
+              ],
+              "median": 30404608,
+              "bootstrap_95_ci": [
+                28020736,
+                32837632
+              ]
+            }
+          },
+          "rejections": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "source_artifacts": [
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/009-primary-r1-multi_thread_5-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "44ccd07e9933982d77f75c09979375f71f365333e934b2cf01f0d54361e91a7a"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/015-primary-r2-multi_thread_5-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "73e8ce3af93ff80d4eca5f01b039503ca5bab2bec0c23a74be3d7b9aa9e654a8"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/020-primary-r3-multi_thread_5-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "5408f0bb425cba1d23c60214d72688d521acccadf93e21ea92089a5f2c875704"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/033-primary-r4-multi_thread_5-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "805785185c50ccddf1acfc4fcaf357250b7c147b1c09c2c9d3cf76a7e64e54bd"
+            },
+            {
+              "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/041-primary-r5-multi_thread_5-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+              "sha256": "779f97b9ba81f182a4c98e49400bc8d4ca0929b32daffc1d77744bfd5ab8fd3d"
+            }
+          ],
+          "pre_barrier_live_tasks": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "comparisons": [
+        {
+          "config": "multi_thread_1",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                4.603752092709468,
+                -0.6979621937521219,
+                2.3302571821002926,
+                1.3428400072519109,
+                6.505177118816419
+              ],
+              "median": 2.3302571821002926,
+              "bootstrap_95_ci": [
+                -0.6979621937521219,
+                6.505177118816419
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                11.934222336196964,
+                26.738021742048048,
+                10.013721603903036,
+                28.91690329828065,
+                18.8678656175846
+              ],
+              "median": 18.8678656175846,
+              "bootstrap_95_ci": [
+                10.013721603903036,
+                28.91690329828065
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                -0.3555555555555534,
+                -0.6359597848959675,
+                -0.6124070870927034,
+                -0.16378866582431595,
+                -0.7458859726819034
+              ],
+              "median": -0.6124070870927034,
+              "bootstrap_95_ci": [
+                -0.7458859726819034,
+                -0.16378866582431595
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -8.473210688868004,
+                2.205345406747483,
+                -9.876696973471166,
+                6.611329547109368,
+                4.147668774819824
+              ],
+              "median": 2.205345406747483,
+              "bootstrap_95_ci": [
+                -9.876696973471166,
+                6.611329547109368
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_2",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -9.706142053717548,
+                -0.6751641411961051,
+                -1.3734999958850747,
+                2.912651663788357,
+                6.115881873351214
+              ],
+              "median": -0.6751641411961051,
+              "bootstrap_95_ci": [
+                -9.706142053717548,
+                6.115881873351214
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                9.321707911270671,
+                21.369614816803107,
+                8.162829699649322,
+                6.727618809873004,
+                4.0183589359310545
+              ],
+              "median": 8.162829699649322,
+              "bootstrap_95_ci": [
+                4.0183589359310545,
+                21.369614816803107
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.3555555555555312,
+                -0.4582651391162096,
+                -0.2477677527932376,
+                -0.3696944171463268,
+                -0.5454291175236547
+              ],
+              "median": -0.3696944171463268,
+              "bootstrap_95_ci": [
+                -0.5454291175236547,
+                0.3555555555555312
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -18.28924399086881,
+                -6.703665839053596,
+                -21.148337277369535,
+                10.674239114606078,
+                9.6926018532137
+              ],
+              "median": -6.703665839053596,
+              "bootstrap_95_ci": [
+                -21.148337277369535,
+                10.674239114606078
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_4",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                -12.805269393815399,
+                -10.53964453626729,
+                1.6163837941306491,
+                -12.591455642253102,
+                8.69319878288415
+              ],
+              "median": -10.53964453626729,
+              "bootstrap_95_ci": [
+                -12.805269393815399,
+                8.69319878288415
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                23.87485575073729,
+                15.752919071265591,
+                6.272297606342425,
+                13.995069741317433,
+                0.80554514799549
+              ],
+              "median": 13.995069741317433,
+              "bootstrap_95_ci": [
+                0.80554514799549,
+                23.87485575073729
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.4444444444444251,
+                -0.2431610942249196,
+                0.09817212846523482,
+                0.5522017876362861,
+                -0.629341289450358
+              ],
+              "median": 0.09817212846523482,
+              "bootstrap_95_ci": [
+                -0.629341289450358,
+                0.5522017876362861
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                -9.802605075869476,
+                -2.219950343216004,
+                -16.315855025532443,
+                -14.533275083733798,
+                -8.280629504338876
+              ],
+              "median": -9.802605075869476,
+              "bootstrap_95_ci": [
+                -16.315855025532443,
+                -2.219950343216004
+              ]
+            }
+          }
+        },
+        {
+          "config": "multi_thread_5",
+          "comparison_eligible": true,
+          "scope": "Matched same-load runtime observations; positive throughput delta is faster, positive cost/RSS/p99 delta is worse. Failed profiles are retained diagnostics and cannot qualify a winning configuration.",
+          "paired_percent_delta": {
+            "acknowledged_or_verified_records_per_second": {
+              "values": [
+                4.118896496952429,
+                0.054391845549295326,
+                7.212194313925302,
+                3.3665746216726022,
+                4.154617595385934
+              ],
+              "median": 4.118896496952429,
+              "bootstrap_95_ci": [
+                0.054391845549295326,
+                7.212194313925302
+              ]
+            },
+            "client_cpu_ns_per_record": {
+              "values": [
+                4.442877291960512,
+                21.456851429338354,
+                8.540936118310704,
+                3.8942802758448636,
+                10.490820532034473
+              ],
+              "median": 8.540936118310704,
+              "bootstrap_95_ci": [
+                3.8942802758448636,
+                21.456851429338354
+              ]
+            },
+            "client_allocations_per_record": {
+              "values": [
+                0.0,
+                0.09819967266775365,
+                -0.09817212846524592,
+                -0.004679676166396973,
+                0.25639830310941747
+              ],
+              "median": 0.0,
+              "bootstrap_95_ci": [
+                -0.09817212846524592,
+                0.25639830310941747
+              ]
+            },
+            "client_sampled_peak_rss_bytes": {
+              "values": [
+                7.654088894856992,
+                13.494961296918362,
+                -13.737700834475032,
+                -0.37862239697101785,
+                9.177820267686432
+              ],
+              "median": 7.654088894856992,
+              "bootstrap_95_ci": [
+                -13.737700834475032,
+                13.494961296918362
+              ]
+            }
+          }
+        }
+      ],
+      "reproduction": {
+        "config": "current_thread",
+        "metrics": {
+          "acknowledged_or_verified_records_per_second": {
+            "values": [
+              77636.63704577938,
+              75386.65400211087,
+              76421.66876961905,
+              78231.27106993046,
+              75464.73741669179
+            ],
+            "median": 76421.66876961905,
+            "bootstrap_95_ci": [
+              75386.65400211087,
+              78231.27106993046
+            ],
+            "percent_delta_from_primary_median": 0.8172709028061442
+          },
+          "client_cpu_ns_per_record": {
+            "values": [
+              1728.2,
+              1607.85,
+              1415.5,
+              1442.5,
+              1478.8
+            ],
+            "median": 1478.8,
+            "bootstrap_95_ci": [
+              1415.5,
+              1728.2
+            ],
+            "percent_delta_from_primary_median": -7.655801173972787
+          },
+          "client_allocations_per_record": {
+            "values": [
+              1.06695,
+              1.07035,
+              1.06775,
+              1.06845,
+              1.06975
+            ],
+            "median": 1.06845,
+            "bootstrap_95_ci": [
+              1.06695,
+              1.07035
+            ],
+            "percent_delta_from_primary_median": -0.07481879822306414
+          },
+          "client_sampled_peak_rss_bytes": {
+            "values": [
+              32477184,
+              27942912,
+              28078080,
+              33509376,
+              32669696
+            ],
+            "median": 32477184,
+            "bootstrap_95_ci": [
+              27942912,
+              33509376
+            ],
+            "percent_delta_from_primary_median": 15.465268676277844
+          }
+        },
+        "rejections": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "failed_repetitions": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "config": {
+    "name": "multi_thread_1",
+    "flavor": "multi_thread",
+    "workers": 1
+  },
+  "cell": "nb-produce-bulk",
+  "rep": 5,
+  "cohort": "primary",
+  "load": null,
+  "artifact": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/045-primary-r5-multi_thread_1-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+  "sha256": "63866b5c920adf9d1d56f6c594155af53b05a93626c326b0e89eda7cc486b717",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 771,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 13119488,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.01169,
+      "user_cpu_seconds": 0.021596
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 21291,
+        "allocations_per_record": 1.06455,
+        "total_allocated_bytes": 44672300,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 1903.55,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 14.748507117029227,
+      "rss": {
+        "average_rss_bytes": 15785353,
+        "baseline_rss_bytes": 11751424,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 29003776,
+        "process_peak_rss_bytes": 28872704,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.013876,
+      "threads_count": 2,
+      "user_cpu_seconds": 0.024195
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 63319.128146494055,
+        "unit": "microseconds",
+        "upper": 63417.23525350595
+      },
+      "max": 212279,
+      "mean": 63368.1817,
+      "min": 58147,
+      "p50": 63219.0,
+      "p90": 67818.1,
+      "p95": 68393.05,
+      "p99": 68831.01999999999,
+      "p99_9": 68926.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 13983,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 6014,
+            "upper_bound_us": 131072
+          },
+          {
+            "count": 3,
+            "upper_bound_us": 262144
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 3539.397992383044,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 8.57120434645838,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 77478.95835165468,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 20000,
+    "acknowledged": 20000,
+    "consumed": 0,
+    "offered": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "multi_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 1613,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 0,
+    "requested_background_workers": 1,
+    "requested_flavor": "multi_thread"
+  }
+}

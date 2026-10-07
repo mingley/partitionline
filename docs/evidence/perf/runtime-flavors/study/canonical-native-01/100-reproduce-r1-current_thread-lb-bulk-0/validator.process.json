@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-formatter-63a89f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "798052",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-formatter-63a89f/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/canonical-native-01/100-reproduce-r1-current_thread-lb-bulk-0/lb-bulk.result.json"
+  ],
+  "parent_waited": true,
+  "parent_death_bound": true,
+  "exit_code": 0,
+  "wall_seconds": 0.043374495,
+  "deadline_seconds": 15
+}

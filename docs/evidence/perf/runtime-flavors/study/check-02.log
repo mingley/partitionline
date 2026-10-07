@@ -1,0 +1,13 @@
+    Checking runtime v0.1.0 (/workspace/partitionline/benchmarks/runtime)
+error[E0432]: unresolved import `parking_lot`
+   --> src/bin/native-latency-runtime.rs:251:9
+    |
+251 |     use parking_lot::Mutex;
+    |         ^^^^^^^^^^^ use of unresolved module or unlinked crate `parking_lot`
+    |
+    = help: if you wanted to use a crate named `parking_lot`, use `cargo add parking_lot` to add it to your `Cargo.toml`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `runtime` (bin "native-latency-runtime") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `runtime` (bin "native-latency-runtime" test) due to 1 previous error

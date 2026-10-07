@@ -1,0 +1,27 @@
+{
+  "rep": 1,
+  "diagnostic": {
+    "kind": "produce_ack",
+    "latency_mode": "sequential-smoke",
+    "qualification": false,
+    "coordinated_omission_avoidance": false,
+    "samples": 20000,
+    "p50_us": 90,
+    "p99_us": 300,
+    "min_us": 46,
+    "max_us": 14858,
+    "mean_us": 105,
+    "payload_bytes": 100,
+    "acks": 1,
+    "linger_ms": 0,
+    "client": "partitionline"
+  },
+  "records_per_second": 9523.809523809523,
+  "java": {
+    "status": "pass",
+    "verified": 30000,
+    "consumer_closed": true,
+    "unique_ids_checked": false,
+    "integrity_scope": "contiguous partition offsets and complete fixed payload"
+  }
+}

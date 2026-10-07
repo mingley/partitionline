@@ -1,0 +1,14 @@
+    Checking runtime v0.1.0 (/workspace/partitionline/benchmarks/runtime)
+error: manual implementation of `.is_multiple_of()`
+   --> src/fdrive.rs:200:39
+    |
+200 |                     if ordinal > 0 && ordinal % committed_group == 0 {
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `ordinal.is_multiple_of(committed_group)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+    = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: could not compile `runtime` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `runtime` (lib test) due to 1 previous error

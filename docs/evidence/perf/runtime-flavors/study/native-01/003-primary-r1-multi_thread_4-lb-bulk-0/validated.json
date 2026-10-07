@@ -1,0 +1,136 @@
+{
+  "config": {
+    "name": "multi_thread_4",
+    "flavor": "multi_thread",
+    "workers": 4
+  },
+  "cell": "lb-bulk",
+  "rep": 1,
+  "cohort": "primary",
+  "load": null,
+  "artifact": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/003-primary-r1-multi_thread_4-lb-bulk-0/lb-bulk.result.json",
+  "sha256": "217664f178e76fb81c8c49ee92cb8ce83aa210073b2a62b8c90ff61f1ca7b29d",
+  "measurements": {
+    "throughput": {
+      "records_per_second": 188272.95313822656,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 18.827295313822656,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 800000000,
+      "total_bytes_unit": "bytes",
+      "byte_scope": "Acknowledged timed payload bytes only; excludes keys, framing and retries"
+    },
+    "latency": {
+      "sample_count": 15625,
+      "unit": "microseconds",
+      "sample_floor_met": true,
+      "p50": 22703616,
+      "p90": 39788020,
+      "p95": 41894897,
+      "p99": 42409063,
+      "p99_9": 42487418,
+      "min": 736620,
+      "max": 42491498,
+      "mean": 22566110.977472,
+      "stddev": 12417214.018800111,
+      "confidence_interval_95": {
+        "lower": 22371409.061657213,
+        "upper": 22760812.893286787,
+        "unit": "microseconds",
+        "method": "Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons."
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "upper_bound_us": 1048576,
+            "count": 119
+          },
+          {
+            "upper_bound_us": 2097152,
+            "count": 377
+          },
+          {
+            "upper_bound_us": 4194304,
+            "count": 691
+          },
+          {
+            "upper_bound_us": 8388608,
+            "count": 1531
+          },
+          {
+            "upper_bound_us": 16777216,
+            "count": 2960
+          },
+          {
+            "upper_bound_us": 33554432,
+            "count": 6098
+          },
+          {
+            "upper_bound_us": 67108864,
+            "count": 3849
+          }
+        ]
+      }
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 196.45120128172434,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 83.441354,
+      "system_cpu_seconds": 0.812814,
+      "cpu_seconds_unit": "seconds",
+      "cpu_ns_per_record": 10531.771,
+      "allocations": {
+        "unit": "bytes",
+        "allocation_count": 48694482,
+        "total_allocated_bytes": 17798732672,
+        "scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+        "allocations_per_record": 6.08681025
+      },
+      "rss": {
+        "unit": "bytes",
+        "peak_rss_bytes": 159485952,
+        "average_rss_bytes": 157753503,
+        "process_peak_rss_bytes": 159260672,
+        "note": "10ms samples across workload interval; sampler created before census and joined after census"
+      },
+      "threads_count": 6,
+      "threads_scope": "Actual /proc/self/status snapshot after executor/sampler construction and before workload; not a lifetime peak",
+      "resource_scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 28.32327119163396,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 9.83,
+      "system_cpu_seconds": 2.45,
+      "cpu_seconds_unit": "seconds",
+      "peak_rss_bytes": 532664320,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 1010282496,
+      "disk_write_unit": "bytes",
+      "observation_seconds": 43.356573882,
+      "note": "CPU and write_bytes deltas between owned broker snapshots around the whole client workload; VmHWM is the broker lifetime high-water mark observed afterward, not a timed-phase RSS peak."
+    },
+    "errors": []
+  },
+  "outcomes": {
+    "offered": 8000000,
+    "accepted": 8000000,
+    "acknowledged": 8000000,
+    "consumed": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "multi_thread",
+    "observed_scheduler_workers": 4,
+    "post_close_barrier_ns": 3585,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 0,
+    "requested_background_workers": 4,
+    "requested_flavor": "multi_thread"
+  },
+  "disposition": "executed"
+}

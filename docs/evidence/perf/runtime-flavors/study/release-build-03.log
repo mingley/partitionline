@@ -1,0 +1,88 @@
+   Compiling libc v0.2.189
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.5
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling proc-macro2 v1.0.107
+   Compiling cc v1.5.1
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.26
+   Compiling hybrid-array v0.4.15
+   Compiling generic-array v0.14.7
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling block-buffer v0.12.1
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling ring v0.17.14
+   Compiling getrandom v0.2.17
+   Compiling const-oid v0.10.2
+   Compiling semver v1.0.28
+   Compiling untrusted v0.9.0
+   Compiling digest v0.11.3
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling errno v0.3.14
+   Compiling rustls v0.23.45
+   Compiling parking_lot_core v0.9.12
+   Compiling crc32fast v1.5.2
+   Compiling signal-hook-registry v1.4.8
+   Compiling crc32c v0.6.8
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling pin-project-lite v0.2.17
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling zmij v1.0.23
+   Compiling snap v1.1.2
+   Compiling bytes v1.12.1
+   Compiling getrandom v0.4.3
+   Compiling smallvec v1.16.2
+   Compiling serde_core v1.0.229
+   Compiling subtle v2.6.1
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling tokio-macros v2.7.2
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling hmac v0.13.0
+   Compiling serde_json v1.0.151
+   Compiling zlib-rs v0.6.8
+   Compiling tokio v1.53.1
+   Compiling twox-hash v2.1.4
+   Compiling cpufeatures v0.3.1
+   Compiling sha2 v0.11.0
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling pbkdf2 v0.13.0
+   Compiling digest v0.10.7
+   Compiling rustls-webpki v0.103.15
+   Compiling parking_lot v0.12.5
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling itoa v1.0.18
+   Compiling cpufeatures v0.2.17
+   Compiling memchr v2.8.3
+   Compiling tokio-rustls v0.26.5
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/runtime-flavors-source-17a634)
+   Compiling sha2 v0.10.9
+   Compiling time-core v0.1.9
+   Compiling powerfmt v0.2.0
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.8
+   Compiling nullbroker v0.1.0 (/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/nullbroker)
+   Compiling time v0.3.55
+   Compiling codec v0.1.0 (/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/codec)
+   Compiling runtime v0.1.0 (/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime)
+error: couldn't find file `src/../../../tests/common/stalled_dial.rs`
+ --> src/stalled_dial.rs:4:1
+  |
+4 | mod fixture;
+  | ^^^^^^^^^^^^
+
+error: could not compile `runtime` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

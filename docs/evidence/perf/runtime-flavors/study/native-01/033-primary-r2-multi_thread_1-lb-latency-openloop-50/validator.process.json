@@ -1,0 +1,24 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/parent-bound-exec.py",
+    "766657",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/033-primary-r2-multi_thread_1-lb-latency-openloop-50/lb-latency-openloop.result.json"
+  ],
+  "started": 1791405626.727057,
+  "parent_waited": true,
+  "pid": 777521,
+  "exit_code": 0,
+  "ended": 1791405626.7893105,
+  "artifacts": {
+    "validator.stdout": "43218d0d1f9e6ebd3f9cb931eccb3eca5ce9b808122f8e1ba420f4335a58cb45",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

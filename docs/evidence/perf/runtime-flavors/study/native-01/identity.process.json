@@ -1,0 +1,24 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/parent-bound-exec.py",
+    "766657",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-cluster.sh",
+    "cluster-id",
+    "--bootstrap-server",
+    "127.0.0.1:36401"
+  ],
+  "started": 1791404865.2151172,
+  "parent_waited": true,
+  "pid": 768052,
+  "exit_code": 0,
+  "ended": 1791404866.6950462,
+  "artifacts": {
+    "identity.stdout": "6220d0984ed0f0ad8dd0c5bcf90471d8157dc0e0b12d4a14810054ad024dd1f9",
+    "identity.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "config": {
+    "name": "multi_thread_1",
+    "flavor": "multi_thread",
+    "workers": 1
+  },
+  "cell": "lb-latency-openloop",
+  "rep": 3,
+  "cohort": "primary",
+  "load": 80,
+  "artifact": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/053-primary-r3-multi_thread_1-lb-latency-openloop-80/lb-latency-openloop.result.json",
+  "sha256": "8c8e69a05cdad988ce17c87891055f6fabd29ecbf78a105c20b05ab3d7396cc7",
+  "measurements": {
+    "throughput": {
+      "records_per_second": 5761.829469113607,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 0.5761829469113607,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 1124200,
+      "total_bytes_unit": "bytes",
+      "byte_scope": "Acknowledged timed payload bytes only; excludes keys, framing and retries"
+    },
+    "latency": {
+      "sample_count": 11242,
+      "unit": "microseconds",
+      "sample_floor_met": true,
+      "p50": 182740,
+      "p90": 190471,
+      "p95": 192948,
+      "p99": 196967,
+      "p99_9": 204264,
+      "min": 1698,
+      "max": 204451,
+      "mean": 166224.1307596513,
+      "stddev": 38915.80039509449,
+      "confidence_interval_95": {
+        "lower": 165504.7476314264,
+        "upper": 166943.5138878762,
+        "unit": "microseconds",
+        "method": "Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons."
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "upper_bound_us": 2048,
+            "count": 3
+          },
+          {
+            "upper_bound_us": 4096,
+            "count": 18
+          },
+          {
+            "upper_bound_us": 8192,
+            "count": 24
+          },
+          {
+            "upper_bound_us": 16384,
+            "count": 98
+          },
+          {
+            "upper_bound_us": 32768,
+            "count": 167
+          },
+          {
+            "upper_bound_us": 65536,
+            "count": 170
+          },
+          {
+            "upper_bound_us": 131072,
+            "count": 1087
+          },
+          {
+            "upper_bound_us": 262144,
+            "count": 9675
+          }
+        ]
+      }
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 82.31310693640013,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 1.784681,
+      "system_cpu_seconds": 0.86623,
+      "cpu_seconds_unit": "seconds",
+      "cpu_ns_per_record": 235804.2163316136,
+      "allocations": {
+        "unit": "bytes",
+        "allocation_count": 1059983,
+        "total_allocated_bytes": 1211644025,
+        "scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+        "allocations_per_record": 94.28776018502046
+      },
+      "rss": {
+        "unit": "bytes",
+        "peak_rss_bytes": 29917184,
+        "average_rss_bytes": 16545598,
+        "process_peak_rss_bytes": 30027776,
+        "note": "10ms samples across workload interval; sampler created before census and joined after census"
+      },
+      "threads_count": 3,
+      "threads_scope": "Actual /proc/self/status snapshot after executor/sampler construction and before workload; not a lifetime peak",
+      "resource_scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 44.77196291623378,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 0.83,
+      "system_cpu_seconds": 0.81,
+      "cpu_seconds_unit": "seconds",
+      "peak_rss_bytes": 724652032,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 3702784,
+      "disk_write_unit": "bytes",
+      "observation_seconds": 3.663006697,
+      "note": "CPU and write_bytes deltas between owned broker snapshots around the whole client workload; VmHWM is the broker lifetime high-water mark observed afterward, not a timed-phase RSS peak."
+    },
+    "errors": [
+      {
+        "code": "pending_capacity",
+        "name": "capacity_rejection",
+        "fatal": false,
+        "phase": "steady_state",
+        "count": 8758,
+        "message": "benchmark pending capacity exhausted; every rejected raw sample retained"
+      }
+    ]
+  },
+  "outcomes": {
+    "offered": 20000,
+    "accepted": 11242,
+    "acknowledged": 11242,
+    "consumed": 0,
+    "rejected": 8758,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "multi_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 2864,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 0,
+    "requested_background_workers": 1,
+    "requested_flavor": "multi_thread"
+  },
+  "disposition": "failed"
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "scope": "whole owned child lifetime, including setup, warmup and shutdown",
+  "child_pid": 778536,
+  "parent_waited": true,
+  "exit_code": 0,
+  "user_cpu_seconds": 2.843105,
+  "system_cpu_seconds": 1.239659,
+  "peak_rss_kbytes": 10468,
+  "wall_seconds": 15.759199994,
+  "voluntary_context_switches": 105020,
+  "involuntary_context_switches": 94
+}

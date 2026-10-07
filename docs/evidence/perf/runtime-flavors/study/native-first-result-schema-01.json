@@ -1,0 +1,178 @@
+{
+  "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/000-primary-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+  "errors": [
+    {
+      "path": [
+        "provenance",
+        "broker",
+        "mode"
+      ],
+      "message": "'Owned single-node KRaft broker/controller; acks=1 RF=1 minISR=1' is not one of ['kraft', 'zookeeper']"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        0
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        0
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        1
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        1
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        2
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        2
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        3
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        3
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        4
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        4
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        5
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        5
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        6
+      ],
+      "message": "'min_us' is a required property"
+    },
+    {
+      "path": [
+        "measurements",
+        "latency",
+        "raw_histogram",
+        "buckets",
+        6
+      ],
+      "message": "'max_us' is a required property"
+    },
+    {
+      "path": [
+        "repetition_history",
+        "attempts",
+        0
+      ],
+      "message": "'attempt_number' is a required property"
+    },
+    {
+      "path": [
+        "repetition_history",
+        "attempts",
+        0
+      ],
+      "message": "'error_message' is a required property"
+    },
+    {
+      "path": [
+        "repetition_history",
+        "attempts",
+        0
+      ],
+      "message": "'timestamp_utc' is a required property"
+    }
+  ],
+  "scope": "actual native result; not null-broker schema qualification"
+}

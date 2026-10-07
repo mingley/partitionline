@@ -1,0 +1,68 @@
+[package]
+name = "codec"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+partitionline = { version = "0.1.0", path = "../..", default-features = false }
+bytes = "1"
+serde_json = "1"
+sha2 = "0.10"
+crc32c = "0.6"
+flate2 = { version = "1", default-features = false, features = ["rust_backend", "runtime_detection"] }
+lz4_flex = "0.14"
+snap = "1"
+
+[features]
+# Mirrors the client's default gzip backend; --no-default-features measures
+# the miniz_oxide fallback (KL10-05).
+default = ["zlib-rs"]
+zlib-rs = ["partitionline/zlib-rs"]
+zstd = ["partitionline/zstd"]
+
+[dev-dependencies]
+criterion = "0.8"
+iai-callgrind = "0.14"
+
+[[bench]]
+name = "codec"
+harness = false
+
+[[bench]]
+name = "iai"
+harness = false
+
+[[bench]]
+name = "json1k_iai"
+harness = false
+
+[[bin]]
+name = "codec-preflight"
+path = "src/main.rs"
+
+[lints.clippy]
+# Sync-only bench harness: no async runtime exists here, so the workspace's
+# async-oriented disallowed lists (picked up from the root clippy.toml)
+# do not apply. Explicit allow beats the config-implied enable.
+disallowed_methods = "allow"
+disallowed_types = "allow"
+
+[[bin]]
+name = "json1k-census"
+path = "src/json1k-census.rs"
+
+[[bin]]
+name = "share-ranges"
+path = "src/share-ranges.rs"
+
+[[bin]]
+name = "zstd-census"
+path = "src/zstd-census.rs"
+required-features = ["zstd"]
+
+[[bench]]
+name = "zstd"
+harness = false
+required-features = ["zstd"]

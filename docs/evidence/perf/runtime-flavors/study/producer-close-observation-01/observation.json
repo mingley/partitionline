@@ -1,0 +1,27 @@
+{
+  "scope": "Actual current-thread producer benchmark observes unfinished cancellation after explicit close; failed equality assertion preserved",
+  "source_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "source_dirty": true,
+  "runtime_observations": [
+    {
+      "observed_alive_tasks": 3,
+      "observed_flavor": "current_thread",
+      "observed_scheduler_workers": 1,
+      "requested_background_workers": 0,
+      "requested_flavor": "current_thread"
+    },
+    {
+      "observed_alive_tasks": 3,
+      "observed_flavor": "current_thread",
+      "observed_scheduler_workers": 1,
+      "requested_background_workers": 0,
+      "requested_flavor": "current_thread"
+    }
+  ],
+  "producer_sha256": "cda70c40623904750d0f265e0995c60aa43d15bfff844cc2d33bdf7a3c660691",
+  "e2e_assertion": "observed_alive_tasks==0",
+  "actual_failure_alive_tasks": 3,
+  "worker_abort_is_not_joined": true,
+  "control_task_abort_is_not_joined": true,
+  "deadline_contract_not_changed": true
+}

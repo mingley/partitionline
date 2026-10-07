@@ -1,0 +1,31 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/parent-bound-exec.py",
+    "758003",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/bin/runtime",
+    "--cell",
+    "nb-fetch-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/030-primary-r4-multi_thread_2-nb-fetch-bulk",
+    "--repetitions",
+    "1",
+    "--runtime",
+    "multi_thread",
+    "--workers",
+    "2"
+  ],
+  "started": 1791404797.7574508,
+  "parent_waited": true,
+  "pid": 762322,
+  "exit_code": 0,
+  "ended": 1791404798.1421962,
+  "artifacts": {
+    "runtime.stdout": "e26904c750642f16407cb9594011fc26e7a802670bbfe04c1c82c5b4881cc459",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

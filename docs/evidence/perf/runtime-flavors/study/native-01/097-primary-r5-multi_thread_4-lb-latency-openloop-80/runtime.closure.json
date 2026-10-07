@@ -1,0 +1,10 @@
+{
+  "observed_alive_tasks": 0,
+  "observed_flavor": "multi_thread",
+  "observed_scheduler_workers": 4,
+  "post_close_barrier_ns": 2283,
+  "post_close_barrier_outside_measurement": true,
+  "post_close_tasks_before_barrier": 0,
+  "requested_background_workers": 4,
+  "requested_flavor": "multi_thread"
+}

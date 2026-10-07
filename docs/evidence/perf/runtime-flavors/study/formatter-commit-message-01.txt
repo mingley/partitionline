@@ -1,0 +1,3 @@
+Complete native report fields without rewriting captured measurements
+
+Add a source-bound post-capture view formatter, exact histogram ranges, observed KRaft mode, and retained attempt metadata. Preserve original source17 capture artifacts. Claim Kerberos provider review and make its implementation depend on the maintainer decision.

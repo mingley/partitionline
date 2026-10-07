@@ -1,0 +1,27 @@
+[
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (14061) does not match acknowledged record count (14062). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (14061) != expected (14062)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  }
+]

@@ -1,0 +1,3 @@
+Measure explicit benchmark runtimes and retain shutdown observations
+
+Add current-thread and explicit multi-thread benchmark executors, copied native drivers with scoped diagnostics, and owned matrix/readback controllers. Preserve the library and existing examples. Track unfinished producer cancellation separately in KL02-12.

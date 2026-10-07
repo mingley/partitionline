@@ -1,0 +1,16 @@
+{
+  "capacity_values": [
+    9523.809523809523,
+    13513.513513513513,
+    12820.51282051282,
+    13513.513513513513,
+    14285.714285714286
+  ],
+  "current_thread_median_capacity": 13513.513513513513,
+  "rates": {
+    "10": 1351,
+    "50": 6757,
+    "80": 10811
+  },
+  "scope": "Five fresh current-thread sequential means, integer-microsecond resolution; identical absolute arrivals across all flavors"
+}

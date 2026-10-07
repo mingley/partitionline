@@ -18755,13 +18755,18 @@
     {
       "id": "KL09-61",
       "title": "Measure Tokio runtime flavor and worker-count sensitivity",
-      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "codex-root-20261007",
+      "priority": "P1", "kind": "evidence", "status": "done", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
       "files": ["benchmarks/runtime/", "docs/guide.md"],
       "deliverable": "Results for current_thread versus multi_thread (1/2/4/N workers) on nb-produce-bulk, nb-fetch-bulk, lb-bulk and lb-latency-openloop, plus a guide recommendation.",
       "acceptance": ["The runtime harness accepts an explicit runtime flavor and worker count and records them; the bench examples are not modified.", "Any flavor-specific stall or bug becomes a bounded card; no library default changes.", "Results are labeled local/unsigned."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Re-run one configuration to show reproducibility."],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "docs/plan/evidence/KL09-61.json",
+          "scope": "Finite source-bound local unsigned runtime comparison; failures retained"
+        }
+      ],
       "write_set": [
         "benchmarks/runtime/",
         "docs/guide.md",
@@ -53288,7 +53293,7 @@
         {
           "scope": "Actual failed runtime test; no implementation or closure qualification",
           "observation": "KL09-61 producer-close-observation-01",
-          "pending_evidence_directory": "docs/evidence/perf/runtime-flavors/"
+          "path": "docs/evidence/perf/runtime-flavors/study/producer-close-observation-01/"
         }
       ]
     }

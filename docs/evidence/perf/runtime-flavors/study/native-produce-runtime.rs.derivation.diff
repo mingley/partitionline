@@ -1,0 +1,116 @@
+--- /workspace/work/open-cards-20261006/runtime-flavors-source-17a634/examples/bench_produce.rs
++++ /workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/src/bin/native-produce-runtime.rs
+@@ -1,14 +1,18 @@
+ //! Produce throughput diagnostics; RECORD_HISTORY enables deterministic ID/hash evidence.
+ 
+-#[path = "common/bench_history.rs"]
++#[path = "../../../../examples/common/bench_history.rs"]
+ #[expect(
+     dead_code,
+     reason = "shared benchmark helper contains consumer-only envelope parsing"
+ )]
+ mod history;
+ 
+-#[path = "common/bench_produce_settings.rs"]
++#[path = "../../../../examples/common/bench_produce_settings.rs"]
+ mod settings;
++
++// Census is process-wide so runtime worker allocations are included.
++#[global_allocator]
++static ALLOCATOR: codec::CountingAlloc = codec::CountingAlloc;
+ 
+ use std::time::Instant;
+ 
+@@ -16,8 +20,13 @@
+ use partitionline::{ProduceRecord, Producer, TlsConfig};
+ use settings::{KeyMode, PayloadMode, Settings};
+ 
+-#[tokio::main]
+-async fn main() -> partitionline::Result<()> {
++fn main() -> partitionline::Result<()> {
++    let config =
++        runtime::executor::RuntimeConfig::from_env().map_err(partitionline::Error::protocol)?;
++    config.run_native(run())
++}
++
++async fn run() -> partitionline::Result<()> {
+     let settings = Settings::from_env()?;
+     let arguments: Vec<_> = std::env::args().skip(1).collect();
+     if !arguments.is_empty() && arguments != ["--print-config"] {
+@@ -235,6 +244,17 @@
+ 
+     // Keep the explicit loop here so journal and ID state remain shared between
+     // warmup and measurement without hiding failures in a background task.
++    // A sparse admission-call to final-flush bound is a bulk diagnostic,
++    // not an acknowledgment timestamp. Reserve its bounded storage before timing.
++    let raw_path = std::env::var("PL_BENCH_BULK_LATENCY_PATH")
++        .map_err(|_| partitionline::Error::protocol("PL_BENCH_BULK_LATENCY_PATH required"))?;
++    let mut raw_file = std::fs::OpenOptions::new()
++        .write(true)
++        .create_new(true)
++        .open(raw_path)
++        .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
++    let mut bulk_samples: Vec<(u64, u128, u128)> = Vec::with_capacity(32_768);
++    let mut phase_end_ns = 0;
+     let mut warmup_count = 0;
+     let mut measured_count = 0;
+     let mut warmup_elapsed = 0.0;
+@@ -252,6 +272,10 @@
+         let mut sent = 0u64;
+         if limit.is_some_and(|count| count > 0) || !duration.is_zero() {
+             loop {
++                let sample_start = (phase == "measure"
++                    && sent.is_multiple_of(512)
++                    && bulk_samples.len() < bulk_samples.capacity())
++                .then(|| start.elapsed().as_nanos());
+                 match send_one(
+                     &producer,
+                     &topic,
+@@ -269,7 +293,12 @@
+                 )
+                 .await
+                 {
+-                    Ok(true) => sent += 1,
++                    Ok(true) => {
++                        if let Some(begin) = sample_start {
++                            bulk_samples.push((sent, begin, start.elapsed().as_nanos()));
++                        }
++                        sent += 1;
++                    }
+                     Ok(false) => {}
+                     Err(error) => {
+                         failure = Some(error);
+@@ -310,7 +339,8 @@
+             warmup_elapsed = start.elapsed().as_secs_f64();
+         } else {
+             measured_count = sent;
+-            elapsed = start.elapsed().as_secs_f64();
++            phase_end_ns = start.elapsed().as_nanos();
++            elapsed = phase_end_ns as f64 / 1e9;
+         }
+         if failure.is_some() {
+             break;
+@@ -322,6 +352,23 @@
+     if failure.is_none() {
+         failure = close.err();
+     }
++    serde_json::to_writer(&mut raw_file, &serde_json::json!({
++        "kind": "sampled_admission_call_to_final_flush_upper_bound",
++        "scope": "timed bulk phase only; successful admission calls every 512th accepted record, at most 32768 samples; no actual per-record ack timestamp",
++        "stride": 512,
++        "phase_end_ns": phase_end_ns,
++        "timed_records": measured_count,
++        "samples": bulk_samples.iter().map(|(id, begin, end)| serde_json::json!({
++            "id": id, "call_start_ns": begin, "call_end_ns": end,
++            "final_flush_observed_ns": phase_end_ns,
++            "upper_bound_ns": phase_end_ns.saturating_sub(*begin)
++        })).collect::<Vec<_>>()
++    })).map_err(|e| partitionline::Error::protocol(e.to_string()))?;
++    std::io::Write::write_all(&mut raw_file, b"\n")
++        .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
++    raw_file
++        .sync_all()
++        .map_err(|e| partitionline::Error::protocol(e.to_string()))?;
+     let metrics = producer.metrics();
+     let acknowledged_total = if acks == 0 { 0 } else { metrics.records_acked };
+     let locally_completed_total = if acks == 0 { metrics.records_acked } else { 0 };

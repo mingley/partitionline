@@ -1,0 +1,17 @@
+{
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/scripts/record-local-baseline.py": "1c3e8426acadfbcb8dbf753115e49e3cc693d34e1e572fc639d0275611dc6916",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/source-pins-04.json": "b9bce91180cf7cb4bd6767e551948531f85f196cdf5609ea0a2610fba8d179ac",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/bin/runtime": "3f9409ec0c1c6279d646bceaed21b6c460637352964926c4fb6828fd8d93d443",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/bin/nb-serve": "52e11aea5dfd14ead79fbcdecaf6d0c2e5988c6bce1e11f00d764bbaff9ae215",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/bin/native-produce-runtime": "26305af196781cc056ecc05ab43fdc8f0946c7c9eb2b5b10d1e1d7645f5b69e0",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/bin/native-latency-runtime": "8fd16ea937377afd9608b3bb607d0795d5bc6f7fc419d28dd18a9cc9142a8e88",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/measure-runtime-flavors.py": "d03f39acfbe7e8924d815dc0c6521e292864453942c7767f3a5939be6bb89a8f",
+  "/workspace/work/open-cards-20261006/runtime-flavors-20261007/nb-01/nb-serve-parent-bound": "e6a006b398ad6887711a21bbbd45a4dc355d255eb23b1a797475e7ec426fa351",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/open-loop-replay.py": "9d16098bbe73b5e0a730aca6abc7566609b0f4e6e4ec276434d0b7befe8f7c68",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/parent-bound-exec.py": "78332295936b700de1674e3affb77f7ef203cc6c3efa712431c86a0a0601201c",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/RuntimeTopic.java": "b75bf84b5109a8cb240b2ae3c4dc363587706125de2b4ff350522c7efa83f505",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/LatencyReadback.java": "5d4b7c0c8d5847677ff38f178eee608156e134d10f75303ba3034c85b8e5f4d2",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/AuditAndDelete.java": "0954875f86f4860d16a327aebfc8cd544538e391844b3e21c3480836b24b2524",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/native-result.py": "f21f3399ccec645fa43a4f435ff238fd9d836a14fce0a49787cb25a7e183383d",
+  "/workspace/work/open-cards-20261006/runtime-flavors-source-17a634/benchmarks/runtime/tools/measure-process.py": "1969df2bc952c6396310d50e77ef46ce68e6cfd734b08057713e311f9cc54687"
+}

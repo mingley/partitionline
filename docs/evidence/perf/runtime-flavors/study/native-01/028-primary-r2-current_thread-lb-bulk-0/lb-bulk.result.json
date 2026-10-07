@@ -1,0 +1,500 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Local unsigned runtime sensitivity; no ranking or production qualification"
+  },
+  "scenario": {
+    "scenario_id": "lb-bulk",
+    "peer": "partitionline",
+    "profile": "bulk",
+    "tier": "exploratory",
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "durability": {
+        "replication_factor": 1,
+        "min_insync_replicas": 1
+      },
+      "acks": 1,
+      "idempotence": false,
+      "isolation": "read_uncommitted",
+      "security": {
+        "protocol": "PLAINTEXT",
+        "mechanism": "NONE"
+      },
+      "payload_bytes": 100,
+      "partitions": 6,
+      "offered_load": null
+    }
+  },
+  "provenance": {
+    "source": {
+      "git_commit": "17a6344b019e65ad209800e1f93481f7bf50ad36",
+      "git_branch": "detached pinned review source",
+      "dirty_tree": false,
+      "clean": true,
+      "repo_url": "https://github.com/mingley/partitionline",
+      "tree_hash": "9a20744cf3c6ec65cc629548f9b5fcd03db4fab4",
+      "source_pins": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/source-pins-04.json"
+    },
+    "binary": {
+      "name": "native-produce-runtime",
+      "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/bin/native-produce-runtime",
+      "sha256": "26305af196781cc056ecc05ab43fdc8f0946c7c9eb2b5b10d1e1d7645f5b69e0",
+      "size_bytes": 5785432
+    },
+    "config": {
+      "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/effective-settings.json",
+      "sha256": "8a2fdfcf88116ef3a18007aa5e63e564d166283ef0b33cd6e5387f8d880cc015",
+      "effective_settings": {
+        "acks": 1,
+        "linger_ms": 5,
+        "batch_size_bytes": 1048576,
+        "batch_records": 32768,
+        "max_in_flight": 5,
+        "idempotence": false,
+        "connections": 1,
+        "buffer_memory_bytes": 33554432,
+        "max_request_size": 1048576,
+        "delivery_timeout_ms": 30000,
+        "compression": "none",
+        "payload_bytes": 100,
+        "payload_mode": "seeded",
+        "key_mode": "id",
+        "record_seed": 1592590337,
+        "warmup_requested_records": 10000,
+        "warmup_min_duration_ms": 0,
+        "measure_duration_ms": 0,
+        "requested_records": 8000000,
+        "explicit_partitions": 6,
+        "run_timeout_ms": 300000,
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 2332949,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 3,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        }
+      }
+    },
+    "toolchains": {
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)\n",
+      "runtime": "Tokio 1.53.2; explicit runtime recorded from actual handle/metrics"
+    },
+    "broker": {
+      "image": "Apache Kafka distribution archive f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "version": "4.3.1",
+      "mode": "Owned single-node KRaft broker/controller; acks=1 RF=1 minISR=1",
+      "cluster_id": "pI0A-J5ZR0qATfbUsSkyfg",
+      "node_count": 1,
+      "endpoints": [
+        "127.0.0.1:36401"
+      ]
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.144,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "e852fb1a1688",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "topology": {
+      "environment": "loopback",
+      "rtt_ms": 0.169015,
+      "rtt_unit": "milliseconds",
+      "client_nodes": 1,
+      "broker_nodes": 1,
+      "network_interface": "lo",
+      "client_affinity": [
+        2,
+        4
+      ],
+      "broker_affinity": [
+        0,
+        1
+      ],
+      "rtt_scope": "Actual TCP-connect wall time immediately before workload; no emulated network delay"
+    },
+    "timestamps": {
+      "start_time_utc": "2026-10-07T20:38:24.480171906Z",
+      "end_time_utc": "2026-10-07T20:38:57.674874419Z",
+      "duration_seconds": 33.194696955,
+      "duration_unit": "seconds"
+    },
+    "seeds": {
+      "payload_seed": 1592590337,
+      "key_seed": 1592590337,
+      "partition_seed": 0,
+      "repetition_seed": 961,
+      "note": "Bulk phase-local monotonic IDs, round-robin partitions, shared key/value seed; latency fixed-x payload, null key, partition 0, no payload PRNG"
+    },
+    "artifacts": [
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/actual-completion.json",
+        "type": "native-runtime-observation",
+        "sha256": "4cfeb50b18098302bcec3353cce259a2d4b17cfcdd7758aa870dbe1e679d845d",
+        "size_bytes": 1262
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/broker-after.json",
+        "type": "native-runtime-observation",
+        "sha256": "27cd657b4ac13639eefc239b1c9be12f2301793d2968464facd158a2c355098e",
+        "size_bytes": 1892
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/broker-before.json",
+        "type": "native-runtime-observation",
+        "sha256": "87846addd68a006c0e0900d781f0ba082b90c4b38e3d83469bdd832c878029c4",
+        "size_bytes": 1892
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/bulk-samples.json",
+        "type": "native-runtime-observation",
+        "sha256": "68180d591e3778cdfd17aad1633ac6f7243a7a257a82532d7b9bdcb1f9d33dac",
+        "size_bytes": 2105678
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/client.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "0ee2ddaec48128090b3cdb96ca9006017d81bcb5030bbd2fb4af900b68c15c6a",
+        "size_bytes": 1045
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/client.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/client.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "6414eea50b9b8221baf896376b9d60857222e17fa79b4ce183e1b61a4cc6ee07",
+        "size_bytes": 1032
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/effective-settings.json",
+        "type": "native-runtime-observation",
+        "sha256": "8a2fdfcf88116ef3a18007aa5e63e564d166283ef0b33cd6e5387f8d880cc015",
+        "size_bytes": 765
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/java-audit-delete.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "67639282e7a934cca6867237554fed30b0a1c07e7a0a9c771d64b65e4e9169b8",
+        "size_bytes": 1107
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/java-audit-delete.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "size_bytes": 210
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/java-audit-delete.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "4da091a65566b3c6c981d27f2c5035e055e8f5424f10ce031a9c6972ff3b5799",
+        "size_bytes": 192
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/producer-config.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "22b324255cbbc0891c288aa374ff02dff283165f1fd5a3764692b3d264b48c21",
+        "size_bytes": 749
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/producer-config.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/producer-config.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "537d292c9fdabb047736e8d0d3ea077f61e7438c01feeec75876f047f3709794",
+        "size_bytes": 503
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime-config.closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "7cc36cd2a1c3fa0126a3346a44d5a43f4c8d362165bcee535baf803c37d00655",
+        "size_bytes": 306
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime-config.json",
+        "type": "native-runtime-observation",
+        "sha256": "7867b31fda1d413ac8f3bebb317cff2c2a175122e7f15f3aa5807900afd73447",
+        "size_bytes": 183
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime-config.resources.json",
+        "type": "native-runtime-observation",
+        "sha256": "5bcf018507ff121084dcbdee3e239c3f954436c19ca80680bd12b7d625007358",
+        "size_bytes": 2551
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime.closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "a1bc49e9224ed8ed6b6f2486a87be99001db2877ad91bd119d208347ce8631fc",
+        "size_bytes": 309
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime.json",
+        "type": "native-runtime-observation",
+        "sha256": "7867b31fda1d413ac8f3bebb317cff2c2a175122e7f15f3aa5807900afd73447",
+        "size_bytes": 183
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/runtime.resources.json",
+        "type": "native-runtime-observation",
+        "sha256": "8ca862e88ede9e46d43e19663602741ec7af975279a29479b44645d799812a49",
+        "size_bytes": 2569
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/topic-closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "d66606604900b1017a4eceed90f7ad2e0348978bd005e2a8d66484551d47c609",
+        "size_bytes": 139
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/topic-create.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "f15f3b184968bf129a753eb71f19f2e01b16a413d4b4ce7e76b979ede4cc88a5",
+        "size_bytes": 1003
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/topic-create.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "size_bytes": 210
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/topic-create.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "1eae0ef0c78070d03efdfd8c5b5bd148063d2e1ad21ed13288a9e4999fc21797",
+        "size_bytes": 131
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/wait4.json",
+        "type": "native-runtime-observation",
+        "sha256": "ca4931921c313aa5b28f110325d21bb4d82ac89c0d1f87dde37d8f9d53789481",
+        "size_bytes": 385
+      }
+    ]
+  },
+  "execution": {
+    "phase": "steady_state",
+    "warmup_completed": true,
+    "warmup_duration_seconds": 0.036737,
+    "steady_state_duration_seconds": 32.948094,
+    "total_repetitions": 5,
+    "pairing_order": "Randomized within matched repetition; seed 961; exact order retained in matrix-plan.json",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "cell_id": "lb-bulk",
+    "repetition_index": 2,
+    "cohort": "primary",
+    "runtime_config": "current_thread",
+    "latency_note": "Every 512th accepted record: successful admission call start to final measured-phase flush completion upper bound. This is not a per-record acknowledgment timestamp or an ack-latency percentile.",
+    "measured_seconds": 32.948094,
+    "warmup_records": 10000,
+    "warmup_excluded": true,
+    "raw_path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/028-primary-r2-current_thread-lb-bulk-0/client.stdout",
+    "load": null,
+    "qualification_scope": "Runtime sensitivity only. Whole-workload resources and sampled bulk bounds are diagnostic; they are not equal-semantics peer comparisons."
+  },
+  "outcomes": {
+    "offered": 8000000,
+    "accepted": 8000000,
+    "acknowledged": 8000000,
+    "consumed": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "measurements": {
+    "throughput": {
+      "records_per_second": 242806.15443187702,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 24.280615443187703,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 800000000,
+      "total_bytes_unit": "bytes",
+      "byte_scope": "Acknowledged timed payload bytes only; excludes keys, framing and retries"
+    },
+    "latency": {
+      "sample_count": 15625,
+      "unit": "microseconds",
+      "sample_floor_met": true,
+      "p50": 17968841,
+      "p90": 30660284,
+      "p95": 32291380,
+      "p99": 32905722,
+      "p99_9": 32944914,
+      "min": 537535,
+      "max": 32948093,
+      "mean": 17651205.094272,
+      "stddev": 9520227.547645334,
+      "confidence_interval_95": {
+        "lower": 17501927.92632492,
+        "upper": 17800482.26221908,
+        "unit": "microseconds",
+        "method": "Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons."
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "upper_bound_us": 1048576,
+            "count": 264
+          },
+          {
+            "upper_bound_us": 2097152,
+            "count": 436
+          },
+          {
+            "upper_bound_us": 4194304,
+            "count": 871
+          },
+          {
+            "upper_bound_us": 8388608,
+            "count": 1815
+          },
+          {
+            "upper_bound_us": 16777216,
+            "count": 3848
+          },
+          {
+            "upper_bound_us": 33554432,
+            "count": 8391
+          }
+        ]
+      }
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 100.36923682468365,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 32.733683,
+      "system_cpu_seconds": 0.583581,
+      "cpu_seconds_unit": "seconds",
+      "cpu_ns_per_record": 4164.658,
+      "allocations": {
+        "unit": "bytes",
+        "allocation_count": 48699880,
+        "total_allocated_bytes": 18045328729,
+        "scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+        "allocations_per_record": 6.087485
+      },
+      "rss": {
+        "unit": "bytes",
+        "peak_rss_bytes": 164126720,
+        "average_rss_bytes": 162333553,
+        "process_peak_rss_bytes": 164048896,
+        "note": "10ms samples across workload interval; sampler created before census and joined after census"
+      },
+      "threads_count": 2,
+      "threads_scope": "Actual /proc/self/status snapshot after executor/sampler construction and before workload; not a lifetime peak",
+      "resource_scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 11.725874564727437,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 2.34,
+      "system_cpu_seconds": 1.6,
+      "cpu_seconds_unit": "seconds",
+      "peak_rss_bytes": 716316672,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 1009827840,
+      "disk_write_unit": "bytes",
+      "observation_seconds": 33.600905231,
+      "note": "CPU and write_bytes deltas between owned broker snapshots around the whole client workload; VmHWM is the broker lifetime high-water mark observed afterward, not a timed-phase RSS peak."
+    },
+    "errors": []
+  },
+  "integrity": {
+    "verified": true,
+    "integrity_failure": false,
+    "idempotence_sequence_verified": false,
+    "high_watermark_audit": {
+      "partitions": [
+        {
+          "partition": 0,
+          "start_offset": 1667,
+          "end_offset": 1335001,
+          "offset_delta": 1333334
+        },
+        {
+          "partition": 1,
+          "start_offset": 1667,
+          "end_offset": 1335001,
+          "offset_delta": 1333334
+        },
+        {
+          "partition": 2,
+          "start_offset": 1667,
+          "end_offset": 1335000,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 3,
+          "start_offset": 1667,
+          "end_offset": 1335000,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 4,
+          "start_offset": 1666,
+          "end_offset": 1334999,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 5,
+          "start_offset": 1666,
+          "end_offset": 1334999,
+          "offset_delta": 1333333
+        }
+      ],
+      "total_offset_delta": 8000000,
+      "matches_acknowledged": true,
+      "source": "Full independent readback verifies end-offset fences; measured delta excludes the separately verified warmup prefix"
+    },
+    "record_ids": {
+      "start_id": 0,
+      "end_id": 7999999,
+      "expected_count": 8000000,
+      "verified_count": 8000000,
+      "missing_ids_count": 0,
+      "duplicate_ids_count": 0,
+      "checksum_algorithm": "Genuine Kafka Java 4.3.1 full seeded byte/key readback in warmup and timed namespaces, with per-partition end offsets checked by the verifier.",
+      "payload_checksum_matches": true,
+      "unique_producer_payload_ids_checked": true
+    }
+  },
+  "repetition_history": {
+    "total_attempts": 1,
+    "failed_attempts": 0,
+    "attempts": [
+      {
+        "repetition_index": 2,
+        "status": "passed_measurement",
+        "integrity_failure": false
+      }
+    ]
+  }
+}

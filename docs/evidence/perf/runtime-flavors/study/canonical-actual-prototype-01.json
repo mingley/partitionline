@@ -1,0 +1,22 @@
+{
+  "scope": "Actual two-result function invocation only; full matrix not yet complete",
+  "formatter_commit": "63a89f4c3475a75bf57557515b7ffab3202eebea",
+  "records": [
+    {
+      "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/000-primary-r1-current_thread-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "7db5a0a249eba54b2c2dcd51910f38d3b45a23d9dc14a0111cf17928b2e2cfbd",
+      "schema_errors": [],
+      "status": "executed",
+      "outcomes_unchanged": true,
+      "percentiles_unchanged": true
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/runtime-flavors-20261007/native-01/006-primary-r1-multi_thread_4-lb-latency-openloop-80/lb-latency-openloop.result.json",
+      "original_sha256": "3b061593025548e5b835784b13ef0102c3a370a55d4a1453eeaf3ce19d2159f4",
+      "schema_errors": [],
+      "status": "failed",
+      "outcomes_unchanged": true,
+      "percentiles_unchanged": true
+    }
+  ]
+}
