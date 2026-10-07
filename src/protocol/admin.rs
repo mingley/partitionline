@@ -18361,12 +18361,20 @@ impl DescribeQuorumRequest {
         error_code: i16,
         error_message: Option<&str>,
     ) -> crate::error::Result<()> {
+        let _flexible = describe_quorum_flexible(version)?;
+        if version >= 2 {
+            QuorumBudget::default().optional_string(error_message)?;
+        }
         encode_describe_quorum_response(
             buf,
             version,
             &DescribeQuorumResponse {
                 error_code,
-                error_message: error_message.map(str::to_owned),
+                error_message: if version >= 2 {
+                    error_message.map(str::to_owned)
+                } else {
+                    None
+                },
                 topics: Vec::new(),
                 nodes: Vec::new(),
             },
@@ -18390,6 +18398,25 @@ impl DescribeQuorumRequest {
         error_code: i16,
         error_message: Option<&str>,
     ) -> crate::error::Result<()> {
+        let _flexible = describe_quorum_flexible(version)?;
+        let mut budget = QuorumBudget::default();
+        budget.fixed(2)?;
+        if version >= 2 {
+            budget.string_len(0)?;
+        }
+        budget.array_len::<DescribeQuorumResult>(topics.len())?;
+        for topic in topics {
+            budget.string_len(topic.topic.len())?;
+            budget.array_len::<DescribeQuorumPartition>(topic.partitions.len())?;
+            for _ in &topic.partitions {
+                budget.fixed(25)?;
+                if version >= 2 {
+                    budget.optional_string(error_message)?;
+                }
+            }
+            budget.fixed(1)?;
+        }
+        budget.fixed(if version >= 2 { 2 } else { 1 })?;
         let results: Vec<DescribeQuorumResult> = topics
             .iter()
             .map(|topic| DescribeQuorumResult {
@@ -18400,7 +18427,11 @@ impl DescribeQuorumRequest {
                     .map(|partition_index| DescribeQuorumPartition {
                         partition_index: *partition_index,
                         error_code,
-                        error_message: error_message.map(str::to_owned),
+                        error_message: if version >= 2 {
+                            error_message.map(str::to_owned)
+                        } else {
+                            None
+                        },
                         leader_id: 0,
                         leader_epoch: 0,
                         high_watermark: 0,
@@ -18578,6 +18609,207 @@ impl DescribeQuorumResponse {
     }
 }
 
+const QUORUM_BODY_BYTES: usize = 1024 * 1024;
+
+#[derive(Default)]
+struct QuorumBudget {
+    strings: usize,
+    elements: usize,
+    tags: usize,
+    tag_bytes: usize,
+    decoded: usize,
+    encoded: usize,
+}
+
+impl QuorumBudget {
+    fn charge(used: &mut usize, amount: usize, limit: usize) -> Result<()> {
+        let next = used
+            .checked_add(amount)
+            .filter(|next| *next <= limit)
+            .ok_or_else(|| Error::protocol("DescribeQuorum admission limit exceeded"))?;
+        *used = next;
+        Ok(())
+    }
+    fn fixed(&mut self, bytes: usize) -> Result<()> {
+        Self::charge(&mut self.encoded, bytes, QUORUM_BODY_BYTES)
+    }
+    fn array_len<T>(&mut self, count: usize) -> Result<()> {
+        if count > 8192 {
+            return Err(Error::protocol(
+                "DescribeQuorum array exceeds 8192 elements",
+            ));
+        }
+        Self::charge(&mut self.elements, count, 32768)?;
+        Self::charge(
+            &mut self.decoded,
+            count
+                .checked_mul(std::mem::size_of::<T>())
+                .ok_or_else(|| Error::protocol("DescribeQuorum reservation overflow"))?,
+            4 * QUORUM_BODY_BYTES,
+        )?;
+        self.fixed(buf::usize_from_i32(buf::size_of_unsigned_varint(
+            buf::i32_from_usize(count + 1)?,
+        ))?)
+    }
+    fn string_len(&mut self, length: usize) -> Result<()> {
+        if length > i16::MAX as usize {
+            return Err(Error::protocol("DescribeQuorum string exceeds 32767 bytes"));
+        }
+        Self::charge(&mut self.strings, length, QUORUM_BODY_BYTES)?;
+        Self::charge(&mut self.decoded, length, 4 * QUORUM_BODY_BYTES)?;
+        self.fixed(
+            length
+                + buf::usize_from_i32(buf::size_of_unsigned_varint(buf::i32_from_usize(
+                    length + 1,
+                )?))?,
+        )
+    }
+    fn optional_string(&mut self, value: Option<&str>) -> Result<()> {
+        match value {
+            Some(value) => self.string_len(value.len()),
+            None => self.fixed(1),
+        }
+    }
+    fn array<T, B: Buf>(&mut self, input: &mut B) -> Result<(usize, Vec<T>)> {
+        let count = buf::get_array_len(input, true)?
+            .ok_or_else(|| Error::protocol("DescribeQuorum array is not nullable"))?;
+        self.array_len::<T>(count)?;
+        if count > input.remaining() {
+            return Err(Error::protocol("truncated DescribeQuorum array"));
+        }
+        let mut values = Vec::new();
+        values
+            .try_reserve_exact(count)
+            .map_err(|_| Error::protocol("DescribeQuorum reservation failed"))?;
+        Ok((count, values))
+    }
+    fn string<B: Buf>(&mut self, input: &mut B, nullable: bool) -> Result<Option<String>> {
+        let count = buf::get_unsigned_varint(input)?;
+        if count == 0 {
+            return if nullable {
+                Ok(None)
+            } else {
+                Err(Error::protocol("DescribeQuorum string is not nullable"))
+            };
+        }
+        let length = buf::usize_from_u32(count - 1)?;
+        self.string_len(length)?;
+        buf::need(input, length)?;
+        let mut bytes = Vec::new();
+        bytes
+            .try_reserve_exact(length)
+            .map_err(|_| Error::protocol("DescribeQuorum string reservation failed"))?;
+        bytes.resize(length, 0);
+        input.copy_to_slice(&mut bytes);
+        String::from_utf8(bytes)
+            .map(Some)
+            .map_err(|_| Error::protocol("invalid DescribeQuorum UTF8"))
+    }
+    fn skip_tags<B: Buf>(&mut self, input: &mut B) -> Result<()> {
+        let count = buf::usize_from_u32(buf::get_unsigned_varint(input)?)?;
+        if count > 64 {
+            return Err(Error::protocol("DescribeQuorum tag count exceeds 64"));
+        }
+        Self::charge(&mut self.tags, count, 1024)?;
+        let mut previous = None;
+        for _ in 0..count {
+            let tag = buf::get_unsigned_varint(input)?;
+            if previous.is_some_and(|previous| tag <= previous) {
+                return Err(Error::protocol(
+                    "DescribeQuorum tags must be ascending and unique",
+                ));
+            }
+            previous = Some(tag);
+            let length = buf::usize_from_u32(buf::get_unsigned_varint(input)?)?;
+            Self::charge(&mut self.tag_bytes, length, 64 * 1024)?;
+            buf::need(input, length)?;
+            input.advance(length);
+        }
+        Ok(())
+    }
+    fn begin<B: Buf>(input: &B) -> Result<Self> {
+        if input.remaining() > QUORUM_BODY_BYTES {
+            return Err(Error::protocol("DescribeQuorum body exceeds 1MiB"));
+        }
+        Ok(Self::default())
+    }
+    fn finish<B: Buf>(input: &B) -> Result<()> {
+        if input.has_remaining() {
+            return Err(Error::protocol("trailing DescribeQuorum body bytes"));
+        }
+        Ok(())
+    }
+}
+
+fn quorum_request_budget(request: &DescribeQuorumRequest) -> Result<()> {
+    let mut budget = QuorumBudget::default();
+    budget.array_len::<DescribeQuorumTopic>(request.topics.len())?;
+    for topic in &request.topics {
+        budget.string_len(topic.topic.len())?;
+        budget.array_len::<i32>(topic.partitions.len())?;
+        budget.fixed(topic.partitions.len() * 5 + 1)?;
+    }
+    budget.fixed(1)
+}
+
+fn quorum_response_budget(version: i16, response: &DescribeQuorumResponse) -> Result<()> {
+    let mut budget = QuorumBudget::default();
+    if version < 2 && !response.nodes.is_empty() {
+        return Err(Error::Unsupported(
+            "DescribeQuorum nodes require version 2".into(),
+        ));
+    }
+    budget.fixed(2)?;
+    if version >= 2 {
+        budget.optional_string(response.error_message.as_deref())?;
+    }
+    budget.array_len::<DescribeQuorumResult>(response.topics.len())?;
+    for topic in &response.topics {
+        budget.string_len(topic.topic.len())?;
+        budget.array_len::<DescribeQuorumPartition>(topic.partitions.len())?;
+        for partition in &topic.partitions {
+            budget.fixed(22)?;
+            if version >= 2 {
+                budget.optional_string(partition.error_message.as_deref())?;
+            }
+            for replicas in [&partition.current_voters, &partition.observers] {
+                if version < 2
+                    && replicas
+                        .iter()
+                        .any(|replica| replica.replica_directory_id != [0; 16])
+                {
+                    return Err(Error::Unsupported(
+                        "DescribeQuorum replica directory IDs require version 2".into(),
+                    ));
+                }
+                budget.array_len::<DescribeQuorumReplicaState>(replicas.len())?;
+                budget.fixed(
+                    replicas.len()
+                        * (13
+                            + if version >= 1 { 16 } else { 0 }
+                            + if version >= 2 { 16 } else { 0 }),
+                )?;
+            }
+            budget.fixed(1)?;
+        }
+        budget.fixed(1)?;
+    }
+    if version >= 2 {
+        budget.array_len::<DescribeQuorumNode>(response.nodes.len())?;
+        for node in &response.nodes {
+            budget.fixed(4)?;
+            budget.array_len::<DescribeQuorumListener>(node.listeners.len())?;
+            for listener in &node.listeners {
+                budget.string_len(listener.name.len())?;
+                budget.string_len(listener.host.len())?;
+                budget.fixed(3)?;
+            }
+            budget.fixed(1)?;
+        }
+    }
+    budget.fixed(1)
+}
+
 /// `true` when DescribeQuorum `version` is flexible.
 ///
 /// All versions are flexible (Apache JSON `validVersions: "0-2"`,
@@ -18604,6 +18836,7 @@ pub fn encode_describe_quorum_request(
     req: &DescribeQuorumRequest,
 ) -> crate::error::Result<()> {
     let flexible = describe_quorum_flexible(version)?;
+    quorum_request_budget(req)?;
     buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
     for topic in &req.topics {
         buf::put_string(buf, flexible, Some(&topic.topic))?;
@@ -18626,32 +18859,38 @@ pub fn encode_describe_quorum_request(
 
 /// Decode a DescribeQuorum request (v0–2).
 ///
+/// Local limits: 1MiB body, 32767 bytes per string, 8192 elements per array,
+/// 32768 elements and 1MiB copied strings across the body. Requested vector
+/// slots and copied strings total at most 4MiB. Unknown tags are skipped: at
+/// most 64 per structure, 1024 total, and 64KiB total payload. Required fields
+/// reject nulls; tags must be ordered and unique; trailing bytes are rejected.
+///
 /// Always flexible; see [`encode_describe_quorum_request`].
 pub fn decode_describe_quorum_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<DescribeQuorumRequest> {
     let flexible = describe_quorum_flexible(version)?;
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    let mut budget = QuorumBudget::begin(buf)?;
+    let (n, mut topics) = budget.array::<DescribeQuorumTopic, _>(buf)?;
     for _ in 0..n {
-        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let topic = budget.string(buf, false)?.unwrap_or_default();
+        let (pn, mut partitions) = budget.array::<i32, _>(buf)?;
         for _ in 0..pn {
             partitions.push(buf::get_i32(buf)?);
             if flexible {
-                buf::skip_tagged_fields(buf)?;
+                budget.skip_tags(buf)?;
             }
         }
         if flexible {
-            buf::skip_tagged_fields(buf)?;
+            budget.skip_tags(buf)?;
         }
         topics.push(DescribeQuorumTopic { topic, partitions });
     }
     if flexible {
-        buf::skip_tagged_fields(buf)?;
+        budget.skip_tags(buf)?;
     }
+    QuorumBudget::finish(buf)?;
     Ok(DescribeQuorumRequest { topics })
 }
 
@@ -18689,9 +18928,9 @@ fn decode_describe_quorum_replicas<B: Buf>(
     buf: &mut B,
     version: i16,
     flexible: bool,
+    budget: &mut QuorumBudget,
 ) -> Result<Vec<DescribeQuorumReplicaState>> {
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut replicas = Vec::with_capacity(n);
+    let (n, mut replicas) = budget.array::<DescribeQuorumReplicaState, _>(buf)?;
     for _ in 0..n {
         let replica_id = buf::get_i32(buf)?;
         let replica_directory_id = if version >= 2 {
@@ -18709,7 +18948,7 @@ fn decode_describe_quorum_replicas<B: Buf>(
             )
         };
         if flexible {
-            buf::skip_tagged_fields(buf)?;
+            budget.skip_tags(buf)?;
         }
         replicas.push(DescribeQuorumReplicaState {
             replica_id,
@@ -18724,6 +18963,10 @@ fn decode_describe_quorum_replicas<B: Buf>(
 
 /// Encode a DescribeQuorum response (v0–2).
 ///
+/// Checks the complete model before appending bytes. Nonempty nodes and
+/// nonzero replica directory IDs require v2, as in the Apache SDK. Older
+/// versions omit error messages and timestamps when those fields are absent.
+///
 /// Below v2 the top-level and per-partition `ErrorMessage` fields, the
 /// `ReplicaDirectoryId` values and `Nodes` are omitted even when set;
 /// decode fills `None`/zero/empty. Below v1 the `ReplicaState`
@@ -18735,6 +18978,7 @@ pub fn encode_describe_quorum_response(
     resp: &DescribeQuorumResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_quorum_flexible(version)?;
+    quorum_response_budget(version, resp)?;
     buf.put_i16(resp.error_code);
     if version >= 2 {
         buf::put_string(buf, flexible, resp.error_message.as_deref())?;
@@ -18788,6 +19032,8 @@ pub fn encode_describe_quorum_response(
 
 /// Decode a DescribeQuorum response (v0–2).
 ///
+/// Uses the same local limits as [`decode_describe_quorum_request`].
+///
 /// Below v2 the error messages, directory ids and nodes are absent; decode
 /// fills `None`/zero/empty. Below v1 the timestamps are absent; decode
 /// fills [`DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP`].
@@ -18796,33 +19042,33 @@ pub fn decode_describe_quorum_response<B: Buf>(
     version: i16,
 ) -> Result<DescribeQuorumResponse> {
     let flexible = describe_quorum_flexible(version)?;
+    let mut budget = QuorumBudget::begin(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = if version >= 2 {
-        buf::get_string(buf, flexible)?
+        budget.string(buf, true)?
     } else {
         None
     };
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    let (n, mut topics) = budget.array::<DescribeQuorumResult, _>(buf)?;
     for _ in 0..n {
-        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let topic = budget.string(buf, false)?.unwrap_or_default();
+        let (pn, mut partitions) = budget.array::<DescribeQuorumPartition, _>(buf)?;
         for _ in 0..pn {
             let partition_index = buf::get_i32(buf)?;
             let partition_error_code = buf::get_i16(buf)?;
             let partition_error_message = if version >= 2 {
-                buf::get_string(buf, flexible)?
+                budget.string(buf, true)?
             } else {
                 None
             };
             let leader_id = buf::get_i32(buf)?;
             let leader_epoch = buf::get_i32(buf)?;
             let high_watermark = buf::get_i64(buf)?;
-            let current_voters = decode_describe_quorum_replicas(buf, version, flexible)?;
-            let observers = decode_describe_quorum_replicas(buf, version, flexible)?;
+            let current_voters =
+                decode_describe_quorum_replicas(buf, version, flexible, &mut budget)?;
+            let observers = decode_describe_quorum_replicas(buf, version, flexible, &mut budget)?;
             if flexible {
-                buf::skip_tagged_fields(buf)?;
+                budget.skip_tags(buf)?;
             }
             partitions.push(DescribeQuorumPartition {
                 partition_index,
@@ -18836,29 +19082,27 @@ pub fn decode_describe_quorum_response<B: Buf>(
             });
         }
         if flexible {
-            buf::skip_tagged_fields(buf)?;
+            budget.skip_tags(buf)?;
         }
         topics.push(DescribeQuorumResult { topic, partitions });
     }
     let nodes = if version >= 2 {
-        let nn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut nodes = Vec::with_capacity(nn);
+        let (nn, mut nodes) = budget.array::<DescribeQuorumNode, _>(buf)?;
         for _ in 0..nn {
             let node_id = buf::get_i32(buf)?;
-            let ln = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            let mut listeners = Vec::with_capacity(ln);
+            let (ln, mut listeners) = budget.array::<DescribeQuorumListener, _>(buf)?;
             for _ in 0..ln {
-                let name = buf::get_string(buf, flexible)?.unwrap_or_default();
-                let host = buf::get_string(buf, flexible)?.unwrap_or_default();
+                let name = budget.string(buf, false)?.unwrap_or_default();
+                let host = budget.string(buf, false)?.unwrap_or_default();
                 buf::need(buf, 2)?;
                 let port = buf.get_u16();
                 if flexible {
-                    buf::skip_tagged_fields(buf)?;
+                    budget.skip_tags(buf)?;
                 }
                 listeners.push(DescribeQuorumListener { name, host, port });
             }
             if flexible {
-                buf::skip_tagged_fields(buf)?;
+                budget.skip_tags(buf)?;
             }
             nodes.push(DescribeQuorumNode { node_id, listeners });
         }
@@ -18867,8 +19111,9 @@ pub fn decode_describe_quorum_response<B: Buf>(
         Vec::new()
     };
     if flexible {
-        buf::skip_tagged_fields(buf)?;
+        budget.skip_tags(buf)?;
     }
+    QuorumBudget::finish(buf)?;
     Ok(DescribeQuorumResponse {
         error_code,
         error_message,

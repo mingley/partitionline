@@ -3551,7 +3551,8 @@ impl Admin {
     /// Their documented unknown sentinels are retained in the typed result.
     /// Top-level and partition errors retain the broker's code and message.
     /// NOT_CONTROLLER refreshes metadata; retriable broker/transport errors
-    /// share one deadline. No quorum membership is changed.
+    /// share one deadline and at most eight attempts. Exhaustion returns the
+    /// last error. No quorum membership is changed.
     pub async fn describe_quorum(&mut self) -> Result<QuorumInfo> {
         self.describe_quorum_timeout(self.cfg.request_timeout).await
     }
@@ -3672,6 +3673,9 @@ impl Admin {
             .await;
             match result {
                 Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
+                    if attempt >= 7 {
+                        return Err(err);
+                    }
                     if err.broker_code() == Some(error::NOT_CONTROLLER) {
                         self.cluster.invalidate_controller();
                         refresh = true;

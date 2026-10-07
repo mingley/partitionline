@@ -5790,7 +5790,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     break;
                 }
                 // Broker bootstrap forwards inspection to the current controller.
-                let response = st.describe_quorum_responses.pop_front().unwrap_or_else(|| {
+                let mut response = st.describe_quorum_responses.pop_front().unwrap_or_else(|| {
                     DescribeQuorumResponse::new(
                         0,
                         None,
@@ -5829,6 +5829,22 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }],
                     )
                 });
+                // The peer constructs fields available on the requested version,
+                // as a broker does before invoking the strict SDK-like serializer.
+                if header.api_version < 2 {
+                    response.nodes.clear();
+                    for topic in &mut response.topics {
+                        for partition in &mut topic.partitions {
+                            for replica in partition
+                                .current_voters
+                                .iter_mut()
+                                .chain(&mut partition.observers)
+                            {
+                                replica.replica_directory_id = [0; 16];
+                            }
+                        }
+                    }
+                }
                 encode_describe_quorum_response(&mut body, header.api_version, &response).unwrap();
             }
             ELECT_LEADERS => {
