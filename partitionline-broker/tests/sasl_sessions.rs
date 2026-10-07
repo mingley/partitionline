@@ -46,7 +46,7 @@ impl Drop for Path {
     }
 }
 fn hex(value: &str) -> Result<Vec<u8>> {
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return Err("invalid fixture hex".into());
     }
     (0..value.len())
@@ -875,8 +875,11 @@ async fn renewal_handler_admission_wait_consumes_authentication_deadline() -> Re
     )
     .await?;
     let mut first = TcpStream::connect(server.local_addr()).await?;
-    let mut renewing = TcpStream::connect(server.local_addr()).await?;
     scram_lifetime(&mut first, Algorithm::Sha256, "user", "pencil", 2, false).await?;
+    // The second socket's preauthentication budget starts at accept. Do not
+    // consume it while proving the first socket's identity: this case tests
+    // renewal handler admission after both initial authentications complete.
+    let mut renewing = TcpStream::connect(server.local_addr()).await?;
     scram_lifetime(&mut renewing, Algorithm::Sha256, "user", "pencil", 2, false).await?;
     let app = header(3, 0, 181, false);
     send(&mut first, &app).await?;

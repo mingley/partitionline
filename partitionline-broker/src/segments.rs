@@ -1411,7 +1411,7 @@ impl Log {
             if entries >= self.limits.max_entries {
                 return Err(Error::ScanBudget);
             }
-            if entries % self.limits.interval == 0 {
+            if entries.is_multiple_of(self.limits.interval) {
                 checkpoints.push(Checkpoint {
                     offset: entry.first_offset,
                     position,
@@ -1453,7 +1453,7 @@ impl Log {
             if entry.first_offset != offset {
                 return Err(Error::CorruptData);
             }
-            if ordinal % self.limits.interval == 0 {
+            if ordinal.is_multiple_of(self.limits.interval) {
                 self.active_checkpoints.push(Checkpoint {
                     offset,
                     position,

@@ -652,7 +652,7 @@ fn deterministic_seeded_losing_partition_and_restart_histories() -> Result {
                                     ));
                                 }
                             }
-                        } else if random(&mut generator) % 4 == 0 {
+                        } else if random(&mut generator).is_multiple_of(4) {
                             // Replay actual stale/duplicate peer replies; no fabricated grants.
                             pending.push(message);
                         }

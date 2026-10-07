@@ -49712,7 +49712,7 @@
       "priority": "P1",
       "kind": "implementation",
       "status": "in_progress",
-      "owner": "codex-rpc-reuse-20261003",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL11-13",
         "KL11-15",
@@ -49778,7 +49778,9 @@
           "docs/evidence/broker/KL11-76/oracle/"
         ]
       },
-      "integration_coordinator": "RPC owns the autonomous fixed trusted-peer runtime/codec and actual TCP histories. Only narrow exact timeout_dynamic_vote correlation cleanup and its durable-no-mutation regression may change qualified membership core. Root owns exports, independent bounded packet/WAL/image/election causal checker, shared registry bindings and task states. Preserve all immutable403 qualification and earlier evidence/source labels; no modern native Kafka replication wire advertisement from private framing. Source checkpoint precedes actual immutable stable/MSRV default/all qualification; actual Config limits and task ownership are recorded from runtime traces. Compiler/cache leases are explicit and all generated executables are retained outside Git."
+      "integration_coordinator": "RPC owns the autonomous fixed trusted-peer runtime/codec and actual TCP histories. Only narrow exact timeout_dynamic_vote correlation cleanup and its durable-no-mutation regression may change qualified membership core. Root owns exports, independent bounded packet/WAL/image/election causal checker, shared registry bindings and task states. Preserve all immutable403 qualification and earlier evidence/source labels; no modern native Kafka replication wire advertisement from private framing. Source checkpoint precedes actual immutable stable/MSRV default/all qualification; actual Config limits and task ownership are recorded from runtime traces. Compiler/cache leases are explicit and all generated executables are retained outside Git.",
+      "previous_owner": "codex-rpc-reuse-20261003",
+      "active_validation_toolchain": "latest stable only; earlier Rust1.85 evidence retained as historical"
     },
     {
       "id": "KL05-29",

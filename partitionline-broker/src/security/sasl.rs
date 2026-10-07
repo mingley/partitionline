@@ -921,7 +921,7 @@ mod tests {
     type TestResult<T = ()> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
     fn hex(value: &str) -> TestResult<Vec<u8>> {
-        if value.len() % 2 != 0 {
+        if !value.len().is_multiple_of(2) {
             return Err("odd fixture hex length".into());
         }
         (0..value.len())

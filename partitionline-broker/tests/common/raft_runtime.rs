@@ -35,11 +35,11 @@ fn hex(bytes: &[u8]) -> TestResult<String> {
     Ok(out)
 }
 fn unhex(s: &str) -> TestResult<Vec<u8>> {
-    if s.len() > 128 * 1024 || s.len() % 2 != 0 {
+    if s.len() > 128 * 1024 || !s.len().is_multiple_of(2) {
         return Err("bounded hex".into());
     }
     s.as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>().0.iter()
         .map(|b| Ok(u8::from_str_radix(std::str::from_utf8(b)?, 16)?))
         .collect()
 }
@@ -168,6 +168,7 @@ fn runtime_child_process() -> TestResult {
         .build()?
         .block_on(async {
             let listener = TcpListener::bind(backend).await?;
+            write_text(&root.join("listen-address"), &listener.local_addr()?.to_string())?;
             let cfg = config(local, &routes, active)?;
             let configured_task_bound = cfg.task_bound();
             let configured_managed_bytes = cfg.managed_bytes();
@@ -382,6 +383,7 @@ impl Gate {
         self.capture_file(&format!("{name}.forward.json"), metadata.as_bytes())
     }
 }
+#[expect(clippy::too_many_arguments, reason = "test proxy tracks each stream's gate, direction, identity and stop receiver")]
 async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
     mut r: R,
     mut w: W,
@@ -459,7 +461,7 @@ async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
 }
 async fn proxy(
     listener: TcpListener,
-    backend: SocketAddr,
+    backend: PathBuf,
     target: usize,
     gate: Arc<Gate>,
     mut stop: watch::Receiver<bool>,
@@ -472,14 +474,21 @@ async fn proxy(
             _ = stop.changed()=>break,
             result=listener.accept()=>{
                 let (mut client,_)=result?;let Ok(permit)=permits.clone().try_acquire_owned() else{continue;};
-                let gate=gate.clone();let stop=stop.clone();let id=connection;connection+=1;
+                let gate=gate.clone();let mut stop=stop.clone();let backend=backend.clone();let id=connection;connection+=1;
                 tasks.spawn(async move{
                     let _permit=permit;
+                    client.set_nodelay(true)?;
                     let first=tokio::time::timeout(Duration::from_secs(2),packet(&mut client)).await??;
                     if first.len()<32 || first[14]!=1{return Err::<(),Box<dyn std::error::Error+Send+Sync>>("Hello required".into());}
                     let source=u32::from_be_bytes(first[28..32].try_into()?) as usize;
                     if !gate.permits(source,target){return Ok(());}
-                    let mut server=TcpStream::connect(backend).await?;server.write_all(&first).await?;
+                    let deadline=Instant::now()+Duration::from_secs(2);
+                    let address=loop {
+                        if backend.exists(){break read_text(&backend,128)?.trim().parse::<SocketAddr>()?;}
+                        if Instant::now()>=deadline{return Err("backend listener publication deadline".into());}
+                        tokio::select!{_ = stop.changed()=>return Ok(()),_ = tokio::time::sleep(Duration::from_millis(10))=>{}}
+                    };
+                    let mut server=TcpStream::connect(address).await?;server.set_nodelay(true)?;server.write_all(&first).await?;
                     gate.capture_file(&format!("hello-{source}-{target}-{id}.bin"), &first)?;
                     let (cr,cw)=client.into_split();let (sr,sw)=server.into_split();
                     // EOF in one direction must not cancel the other future
@@ -522,14 +531,14 @@ impl Cluster {
             return Err("profile bounds".into());
         }
         let root = temporary(&format!("tcp-{count}-genesis-{active}"))?;
-        let mut backend_listeners = Vec::new();
         let mut proxy_listeners = Vec::new();
         let mut routes = Vec::new();
         let mut backends = Vec::new();
         for _ in 0..count {
-            let b = TcpListener::bind("127.0.0.1:0").await?;
-            backends.push(b.local_addr()?);
-            backend_listeners.push(b);
+            // The child binds its own port and publishes the live address.
+            // Reserving then dropping a parent listener lets an outbound
+            // ephemeral connection take that port before the child can bind.
+            backends.push("127.0.0.1:0".parse()?);
             let p = TcpListener::bind("127.0.0.1:0").await?;
             routes.push(p.local_addr()?);
             proxy_listeners.push(p);
@@ -546,10 +555,9 @@ impl Cluster {
         for (target, listener) in proxy_listeners.into_iter().enumerate() {
             let g = gate.clone();
             let s = rx.clone();
-            let b = backends[target];
+            let b = root.join(format!("node-{target}/listen-address"));
             proxies.push(tokio::spawn(proxy(listener, b, target, g, s)));
         }
-        drop(backend_listeners);
         let mut cluster = Self {
             root,
             processes: (0..count).map(|_| None).collect(),
@@ -569,7 +577,7 @@ impl Cluster {
     fn spawn(&mut self, id: usize) -> TestResult {
         let root = self.root.join(format!("node-{id}"));
         fs::create_dir_all(&root)?;
-        for name in ["ready", "state"] {
+        for name in ["ready", "state", "listen-address"] {
             let p = root.join(name);
             if p.exists() {
                 fs::remove_file(p)?;
@@ -625,7 +633,7 @@ impl Cluster {
             let mut ready = true;
             for p in self.processes.iter_mut().flatten() {
                 if let Some(code) = p.child.try_wait()? {
-                    return Err(format!("child startup {code}").into());
+                    return Err(format!("child startup {code}; retained logs at {}", p.root.display()).into());
                 }
                 ready &= p.root.join("ready").exists();
             }
@@ -664,6 +672,12 @@ impl Cluster {
             return Err("base-position fields".into());
         }
         Ok((fields[1].parse()?, fields[2].parse()?))
+    }
+    fn ready_to_write(&self, id: usize) -> TestResult<bool> {
+        let process = self.processes[id].as_ref().ok_or("node closed")?;
+        let text = read_text(&process.root.join("state"), 1024 * 1024)?;
+        Ok(text.lines().next().ok_or("state header")?
+            .split_whitespace().nth(4).ok_or("state readiness")?.parse()?)
     }
     fn require_completed_image_frames(&self, source: usize, target: usize) -> TestResult {
         let Some(root) = &self.gate.capture else {
@@ -705,7 +719,13 @@ impl Cluster {
         loop {
             let candidates = (0..self.processes.len())
                 .filter(|i| self.processes[*i].is_some() && !excluded.contains(i))
-                .filter(|i| self.state(*i).is_ok_and(|s| s.1 == "Leader" && s.3 > 0))
+                .filter(|i| self.state(*i).is_ok_and(|s| s.1 == "Leader" && s.3 > 0
+                    && s.4.split(';').next_back().is_some_and(|record| {
+                        let mut fields = record.split(':');
+                        fields.next().and_then(|term| term.parse::<u64>().ok()) == Some(s.0)
+                            && fields.next().and_then(|index| index.parse::<u64>().ok()) == Some(s.3)
+                    }))
+                    && self.ready_to_write(*i).unwrap_or(false))
                 .collect::<Vec<_>>();
             if candidates.len() == 1 {
                 return Ok(candidates[0]);
@@ -1114,7 +1134,7 @@ async fn fault_history(count: usize) -> TestResult {
     let removed = cluster
         .command(current, &format!("remove {current}"))
         .await?;
-    assert!(removed.starts_with("change "));
+    assert!(removed.starts_with("change "), "remove returned {removed}; {}", cluster.commit_diagnostics("before-removal", committed, &all));
     let removal: u64 = removed
         .split_whitespace()
         .nth(2)

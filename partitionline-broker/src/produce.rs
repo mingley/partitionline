@@ -586,7 +586,7 @@ fn parse_filename(name: &str) -> Result<(TopicId, i32), Error> {
     }
     let hex = base.as_bytes().get(..32).ok_or(Error::InvalidStore)?;
     let mut bytes = [0; 16];
-    for (n, pair) in hex.chunks_exact(2).enumerate() {
+    for (n, pair) in hex.as_chunks::<2>().0.iter().enumerate() {
         let nibble = |b| match b {
             b'0'..=b'9' => Ok(b - b'0'),
             b'a'..=b'f' => Ok(b - b'a' + 10),

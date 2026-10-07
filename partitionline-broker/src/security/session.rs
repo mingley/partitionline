@@ -401,7 +401,7 @@ impl Profile {
     pub fn with_reauthentication(self, lifetime: Duration) -> Result<Self, Error> {
         if lifetime < Duration::from_millis(1)
             || lifetime > Duration::from_secs(24 * 60 * 60)
-            || lifetime.subsec_nanos() % 1_000_000 != 0
+            || !lifetime.subsec_nanos().is_multiple_of(1_000_000)
         {
             return Err(Error::InvalidProfile);
         }

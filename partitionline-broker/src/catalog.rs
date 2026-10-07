@@ -305,6 +305,10 @@ pub fn validate_topic_name(name: &str) -> Result<(), Error> {
 pub struct Catalog {
     inner: Backend,
 }
+#[expect(
+    clippy::large_enum_variant,
+    reason = "one backend is selected at catalog construction; retain its existing inline ownership"
+)]
 enum Backend {
     Local(Core<journal::Journal>),
     Quorum(crate::metadata_quorum::QuorumCatalog),

@@ -205,8 +205,19 @@ impl Cluster {
                     let state = node.handle().state().await?;
                     if state.election.role == Role::Leader
                         && state.active_term == Some(state.election.persistent.term)
+                        && state.ready
+                        && state.committed_end > 0
                     {
-                        return Ok(id);
+                        let committed = node
+                            .handle()
+                            .fetch_committed(state.committed_end, 1, 256 * 1024)
+                            .await?;
+                        if committed.last().is_some_and(|record| {
+                            record.term == state.election.persistent.term
+                                && record.index == state.committed_end
+                        }) {
+                            return Ok(id);
+                        }
                     }
                 }
             }
@@ -264,14 +275,13 @@ impl Cluster {
                     }
                 } else {
                     let d = handle.diagnostics();
-                    if d.network_tasks != 0
+                    if (d.network_tasks != 0
                         || d.sockets != 0
                         || d.transport_bytes != 0
-                        || d.client_slots != 0
+                        || d.client_slots != 0)
+                        && first.is_none()
                     {
-                        if first.is_none() {
-                            first = Some("postjoin runtime owners remain".into());
-                        }
+                        first = Some("postjoin runtime owners remain".into());
                     }
                 }
             }
@@ -351,7 +361,10 @@ fn create_error(bytes: &[u8], name: &str) -> Result<i16> {
     ensure(r.i32()? == 1, "one result")?;
     ensure(r.string()? == Some(name), "topic name")?;
     let error = r.i16()?;
-    r.string()?;
+    let message = r.string()?;
+    if error != 0 {
+        eprintln!("CreateTopics {name}: Kafka error {error}, message {message:?}");
+    }
     r.end()?;
     Ok(error)
 }
@@ -411,10 +424,10 @@ async fn quorum_application_case(count: usize) -> Result {
             .ok_or("missing router")?
             .respond(create("committed-before-minority")?)
             .await?;
-        ensure(
-            create_error(&response, "committed-before-minority")? == 0,
-            "first create quorum outcome",
-        )?;
+        let error = create_error(&response, "committed-before-minority")?;
+        if error != 0 {
+            return Err(format!("first create quorum outcome: Kafka error {error}").into());
+        }
         for id in 0..count {
             observed(&group, id, "committed-before-minority").await?;
         }

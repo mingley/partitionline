@@ -1689,10 +1689,10 @@ async fn supervise(
                         Err(_)=>{control.stop();break;}
                     }
                 }
-                result=workers.join_next(),if !workers.is_empty()=>{if let Some(result)=result {
-                    #[cfg(test)] { joined += 1; }
-                    if let Err(e)=result{failure=Some(Error::Join(e));control.stop();break;}
-                }}
+                result=workers.join_next(),if !workers.is_empty()=>{
+                    #[cfg(test)] if result.is_some() { joined += 1; }
+                    if let Some(Err(e))=result{failure=Some(Error::Join(e));control.stop();break;}
+                }
             }
         }
     }
@@ -1902,14 +1902,14 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
             let counter = Counter::socket(&control);
             let connect_deadline = deadline
                 .min(Instant::now() + Duration::from_millis(control.config.limits.connect_ms));
-            match tokio::time::timeout_at(connect_deadline, TcpStream::connect(peer.address)).await
+            if let Ok(Ok(mut s)) =
+                tokio::time::timeout_at(connect_deadline, TcpStream::connect(peer.address)).await
             {
-                Ok(Ok(mut s)) => {
-                    if hello(&mut s, &control, peer.key(), deadline).await.is_ok() {
-                        socket = Some((s, counter, 0));
-                    }
+                if configure_peer_socket(&s).is_ok()
+                    && hello(&mut s, &control, peer.key(), deadline).await.is_ok()
+                {
+                    socket = Some((s, counter, 0));
                 }
-                _ => {}
             }
         }
         let result = if let Some((s, _, id)) = &mut socket {
@@ -2008,6 +2008,12 @@ struct IdentitySlot {
     slots: Arc<Vec<AtomicBool>>,
     index: usize,
 }
+fn configure_peer_socket(socket: &TcpStream) -> Result<()> {
+    // A length prefix and a small election/heartbeat body must not wait for
+    // the previous segment's delayed ACK before reaching the peer.
+    socket.set_nodelay(true)?;
+    Ok(())
+}
 impl Drop for IdentitySlot {
     fn drop(&mut self) {
         self.slots[self.index].store(false, Ordering::Release);
@@ -2021,6 +2027,9 @@ async fn serve(
 ) {
     let _task = Counter::task(&control);
     let _socket = Counter::socket(&control);
+    if configure_peer_socket(&socket).is_err() {
+        return;
+    }
     let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
     let reservation = control.reserve_frame(deadline).await;
     let Ok(reservation) = reservation else {
@@ -2248,6 +2257,10 @@ impl TestTrace {
         )?;
         Self::hex(&bytes[24..bytes.len() - 4])
     }
+    #[expect(
+        clippy::type_complexity,
+        reason = "test receipt returns command, optional packet and optional barrier text"
+    )]
     fn input(
         command: &Command,
         limit: usize,
@@ -2452,6 +2465,19 @@ mod ownership_tests {
     use super::*;
 
     type TestResult<T = ()> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+    #[tokio::test]
+    async fn peer_socket_configuration_disables_nagle_on_both_directions() -> TestResult {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let (client, accepted) = tokio::join!(TcpStream::connect(address), listener.accept());
+        let client = client?;
+        let (server, _) = accepted?;
+        configure_peer_socket(&client)?;
+        configure_peer_socket(&server)?;
+        assert!(client.nodelay()?);
+        assert!(server.nodelay()?);
+        Ok(())
+    }
     struct LocalOwner {
         control: Arc<Control>,
         join: Option<std::thread::JoinHandle<Result<State>>>,
@@ -2715,6 +2741,10 @@ mod ownership_tests {
             }
         }
     }
+    #[expect(
+        clippy::type_complexity,
+        reason = "test gate returns the owned command and its delivery/readiness/release endpoints"
+    )]
     fn gate(
         command: Command,
     ) -> (
@@ -3234,7 +3264,7 @@ mod ownership_tests {
             fetch_bytes: 256 * 1024,
             images: snapshot::Limits::new(
                 2 * 1024 * 1024,
-                64,
+                live_entries.min(64),
                 1024 * 1024,
                 64 * 1024,
                 32 * 1024,

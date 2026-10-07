@@ -2127,6 +2127,10 @@ fn preserve_polled_image_fixture(
     preserve_polled_image_fixture_for(group, 3, phase, offer, outcome)
 }
 
+#[expect(
+    clippy::disallowed_methods,
+    reason = "synchronous durable fixture capture runs outside an async runtime"
+)]
 fn preserve_polled_image_fixture_for(
     group: &mut DynamicGroup,
     receiver: usize,
@@ -2418,6 +2422,10 @@ fn incoming_dynamic_image_old_offer_cannot_survive_a_real_higher_term_known_lead
 }
 
 #[test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "synchronous fault injection replaces the real image directory outside an async runtime"
+)]
 fn incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_finish() -> Result {
     let (mut group, offer, _) = polled_incoming_image_fixture()?;
     group.node(3)?.poll(17)?;

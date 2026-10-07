@@ -369,7 +369,10 @@ fn parse_name(filename: &str) -> Result<([u8; 16], bool), Error> {
         return Err(Error::ForeignIdentity);
     }
     let mut generation = [0; 16];
-    for (slot, pair) in generation.iter_mut().zip(body.as_bytes().chunks_exact(2)) {
+    for (slot, pair) in generation
+        .iter_mut()
+        .zip(body.as_bytes().as_chunks::<2>().0)
+    {
         let digit = |value: u8| match value {
             b'0'..=b'9' => Ok(value - b'0'),
             b'a'..=b'f' => Ok(value - b'a' + 10),
