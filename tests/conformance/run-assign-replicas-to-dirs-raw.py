@@ -88,7 +88,7 @@ unstable.api.versions.enable=true
 auto.create.topics.enable=false
 log.segment.bytes=1048576
 log.index.size.max.bytes=1048576
-metadata.log.segment.bytes=1048576
+metadata.log.segment.bytes=8388608
 ''')
     native_inputs = {str(p): sha(p) for name in ('bin','libs','config') for p in sorted((home/name).rglob('*')) if p.is_file()}
     save(root/'native-source-bindings.json', native_inputs)
@@ -191,6 +191,10 @@ def main():
     for name in ('actual_sdk_assign_replicas_to_dirs_bodies','native_assign_replicas_to_dirs_raw_history'):
         if name+': test' not in listing:raise ValueError('missing mandatory lane')
     sdks=gen.generate(args.jars,args.slf4j,args.output);results=[]
+    compiled_inputs={str(path):sha(path) for sdk in sdks
+        for path in sorted((args.output/(sdk['release']+'-classes')).rglob('*')) if path.is_file()}
+    save(args.output/'compiled-inputs.json',compiled_inputs)
+    GUARD.update(compiled_inputs)
     for sdk in sdks:
         release=sdk['release'];reverse=args.output/(release+'-reverse')
         env=owner.base_env() | {'ASSIGN_DIRS_FIXTURES':sdk['fixtures'],'ASSIGN_DIRS_REVERSE':str(reverse)}
