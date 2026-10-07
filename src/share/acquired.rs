@@ -3,19 +3,49 @@ use crate::protocol::share::AcquiredRange;
 /// Lookup in sorted, nonoverlapping acquisition ranges validated by ShareFetch.
 pub(crate) struct AcquisitionRanges<'a> {
     ranges: &'a [AcquiredRange],
+    index: usize,
+    previous_offset: Option<i64>,
 }
 
 impl<'a> AcquisitionRanges<'a> {
     pub(crate) fn new(ranges: &'a [AcquiredRange]) -> Self {
-        Self { ranges }
+        Self {
+            ranges,
+            index: 0,
+            previous_offset: None,
+        }
     }
 
     pub(crate) fn delivery_count(&mut self, offset: i64) -> Option<i16> {
-        let index = self
-            .ranges
-            .partition_point(|range| range.last_offset < offset);
+        if self
+            .previous_offset
+            .is_some_and(|previous| offset < previous)
+        {
+            self.index = self
+                .ranges
+                .partition_point(|range| range.last_offset < offset);
+        } else {
+            // Ordered records normally stay in this range or enter its neighbor.
+            // Bound cursor work on a sparse jump, then search the remaining tail.
+            for _ in 0..4 {
+                if self
+                    .ranges
+                    .get(self.index)
+                    .is_none_or(|r| r.last_offset >= offset)
+                {
+                    break;
+                }
+                self.index += 1;
+            }
+            if let Some(tail) = self.ranges.get(self.index..) {
+                if tail.first().is_some_and(|range| range.last_offset < offset) {
+                    self.index += tail.partition_point(|range| range.last_offset < offset);
+                }
+            }
+        }
+        self.previous_offset = Some(offset);
         self.ranges
-            .get(index)
+            .get(self.index)
             .filter(|range| range.first_offset <= offset)
             .map(|range| range.delivery_count)
     }
