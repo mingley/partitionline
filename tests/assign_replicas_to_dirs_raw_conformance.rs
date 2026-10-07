@@ -92,12 +92,16 @@ async fn actual_sdk_assign_replicas_to_dirs_bodies() {
     assert_eq!(count, 23);
 }
 
-fn uuid_from_environment(name: &str) -> [u8; 16] {
-    let text = std::env::var(name).expect("required owned-controller UUID input");
-    assert_eq!(text.len(), 32);
-    std::array::from_fn(|i| {
-        u8::from_str_radix(&text[2 * i..2 * i + 2], 16).expect("owned-controller UUID must be hex")
-    })
+fn uuid_from_environment(name: &str) -> Result<[u8; 16], Box<dyn std::error::Error>> {
+    let text = std::env::var(name)?;
+    if text.len() != 32 || !text.is_ascii() {
+        return Err("owned-controller UUID must contain 32 hexadecimal characters".into());
+    }
+    let mut bytes = [0; 16];
+    for (i, byte) in bytes.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&text[2 * i..2 * i + 2], 16)?;
+    }
+    Ok(bytes)
 }
 
 #[tokio::test]
@@ -111,8 +115,8 @@ async fn native_assign_replicas_to_dirs_raw_history() {
         .unwrap()
         .parse()
         .unwrap();
-    let directory_id = uuid_from_environment("ASSIGN_DIRS_DIRECTORY_ID");
-    let topic_id = uuid_from_environment("ASSIGN_DIRS_TOPIC_ID");
+    let directory_id = uuid_from_environment("ASSIGN_DIRS_DIRECTORY_ID").unwrap();
+    let topic_id = uuid_from_environment("ASSIGN_DIRS_TOPIC_ID").unwrap();
     let output = std::path::PathBuf::from(std::env::var_os("ASSIGN_DIRS_OUTPUT").unwrap());
     tokio::fs::create_dir(&output).await.unwrap();
     let deadline = Deadline::from_timeout(Duration::from_secs(5));
