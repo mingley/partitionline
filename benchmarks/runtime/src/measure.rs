@@ -3,7 +3,7 @@
 //! (`libc`, `codec::census`) inside this harness crate. The core crate
 //! is untouched.
 //!
-//! The measured phase runs on a single-threaded Tokio runtime with the
+//! The measured phase runs on an explicitly selected Tokio runtime with the
 //! broker in a separate process, so `RUSAGE_SELF` CPU and the
 //! process-wide census count only client work (plus the RSS sampler,
 //! which is allocation-free by construction: fixed stack buffers, a
@@ -189,8 +189,9 @@ impl RssSampler {
     pub fn start(interval: Duration, cap: usize) -> Self {
         let stop = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&stop);
+        // Allocate on the caller before the measured interval begins.
+        let mut samples = Vec::with_capacity(cap);
         let handle = std::thread::spawn(move || {
-            let mut samples = Vec::with_capacity(cap);
             while !flag.load(Ordering::Relaxed) {
                 if samples.len() < cap {
                     samples.push(rss_now());

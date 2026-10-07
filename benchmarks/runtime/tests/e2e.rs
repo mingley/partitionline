@@ -206,3 +206,45 @@ fn committed_aborts_cell_verifies_exact_offset_history() {
     );
     let _ = std::fs::remove_dir_all(&out_dir);
 }
+
+#[test]
+fn explicit_runtime_flavors_preserve_delivery_and_quiesce_between_repetitions() {
+    for (flavor, workers) in [
+        ("current_thread", "0"),
+        ("multi_thread", "1"),
+        ("multi_thread", "2"),
+        ("multi_thread", "4"),
+        ("multi_thread", "5"),
+    ] {
+        for cell in ["nb-produce-bulk", "nb-fetch-bulk"] {
+            let (doc, out) = run_cell_with_args(
+                cell,
+                &[
+                    "--runtime",
+                    flavor,
+                    "--workers",
+                    workers,
+                    "--repetitions",
+                    "2",
+                ],
+            );
+            for row in [
+                doc,
+                serde_json::from_slice::<serde_json::Value>(
+                    &std::fs::read(out.join(format!("{cell}-rep1.result.json"))).unwrap(),
+                )
+                .unwrap(),
+            ] {
+                let observed = &row["provenance"]["config"]["effective_settings"]["runtime"];
+                assert_eq!(observed["requested_flavor"], flavor);
+                assert_eq!(observed["observed_flavor"], flavor);
+                let expected = workers.parse::<usize>().unwrap();
+                assert_eq!(observed["requested_background_workers"], expected);
+                assert_eq!(observed["observed_scheduler_workers"], expected.max(1));
+                assert_eq!(observed["observed_alive_tasks"], 0);
+                assert_eq!(row["scenario"]["cell_disposition"], "executed");
+            }
+            let _ = std::fs::remove_dir_all(out);
+        }
+    }
+}

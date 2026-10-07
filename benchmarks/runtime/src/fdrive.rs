@@ -197,7 +197,7 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                     }
                     let committed_group =
                         u64::from(cell.synth_records_per_batch) * (cell.synth_abort_every - 1);
-                    if ordinal > 0 && ordinal % committed_group == 0 {
+                    if ordinal > 0 && ordinal.is_multiple_of(committed_group) {
                         out.committed_abort_gap_records += u64::from(cell.synth_records_per_batch);
                     }
                     match out.committed_history.last_mut() {

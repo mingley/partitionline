@@ -8,6 +8,7 @@
 pub mod artifact;
 pub mod cells;
 pub mod drive;
+pub mod executor;
 pub mod fcells;
 pub mod fdrive;
 pub mod host;

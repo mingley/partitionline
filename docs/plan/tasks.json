@@ -18726,13 +18726,24 @@
     {
       "id": "KL09-61",
       "title": "Measure Tokio runtime flavor and worker-count sensitivity",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
       "files": ["benchmarks/runtime/", "docs/guide.md"],
       "deliverable": "Results for current_thread versus multi_thread (1/2/4/N workers) on nb-produce-bulk, nb-fetch-bulk, lb-bulk and lb-latency-openloop, plus a guide recommendation.",
       "acceptance": ["The runtime harness accepts an explicit runtime flavor and worker count and records them; the bench examples are not modified.", "Any flavor-specific stall or bug becomes a bounded card; no library default changes.", "Results are labeled local/unsigned."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Re-run one configuration to show reproducibility."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "benchmarks/runtime/",
+        "docs/guide.md",
+        "docs/evidence/perf/runtime-flavors/",
+        "docs/plan/evidence/KL09-61.json"
+      ],
+      "qualification_notes": [
+        {
+          "scope": "Keep library and bench examples unchanged. Isolate benchmark repetitions with a bounded post-close runtime cancellation barrier and retain pre-barrier task counts. Production shutdown completion is a separate KL02-12 follow-up."
+        }
+      ]
     },
     {
       "id": "KL09-62",
@@ -53206,6 +53217,44 @@
         "docs/evidence/client/producer-initialization/"
       ],
       "serialization_note": "User requests all open cards. Root integrates these bounded startup helpers serially, preserving the unchanged SASL/worker scope owned by KL06-11. The previous KL06-11 dependency represented a shared-file serialization hold, not a required startup behavior; completed coordinator/transaction/SASL foundations are the actual prerequisites. No KL06-11 feature or qualification is inferred."
+    },
+    {
+      "id": "KL02-12",
+      "title": "Await producer shutdown completion under the close deadline contract",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL02-01",
+        "KL05-10",
+        "KL06-11"
+      ],
+      "files": [
+        "src/producer.rs",
+        "tests/produce_cancel.rs",
+        "docs/resource-contract.md"
+      ],
+      "deliverable": "Owned producer worker and control-task cancellation completion on explicit close, including an explicit disposition when the caller deadline prevents completion; keep last-handle Drop semantics separate.",
+      "acceptance": [
+        "Reproduce the retained KL09-61 observation: Producer.close returned with 3 live Tokio tasks under current-thread execution. Do not infer completion from abort alone.",
+        "Preserve the public close/close_timeout outcome and deadline contract, per-record ambiguity and exact buffer release. Never add an unbounded shutdown await.",
+        "Test completed, stalled, retrying and lazy-connect paths, concurrent close/clones and cancelled close on current-thread and multi-thread runtimes. Validate actual task/resource release and prevent worker publication after shutdown.",
+        "Coordinate with producer-owned KL05-10 and KL06-11; no unrelated partitioner/auth behavior changes."
+      ],
+      "validation": [
+        "cargo +stable test --locked --test produce_cancel --test buffer_ownership",
+        "cargo +stable test --locked --test full_surface",
+        "cargo +stable clippy --locked --all-targets --all-features -- -D warnings",
+        "Re-run the retained runtime alive-task assertion and prove no cleanup enters the next measured phase."
+      ],
+      "evidence": [
+        {
+          "scope": "Actual failed runtime test; no implementation or closure qualification",
+          "observation": "KL09-61 producer-close-observation-01",
+          "pending_evidence_directory": "docs/evidence/perf/runtime-flavors/"
+        }
+      ]
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",

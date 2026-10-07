@@ -24,6 +24,7 @@ use partitionline::Acks;
 use runtime::artifact::{build_result, parse_broker_artifact, BrokerCounts, RunContext};
 use runtime::cells::{generate, producer_cells, CellDef};
 use runtime::drive::drive_cell;
+use runtime::executor::RuntimeConfig;
 use runtime::host::probe as probe_host;
 use runtime::measure::{cpu_now, peak_rss_bytes, rss_now, RssSampler};
 
@@ -32,7 +33,7 @@ static ALLOC: CountingAlloc = CountingAlloc;
 
 fn usage() -> ! {
     eprintln!(
-        "usage: runtime --cell <id|all> --out <dir> [--repetitions <n>] [--connect-stalled-first]"
+        "usage: runtime --cell <id|all> --out <dir> [--repetitions <n>] [--runtime <current_thread|multi_thread>] [--workers <0|1..64>] [--connect-stalled-first]"
     );
     std::process::exit(2);
 }
@@ -449,6 +450,7 @@ struct ProduceRun {
 #[allow(clippy::too_many_arguments)]
 fn run_produce(
     rt: &tokio::runtime::Runtime,
+    runtime_config: RuntimeConfig,
     nb_serve: &Path,
     cell: &CellDef,
     run: &ProduceRun,
@@ -491,7 +493,10 @@ fn run_produce(
             &mut stamps,
         ));
     });
-    drop(producer);
+    let producer = Arc::try_unwrap(producer)
+        .map_err(|_| "harness producer still shared after drive".to_owned())?;
+    rt.block_on(producer.close())
+        .map_err(|e| format!("producer close: {e}"))?;
     let rtt_ms = loopback_rtt_ms(&endpoint);
     let latency_path = write_latencies(out_dir, &tag, &outcome.latencies_us)?;
     let (counts, child_ru) = broker.stop()?;
@@ -543,6 +548,7 @@ fn run_produce(
         profile: "bulk",
         consumed: 0,
         extra_failed,
+        runtime_config: runtime_config.quiesce(rt)?,
         effective_settings: produce_effective(
             cell,
             max_in_flight,
@@ -617,6 +623,7 @@ fn fetch_effective(cell: &runtime::fcells::FetchCellDef) -> serde_json::Value {
 #[allow(clippy::too_many_arguments)]
 fn run_fetch(
     rt: &tokio::runtime::Runtime,
+    runtime_config: RuntimeConfig,
     nb_serve: &Path,
     cell: &runtime::fcells::FetchCellDef,
     repetition: u32,
@@ -666,7 +673,8 @@ fn run_fetch(
     let phase = measured_phase(|| {
         rt.block_on(runtime::fdrive::drive_fetch(&mut consumer, cell, &mut fout));
     });
-    drop(consumer);
+    rt.block_on(consumer.close())
+        .map_err(|e| format!("consumer close: {e}"))?;
     let rtt_ms = loopback_rtt_ms(&endpoint);
     let latency_path = write_latencies(out_dir, &tag, &fout.latencies_us)?;
     let (counts, child_ru) = broker.stop()?;
@@ -822,6 +830,7 @@ fn run_fetch(
 
     let ctx = RunContext {
         cell_id: cell.id,
+        runtime_config: runtime_config.quiesce(rt)?,
         offered: if cell.id == "nb-fetch-committed-aborts" {
             fout.returned_records
         } else {
@@ -901,8 +910,13 @@ struct ConnectCase {
     stalled_first: bool,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "connect cell records its explicit executor alongside its existing owned broker/run parameters"
+)]
 fn run_connect(
     rt: &tokio::runtime::Runtime,
+    runtime_config: RuntimeConfig,
     nb_serve: &Path,
     repetition: u32,
     out_dir: &Path,
@@ -1092,6 +1106,7 @@ fn run_connect(
     );
     let ctx = RunContext {
         cell_id: CELL_ID,
+        runtime_config: runtime_config.quiesce(rt)?,
         offered: cases.len() as u64,
         seed: SEED,
         profile: "bulk",
@@ -1143,6 +1158,8 @@ fn main() {
     let mut out_dir: Option<PathBuf> = None;
     let mut repetitions: u32 = 1;
     let mut connect_stalled_first = false;
+    let mut runtime_flavor = "current_thread".to_owned();
+    let mut runtime_workers = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -1156,10 +1173,21 @@ fn main() {
                     .unwrap_or_else(|_| usage());
             }
             "--connect-stalled-first" => connect_stalled_first = true,
+            "--runtime" => runtime_flavor = args.next().unwrap_or_else(|| usage()),
+            "--workers" => {
+                runtime_workers = Some(
+                    args.next()
+                        .unwrap_or_else(|| usage())
+                        .parse()
+                        .unwrap_or_else(|_| usage()),
+                );
+            }
             _ => usage(),
         }
     }
     let cell_filter = cell_filter.unwrap_or_else(|| usage());
+    let runtime_config =
+        RuntimeConfig::parse(&runtime_flavor, runtime_workers).unwrap_or_else(|_| usage());
     if connect_stalled_first && cell_filter != "nb-connect" && cell_filter != "all" {
         usage();
     }
@@ -1242,21 +1270,19 @@ fn main() {
         }
     }
 
-    // Single-threaded runtime: census + RUSAGE_SELF then count only
-    // client work (the sampler is allocation-free by construction).
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap_or_else(|e| {
-            eprintln!("runtime: tokio build failed: {e}");
-            std::process::exit(1);
-        });
+    // Global census and RUSAGE_SELF include all client runtime workers.
+    // Broker subprocesses are separate; RSS sampling is allocation-free.
+    let rt = runtime_config.build().unwrap_or_else(|e| {
+        eprintln!("runtime: tokio build failed: {e}");
+        std::process::exit(1);
+    });
     let mut failures = 0u32;
     for job in &jobs {
         for rep in 0..repetitions {
             let outcome = match job {
                 Job::Produce(cell, run) => run_produce(
                     &rt,
+                    runtime_config,
                     &nb_serve,
                     cell,
                     run,
@@ -1267,6 +1293,7 @@ fn main() {
                 ),
                 Job::Fetch(cell) => run_fetch(
                     &rt,
+                    runtime_config,
                     &nb_serve,
                     cell,
                     rep,
@@ -1276,6 +1303,7 @@ fn main() {
                 ),
                 Job::Connect => run_connect(
                     &rt,
+                    runtime_config,
                     &nb_serve,
                     rep,
                     &out_dir,

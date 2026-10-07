@@ -147,6 +147,8 @@ pub struct RunContext {
     pub extra_failed: bool,
     /// Effective client settings (must carry the five required keys).
     pub effective_settings: Value,
+    /// Requested and observed Tokio runtime configuration.
+    pub runtime_config: Value,
     /// Scenario equal-semantics block.
     pub equal_semantics: Value,
     /// Drive-mode label for `execution`.
@@ -390,7 +392,11 @@ pub fn build_result(
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "runtime".to_owned());
 
-    let effective = ctx.effective_settings.clone();
+    let mut effective = ctx.effective_settings.clone();
+    effective
+        .as_object_mut()
+        .ok_or("effective settings must be an object")?
+        .insert("runtime".into(), ctx.runtime_config.clone());
     let mut cfg_hasher = Sha256::new();
     cfg_hasher.update(serde_json::to_string(&effective).unwrap_or_default());
     let cfg_sha = hex::encode(cfg_hasher.finalize());

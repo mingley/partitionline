@@ -4,17 +4,18 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-description = "Null-broker runtime measurement harness for producer cells (KL09-09). Standalone: never a dependency of partitionline."
+description = "Runtime measurements against null and native Kafka brokers. Standalone benchmark crate."
 
 [dependencies]
 partitionline = { version = "0.1.0", path = "../.." }
 nullbroker = { version = "0.1.0", path = "../nullbroker" }
 codec = { version = "0.1.0", path = "../codec" }
-tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "sync", "macros"] }
 bytes = "1"
 serde_json = "1"
 libc = "0.2"
 sha2 = "0.10"
+parking_lot = "0.12"
 time = { version = "0.3", features = ["formatting", "std"] }
 
 [[bin]]
@@ -24,6 +25,14 @@ path = "src/main.rs"
 [[bin]]
 name = "nb-serve"
 path = "src/bin/nb-serve.rs"
+
+[[bin]]
+name = "native-produce-runtime"
+path = "src/bin/native-produce-runtime.rs"
+
+[[bin]]
+name = "native-latency-runtime"
+path = "src/bin/native-latency-runtime.rs"
 
 [lib]
 name = "runtime"
