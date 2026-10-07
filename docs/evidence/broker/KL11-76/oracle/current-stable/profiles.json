@@ -1,0 +1,23 @@
+{
+  "source_contract": "partitionline-broker/tests/common/raft_runtime.rs at05faf3dbccd303447a20dc2c550ba99201671779",
+  "profiles": {
+    "3-3": {
+      "nodes": 3,
+      "genesis": 3
+    },
+    "3-2": {
+      "nodes": 3,
+      "genesis": 2
+    },
+    "5-5": {
+      "nodes": 5,
+      "genesis": 5
+    },
+    "5-4": {
+      "nodes": 5,
+      "genesis": 4
+    }
+  },
+  "identity_contract": "node IDs0..nodes-1; directory sixteen repeats of(id+1); private-76-test/__cluster_metadata/0; ephemeral numeric loopback CONTROLLER endpoints",
+  "scope": "Fixed declared trusted peer topology; observer routes are configured before admission but are not voting authority until independently replayed membership."
+}

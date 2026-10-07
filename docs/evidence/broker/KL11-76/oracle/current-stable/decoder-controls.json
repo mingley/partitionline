@@ -1,0 +1,169 @@
+{
+  "scope": "Hand-built Python decoder controls; no Rust compiler, broker, TCP or durable authority proof",
+  "positive_packets": 2,
+  "negative_packets": 26,
+  "crc_known_vector_passed": true,
+  "all_rejected": true,
+  "negative_cases": [
+    {
+      "case": "tcp-length",
+      "rejected": true,
+      "class": "exact TCP private length",
+      "sha256": "1deb4430b694a86f233dc1c34369f3fb37b408c9f7809cfefeba0c1c1cd191c8"
+    },
+    {
+      "case": "crc",
+      "rejected": true,
+      "class": "private CRC32C",
+      "sha256": "142be692fbdaa3ca4ed440e2dc40ed92564b46e02bdeac6a0fa89b32bb915453"
+    },
+    {
+      "case": "magic",
+      "rejected": true,
+      "class": "private magic/version",
+      "sha256": "f6b9560c471f91e8932a3024fa812b4f5857ce649028b3662efd2b5086ae4256"
+    },
+    {
+      "case": "version",
+      "rejected": true,
+      "class": "private magic/version",
+      "sha256": "5d311da1ab1c364f68ae464dd16a0e46c787d0ff92e1c85d089e2c7953535307"
+    },
+    {
+      "case": "flags",
+      "rejected": true,
+      "class": "nonzero reserved private bytes",
+      "sha256": "8a14d04ba23a189d3b3a3f694e44493251028798abc3a9ec0b1cdef959d9307c"
+    },
+    {
+      "case": "reserved",
+      "rejected": true,
+      "class": "nonzero reserved private bytes",
+      "sha256": "63ceadf3fe3a5bf9eee2dfb51787f85674a0e24b631c54314b5c39274801675c"
+    },
+    {
+      "case": "unknown-kind",
+      "rejected": true,
+      "class": "unknown private message kind",
+      "sha256": "c9ecbeb8f3ccbba53cee92c2d621b6523472af77dcfb443121f79d685f440de0"
+    },
+    {
+      "case": "vote-rpc-zero",
+      "rejected": true,
+      "class": "Hello/private RPC correlation domain",
+      "sha256": "982a48428773b21a35bcb4948b7035c75240f3a1d24364be13c3d54e284adc22"
+    },
+    {
+      "case": "directory-zero",
+      "rejected": true,
+      "class": "full directory identity",
+      "sha256": "bbc14bf0d823020ea43eab61d862ac1944fe72f986a0a0b95c932f2f956f470d"
+    },
+    {
+      "case": "id-signed-overflow",
+      "rejected": true,
+      "class": "full directory identity",
+      "sha256": "ea8c2447ae512ed451b1760079500017976da7b950d46d7c1a48ec2f53ab66f1"
+    },
+    {
+      "case": "sequence-zero",
+      "rejected": true,
+      "class": "positive private correlation/index",
+      "sha256": "31e90114a7441d0a0a55fb7f2869907eca4f245b1cf2f30b9b26ba437aa7dff7"
+    },
+    {
+      "case": "term-zero",
+      "rejected": true,
+      "class": "term domain",
+      "sha256": "23d7e9cdb898a5f112ecdd1d2479ec4e0013a12c31a8dba77d4fd7ea481da471"
+    },
+    {
+      "case": "term-overflow",
+      "rejected": true,
+      "class": "term domain",
+      "sha256": "2744f5b7ff9d7ceaa28275512efbd973b6553b6145f3a76fc5b81a12a7946357"
+    },
+    {
+      "case": "candidate-mismatch",
+      "rejected": true,
+      "class": "vote candidate/history domain",
+      "sha256": "207cbc504998c4a5b24eabe84c4abe58f498646ba1de77b70fc4daaf7c3b7cbd"
+    },
+    {
+      "case": "log-not-prior-term",
+      "rejected": true,
+      "class": "vote candidate/history domain",
+      "sha256": "b6538bb11164d7a18dfea07e449ac45bfa303344ff6436da95da980edfc41d65"
+    },
+    {
+      "case": "position-term-zero",
+      "rejected": true,
+      "class": "position domain",
+      "sha256": "0dabd779c93c588ec310809f2d3afcf8443ab38e48d7449ed7ef7fb5eb89f306"
+    },
+    {
+      "case": "trailing-body",
+      "rejected": true,
+      "class": "trailing private body",
+      "sha256": "b17e9dba77009fd82f4493d553d63a4538d40679cc9510c8ec38577182237889"
+    },
+    {
+      "case": "short-body",
+      "rejected": true,
+      "class": "truncated private body",
+      "sha256": "e0d7cf268040eee964a1eec9544235e272f30aacdb3726c70814ed399f539124"
+    },
+    {
+      "case": "append-wrong-peer",
+      "rejected": true,
+      "class": "append count/identity/domain",
+      "sha256": "2226aa051351cc2de8db3e5af1f8399ea6f0b32fab5f93ffd3f4e0eee83f2604"
+    },
+    {
+      "case": "append-reserved",
+      "rejected": true,
+      "class": "nonzero reserved private bytes",
+      "sha256": "4957542637228c9d470d9e295e6c6ad6609719ab0c3a82bb3cb138e3b6472e2b"
+    },
+    {
+      "case": "append-count",
+      "rejected": true,
+      "class": "append count/identity/domain",
+      "sha256": "5cd2852076a5b9180b00ede4623ee30d1140a6dbbbb5f717579397d9da2209e3"
+    },
+    {
+      "case": "append-future-prefix",
+      "rejected": true,
+      "class": "append count/identity/domain",
+      "sha256": "e4bcbf4b273eb2527e573f86c342b3ef62fafa659d893492a8fefe7b08e697b7"
+    },
+    {
+      "case": "record-kind",
+      "rejected": true,
+      "class": "record kind/payload bound",
+      "sha256": "c9b8fe5f1f8e217c7109625327b6c7291dbb61a48849e02906c5929889c4d74a"
+    },
+    {
+      "case": "record-length",
+      "rejected": true,
+      "class": "record kind/payload bound",
+      "sha256": "28a74c3aa1240e0795c8fe4510b71575bb18c5a4346820ac50f844f605de55b2"
+    },
+    {
+      "case": "barrier-nonempty",
+      "rejected": true,
+      "class": "record kind/payload bound",
+      "sha256": "8e7b9eda70dbda678998210fdb9fd9a2f67ee69f93561157fd3cc642428d26ba"
+    },
+    {
+      "case": "configured-record-count",
+      "rejected": true
+    }
+  ],
+  "source_sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459",
+  "limits": [
+    "Hello genesis only size/magic checked here; full frozen Voters decoding must be composed.",
+    "Remote response identity and durable/current-config receipt authority are separate causal checks.",
+    "No actual runtime76 packet exists or is claimed by this receipt."
+  ]
+}

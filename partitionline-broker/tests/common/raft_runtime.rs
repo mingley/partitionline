@@ -835,6 +835,14 @@ impl Cluster {
         loop {
             if let Some(code) = p.child.try_wait()? {
                 assert_eq!(code.code(), Some(88));
+                if let Some(wire) = &self.gate.capture {
+                    let target = wire.parent().ok_or("case capture parent")?
+                        .join(format!("crashed-node-{id}-pid-{}.json", p.child.id()));
+                    write_text(&target, &format!(
+                        "{{\"node_id\":{id},\"pid\":{},\"exit_code\":88,\"parent_waited\":true,\"runtime_joined\":false,\"fault\":\"controlled process exit before restart\"}}\n",
+                        p.child.id()
+                    ))?;
+                }
                 break;
             }
             if Instant::now() >= deadline {
