@@ -2,7 +2,7 @@ mod common;
 
 use bytes::BytesMut;
 use partitionline::protocol::admin::{encode_update_features_request, FeatureUpdateKey};
-use partitionline::protocol::api::UPDATE_FEATURES;
+use partitionline::protocol::api_keys::UPDATE_FEATURES;
 use partitionline::{Admin, Error, FeatureUpdate};
 
 #[test]

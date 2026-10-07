@@ -273,7 +273,7 @@ public final class ConformanceUpdateFeatures {
             }
             boolean emptyRejected = false;
             try {
-                admin.updateFeatures(Map.of());
+                admin.updateFeatures(Map.of(), new UpdateFeaturesOptions());
             } catch (IllegalArgumentException expected) {
                 emptyRejected = true;
             }
