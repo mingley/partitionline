@@ -1,0 +1,834 @@
+{
+  "schema_version": 1,
+  "task": "KL01-30",
+  "declared_before_qualification": true,
+  "scope": "Selected current broker-bootstrap raw codec and public Admin DescribeQuorum cohort; native one-voter Kafka handler, not partitionline KRaft internals.",
+  "registered_case_ids": [
+    "current-claimed-api-055-v0-4-1-2",
+    "current-claimed-api-055-v1-4-1-2",
+    "current-claimed-api-055-v2-4-1-2",
+    "current-claimed-api-055-v0-4-2-1",
+    "current-claimed-api-055-v1-4-2-1",
+    "current-claimed-api-055-v2-4-2-1",
+    "current-claimed-api-055-v0-4-3-1",
+    "current-claimed-api-055-v1-4-3-1",
+    "current-claimed-api-055-v2-4-3-1"
+  ],
+  "sources": [
+    {
+      "release": "4.1.2",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "sha256": "353fc7fa21acea57e2b7805fb2d716ff573cc80314fc14db071a460b8a0eb618",
+      "bytes": 1722,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "sha256": "86bb4cc4b7bc9bfc755d02a3d51271d30b59d0dbf4e3e6be65c7a21cc1080e0a",
+      "bytes": 4832,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "sha256": "9dcf26a8aa7ce71b1b2b592030452d7b10dcd4e70536d0c578c7359b4edfb005",
+      "bytes": 4422,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "sha256": "1d784c706919cb6960bb9799d11728697904b610281e426b68c5fa1b3236ce18",
+      "bytes": 4027,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "sha256": "35c97cfa4437d7eac8362976d2e99375abaeae73e4b1e8487219dbfe94d0d884",
+      "bytes": 220613,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "bytes": 621835,
+      "status": "retained"
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "sha256": "bf4e7c3745757cf37671dea10b72b1e029c1c4bca7f558cc4e0089161b717fcf",
+      "bytes": 204157,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "sha256": "353fc7fa21acea57e2b7805fb2d716ff573cc80314fc14db071a460b8a0eb618",
+      "bytes": 1722,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "sha256": "d30ca71d8a6f40056e80174ea5b7319a281c9edcececfce8a09454683f5fe498",
+      "bytes": 4833,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "sha256": "9dcf26a8aa7ce71b1b2b592030452d7b10dcd4e70536d0c578c7359b4edfb005",
+      "bytes": 4422,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "sha256": "1d784c706919cb6960bb9799d11728697904b610281e426b68c5fa1b3236ce18",
+      "bytes": 4027,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "sha256": "960081d4601a6241fc16219b77761eaf4b026c4b39f68a4e3cf0e98b688dcafd",
+      "bytes": 220488,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "bytes": 627473,
+      "status": "retained"
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "sha256": "5ab420d01f5107fd0792f1d27fe5f1a1d7f49d86cd16ebcbf284e8fb26e486b8",
+      "bytes": 208392,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/DescribeQuorumRequest.json",
+      "sha256": "353fc7fa21acea57e2b7805fb2d716ff573cc80314fc14db071a460b8a0eb618",
+      "bytes": 1722,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/DescribeQuorumResponse.json",
+      "sha256": "d30ca71d8a6f40056e80174ea5b7319a281c9edcececfce8a09454683f5fe498",
+      "bytes": 4833,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumRequest.java",
+      "sha256": "9dcf26a8aa7ce71b1b2b592030452d7b10dcd4e70536d0c578c7359b4edfb005",
+      "bytes": 4422,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeQuorumResponse.java",
+      "sha256": "1d784c706919cb6960bb9799d11728697904b610281e426b68c5fa1b3236ce18",
+      "bytes": 4027,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumRequestTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/DescribeQuorumResponseTest.java",
+      "status": 404
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "sha256": "63d71dbc27c3e129a84138392b0407fd528bab43191c2aced47cfaa12136c9cc",
+      "bytes": 220524,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "bytes": 635844,
+      "status": "retained"
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "sha256": "4c9d876481f585276702ed58e8238a7f77f41c3cd7253242ecdd0a784ca5800a",
+      "bytes": 208474,
+      "status": "retained"
+    }
+  ],
+  "upstream_mapping": [
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumRequest",
+      "parameters": "short version",
+      "line": 1593,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumResponse",
+      "parameters": "",
+      "line": 1602,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumSuccess",
+      "parameters": "",
+      "line": 8870,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "emptyOptionalFields": false
+        },
+        {
+          "emptyOptionalFields": true
+        }
+      ]
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumRetriableError",
+      "parameters": "",
+      "line": 8895,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "partition_errors": [
+            6,
+            0
+          ],
+          "top_error": 0
+        }
+      ]
+    },
+    {
+      "release": "4.1.2",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumFailure",
+      "parameters": "",
+      "line": 8918,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        "top42",
+        "bad-topic-count",
+        "bad-topic-name",
+        "bad-partition-count",
+        "bad-partition-index",
+        "partition42",
+        "all-malformed",
+        "all-malformed-errors"
+      ]
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonLeader",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3170,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithOnlyStaticVoters",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3201,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithFollowers",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3236,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithObserver",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3348,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.1.2",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonMonotonicFollowerFetch",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3491,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumRequest",
+      "parameters": "short version",
+      "line": 1588,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumResponse",
+      "parameters": "",
+      "line": 1597,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumSuccess",
+      "parameters": "",
+      "line": 8927,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "emptyOptionalFields": false
+        },
+        {
+          "emptyOptionalFields": true
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumRetriableError",
+      "parameters": "",
+      "line": 8952,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "partition_errors": [
+            6,
+            0
+          ],
+          "top_error": 0
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumFailure",
+      "parameters": "",
+      "line": 8975,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        "top42",
+        "bad-topic-count",
+        "bad-topic-name",
+        "bad-partition-count",
+        "bad-partition-index",
+        "partition42",
+        "all-malformed",
+        "all-malformed-errors"
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonLeader",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3255,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithOnlyStaticVoters",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3286,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithFollowers",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3321,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithObserver",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3433,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.2.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonMonotonicFollowerFetch",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3576,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumRequest",
+      "parameters": "short version",
+      "line": 1588,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "createDescribeQuorumResponse",
+      "parameters": "",
+      "line": 1597,
+      "disposition": "wire/default and singleton counterparts; additional version fields and malformed prefixes",
+      "exact_upstream_version_invocations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumSuccess",
+      "parameters": "",
+      "line": 9076,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "emptyOptionalFields": false
+        },
+        {
+          "emptyOptionalFields": true
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumRetriableError",
+      "parameters": "",
+      "line": 9101,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        {
+          "partition_errors": [
+            6,
+            0
+          ],
+          "top_error": 0
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "method": "testDescribeMetadataQuorumFailure",
+      "parameters": "",
+      "line": 9124,
+      "disposition": "public semantic branches: 2 success optional-field variants; partition6 then success; 8 failure variants including malformed/errors precedence. Selected finite socket profiles, not execution of Apache JUnit test class.",
+      "exact_upstream_subcases": [
+        "top42",
+        "bad-topic-count",
+        "bad-topic-name",
+        "bad-partition-count",
+        "bad-partition-index",
+        "partition42",
+        "all-malformed",
+        "all-malformed-errors"
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonLeader",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3262,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithOnlyStaticVoters",
+      "parameters": "boolean withKip853Rpc",
+      "line": 3293,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true
+        },
+        {
+          "withKip853Rpc": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithFollowers",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3328,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumWithObserver",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3440,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    },
+    {
+      "release": "4.3.1",
+      "path": "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+      "method": "testDescribeQuorumNonMonotonicFollowerFetch",
+      "parameters": "boolean withKip853Rpc, boolean withBootstrapSnapshot",
+      "line": 3583,
+      "disposition": "response field projection plus native static-voter handler only. Internal election, follower fetch timer and snapshot injection histories are outside client-side cohort; retained for KL01-14 exhaustive reconciliation and KRaft server cards, not marked passed here.",
+      "exact_upstream_parameter_invocations": [
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": true
+        },
+        {
+          "withKip853Rpc": true,
+          "withBootstrapSnapshot": false
+        },
+        {
+          "withKip853Rpc": false,
+          "withBootstrapSnapshot": false
+        }
+      ],
+      "qualification_disposition": "Server-internal replay histories retained and unqualified here; response projection and one-voter native handler counterparts only."
+    }
+  ],
+  "wire_versions": [
+    0,
+    1,
+    2
+  ],
+  "wire_profiles": [
+    "default",
+    "singleton",
+    "duplicate topics and signed partition limits",
+    "top errors 0/31/42/6/41/-1 and SDK counts",
+    "nested errors 31/6 and SDK counts",
+    "full voters observers directory IDs endpoints timestamp sentinels",
+    "null error message",
+    "unknown root tags",
+    "every incomplete prefix",
+    "nonignorable directory/node version refusals; ignored older error messages/timestamps"
+  ],
+  "public_profiles": [
+    "full-v0",
+    "full-v1",
+    "full-v2",
+    "empty-optionals",
+    "retry-partition6",
+    "retry-controller41",
+    "disconnect",
+    "top42",
+    "partition42",
+    "top31",
+    "partition31",
+    "bad-topic-count",
+    "bad-topic-name",
+    "bad-partition-count",
+    "bad-partition-index",
+    "all-malformed",
+    "all-malformed-errors",
+    "absent-api",
+    "future-minimum",
+    "deadline",
+    "retry-exhaustion"
+  ],
+  "native_profile": "Fresh combined broker/controller per SDK release and Rust feature build; genuine Java and Rust raw API55v0/v1/v2 plus public Admin highest shared version; captured public request/response frames independently decoded.",
+  "local_policy_differences": [
+    "1MiB complete body; 32767 bytes each string (SDK serialization ceiling)/1MiB total; 8192 elements each array/32768 total; 4MiB requested vector slots and string copies; 64 tags per structure/1024 total; 64KiB total tag payload; ordered unique unknown tags skipped. Limits are explicit local admission policy; no RSS or allocator capacity guarantee.",
+    "Rust public retry cap8 returns last error when exhausted; Java retries until its operation deadline. Both have finite original operation budgets.",
+    "Rust absent v0/v1 error messages use None, Java generated DTO defaults empty string. Neither field is transmitted.",
+    "Rust decoder refuses trailing bytes/invalid UTF8 and skips opaque tags. Java retains opaque tags; reverse comparison clears only those tags."
+  ],
+  "supersedes": "applicability-01 through04 retained. Final declaration adds exact ValueSource/CsvSource invocations from each pinned source, without assuming a boolean Cartesian product. It retains the recorded warm-up policy and precedes the complete fresh SDK qualification.",
+  "additional_sources": [
+    {
+      "release": "4.1.2",
+      "path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "sha256": "169379912e38afa68f726d60f5835f443a53af4bd0bd857af5d8499d8bcff55d"
+    },
+    {
+      "release": "4.2.1",
+      "path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "sha256": "9a39230ce0fda549a8fb64016d74ddc8fcb54fee9dbf9f58ec3aa5399564fb02"
+    },
+    {
+      "release": "4.3.1",
+      "path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "sha256": "917cffa40d29d378e59c3cd47aa501598d7b0c64cbf2b8c17746e7f316b4a73b"
+    }
+  ],
+  "public_deadline_preparation": "One genuine public success operation on the same Admin instance before the measured deadline or retry-exhaustion operation; other profiles use cold instances. All warm-up frames are retained and independently decoded."
+}

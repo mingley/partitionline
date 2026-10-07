@@ -1,6 +1,6 @@
 # Status
 
-This describes the working source as of October 7, 2026. Version0.1.0 is
+This describes the working source as of October 7, 2026. Version 0.1.0 is
 published on crates.io; the repository contains changes made after that release.
 Current development uses the latest stable Rust. The client and experimental
 broker still have open implementation and qualification work.
@@ -8,15 +8,17 @@ broker still have open implementation and qualification work.
 ## Client
 
 The client has producer, manual-consumer, group, transaction and Admin APIs.
-Selected tests cover Apache Kafka3.9.1,4.1.0,4.1.2,4.2.1 and4.3.1. Coverage
+Selected tests cover Apache Kafka 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1. Coverage
 varies by API and version; see the [support matrix](support.md).
 
 Recent completed work includes producer startup retries, retained-buffer
 accounting, zstd encoding/decoding, cross-SDK codec checks, InitProducerId v6,
 reassignment options, WriteTxnMarkers v2, share-offset lag support, Streams v0
 codecs, caller-driven Streams heartbeats, typed group descriptions, UUID offset routing and all-broker
-transaction listings with transaction-ID pattern filters. Legacy Metadata0 and
-GROUP coordinator discovery0 now negotiate with bounded decoding and retries. Admin
+transaction listings with transaction-ID pattern filters. Legacy Metadata v0 and
+GROUP coordinator discovery v0 now negotiate with bounded decoding and retries.
+DescribeQuorum codecs and public Admin inspection now have bounded messages
+and retries, with checks against all three current SDKs and native brokers. Admin
 capability checks use actual Apache SDK frames and public Java calls. Their
 scripted peers do not implement broker transaction or share state.
 
@@ -33,26 +35,26 @@ records the remaining work.
 
 The fixed-peer metadata runtime passed finite three/five-node private TCP fault,
 snapshot and restart histories with independent journal replay. Whole broker
-checks passed344 default and484 all-feature tests on latest stable Rust. Native
+checks passed 344 default and 484 all-feature tests on latest stable Rust. Native
 Kafka replication, peer authentication and production qualification remain open.
 
 ## Development checks
 
-Latest-stable Rust1.99.0 passed2,082 default-feature tests and2,094 all-feature
+Latest-stable Rust 1.99.0 passed 2,090 default-feature tests and 2,102 all-feature
 tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
-tracing, zstd and combined-feature builds each compiled24 documentation examples.
+tracing, zstd and combined-feature builds each compiled 24 documentation examples.
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has205 completed cards and135 open cards. The client
-conformance registry has54 independently qualified cases out of182 required
+The task registry has 206 completed cards and 134 open cards. The client
+conformance registry has 63 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
 
 ## Performance
 
 The repository has pinned benchmark peers, result checks, codec benchmarks and
-a resource-soak runner. Java peer checks passed against an isolated Kafka4.3.1
+a resource-soak runner. Java peer checks passed against an isolated Kafka 4.3.1
 broker. Those short runs qualify the driver and its delivery accounting.
 
 Controlled x86_64/arm64 comparisons, paired repetitions, confidence intervals

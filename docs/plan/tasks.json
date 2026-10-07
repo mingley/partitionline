@@ -52267,8 +52267,8 @@
       "title": "Qualify current DescribeQuorum public Admin cells",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL01-03",
         "KL05-19"
@@ -52294,13 +52294,48 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "19361d36a144b5a1da65368485d897afa0785f43",
+          "disposition": "accepted",
+          "artifacts": [
+            "docs/plan/evidence/KL01-30.json",
+            "docs/evidence/conformance/q-conf-describequorum/qualification"
+          ],
+          "commands": [
+            "Latest stable full default2090/all2102 tests;8 ordinary checks each",
+            "Each build:3 genuine SDK peers/native brokers;135 wire bodies/126 socket profiles/9 independent corruptions/36 live parses/12 native public frame parses",
+            "Strict default/all Clippy/fmt/rustdoc;four package consumers with24 compiled documentation examples",
+            "Exact source pushed and remote verified before immutable qualification"
+          ],
+          "results": "Bound DescribeQuorum nested codecs, preflight helpers and nonignorable version fields; cap public Admin retries. Qualify genuine current SDK wire/public behavior and owned native handlers.",
+          "limits": [
+            "Selected current API55 versions0\u20132, raw message models and public broker-bootstrap Admin methods. Genuine SDK builders/parsers, public Java calls, public Rust calls and native broker handlers qualify this finite cohort. No Apache JUnit class is claimed executed.",
+            "The applicability declaration retains30 exact source-method rows and39 exact internal Raft parameter invocations. Internal election/follower timer/snapshot-injection histories remain unqualified by this client card and stay under exhaustive applicability and KRaft server work. Existing historical internal-role exclusions, original pins and182-case denominator are unchanged.",
+            "Local codec limits:1MiB complete body,32767 bytes per string/1MiB total,8192 elements per array/32768 total,4MiB requested vector slots plus string copies,64 tags per structure/1024 total and64KiB total tag payload. Required strings/arrays reject nulls; strict UTF8, ordered unique tags and complete consumption are local decoder policies. These are logical admission limits, not allocator capacity or RSS bounds.",
+            "Generic BrokerConn transport retains its100MiB frame ceiling and write/read buffering behavior; this card does not establish a1MiB preallocation limit for socket framing, global network memory, OS buffers, secure transport or a resource soak. The nested decoder and encoder/error-helper allocations are bounded before their reservations/copies.",
+            "The SDK accepts8193 empty topics; Rust rejects them under its local limit. All SDKs refuse strings above32767 bytes and nonignorable directory IDs/nodes before v2; Rust aligns with those serializer rules. Older error messages and timestamps are omitted according to their gates. Rust skips opaque tags; Java reverse comparisons clear only those tags.",
+            "Rust public retries share one total operation deadline and stop after8 attempts, returning the last broker/transport error. Java retry-exhaustion runs to its operation deadline. The300ms deadline/exhaustion profiles explicitly record one genuine success warm-up on each Admin instance before the measured operation. Twelve warm-ups per feature build are retained, parsed and excluded from timed attempt counts.",
+            "Six fresh singleton combined Kafka broker/controllers across the two feature builds execute raw API55v0/v1/v2 and public highest-shared-version2 calls through an owned recording proxy. Each native public result matches its own captured SDK-decoded response, including the changing high watermark. No native controller failover, multi-voter state or partitionline Kafka server is inferred.",
+            "All scripted and proxy threads/sockets join and listener ports are rebound. Every native broker is parent-waited after TERM and exits143; native broker/controller ports are closed and rebound. Native bin/libs/config hashes independently match each retained release archive. JVM identity is observed and unchanged during retention; Rust ELF, source and jar inputs have complete before/after guards. Full host shared-library attestation is outside scope.",
+            "Actual old-source regression failed5 of6 ordinary checks; its exact source and executed ELF are retained. Shared-cache misuse, compiler/lint failures, initial common-peer version-field failures with their executed ELF, prototype SDK Disconnect result, and the cold Java deadline without API55 dispatch remain recorded. Later complete qualified attempts do not erase those failures.",
+            "Latest stable Rust1.99.0 only. Full source-bound suites, strict default/all Clippy, formatting/rustdoc and four extracted package consumers pass. This does not establish production readiness or any performance ranking; core/full conformance and Suite HOLD remain incomplete."
+          ]
+        }
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceDescribeQuorum.java",
         "tests/conformance/java/generate_describe_quorum.py",
         "tests/describe_quorum_conformance.rs",
         "tests/fixtures/describe_quorum/",
-        "docs/evidence/conformance/q-conf-describequorum/"
+        "docs/evidence/conformance/q-conf-describequorum/",
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/conformance/run-describe-quorum.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/plan/evidence/KL01-30.json",
+        "tests/common/mod.rs"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52325,7 +52360,8 @@
         "current-claimed-api-055-v2-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "active_validation_toolchain": "latest stable Rust only"
     },
     {
       "id": "KL01-31",

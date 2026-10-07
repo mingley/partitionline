@@ -763,8 +763,8 @@ class TestConformanceBacklogModes(unittest.TestCase):
         self.assertEqual(backlog['summary']['exit_code'], 0)
         self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
         self.assertEqual(backlog['conformance_backlog']['required_cases'], 182)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 54)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 128)
+        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 63)
+        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 119)
         for mode in ('core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)

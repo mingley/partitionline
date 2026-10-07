@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "task": "KL01-30",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_published_commit": "19361d36a144b5a1da65368485d897afa0785f43",
+  "source_branch": "codex/finish-open-cards-20261007",
+  "source_url": "https://github.com/mingley/partitionline/tree/19361d36a144b5a1da65368485d897afa0785f43",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_source_uncommitted_to_head": true,
+  "implementation": "Bound DescribeQuorum nested codecs, preflight helpers and nonignorable version fields; cap public Admin retries. Qualify genuine current SDK wire/public behavior and owned native handlers.",
+  "validation": {
+    "default": {
+      "passed": 2090,
+      "failed": 0,
+      "ignored": 29
+    },
+    "all": {
+      "passed": 2102,
+      "failed": 0,
+      "ignored": 30
+    }
+  },
+  "ordinary_tests_each_profile": 8,
+  "SDK_profiles": {
+    "default": {
+      "independent_wire_bodies": 135,
+      "public_socket_profiles": 126,
+      "raw_native_requests": 18,
+      "native_public_calls": 6,
+      "independent_live_body_parses": 36,
+      "independent_public_native_frame_parses": 12,
+      "recorded_warmup_calls": 12,
+      "independent_corruption_controls": 9,
+      "captured_scripted_API55_requests": 651
+    },
+    "all": {
+      "independent_wire_bodies": 135,
+      "public_socket_profiles": 126,
+      "raw_native_requests": 18,
+      "native_public_calls": 6,
+      "independent_live_body_parses": 36,
+      "independent_public_native_frame_parses": 12,
+      "recorded_warmup_calls": 12,
+      "independent_corruption_controls": 9,
+      "captured_scripted_API55_requests": 670
+    }
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "native_archive_bindings": [
+    {
+      "release": "4.1.2",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2.tgz",
+      "sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "matched_native_input_files": 204,
+      "new_execution_input_files_match_archive": 204
+    },
+    {
+      "release": "4.2.1",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1.tgz",
+      "sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "matched_native_input_files": 203,
+      "new_execution_input_files_match_archive": 203
+    },
+    {
+      "release": "4.3.1",
+      "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1.tgz",
+      "sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "matched_native_input_files": 203,
+      "new_execution_input_files_match_archive": 203
+    }
+  ],
+  "strict_checks": [
+    "latest stable Rust1.99.0",
+    "source-bound default/all full suites",
+    "default/all-target/all-feature Clippy -Dwarnings",
+    "rustfmt and default/all rustdoc -Dwarnings",
+    "four package feature cells each24 compiled documentation examples"
+  ],
+  "package": {
+    "sha256": "cca91c4d32a8d4b968d2485dbaaadfd45f9314e8754aa6ccd6e515ed654a3f91",
+    "compiled_examples_each": 24,
+    "local_links_each": 37,
+    "source_snapshot_precedes_card_closure": true
+  },
+  "product_source_changed": true,
+  "qualified_case_ids": [
+    "current-claimed-api-055-v0-4-1-2",
+    "current-claimed-api-055-v1-4-1-2",
+    "current-claimed-api-055-v2-4-1-2",
+    "current-claimed-api-055-v0-4-2-1",
+    "current-claimed-api-055-v1-4-2-1",
+    "current-claimed-api-055-v2-4-2-1",
+    "current-claimed-api-055-v0-4-3-1",
+    "current-claimed-api-055-v1-4-3-1",
+    "current-claimed-api-055-v2-4-3-1"
+  ],
+  "limits": [
+    "Selected current API55 versions0\u20132, raw message models and public broker-bootstrap Admin methods. Genuine SDK builders/parsers, public Java calls, public Rust calls and native broker handlers qualify this finite cohort. No Apache JUnit class is claimed executed.",
+    "The applicability declaration retains30 exact source-method rows and39 exact internal Raft parameter invocations. Internal election/follower timer/snapshot-injection histories remain unqualified by this client card and stay under exhaustive applicability and KRaft server work. Existing historical internal-role exclusions, original pins and182-case denominator are unchanged.",
+    "Local codec limits:1MiB complete body,32767 bytes per string/1MiB total,8192 elements per array/32768 total,4MiB requested vector slots plus string copies,64 tags per structure/1024 total and64KiB total tag payload. Required strings/arrays reject nulls; strict UTF8, ordered unique tags and complete consumption are local decoder policies. These are logical admission limits, not allocator capacity or RSS bounds.",
+    "Generic BrokerConn transport retains its100MiB frame ceiling and write/read buffering behavior; this card does not establish a1MiB preallocation limit for socket framing, global network memory, OS buffers, secure transport or a resource soak. The nested decoder and encoder/error-helper allocations are bounded before their reservations/copies.",
+    "The SDK accepts8193 empty topics; Rust rejects them under its local limit. All SDKs refuse strings above32767 bytes and nonignorable directory IDs/nodes before v2; Rust aligns with those serializer rules. Older error messages and timestamps are omitted according to their gates. Rust skips opaque tags; Java reverse comparisons clear only those tags.",
+    "Rust public retries share one total operation deadline and stop after8 attempts, returning the last broker/transport error. Java retry-exhaustion runs to its operation deadline. The300ms deadline/exhaustion profiles explicitly record one genuine success warm-up on each Admin instance before the measured operation. Twelve warm-ups per feature build are retained, parsed and excluded from timed attempt counts.",
+    "Six fresh singleton combined Kafka broker/controllers across the two feature builds execute raw API55v0/v1/v2 and public highest-shared-version2 calls through an owned recording proxy. Each native public result matches its own captured SDK-decoded response, including the changing high watermark. No native controller failover, multi-voter state or partitionline Kafka server is inferred.",
+    "All scripted and proxy threads/sockets join and listener ports are rebound. Every native broker is parent-waited after TERM and exits143; native broker/controller ports are closed and rebound. Native bin/libs/config hashes independently match each retained release archive. JVM identity is observed and unchanged during retention; Rust ELF, source and jar inputs have complete before/after guards. Full host shared-library attestation is outside scope.",
+    "Actual old-source regression failed5 of6 ordinary checks; its exact source and executed ELF are retained. Shared-cache misuse, compiler/lint failures, initial common-peer version-field failures with their executed ELF, prototype SDK Disconnect result, and the cold Java deadline without API55 dispatch remain recorded. Later complete qualified attempts do not erase those failures.",
+    "Latest stable Rust1.99.0 only. Full source-bound suites, strict default/all Clippy, formatting/rustdoc and four extracted package consumers pass. This does not establish production readiness or any performance ranking; core/full conformance and Suite HOLD remain incomplete."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "evidence_directory": "docs/evidence/conformance/q-conf-describequorum/qualification"
+}

@@ -1,0 +1,4674 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "release": "4.1.2",
+      "mode": "full-v0",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 557175195,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 35917,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 558,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "full-v0",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 1044380,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 37647,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 429,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "full-v1",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 506968979,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 35445,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 590,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "full-v1",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 1094616,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 39865,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 461,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "full-v2",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 695791139,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 43155,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "full-v2",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 807394,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44719,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "empty-optionals",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 556546602,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 44747,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 625,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "empty-optionals",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 1256369,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41259,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 496,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-partition6",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 728610090,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 36791,
+        "accepted": 2,
+        "frames": 7,
+        "retained_bytes": 880,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-partition6",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 5167675,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 37063,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 892,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-controller41",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 700823904,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 38507,
+        "accepted": 2,
+        "frames": 8,
+        "retained_bytes": 966,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-controller41",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 4352945,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 42041,
+        "accepted": 1,
+        "frames": 9,
+        "retained_bytes": 971,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "disconnect",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 658835287,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 3,
+        "workers_joined": 3,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 37841,
+        "accepted": 3,
+        "frames": 10,
+        "retained_bytes": 960,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "disconnect",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 4922362,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 36479,
+        "accepted": 2,
+        "frames": 10,
+        "retained_bytes": 868,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "top42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 610888956,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 34413,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "top42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 976348,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46803,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "partition42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 605182411,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39601,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "partition42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 1128527,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 33573,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "top31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 528414427,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 44109,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "top31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 606672,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 35639,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "partition31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 510253272,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 35133,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "partition31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 628355,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 42259,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-topic-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 555327425,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 43813,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 786,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-topic-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 781976,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 37431,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 657,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-topic-name",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 634054555,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 33083,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-topic-name",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 774184,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41491,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 507,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-partition-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 614666577,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 33439,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 765,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-partition-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 710889,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 32819,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-partition-index",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 596920993,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 44933,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "bad-partition-index",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 643457,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 37127,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "all-malformed",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 576382194,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42243,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "all-malformed",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 775727,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 35079,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "all-malformed-errors",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 567144524,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 38359,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "all-malformed-errors",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 761875,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 35979,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "absent-api",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 495579513,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 37699,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 394,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "absent-api",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 522756,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 38617,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 272,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "future-minimum",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 544068755,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 40015,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 418,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "future-minimum",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 365139,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44041,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 296,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "deadline",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 317933343,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 33753,
+        "accepted": 2,
+        "frames": 7,
+        "retained_bytes": 708,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "deadline",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "broker_code": null,
+        "elapsed_ns": 300932834,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 32813,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 720,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-exhaustion",
+      "driver": "java",
+      "attempts": 172,
+      "warmup_calls": 1,
+      "captured_API55_frames": 173,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 335765409,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 38313,
+        "accepted": 2,
+        "frames": 178,
+        "retained_bytes": 40381,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.1.2",
+      "mode": "retry-exhaustion",
+      "driver": "rust",
+      "attempts": 8,
+      "warmup_calls": 1,
+      "captured_API55_frames": 9,
+      "outcome": {
+        "result": null,
+        "failure": "NotLeaderOrFollowerException",
+        "broker_code": 6,
+        "elapsed_ns": 19284257,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44995,
+        "accepted": 1,
+        "frames": 29,
+        "retained_bytes": 3496,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v0",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 569859583,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 34633,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 558,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v0",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 534134,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 45249,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 429,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v1",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 536907856,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42919,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 590,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v1",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 573703,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46559,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 461,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v2",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 563495064,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 45175,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "full-v2",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 478230,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44087,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "empty-optionals",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 540964816,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39487,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 625,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "empty-optionals",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 585170,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 33021,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 496,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-partition6",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 580293754,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39915,
+        "accepted": 2,
+        "frames": 7,
+        "retained_bytes": 880,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-partition6",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 4043826,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44619,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 892,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-controller41",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 556895100,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 45163,
+        "accepted": 2,
+        "frames": 8,
+        "retained_bytes": 966,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-controller41",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 3968817,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 45637,
+        "accepted": 1,
+        "frames": 9,
+        "retained_bytes": 971,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "disconnect",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 572993852,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 3,
+        "workers_joined": 3,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 36583,
+        "accepted": 3,
+        "frames": 10,
+        "retained_bytes": 960,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "disconnect",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 3996259,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41679,
+        "accepted": 2,
+        "frames": 10,
+        "retained_bytes": 868,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "top42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 500682028,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 45619,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "top42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 480652,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 40787,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "partition42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 538259532,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 40655,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "partition42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 481063,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 38145,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "top31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 587093257,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 33187,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "top31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 755657,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46381,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "partition31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 549630205,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 34671,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "partition31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 612331,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 33555,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-topic-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 584050540,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 37079,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 786,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-topic-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 728165,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 45455,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 657,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-topic-name",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 482391656,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 43145,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-topic-name",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 779942,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 34113,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 507,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-partition-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 576093929,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39761,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 765,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-partition-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 502887,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46305,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-partition-index",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 524351966,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 34727,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "bad-partition-index",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 550137,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41183,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "all-malformed",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 544319592,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 44977,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "all-malformed",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 490087,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41571,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "all-malformed-errors",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 540481920,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 46025,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "all-malformed-errors",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 762837,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 44495,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "absent-api",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 610200415,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42353,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 394,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "absent-api",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 432761,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 33111,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 272,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "future-minimum",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 560717915,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 36713,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 418,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "future-minimum",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 279891,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43759,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 296,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "deadline",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 329439566,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 34579,
+        "accepted": 2,
+        "frames": 7,
+        "retained_bytes": 708,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "deadline",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "broker_code": null,
+        "elapsed_ns": 301079672,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41583,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 720,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-exhaustion",
+      "driver": "java",
+      "attempts": 155,
+      "warmup_calls": 1,
+      "captured_API55_frames": 156,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 308154456,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 41741,
+        "accepted": 2,
+        "frames": 161,
+        "retained_bytes": 36454,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.2.1",
+      "mode": "retry-exhaustion",
+      "driver": "rust",
+      "attempts": 8,
+      "warmup_calls": 1,
+      "captured_API55_frames": 9,
+      "outcome": {
+        "result": null,
+        "failure": "NotLeaderOrFollowerException",
+        "broker_code": 6,
+        "elapsed_ns": 19374252,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43635,
+        "accepted": 1,
+        "frames": 29,
+        "retained_bytes": 3496,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v0",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 533126282,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 43533,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 558,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v0",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 524258,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 42237,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 429,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v1",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 541654401,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 35333,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 590,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v1",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 605611,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 38105,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 461,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v2",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 526730510,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42323,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "full-v2",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 545089,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46365,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "empty-optionals",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "elapsed_ns": 525433471,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 40507,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 625,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "empty-optionals",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000000000000000000000",
+              "end": 456,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000000000000000000000",
+              "end": -9223372036854775808,
+              "fetch": -1,
+              "caught": -1
+            }
+          ],
+          "nodes": []
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 422926,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 32983,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 496,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-partition6",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 537351175,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 35387,
+        "accepted": 2,
+        "frames": 7,
+        "retained_bytes": 880,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-partition6",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 3790320,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 40607,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 892,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-controller41",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 666315377,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39755,
+        "accepted": 2,
+        "frames": 8,
+        "retained_bytes": 966,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-controller41",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 3961867,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 40865,
+        "accepted": 1,
+        "frames": 9,
+        "retained_bytes": 971,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "disconnect",
+      "driver": "java",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "elapsed_ns": 593150026,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 3,
+        "workers_joined": 3,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 33267,
+        "accepted": 3,
+        "frames": 10,
+        "retained_bytes": 960,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "disconnect",
+      "driver": "rust",
+      "attempts": 2,
+      "warmup_calls": 0,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": {
+          "leader": 1,
+          "epoch": 7,
+          "watermark": 123,
+          "voters": [
+            {
+              "id": 1,
+              "directory": "00000000000000020000000000000007",
+              "end": 456,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "observers": [
+            {
+              "id": 2,
+              "directory": "00000000000000030000000000000007",
+              "end": -9223372036854775808,
+              "fetch": 123,
+              "caught": 9223372036854775807
+            }
+          ],
+          "nodes": [
+            {
+              "id": 1,
+              "listeners": [
+                {
+                  "name": "CONTROLLER",
+                  "host": "::1",
+                  "port": 65535
+                }
+              ]
+            }
+          ]
+        },
+        "failure": null,
+        "broker_code": null,
+        "elapsed_ns": 4003871,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 34165,
+        "accepted": 2,
+        "frames": 10,
+        "retained_bytes": 868,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "top42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 520602837,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 37851,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "top42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 643928,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46839,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "partition42",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 505155439,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42197,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "partition42",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 526111,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46157,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "top31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 530194430,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 40131,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "top31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 492140,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 35657,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "partition31",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "elapsed_ns": 594482314,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 45667,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "partition31",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "ClusterAuthorizationException",
+        "broker_code": 31,
+        "elapsed_ns": 639201,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43171,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-topic-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 538314340,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 39809,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 786,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-topic-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 602366,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 33295,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 657,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-topic-name",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 643745849,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42355,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-topic-name",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 521995,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43357,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 507,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-partition-count",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 520339401,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 41591,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 765,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-partition-count",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 652612,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 34857,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 636,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-partition-index",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 516705380,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 40339,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 649,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "bad-partition-index",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 535525,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43435,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 520,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "all-malformed",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "elapsed_ns": 518124995,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 46557,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "all-malformed",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "UnknownServerException",
+        "broker_code": null,
+        "elapsed_ns": 618690,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 45629,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "all-malformed-errors",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "elapsed_ns": 578280068,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42119,
+        "accepted": 2,
+        "frames": 6,
+        "retained_bytes": 992,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "all-malformed-errors",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 0,
+      "captured_API55_frames": 1,
+      "outcome": {
+        "result": null,
+        "failure": "InvalidRequestException",
+        "broker_code": 42,
+        "elapsed_ns": 534824,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 42449,
+        "accepted": 1,
+        "frames": 5,
+        "retained_bytes": 863,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "absent-api",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 552456077,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 42501,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 394,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "absent-api",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 506501,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 41745,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 272,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "future-minimum",
+      "driver": "java",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "elapsed_ns": 564313566,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 41383,
+        "accepted": 2,
+        "frames": 5,
+        "retained_bytes": 418,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "future-minimum",
+      "driver": "rust",
+      "attempts": 0,
+      "warmup_calls": 0,
+      "captured_API55_frames": 0,
+      "outcome": {
+        "result": null,
+        "failure": "UnsupportedVersionException",
+        "broker_code": null,
+        "elapsed_ns": 330497,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 39635,
+        "accepted": 1,
+        "frames": 4,
+        "retained_bytes": 296,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "deadline",
+      "driver": "java",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 318713996,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 3,
+        "workers_joined": 3,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 45199,
+        "accepted": 3,
+        "frames": 7,
+        "retained_bytes": 708,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "deadline",
+      "driver": "rust",
+      "attempts": 1,
+      "warmup_calls": 1,
+      "captured_API55_frames": 2,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "broker_code": null,
+        "elapsed_ns": 300876588,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 43165,
+        "accepted": 1,
+        "frames": 8,
+        "retained_bytes": 720,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-exhaustion",
+      "driver": "java",
+      "attempts": 162,
+      "warmup_calls": 1,
+      "captured_API55_frames": 163,
+      "outcome": {
+        "result": null,
+        "failure": "TimeoutException",
+        "elapsed_ns": 322081085,
+        "live_admin_threads": 0
+      },
+      "closure": {
+        "workers_spawned": 2,
+        "workers_joined": 2,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 2,
+        "listener_port_rebound": 41941,
+        "accepted": 2,
+        "frames": 168,
+        "retained_bytes": 38071,
+        "errors": []
+      }
+    },
+    {
+      "release": "4.3.1",
+      "mode": "retry-exhaustion",
+      "driver": "rust",
+      "attempts": 8,
+      "warmup_calls": 1,
+      "captured_API55_frames": 9,
+      "outcome": {
+        "result": null,
+        "failure": "NotLeaderOrFollowerException",
+        "broker_code": 6,
+        "elapsed_ns": 19174893,
+        "connections_closed": true
+      },
+      "closure": {
+        "workers_spawned": 1,
+        "workers_joined": 1,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 1,
+        "listener_port_rebound": 46179,
+        "accepted": 1,
+        "frames": 29,
+        "retained_bytes": 3496,
+        "errors": []
+      }
+    }
+  ],
+  "native": [
+    {
+      "release": "4.1.2",
+      "parent_waited": true,
+      "broker": "127.0.0.1:45979",
+      "controller": "127.0.0.1:39807",
+      "proxy": "127.0.0.1:33343",
+      "pid": 623587,
+      "actual_raw_requests": 6,
+      "public_calls": 2,
+      "independent_live_body_parses": 12,
+      "independent_public_frame_parses": 4,
+      "proxy_closure": {
+        "workers_spawned": 5,
+        "workers_joined": 5,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 4,
+        "listener_port_rebound": 33343,
+        "accepted": 5,
+        "frames": 13,
+        "retained_bytes": 4769,
+        "errors": []
+      },
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    },
+    {
+      "release": "4.2.1",
+      "parent_waited": true,
+      "broker": "127.0.0.1:33911",
+      "controller": "127.0.0.1:60549",
+      "proxy": "127.0.0.1:46805",
+      "pid": 626469,
+      "actual_raw_requests": 6,
+      "public_calls": 2,
+      "independent_live_body_parses": 12,
+      "independent_public_frame_parses": 4,
+      "proxy_closure": {
+        "workers_spawned": 5,
+        "workers_joined": 5,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 4,
+        "listener_port_rebound": 46805,
+        "accepted": 5,
+        "frames": 13,
+        "retained_bytes": 5017,
+        "errors": []
+      },
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    },
+    {
+      "release": "4.3.1",
+      "parent_waited": true,
+      "broker": "127.0.0.1:45547",
+      "controller": "127.0.0.1:53023",
+      "proxy": "127.0.0.1:36427",
+      "pid": 629351,
+      "actual_raw_requests": 6,
+      "public_calls": 2,
+      "independent_live_body_parses": 12,
+      "independent_public_frame_parses": 4,
+      "proxy_closure": {
+        "workers_spawned": 5,
+        "workers_joined": 5,
+        "supervisor_joined": true,
+        "live_sockets": 0,
+        "peak_sockets": 4,
+        "listener_port_rebound": 36427,
+        "accepted": 5,
+        "frames": 13,
+        "retained_bytes": 5017,
+        "errors": []
+      },
+      "exit_code": 143,
+      "ports_closed_and_reusable": {
+        "broker": true,
+        "controller": true
+      }
+    }
+  ],
+  "actual_sdk": true,
+  "actual_native_brokers": true,
+  "source_bound": true,
+  "all_processes_parent_waited": true,
+  "independent_wire_bodies": 135,
+  "public_socket_profiles": 126,
+  "raw_native_requests": 18,
+  "native_public_calls": 6,
+  "independent_live_body_parses": 36,
+  "independent_public_native_frame_parses": 12,
+  "scope": "Selected current0..2 codec and public broker-bootstrap client cohort; finite one-voter native handlers. No internal Kafka replay, secure transport or throughput qualification."
+}
