@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: Rust known fields differ case-0-request.bin
+	at ConformanceAssignReplicasToDirsRaw.verify(ConformanceAssignReplicasToDirsRaw.java:110)
+	at ConformanceAssignReplicasToDirsRaw.main(ConformanceAssignReplicasToDirsRaw.java:155)

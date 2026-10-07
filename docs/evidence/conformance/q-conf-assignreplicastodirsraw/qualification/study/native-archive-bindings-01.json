@@ -1,0 +1,20 @@
+[
+  {
+    "release": "4.1.2",
+    "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2.tgz",
+    "sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+    "matched_native_input_files": 204
+  },
+  {
+    "release": "4.2.1",
+    "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1.tgz",
+    "sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+    "matched_native_input_files": 203
+  },
+  {
+    "release": "4.3.1",
+    "archive": "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1.tgz",
+    "sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+    "matched_native_input_files": 203
+  }
+]

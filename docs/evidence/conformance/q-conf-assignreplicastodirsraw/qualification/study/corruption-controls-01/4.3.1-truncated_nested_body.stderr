@@ -1,0 +1,10 @@
+Exception in thread "main" java.nio.BufferUnderflowException
+	at java.base/java.nio.Buffer.nextGetIndex(Buffer.java:713)
+	at java.base/java.nio.HeapByteBuffer.get(HeapByteBuffer.java:172)
+	at org.apache.kafka.common.utils.ByteUtils.readUnsignedVarint(ByteUtils.java:160)
+	at org.apache.kafka.common.protocol.ByteBufferAccessor.readUnsignedVarint(ByteBufferAccessor.java:70)
+	at org.apache.kafka.common.message.AssignReplicasToDirsRequestData.read(AssignReplicasToDirsRequestData.java:112)
+	at org.apache.kafka.common.message.AssignReplicasToDirsRequestData.<init>(AssignReplicasToDirsRequestData.java:67)
+	at ConformanceAssignReplicasToDirsRaw.parse(ConformanceAssignReplicasToDirsRaw.java:39)
+	at ConformanceAssignReplicasToDirsRaw.verify(ConformanceAssignReplicasToDirsRaw.java:110)
+	at ConformanceAssignReplicasToDirsRaw.main(ConformanceAssignReplicasToDirsRaw.java:155)

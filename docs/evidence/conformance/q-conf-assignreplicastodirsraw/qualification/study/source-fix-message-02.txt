@@ -1,0 +1,3 @@
+Return fixture UUID parsing errors from the conformance helper
+
+Propagate missing, non-ASCII or malformed UUID fixture inputs; only the test boundary asserts successful preparation. Preserve the strict unwrap and expect policy.

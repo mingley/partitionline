@@ -1,0 +1,24 @@
+{
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "810879",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/4.3.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "ConformanceAssignReplicasToDirsRaw",
+    "verify",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/4.3.1-reverse",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/4.3.1-fixtures-1"
+  ],
+  "started": 1791409195.559163,
+  "parent_waited": true,
+  "pid": 813896,
+  "exit_code": 0,
+  "ended": 1791409195.6819053,
+  "artifacts": {
+    "4.3.1-SDK-parse-Rust.stdout": "0eefe1e25026589d057198ab8644a4cc4a0555bd8ef5cc75e0122ce4c283fd69",
+    "4.3.1-SDK-parse-Rust.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

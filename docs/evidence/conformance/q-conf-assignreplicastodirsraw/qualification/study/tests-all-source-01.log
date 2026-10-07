@@ -1,0 +1,12 @@
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/assign-dirs-source-14f90f)
+    Finished `test` profile [unoptimized] target(s) in 11.15s
+     Running tests/assign_replicas_to_dirs_raw_conformance.rs (/workspace/work/target-assign-dirs/debug/deps/assign_replicas_to_dirs_raw_conformance-d7b24b6793398dde)
+
+running 4 tests
+test actual_sdk_assign_replicas_to_dirs_bodies ... ignored, requires guarded authentic Apache fixtures and independent reverse parsing
+test native_assign_replicas_to_dirs_raw_history ... ignored, requires an owned current Kafka controller, topic and independent SDK parsing
+test reference_assignment_hint_and_error_factory_are_distinct_from_nested_errors ... ok
+test truncated_empty_messages_and_untrusted_array_counts_are_rejected ... ok
+
+test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,3 @@
+Explain missing fixture UUID failures in raw conformance helpers
+
+Use explicit fixture-input expectations in the test helper to satisfy strict latest-stable Clippy. No product code changes.

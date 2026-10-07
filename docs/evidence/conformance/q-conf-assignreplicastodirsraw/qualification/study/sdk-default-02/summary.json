@@ -1,0 +1,121 @@
+{
+  "status": "pass",
+  "actual_sdk": true,
+  "actual_native_controllers": true,
+  "source_bound": true,
+  "all_processes_parent_waited": true,
+  "independent_wire_bodies": 69,
+  "independent_live_body_parses": 108,
+  "raw_controller_requests": 54,
+  "results": [
+    {
+      "release": "4.1.2",
+      "cluster_id": "_k8GUe-eSy-OREcTMHXRdA",
+      "parent_waited": true,
+      "controller": "127.0.0.1:60709",
+      "broker": "127.0.0.1:60211",
+      "pid": 807648,
+      "command": [
+        "python3",
+        "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+        "806708",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/4.1.2-native/server.properties"
+      ],
+      "registered_broker_epoch": 9,
+      "online_directory_id": "ccd8fa57049419b0d47a6a78020d1e14",
+      "actual_raw_requests": 18,
+      "independent_live_body_parses": 36,
+      "actual_raw_request_bodies_match": true,
+      "actual_raw_response_fields_match_except_per_request_throttle": true,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "topic_id": "cdce00c0dd5442c3a862432e863e77ae",
+      "owned_topic_deleted": true,
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 60211,
+          "reusable": true
+        },
+        {
+          "port": 60709,
+          "reusable": true
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "cluster_id": "OgCwg85DQDSrHkA6TsB4OQ",
+      "parent_waited": true,
+      "controller": "127.0.0.1:49213",
+      "broker": "127.0.0.1:49787",
+      "pid": 808967,
+      "command": [
+        "python3",
+        "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+        "806708",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.2.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/4.2.1-native/server.properties"
+      ],
+      "registered_broker_epoch": 11,
+      "online_directory_id": "a7388a45ad89da843027e84693f4ac83",
+      "actual_raw_requests": 18,
+      "independent_live_body_parses": 36,
+      "actual_raw_request_bodies_match": true,
+      "actual_raw_response_fields_match_except_per_request_throttle": true,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "topic_id": "67b4f876e6e245fb835790b228503fd5",
+      "owned_topic_deleted": true,
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 49787,
+          "reusable": true
+        },
+        {
+          "port": 49213,
+          "reusable": true
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "cluster_id": "2b2UYtXmQnqqSWwYpOKp7A",
+      "parent_waited": true,
+      "controller": "127.0.0.1:49371",
+      "broker": "127.0.0.1:39901",
+      "pid": 810299,
+      "command": [
+        "python3",
+        "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+        "806708",
+        "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-server-start.sh",
+        "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/4.3.1-native/server.properties"
+      ],
+      "registered_broker_epoch": 11,
+      "online_directory_id": "ffc1b77856e15caa75a0c9b96e1492aa",
+      "actual_raw_requests": 18,
+      "independent_live_body_parses": 36,
+      "actual_raw_request_bodies_match": true,
+      "actual_raw_response_fields_match_except_per_request_throttle": true,
+      "ordinary_broker_Admin_policy": "Unsupported",
+      "topic_id": "25e06cb2003344698ae682da13f752e3",
+      "owned_topic_deleted": true,
+      "exit_code": 143,
+      "process_group_empty": true,
+      "ports": [
+        {
+          "port": 39901,
+          "reusable": true
+        },
+        {
+          "port": 49371,
+          "reusable": true
+        }
+      ]
+    }
+  ],
+  "scope": "API73 v0 declared current raw-extension cohort only. No standard Java Admin API, offline-directory movement, controller failover or production qualification."
+}

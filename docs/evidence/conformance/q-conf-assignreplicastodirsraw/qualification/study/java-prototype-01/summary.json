@@ -1,0 +1,44 @@
+[
+  {
+    "release": "4.1.2",
+    "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+    "java": [
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.1.2-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.1.2.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+      "ConformanceAssignReplicasToDirsRaw"
+    ],
+    "fixtures": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.1.2-fixtures-1",
+    "generated_bodies": 23,
+    "independent_generations_match": true
+  },
+  {
+    "release": "4.2.1",
+    "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+    "java": [
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.2.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+      "ConformanceAssignReplicasToDirsRaw"
+    ],
+    "fixtures": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.2.1-fixtures-1",
+    "generated_bodies": 23,
+    "independent_generations_match": true
+  },
+  {
+    "release": "4.3.1",
+    "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+    "java": [
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.3.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+      "ConformanceAssignReplicasToDirsRaw"
+    ],
+    "fixtures": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.3.1-fixtures-1",
+    "generated_bodies": 23,
+    "independent_generations_match": true
+  }
+]

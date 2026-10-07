@@ -1,0 +1,21 @@
+{
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "806708",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/retained-build/default/assign-dirs-tests",
+    "actual_sdk_assign_replicas_to_dirs_bodies",
+    "--ignored",
+    "--exact",
+    "--nocapture"
+  ],
+  "started": 1791409075.9699578,
+  "parent_waited": true,
+  "pid": 806902,
+  "exit_code": 0,
+  "ended": 1791409078.2132185,
+  "artifacts": {
+    "4.1.2-Rust-wire.stdout": "56be025b41be9db0d31e7a4fb7f3f386ae54e6abf9b8ccfcc2550a1a6871247c",
+    "4.1.2-Rust-wire.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

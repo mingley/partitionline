@@ -1,0 +1,11 @@
+{
+  "cards": 341,
+  "acyclic": true,
+  "newly_completed_card_dependencies_valid": true,
+  "statuses": {
+    "done": 210,
+    "in_progress": 10,
+    "pending": 121
+  },
+  "inherited_maintainer_override": "KL10-06 intentionally precedes KL10-02 per its retained October1 maintainer_override."
+}

@@ -1,0 +1,167 @@
+[
+  {
+    "release": "4.1.2",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "http_status": 200,
+    "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14",
+    "bytes": 2063
+  },
+  {
+    "release": "4.1.2",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "http_status": 200,
+    "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da",
+    "bytes": 2232
+  },
+  {
+    "release": "4.1.2",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "http_status": 200,
+    "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f",
+    "bytes": 3030
+  },
+  {
+    "release": "4.1.2",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "http_status": 200,
+    "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6",
+    "bytes": 2091
+  },
+  {
+    "release": "4.1.2",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "error": "HTTPError",
+    "detail": "HTTP Error 404: Not Found"
+  },
+  {
+    "release": "4.1.2",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "http_status": 200,
+    "sha256": "35c97cfa4437d7eac8362976d2e99375abaeae73e4b1e8487219dbfe94d0d884",
+    "bytes": 220613
+  },
+  {
+    "release": "4.1.2",
+    "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "http_status": 200,
+    "sha256": "63ca7510497653fce857725cce98006138873431ad6288bb725918de8a8ac2d2",
+    "bytes": 188882
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "http_status": 200,
+    "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14",
+    "bytes": 2063
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "http_status": 200,
+    "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da",
+    "bytes": 2232
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "http_status": 200,
+    "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f",
+    "bytes": 3030
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "http_status": 200,
+    "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6",
+    "bytes": 2091
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "error": "HTTPError",
+    "detail": "HTTP Error 404: Not Found"
+  },
+  {
+    "release": "4.2.1",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "http_status": 200,
+    "sha256": "960081d4601a6241fc16219b77761eaf4b026c4b39f68a4e3cf0e98b688dcafd",
+    "bytes": 220488
+  },
+  {
+    "release": "4.2.1",
+    "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "http_status": 200,
+    "sha256": "1adf18da4e681ec3fad738e8e53118efccbca313ba0e05fcac7143ef30c5f803",
+    "bytes": 190088
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+    "http_status": 200,
+    "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14",
+    "bytes": 2063
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+    "http_status": 200,
+    "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da",
+    "bytes": 2232
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+    "http_status": 200,
+    "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f",
+    "bytes": 3030
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+    "http_status": 200,
+    "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6",
+    "bytes": 2091
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequestTest.java",
+    "error": "HTTPError",
+    "detail": "HTTP Error 404: Not Found"
+  },
+  {
+    "release": "4.3.1",
+    "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+    "http_status": 200,
+    "sha256": "63d71dbc27c3e129a84138392b0407fd528bab43191c2aced47cfaa12136c9cc",
+    "bytes": 220524
+  },
+  {
+    "release": "4.3.1",
+    "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+    "http_status": 200,
+    "sha256": "779755ff3fe0126652b8c532afb196b9f7e84e609f6d7f9d14419a871d7fdda3",
+    "bytes": 193466
+  }
+]

@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/tests/conformance/run-assign-replicas-to-dirs-raw.py", line 207, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/tests/conformance/run-assign-replicas-to-dirs-raw.py", line 200, in main
+    results.append(native(args,sdk))
+                   ^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/tests/conformance/run-assign-replicas-to-dirs-raw.py", line 98, in native
+    execute([str(home/'bin/kafka-storage.sh'),'format','-t',cluster,'-c',str(properties)],env,root,'format',30)
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/tests/conformance/run-assign-replicas-to-dirs-raw.py", line 50, in execute
+    result = original_execute(command, env, directory, label, min(timeout, END-time.monotonic()))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/tests/conformance/java/generate_assign_replicas_to_dirs_raw.py", line 24, in parent_bound_execute
+    return original_execute(['python3', str(helper), str(os.getpid())] + command, env, directory, label, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/scripts/run-benchmark-matrix.py", line 201, in execute
+    if receipt['exit_code']: raise ValueError('command failed; retained ' + label + ' process receipt')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: command failed; retained format process receipt

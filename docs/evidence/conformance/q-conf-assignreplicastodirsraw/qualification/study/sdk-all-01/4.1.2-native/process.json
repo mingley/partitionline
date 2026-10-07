@@ -1,0 +1,36 @@
+{
+  "release": "4.1.2",
+  "cluster_id": "73397nvETqiEFoYzvv8lvw",
+  "parent_waited": true,
+  "controller": "127.0.0.1:36227",
+  "broker": "127.0.0.1:42413",
+  "pid": 811996,
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "810879",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2/bin/kafka-server-start.sh",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/4.1.2-native/server.properties"
+  ],
+  "registered_broker_epoch": 9,
+  "online_directory_id": "9a98a7a410cd3cace0f8008c2f0c9ce6",
+  "actual_raw_requests": 18,
+  "independent_live_body_parses": 36,
+  "actual_raw_request_bodies_match": true,
+  "actual_raw_response_fields_match_except_per_request_throttle": true,
+  "ordinary_broker_Admin_policy": "Unsupported",
+  "topic_id": "8846ffbd27744a5a8868f502c1e07382",
+  "owned_topic_deleted": true,
+  "exit_code": 143,
+  "process_group_empty": true,
+  "ports": [
+    {
+      "port": 42413,
+      "reusable": true
+    },
+    {
+      "port": 36227,
+      "reusable": true
+    }
+  ]
+}

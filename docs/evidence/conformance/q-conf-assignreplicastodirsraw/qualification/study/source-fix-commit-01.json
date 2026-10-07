@@ -1,0 +1,11 @@
+{
+  "commit": "f257737e25bd5dde79736269ca831a7729f91a50",
+  "parent": "14f90fb33bfbdbf1f2d4b801f97ccf365c5e7534",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "tests/assign_replicas_to_dirs_raw_conformance.rs": "a34690a25063cd5d76acc428a7760792ebc7fe86ef39aa0af156923449874c53"
+  },
+  "scope": "Review branch only; no merge or release"
+}

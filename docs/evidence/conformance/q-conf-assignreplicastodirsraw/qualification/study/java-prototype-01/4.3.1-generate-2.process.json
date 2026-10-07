@@ -1,0 +1,23 @@
+{
+  "command": [
+    "python3",
+    "/workspace/partitionline/benchmarks/runtime/tools/parent-bound-exec.py",
+    "803528",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.3.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "ConformanceAssignReplicasToDirsRaw",
+    "generate",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/java-prototype-01/4.3.1-fixtures-2"
+  ],
+  "started": 1791408422.7173142,
+  "parent_waited": true,
+  "pid": 803700,
+  "exit_code": 0,
+  "ended": 1791408423.3516433,
+  "artifacts": {
+    "4.3.1-generate-2.stdout": "525c16ae59f13fb7b97d04ebdeef9483863da626bcd2630b392a78d1a1f67988",
+    "4.3.1-generate-2.stderr": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  }
+}

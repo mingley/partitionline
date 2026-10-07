@@ -1,0 +1,13 @@
+Exception in thread "main" org.apache.kafka.common.config.ConfigException: Invalid value 1048576 for configuration metadata.log.segment.bytes: Value must be at least 8388608
+	at org.apache.kafka.common.config.ConfigDef$Range.ensureValid(ConfigDef.java:989)
+	at org.apache.kafka.common.config.ConfigDef.parseValue(ConfigDef.java:540)
+	at org.apache.kafka.common.config.ConfigDef.parse(ConfigDef.java:524)
+	at org.apache.kafka.common.config.AbstractConfig.<init>(AbstractConfig.java:114)
+	at org.apache.kafka.server.config.AbstractKafkaConfig.<init>(AbstractKafkaConfig.java:78)
+	at kafka.server.KafkaConfig.<init>(KafkaConfig.scala:156)
+	at kafka.server.KafkaConfig.<init>(KafkaConfig.scala:158)
+	at kafka.tools.StorageTool$.$anonfun$execute$1(StorageTool.scala:79)
+	at scala.Option.flatMap(Option.scala:283)
+	at kafka.tools.StorageTool$.execute(StorageTool.scala:79)
+	at kafka.tools.StorageTool$.main(StorageTool.scala:46)
+	at kafka.tools.StorageTool.main(StorageTool.scala)

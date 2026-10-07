@@ -1,0 +1,18 @@
+{
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "810879",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-storage.sh",
+    "random-uuid"
+  ],
+  "started": 1791409195.9794133,
+  "parent_waited": true,
+  "pid": 813915,
+  "exit_code": 0,
+  "ended": 1791409197.354493,
+  "artifacts": {
+    "cluster-id.stdout": "dbc8803b4b2bd8337c315b924ee4bd1d4a353b6f9d1cdb123031f456acfdce14",
+    "cluster-id.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

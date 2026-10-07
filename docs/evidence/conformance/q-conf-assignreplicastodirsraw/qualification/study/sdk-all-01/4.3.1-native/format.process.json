@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "810879",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-storage.sh",
+    "format",
+    "-t",
+    "WeIbWWqxRZW3oweMFGLRLQ",
+    "-c",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/4.3.1-native/server.properties"
+  ],
+  "started": 1791409197.683435,
+  "parent_waited": true,
+  "pid": 814274,
+  "exit_code": 0,
+  "ended": 1791409199.3885152,
+  "artifacts": {
+    "format.stdout": "5b32e6ef37db834db2bf73d4c335865068e540f1d0236803d977743af573ba59",
+    "format.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

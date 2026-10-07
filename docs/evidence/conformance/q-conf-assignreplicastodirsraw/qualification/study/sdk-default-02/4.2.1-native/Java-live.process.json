@@ -1,0 +1,27 @@
+{
+  "command": [
+    "python3",
+    "/workspace/work/open-cards-20261006/assign-dirs-source-14f90f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "806708",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/4.2.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "ConformanceAssignReplicasToDirsRaw",
+    "live",
+    "127.0.0.1:49213",
+    "11",
+    "a7388a45ad89da843027e84693f4ac83",
+    "67b4f876e6e245fb835790b228503fd5",
+    "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/4.2.1-native/java"
+  ],
+  "started": 1791409099.0832055,
+  "parent_waited": true,
+  "pid": 809466,
+  "exit_code": 0,
+  "ended": 1791409099.3880775,
+  "artifacts": {
+    "Java-live.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Java-live.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

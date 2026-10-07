@@ -1,0 +1,4 @@
+[2026-10-07 21:40:02,771] INFO [Broker id=1] Transitioning 1 partition(s) to local leaders. (state.change.logger)
+[2026-10-07 21:40:02,773] INFO [Broker id=1] Creating new partition assign-dirs-4-3-1-0 with topic id 5i3hV45qShuc6__Cjh-FKw. (state.change.logger)
+[2026-10-07 21:40:02,796] INFO [Broker id=1] Leader assign-dirs-4-3-1-0 with topic id Some(5i3hV45qShuc6__Cjh-FKw) starts at leader epoch 0 from offset 0 with partition epoch 0, high watermark 0, ISR [1], adding replicas [] and removing replicas [] . Previous leader None and previous leader epoch was -1. (state.change.logger)
+[2026-10-07 21:40:05,662] INFO [Broker id=1] Deleting 1 partition(s). (state.change.logger)

@@ -1,0 +1,77 @@
+{
+  "actual_rejected_mutations": 9,
+  "results": [
+    {
+      "release": "4.1.2",
+      "control": "changed_broker_identity",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.1.2-changed_broker_identity/case-0-request.bin",
+      "changed_sha256": "e4bbf49f48bbb16bf9f2dfb58347f4eeb02e3e8a6dc91a6508c90c6c96362e25",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.1.2",
+      "control": "changed_top_error",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.1.2-changed_top_error/case-9-response.bin",
+      "changed_sha256": "f4abb05396245b16a094c0010aaec0037489d22d333dcc92c802a2f67f4bf61c",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.1.2",
+      "control": "truncated_nested_body",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.1.2-truncated_nested_body/case-5-request.bin",
+      "changed_sha256": "cfe2aee13dfc4ab181cc637f87b85665b2bdf8dbf88f2c03e03a7b961b7c05a8",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.2.1",
+      "control": "changed_broker_identity",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.2.1-changed_broker_identity/case-0-request.bin",
+      "changed_sha256": "e4bbf49f48bbb16bf9f2dfb58347f4eeb02e3e8a6dc91a6508c90c6c96362e25",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.2.1",
+      "control": "changed_top_error",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.2.1-changed_top_error/case-9-response.bin",
+      "changed_sha256": "f4abb05396245b16a094c0010aaec0037489d22d333dcc92c802a2f67f4bf61c",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.2.1",
+      "control": "truncated_nested_body",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.2.1-truncated_nested_body/case-5-request.bin",
+      "changed_sha256": "cfe2aee13dfc4ab181cc637f87b85665b2bdf8dbf88f2c03e03a7b961b7c05a8",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.3.1",
+      "control": "changed_broker_identity",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.3.1-changed_broker_identity/case-0-request.bin",
+      "changed_sha256": "e4bbf49f48bbb16bf9f2dfb58347f4eeb02e3e8a6dc91a6508c90c6c96362e25",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.3.1",
+      "control": "changed_top_error",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.3.1-changed_top_error/case-9-response.bin",
+      "changed_sha256": "f4abb05396245b16a094c0010aaec0037489d22d333dcc92c802a2f67f4bf61c",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    },
+    {
+      "release": "4.3.1",
+      "control": "truncated_nested_body",
+      "changed_file": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/corruption-controls-01/4.3.1-truncated_nested_body/case-5-request.bin",
+      "changed_sha256": "cfe2aee13dfc4ab181cc637f87b85665b2bdf8dbf88f2c03e03a7b961b7c05a8",
+      "actual_exit_code": 1,
+      "parent_waited": true
+    }
+  ]
+}

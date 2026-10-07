@@ -1,0 +1,11 @@
+{
+  "commit": "85e96d48c5bfac2ac2a9b5fdc3069d896d269441",
+  "parent": "6575e97792a710dba35426cb989abaed57b84202",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "tests/conformance/run-assign-replicas-to-dirs-raw.py": "ae8c4098f4fbab1d66fedc02f7b9e16b8855e16d27bbe9f54f3666b28ef4e1fa"
+  },
+  "scope": "Review branch only; no merge or release"
+}

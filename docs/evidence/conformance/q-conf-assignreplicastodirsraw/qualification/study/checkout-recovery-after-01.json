@@ -1,0 +1,7 @@
+{
+  "main_head_unchanged": true,
+  "modified_files_unchanged": 260,
+  "tracked_paths_missing": [],
+  "sparse_checkout_disabled": true,
+  "limitation": "Sparse settings changed index skip-worktree flags during the failed preparation; restoration preserves staged contents and working file bytes, not byte identity of the index cache."
+}

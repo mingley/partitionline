@@ -1,0 +1,13 @@
+...............F.....................................
+======================================================================
+FAIL: test_real_registry_backlog_passes_but_core_and_full_fail (tests.conformance.test_check_protocol_coverage.TestConformanceBacklogModes.test_real_registry_backlog_passes_but_core_and_full_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py", line 766, in test_real_registry_backlog_passes_but_core_and_full_fail
+    self.assertEqual(backlog['conformance_backlog']['independent_cases'], 63)
+AssertionError: 66 != 63
+
+----------------------------------------------------------------------
+Ran 53 tests in 9.547s
+
+FAILED (failures=1)

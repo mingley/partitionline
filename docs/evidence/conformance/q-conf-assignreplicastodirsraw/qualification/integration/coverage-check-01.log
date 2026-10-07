@@ -1,0 +1,159 @@
+============================================================
+          PROTOCOL SCHEMA & COVERAGE DRIFT REPORT
+============================================================
+Coverage Mode:              classification
+Frozen Apache Pins:         3.9.1, 4.1.0, 4.1.2, 4.2.1, 4.3.1
+Total Pinned Apache APIs:   93
+Total Catalog Key Names:    93
+Implemented Client APIs:    73
+Version Gaps:               41
+Missing Runtime Wiring APIs:0
+Missing Runtime Features:   3
+Partial Runtime Features:   1
+Excluded Broker-Internal:   20 APIs + 3 frameworks
+Unclassified Drift Items:   0
+------------------------------------------------------------
+Implemented Client APIs (73):
+  [ 0] Produce                      (v3-v13)
+  [ 1] Fetch                        (v4-v18)
+  [ 2] ListOffsets                  (v1-v11)
+  [ 3] Metadata                     (v0-v13)
+  [ 8] OffsetCommit                 (v2-v10)
+  [ 9] OffsetFetch                  (v1-v10)
+  [10] FindCoordinator              (v0-v6)
+  [11] JoinGroup                    (v2-v9)
+  [12] Heartbeat                    (v0-v4)
+  [13] LeaveGroup                   (v0-v5)
+  [14] SyncGroup                    (v0-v5)
+  [15] DescribeGroups               (v0-v6)
+  [16] ListGroups                   (v0-v5)
+  [17] SaslHandshake                (v0-v1)
+  [18] ApiVersions                  (v0-v4)
+  [19] CreateTopics                 (v0-v7)
+  [20] DeleteTopics                 (v0-v6)
+  [21] DeleteRecords                (v0-v2)
+  [22] InitProducerId               (v0-v6)
+  [23] OffsetForLeaderEpoch         (v0-v4)
+  [24] AddPartitionsToTxn           (v0-v3)
+  [25] AddOffsetsToTxn              (v0-v4)
+  [26] EndTxn                       (v0-v5)
+  [27] WriteTxnMarkers              (v0-v2)
+  [28] TxnOffsetCommit              (v0-v5)
+  [29] DescribeAcls                 (v0-v3)
+  [30] CreateAcls                   (v0-v3)
+  [31] DeleteAcls                   (v0-v3)
+  [32] DescribeConfigs              (v0-v4)
+  [33] AlterConfigs                 (v0-v2)
+  [34] AlterReplicaLogDirs          (v1-v2)
+  [35] DescribeLogDirs              (v1-v5)
+  [36] SaslAuthenticate             (v0-v2)
+  [37] CreatePartitions             (v0-v3)
+  [38] CreateDelegationToken        (v1-v3)
+  [39] RenewDelegationToken         (v1-v2)
+  [40] ExpireDelegationToken        (v1-v2)
+  [41] DescribeDelegationToken      (v1-v3)
+  [42] DeleteGroups                 (v0-v2)
+  [43] ElectLeaders                 (v0-v2)
+  [44] IncrementalAlterConfigs      (v0-v1)
+  [45] AlterPartitionReassignments  (v0-v1)
+  [46] ListPartitionReassignments   (v0-v0)
+  [47] OffsetDelete                 (v0-v0)
+  [48] DescribeClientQuotas         (v0-v1)
+  [49] AlterClientQuotas            (v0-v1)
+  [50] DescribeUserScramCredentials (v0-v0)
+  [51] AlterUserScramCredentials    (v0-v0)
+  [55] DescribeQuorum               (v0-v2)
+  [57] UpdateFeatures               (v0-v2)
+  [60] DescribeCluster              (v0-v2)
+  [61] DescribeProducers            (v0-v0)
+  [64] UnregisterBroker             (v0-v0)
+  [65] DescribeTransactions         (v0-v0)
+  [66] ListTransactions             (v0-v2)
+  [68] ConsumerGroupHeartbeat       (v0-v1)
+  [69] ConsumerGroupDescribe        (v0-v1)
+  [71] GetTelemetrySubscriptions    (v0-v0)
+  [72] PushTelemetry                (v0-v0)
+  [73] AssignReplicasToDirs         (v0-v0)
+  [74] ListClientMetricsResources   (v0-v1)
+  [75] DescribeTopicPartitions      (v0-v0)
+  [76] ShareGroupHeartbeat          (v0-v1)
+  [77] ShareGroupDescribe           (v0-v1)
+  [78] ShareFetch                   (v0-v2)
+  [79] ShareAcknowledge             (v0-v2)
+  [80] AddRaftVoter                 (v0-v0)
+  [81] RemoveRaftVoter              (v0-v0)
+  [88] StreamsGroupHeartbeat        (v0-v0)
+  [89] StreamsGroupDescribe         (v0-v0)
+  [90] DescribeShareGroupOffsets    (v0-v1)
+  [91] AlterShareGroupOffsets       (v0-v0)
+  [92] DeleteShareGroupOffsets      (v0-v0)
+------------------------------------------------------------
+Version Gaps (41):
+  * [ 0] Produce v0: Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3
+  * [ 0] Produce v1: Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3
+  * [ 0] Produce v2: Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3
+  * [ 0] Produce v12: Produce v12 is KIP-890 Part 2 txn V2; Kafka 3.9.1 max is v11 (Kafka 4.0+ only, cases.json)
+  * [ 0] Produce v13: Produce v13 uses topic IDs (KIP-516); Kafka 3.9.1 max is v11. Implemented against Apache 4.1.2/4.2.1/4.3.1 fixtures with Metadata identity and request-snapshot response mapping (KL05-11).
+  * [ 1] Fetch v0: Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4
+  * [ 1] Fetch v1: Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4
+  * [ 1] Fetch v2: Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4
+  * [ 1] Fetch v3: Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4
+  * [ 1] Fetch v18: Fetch18 HighWatermark (KIP-1166) is implemented against Apache4.1 and current SDKs; Apache3.9.1 supports through17.
+  * [ 2] ListOffsets v0: ListOffsets v0 legacy format removed in Kafka 4.0; client starts at v1
+  * [ 2] ListOffsets v10: ListOffsets v10 adds TimeoutMs (KIP-1075); Kafka 3.9.1 max is v9 (Kafka 4.0+ only, cases.json)
+  * [ 3] Metadata v13: Metadata v13 adds top-level ErrorCode; Kafka 3.9.1 max is v12 (Kafka 4.0+ only, cases.json)
+  * [ 8] OffsetCommit v0: OffsetCommit v0 removed in Kafka 4.0; client speaks 2-10
+  * [ 8] OffsetCommit v1: OffsetCommit v1 removed in Kafka 4.0; client speaks 2-10
+  * [ 8] OffsetCommit v10: Typed UUID commits and group/Admin routing support v10; historical ranges stop at9. Current Java name-based public calls still select8/9 and refuse10-only peers.
+  * [ 9] OffsetFetch v0: OffsetFetch v0 removed in Kafka 4.0; client speaks 1-10
+  * [ 9] OffsetFetch v10: Typed UUID fetches and group/Admin batches support v10; historical ranges stop at9. UUID-only intent refuses older actual coordinators.
+  * [11] JoinGroup v0: JoinGroup v0 removed in Kafka 4.0; client speaks 2-9
+  * [11] JoinGroup v1: JoinGroup v1 removed in Kafka 4.0; client speaks 2-9
+  * [19] CreateTopics v0: CreateTopics v0 removed in Kafka 4.0; client still supports legacy v0
+  * [19] CreateTopics v1: CreateTopics v1 removed in Kafka 4.0; client still supports legacy v1
+  * [20] DeleteTopics v0: DeleteTopics v0 removed in Kafka 4.0; client still supports legacy v0
+  * [22] InitProducerId v6: InitProducerId6 fields and ordinary false-flag initialization are supported; historical/stable ranges stop at5. Full prepared lifecycle remains separate.
+  * [23] OffsetForLeaderEpoch v0: OffsetForLeaderEpoch v0 removed in Kafka 4.0; client still supports legacy v0
+  * [23] OffsetForLeaderEpoch v1: OffsetForLeaderEpoch v1 removed in Kafka 4.0; client still supports legacy v1
+  * [24] AddPartitionsToTxn v4: AddPartitionsToTxn v4 adds batched transactions; client capped at v3 (src/protocol/header.rs)
+  * [24] AddPartitionsToTxn v5: AddPartitionsToTxn v5 adds batched transactions; client capped at v3 (src/protocol/header.rs)
+  * [29] DescribeAcls v0: DescribeAcls v0 removed in Kafka 4.0; client still supports legacy v0
+  * [30] CreateAcls v0: CreateAcls v0 removed in Kafka 4.0; client still supports legacy v0
+  * [31] DeleteAcls v0: DeleteAcls v0 removed in Kafka 4.0; client still supports legacy v0
+  * [32] DescribeConfigs v0: DescribeConfigs v0 removed in Kafka 4.0; client still supports legacy v0
+  * [34] AlterReplicaLogDirs v0: AlterReplicaLogDirs v0 removed in Kafka 4.0; client speaks 1-2
+  * [35] DescribeLogDirs v0: DescribeLogDirs v0 removed in Kafka 4.0; client starts at v1
+  * [38] CreateDelegationToken v0: CreateDelegationToken v0 removed in Kafka 4.0; client speaks 1-3
+  * [39] RenewDelegationToken v0: RenewDelegationToken v0 removed in Kafka 4.0; client speaks 1-2
+  * [40] ExpireDelegationToken v0: ExpireDelegationToken v0 removed in Kafka 4.0; client speaks 1-2
+  * [41] DescribeDelegationToken v0: DescribeDelegationToken v0 removed in Kafka 4.0; client speaks 1-3
+  * [45] AlterPartitionReassignments v1: Reassignment policy flag is implemented for current0-1 peers; historical3.9.1/4.1.0 peers offer only0 and reject explicitfalse locally.
+  * [66] ListTransactions v2: Nullable TransactionalIdPattern and public all-broker filters are implemented for current0-2 peers; historical3.9.1/4.1.0 ranges stop at1.
+  * [80] AddRaftVoter v1: AckWhenCommitted option unsupported; add-voter runtime caps at0
+------------------------------------------------------------
+Missing Runtime Wiring APIs (0):
+------------------------------------------------------------
+Excluded Broker-Internal APIs (20):
+  * [ 4] LeaderAndIsr: LeaderAndIsr: inter-broker replica state propagation (clusterAction, cases.json)
+  * [ 5] StopReplica: StopReplica: controller-to-broker replica deletion (clusterAction, cases.json)
+  * [ 6] UpdateMetadata: UpdateMetadata: controller-to-broker cluster state broadcast (clusterAction, cases.json)
+  * [ 7] ControlledShutdown: ControlledShutdown: broker-to-controller graceful shutdown (clusterAction, cases.json)
+  * [52] Vote: Vote: KRaft consensus leader voting (clusterAction, cases.json)
+  * [53] BeginQuorumEpoch: BeginQuorumEpoch: KRaft consensus leader epoch transition (clusterAction, cases.json)
+  * [54] EndQuorumEpoch: EndQuorumEpoch: KRaft consensus leader resign (clusterAction, cases.json)
+  * [56] AlterPartition: AlterPartition: broker leader ISR state update to controller (clusterAction, cases.json)
+  * [58] Envelope: Envelope: inter-broker request forwarding wrapper (clusterAction, cases.json)
+  * [59] FetchSnapshot: FetchSnapshot: KRaft controller state machine snapshot replication (features.json)
+  * [62] BrokerRegistration: BrokerRegistration: KRaft broker bootstrap registration (clusterAction, cases.json)
+  * [63] BrokerHeartbeat: BrokerHeartbeat: KRaft broker liveness heartbeat to controller (clusterAction, cases.json)
+  * [67] AllocateProducerIds: AllocateProducerIds: inter-broker transactional PID block allocation (clusterAction, cases.json)
+  * [70] ControllerRegistration: ControllerRegistration: KRaft controller registration (features.json)
+  * [82] UpdateRaftVoter: UpdateRaftVoter: KRaft voter membership reconfig (features.json)
+  * [83] InitializeShareGroupState: InitializeShareGroupState: broker-to-persister share state storage (clusterAction, cases.json)
+  * [84] ReadShareGroupState: ReadShareGroupState: broker-to-persister share state read (clusterAction, cases.json)
+  * [85] WriteShareGroupState: WriteShareGroupState: broker-to-persister share state write (clusterAction, cases.json)
+  * [86] DeleteShareGroupState: DeleteShareGroupState: broker-to-persister share state deletion (clusterAction, cases.json)
+  * [87] ReadShareGroupStateSummary: ReadShareGroupStateSummary: broker-to-persister share state summary (clusterAction, cases.json)
+------------------------------------------------------------
+Final Status: PASS (all APIs and versions classified) [exit=0]
+============================================================

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "task": "KL01-32",
+  "status": "done",
+  "disposition": "qualified-declared-current-raw-extension-cohort",
+  "execution_source_commit": "85e96d48c5bfac2ac2a9b5fdc3069d896d269441",
+  "rust_compilation_commit": "6575e97792a710dba35426cb989abaed57b84202",
+  "source_bound": true,
+  "core_and_test_bytes_identical_between_commits": true,
+  "ordinary_tests_passed_per_feature_build": 2,
+  "conditional_lanes_executed_per_feature_build": 6,
+  "independent_wire_bodies": 138,
+  "independent_live_body_parses": 216,
+  "raw_controller_requests": 108,
+  "actual_rejected_body_mutations": 9,
+  "qualified_waited_process_receipts": 95,
+  "owned_topologies": 6,
+  "owned_topics_deleted": 6,
+  "source_guards_verified": true,
+  "compiled_class_guards_verified": true,
+  "default_and_all_feature_profiles": [
+    {
+      "profile": "sdk-default-02",
+      "summary": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-default-02/summary.json"
+    },
+    {
+      "profile": "sdk-all-01",
+      "summary": "/workspace/work/open-cards-20261006/assign-replicas-to-dirs-raw-20261007/sdk-all-01/summary.json"
+    }
+  ],
+  "retained_failed_attempts": [
+    "sdk-default-01: Kafka metadata segment below actual minimum; formatting exit1, no broker started",
+    "clippy-source-01: test helper unwrap lint errors; corrected before qualification"
+  ],
+  "limitations": [
+    "Declared API73v0 raw cohort only; no standard Java Admin method exists.",
+    "Assignment uses the disposable topic and its current online directory. Offline movement, unassigned replica, failover and authorization are not qualified.",
+    "Unknown numeric error codes are raw integers in Rust and map to UNKNOWN_SERVER_ERROR in Java enums; wire preservation does not assert identical typed enum behavior.",
+    "Rust response post-read assertion is a fixture bound, not an independent hostile-frame memory qualification.",
+    "No exhaustive upstream applicability closure, production readiness or performance claim."
+  ],
+  "date": "2026-10-07",
+  "source_published_commit": "85e96d48c5bfac2ac2a9b5fdc3069d896d269441",
+  "qualified_case_ids": [
+    "current-claimed-api-073-v0-4-1-2",
+    "current-claimed-api-073-v0-4-2-1",
+    "current-claimed-api-073-v0-4-3-1"
+  ],
+  "toolchain": "latest stable Rust1.99.0",
+  "strict_clippy": true,
+  "formatting": true,
+  "product_source_changed": false,
+  "evidence_directory": "docs/evidence/conformance/q-conf-assignreplicastodirsraw",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "archive_sha256_manifest": "0b71cc704f2b4d3931507c38b08439864f73c6a2e301e5ca8e528cd5eeb4947a",
+  "qualification_summary_sha256": "f48d1ad110ab1875553b4b7e8d1c44e2555994f8a7aece8e2b30e2259c6ec97b",
+  "registry_checker_tests_passed": 53,
+  "conformance_required_cases": 182,
+  "conformance_independent_cases": 66
+}
