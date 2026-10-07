@@ -1,0 +1,357 @@
+{
+  "scope": "Finite API57 source preflight only; no peer build or qualification.",
+  "retrieved_utc": "2026-10-07T22:27:52Z",
+  "files": [
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequest.json",
+      "bytes": 2653,
+      "sha256": "afb94b3e2a0a6f14f7535128f61ecb00e4498f0b1a0820cd9740ae4f8a384a03"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponse.json",
+      "bytes": 2149,
+      "sha256": "789762f475eafb2fa9823146f9368d7b8299687eb1e02a8a5493f2936561f7c4"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequest.java",
+      "bytes": 4306,
+      "sha256": "74de323e4ddb9aac1a33777a19a1681e15dd4d8a31920f5acce8c57cc51b97dc"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponse.java",
+      "bytes": 3913,
+      "sha256": "1639fca23a4ce62008dd3340ff8f8087cf4d4661974970aa379ca7856b400ff9"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/FeatureUpdate.java",
+      "bytes": 3957,
+      "sha256": "47c79aaed7cdd60cf12f7bb2ea967b698e0f9e6eb9f6283310d9ed133cbf0d9f"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesOptions.java",
+      "bytes": 1290,
+      "sha256": "9e80389958144878f6743d5133dd72ad94e37c8a0ecfd4010341cefe44434d74"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResult.java",
+      "bytes": 1749,
+      "sha256": "255e32e0bad59e3afca6d4b8283f7178329c980d75bbeef47da4d739cc059d9b"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "bytes": 6052,
+      "sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "bytes": 3667,
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/FeatureUpdateTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResultTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "bytes": 621835,
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327"
+    },
+    {
+      "tag": "4.1.2",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClient.java",
+      "bytes": 259117,
+      "sha256": "169379912e38afa68f726d60f5835f443a53af4bd0bd857af5d8499d8bcff55d"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequest.json",
+      "bytes": 2653,
+      "sha256": "afb94b3e2a0a6f14f7535128f61ecb00e4498f0b1a0820cd9740ae4f8a384a03"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponse.json",
+      "bytes": 2149,
+      "sha256": "789762f475eafb2fa9823146f9368d7b8299687eb1e02a8a5493f2936561f7c4"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequest.java",
+      "bytes": 4306,
+      "sha256": "74de323e4ddb9aac1a33777a19a1681e15dd4d8a31920f5acce8c57cc51b97dc"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponse.java",
+      "bytes": 3913,
+      "sha256": "1639fca23a4ce62008dd3340ff8f8087cf4d4661974970aa379ca7856b400ff9"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/FeatureUpdate.java",
+      "bytes": 3957,
+      "sha256": "47c79aaed7cdd60cf12f7bb2ea967b698e0f9e6eb9f6283310d9ed133cbf0d9f"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesOptions.java",
+      "bytes": 1290,
+      "sha256": "9e80389958144878f6743d5133dd72ad94e37c8a0ecfd4010341cefe44434d74"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResult.java",
+      "bytes": 1749,
+      "sha256": "255e32e0bad59e3afca6d4b8283f7178329c980d75bbeef47da4d739cc059d9b"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "bytes": 6052,
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "bytes": 3667,
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/FeatureUpdateTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResultTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "bytes": 627473,
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc"
+    },
+    {
+      "tag": "4.2.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClient.java",
+      "bytes": 259437,
+      "sha256": "9a39230ce0fda549a8fb64016d74ddc8fcb54fee9dbf9f58ec3aa5399564fb02"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/UpdateFeaturesRequest.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequest.json",
+      "bytes": 2653,
+      "sha256": "afb94b3e2a0a6f14f7535128f61ecb00e4498f0b1a0820cd9740ae4f8a384a03"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/resources/common/message/UpdateFeaturesResponse.json",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponse.json",
+      "bytes": 2149,
+      "sha256": "789762f475eafb2fa9823146f9368d7b8299687eb1e02a8a5493f2936561f7c4"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesRequest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequest.java",
+      "bytes": 4306,
+      "sha256": "74de323e4ddb9aac1a33777a19a1681e15dd4d8a31920f5acce8c57cc51b97dc"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/UpdateFeaturesResponse.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponse.java",
+      "bytes": 3913,
+      "sha256": "1639fca23a4ce62008dd3340ff8f8087cf4d4661974970aa379ca7856b400ff9"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/FeatureUpdate.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/FeatureUpdate.java",
+      "bytes": 3957,
+      "sha256": "47c79aaed7cdd60cf12f7bb2ea967b698e0f9e6eb9f6283310d9ed133cbf0d9f"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesOptions.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesOptions.java",
+      "bytes": 1290,
+      "sha256": "9e80389958144878f6743d5133dd72ad94e37c8a0ecfd4010341cefe44434d74"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/UpdateFeaturesResult.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResult.java",
+      "bytes": 1749,
+      "sha256": "255e32e0bad59e3afca6d4b8283f7178329c980d75bbeef47da4d739cc059d9b"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesRequestTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "bytes": 6052,
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/UpdateFeaturesResponseTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "bytes": 3667,
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/clients/admin/FeatureUpdateTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/FeatureUpdateTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/clients/admin/UpdateFeaturesResultTest.java",
+      "http_status": 404,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResultTest.java",
+      "bytes": 14,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/test/java/org/apache/kafka/clients/admin/KafkaAdminClientTest.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "bytes": 635844,
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920"
+    },
+    {
+      "tag": "4.3.1",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java",
+      "http_status": 200,
+      "local_path": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClient.java",
+      "bytes": 261317,
+      "sha256": "917cffa40d29d378e59c3cd47aa501598d7b0c64cbf2b8c17746e7f316b4a73b"
+    }
+  ]
+}

@@ -35348,7 +35348,8 @@
         "KL05-43",
         "KL05-45",
         "KL06-13",
-        "KL02-12"
+        "KL02-12",
+        "KL09-73"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -52352,8 +52353,8 @@
       "title": "Qualify public UpdateFeatures version/option/error behavior",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL01-03"
       ],
@@ -52384,7 +52385,8 @@
         "tests/conformance/java/generate_update_features.py",
         "tests/update_features_conformance.rs",
         "tests/fixtures/update_features/",
-        "docs/evidence/conformance/q-conf-updatefeatures/"
+        "docs/evidence/conformance/q-conf-updatefeatures/",
+        "src/protocol/admin.rs"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -52409,7 +52411,8 @@
         "current-public-api-057-v2-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "preparation_scope": "Finite API57 upstream inventory and uncompiled Java generator. Defer Rust edits and SDK compilation until KL09-62 timing ends. Candidate v0 validate-only rejection will receive actual independent tests before qualification."
     },
     {
       "id": "KL01-29",
@@ -53317,6 +53320,52 @@
           "path": "docs/evidence/perf/runtime-flavors/study/producer-close-observation-01/"
         }
       ]
+    },
+    {
+      "id": "KL09-73",
+      "title": "Emit schema-valid null-broker benchmark results and enforce full-schema checks",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL04-02",
+        "KL09-02",
+        "KL09-65"
+      ],
+      "files": [
+        "benchmarks/runtime/src/artifact.rs",
+        "benchmarks/result-schema.json",
+        "scripts/benchmark-report.py",
+        "new: docs/evidence/perf/null-result-schema/"
+      ],
+      "deliverable": "Current null-broker producers emit complete, accurately labeled result documents; schema and semantic validation reject actual invalid captured results.",
+      "acceptance": [
+        "Preserve all earlier captured result bytes, successful CLI receipts and actual full-schema failures. Qualify the corrected source separately.",
+        "Represent a null broker explicitly rather than relabeling it Kafka KRaft; keep durability, warmup, configuration, provenance and histogram observations accurate. Unknown or unobserved fields must not become invented successful measurements.",
+        "Enforce the complete schema on new result formats alongside semantic checks. Cover actual null produce and fetch outputs, native results, and changed-result rejection controls without silently accepting an old incomplete format.",
+        "Keep measurements and benchmark/library defaults unchanged; regenerate only corrected-source outputs and label any post-capture metadata views separately."
+      ],
+      "validation": [
+        "Run latest-stable Rust benchmark tests and actual bounded null produce/fetch jobs; retain full-schema and report CLI exit-zero receipts for each corrected result.",
+        "Run meaningful changed-result controls against the full schema and report CLI, and preserve earlier captured failures."
+      ],
+      "evidence": [
+        "docs/evidence/perf/build-profiles/study/training-schema-preflight-01.json"
+      ],
+      "write_set": [
+        "benchmarks/runtime/src/artifact.rs",
+        "benchmarks/result-schema.json",
+        "scripts/benchmark-report.py",
+        "benchmarks/tests/test_report.py",
+        "docs/evidence/perf/null-result-schema/",
+        "docs/plan/evidence/KL09-73.json"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md"
+      ],
+      "qualification_limit": "Observed in KL09-62 before comparison: actual null training results pass the report CLI while missing required fields and failing the full JSON schema. The original results and schema errors remain retained."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",

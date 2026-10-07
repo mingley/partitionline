@@ -1,0 +1,49 @@
+{
+  "task": "KL01-28",
+  "status": "uncompiled_preparation",
+  "oracle_cases_per_sdk": 101,
+  "request_response_bodies_per_version": {
+    "0": 25,
+    "1": 38,
+    "2": 38
+  },
+  "feature_value_invocations_per_sdk": 30,
+  "option_accessor_invocations_per_sdk": 1,
+  "unsupported_field_checks_per_sdk": 3,
+  "SDK_generations_per_version": 2,
+  "SDK_tags": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "Java_source_sha256": "4d1d442cb6d9ed9b620b376a503724ce2d08811755b2a19421a211bb45b4d25f",
+  "generator_sha256": "4791fded8d75d99b8c3ff51c67b369dc95813e8a47d47240765655f8b451b48b",
+  "limits": {
+    "body_bytes": 65536,
+    "versions": [
+      0,
+      1,
+      2
+    ],
+    "upgrade_codes": [
+      -128,
+      0,
+      1,
+      2,
+      3,
+      127
+    ],
+    "constructor_levels": [
+      -32768,
+      -1,
+      0,
+      1,
+      32767
+    ],
+    "overall_generation_seconds": 300,
+    "per_SDK_compile_seconds": 30,
+    "per_generation_seconds": 8
+  },
+  "qualification": "No compile, test, peer invocation or result promotion yet. Public live behavior and controller retry source cases remain to implement.",
+  "process_controls": "Linux subreaper; parent-death bound; source/JAR/class SHA guards before and after every owned command. Not yet executed."
+}

@@ -1,0 +1,343 @@
+{
+  "task": "KL01-28",
+  "api_key": 57,
+  "initial_registered_versions": [
+    0,
+    1,
+    2
+  ],
+  "pinned_sdk_tags": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "upstream_methods": [
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "method": "testGetErrorResponse",
+      "signature": "",
+      "line": 38,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "method": "testUpdateFeaturesV0",
+      "signature": "",
+      "line": 64,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "method": "testUpdateFeaturesV1",
+      "signature": "",
+      "line": 93,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "signature": "",
+      "line": 124,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testErrorCounts",
+      "signature": "",
+      "line": 35,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testSerialization",
+      "signature": "short version",
+      "line": 68,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesDuringSuccess",
+      "signature": "short version",
+      "line": 8765,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesTopLevelError",
+      "signature": "",
+      "line": 8773,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "signature": "short version",
+      "line": 8780,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "signature": "",
+      "line": 8814,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "signature": "",
+      "line": 8824,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "signature": "",
+      "line": 8836,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testGetErrorResponse",
+      "signature": "",
+      "line": 38,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV0",
+      "signature": "",
+      "line": 64,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV1",
+      "signature": "",
+      "line": 93,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "signature": "",
+      "line": 124,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testErrorCounts",
+      "signature": "",
+      "line": 35,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testSerialization",
+      "signature": "short version",
+      "line": 68,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesDuringSuccess",
+      "signature": "short version",
+      "line": 8795,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesTopLevelError",
+      "signature": "",
+      "line": 8803,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "signature": "short version",
+      "line": 8810,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "signature": "",
+      "line": 8844,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "signature": "",
+      "line": 8854,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "signature": "",
+      "line": 8866,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testGetErrorResponse",
+      "signature": "",
+      "line": 38,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV0",
+      "signature": "",
+      "line": 64,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV1",
+      "signature": "",
+      "line": 93,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "signature": "",
+      "line": 124,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testErrorCounts",
+      "signature": "",
+      "line": 35,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "method": "testSerialization",
+      "signature": "short version",
+      "line": 68,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesDuringSuccess",
+      "signature": "short version",
+      "line": 8946,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesTopLevelError",
+      "signature": "",
+      "line": 8954,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "signature": "short version",
+      "line": 8961,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "signature": "",
+      "line": 8995,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "signature": "",
+      "line": 9004,
+      "qualification_status": "source_inventory_only"
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "signature": "",
+      "line": 9015,
+      "qualification_status": "source_inventory_only"
+    }
+  ],
+  "status": "preparation_only",
+  "qualified_cases": 0,
+  "note": "Source inventory before implementation. Parameter and behavioral invocation mapping, applicability dispositions, fresh Rust tests and actual SDK/native execution remain required. No old case disposition changes."
+}
