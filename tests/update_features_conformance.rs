@@ -122,12 +122,22 @@ async fn native_public_update_features_history() {
             assert_eq!(rejected_locally, index == 5);
             if index < 5 {
                 assert_eq!(errors.len(), updates.len());
+                assert!(updates.iter().all(|update| errors.contains_key(&update.name)));
             }
             if (2..=4).contains(&index) {
                 assert!(errors.values().any(|code| *code != 0));
             }
-            rows.push(serde_json::json!({"case":index,"validate_only":validate,
-                "rejected_locally":rejected_locally,"errors":errors}));
+            let fields = errors
+                .iter()
+                .map(|(name, code)| {
+                    assert!(name == "metadata.version" || name == "partitionline.conformance.unknown");
+                    format!("\"{name}\":{code}")
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            rows.push(format!(
+                "{{\"case\":{index},\"validate_only\":{validate},\"rejected_locally\":{rejected_locally},\"errors\":{{{fields}}}}}"
+            ));
         }
         assert!(matches!(
             admin.update_features_with(&[], 2000, true).await,
@@ -135,13 +145,15 @@ async fn native_public_update_features_history() {
         ));
         let after = admin.describe_features().await.unwrap();
         assert_eq!(before.finalized_features, after.finalized_features);
-        serde_json::json!({"actual_public_Admin":true,"metadata_version":level,"cases":rows,
-            "empty_rejected":true,"finalized_features_unchanged":true})
+        format!(
+            "{{\"actual_public_Admin\":true,\"metadata_version\":{level},\"cases\":[{}],\"empty_rejected\":true,\"finalized_features_unchanged\":true}}",
+            rows.join(",")
+        )
     })
     .await;
     admin.close().await.unwrap();
     let observed = outcome.unwrap();
-    tokio::fs::write(output, serde_json::to_vec_pretty(&observed).unwrap())
+    tokio::fs::write(output, observed)
         .await
         .unwrap();
 }
