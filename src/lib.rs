@@ -3158,6 +3158,7 @@ pub mod interceptor;
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
+pub mod offsets;
 /// Kafka murmur2 partitioner.
 pub mod partitioner;
 /// Produce client.
@@ -3250,6 +3251,7 @@ pub use metrics::{
     TopicFetchMetrics, TopicProduceMetrics,
 };
 pub use net::TlsConfig;
+pub use offsets::{OffsetClient, OffsetOptions};
 pub use partitioner::{
     murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox, StickyPartitioner,
     StickyPartitionerConfig,

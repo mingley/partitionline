@@ -118,6 +118,13 @@ requires v2; it is never silently dropped on an older broker. Three actual
 Apache SDKs qualify selected wire and public-call behavior against bounded
 scripted peers. Live transaction-state recovery remains separate work.
 
+OffsetCommit and OffsetFetch support v10 topic UUIDs through typed requests,
+ConsumerGroup and Admin methods. Name-based calls retain older wire formats;
+UUID-only requests refuse older coordinators. Metadata snapshots and assignment
+IDs keep offsets tied to the original topic across same-name recreation.
+Selected wire and public-call checks use three pinned Apache SDKs and scripted
+peers. This does not qualify live coordinator persistence or cluster failover.
+
 DescribeLogDirs now negotiates each selected broker’s v1–v5 range and exposes
 typed `IsCordoned` at v5 (older versions default to false). Each attempt adds one
 ApiVersions control RPC within that broker hop’s deadline. Independent Apache

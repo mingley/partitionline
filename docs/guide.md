@@ -594,6 +594,57 @@ Regression evidence: `consumer_close_commit::commit_after_capped_poll_must_not_c
 `static_member_unsubscribe_then_commit_sends_no_offset_commit`, and
 `kip848_fencing_rejoin_preserves_delivered_position`.
 
+### Committed offsets and topic IDs
+
+Group and Admin offset methods negotiate v10 when the coordinator supports it.
+At v10, topics are identified by UUID. Named Admin calls capture metadata before
+the request and use that same snapshot to interpret the response. Group commits
+use the UUID attached to the assigned partition, including queued asynchronous
+commits. Recreating a topic with the same name cannot redirect an old commit.
+
+`OffsetClient` exposes full offset request and response fields. Use it when you
+already have topic IDs or need raw per-partition errors. UUID requests require
+v10; an older coordinator returns `Error::Unsupported` before the offset RPC.
+Name requests use v8/v9. The two identity forms are never converted implicitly.
+
+```rust,no_run
+# async fn example(topic_id: [u8; 16]) -> partitionline::Result<()> {
+use partitionline::{AdminConfig, OffsetClient, OffsetOptions};
+use partitionline::protocol::group::{
+    OffsetFetchRequestData, OffsetFetchGroupData, OffsetFetchTopicData,
+    OffsetTopicIdentity,
+};
+
+let mut client = OffsetClient::new(AdminConfig::bootstrap(["127.0.0.1:9092"]))?;
+let request = OffsetFetchRequestData {
+    groups: vec![OffsetFetchGroupData {
+        group_id: "workers".into(),
+        topics: Some(vec![OffsetFetchTopicData {
+            identity: OffsetTopicIdentity::Id(topic_id),
+            partition_indexes: vec![0],
+        }]),
+        ..Default::default()
+    }],
+    require_stable: true,
+};
+let response = client.fetch(&request, &OffsetOptions {
+    topic_ids: true,
+    timeout: Some(std::time::Duration::from_secs(3)),
+    ..Default::default()
+}).await?;
+println!("{:?}", response.groups);
+# Ok(())
+# }
+```
+
+`topics: None` fetches all committed topics; `Some(vec![])` selects none.
+Raw responses retain UUIDs, nullable metadata, member and leader epochs, and
+broker errors. Named projections reject an unknown UUID instead of inventing
+a topic name. Limits cover request collections, metadata lookup, decoded results
+and retries. One deadline covers discovery, connection setup and the offset RPC.
+An interrupted commit may have reached the coordinator; fetch stored offsets
+before deciding whether to retry processing.
+
 ### Produce cancellation and shutdown
 
 Once `send` / `try_send` has accepted a record into `buffer_memory`, dropping the

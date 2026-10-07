@@ -506,7 +506,11 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertFalse(report["full_current_protocol_complete"])
         self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, set())
         caps = {(r["api_key"], r["version"]) for r in report["version_gaps"] if r["direction"] == "upstream_cap"}
-        self.assertTrue({(8, 10), (9, 10), (80, 1), (24, 4), (24, 5)} <= caps)
+        self.assertTrue({(80, 1), (24, 4), (24, 5)} <= caps)
+        for key in (8, 9):
+            self.assertNotIn((key, 10), caps)
+            operation = next(r for r in report["implemented_client_operations"] if r["api_key"] == key)
+            self.assertEqual(operation["client_advertised_max"], 10)
         self.assertNotIn((66, 2), caps)
         listing = next(r for r in report["implemented_client_operations"] if r["api_key"] == 66)
         self.assertEqual(listing["client_advertised_max"], 2)
@@ -545,6 +549,25 @@ class TestProtocolCoverageChecker(unittest.TestCase):
                     release = next(r for r in result["results"] if r["release"] == row["peer_pin"])
                     self.assertEqual((release["public_Rust_calls"], release["actual_heartbeat_frames"],
                                       release["actual_GROUP_discovery_frames"]), (45, 54, 54))
+            elif row["id"].startswith("current-public-api-089-"):
+                self.assertEqual(row["disposition"], "independent_pass")
+                self.assertEqual(row["qualification_scope"], "client_component_public_Admin_Streams_describe_wire_and_handler")
+                qualification = json.loads((REPO_ROOT / row["evidence"]).read_text())
+                self.assertFalse(qualification["production_ready"])
+                self.assertFalse(qualification["performance_claims_valid"])
+                self.assertEqual(qualification["source_published_commit"], row["execution_source_commit"])
+                for artifact in row["artifacts"]:
+                    self.assertTrue((REPO_ROOT / artifact).is_file())
+                for artifact in row["artifacts"][1:]:
+                    result = json.loads((REPO_ROOT / artifact).read_text())
+                    self.assertTrue(result["source_bound"])
+                    self.assertTrue(result["actual_sdk"])
+                    self.assertTrue(result["all_processes_parent_waited"])
+                    release = [r for r in result["results"] if r["release"] == row["peer_pin"]]
+                    self.assertEqual(len(release), 16)
+                    self.assertEqual({r["mode"] for r in release}, {"full", "empty", "null-empty", "error", "reroute", "disconnect", "mixed", "downgrade"})
+                    self.assertEqual({r["driver"] for r in release}, {"java", "rust"})
+                    self.assertTrue(all(r["actual_describe_frames"] > 0 and r["actual_GROUP_lookups"] > 0 for r in release))
             else:
                 self.assertIn(row["disposition"], ("not_run", "unsupported"))
                 self.assertNotIn("artifacts", row)
@@ -738,8 +761,8 @@ class TestConformanceBacklogModes(unittest.TestCase):
         self.assertEqual(backlog['summary']['exit_code'], 0)
         self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
         self.assertEqual(backlog['conformance_backlog']['required_cases'], 182)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 48)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 134)
+        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 51)
+        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 131)
         for mode in ('core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)

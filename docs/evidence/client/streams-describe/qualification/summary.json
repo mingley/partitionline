@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "task": "KL05-33",
+  "status": "done",
+  "date": "2026-10-07",
+  "source_published_commit": "ade80f6b289a187a881daa4090cf201057c5ec39",
+  "source_branch": "codex/finish-open-cards-20261007",
+  "source_url": "https://github.com/mingley/partitionline/tree/ade80f6b289a187a881daa4090cf201057c5ec39",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_source_uncommitted_to_head": true,
+  "implementation": "Admin::describe_streams_groups: full typed group/topology/member fields, explicit opt-in, actual GROUP coordinator address authority, per-connection API89v0 negotiation, ordered duplicates, distinct per-group failure provenance, bounded retained/expanded results and one owned deadline.",
+  "validation": {
+    "default": {
+      "passed": 2034,
+      "failed": 0,
+      "ignored": 20
+    },
+    "all": {
+      "passed": 2046,
+      "failed": 0,
+      "ignored": 21
+    }
+  },
+  "ordinary_focused_tests_each_profile": 11,
+  "external_lanes_actually_executed": true,
+  "SDK_profiles": {
+    "sdk-default-final": {
+      "public_Java_calls": 24,
+      "public_Rust_calls": 24,
+      "process_profiles": 48,
+      "describe_frames": 84,
+      "GROUP_frames": 90
+    },
+    "sdk-all-final2": {
+      "public_Java_calls": 24,
+      "public_Rust_calls": 24,
+      "process_profiles": 48,
+      "describe_frames": 84,
+      "GROUP_frames": 90
+    }
+  },
+  "actual_sdk_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "scenarios": [
+    "full topology/task/member fields",
+    "empty members/subtopologies",
+    "null instance/endpoint versus empty rack",
+    "per-group authorization error",
+    "coordinator movement",
+    "lost socket",
+    "mixed broker capabilities",
+    "downgrade after reconnect"
+  ],
+  "bounds": {
+    "attempts": 8,
+    "coordinator_addresses_per_attempt": 256,
+    "operation_connections": 2,
+    "concurrent_operations_per_Admin": 1,
+    "FindCoordinator_body_bytes": 65536,
+    "cumulative_FindCoordinator_body_bytes": 1048576,
+    "cumulative_describe_body_bytes": "eight times the configured wire_bytes",
+    "retained_and_expanded_descriptions": "each validated against complete StreamsLimits before clones",
+    "default_limits": "wire1MiB; each string64KiB/aggregate1MiB; array8192/aggregate32768; tags64/aggregate1024; decoded requested4MiB"
+  },
+  "owned_shutdown": "Every final Rust peer joins three listeners/workers, observes closed/rebindable ports and zero runtime tasks. Java closes its Admin and checks zero live Admin threads. Runner parent-waits all final processes, including its finally path. Cancellation observes worker EOF while Admin lives and then reuses the same Admin.",
+  "strict_checks": [
+    "latest stable Rust1.99.0",
+    "rustfmt",
+    "default/all-feature all-target Clippy -Dwarnings",
+    "all-feature rustdoc -Dwarnings",
+    "53 coverage checker tests"
+  ],
+  "package": {
+    "sha256": "e38794239ace8bc3a0692972c88cf2a90fcaba50f8565909c6676426f59f6aae",
+    "profiles": [
+      "default",
+      "tracing",
+      "zstd",
+      "all"
+    ],
+    "compiled_examples_each": 23,
+    "registered_links_each": 37,
+    "prose_card_counts_precede_closure": true
+  },
+  "navigation": {
+    "documents": [
+      "README.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
+      "docs/RELEASE.md",
+      "docs/ROADMAP.md",
+      "docs/STATUS.md",
+      "docs/adopter-exercise.md",
+      "docs/api-stability.md",
+      "docs/auth-refresh.md",
+      "docs/benchmark-contract.md",
+      "docs/benchmark.md",
+      "docs/design.md",
+      "docs/gaps.md",
+      "docs/guide.md",
+      "docs/gzip-backend.md",
+      "docs/index.md",
+      "docs/migrate-from-rdkafka.md",
+      "docs/open-loop-latency.md",
+      "docs/resource-contract.md",
+      "docs/resource-soak.md",
+      "docs/sasl-reauthentication.md",
+      "docs/schema-companion.md",
+      "docs/security.md",
+      "docs/support.md",
+      "docs/zstd-spike.md"
+    ],
+    "local_links": 184,
+    "status": "pass"
+  },
+  "retained_failures": [
+    "Initial tests ignored map insertion and shutdown results; exact source/compile failures retained.",
+    "An overbroad test-source replacement introduced nested let statements. Compiler/format failure and source retained; corrected before execution.",
+    "The peer initially advertised88 instead of89; that pre-execution source is retained and corrected.",
+    "First genuine Java run exposed GROUP_AUTHORIZATION_FAILED code30, not the assumed31. Selected genuine error and failed attempt retained.",
+    "Next genuine run showed Java can discover through any Metadata broker. The old bootstrap-only peer assertion failed; the new peer allows that while Rust bootstrap routing is checked separately.",
+    "First all-feature full suite rejected an assertion tying coordinator order to numeric nodes; address order varies with ephemeral ports. The test now checks both targets without constraining address order and separately checks caller result order.",
+    "A binary-selection probe found Clippy and executable fingerprints for all features; final selection also requires an actual executable. No SDK execution was qualified from the ambiguous selection."
+  ],
+  "limits": [
+    "Selected scripted GROUP peers and genuine public Java Admin calls/builders/parsers. This does not qualify a live Streams coordinator, membership persistence, a broker implementation or a Streams execution engine.",
+    "Rust requires explicit v0 opt-in; a wire version cannot identify release stability. No assertion about the default Java policy is inferred from the explicitly configured calls.",
+    "Response-entry fields are preserved. Java returns a deduplicated Map and future errors; Rust returns caller order/duplicates, raw API89 terminal errors and separately sourced discovery/capability/transport failures. Root throttle is not part of the returned per-group description.",
+    "Local malformed/budget failures and the whole deadline fail the operation; successful groups survive other groups retrying or terminal discovery/capability failures. Cancellation sends no membership mutation.",
+    "Encoding/decoding and aggregate result limits cover requested slot/string storage, not allocator rounding/RSS. Shared ApiVersions/TLS/SASL transport limits are unchanged; response admission occurs after the shared bounded frame read.",
+    "Operation sockets are new and owned by the Admin mutable lease; no additional socket is cached after return. Existing Admin connection requirements/caches remain. No warm-latency or speed claim.",
+    "Exact tested source is pushed to a review branch; the working HEAD/index stay unchanged. Local checks do not claim hosted CI, main merge, release or production readiness.",
+    "The required conformance ledger remains incomplete; this qualification is a client component and public-call cohort."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "evidence_directory": "docs/evidence/client/streams-describe/qualification"
+}

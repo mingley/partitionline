@@ -3207,54 +3207,81 @@
       "api_family": "StreamsGroupDescribe",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Each feature build executes8 genuine public Apache Admin calls and8 public Rust calls per pinned SDK. Selected scripted GROUP peers and actual SDK builders/parsers/handlers check full group/topology/member fields, caller order/duplicates, partial errors, coordinator movement, disconnects and per-connection capability refusal. This is component/public-call qualification; live Streams coordinator or framework execution remains unqualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-33"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-describe/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-describe/qualification/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-all-final2/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Admin_Streams_describe_wire_and_handler",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "execution_source_commit": "ade80f6b289a187a881daa4090cf201057c5ec39"
     },
     {
       "id": "current-public-api-089-v0-4-2-1",
       "api_family": "StreamsGroupDescribe",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Each feature build executes8 genuine public Apache Admin calls and8 public Rust calls per pinned SDK. Selected scripted GROUP peers and actual SDK builders/parsers/handlers check full group/topology/member fields, caller order/duplicates, partial errors, coordinator movement, disconnects and per-connection capability refusal. This is component/public-call qualification; live Streams coordinator or framework execution remains unqualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-33"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-describe/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-describe/qualification/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-all-final2/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Admin_Streams_describe_wire_and_handler",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "execution_source_commit": "ade80f6b289a187a881daa4090cf201057c5ec39"
     },
     {
       "id": "current-public-api-089-v0-4-3-1",
       "api_family": "StreamsGroupDescribe",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Each feature build executes8 genuine public Apache Admin calls and8 public Rust calls per pinned SDK. Selected scripted GROUP peers and actual SDK builders/parsers/handlers check full group/topology/member fields, caller order/duplicates, partial errors, coordinator movement, disconnects and per-connection capability refusal. This is component/public-call qualification; live Streams coordinator or framework execution remains unqualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-33"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-describe/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-describe/qualification/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-default-final/summary.json",
+        "docs/evidence/client/streams-describe/qualification/validation/sdk-all-final2/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Admin_Streams_describe_wire_and_handler",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "execution_source_commit": "ade80f6b289a187a881daa4090cf201057c5ec39"
     },
     {
       "id": "current-public-api-090-v0-4-1-2",

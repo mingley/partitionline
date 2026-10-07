@@ -661,7 +661,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::group::ConsumerGroup::commit_with_metadata",
     "evidence": "tests/full_surface.rs:test_offset_commit",
-    "notes": "Synchronous offset commitment with metadata via OffsetCommit v2-v9.",
+    "notes": "OffsetCommit v2-v10. v10 uses assignment UUIDs; typed identity methods retain epochs, nullable metadata and raw partition errors. Explicit UUID intent refuses older peers.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -674,7 +674,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::group::ConsumerGroup::commit_async",
     "evidence": "src/group.rs:ConsumerGroup::commit_async",
-    "notes": "Asynchronous offset commitment queued for next poll/leave cycle.",
+    "notes": "Queued asynchronous offsets retain the assigned topic UUID. Metadata refresh or same-name recreation cannot redirect a queued v10 commit.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1536,7 +1536,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::list_consumer_group_offsets",
     "evidence": "tests/full_surface.rs:test_list_consumer_group_offsets",
-    "notes": "OffsetFetch api 9 v1-v9 for group committed offsets.",
+    "notes": "OffsetFetch v1-v10. Named v10 calls use one captured Metadata UUID snapshot, preserve batch group order and reject unmapped response UUIDs.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1549,7 +1549,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::alter_consumer_group_offsets",
     "evidence": "tests/full_surface.rs:test_alter_consumer_group_offsets",
-    "notes": "OffsetCommit api 8 v2-v9 to set group committed offsets.",
+    "notes": "OffsetCommit v2-v10. Named v10 calls capture Metadata UUIDs before commit; actual coordinator capabilities and one deadline govern the operation.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -2331,7 +2331,12 @@
       "KL05-33"
     ],
     "qualification_backlog_tasks": [
-      "KL05-33"
+      "KL01-14"
+    ],
+    "conformance_case_ids": [
+      "current-public-api-089-v0-4-1-2",
+      "current-public-api-089-v0-4-2-1",
+      "current-public-api-089-v0-4-3-1"
     ]
   }
 ]

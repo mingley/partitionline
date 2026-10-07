@@ -39,8 +39,8 @@ tracing, zstd and combined-feature builds each compiled23 documentation examples
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has200 completed cards and140 open cards. The client
-conformance registry has48 independently qualified cases out of182 required
+The task registry has201 completed cards and139 open cards. The client
+conformance registry has51 independently qualified cases out of182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
 

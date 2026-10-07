@@ -10,6 +10,8 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+mod offsets;
+use offsets::AdminOffsetConn;
 mod streams;
 pub use streams::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
 
@@ -2913,7 +2915,7 @@ pub struct Admin {
     expire_delegation_token_version: Option<i16>,
     describe_delegation_token_version: Option<i16>,
     cluster: Cluster,
-    conns: HashMap<i32, BrokerConn>,
+    conns: HashMap<i32, AdminOffsetConn>,
     reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
     group_coords: HashMap<String, i32>,
@@ -3334,7 +3336,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?;
+                    self.conn = self.open_node_conn(&addr).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -3467,7 +3469,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?;
+                    self.conn = self.open_node_conn(&addr).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -3576,7 +3578,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?;
+                    self.conn = self.open_node_conn(&addr).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -5701,12 +5703,12 @@ impl Admin {
                 if self.cluster.controller().is_err() {
                     if self.conn.is_closed() {
                         let addr = self.conn.addr().to_owned();
-                        self.conn = self.open_node_conn(&addr).await?;
+                        self.conn = self.open_node_conn(&addr).await?.inner;
                     }
                     self.refresh_metadata(None).await?;
                 }
                 let node = self.cluster.controller()?;
-                if self.conns.get(&node).is_some_and(BrokerConn::is_closed) {
+                if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
                     let _removed = self.conns.remove(&node);
                 }
                 self.connect_node(node).await?;
@@ -7915,7 +7917,7 @@ impl Admin {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
-        self.conn = self.open_node_conn(&addr).await?;
+        self.conn = self.open_node_conn(&addr).await?.inner;
         Ok(())
     }
 
@@ -7984,7 +7986,7 @@ impl Admin {
         }
     }
 
-    async fn open_node_conn(&self, addr: &str) -> Result<BrokerConn> {
+    async fn open_node_conn(&self, addr: &str) -> Result<AdminOffsetConn> {
         let mut conn = BrokerConn::connect_tls(
             addr,
             &self.cfg.client_id,
@@ -8007,7 +8009,7 @@ impl Admin {
             self.cfg.request_timeout,
         )
         .await?;
-        Ok(conn)
+        Ok(AdminOffsetConn::new(conn, &versions_resp))
     }
 
     /// Delete records before `offset` (`DeleteRecords`).
@@ -9244,8 +9246,8 @@ impl Admin {
         require_stable: bool,
         timeout: Duration,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
-        let partitions: Vec<crate::TopicPartition> =
-            partitions.into_iter().map(Into::into).collect();
+        let started = Instant::now();
+        let partitions = crate::offsets::collect_bounded_partitions(partitions)?;
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
@@ -9255,7 +9257,12 @@ impl Admin {
             .collect();
         let topics = crate::group::group_offset_fetch_topics(&wanted);
         let fetched = self
-            .fetch_consumer_group_offsets(group_id, Some(topics), require_stable, timeout)
+            .fetch_consumer_group_offsets(
+                group_id,
+                Some(topics),
+                require_stable,
+                timeout.saturating_sub(started.elapsed()),
+            )
             .await?;
         let map = crate::group::committed_offset_map(&fetched)?;
         Ok(partitions
@@ -9385,10 +9392,44 @@ impl Admin {
             Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
         )>,
     > {
-        let jobs: Vec<(String, ListConsumerGroupOffsetsSpec)> = groups
-            .into_iter()
-            .map(|(g, spec)| (g.into(), spec))
-            .collect();
+        let target = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        let deadline = crate::net::Deadline::from_std(target);
+        let mut jobs = Vec::new();
+        let mut parts = 0usize;
+        let mut strings = 0usize;
+        let limits = crate::protocol::group::OffsetLimits::default();
+        for (group, spec) in groups {
+            if jobs.len() >= 256 {
+                return Err(Error::protocol("too many offset groups"));
+            }
+            let group = group.into();
+            if group.len() > limits.string_bytes {
+                return Err(Error::protocol("offset group string exceeds limit"));
+            }
+            strings = strings
+                .checked_add(group.len())
+                .filter(|count| *count <= limits.total_string_bytes)
+                .ok_or_else(|| Error::protocol("offset group strings exceed limit"))?;
+            if let Some(partitions) = &spec.partitions {
+                if partitions.len() > limits.array_elements {
+                    return Err(Error::protocol("too many offset partitions"));
+                }
+                parts = parts
+                    .checked_add(partitions.len())
+                    .filter(|count| *count <= limits.total_elements)
+                    .ok_or_else(|| Error::protocol("offset aggregate partitions exceed limit"))?;
+                for partition in partitions {
+                    if partition.topic.len() > limits.string_bytes {
+                        return Err(Error::protocol("offset topic string exceeds limit"));
+                    }
+                    strings = strings
+                        .checked_add(partition.topic.len())
+                        .filter(|count| *count <= limits.total_string_bytes)
+                        .ok_or_else(|| Error::protocol("offset aggregate strings exceed limit"))?;
+                }
+            }
+            jobs.push((group, spec));
+        }
         if jobs.is_empty() {
             return Ok(Vec::new());
         }
@@ -9406,48 +9447,250 @@ impl Admin {
         if remaining.is_empty() {
             return Ok(out);
         }
-        if let Some(version) = self
+        if self
             .versions
             .get(&OFFSET_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 8, 9))
+            .is_some_and(|range| range.min_version <= 10 && range.max_version >= 10)
         {
-            let deadline = Instant::now() + timeout;
-            let mut attempt = 0u32;
-            loop {
-                let group_ids: Vec<String> = remaining
-                    .iter()
-                    .filter_map(|&i| jobs.get(i).map(|j| j.0.clone()))
-                    .collect();
-                let coords = self.discover_group_coords(&group_ids).await?;
-                let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-                for &i in &remaining {
-                    let group_id = jobs
-                        .get(i)
-                        .ok_or_else(|| Error::protocol("missing group spec"))?
-                        .0
-                        .clone();
-                    let node = *coords.get(&group_id).ok_or_else(|| {
-                        Error::protocol(format!("missing coordinator for {group_id}"))
-                    })?;
-                    by_node.entry(node).or_default().push(i);
+            return deadline
+                .run(self.fetch_named_groups_v10(&jobs, require_stable, deadline))
+                .await;
+        }
+        deadline
+            .run(async {
+                if let Some(_bootstrap_version) = self
+                    .versions
+                    .get(&OFFSET_FETCH)
+                    .and_then(|v| pick_version(v.min_version, v.max_version, 8, 9))
+                {
+                    let deadline = target;
+                    let mut attempt = 0u32;
+                    loop {
+                        let group_ids: Vec<String> = remaining
+                            .iter()
+                            .filter_map(|&i| jobs.get(i).map(|j| j.0.clone()))
+                            .collect();
+                        let coords = self.discover_group_coords(&group_ids).await?;
+                        let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+                        for &i in &remaining {
+                            let group_id = jobs
+                                .get(i)
+                                .ok_or_else(|| Error::protocol("missing group spec"))?
+                                .0
+                                .clone();
+                            let node = *coords.get(&group_id).ok_or_else(|| {
+                                Error::protocol(format!("missing coordinator for {group_id}"))
+                            })?;
+                            by_node.entry(node).or_default().push(i);
+                        }
+                        let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+                        nodes.sort_unstable();
+                        let mut next_remaining = Vec::new();
+                        let mut retry = false;
+                        for node in nodes {
+                            let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                            let mut groups = Vec::new();
+                            for &i in &idxs {
+                                let job = jobs
+                                    .get(i)
+                                    .ok_or_else(|| Error::protocol("missing group spec"))?;
+                                groups.push(OffsetFetchGroup::new(
+                                    job.0.clone(),
+                                    offset_fetch_topics_for_spec(&job.1),
+                                ));
+                            }
+                            self.connect_node(node).await?;
+                            let version = self
+                                .conns
+                                .get(&node)
+                                .ok_or_else(|| Error::protocol("missing offset batch coordinator"))?
+                                .offset_version(OFFSET_FETCH, 8, 9)?;
+                            let body = {
+                                let conn = self.conns.get_mut(&node).ok_or_else(|| {
+                                    Error::protocol("missing list_consumer_group_offsets conn")
+                                })?;
+                                conn.roundtrip(
+                                    OFFSET_FETCH,
+                                    version,
+                                    |buf| {
+                                        encode_offset_fetch_groups_request(
+                                            buf,
+                                            version,
+                                            &groups,
+                                            require_stable,
+                                        )
+                                    },
+                                    timeout,
+                                )
+                                .await
+                            };
+                            let body = match body {
+                                Ok(b) => b,
+                                Err(e) if e.is_retriable() => {
+                                    let _ = self.conns.remove(&node);
+                                    self.group_coord = None;
+                                    next_remaining.extend(idxs);
+                                    retry = true;
+                                    continue;
+                                }
+                                Err(e) => return Err(e),
+                            };
+                            let results = match decode_offset_fetch_groups_response(
+                                &mut body.clone(),
+                                version,
+                            ) {
+                                Ok((r, ..)) => r,
+                                Err(e)
+                                    if e.broker_code()
+                                        .is_some_and(error::coordinator_retriable) =>
+                                {
+                                    self.group_coord = None;
+                                    let _ = self.conns.remove(&node);
+                                    next_remaining.extend(idxs);
+                                    retry = true;
+                                    continue;
+                                }
+                                Err(e) => return Err(e),
+                            };
+                            if results
+                                .iter()
+                                .any(|r| error::coordinator_retriable(r.error_code))
+                            {
+                                self.group_coord = None;
+                                let _ = self.conns.remove(&node);
+                                next_remaining.extend(idxs);
+                                retry = true;
+                                continue;
+                            }
+                            let mut by_id: HashMap<
+                                String,
+                                crate::protocol::group::OffsetFetchGroupResult,
+                            > = HashMap::new();
+                            for g in results {
+                                if g.error_code != 0 {
+                                    return Err(Error::broker(g.error_code, g.group_id));
+                                }
+                                let _ = by_id.insert(g.group_id.clone(), g);
+                            }
+                            for i in idxs {
+                                let job = jobs
+                                    .get(i)
+                                    .ok_or_else(|| Error::protocol("missing group spec"))?;
+                                let Some(got) = by_id.remove(&job.0) else {
+                                    return Err(Error::protocol(format!(
+                                        "OffsetFetch response missing group {}",
+                                        job.0
+                                    )));
+                                };
+                                let listed = listed_group_offsets(&job.1, &got.topics)?;
+                                let slot = out
+                                    .get_mut(i)
+                                    .ok_or_else(|| Error::protocol("missing group result slot"))?;
+                                slot.1 = listed;
+                            }
+                        }
+                        if !retry {
+                            break;
+                        }
+                        remaining = next_remaining;
+                        self.wait_retry(&mut attempt, deadline).await?;
+                    }
+                    return Ok(out);
                 }
-                let mut nodes: Vec<i32> = by_node.keys().copied().collect();
-                nodes.sort_unstable();
-                let mut next_remaining = Vec::new();
-                let mut retry = false;
-                for node in nodes {
-                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                    let mut groups = Vec::new();
-                    for &i in &idxs {
+                for i in remaining {
+                    let (group_id, topics, spec) = {
                         let job = jobs
                             .get(i)
                             .ok_or_else(|| Error::protocol("missing group spec"))?;
-                        groups.push(OffsetFetchGroup::new(
+                        (
                             job.0.clone(),
                             offset_fetch_topics_for_spec(&job.1),
-                        ));
+                            job.1.clone(),
+                        )
+                    };
+                    let fetched = self
+                        .fetch_consumer_group_offsets(
+                            &group_id,
+                            topics,
+                            require_stable,
+                            deadline.remaining()?,
+                        )
+                        .await?;
+                    let listed = listed_group_offsets(&spec, &fetched)?;
+                    let slot = out
+                        .get_mut(i)
+                        .ok_or_else(|| Error::protocol("missing group result slot"))?;
+                    slot.1 = listed;
+                }
+                Ok(out)
+            })
+            .await
+    }
+
+    async fn fetch_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+        topics: Option<Vec<crate::protocol::group::OffsetFetchTopic>>,
+        require_stable: bool,
+        timeout: Duration,
+    ) -> Result<Vec<crate::protocol::group::FetchedOffsetTopic>> {
+        let started = Instant::now();
+        if group_id.len() > crate::protocol::group::OffsetLimits::default().string_bytes {
+            return Err(Error::protocol("offset group string exceeds limit"));
+        }
+        if self
+            .versions
+            .get(&OFFSET_FETCH)
+            .is_some_and(|range| range.min_version <= 10 && range.max_version >= 10)
+        {
+            let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
+            let deadline = crate::net::Deadline::from_std(target);
+            return deadline
+                .run(self.fetch_named_offsets_v10(
+                    group_id,
+                    topics.as_deref(),
+                    require_stable,
+                    deadline,
+                ))
+                .await;
+        }
+        let client_min = if topics.is_none() { 2 } else { 1 };
+        let _bootstrap_version = self
+            .versions
+            .get(&OFFSET_FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, client_min, 9))
+            .ok_or_else(|| {
+                Error::Unsupported(if topics.is_none() {
+                    "broker does not support OffsetFetch v2-9 (null Topics)".into()
+                } else {
+                    "broker does not support OffsetFetch v1-9".into()
+                })
+            })?;
+        let deadline = started.checked_add(timeout).ok_or(Error::Timeout)?;
+        let mut attempt = 0u32;
+        let group_id = group_id.to_string();
+        crate::net::Deadline::from_std(deadline)
+            .run(async {
+                loop {
+                    let stale = self
+                        .group_coord
+                        .as_ref()
+                        .is_none_or(|(g, _)| g != &group_id);
+                    if stale {
+                        let node = self.discover_group_coord(&group_id).await?;
+                        self.group_coord = Some((group_id.clone(), node));
                     }
+                    let node = self
+                        .group_coord
+                        .as_ref()
+                        .map(|(_, n)| *n)
+                        .ok_or_else(|| Error::protocol("missing group coordinator"))?;
                     self.connect_node(node).await?;
+                    let version = self
+                        .conns
+                        .get(&node)
+                        .ok_or_else(|| Error::protocol("missing offset coordinator"))?
+                        .offset_version(OFFSET_FETCH, client_min, 9)?;
                     let body = {
                         let conn = self.conns.get_mut(&node).ok_or_else(|| {
                             Error::protocol("missing list_consumer_group_offsets conn")
@@ -9456,11 +9699,14 @@ impl Admin {
                             OFFSET_FETCH,
                             version,
                             |buf| {
-                                encode_offset_fetch_groups_request(
+                                encode_offset_fetch_request(
                                     buf,
                                     version,
-                                    &groups,
+                                    &group_id,
+                                    None,
+                                    -1,
                                     require_stable,
+                                    topics.as_deref(),
                                 )
                             },
                             timeout,
@@ -9472,175 +9718,28 @@ impl Admin {
                         Err(e) if e.is_retriable() => {
                             let _ = self.conns.remove(&node);
                             self.group_coord = None;
-                            next_remaining.extend(idxs);
-                            retry = true;
+                            self.wait_retry(&mut attempt, deadline).await?;
                             continue;
                         }
                         Err(e) => return Err(e),
                     };
-                    let results =
-                        match decode_offset_fetch_groups_response(&mut body.clone(), version) {
-                            Ok((r, ..)) => r,
-                            Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
-                                self.group_coord = None;
-                                let _ = self.conns.remove(&node);
-                                next_remaining.extend(idxs);
-                                retry = true;
-                                continue;
-                            }
-                            Err(e) => return Err(e),
-                        };
-                    if results
-                        .iter()
-                        .any(|r| error::coordinator_retriable(r.error_code))
-                    {
-                        self.group_coord = None;
-                        let _ = self.conns.remove(&node);
-                        next_remaining.extend(idxs);
-                        retry = true;
-                        continue;
-                    }
-                    let mut by_id: HashMap<String, crate::protocol::group::OffsetFetchGroupResult> =
-                        HashMap::new();
-                    for g in results {
-                        if g.error_code != 0 {
-                            return Err(Error::broker(g.error_code, g.group_id));
+                    match decode_offset_fetch_response(&mut body.clone(), version) {
+                        Ok(t) => return Ok(t),
+                        Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
+                            self.group_coord = None;
+                            let _ = self.conns.remove(&node);
+                            self.wait_retry(&mut attempt, deadline).await?;
                         }
-                        let _ = by_id.insert(g.group_id.clone(), g);
-                    }
-                    for i in idxs {
-                        let job = jobs
-                            .get(i)
-                            .ok_or_else(|| Error::protocol("missing group spec"))?;
-                        let Some(got) = by_id.remove(&job.0) else {
-                            return Err(Error::protocol(format!(
-                                "OffsetFetch response missing group {}",
-                                job.0
-                            )));
-                        };
-                        let listed = listed_group_offsets(&job.1, &got.topics)?;
-                        let slot = out
-                            .get_mut(i)
-                            .ok_or_else(|| Error::protocol("missing group result slot"))?;
-                        slot.1 = listed;
+                        Err(e) => return Err(e),
                     }
                 }
-                if !retry {
-                    break;
-                }
-                remaining = next_remaining;
-                self.wait_retry(&mut attempt, deadline).await?;
-            }
-            return Ok(out);
-        }
-        for i in remaining {
-            let (group_id, topics, spec) = {
-                let job = jobs
-                    .get(i)
-                    .ok_or_else(|| Error::protocol("missing group spec"))?;
-                (
-                    job.0.clone(),
-                    offset_fetch_topics_for_spec(&job.1),
-                    job.1.clone(),
-                )
-            };
-            let fetched = self
-                .fetch_consumer_group_offsets(&group_id, topics, require_stable, timeout)
-                .await?;
-            let listed = listed_group_offsets(&spec, &fetched)?;
-            let slot = out
-                .get_mut(i)
-                .ok_or_else(|| Error::protocol("missing group result slot"))?;
-            slot.1 = listed;
-        }
-        Ok(out)
-    }
-
-    async fn fetch_consumer_group_offsets(
-        &mut self,
-        group_id: &str,
-        topics: Option<Vec<crate::protocol::group::OffsetFetchTopic>>,
-        require_stable: bool,
-        timeout: Duration,
-    ) -> Result<Vec<crate::protocol::group::FetchedOffsetTopic>> {
-        let client_min = if topics.is_none() { 2 } else { 1 };
-        let version = self
-            .versions
-            .get(&OFFSET_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, client_min, 9))
-            .ok_or_else(|| {
-                Error::Unsupported(if topics.is_none() {
-                    "broker does not support OffsetFetch v2-9 (null Topics)".into()
-                } else {
-                    "broker does not support OffsetFetch v1-9".into()
-                })
-            })?;
-        let deadline = Instant::now() + timeout;
-        let mut attempt = 0u32;
-        let group_id = group_id.to_string();
-        loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
-            if stale {
-                let node = self.discover_group_coord(&group_id).await?;
-                self.group_coord = Some((group_id.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_consumer_group_offsets conn"))?;
-                conn.roundtrip(
-                    OFFSET_FETCH,
-                    version,
-                    |buf| {
-                        encode_offset_fetch_request(
-                            buf,
-                            version,
-                            &group_id,
-                            None,
-                            -1,
-                            require_stable,
-                            topics.as_deref(),
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
-                }
-                Err(e) => return Err(e),
-            };
-            match decode_offset_fetch_response(&mut body.clone(), version) {
-                Ok(t) => return Ok(t),
-                Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
-                    self.group_coord = None;
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
-                }
-                Err(e) => return Err(e),
-            }
-        }
+            })
+            .await
     }
 
     /// Write committed offsets for `group_id` (Java `alterConsumerGroupOffsets`).
     ///
-    /// OffsetCommit v2–v9 on the group coordinator with generation `-1` and an
+    /// OffsetCommit v2–v10 on the group coordinator with generation `-1` and an
     /// empty member id (admin, not a group member). Empty `offsets` is a
     /// no-op. Coordinator load / move errors refresh and retry.
     /// OffsetCommit has no TimeoutMs; the RPC deadline is
@@ -9667,85 +9766,105 @@ impl Admin {
         offsets: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, crate::OffsetAndMetadata)>,
         timeout: Duration,
     ) -> Result<()> {
-        let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
-            .into_iter()
-            .map(|(tp, md)| (tp.into(), md))
-            .collect();
+        let started = Instant::now();
+        if group_id.len() > crate::protocol::group::OffsetLimits::default().string_bytes {
+            return Err(Error::protocol("offset group string exceeds limit"));
+        }
+        let offsets = crate::offsets::collect_bounded_commits(offsets)?;
         if offsets.is_empty() {
             return Ok(());
         }
+        if self
+            .versions
+            .get(&OFFSET_COMMIT)
+            .is_some_and(|range| range.min_version <= 10 && range.max_version >= 10)
+        {
+            let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
+            let deadline = crate::net::Deadline::from_std(target);
+            return deadline
+                .run(self.commit_named_offsets_v10(group_id, &offsets, deadline))
+                .await;
+        }
         let topics = crate::group::group_offset_topics(&offsets);
-        let version = self
+        let _bootstrap_version = self
             .versions
             .get(&OFFSET_COMMIT)
             .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support OffsetCommit v2-9".into())
             })?;
-        let deadline = Instant::now() + timeout;
+        let deadline = started.checked_add(timeout).ok_or(Error::Timeout)?;
         let mut attempt = 0u32;
         let group_id = group_id.to_string();
-        loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
-            if stale {
-                let node = self.discover_group_coord(&group_id).await?;
-                self.group_coord = Some((group_id.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_consumer_group_offsets conn"))?;
-                conn.roundtrip(
-                    OFFSET_COMMIT,
-                    version,
-                    |buf| {
-                        encode_offset_commit_request(
-                            buf,
+        crate::net::Deadline::from_std(deadline)
+            .run(async {
+                loop {
+                    let stale = self
+                        .group_coord
+                        .as_ref()
+                        .is_none_or(|(g, _)| g != &group_id);
+                    if stale {
+                        let node = self.discover_group_coord(&group_id).await?;
+                        self.group_coord = Some((group_id.clone(), node));
+                    }
+                    let node = self
+                        .group_coord
+                        .as_ref()
+                        .map(|(_, n)| *n)
+                        .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+                    self.connect_node(node).await?;
+                    let version = self
+                        .conns
+                        .get(&node)
+                        .ok_or_else(|| Error::protocol("missing offset coordinator"))?
+                        .offset_version(OFFSET_COMMIT, 2, 9)?;
+                    let body = {
+                        let conn = self.conns.get_mut(&node).ok_or_else(|| {
+                            Error::protocol("missing alter_consumer_group_offsets conn")
+                        })?;
+                        conn.roundtrip(
+                            OFFSET_COMMIT,
                             version,
-                            &group_id,
-                            -1,
-                            "",
-                            None,
-                            DEFAULT_RETENTION_TIME,
-                            &topics,
+                            |buf| {
+                                encode_offset_commit_request(
+                                    buf,
+                                    version,
+                                    &group_id,
+                                    -1,
+                                    "",
+                                    None,
+                                    DEFAULT_RETENTION_TIME,
+                                    &topics,
+                                )
+                            },
+                            timeout,
                         )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+                        .await
+                    };
+                    let body = match body {
+                        Ok(b) => b,
+                        Err(e) if e.is_retriable() => {
+                            let _ = self.conns.remove(&node);
+                            self.group_coord = None;
+                            self.wait_retry(&mut attempt, deadline).await?;
+                            continue;
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    let err = decode_offset_commit_response(&mut body.clone(), version)?;
+                    if error::coordinator_retriable(err) {
+                        self.group_coord = None;
+                        let _ = self.conns.remove(&node);
+                        self.wait_retry(&mut attempt, deadline).await?;
+                        continue;
+                    }
+                    if err != 0 {
+                        return Err(Error::broker(err, "OffsetCommit"));
+                    }
+                    return Ok(());
                 }
-                Err(e) => return Err(e),
-            };
-            let err = decode_offset_commit_response(&mut body.clone(), version)?;
-            if error::coordinator_retriable(err) {
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
-            }
-            if err != 0 {
-                return Err(Error::broker(err, "OffsetCommit"));
-            }
-            return Ok(());
-        }
+            })
+            .await
     }
 
     /// Describe KIP-848 consumer groups (ConsumerGroupDescribe api 69).

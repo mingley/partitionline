@@ -1518,6 +1518,9 @@ pub struct Consumer {
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(String, i32, i64)>,
+    /// Topic identity captured when each partition was assigned. Metadata
+    /// refreshes must not bind delivered offsets to a recreated topic.
+    assigned_topic_ids: HashMap<(String, i32), [u8; 16]>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
     last_fetched_epochs: PartitionMap<i32>,
     preferred: PartitionMap<i32>,
@@ -1827,6 +1830,7 @@ impl Consumer {
             fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
+            assigned_topic_ids: HashMap::new(),
             last_fetched_epochs: PartitionMap::new(),
             preferred: PartitionMap::new(),
             paused: PartitionMap::new(),
@@ -1869,6 +1873,10 @@ impl Consumer {
             crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
         );
         self.assigned.push((topic, partition, offset));
+        if let Some((topic, part, _)) = self.assigned.last() {
+            let _previous = self.assigned_topic_ids.remove(&(topic.clone(), *part));
+        }
+        self.capture_assigned_topic_ids();
         Ok(())
     }
 
@@ -1971,11 +1979,14 @@ impl Consumer {
             return Err(Error::UnknownTopic(topic));
         }
         self.assigned.retain(|(t, _, _)| t != &topic);
+        self.assigned_topic_ids
+            .retain(|(name, _), _| name != &topic);
         for p in parts {
             self.drop_pending_for(&topic, p);
             self.set_last_fetched_epoch(&topic, p, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
             self.assigned.push((topic.clone(), p, offset));
         }
+        self.capture_assigned_topic_ids();
         Ok(())
     }
 
@@ -2127,6 +2138,7 @@ impl Consumer {
 
     pub(crate) fn clear_assignment(&mut self) {
         self.assigned.clear();
+        self.assigned_topic_ids.clear();
         self.pending.clear();
         self.buffered_bytes = 0;
         self.last_fetched_epochs.clear();
@@ -2135,7 +2147,13 @@ impl Consumer {
 
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
-        let old_ids = self.topic_name_ids();
+        if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
+            return Err(Error::protocol("too many assigned partitions"));
+        }
+        for (topic, _, _) in starts {
+            Topic::validate(topic)?;
+        }
+        let old_ids = std::mem::take(&mut self.assigned_topic_ids);
         let mut old_assigned = PartitionMap::new();
         for (topic, partition, offset) in &self.assigned {
             let _previous = old_assigned.insert(topic, *partition, *offset);
@@ -2160,7 +2178,9 @@ impl Consumer {
         self.assigned.extend(starts.iter().cloned());
         for (topic, part, offset) in starts {
             if let Some(&old_offset) = old_assigned.get(topic, *part) {
-                if old_offset != *offset || old_ids.get(topic) != new_ids.get(topic) {
+                if old_offset != *offset
+                    || old_ids.get(&(topic.clone(), *part)) != new_ids.get(topic)
+                {
                     self.drop_pending_for(topic, *part);
                 }
             } else {
@@ -2168,7 +2188,31 @@ impl Consumer {
             }
         }
         self.retain_pending_assigned();
+        self.capture_assigned_topic_ids();
         Ok(())
+    }
+
+    fn capture_assigned_topic_ids(&mut self) {
+        let ids = self.topic_name_ids();
+        self.assigned_topic_ids.retain(|(topic, partition), _| {
+            self.assigned
+                .iter()
+                .any(|(assigned, part, _)| assigned == topic && part == partition)
+        });
+        for (topic, partition, _) in &self.assigned {
+            if let Some(id) = ids.get(topic).filter(|id| **id != [0; 16]) {
+                let _previous = self
+                    .assigned_topic_ids
+                    .entry((topic.clone(), *partition))
+                    .or_insert(*id);
+            }
+        }
+    }
+
+    pub(crate) fn assigned_topic_id(&self, topic: &str, partition: i32) -> Option<[u8; 16]> {
+        self.assigned_topic_ids
+            .get(&(topic.to_owned(), partition))
+            .copied()
     }
 
     pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
@@ -2264,6 +2308,24 @@ impl Consumer {
             }
             Err(e) => return Err(e),
         };
+        if version >= 10
+            && [
+                crate::protocol::api_keys::OFFSET_COMMIT,
+                crate::protocol::api_keys::OFFSET_FETCH,
+            ]
+            .iter()
+            .any(|api| {
+                self.versions
+                    .get(api)
+                    .is_some_and(|range| range.min_version <= 10 && range.max_version >= 10)
+            })
+        {
+            crate::protocol::group::validate_offset_metadata_bounds(
+                &body,
+                version,
+                crate::protocol::group::OffsetLimits::default(),
+            )?;
+        }
         let md = decode_metadata_response(&mut body.clone(), version)?;
         md.check()?;
         self.cluster.apply(&md, version);
@@ -3267,7 +3329,29 @@ impl Consumer {
         }
         let max_wait = max_wait.min(duration_millis_i32(timeout));
         let rack = self.cfg.rack.clone();
-        let name_ids = self.topic_name_ids();
+        let mut name_ids = self.topic_name_ids();
+        for by_topic in by_leader.values() {
+            for (topic, partitions) in by_topic {
+                let current = name_ids.get(topic).copied();
+                let mut bound = None;
+                for partition in partitions {
+                    if let Some(id) = self.assigned_topic_id(topic, partition.partition) {
+                        if current.is_some_and(|current| current != id)
+                            || bound.is_some_and(|bound| bound != id)
+                        {
+                            return Err(Error::broker(
+                                crate::error::UNKNOWN_TOPIC_ID,
+                                "assigned topic identity changed",
+                            ));
+                        }
+                        bound = Some(id);
+                    }
+                }
+                if let Some(id) = bound.filter(|_| current.is_none()) {
+                    let _previous = name_ids.insert(topic.clone(), id);
+                }
+            }
+        }
         if nodes.len() <= 1 {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {

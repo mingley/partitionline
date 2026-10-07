@@ -1,6 +1,9 @@
 //! Consumer group codecs: FindCoordinator, Join/Sync/Heartbeat/Leave,
 //! OffsetCommit/OffsetFetch, OffsetDelete, and ConsumerProtocol assignment.
 
+mod offsets;
+pub use offsets::*;
+
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 

@@ -126,8 +126,8 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     1: list(range(4, 19)),   # Fetch: 4-18
     2: list(range(1, 12)),   # ListOffsets: 1-11
     3: list(range(1, 14)),   # Metadata: 1-13
-    8: list(range(2, 10)),   # OffsetCommit: 2-9
-    9: list(range(1, 10)),   # OffsetFetch: 1-9
+    8: list(range(2, 11)),   # OffsetCommit: legacy names and v10 UUIDs
+    9: list(range(1, 11)),   # OffsetFetch: legacy names and v10 UUIDs
     10: list(range(1, 7)),   # FindCoordinator: 1-6
     11: list(range(2, 10)),  # JoinGroup: 2-9
     12: list(range(0, 5)),   # Heartbeat: 0-4
@@ -240,8 +240,8 @@ CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {}
 # (api_key, version) -> reason
 CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     # Current official schema capabilities still absent from real client operations.
-    (8, 10): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "OffsetCommit v10 topic UUIDs are unsupported; runtime caps at9"},
-    (9, 10): {"pin": "4.1.2/4.2.1/4.3.1", "direction": "upstream_cap", "reason": "OffsetFetch v10 topic UUIDs are unsupported; runtime caps at9"},
+    (8, 10): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Typed UUID commits and group/Admin routing support v10; historical ranges stop at9. Current Java name-based public calls still select8/9 and refuse10-only peers."},
+    (9, 10): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Typed UUID fetches and group/Admin batches support v10; historical ranges stop at9. UUID-only intent refuses older actual coordinators."},
     (22, 6): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "InitProducerId6 fields and ordinary false-flag initialization are supported; historical/stable ranges stop at5. Full prepared lifecycle remains separate."},
     (45, 1): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Reassignment policy flag is implemented for current0-1 peers; historical3.9.1/4.1.0 peers offer only0 and reject explicitfalse locally."},
     (66, 2): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Nullable TransactionalIdPattern and public all-broker filters are implemented for current0-2 peers; historical3.9.1/4.1.0 ranges stop at1."},
@@ -281,9 +281,9 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (35, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "DescribeLogDirs v0 removed in Kafka 4.0; client starts at v1"},
 
     # Legacy versions removed in Kafka 4.0 where client still speaks classic v0/v1
-    (8, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v0 removed in Kafka 4.0; client speaks 2-9"},
-    (8, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v1 removed in Kafka 4.0; client speaks 2-9"},
-    (9, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetFetch v0 removed in Kafka 4.0; client speaks 1-9"},
+    (8, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v0 removed in Kafka 4.0; client speaks 2-10"},
+    (8, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v1 removed in Kafka 4.0; client speaks 2-10"},
+    (9, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetFetch v0 removed in Kafka 4.0; client speaks 1-10"},
     (11, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "JoinGroup v0 removed in Kafka 4.0; client speaks 2-9"},
     (11, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "JoinGroup v1 removed in Kafka 4.0; client speaks 2-9"},
     (19, 0): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "CreateTopics v0 removed in Kafka 4.0; client still supports legacy v0"},

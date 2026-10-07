@@ -1,4 +1,5 @@
 //! Consumer-group join / sync / heartbeat / commit.
+mod offsets;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -47,6 +48,7 @@ type AsyncOffsetCommitCallback =
 type PendingAsyncCommit = (
     Vec<(TopicPartition, OffsetAndMetadata)>,
     Option<AsyncOffsetCommitCallback>,
+    HashMap<(String, i32), [u8; 16]>,
 );
 
 /// Java default JoinGroup `Reason` for [`ConsumerGroup::enforce_rebalance`] (KIP-800).
@@ -511,6 +513,7 @@ pub struct ConsumerGroup {
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
     last_delivered_positions: Option<Vec<(TopicPartition, i64)>>,
+    last_delivered_topic_ids: HashMap<(String, i32), [u8; 16]>,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
@@ -675,6 +678,7 @@ impl ConsumerGroup {
             hb_stop,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
+            last_delivered_topic_ids: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
@@ -822,6 +826,7 @@ impl ConsumerGroup {
             hb_stop,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
+            last_delivered_topic_ids: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
@@ -997,7 +1002,7 @@ impl ConsumerGroup {
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
         self.consumer.seek(topic, partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.last_delivered_positions = Some(self.consumer.positions());
+            self.record_delivered_positions(self.consumer.positions());
         }
         Ok(())
     }
@@ -1006,7 +1011,7 @@ impl ConsumerGroup {
     pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
         self.consumer.seek_to(partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.last_delivered_positions = Some(self.consumer.positions());
+            self.record_delivered_positions(self.consumer.positions());
         }
         Ok(())
     }
@@ -1023,7 +1028,7 @@ impl ConsumerGroup {
     ) -> Result<()> {
         self.consumer.seek_with_metadata(partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.last_delivered_positions = Some(self.consumer.positions());
+            self.record_delivered_positions(self.consumer.positions());
         }
         Ok(())
     }
@@ -1112,10 +1117,11 @@ impl ConsumerGroup {
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
+        let started = Instant::now();
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
-        let partitions: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
+        let partitions = crate::offsets::collect_bounded_partitions(partitions)?;
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
@@ -1124,7 +1130,9 @@ impl ConsumerGroup {
             .map(|tp| (tp.topic.clone(), tp.partition))
             .collect();
         let topics = group_offset_fetch_topics(&wanted);
-        let fetched = self.offset_fetch(&topics, timeout).await?;
+        let fetched = self
+            .offset_fetch(&topics, timeout.saturating_sub(started.elapsed()))
+            .await?;
         let map = committed_offset_map(&fetched)?;
         Ok(partitions
             .iter()
@@ -1143,6 +1151,9 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
+        if self.coord.offset_fetch_version == 10 {
+            return self.fetch_offsets_v10(topics, timeout).await;
+        }
         let version = spoken_offset_fetch(self.coord.offset_fetch_version)?;
         let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
         let (member_id, member_epoch) = if self.kip848 {
@@ -1231,7 +1242,7 @@ impl ConsumerGroup {
             None => self.consumer.fetch_allow_unassigned().await?,
         };
         if !recs.is_empty() {
-            self.last_delivered_positions = Some(self.consumer.positions());
+            self.record_delivered_positions(self.consumer.positions());
             if self.cfg.enable_auto_commit && self.cfg.auto_commit_interval.is_zero() {
                 self.commit().await?;
             }
@@ -1471,14 +1482,15 @@ impl ConsumerGroup {
 
     /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
     pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
+        let started = Instant::now();
         if self.kip848 {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
         let positions = self.consumer.positions();
-        self.commit_offsets_timeout(positions.clone(), timeout)
+        self.commit_offsets_timeout(positions.clone(), timeout.saturating_sub(started.elapsed()))
             .await?;
-        self.last_delivered_positions = Some(positions);
+        self.record_delivered_positions(positions);
         self.last_auto_commit = Instant::now();
         Ok(())
     }
@@ -1503,18 +1515,18 @@ impl ConsumerGroup {
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
         timeout: Duration,
     ) -> Result<()> {
-        let items: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
-            .into_iter()
-            .map(|(tp, offset)| {
+        let started = Instant::now();
+        let items =
+            crate::offsets::collect_bounded_commits(offsets.into_iter().map(|(tp, offset)| {
                 let tp = tp.into();
                 let epoch = self.consumer.leader_epoch(&tp.topic, tp.partition);
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),
                 )
-            })
-            .collect();
-        self.commit_with_metadata_timeout(items, timeout).await
+            }))?;
+        self.commit_with_metadata_timeout(items, timeout.saturating_sub(started.elapsed()))
+            .await
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
@@ -1540,13 +1552,16 @@ impl ConsumerGroup {
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
         timeout: Duration,
     ) -> Result<()> {
-        let offsets: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
-            .into_iter()
-            .map(|(tp, md)| (tp.into(), md.into()))
-            .collect();
+        let started = Instant::now();
+        let offsets = crate::offsets::collect_bounded_commits(offsets)?;
         let topics = group_offset_topics(&offsets);
         if topics.is_empty() {
             return Ok(());
+        }
+        if self.coord.offset_commit_version == 10 {
+            return self
+                .commit_offsets_v10(&offsets, timeout.saturating_sub(started.elapsed()), None)
+                .await;
         }
         let version = spoken_offset_commit(self.coord.offset_commit_version)?;
         let body = coord_roundtrip(
@@ -1588,7 +1603,7 @@ impl ConsumerGroup {
     /// poll; use [`Self::commit_async_with`] for a callback.
     pub fn commit_async(&mut self) {
         let offsets = self.assigned_commit_offsets();
-        self.pending_async_commits.push((offsets, None));
+        self.queue_async_commit(offsets, None);
     }
 
     /// Java `commitAsync(OffsetCommitCallback)`.
@@ -1600,8 +1615,7 @@ impl ConsumerGroup {
         F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
     {
         let offsets = self.assigned_commit_offsets();
-        self.pending_async_commits
-            .push((offsets, Some(Box::new(callback))));
+        self.queue_async_commit(offsets, Some(Box::new(callback)));
     }
 
     /// Queue these offsets (Java `commitAsync(Map, null)`).
@@ -1613,7 +1627,7 @@ impl ConsumerGroup {
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
     ) {
         let offsets = collect_commit_offsets(offsets);
-        self.pending_async_commits.push((offsets, None));
+        self.queue_async_commit(offsets, None);
     }
 
     /// Java `commitAsync(Map, OffsetCommitCallback)`.
@@ -1625,8 +1639,7 @@ impl ConsumerGroup {
         F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
     {
         let offsets = collect_commit_offsets(offsets);
-        self.pending_async_commits
-            .push((offsets, Some(Box::new(callback))));
+        self.queue_async_commit(offsets, Some(Box::new(callback)));
     }
 
     fn assigned_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
@@ -1645,10 +1658,26 @@ impl ConsumerGroup {
 
     async fn flush_async_commits(&mut self) {
         let pending = std::mem::take(&mut self.pending_async_commits);
-        for (offsets, callback) in pending {
-            let send = self
-                .commit_with_metadata_timeout(offsets.clone(), self.cfg.request_timeout)
-                .await;
+        for (offsets, callback, ids) in pending {
+            let metadata_ids = self.consumer.topic_name_ids();
+            let send = if self.coord.offset_commit_version == 10 {
+                self.commit_offsets_v10(&offsets, self.cfg.request_timeout, Some(&ids))
+                    .await
+            } else if offsets.iter().any(|(tp, _)| {
+                ids.get(&(tp.topic.clone(), tp.partition)).copied()
+                    != self
+                        .consumer
+                        .assigned_topic_id(&tp.topic, tp.partition)
+                        .or_else(|| metadata_ids.get(&tp.topic).copied())
+                        .filter(|id| *id != [0; 16])
+            }) {
+                Err(Error::protocol(
+                    "queued offset identity differs from the current assignment",
+                ))
+            } else {
+                self.commit_with_metadata_timeout(offsets.clone(), self.cfg.request_timeout)
+                    .await
+            };
             if let Some(callback) = callback {
                 callback(send.map(|()| offsets));
             } else if let Err(err) = send {
@@ -1669,7 +1698,14 @@ impl ConsumerGroup {
                 self.consumer.assignment().into_iter().collect();
             let to_commit: Vec<(TopicPartition, i64)> = positions
                 .iter()
-                .filter(|(tp, _)| assigned.contains(tp))
+                .filter(|(tp, _)| {
+                    assigned.contains(tp)
+                        && self
+                            .last_delivered_topic_ids
+                            .get(&(tp.topic.clone(), tp.partition))
+                            .copied()
+                            == self.consumer.assigned_topic_id(&tp.topic, tp.partition)
+                })
                 .cloned()
                 .collect();
             if !to_commit.is_empty() {
@@ -2188,7 +2224,17 @@ impl ConsumerGroup {
         let _ = self.hb_assignment.lock().take();
         self.generation_id = resp.member_epoch;
         let assignment = resp.assignment.unwrap_or_default();
-        let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
+        let names = self.consumer.topic_id_names();
+        if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
+            && assignment
+                .iter()
+                .any(|topic| !names.contains_key(&topic.topic_id))
+        {
+            return Err(Error::protocol(
+                "group assignment contains an unknown topic UUID",
+            ));
+        }
+        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
@@ -2230,7 +2276,17 @@ impl ConsumerGroup {
             return Ok(());
         };
         self.consumer.refresh_topics(&self.topics).await?;
-        let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
+        let names = self.consumer.topic_id_names();
+        if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
+            && assignment
+                .iter()
+                .any(|topic| !names.contains_key(&topic.topic_id))
+        {
+            return Err(Error::protocol(
+                "group assignment contains an unknown topic UUID",
+            ));
+        }
+        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.generation_id = self.hb_generation.load(Ordering::SeqCst);
@@ -2238,15 +2294,28 @@ impl ConsumerGroup {
     }
 
     async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<Vec<(String, i32)>> {
+        let identities = self.consumer.topic_name_ids();
+        let all_current = self.consumer.assigned_offsets().to_vec();
         let current: HashMap<(String, i32), i64> = self
             .consumer
             .assigned_offsets()
             .iter()
+            .filter(|(t, p, _)| {
+                self.consumer.assigned_topic_id(t, *p)
+                    == identities.get(t).copied().filter(|id| *id != [0; 16])
+            })
             .map(|(t, p, o)| ((t.clone(), *p), *o))
             .collect();
-        let prev: HashSet<(String, i32)> = current.keys().cloned().collect();
+        let prev: HashSet<(String, i32)> = all_current
+            .iter()
+            .map(|(topic, partition, _)| (topic.clone(), *partition))
+            .collect();
         let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
-        let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();
+        let revoked: Vec<(String, i32)> = prev
+            .iter()
+            .filter(|key| !next.contains(*key) || !current.contains_key(*key))
+            .cloned()
+            .collect();
         // KL03-14: with auto-commit on, commit the revoked partitions'
         // delivered positions before the new assignment drops their pending
         // records, so the next owner resumes after delivered work instead of
@@ -2318,6 +2387,15 @@ impl ConsumerGroup {
             starts.push((topic.clone(), *part, start));
         }
         self.consumer.assign_all(&starts).await?;
+        if wanted.iter().any(|(topic, partition)| {
+            self.consumer.assigned_topic_id(topic, *partition)
+                != identities.get(topic).copied().filter(|id| *id != [0; 16])
+        }) {
+            self.consumer.clear_assignment();
+            return Err(Error::protocol(
+                "topic identity changed while assigning committed offsets",
+            ));
+        }
         for (topic, part) in wanted {
             let key = (topic.clone(), *part);
             if let Some(epoch) = kept_epochs.get(&key) {
@@ -2327,7 +2405,11 @@ impl ConsumerGroup {
                     .set_last_fetched_epoch(topic, *part, md.wire_epoch());
             }
         }
-        let added_tps: Vec<(String, i32)> = next.difference(&prev).cloned().collect();
+        let added_tps: Vec<(String, i32)> = next
+            .iter()
+            .filter(|key| !current.contains_key(*key))
+            .cloned()
+            .collect();
         if !revoked.is_empty() || !added_tps.is_empty() {
             self.cfg.rebalance.call(
                 &TopicPartition::list_from(&revoked),
@@ -3092,11 +3174,11 @@ async fn open_coord_with_find_version(
         .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))?;
     conn.offset_commit_version = resp
         .api_version(OFFSET_COMMIT)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 10))
         .unwrap_or(0);
     conn.offset_fetch_version = resp
         .api_version(OFFSET_FETCH)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 10))
         .unwrap_or(0);
     conn.heartbeat_version = resp
         .api_version(HEARTBEAT)
@@ -3150,6 +3232,19 @@ pub(crate) async fn coord_roundtrip(
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<Bytes> {
+    if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
+        return offsets::coord_offsets_legacy(
+            coord,
+            cfg,
+            group_id,
+            key_type,
+            api_key,
+            api_version,
+            encode_body,
+            request_timeout,
+        )
+        .await;
+    }
     if coord.idle_expired(cfg.connections_max_idle) {
         *coord = open_coord(cfg, coord.addr()).await?;
     }

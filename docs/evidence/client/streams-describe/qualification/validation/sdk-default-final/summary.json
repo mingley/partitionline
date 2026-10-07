@@ -1,0 +1,347 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.1.2",
+      "mode": "full",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "full",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.1.2",
+      "mode": "empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.1.2",
+      "mode": "null-empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "null-empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 1,
+      "release": "4.1.2",
+      "mode": "error",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "error",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "reroute",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.1.2",
+      "mode": "reroute",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "disconnect",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.1.2",
+      "mode": "disconnect",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.1.2",
+      "mode": "mixed",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "mixed",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.1.2",
+      "mode": "downgrade",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 3,
+      "release": "4.1.2",
+      "mode": "downgrade",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.2.1",
+      "mode": "full",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "full",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.2.1",
+      "mode": "empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.2.1",
+      "mode": "null-empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "null-empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 1,
+      "release": "4.2.1",
+      "mode": "error",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "error",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "reroute",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.2.1",
+      "mode": "reroute",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "disconnect",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.2.1",
+      "mode": "disconnect",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.2.1",
+      "mode": "mixed",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "mixed",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.2.1",
+      "mode": "downgrade",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 3,
+      "release": "4.2.1",
+      "mode": "downgrade",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.3.1",
+      "mode": "full",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "full",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.3.1",
+      "mode": "empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.3.1",
+      "mode": "null-empty",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "null-empty",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 1,
+      "release": "4.3.1",
+      "mode": "error",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "error",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "reroute",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.3.1",
+      "mode": "reroute",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "disconnect",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 3,
+      "actual_GROUP_lookups": 3,
+      "release": "4.3.1",
+      "mode": "disconnect",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 1,
+      "release": "4.3.1",
+      "mode": "mixed",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 1,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "mixed",
+      "driver": "rust"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 2,
+      "release": "4.3.1",
+      "mode": "downgrade",
+      "driver": "java"
+    },
+    {
+      "actual_describe_frames": 2,
+      "actual_GROUP_lookups": 3,
+      "release": "4.3.1",
+      "mode": "downgrade",
+      "driver": "rust"
+    }
+  ],
+  "actual_sdk": true,
+  "source_bound": true,
+  "all_processes_parent_waited": true,
+  "public_Java_calls": 24,
+  "public_Rust_calls": 24,
+  "scope": "Scripted GROUP peers; genuine SDK public Admin and full wire projection. No live Streams coordinator or execution engine."
+}
