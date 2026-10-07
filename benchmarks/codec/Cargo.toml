@@ -54,6 +54,10 @@ name = "json1k-census"
 path = "src/json1k-census.rs"
 
 [[bin]]
+name = "share-ranges"
+path = "src/share-ranges.rs"
+
+[[bin]]
 name = "zstd-census"
 path = "src/zstd-census.rs"
 required-features = ["zstd"]

@@ -1,5 +1,7 @@
 //! Share groups (KIP-932): queue-style consumption with per-record ack.
 
+mod acquired;
+
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Deref;
@@ -1571,20 +1573,16 @@ impl ShareGroup {
                     }) {
                         return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
                     }
+                    let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
                     for batch in part.records {
                         let timestamp_type = batch.timestamp_type();
                         let leader_epoch = (batch.partition_leader_epoch >= 0)
                             .then_some(batch.partition_leader_epoch);
                         for record in batch.records {
-                            let range_index =
-                                acquired.partition_point(|range| range.last_offset < record.offset);
-                            let Some(range) = acquired
-                                .get(range_index)
-                                .filter(|range| range.first_offset <= record.offset)
+                            let Some(delivery_count) = range_lookup.delivery_count(record.offset)
                             else {
                                 continue;
                             };
-                            let delivery_count = range.delivery_count;
                             let key = (name.clone(), part.partition, record.offset);
                             if !incoming_keys.insert(key.clone()) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));

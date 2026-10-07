@@ -11232,13 +11232,24 @@
     {
       "id": "KL09-13",
       "title": "Rank hotspot hypotheses from the baseline profile",
-      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
       "files": ["docs/plan/performance-leadership.md", "new: docs/evidence/perf/baseline/profile/"],
       "deliverable": "KL09-11 profiles of the baseline cells and a ranking of every section 3 hypothesis by measured share of CPU, allocations or syscalls in its cell.",
       "acceptance": ["Each hypothesis gets a measured share and the cell it was measured on; hypotheses under 1% are marked deprioritized, not deleted.", "New hotspots found in the profiles are added as hypotheses with a proposed card only when they exceed 3% of a cell.", "The ranking lives in performance-leadership.md section 3 with links to the profile artifacts."],
       "validation": ["Link every ranked number to a profile artifact and capture command.", "Re-capture one profile to show its ranking is stable."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/plan/performance-leadership.md",
+        "docs/evidence/perf/baseline-profile/",
+        "docs/plan/evidence/KL09-13.json"
+      ],
+      "qualification_notes": [
+        {
+          "source": "docs/evidence/perf/baseline/summary.json",
+          "scope": "Profile the pinned c4b915 local baseline and retain all sampling/attribution limits. Software cpu-clock sampling is available; hardware cycles/instructions are unavailable. No attribution or below-one-percent rejection inferred from missing symbols/events."
+        }
+      ]
     },
     {
       "id": "KL09-14",
@@ -17706,13 +17717,28 @@
     {
       "id": "KL09-51",
       "title": "Index share acquisition ranges",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL05-15", "KL09-04"],
       "files": ["src/share.rs"],
       "deliverable": "ShareRecords resolves each record's acquisition range through a checked cursor or index instead of a linear acquired.iter().find per record.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Land micro-share-ranges in the codec bench crate in a first commit and record the baseline on that commit; the optimization lands in a second commit.", "Delivery counts, gaps and range precedence are identical per offset."],
       "validation": ["cargo test --locked --test full_surface", "cargo test --locked --lib share", "A/B cell micro-share-ranges (ns/record over 1,000 short ranges): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "src/share.rs",
+        "src/share/acquired.rs",
+        "benchmarks/codec/Cargo.toml",
+        "benchmarks/codec/src/share-ranges.rs",
+        "benchmarks/codec/SHARE-RANGES.md",
+        "docs/plan/evidence/KL09-51.json",
+        "docs/evidence/perf/KL09-51/"
+      ],
+      "qualification_notes": [
+        {
+          "source": "src/share.rs",
+          "scope": "The current parent already uses a checked binary search after rejecting malformed/overlapping ranges. Measure that actual parent, then evaluate a monotone cursor with binary fallback. No prior linear-scan timing is invented."
+        }
+      ]
     },
     {
       "id": "KL09-52",
