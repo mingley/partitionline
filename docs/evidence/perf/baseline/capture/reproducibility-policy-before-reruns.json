@@ -1,0 +1,15 @@
+{
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "declared_utc": "2026-10-07T17:39:53Z",
+  "cells": [
+    "nb-produce-bulk",
+    "lb-bulk"
+  ],
+  "metric": "records_per_second",
+  "primary_repetitions": 5,
+  "reproduce_repetitions": 5,
+  "max_absolute_relative_median_difference": 0.2,
+  "policy": "Both unchanged-binary rerun medians must be within 20% of their initial five-repetition median. All attempts remain retained. The shared KVM guest and uncontrolled frequency limit inference.",
+  "baseline_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25"
+}

@@ -1,0 +1,113 @@
+{
+  "cell": "nb-produce-mixed-topics",
+  "repetition": 4,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r04-nb-produce-mixed-topics/nb-produce-mixed-topics-rep0.result.json",
+  "sha256": "51809437095973acaddc47a1c47bc73fb1e78e9693450d600b46903534c6c273",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 1737,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 3121152,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.0,
+      "user_cpu_seconds": 0.01334
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 22665,
+        "allocations_per_record": 1.13325,
+        "total_allocated_bytes": 44767717,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 1266.5,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 4.40234468912903,
+      "rss": {
+        "average_rss_bytes": 12004369,
+        "baseline_rss_bytes": 10162176,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 13164544,
+        "process_peak_rss_bytes": 19075072,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.005989,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.019341
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 210118.69428049348,
+        "unit": "microseconds",
+        "upper": 213169.8399195065
+      },
+      "max": 529515,
+      "mean": 211644.2671,
+      "min": 42990,
+      "p50": 211686.5,
+      "p90": 379433.0,
+      "p95": 379819.0,
+      "p99": 380167.02999999997,
+      "p99_9": 380237.001,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 2500,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 2500,
+            "upper_bound_us": 131072
+          },
+          {
+            "count": 7500,
+            "upper_bound_us": 262144
+          },
+          {
+            "count": 7499,
+            "upper_bound_us": 524288
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 1048576
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 110075.80468030047,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 3.8453592987826153,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 34759.92648345068,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "cell_id": "nb-produce-mixed-topics",
+    "drive_mode": "pipelined",
+    "flush_us_total": 487995,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "offsets_observed": false,
+    "queue_full_retries": 38,
+    "records_consumed": 0,
+    "records_offered": 20000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r04-nb-produce-mixed-topics/nb-produce-mixed-topics-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

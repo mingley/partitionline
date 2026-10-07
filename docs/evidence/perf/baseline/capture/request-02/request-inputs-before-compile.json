@@ -1,0 +1,16 @@
+{
+  "/workspace/partitionline/scripts/record-local-baseline.py": "1c3e8426acadfbcb8dbf753115e49e3cc693d34e1e572fc639d0275611dc6916",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/source-bindings-extended-01.json": "d8b89cdb47db9f55a04c7d4db9627f5711ab6b44e29ea37af96f3bbb290de9e8",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/request-02/bin/baseline-request": "ee8aa4291c7cf7a000508cac10c9ede9b7579bdc476df4e052dc71f683c8cffa",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/run-request-01.py": "5d9f4245045ba48c3fca64025c6c70bbd42e35d2e6f30582efe9023465c984f0",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py": "78332295936b700de1674e3affb77f7ef203cc6c3efa712431c86a0a0601201c",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/RequestBodyPeer.java": "618d3aec6a56ee9e009ca28d85c030bda508142dc4c2d6fb523ebac71d49d942",
+  "/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.1.2.jar": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+  "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/fetch-verifier-src/src/request.rs": "f9e3a502aa6bd451555378d7fa7b57cc1a58174c7e12506c4a4892c5a839446f",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/fetch-verifier-src/src/main.rs": "b7216b8ddf79043eada8ae1ba733d98ede7f668a9a202f6cafd9f03941d09dcf",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/fetch-verifier-src/Cargo.toml": "677be52967c3734cf9a09109a1c117f023b1ee0ab835022f52f4005d3409a8e7",
+  "/workspace/work/open-cards-20261006/local-baseline-20261007/fetch-verifier-src/Cargo.lock": "8e6d6749c8cfb904841401ebefed2e53b493e209647c3bb1490989e706f7915f"
+}

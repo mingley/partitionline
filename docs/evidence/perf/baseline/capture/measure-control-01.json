@@ -1,0 +1,69 @@
+{
+  "wrapper_sha256": "1969df2bc952c6396310d50e77ef46ce68e6cfd734b08057713e311f9cc54687",
+  "results": [
+    {
+      "name": "success",
+      "returncode": 0,
+      "stdout": "333332833333500000\n",
+      "stderr": "",
+      "resources": {
+        "schema_version": 1,
+        "scope": "whole owned child lifetime, including setup, warmup and shutdown",
+        "child_pid": 665799,
+        "parent_waited": true,
+        "exit_code": 0,
+        "user_cpu_seconds": 0.052648999999999994,
+        "system_cpu_seconds": 0.006828,
+        "peak_rss_kbytes": 6400,
+        "wall_seconds": 0.060459404,
+        "voluntary_context_switches": 1,
+        "involuntary_context_switches": 2
+      }
+    },
+    {
+      "name": "failure",
+      "returncode": 7,
+      "stdout": "",
+      "stderr": "",
+      "resources": {
+        "schema_version": 1,
+        "scope": "whole owned child lifetime, including setup, warmup and shutdown",
+        "child_pid": 665801,
+        "parent_waited": true,
+        "exit_code": 7,
+        "user_cpu_seconds": 0.005562999999999999,
+        "system_cpu_seconds": 0.005436,
+        "peak_rss_kbytes": 6400,
+        "wall_seconds": 0.011631139,
+        "voluntary_context_switches": 1,
+        "involuntary_context_switches": 0
+      }
+    },
+    {
+      "name": "signal",
+      "returncode": 143,
+      "stdout": "",
+      "stderr": "",
+      "resources": {
+        "schema_version": 1,
+        "scope": "whole owned child lifetime, including setup, warmup and shutdown",
+        "child_pid": 665803,
+        "parent_waited": true,
+        "exit_code": -15,
+        "user_cpu_seconds": 0.012067999999999999,
+        "system_cpu_seconds": 0.0,
+        "peak_rss_kbytes": 7168,
+        "wall_seconds": 0.012602702,
+        "voluntary_context_switches": 1,
+        "involuntary_context_switches": 0
+      }
+    },
+    {
+      "name": "parent-death",
+      "parent_waited": true,
+      "controller_exit": -9,
+      "child_exit": -9,
+      "leaf_reaped": true
+    }
+  ]
+}

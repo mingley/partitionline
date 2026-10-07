@@ -1,0 +1,113 @@
+{
+  "cell": "nb-fetch-multinode",
+  "repetition": 4,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r04-nb-fetch-multinode/nb-fetch-multinode-rep0.result.json",
+  "sha256": "e9b3990b890e3335ea59cb791caada1af70865956b4d868aa9750965a4c0fb70",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 633,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 67502080,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.037477,
+      "user_cpu_seconds": 0.215813
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 289855,
+        "allocations_per_record": 14.49275,
+        "total_allocated_bytes": 236117958,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 6378.9,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 30.92051191404081,
+      "rss": {
+        "average_rss_bytes": 31926921,
+        "baseline_rss_bytes": 4354048,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 126894080,
+        "process_peak_rss_bytes": 138964992,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.059716,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.067862
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 364521.0,
+        "unit": "microseconds",
+        "upper": 364521.0
+      },
+      "max": 364521,
+      "mean": 364521.0,
+      "min": 364521,
+      "p50": 364521.0,
+      "p90": 364521.0,
+      "p95": 364521.0,
+      "p99": 364521.0,
+      "p99_9": 364521.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 20000,
+            "upper_bound_us": 524288
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 5.362396926204024,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 48473.10964906302,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "allocs_per_round": 289855.0,
+    "cell_id": "nb-fetch-multinode",
+    "cpu_ns_per_round": 127578000.0,
+    "drive_mode": "fetch-verify",
+    "empty_rounds": 0,
+    "fast_node_rec_s": 48473.10964906302,
+    "fast_node_records": 20000,
+    "fetch_requests": 3,
+    "fetch_rounds": 1,
+    "fetched_records": 399000,
+    "flush_us_total": 0,
+    "latency_note": "per-record delivery-latency bound: the enclosing fetch() call's duration, shared by every record in the batch; empty rounds carry no latency",
+    "mismatched": 0,
+    "offsets_observed": false,
+    "per_partition_delivered": [
+      {
+        "partition": 0,
+        "records": 20000
+      }
+    ],
+    "queue_full_retries": 0,
+    "records_consumed": 20000,
+    "records_offered": 20000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r04-nb-fetch-multinode/nb-fetch-multinode-rep0.result.json",
+    "slow_node_records": 0,
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

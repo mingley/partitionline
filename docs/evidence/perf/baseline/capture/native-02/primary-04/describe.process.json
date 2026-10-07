@@ -1,0 +1,26 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "665813",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-topics.sh",
+    "--bootstrap-server",
+    "127.0.0.1:38401",
+    "--describe",
+    "--topic",
+    "pl-baseline-666734-4"
+  ],
+  "started": 1791394891.2720025,
+  "parent_waited": true,
+  "pid": 674708,
+  "exit_code": 0,
+  "ended": 1791394893.047207,
+  "artifacts": {
+    "describe.stdout": "c4f45d95b216054969cc804113180c608b531f02d01e583bc625dbdc8d84849d",
+    "describe.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

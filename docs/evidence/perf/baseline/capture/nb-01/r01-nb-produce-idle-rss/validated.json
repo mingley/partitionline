@@ -1,0 +1,93 @@
+{
+  "cell": "nb-produce-idle-rss",
+  "repetition": 1,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-idle-rss/nb-produce-idle-rss-rep0.result.json",
+  "sha256": "3fa6c40b8491897e4cc6a72f9794474ed68273b4bbe67c5570bfb5f5b410087b",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 623,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 2904064,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.032233,
+      "user_cpu_seconds": 0.010752
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 1,
+        "allocations_per_record": 0.0,
+        "total_allocated_bytes": 480000,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 0.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.3318768129367079,
+      "rss": {
+        "average_rss_bytes": 4650941,
+        "baseline_rss_bytes": 4542464,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 4653056,
+        "process_peak_rss_bytes": 18001920,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.025674,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.007518
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 0.0,
+        "unit": "microseconds",
+        "upper": 0.0
+      },
+      "max": 0,
+      "mean": 0.0,
+      "min": 0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "p99_9": 0.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 0
+          }
+        ]
+      },
+      "sample_count": 0,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 0.0,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 0.0,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 0,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "cell_id": "nb-produce-idle-rss",
+    "drive_mode": "idle",
+    "flush_us_total": 0,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "offsets_observed": false,
+    "queue_full_retries": 0,
+    "records_consumed": 0,
+    "records_offered": 0,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-idle-rss/nb-produce-idle-rss-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

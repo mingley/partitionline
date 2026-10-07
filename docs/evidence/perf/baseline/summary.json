@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "task": "KL09-12",
+  "status": "done",
+  "acceptance_met": true,
+  "date": "2026-10-07",
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "source_tree_clean": true,
+  "scope": "Pinned local unsigned baseline capture, including unsuccessful load profiles. No comparative performance or production qualification.",
+  "toolchain": "latest stable Rust 1.99.0; Java21",
+  "suite_hold": "active",
+  "host": "AMD EPYC9V74 KVM guest; five exposed CPUs; uncontrolled guest frequency",
+  "ordinary_and_json1k_timing_cases": 50,
+  "zstd_timing_cases": 72,
+  "valid_repetitions_each": 5,
+  "native_samples_each_timing_repetition": 30,
+  "instruction_cases": 34,
+  "instruction_repetitions_each": 5,
+  "instruction_scope": "Callgrind simulated user instructions; hardware cycles/instructions unavailable",
+  "null_broker_cells": 18,
+  "null_broker_repetitions_each": 5,
+  "additional_null_broker_reproduce_repetitions": 5,
+  "native_bulk_fetch_repetitions": 10,
+  "native_records_per_measured_phase": 8000000,
+  "native_warmup_records_each": 10000,
+  "rust_native_measured_full_byte_reads": 80000000,
+  "java_native_full_byte_reads_including_warmup": 80100000,
+  "micro_request_repetitions": 5,
+  "genuine_sdk_request_readbacks": 15,
+  "genuine_request_corruption_controls": 6,
+  "latency_calibrations": 5,
+  "latency_load_percentages": [
+    10,
+    50,
+    80
+  ],
+  "frozen_latency_rates": [
+    1000,
+    5000,
+    8000
+  ],
+  "latency_repetitions_each_rate": 5,
+  "latency_offers_each": 20000,
+  "latency_warmup_each": 10000,
+  "failed_80_percent_profiles": 5,
+  "failed_80_percent_rejections": [
+    192,
+    1975,
+    1322,
+    2940,
+    3380
+  ],
+  "latency_integrity": "Full fixed x payload and contiguous offsets verified by genuine Java; no unique-ID delivery-history qualification",
+  "qualified_metric_rows": 1385,
+  "statistics": "Median across five independent repetitions; bootstrap95%CI;20000 resamples;seed912",
+  "reproducibility": {
+    "policy": {
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "declared_utc": "2026-10-07T17:39:53Z",
+      "cells": [
+        "nb-produce-bulk",
+        "lb-bulk"
+      ],
+      "metric": "records_per_second",
+      "primary_repetitions": 5,
+      "reproduce_repetitions": 5,
+      "max_absolute_relative_median_difference": 0.2,
+      "policy": "Both unchanged-binary rerun medians must be within 20% of their initial five-repetition median. All attempts remain retained. The shared KVM guest and uncontrolled frequency limit inference.",
+      "baseline_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25"
+    },
+    "results": [
+      {
+        "cell": "nb-produce-bulk",
+        "metric": "throughput.records_per_second",
+        "primary": {
+          "family": "nb-01",
+          "cell": "nb-produce-bulk",
+          "metric": "throughput.records_per_second",
+          "repetitions": 5,
+          "values": [
+            73806.9941714506,
+            77079.08142638787,
+            73469.39456226636,
+            74467.53681933794,
+            76445.37243690467
+          ],
+          "median": 74467.53681933794,
+          "bootstrap_95_ci": [
+            73469.39456226636,
+            77079.08142638787
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 912
+        },
+        "reproduce": {
+          "family": "nb-reproduce-01",
+          "cell": "nb-produce-bulk",
+          "metric": "throughput.records_per_second",
+          "repetitions": 5,
+          "values": [
+            74216.96564730072,
+            74930.36159519247,
+            72454.40364678664,
+            75068.37443364992,
+            76299.23500937293
+          ],
+          "median": 74930.36159519247,
+          "bootstrap_95_ci": [
+            72454.40364678664,
+            76299.23500937293
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 912
+        },
+        "relative_median_difference": 0.006215121321621941,
+        "declared_limit": 0.2,
+        "within_declared_noise": true
+      },
+      {
+        "cell": "lb-bulk",
+        "metric": "records_per_second",
+        "primary": {
+          "family": "primary",
+          "cell": "lb-bulk",
+          "metric": "records_per_second",
+          "repetitions": 5,
+          "values": [
+            217105.09,
+            204747.195,
+            192235.879,
+            194091.166,
+            191061.28
+          ],
+          "median": 194091.166,
+          "bootstrap_95_ci": [
+            191061.28,
+            217105.09
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 912
+        },
+        "reproduce": {
+          "family": "reproduce",
+          "cell": "lb-bulk",
+          "metric": "records_per_second",
+          "repetitions": 5,
+          "values": [
+            189188.663,
+            187700.792,
+            193905.495,
+            199388.178,
+            190510.689
+          ],
+          "median": 190510.689,
+          "bootstrap_95_ci": [
+            187700.792,
+            199388.178
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 912
+        },
+        "relative_median_difference": 0.018447398064474374,
+        "declared_limit": 0.2,
+        "within_declared_noise": true
+      }
+    ],
+    "all_within_declared_noise": true
+  },
+  "process_receipts": 525,
+  "retained_nonzero_receipts": 20,
+  "canonical_benchmark_report_validations": 95,
+  "harness_replay": "capture/verify-baseline-01.py",
+  "replay_corruption_controls": 26,
+  "unavailable_cells": [
+    {
+      "cell": "micro-share-ranges",
+      "reason": "KL09-51 is pending; the pinned codec crate has no acquisition-range benchmark."
+    },
+    {
+      "cell": "lb-tls-connect",
+      "reason": "The pinned ci-auth-smoke script sets up and tests TLS/SASL authentication; it has no eight-socket timed connection benchmark or repeated-result validator."
+    },
+    {
+      "cell": "lb-tls-bulk",
+      "reason": "The pinned auth smoke is a correctness recipe. No owned TLS baseline orchestration with eight sockets, timing boundaries, independent full readback and repeated-result validation exists at this source."
+    },
+    {
+      "cell": "lb-oidc-connect",
+      "reason": "The auth smoke has an OIDC token stub and correctness examples, but no measured eight-open driver with actual IdP-request counts and connection clocks."
+    },
+    {
+      "cell": "lb-share-2leader",
+      "reason": "KL03-17 supplies conformance topology and peer qualification, not a source-bound throughput driver with timed share consumption, record verification and reproducible repeated results."
+    },
+    {
+      "cell": "lb-rtt-bulk",
+      "reason": "KL09-58 is pending; no owned Linux netem benchmark wrapper exists at the pinned source."
+    }
+  ],
+  "metric_limits": [
+    "Native cycle and hardware instruction events are not exposed by this KVM guest; perf probe receipts retained. Iai reports simulated user instructions only.",
+    "Iai has ten ordinary and twenty-four JSON1K instruction cells; zstd and the other ordinary fixture/entropy instruction cases are absent from the pinned instruction harness.",
+    "The ordinary allocation census has fourteen rows, including text compression. Random compression allocation rows are absent. Ordinary decode census includes its fixture clone; Criterion batched setup excludes that clone.",
+    "The producer driver has no phase allocation counter or latency population. Its wait4 CPU and max RSS cover the complete process, including warmup, setup and shutdown; unmeasured producer metrics are not replaced by zeros.",
+    "The native fetch phase includes inline full record verification, uses a ten-millisecond RSS sampler, and excludes warmup readback and per-partition reseeks.",
+    "Open-loop results use fixed x payloads without unique IDs. Java independently verifies contiguous offsets and complete fixed payloads; this does not qualify uniquely identified delivery histories.",
+    "Optional miniz gzip previously failed the same sixteen-allocation default budget with twenty-one allocations. Its failures and thresholds remain unchanged; no miniz qualification or backend budget waiver is inferred.",
+    "Guest frequency is uncontrolled. Measurements support local engineering analysis, not a world-ranking or production qualification."
+  ],
+  "preserved_failures": [
+    "Default apt snapshot returned403; signed current Debian index acquisition and actual tool extraction then succeeded.",
+    "Iai initial launcher used wrong cargo-metadata working directory; second launch lost VALGRIND_LIB through env_clear. Both failed attempts and exact helpers retained.",
+    "Codec recorder was interrupted by an environment restart in repetition4. That process was not waited by its owner; all partial samples excluded. Three complete earlier repetitions plus two fresh repetitions form the qualified cohort.",
+    "First native producer launcher required missing /usr/bin/time. Owned broker closed; actual Python wait4 and parent-death controls then passed.",
+    "Request SDK4.3 moved MemoryRecords into record.internal; the exact failed source/compiler receipt is retained. Corrected per-SDK import rendering keeps genuine SDK types.",
+    "First valid-CRC request corruption changed a structural byte; it was rejected for an unexpected reason. Failed source/control retained; corrected payload-byte mutation was independently rejected by all three SDKs.",
+    "First10000-offer80%latency run acknowledged8837/rejected1163, below the sample floor. Original failure remains. New20000-offer windows keep the same rates,1024pending cap and10000sample floor; all five80%profiles still contain rejections.",
+    "Optional miniz default allocation-budget mismatch remains unqualified under KL09-36; no backend budget raised or waived."
+  ],
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "evidence_directory": "docs/evidence/perf/baseline",
+  "large_raw_archives": "Retained in this checkout; source/summary publication may omit large capture files with an explicit publication manifest."
+}

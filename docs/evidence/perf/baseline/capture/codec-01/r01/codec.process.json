@@ -1,0 +1,27 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/codec-01/bin/codec",
+    "--bench",
+    "--noplot",
+    "--warm-up-time",
+    "1",
+    "--measurement-time",
+    "2",
+    "--sample-size",
+    "30",
+    "--nresamples",
+    "20000"
+  ],
+  "started": 1791390980.771027,
+  "parent_waited": true,
+  "pid": 659299,
+  "exit_code": 0,
+  "ended": 1791391150.15031,
+  "artifacts": {
+    "codec.stdout": "190da8ea1e1b9581cd524dea60b0b6da76e5e67f6a1b8df5f908611ce4ce1f6b",
+    "codec.stderr": "e361bfa80ea04aff73e450cb04710f2e4108058d5a10150c83ec704f1dec7a5a"
+  }
+}

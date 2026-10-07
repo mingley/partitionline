@@ -1,0 +1,74 @@
+{
+  "status": "aggregated",
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "metric_rows": 1385,
+  "source_cohorts": {
+    "nb-01": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 90
+    },
+    "nb-reproduce-01": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 5
+    },
+    "codec-02": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 2,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 4
+    },
+    "iai-03": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 10
+    },
+    "native-02": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 10
+    },
+    "request-03": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 5
+    },
+    "latency-02": {
+      "status": "recorded",
+      "scope": "local/unsigned",
+      "suite_hold": "active",
+      "repetitions": 5,
+      "source_guards_passed": true,
+      "owned_process_groups_empty": true,
+      "rows": 20
+    }
+  },
+  "reproducibility_qualified": true,
+  "no_public_performance_claim": true,
+  "production_ready": false
+}

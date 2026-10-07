@@ -1,0 +1,129 @@
+{
+  "cell": "nb-send-seq",
+  "repetition": 2,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r02-nb-send-seq/nb-send-seq-rep0.result.json",
+  "sha256": "734f410d31ba68ed79d0434527e26750775e68c3c551a7872edb45cc4fd46371",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 759,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 2854912,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.020611,
+      "user_cpu_seconds": 0.031277
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 56775,
+        "allocations_per_record": 56.775,
+        "total_allocated_bytes": 29942356,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 84321.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 1.0991645360263778,
+      "rss": {
+        "average_rss_bytes": 5425631,
+        "baseline_rss_bytes": 4784128,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 5451776,
+        "process_peak_rss_bytes": 18116608,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.074868,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.009453
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 6626.7774317135645,
+        "unit": "microseconds",
+        "upper": 8713.720568286435
+      },
+      "max": 87225,
+      "mean": 7670.249,
+      "min": 25,
+      "p50": 39.0,
+      "p90": 43770.2,
+      "p95": 43818.05,
+      "p99": 47774.16,
+      "p99_9": 52025.234999999164,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 230,
+            "upper_bound_us": 32
+          },
+          {
+            "count": 365,
+            "upper_bound_us": 64
+          },
+          {
+            "count": 204,
+            "upper_bound_us": 128
+          },
+          {
+            "count": 24,
+            "upper_bound_us": 256
+          },
+          {
+            "count": 4,
+            "upper_bound_us": 512
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 1024
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 2048
+          },
+          {
+            "count": 170,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 131072
+          }
+        ]
+      },
+      "sample_count": 1000,
+      "stddev": 16835.443007209487,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 0.014420656604108356,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 130.35477947680624,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 116000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "cell_id": "nb-send-seq",
+    "drive_mode": "sequential",
+    "flush_us_total": 0,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "offsets_observed": true,
+    "queue_full_retries": 0,
+    "records_consumed": 0,
+    "records_offered": 1000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r02-nb-send-seq/nb-send-seq-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

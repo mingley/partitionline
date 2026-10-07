@@ -1,0 +1,23 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/bin/runtime",
+    "--cell",
+    "nb-produce-flush-heavy",
+    "--out",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-flush-heavy",
+    "--repetitions",
+    "1"
+  ],
+  "started": 1791390371.3743474,
+  "parent_waited": true,
+  "pid": 645809,
+  "exit_code": 0,
+  "ended": 1791390372.807417,
+  "artifacts": {
+    "runtime.stdout": "00ed2674239d20d1e1b93d53c8460d3a926604227cf94eab61dc0db02b56fd69",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

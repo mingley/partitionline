@@ -1,0 +1,125 @@
+{
+  "cell": "nb-fetch-capped-paused",
+  "repetition": 2,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r02-nb-fetch-capped-paused/nb-fetch-capped-paused-rep0.result.json",
+  "sha256": "2290dd4790b280c4ff75bf88294c88fec3598582d77adc2973322d1563c4771d",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 635,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 31887360,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.019964,
+      "user_cpu_seconds": 0.071129
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 126549,
+        "allocations_per_record": 63.2745,
+        "total_allocated_bytes": 125444374,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 33912.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 35.945307230806314,
+      "rss": {
+        "average_rss_bytes": 15076082,
+        "baseline_rss_bytes": 4419584,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 59236352,
+        "process_peak_rss_bytes": 62996480,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.023386,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.044438
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 0.0,
+        "unit": "microseconds",
+        "upper": 212.03625926941797
+      },
+      "max": 143281,
+      "mean": 71.656,
+      "min": 0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "p99_9": 2.025999999999385,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 1996,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 2
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 4
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 32
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 262144
+          }
+        ]
+      },
+      "sample_count": 2000,
+      "stddev": 3203.0592084230975,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 1.1725918527237598,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 10599.5834013937,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 232000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "allocs_per_round": 63.2745,
+    "cell_id": "nb-fetch-capped-paused",
+    "cpu_ns_per_poll": 33912.0,
+    "cpu_ns_per_round": 33912.0,
+    "drive_mode": "fetch-verify",
+    "empty_rounds": 0,
+    "fetch_requests": 1,
+    "fetch_rounds": 2000,
+    "fetched_records": 120000,
+    "flush_us_total": 0,
+    "latency_note": "per-record delivery-latency bound: the enclosing fetch() call's duration, shared by every record in the batch; empty rounds carry no latency",
+    "mismatched": 0,
+    "offsets_observed": false,
+    "paused_backlog_records": 100000,
+    "per_partition_delivered": [
+      {
+        "partition": 0,
+        "records": 2000
+      }
+    ],
+    "prefill_buffered_bytes": 13919884,
+    "queue_full_retries": 0,
+    "records_consumed": 2000,
+    "records_offered": 2000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r02-nb-fetch-capped-paused/nb-fetch-capped-paused-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

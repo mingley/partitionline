@@ -1,0 +1,23 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/bin/runtime",
+    "--cell",
+    "nb-fetch-committed-aborts",
+    "--out",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r05-nb-fetch-committed-aborts",
+    "--repetitions",
+    "1"
+  ],
+  "started": 1791390605.880962,
+  "parent_waited": true,
+  "pid": 656718,
+  "exit_code": 0,
+  "ended": 1791390606.4275541,
+  "artifacts": {
+    "runtime.stdout": "386835bc69544f2f4255c905bc6ba86b9332bf75ec2c71748847af3a3c7250f9",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

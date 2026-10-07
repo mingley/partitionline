@@ -1,0 +1,17 @@
+{
+  "capacity_values": [
+    7407.407407407408,
+    11627.906976744185,
+    9009.009009009009,
+    10989.010989010989,
+    10000.0
+  ],
+  "median_sequential_records_per_second": 10000.0,
+  "rates": {
+    "10": 1000,
+    "50": 5000,
+    "80": 8000
+  },
+  "integer_rounding": "floor; at least 1 record/second",
+  "fixed_before_open_loop": true
+}

@@ -1,0 +1,17 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/codec-02/bin/zstd-census"
+  ],
+  "started": 1791392702.000638,
+  "parent_waited": true,
+  "pid": 660745,
+  "exit_code": 0,
+  "ended": 1791392707.308335,
+  "artifacts": {
+    "zstd-census.stdout": "407854219673225a4411e1de99d6d063a3c3141958c51eaada98b0208458e664",
+    "zstd-census.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

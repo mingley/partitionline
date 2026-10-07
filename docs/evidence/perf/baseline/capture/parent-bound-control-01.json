@@ -1,0 +1,12 @@
+{
+  "status": "pass",
+  "actual_controller_pid": 660873,
+  "actual_leaf_pid": 660874,
+  "controller_exit_code": -9,
+  "leaf_exit_code": -9,
+  "adopted_leaf_parent_waited": true,
+  "leaf_disappeared": true,
+  "wrong_parent_rejected": 1,
+  "wrong_parent_stderr": "benchmark parent disappeared before launch\n",
+  "scope": "Linux parent-death execution control, independent of product behavior"
+}

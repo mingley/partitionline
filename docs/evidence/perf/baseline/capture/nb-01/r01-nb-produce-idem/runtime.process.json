@@ -1,0 +1,23 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/bin/runtime",
+    "--cell",
+    "nb-produce-idem",
+    "--out",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-idem",
+    "--repetitions",
+    "1"
+  ],
+  "started": 1791390353.2879808,
+  "parent_waited": true,
+  "pid": 645091,
+  "exit_code": 0,
+  "ended": 1791390353.970547,
+  "artifacts": {
+    "runtime.stdout": "974a50f6a63141c7c020cf8b9e388160f2a233af783b07cf8935c138a67d6afa",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

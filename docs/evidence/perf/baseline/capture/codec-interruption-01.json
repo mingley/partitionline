@@ -1,0 +1,12 @@
+{
+  "reason": "Environment transition lost recorder parent during fourth Criterion repetition",
+  "last_observed_orphan_pid": 660461,
+  "last_observed_parent_pid": 1,
+  "original_parent_waited": false,
+  "completed_prior_repetitions": 3,
+  "partial_directory": "codec-01/r04",
+  "timestamp": 1791392589.6460812,
+  "current_stat": "660461 (codec) Z 1 660461 660461 0 -1 4227340 4793002 5 0 0 16526 550 0 0 20 0 1 0 6528702 0 0 18446744073709551615 0 0 0 0 0 0 0 4096 1088 1 0 0 17 2 0 0 0 0 0 0 0 0 0 0 0 0 0\n",
+  "cleanup_attempt": "Process exe disappeared before identity-checked termination; no signal was sent and no wait status is claimed",
+  "qualifies": false
+}

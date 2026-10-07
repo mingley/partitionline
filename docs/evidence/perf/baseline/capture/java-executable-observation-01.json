@@ -1,0 +1,7 @@
+{
+  "actual_broker_pid": 706983,
+  "actual_java_executable": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+  "actual_java_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+  "observed_after_start": true,
+  "note": "Observed actual running latency broker JVM; not a retrospective process-executable attestation for earlier Java oracle calls."
+}

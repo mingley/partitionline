@@ -1,0 +1,38 @@
+[package]
+name = "runtime"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+description = "Null-broker runtime measurement harness for producer cells (KL09-09). Standalone: never a dependency of partitionline."
+
+[dependencies]
+partitionline = { version = "0.1.0", path = "../.." }
+nullbroker = { version = "0.1.0", path = "../nullbroker" }
+codec = { version = "0.1.0", path = "../codec" }
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+bytes = "1"
+serde_json = "1"
+libc = "0.2"
+sha2 = "0.10"
+time = { version = "0.3", features = ["formatting", "std"] }
+
+[[bin]]
+name = "runtime"
+path = "src/main.rs"
+
+[[bin]]
+name = "nb-serve"
+path = "src/bin/nb-serve.rs"
+
+[lib]
+name = "runtime"
+path = "src/lib.rs"
+
+[lints.clippy]
+# Sync harness plus a single-threaded measurement runtime: the workspace's
+# async-oriented disallowed lists (picked up from the root clippy.toml)
+# do not apply to blocking subprocess control. Explicit allow beats the
+# config-implied enable.
+disallowed_methods = "allow"
+disallowed_types = "allow"

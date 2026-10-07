@@ -1,0 +1,22 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "665813",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-storage.sh",
+    "random-uuid"
+  ],
+  "started": 1791394691.5145693,
+  "parent_waited": true,
+  "pid": 665933,
+  "exit_code": 0,
+  "ended": 1791394692.92845,
+  "artifacts": {
+    "cluster-uuid.stdout": "eed83b778c2d5678c3193367df43f5e5d4a9e7d2fdb8b317611aad0e35848d97",
+    "cluster-uuid.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "cell": "nb-produce-retry",
+  "repetition": 1,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-retry/nb-produce-retry-rep0.result.json",
+  "sha256": "74243dd483b5905303472d8c5e1ca2139b7ce3ac539003bb353e83d8821258c6",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 783,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 2957312,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.0,
+      "user_cpu_seconds": 0.018157
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 40421,
+        "allocations_per_record": 2.02105,
+        "total_allocated_bytes": 52156970,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 2756.55,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 8.54570933382785,
+      "rss": {
+        "average_rss_bytes": 19158080,
+        "baseline_rss_bytes": 9961472,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 23306240,
+        "process_peak_rss_bytes": 24244224,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.015781,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.03935
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 444076.05383876886,
+        "unit": "microseconds",
+        "upper": 444152.8414612311
+      },
+      "max": 596649,
+      "mean": 444114.44765,
+      "min": 440164,
+      "p50": 444070.0,
+      "p90": 447234.0,
+      "p95": 447620.0,
+      "p99": 447965.0,
+      "p99_9": 448034.001,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 19997,
+            "upper_bound_us": 524288
+          },
+          {
+            "count": 3,
+            "upper_bound_us": 1048576
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 2770.257579298263,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 3.429575109571003,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 31001.46681115107,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "cell_id": "nb-produce-retry",
+    "drive_mode": "pipelined",
+    "flush_us_total": 569547,
+    "injected_errors": 8,
+    "injected_requests": 8,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "metadata_requests": 9,
+    "metadata_rpcs_per_retried_batch": 1.125,
+    "offsets_observed": false,
+    "produce_requests": 1015,
+    "queue_full_retries": 32,
+    "records_consumed": 0,
+    "records_offered": 20000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-retry/nb-produce-retry-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

@@ -1,0 +1,4106 @@
+{
+  "cell": "nb-fetch-1000p",
+  "repetition": 1,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-fetch-1000p/nb-fetch-1000p-rep0.result.json",
+  "sha256": "4fddaefd1c8aa1121940937def60a7c843f16e5226396e8cd8a7746953d0a131",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 633,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 4251648,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.0,
+      "user_cpu_seconds": 0.009241
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 21332,
+        "allocations_per_record": 2.1332,
+        "total_allocated_bytes": 9564386,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 1022.4,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 16.702256434983738,
+      "rss": {
+        "average_rss_bytes": 5380973,
+        "baseline_rss_bytes": 4476928,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 8876032,
+        "process_peak_rss_bytes": 18001920,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.003212,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.007012
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 15485.0,
+        "unit": "microseconds",
+        "upper": 15485.0
+      },
+      "max": 15485,
+      "mean": 15485.0,
+      "min": 15485,
+      "p50": 15485.0,
+      "p90": 15485.0,
+      "p95": 15485.0,
+      "p99": 15485.0,
+      "p99_9": 15485.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 10000,
+            "upper_bound_us": 16384
+          }
+        ]
+      },
+      "sample_count": 10000,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 18.0722565201164,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 163363.22804170323,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 1160000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "allocs_per_round": 21332.0,
+    "cell_id": "nb-fetch-1000p",
+    "cpu_ns_per_round": 10224000.0,
+    "drive_mode": "fetch-verify",
+    "empty_rounds": 0,
+    "fetch_requests": 1,
+    "fetch_rounds": 1,
+    "fetched_records": 10000,
+    "flush_us_total": 0,
+    "latency_note": "per-record delivery-latency bound: the enclosing fetch() call's duration, shared by every record in the batch; empty rounds carry no latency",
+    "mismatched": 0,
+    "offsets_observed": false,
+    "per_partition_delivered": [
+      {
+        "partition": 0,
+        "records": 10
+      },
+      {
+        "partition": 1,
+        "records": 10
+      },
+      {
+        "partition": 2,
+        "records": 10
+      },
+      {
+        "partition": 3,
+        "records": 10
+      },
+      {
+        "partition": 4,
+        "records": 10
+      },
+      {
+        "partition": 5,
+        "records": 10
+      },
+      {
+        "partition": 6,
+        "records": 10
+      },
+      {
+        "partition": 7,
+        "records": 10
+      },
+      {
+        "partition": 8,
+        "records": 10
+      },
+      {
+        "partition": 9,
+        "records": 10
+      },
+      {
+        "partition": 10,
+        "records": 10
+      },
+      {
+        "partition": 11,
+        "records": 10
+      },
+      {
+        "partition": 12,
+        "records": 10
+      },
+      {
+        "partition": 13,
+        "records": 10
+      },
+      {
+        "partition": 14,
+        "records": 10
+      },
+      {
+        "partition": 15,
+        "records": 10
+      },
+      {
+        "partition": 16,
+        "records": 10
+      },
+      {
+        "partition": 17,
+        "records": 10
+      },
+      {
+        "partition": 18,
+        "records": 10
+      },
+      {
+        "partition": 19,
+        "records": 10
+      },
+      {
+        "partition": 20,
+        "records": 10
+      },
+      {
+        "partition": 21,
+        "records": 10
+      },
+      {
+        "partition": 22,
+        "records": 10
+      },
+      {
+        "partition": 23,
+        "records": 10
+      },
+      {
+        "partition": 24,
+        "records": 10
+      },
+      {
+        "partition": 25,
+        "records": 10
+      },
+      {
+        "partition": 26,
+        "records": 10
+      },
+      {
+        "partition": 27,
+        "records": 10
+      },
+      {
+        "partition": 28,
+        "records": 10
+      },
+      {
+        "partition": 29,
+        "records": 10
+      },
+      {
+        "partition": 30,
+        "records": 10
+      },
+      {
+        "partition": 31,
+        "records": 10
+      },
+      {
+        "partition": 32,
+        "records": 10
+      },
+      {
+        "partition": 33,
+        "records": 10
+      },
+      {
+        "partition": 34,
+        "records": 10
+      },
+      {
+        "partition": 35,
+        "records": 10
+      },
+      {
+        "partition": 36,
+        "records": 10
+      },
+      {
+        "partition": 37,
+        "records": 10
+      },
+      {
+        "partition": 38,
+        "records": 10
+      },
+      {
+        "partition": 39,
+        "records": 10
+      },
+      {
+        "partition": 40,
+        "records": 10
+      },
+      {
+        "partition": 41,
+        "records": 10
+      },
+      {
+        "partition": 42,
+        "records": 10
+      },
+      {
+        "partition": 43,
+        "records": 10
+      },
+      {
+        "partition": 44,
+        "records": 10
+      },
+      {
+        "partition": 45,
+        "records": 10
+      },
+      {
+        "partition": 46,
+        "records": 10
+      },
+      {
+        "partition": 47,
+        "records": 10
+      },
+      {
+        "partition": 48,
+        "records": 10
+      },
+      {
+        "partition": 49,
+        "records": 10
+      },
+      {
+        "partition": 50,
+        "records": 10
+      },
+      {
+        "partition": 51,
+        "records": 10
+      },
+      {
+        "partition": 52,
+        "records": 10
+      },
+      {
+        "partition": 53,
+        "records": 10
+      },
+      {
+        "partition": 54,
+        "records": 10
+      },
+      {
+        "partition": 55,
+        "records": 10
+      },
+      {
+        "partition": 56,
+        "records": 10
+      },
+      {
+        "partition": 57,
+        "records": 10
+      },
+      {
+        "partition": 58,
+        "records": 10
+      },
+      {
+        "partition": 59,
+        "records": 10
+      },
+      {
+        "partition": 60,
+        "records": 10
+      },
+      {
+        "partition": 61,
+        "records": 10
+      },
+      {
+        "partition": 62,
+        "records": 10
+      },
+      {
+        "partition": 63,
+        "records": 10
+      },
+      {
+        "partition": 64,
+        "records": 10
+      },
+      {
+        "partition": 65,
+        "records": 10
+      },
+      {
+        "partition": 66,
+        "records": 10
+      },
+      {
+        "partition": 67,
+        "records": 10
+      },
+      {
+        "partition": 68,
+        "records": 10
+      },
+      {
+        "partition": 69,
+        "records": 10
+      },
+      {
+        "partition": 70,
+        "records": 10
+      },
+      {
+        "partition": 71,
+        "records": 10
+      },
+      {
+        "partition": 72,
+        "records": 10
+      },
+      {
+        "partition": 73,
+        "records": 10
+      },
+      {
+        "partition": 74,
+        "records": 10
+      },
+      {
+        "partition": 75,
+        "records": 10
+      },
+      {
+        "partition": 76,
+        "records": 10
+      },
+      {
+        "partition": 77,
+        "records": 10
+      },
+      {
+        "partition": 78,
+        "records": 10
+      },
+      {
+        "partition": 79,
+        "records": 10
+      },
+      {
+        "partition": 80,
+        "records": 10
+      },
+      {
+        "partition": 81,
+        "records": 10
+      },
+      {
+        "partition": 82,
+        "records": 10
+      },
+      {
+        "partition": 83,
+        "records": 10
+      },
+      {
+        "partition": 84,
+        "records": 10
+      },
+      {
+        "partition": 85,
+        "records": 10
+      },
+      {
+        "partition": 86,
+        "records": 10
+      },
+      {
+        "partition": 87,
+        "records": 10
+      },
+      {
+        "partition": 88,
+        "records": 10
+      },
+      {
+        "partition": 89,
+        "records": 10
+      },
+      {
+        "partition": 90,
+        "records": 10
+      },
+      {
+        "partition": 91,
+        "records": 10
+      },
+      {
+        "partition": 92,
+        "records": 10
+      },
+      {
+        "partition": 93,
+        "records": 10
+      },
+      {
+        "partition": 94,
+        "records": 10
+      },
+      {
+        "partition": 95,
+        "records": 10
+      },
+      {
+        "partition": 96,
+        "records": 10
+      },
+      {
+        "partition": 97,
+        "records": 10
+      },
+      {
+        "partition": 98,
+        "records": 10
+      },
+      {
+        "partition": 99,
+        "records": 10
+      },
+      {
+        "partition": 100,
+        "records": 10
+      },
+      {
+        "partition": 101,
+        "records": 10
+      },
+      {
+        "partition": 102,
+        "records": 10
+      },
+      {
+        "partition": 103,
+        "records": 10
+      },
+      {
+        "partition": 104,
+        "records": 10
+      },
+      {
+        "partition": 105,
+        "records": 10
+      },
+      {
+        "partition": 106,
+        "records": 10
+      },
+      {
+        "partition": 107,
+        "records": 10
+      },
+      {
+        "partition": 108,
+        "records": 10
+      },
+      {
+        "partition": 109,
+        "records": 10
+      },
+      {
+        "partition": 110,
+        "records": 10
+      },
+      {
+        "partition": 111,
+        "records": 10
+      },
+      {
+        "partition": 112,
+        "records": 10
+      },
+      {
+        "partition": 113,
+        "records": 10
+      },
+      {
+        "partition": 114,
+        "records": 10
+      },
+      {
+        "partition": 115,
+        "records": 10
+      },
+      {
+        "partition": 116,
+        "records": 10
+      },
+      {
+        "partition": 117,
+        "records": 10
+      },
+      {
+        "partition": 118,
+        "records": 10
+      },
+      {
+        "partition": 119,
+        "records": 10
+      },
+      {
+        "partition": 120,
+        "records": 10
+      },
+      {
+        "partition": 121,
+        "records": 10
+      },
+      {
+        "partition": 122,
+        "records": 10
+      },
+      {
+        "partition": 123,
+        "records": 10
+      },
+      {
+        "partition": 124,
+        "records": 10
+      },
+      {
+        "partition": 125,
+        "records": 10
+      },
+      {
+        "partition": 126,
+        "records": 10
+      },
+      {
+        "partition": 127,
+        "records": 10
+      },
+      {
+        "partition": 128,
+        "records": 10
+      },
+      {
+        "partition": 129,
+        "records": 10
+      },
+      {
+        "partition": 130,
+        "records": 10
+      },
+      {
+        "partition": 131,
+        "records": 10
+      },
+      {
+        "partition": 132,
+        "records": 10
+      },
+      {
+        "partition": 133,
+        "records": 10
+      },
+      {
+        "partition": 134,
+        "records": 10
+      },
+      {
+        "partition": 135,
+        "records": 10
+      },
+      {
+        "partition": 136,
+        "records": 10
+      },
+      {
+        "partition": 137,
+        "records": 10
+      },
+      {
+        "partition": 138,
+        "records": 10
+      },
+      {
+        "partition": 139,
+        "records": 10
+      },
+      {
+        "partition": 140,
+        "records": 10
+      },
+      {
+        "partition": 141,
+        "records": 10
+      },
+      {
+        "partition": 142,
+        "records": 10
+      },
+      {
+        "partition": 143,
+        "records": 10
+      },
+      {
+        "partition": 144,
+        "records": 10
+      },
+      {
+        "partition": 145,
+        "records": 10
+      },
+      {
+        "partition": 146,
+        "records": 10
+      },
+      {
+        "partition": 147,
+        "records": 10
+      },
+      {
+        "partition": 148,
+        "records": 10
+      },
+      {
+        "partition": 149,
+        "records": 10
+      },
+      {
+        "partition": 150,
+        "records": 10
+      },
+      {
+        "partition": 151,
+        "records": 10
+      },
+      {
+        "partition": 152,
+        "records": 10
+      },
+      {
+        "partition": 153,
+        "records": 10
+      },
+      {
+        "partition": 154,
+        "records": 10
+      },
+      {
+        "partition": 155,
+        "records": 10
+      },
+      {
+        "partition": 156,
+        "records": 10
+      },
+      {
+        "partition": 157,
+        "records": 10
+      },
+      {
+        "partition": 158,
+        "records": 10
+      },
+      {
+        "partition": 159,
+        "records": 10
+      },
+      {
+        "partition": 160,
+        "records": 10
+      },
+      {
+        "partition": 161,
+        "records": 10
+      },
+      {
+        "partition": 162,
+        "records": 10
+      },
+      {
+        "partition": 163,
+        "records": 10
+      },
+      {
+        "partition": 164,
+        "records": 10
+      },
+      {
+        "partition": 165,
+        "records": 10
+      },
+      {
+        "partition": 166,
+        "records": 10
+      },
+      {
+        "partition": 167,
+        "records": 10
+      },
+      {
+        "partition": 168,
+        "records": 10
+      },
+      {
+        "partition": 169,
+        "records": 10
+      },
+      {
+        "partition": 170,
+        "records": 10
+      },
+      {
+        "partition": 171,
+        "records": 10
+      },
+      {
+        "partition": 172,
+        "records": 10
+      },
+      {
+        "partition": 173,
+        "records": 10
+      },
+      {
+        "partition": 174,
+        "records": 10
+      },
+      {
+        "partition": 175,
+        "records": 10
+      },
+      {
+        "partition": 176,
+        "records": 10
+      },
+      {
+        "partition": 177,
+        "records": 10
+      },
+      {
+        "partition": 178,
+        "records": 10
+      },
+      {
+        "partition": 179,
+        "records": 10
+      },
+      {
+        "partition": 180,
+        "records": 10
+      },
+      {
+        "partition": 181,
+        "records": 10
+      },
+      {
+        "partition": 182,
+        "records": 10
+      },
+      {
+        "partition": 183,
+        "records": 10
+      },
+      {
+        "partition": 184,
+        "records": 10
+      },
+      {
+        "partition": 185,
+        "records": 10
+      },
+      {
+        "partition": 186,
+        "records": 10
+      },
+      {
+        "partition": 187,
+        "records": 10
+      },
+      {
+        "partition": 188,
+        "records": 10
+      },
+      {
+        "partition": 189,
+        "records": 10
+      },
+      {
+        "partition": 190,
+        "records": 10
+      },
+      {
+        "partition": 191,
+        "records": 10
+      },
+      {
+        "partition": 192,
+        "records": 10
+      },
+      {
+        "partition": 193,
+        "records": 10
+      },
+      {
+        "partition": 194,
+        "records": 10
+      },
+      {
+        "partition": 195,
+        "records": 10
+      },
+      {
+        "partition": 196,
+        "records": 10
+      },
+      {
+        "partition": 197,
+        "records": 10
+      },
+      {
+        "partition": 198,
+        "records": 10
+      },
+      {
+        "partition": 199,
+        "records": 10
+      },
+      {
+        "partition": 200,
+        "records": 10
+      },
+      {
+        "partition": 201,
+        "records": 10
+      },
+      {
+        "partition": 202,
+        "records": 10
+      },
+      {
+        "partition": 203,
+        "records": 10
+      },
+      {
+        "partition": 204,
+        "records": 10
+      },
+      {
+        "partition": 205,
+        "records": 10
+      },
+      {
+        "partition": 206,
+        "records": 10
+      },
+      {
+        "partition": 207,
+        "records": 10
+      },
+      {
+        "partition": 208,
+        "records": 10
+      },
+      {
+        "partition": 209,
+        "records": 10
+      },
+      {
+        "partition": 210,
+        "records": 10
+      },
+      {
+        "partition": 211,
+        "records": 10
+      },
+      {
+        "partition": 212,
+        "records": 10
+      },
+      {
+        "partition": 213,
+        "records": 10
+      },
+      {
+        "partition": 214,
+        "records": 10
+      },
+      {
+        "partition": 215,
+        "records": 10
+      },
+      {
+        "partition": 216,
+        "records": 10
+      },
+      {
+        "partition": 217,
+        "records": 10
+      },
+      {
+        "partition": 218,
+        "records": 10
+      },
+      {
+        "partition": 219,
+        "records": 10
+      },
+      {
+        "partition": 220,
+        "records": 10
+      },
+      {
+        "partition": 221,
+        "records": 10
+      },
+      {
+        "partition": 222,
+        "records": 10
+      },
+      {
+        "partition": 223,
+        "records": 10
+      },
+      {
+        "partition": 224,
+        "records": 10
+      },
+      {
+        "partition": 225,
+        "records": 10
+      },
+      {
+        "partition": 226,
+        "records": 10
+      },
+      {
+        "partition": 227,
+        "records": 10
+      },
+      {
+        "partition": 228,
+        "records": 10
+      },
+      {
+        "partition": 229,
+        "records": 10
+      },
+      {
+        "partition": 230,
+        "records": 10
+      },
+      {
+        "partition": 231,
+        "records": 10
+      },
+      {
+        "partition": 232,
+        "records": 10
+      },
+      {
+        "partition": 233,
+        "records": 10
+      },
+      {
+        "partition": 234,
+        "records": 10
+      },
+      {
+        "partition": 235,
+        "records": 10
+      },
+      {
+        "partition": 236,
+        "records": 10
+      },
+      {
+        "partition": 237,
+        "records": 10
+      },
+      {
+        "partition": 238,
+        "records": 10
+      },
+      {
+        "partition": 239,
+        "records": 10
+      },
+      {
+        "partition": 240,
+        "records": 10
+      },
+      {
+        "partition": 241,
+        "records": 10
+      },
+      {
+        "partition": 242,
+        "records": 10
+      },
+      {
+        "partition": 243,
+        "records": 10
+      },
+      {
+        "partition": 244,
+        "records": 10
+      },
+      {
+        "partition": 245,
+        "records": 10
+      },
+      {
+        "partition": 246,
+        "records": 10
+      },
+      {
+        "partition": 247,
+        "records": 10
+      },
+      {
+        "partition": 248,
+        "records": 10
+      },
+      {
+        "partition": 249,
+        "records": 10
+      },
+      {
+        "partition": 250,
+        "records": 10
+      },
+      {
+        "partition": 251,
+        "records": 10
+      },
+      {
+        "partition": 252,
+        "records": 10
+      },
+      {
+        "partition": 253,
+        "records": 10
+      },
+      {
+        "partition": 254,
+        "records": 10
+      },
+      {
+        "partition": 255,
+        "records": 10
+      },
+      {
+        "partition": 256,
+        "records": 10
+      },
+      {
+        "partition": 257,
+        "records": 10
+      },
+      {
+        "partition": 258,
+        "records": 10
+      },
+      {
+        "partition": 259,
+        "records": 10
+      },
+      {
+        "partition": 260,
+        "records": 10
+      },
+      {
+        "partition": 261,
+        "records": 10
+      },
+      {
+        "partition": 262,
+        "records": 10
+      },
+      {
+        "partition": 263,
+        "records": 10
+      },
+      {
+        "partition": 264,
+        "records": 10
+      },
+      {
+        "partition": 265,
+        "records": 10
+      },
+      {
+        "partition": 266,
+        "records": 10
+      },
+      {
+        "partition": 267,
+        "records": 10
+      },
+      {
+        "partition": 268,
+        "records": 10
+      },
+      {
+        "partition": 269,
+        "records": 10
+      },
+      {
+        "partition": 270,
+        "records": 10
+      },
+      {
+        "partition": 271,
+        "records": 10
+      },
+      {
+        "partition": 272,
+        "records": 10
+      },
+      {
+        "partition": 273,
+        "records": 10
+      },
+      {
+        "partition": 274,
+        "records": 10
+      },
+      {
+        "partition": 275,
+        "records": 10
+      },
+      {
+        "partition": 276,
+        "records": 10
+      },
+      {
+        "partition": 277,
+        "records": 10
+      },
+      {
+        "partition": 278,
+        "records": 10
+      },
+      {
+        "partition": 279,
+        "records": 10
+      },
+      {
+        "partition": 280,
+        "records": 10
+      },
+      {
+        "partition": 281,
+        "records": 10
+      },
+      {
+        "partition": 282,
+        "records": 10
+      },
+      {
+        "partition": 283,
+        "records": 10
+      },
+      {
+        "partition": 284,
+        "records": 10
+      },
+      {
+        "partition": 285,
+        "records": 10
+      },
+      {
+        "partition": 286,
+        "records": 10
+      },
+      {
+        "partition": 287,
+        "records": 10
+      },
+      {
+        "partition": 288,
+        "records": 10
+      },
+      {
+        "partition": 289,
+        "records": 10
+      },
+      {
+        "partition": 290,
+        "records": 10
+      },
+      {
+        "partition": 291,
+        "records": 10
+      },
+      {
+        "partition": 292,
+        "records": 10
+      },
+      {
+        "partition": 293,
+        "records": 10
+      },
+      {
+        "partition": 294,
+        "records": 10
+      },
+      {
+        "partition": 295,
+        "records": 10
+      },
+      {
+        "partition": 296,
+        "records": 10
+      },
+      {
+        "partition": 297,
+        "records": 10
+      },
+      {
+        "partition": 298,
+        "records": 10
+      },
+      {
+        "partition": 299,
+        "records": 10
+      },
+      {
+        "partition": 300,
+        "records": 10
+      },
+      {
+        "partition": 301,
+        "records": 10
+      },
+      {
+        "partition": 302,
+        "records": 10
+      },
+      {
+        "partition": 303,
+        "records": 10
+      },
+      {
+        "partition": 304,
+        "records": 10
+      },
+      {
+        "partition": 305,
+        "records": 10
+      },
+      {
+        "partition": 306,
+        "records": 10
+      },
+      {
+        "partition": 307,
+        "records": 10
+      },
+      {
+        "partition": 308,
+        "records": 10
+      },
+      {
+        "partition": 309,
+        "records": 10
+      },
+      {
+        "partition": 310,
+        "records": 10
+      },
+      {
+        "partition": 311,
+        "records": 10
+      },
+      {
+        "partition": 312,
+        "records": 10
+      },
+      {
+        "partition": 313,
+        "records": 10
+      },
+      {
+        "partition": 314,
+        "records": 10
+      },
+      {
+        "partition": 315,
+        "records": 10
+      },
+      {
+        "partition": 316,
+        "records": 10
+      },
+      {
+        "partition": 317,
+        "records": 10
+      },
+      {
+        "partition": 318,
+        "records": 10
+      },
+      {
+        "partition": 319,
+        "records": 10
+      },
+      {
+        "partition": 320,
+        "records": 10
+      },
+      {
+        "partition": 321,
+        "records": 10
+      },
+      {
+        "partition": 322,
+        "records": 10
+      },
+      {
+        "partition": 323,
+        "records": 10
+      },
+      {
+        "partition": 324,
+        "records": 10
+      },
+      {
+        "partition": 325,
+        "records": 10
+      },
+      {
+        "partition": 326,
+        "records": 10
+      },
+      {
+        "partition": 327,
+        "records": 10
+      },
+      {
+        "partition": 328,
+        "records": 10
+      },
+      {
+        "partition": 329,
+        "records": 10
+      },
+      {
+        "partition": 330,
+        "records": 10
+      },
+      {
+        "partition": 331,
+        "records": 10
+      },
+      {
+        "partition": 332,
+        "records": 10
+      },
+      {
+        "partition": 333,
+        "records": 10
+      },
+      {
+        "partition": 334,
+        "records": 10
+      },
+      {
+        "partition": 335,
+        "records": 10
+      },
+      {
+        "partition": 336,
+        "records": 10
+      },
+      {
+        "partition": 337,
+        "records": 10
+      },
+      {
+        "partition": 338,
+        "records": 10
+      },
+      {
+        "partition": 339,
+        "records": 10
+      },
+      {
+        "partition": 340,
+        "records": 10
+      },
+      {
+        "partition": 341,
+        "records": 10
+      },
+      {
+        "partition": 342,
+        "records": 10
+      },
+      {
+        "partition": 343,
+        "records": 10
+      },
+      {
+        "partition": 344,
+        "records": 10
+      },
+      {
+        "partition": 345,
+        "records": 10
+      },
+      {
+        "partition": 346,
+        "records": 10
+      },
+      {
+        "partition": 347,
+        "records": 10
+      },
+      {
+        "partition": 348,
+        "records": 10
+      },
+      {
+        "partition": 349,
+        "records": 10
+      },
+      {
+        "partition": 350,
+        "records": 10
+      },
+      {
+        "partition": 351,
+        "records": 10
+      },
+      {
+        "partition": 352,
+        "records": 10
+      },
+      {
+        "partition": 353,
+        "records": 10
+      },
+      {
+        "partition": 354,
+        "records": 10
+      },
+      {
+        "partition": 355,
+        "records": 10
+      },
+      {
+        "partition": 356,
+        "records": 10
+      },
+      {
+        "partition": 357,
+        "records": 10
+      },
+      {
+        "partition": 358,
+        "records": 10
+      },
+      {
+        "partition": 359,
+        "records": 10
+      },
+      {
+        "partition": 360,
+        "records": 10
+      },
+      {
+        "partition": 361,
+        "records": 10
+      },
+      {
+        "partition": 362,
+        "records": 10
+      },
+      {
+        "partition": 363,
+        "records": 10
+      },
+      {
+        "partition": 364,
+        "records": 10
+      },
+      {
+        "partition": 365,
+        "records": 10
+      },
+      {
+        "partition": 366,
+        "records": 10
+      },
+      {
+        "partition": 367,
+        "records": 10
+      },
+      {
+        "partition": 368,
+        "records": 10
+      },
+      {
+        "partition": 369,
+        "records": 10
+      },
+      {
+        "partition": 370,
+        "records": 10
+      },
+      {
+        "partition": 371,
+        "records": 10
+      },
+      {
+        "partition": 372,
+        "records": 10
+      },
+      {
+        "partition": 373,
+        "records": 10
+      },
+      {
+        "partition": 374,
+        "records": 10
+      },
+      {
+        "partition": 375,
+        "records": 10
+      },
+      {
+        "partition": 376,
+        "records": 10
+      },
+      {
+        "partition": 377,
+        "records": 10
+      },
+      {
+        "partition": 378,
+        "records": 10
+      },
+      {
+        "partition": 379,
+        "records": 10
+      },
+      {
+        "partition": 380,
+        "records": 10
+      },
+      {
+        "partition": 381,
+        "records": 10
+      },
+      {
+        "partition": 382,
+        "records": 10
+      },
+      {
+        "partition": 383,
+        "records": 10
+      },
+      {
+        "partition": 384,
+        "records": 10
+      },
+      {
+        "partition": 385,
+        "records": 10
+      },
+      {
+        "partition": 386,
+        "records": 10
+      },
+      {
+        "partition": 387,
+        "records": 10
+      },
+      {
+        "partition": 388,
+        "records": 10
+      },
+      {
+        "partition": 389,
+        "records": 10
+      },
+      {
+        "partition": 390,
+        "records": 10
+      },
+      {
+        "partition": 391,
+        "records": 10
+      },
+      {
+        "partition": 392,
+        "records": 10
+      },
+      {
+        "partition": 393,
+        "records": 10
+      },
+      {
+        "partition": 394,
+        "records": 10
+      },
+      {
+        "partition": 395,
+        "records": 10
+      },
+      {
+        "partition": 396,
+        "records": 10
+      },
+      {
+        "partition": 397,
+        "records": 10
+      },
+      {
+        "partition": 398,
+        "records": 10
+      },
+      {
+        "partition": 399,
+        "records": 10
+      },
+      {
+        "partition": 400,
+        "records": 10
+      },
+      {
+        "partition": 401,
+        "records": 10
+      },
+      {
+        "partition": 402,
+        "records": 10
+      },
+      {
+        "partition": 403,
+        "records": 10
+      },
+      {
+        "partition": 404,
+        "records": 10
+      },
+      {
+        "partition": 405,
+        "records": 10
+      },
+      {
+        "partition": 406,
+        "records": 10
+      },
+      {
+        "partition": 407,
+        "records": 10
+      },
+      {
+        "partition": 408,
+        "records": 10
+      },
+      {
+        "partition": 409,
+        "records": 10
+      },
+      {
+        "partition": 410,
+        "records": 10
+      },
+      {
+        "partition": 411,
+        "records": 10
+      },
+      {
+        "partition": 412,
+        "records": 10
+      },
+      {
+        "partition": 413,
+        "records": 10
+      },
+      {
+        "partition": 414,
+        "records": 10
+      },
+      {
+        "partition": 415,
+        "records": 10
+      },
+      {
+        "partition": 416,
+        "records": 10
+      },
+      {
+        "partition": 417,
+        "records": 10
+      },
+      {
+        "partition": 418,
+        "records": 10
+      },
+      {
+        "partition": 419,
+        "records": 10
+      },
+      {
+        "partition": 420,
+        "records": 10
+      },
+      {
+        "partition": 421,
+        "records": 10
+      },
+      {
+        "partition": 422,
+        "records": 10
+      },
+      {
+        "partition": 423,
+        "records": 10
+      },
+      {
+        "partition": 424,
+        "records": 10
+      },
+      {
+        "partition": 425,
+        "records": 10
+      },
+      {
+        "partition": 426,
+        "records": 10
+      },
+      {
+        "partition": 427,
+        "records": 10
+      },
+      {
+        "partition": 428,
+        "records": 10
+      },
+      {
+        "partition": 429,
+        "records": 10
+      },
+      {
+        "partition": 430,
+        "records": 10
+      },
+      {
+        "partition": 431,
+        "records": 10
+      },
+      {
+        "partition": 432,
+        "records": 10
+      },
+      {
+        "partition": 433,
+        "records": 10
+      },
+      {
+        "partition": 434,
+        "records": 10
+      },
+      {
+        "partition": 435,
+        "records": 10
+      },
+      {
+        "partition": 436,
+        "records": 10
+      },
+      {
+        "partition": 437,
+        "records": 10
+      },
+      {
+        "partition": 438,
+        "records": 10
+      },
+      {
+        "partition": 439,
+        "records": 10
+      },
+      {
+        "partition": 440,
+        "records": 10
+      },
+      {
+        "partition": 441,
+        "records": 10
+      },
+      {
+        "partition": 442,
+        "records": 10
+      },
+      {
+        "partition": 443,
+        "records": 10
+      },
+      {
+        "partition": 444,
+        "records": 10
+      },
+      {
+        "partition": 445,
+        "records": 10
+      },
+      {
+        "partition": 446,
+        "records": 10
+      },
+      {
+        "partition": 447,
+        "records": 10
+      },
+      {
+        "partition": 448,
+        "records": 10
+      },
+      {
+        "partition": 449,
+        "records": 10
+      },
+      {
+        "partition": 450,
+        "records": 10
+      },
+      {
+        "partition": 451,
+        "records": 10
+      },
+      {
+        "partition": 452,
+        "records": 10
+      },
+      {
+        "partition": 453,
+        "records": 10
+      },
+      {
+        "partition": 454,
+        "records": 10
+      },
+      {
+        "partition": 455,
+        "records": 10
+      },
+      {
+        "partition": 456,
+        "records": 10
+      },
+      {
+        "partition": 457,
+        "records": 10
+      },
+      {
+        "partition": 458,
+        "records": 10
+      },
+      {
+        "partition": 459,
+        "records": 10
+      },
+      {
+        "partition": 460,
+        "records": 10
+      },
+      {
+        "partition": 461,
+        "records": 10
+      },
+      {
+        "partition": 462,
+        "records": 10
+      },
+      {
+        "partition": 463,
+        "records": 10
+      },
+      {
+        "partition": 464,
+        "records": 10
+      },
+      {
+        "partition": 465,
+        "records": 10
+      },
+      {
+        "partition": 466,
+        "records": 10
+      },
+      {
+        "partition": 467,
+        "records": 10
+      },
+      {
+        "partition": 468,
+        "records": 10
+      },
+      {
+        "partition": 469,
+        "records": 10
+      },
+      {
+        "partition": 470,
+        "records": 10
+      },
+      {
+        "partition": 471,
+        "records": 10
+      },
+      {
+        "partition": 472,
+        "records": 10
+      },
+      {
+        "partition": 473,
+        "records": 10
+      },
+      {
+        "partition": 474,
+        "records": 10
+      },
+      {
+        "partition": 475,
+        "records": 10
+      },
+      {
+        "partition": 476,
+        "records": 10
+      },
+      {
+        "partition": 477,
+        "records": 10
+      },
+      {
+        "partition": 478,
+        "records": 10
+      },
+      {
+        "partition": 479,
+        "records": 10
+      },
+      {
+        "partition": 480,
+        "records": 10
+      },
+      {
+        "partition": 481,
+        "records": 10
+      },
+      {
+        "partition": 482,
+        "records": 10
+      },
+      {
+        "partition": 483,
+        "records": 10
+      },
+      {
+        "partition": 484,
+        "records": 10
+      },
+      {
+        "partition": 485,
+        "records": 10
+      },
+      {
+        "partition": 486,
+        "records": 10
+      },
+      {
+        "partition": 487,
+        "records": 10
+      },
+      {
+        "partition": 488,
+        "records": 10
+      },
+      {
+        "partition": 489,
+        "records": 10
+      },
+      {
+        "partition": 490,
+        "records": 10
+      },
+      {
+        "partition": 491,
+        "records": 10
+      },
+      {
+        "partition": 492,
+        "records": 10
+      },
+      {
+        "partition": 493,
+        "records": 10
+      },
+      {
+        "partition": 494,
+        "records": 10
+      },
+      {
+        "partition": 495,
+        "records": 10
+      },
+      {
+        "partition": 496,
+        "records": 10
+      },
+      {
+        "partition": 497,
+        "records": 10
+      },
+      {
+        "partition": 498,
+        "records": 10
+      },
+      {
+        "partition": 499,
+        "records": 10
+      },
+      {
+        "partition": 500,
+        "records": 10
+      },
+      {
+        "partition": 501,
+        "records": 10
+      },
+      {
+        "partition": 502,
+        "records": 10
+      },
+      {
+        "partition": 503,
+        "records": 10
+      },
+      {
+        "partition": 504,
+        "records": 10
+      },
+      {
+        "partition": 505,
+        "records": 10
+      },
+      {
+        "partition": 506,
+        "records": 10
+      },
+      {
+        "partition": 507,
+        "records": 10
+      },
+      {
+        "partition": 508,
+        "records": 10
+      },
+      {
+        "partition": 509,
+        "records": 10
+      },
+      {
+        "partition": 510,
+        "records": 10
+      },
+      {
+        "partition": 511,
+        "records": 10
+      },
+      {
+        "partition": 512,
+        "records": 10
+      },
+      {
+        "partition": 513,
+        "records": 10
+      },
+      {
+        "partition": 514,
+        "records": 10
+      },
+      {
+        "partition": 515,
+        "records": 10
+      },
+      {
+        "partition": 516,
+        "records": 10
+      },
+      {
+        "partition": 517,
+        "records": 10
+      },
+      {
+        "partition": 518,
+        "records": 10
+      },
+      {
+        "partition": 519,
+        "records": 10
+      },
+      {
+        "partition": 520,
+        "records": 10
+      },
+      {
+        "partition": 521,
+        "records": 10
+      },
+      {
+        "partition": 522,
+        "records": 10
+      },
+      {
+        "partition": 523,
+        "records": 10
+      },
+      {
+        "partition": 524,
+        "records": 10
+      },
+      {
+        "partition": 525,
+        "records": 10
+      },
+      {
+        "partition": 526,
+        "records": 10
+      },
+      {
+        "partition": 527,
+        "records": 10
+      },
+      {
+        "partition": 528,
+        "records": 10
+      },
+      {
+        "partition": 529,
+        "records": 10
+      },
+      {
+        "partition": 530,
+        "records": 10
+      },
+      {
+        "partition": 531,
+        "records": 10
+      },
+      {
+        "partition": 532,
+        "records": 10
+      },
+      {
+        "partition": 533,
+        "records": 10
+      },
+      {
+        "partition": 534,
+        "records": 10
+      },
+      {
+        "partition": 535,
+        "records": 10
+      },
+      {
+        "partition": 536,
+        "records": 10
+      },
+      {
+        "partition": 537,
+        "records": 10
+      },
+      {
+        "partition": 538,
+        "records": 10
+      },
+      {
+        "partition": 539,
+        "records": 10
+      },
+      {
+        "partition": 540,
+        "records": 10
+      },
+      {
+        "partition": 541,
+        "records": 10
+      },
+      {
+        "partition": 542,
+        "records": 10
+      },
+      {
+        "partition": 543,
+        "records": 10
+      },
+      {
+        "partition": 544,
+        "records": 10
+      },
+      {
+        "partition": 545,
+        "records": 10
+      },
+      {
+        "partition": 546,
+        "records": 10
+      },
+      {
+        "partition": 547,
+        "records": 10
+      },
+      {
+        "partition": 548,
+        "records": 10
+      },
+      {
+        "partition": 549,
+        "records": 10
+      },
+      {
+        "partition": 550,
+        "records": 10
+      },
+      {
+        "partition": 551,
+        "records": 10
+      },
+      {
+        "partition": 552,
+        "records": 10
+      },
+      {
+        "partition": 553,
+        "records": 10
+      },
+      {
+        "partition": 554,
+        "records": 10
+      },
+      {
+        "partition": 555,
+        "records": 10
+      },
+      {
+        "partition": 556,
+        "records": 10
+      },
+      {
+        "partition": 557,
+        "records": 10
+      },
+      {
+        "partition": 558,
+        "records": 10
+      },
+      {
+        "partition": 559,
+        "records": 10
+      },
+      {
+        "partition": 560,
+        "records": 10
+      },
+      {
+        "partition": 561,
+        "records": 10
+      },
+      {
+        "partition": 562,
+        "records": 10
+      },
+      {
+        "partition": 563,
+        "records": 10
+      },
+      {
+        "partition": 564,
+        "records": 10
+      },
+      {
+        "partition": 565,
+        "records": 10
+      },
+      {
+        "partition": 566,
+        "records": 10
+      },
+      {
+        "partition": 567,
+        "records": 10
+      },
+      {
+        "partition": 568,
+        "records": 10
+      },
+      {
+        "partition": 569,
+        "records": 10
+      },
+      {
+        "partition": 570,
+        "records": 10
+      },
+      {
+        "partition": 571,
+        "records": 10
+      },
+      {
+        "partition": 572,
+        "records": 10
+      },
+      {
+        "partition": 573,
+        "records": 10
+      },
+      {
+        "partition": 574,
+        "records": 10
+      },
+      {
+        "partition": 575,
+        "records": 10
+      },
+      {
+        "partition": 576,
+        "records": 10
+      },
+      {
+        "partition": 577,
+        "records": 10
+      },
+      {
+        "partition": 578,
+        "records": 10
+      },
+      {
+        "partition": 579,
+        "records": 10
+      },
+      {
+        "partition": 580,
+        "records": 10
+      },
+      {
+        "partition": 581,
+        "records": 10
+      },
+      {
+        "partition": 582,
+        "records": 10
+      },
+      {
+        "partition": 583,
+        "records": 10
+      },
+      {
+        "partition": 584,
+        "records": 10
+      },
+      {
+        "partition": 585,
+        "records": 10
+      },
+      {
+        "partition": 586,
+        "records": 10
+      },
+      {
+        "partition": 587,
+        "records": 10
+      },
+      {
+        "partition": 588,
+        "records": 10
+      },
+      {
+        "partition": 589,
+        "records": 10
+      },
+      {
+        "partition": 590,
+        "records": 10
+      },
+      {
+        "partition": 591,
+        "records": 10
+      },
+      {
+        "partition": 592,
+        "records": 10
+      },
+      {
+        "partition": 593,
+        "records": 10
+      },
+      {
+        "partition": 594,
+        "records": 10
+      },
+      {
+        "partition": 595,
+        "records": 10
+      },
+      {
+        "partition": 596,
+        "records": 10
+      },
+      {
+        "partition": 597,
+        "records": 10
+      },
+      {
+        "partition": 598,
+        "records": 10
+      },
+      {
+        "partition": 599,
+        "records": 10
+      },
+      {
+        "partition": 600,
+        "records": 10
+      },
+      {
+        "partition": 601,
+        "records": 10
+      },
+      {
+        "partition": 602,
+        "records": 10
+      },
+      {
+        "partition": 603,
+        "records": 10
+      },
+      {
+        "partition": 604,
+        "records": 10
+      },
+      {
+        "partition": 605,
+        "records": 10
+      },
+      {
+        "partition": 606,
+        "records": 10
+      },
+      {
+        "partition": 607,
+        "records": 10
+      },
+      {
+        "partition": 608,
+        "records": 10
+      },
+      {
+        "partition": 609,
+        "records": 10
+      },
+      {
+        "partition": 610,
+        "records": 10
+      },
+      {
+        "partition": 611,
+        "records": 10
+      },
+      {
+        "partition": 612,
+        "records": 10
+      },
+      {
+        "partition": 613,
+        "records": 10
+      },
+      {
+        "partition": 614,
+        "records": 10
+      },
+      {
+        "partition": 615,
+        "records": 10
+      },
+      {
+        "partition": 616,
+        "records": 10
+      },
+      {
+        "partition": 617,
+        "records": 10
+      },
+      {
+        "partition": 618,
+        "records": 10
+      },
+      {
+        "partition": 619,
+        "records": 10
+      },
+      {
+        "partition": 620,
+        "records": 10
+      },
+      {
+        "partition": 621,
+        "records": 10
+      },
+      {
+        "partition": 622,
+        "records": 10
+      },
+      {
+        "partition": 623,
+        "records": 10
+      },
+      {
+        "partition": 624,
+        "records": 10
+      },
+      {
+        "partition": 625,
+        "records": 10
+      },
+      {
+        "partition": 626,
+        "records": 10
+      },
+      {
+        "partition": 627,
+        "records": 10
+      },
+      {
+        "partition": 628,
+        "records": 10
+      },
+      {
+        "partition": 629,
+        "records": 10
+      },
+      {
+        "partition": 630,
+        "records": 10
+      },
+      {
+        "partition": 631,
+        "records": 10
+      },
+      {
+        "partition": 632,
+        "records": 10
+      },
+      {
+        "partition": 633,
+        "records": 10
+      },
+      {
+        "partition": 634,
+        "records": 10
+      },
+      {
+        "partition": 635,
+        "records": 10
+      },
+      {
+        "partition": 636,
+        "records": 10
+      },
+      {
+        "partition": 637,
+        "records": 10
+      },
+      {
+        "partition": 638,
+        "records": 10
+      },
+      {
+        "partition": 639,
+        "records": 10
+      },
+      {
+        "partition": 640,
+        "records": 10
+      },
+      {
+        "partition": 641,
+        "records": 10
+      },
+      {
+        "partition": 642,
+        "records": 10
+      },
+      {
+        "partition": 643,
+        "records": 10
+      },
+      {
+        "partition": 644,
+        "records": 10
+      },
+      {
+        "partition": 645,
+        "records": 10
+      },
+      {
+        "partition": 646,
+        "records": 10
+      },
+      {
+        "partition": 647,
+        "records": 10
+      },
+      {
+        "partition": 648,
+        "records": 10
+      },
+      {
+        "partition": 649,
+        "records": 10
+      },
+      {
+        "partition": 650,
+        "records": 10
+      },
+      {
+        "partition": 651,
+        "records": 10
+      },
+      {
+        "partition": 652,
+        "records": 10
+      },
+      {
+        "partition": 653,
+        "records": 10
+      },
+      {
+        "partition": 654,
+        "records": 10
+      },
+      {
+        "partition": 655,
+        "records": 10
+      },
+      {
+        "partition": 656,
+        "records": 10
+      },
+      {
+        "partition": 657,
+        "records": 10
+      },
+      {
+        "partition": 658,
+        "records": 10
+      },
+      {
+        "partition": 659,
+        "records": 10
+      },
+      {
+        "partition": 660,
+        "records": 10
+      },
+      {
+        "partition": 661,
+        "records": 10
+      },
+      {
+        "partition": 662,
+        "records": 10
+      },
+      {
+        "partition": 663,
+        "records": 10
+      },
+      {
+        "partition": 664,
+        "records": 10
+      },
+      {
+        "partition": 665,
+        "records": 10
+      },
+      {
+        "partition": 666,
+        "records": 10
+      },
+      {
+        "partition": 667,
+        "records": 10
+      },
+      {
+        "partition": 668,
+        "records": 10
+      },
+      {
+        "partition": 669,
+        "records": 10
+      },
+      {
+        "partition": 670,
+        "records": 10
+      },
+      {
+        "partition": 671,
+        "records": 10
+      },
+      {
+        "partition": 672,
+        "records": 10
+      },
+      {
+        "partition": 673,
+        "records": 10
+      },
+      {
+        "partition": 674,
+        "records": 10
+      },
+      {
+        "partition": 675,
+        "records": 10
+      },
+      {
+        "partition": 676,
+        "records": 10
+      },
+      {
+        "partition": 677,
+        "records": 10
+      },
+      {
+        "partition": 678,
+        "records": 10
+      },
+      {
+        "partition": 679,
+        "records": 10
+      },
+      {
+        "partition": 680,
+        "records": 10
+      },
+      {
+        "partition": 681,
+        "records": 10
+      },
+      {
+        "partition": 682,
+        "records": 10
+      },
+      {
+        "partition": 683,
+        "records": 10
+      },
+      {
+        "partition": 684,
+        "records": 10
+      },
+      {
+        "partition": 685,
+        "records": 10
+      },
+      {
+        "partition": 686,
+        "records": 10
+      },
+      {
+        "partition": 687,
+        "records": 10
+      },
+      {
+        "partition": 688,
+        "records": 10
+      },
+      {
+        "partition": 689,
+        "records": 10
+      },
+      {
+        "partition": 690,
+        "records": 10
+      },
+      {
+        "partition": 691,
+        "records": 10
+      },
+      {
+        "partition": 692,
+        "records": 10
+      },
+      {
+        "partition": 693,
+        "records": 10
+      },
+      {
+        "partition": 694,
+        "records": 10
+      },
+      {
+        "partition": 695,
+        "records": 10
+      },
+      {
+        "partition": 696,
+        "records": 10
+      },
+      {
+        "partition": 697,
+        "records": 10
+      },
+      {
+        "partition": 698,
+        "records": 10
+      },
+      {
+        "partition": 699,
+        "records": 10
+      },
+      {
+        "partition": 700,
+        "records": 10
+      },
+      {
+        "partition": 701,
+        "records": 10
+      },
+      {
+        "partition": 702,
+        "records": 10
+      },
+      {
+        "partition": 703,
+        "records": 10
+      },
+      {
+        "partition": 704,
+        "records": 10
+      },
+      {
+        "partition": 705,
+        "records": 10
+      },
+      {
+        "partition": 706,
+        "records": 10
+      },
+      {
+        "partition": 707,
+        "records": 10
+      },
+      {
+        "partition": 708,
+        "records": 10
+      },
+      {
+        "partition": 709,
+        "records": 10
+      },
+      {
+        "partition": 710,
+        "records": 10
+      },
+      {
+        "partition": 711,
+        "records": 10
+      },
+      {
+        "partition": 712,
+        "records": 10
+      },
+      {
+        "partition": 713,
+        "records": 10
+      },
+      {
+        "partition": 714,
+        "records": 10
+      },
+      {
+        "partition": 715,
+        "records": 10
+      },
+      {
+        "partition": 716,
+        "records": 10
+      },
+      {
+        "partition": 717,
+        "records": 10
+      },
+      {
+        "partition": 718,
+        "records": 10
+      },
+      {
+        "partition": 719,
+        "records": 10
+      },
+      {
+        "partition": 720,
+        "records": 10
+      },
+      {
+        "partition": 721,
+        "records": 10
+      },
+      {
+        "partition": 722,
+        "records": 10
+      },
+      {
+        "partition": 723,
+        "records": 10
+      },
+      {
+        "partition": 724,
+        "records": 10
+      },
+      {
+        "partition": 725,
+        "records": 10
+      },
+      {
+        "partition": 726,
+        "records": 10
+      },
+      {
+        "partition": 727,
+        "records": 10
+      },
+      {
+        "partition": 728,
+        "records": 10
+      },
+      {
+        "partition": 729,
+        "records": 10
+      },
+      {
+        "partition": 730,
+        "records": 10
+      },
+      {
+        "partition": 731,
+        "records": 10
+      },
+      {
+        "partition": 732,
+        "records": 10
+      },
+      {
+        "partition": 733,
+        "records": 10
+      },
+      {
+        "partition": 734,
+        "records": 10
+      },
+      {
+        "partition": 735,
+        "records": 10
+      },
+      {
+        "partition": 736,
+        "records": 10
+      },
+      {
+        "partition": 737,
+        "records": 10
+      },
+      {
+        "partition": 738,
+        "records": 10
+      },
+      {
+        "partition": 739,
+        "records": 10
+      },
+      {
+        "partition": 740,
+        "records": 10
+      },
+      {
+        "partition": 741,
+        "records": 10
+      },
+      {
+        "partition": 742,
+        "records": 10
+      },
+      {
+        "partition": 743,
+        "records": 10
+      },
+      {
+        "partition": 744,
+        "records": 10
+      },
+      {
+        "partition": 745,
+        "records": 10
+      },
+      {
+        "partition": 746,
+        "records": 10
+      },
+      {
+        "partition": 747,
+        "records": 10
+      },
+      {
+        "partition": 748,
+        "records": 10
+      },
+      {
+        "partition": 749,
+        "records": 10
+      },
+      {
+        "partition": 750,
+        "records": 10
+      },
+      {
+        "partition": 751,
+        "records": 10
+      },
+      {
+        "partition": 752,
+        "records": 10
+      },
+      {
+        "partition": 753,
+        "records": 10
+      },
+      {
+        "partition": 754,
+        "records": 10
+      },
+      {
+        "partition": 755,
+        "records": 10
+      },
+      {
+        "partition": 756,
+        "records": 10
+      },
+      {
+        "partition": 757,
+        "records": 10
+      },
+      {
+        "partition": 758,
+        "records": 10
+      },
+      {
+        "partition": 759,
+        "records": 10
+      },
+      {
+        "partition": 760,
+        "records": 10
+      },
+      {
+        "partition": 761,
+        "records": 10
+      },
+      {
+        "partition": 762,
+        "records": 10
+      },
+      {
+        "partition": 763,
+        "records": 10
+      },
+      {
+        "partition": 764,
+        "records": 10
+      },
+      {
+        "partition": 765,
+        "records": 10
+      },
+      {
+        "partition": 766,
+        "records": 10
+      },
+      {
+        "partition": 767,
+        "records": 10
+      },
+      {
+        "partition": 768,
+        "records": 10
+      },
+      {
+        "partition": 769,
+        "records": 10
+      },
+      {
+        "partition": 770,
+        "records": 10
+      },
+      {
+        "partition": 771,
+        "records": 10
+      },
+      {
+        "partition": 772,
+        "records": 10
+      },
+      {
+        "partition": 773,
+        "records": 10
+      },
+      {
+        "partition": 774,
+        "records": 10
+      },
+      {
+        "partition": 775,
+        "records": 10
+      },
+      {
+        "partition": 776,
+        "records": 10
+      },
+      {
+        "partition": 777,
+        "records": 10
+      },
+      {
+        "partition": 778,
+        "records": 10
+      },
+      {
+        "partition": 779,
+        "records": 10
+      },
+      {
+        "partition": 780,
+        "records": 10
+      },
+      {
+        "partition": 781,
+        "records": 10
+      },
+      {
+        "partition": 782,
+        "records": 10
+      },
+      {
+        "partition": 783,
+        "records": 10
+      },
+      {
+        "partition": 784,
+        "records": 10
+      },
+      {
+        "partition": 785,
+        "records": 10
+      },
+      {
+        "partition": 786,
+        "records": 10
+      },
+      {
+        "partition": 787,
+        "records": 10
+      },
+      {
+        "partition": 788,
+        "records": 10
+      },
+      {
+        "partition": 789,
+        "records": 10
+      },
+      {
+        "partition": 790,
+        "records": 10
+      },
+      {
+        "partition": 791,
+        "records": 10
+      },
+      {
+        "partition": 792,
+        "records": 10
+      },
+      {
+        "partition": 793,
+        "records": 10
+      },
+      {
+        "partition": 794,
+        "records": 10
+      },
+      {
+        "partition": 795,
+        "records": 10
+      },
+      {
+        "partition": 796,
+        "records": 10
+      },
+      {
+        "partition": 797,
+        "records": 10
+      },
+      {
+        "partition": 798,
+        "records": 10
+      },
+      {
+        "partition": 799,
+        "records": 10
+      },
+      {
+        "partition": 800,
+        "records": 10
+      },
+      {
+        "partition": 801,
+        "records": 10
+      },
+      {
+        "partition": 802,
+        "records": 10
+      },
+      {
+        "partition": 803,
+        "records": 10
+      },
+      {
+        "partition": 804,
+        "records": 10
+      },
+      {
+        "partition": 805,
+        "records": 10
+      },
+      {
+        "partition": 806,
+        "records": 10
+      },
+      {
+        "partition": 807,
+        "records": 10
+      },
+      {
+        "partition": 808,
+        "records": 10
+      },
+      {
+        "partition": 809,
+        "records": 10
+      },
+      {
+        "partition": 810,
+        "records": 10
+      },
+      {
+        "partition": 811,
+        "records": 10
+      },
+      {
+        "partition": 812,
+        "records": 10
+      },
+      {
+        "partition": 813,
+        "records": 10
+      },
+      {
+        "partition": 814,
+        "records": 10
+      },
+      {
+        "partition": 815,
+        "records": 10
+      },
+      {
+        "partition": 816,
+        "records": 10
+      },
+      {
+        "partition": 817,
+        "records": 10
+      },
+      {
+        "partition": 818,
+        "records": 10
+      },
+      {
+        "partition": 819,
+        "records": 10
+      },
+      {
+        "partition": 820,
+        "records": 10
+      },
+      {
+        "partition": 821,
+        "records": 10
+      },
+      {
+        "partition": 822,
+        "records": 10
+      },
+      {
+        "partition": 823,
+        "records": 10
+      },
+      {
+        "partition": 824,
+        "records": 10
+      },
+      {
+        "partition": 825,
+        "records": 10
+      },
+      {
+        "partition": 826,
+        "records": 10
+      },
+      {
+        "partition": 827,
+        "records": 10
+      },
+      {
+        "partition": 828,
+        "records": 10
+      },
+      {
+        "partition": 829,
+        "records": 10
+      },
+      {
+        "partition": 830,
+        "records": 10
+      },
+      {
+        "partition": 831,
+        "records": 10
+      },
+      {
+        "partition": 832,
+        "records": 10
+      },
+      {
+        "partition": 833,
+        "records": 10
+      },
+      {
+        "partition": 834,
+        "records": 10
+      },
+      {
+        "partition": 835,
+        "records": 10
+      },
+      {
+        "partition": 836,
+        "records": 10
+      },
+      {
+        "partition": 837,
+        "records": 10
+      },
+      {
+        "partition": 838,
+        "records": 10
+      },
+      {
+        "partition": 839,
+        "records": 10
+      },
+      {
+        "partition": 840,
+        "records": 10
+      },
+      {
+        "partition": 841,
+        "records": 10
+      },
+      {
+        "partition": 842,
+        "records": 10
+      },
+      {
+        "partition": 843,
+        "records": 10
+      },
+      {
+        "partition": 844,
+        "records": 10
+      },
+      {
+        "partition": 845,
+        "records": 10
+      },
+      {
+        "partition": 846,
+        "records": 10
+      },
+      {
+        "partition": 847,
+        "records": 10
+      },
+      {
+        "partition": 848,
+        "records": 10
+      },
+      {
+        "partition": 849,
+        "records": 10
+      },
+      {
+        "partition": 850,
+        "records": 10
+      },
+      {
+        "partition": 851,
+        "records": 10
+      },
+      {
+        "partition": 852,
+        "records": 10
+      },
+      {
+        "partition": 853,
+        "records": 10
+      },
+      {
+        "partition": 854,
+        "records": 10
+      },
+      {
+        "partition": 855,
+        "records": 10
+      },
+      {
+        "partition": 856,
+        "records": 10
+      },
+      {
+        "partition": 857,
+        "records": 10
+      },
+      {
+        "partition": 858,
+        "records": 10
+      },
+      {
+        "partition": 859,
+        "records": 10
+      },
+      {
+        "partition": 860,
+        "records": 10
+      },
+      {
+        "partition": 861,
+        "records": 10
+      },
+      {
+        "partition": 862,
+        "records": 10
+      },
+      {
+        "partition": 863,
+        "records": 10
+      },
+      {
+        "partition": 864,
+        "records": 10
+      },
+      {
+        "partition": 865,
+        "records": 10
+      },
+      {
+        "partition": 866,
+        "records": 10
+      },
+      {
+        "partition": 867,
+        "records": 10
+      },
+      {
+        "partition": 868,
+        "records": 10
+      },
+      {
+        "partition": 869,
+        "records": 10
+      },
+      {
+        "partition": 870,
+        "records": 10
+      },
+      {
+        "partition": 871,
+        "records": 10
+      },
+      {
+        "partition": 872,
+        "records": 10
+      },
+      {
+        "partition": 873,
+        "records": 10
+      },
+      {
+        "partition": 874,
+        "records": 10
+      },
+      {
+        "partition": 875,
+        "records": 10
+      },
+      {
+        "partition": 876,
+        "records": 10
+      },
+      {
+        "partition": 877,
+        "records": 10
+      },
+      {
+        "partition": 878,
+        "records": 10
+      },
+      {
+        "partition": 879,
+        "records": 10
+      },
+      {
+        "partition": 880,
+        "records": 10
+      },
+      {
+        "partition": 881,
+        "records": 10
+      },
+      {
+        "partition": 882,
+        "records": 10
+      },
+      {
+        "partition": 883,
+        "records": 10
+      },
+      {
+        "partition": 884,
+        "records": 10
+      },
+      {
+        "partition": 885,
+        "records": 10
+      },
+      {
+        "partition": 886,
+        "records": 10
+      },
+      {
+        "partition": 887,
+        "records": 10
+      },
+      {
+        "partition": 888,
+        "records": 10
+      },
+      {
+        "partition": 889,
+        "records": 10
+      },
+      {
+        "partition": 890,
+        "records": 10
+      },
+      {
+        "partition": 891,
+        "records": 10
+      },
+      {
+        "partition": 892,
+        "records": 10
+      },
+      {
+        "partition": 893,
+        "records": 10
+      },
+      {
+        "partition": 894,
+        "records": 10
+      },
+      {
+        "partition": 895,
+        "records": 10
+      },
+      {
+        "partition": 896,
+        "records": 10
+      },
+      {
+        "partition": 897,
+        "records": 10
+      },
+      {
+        "partition": 898,
+        "records": 10
+      },
+      {
+        "partition": 899,
+        "records": 10
+      },
+      {
+        "partition": 900,
+        "records": 10
+      },
+      {
+        "partition": 901,
+        "records": 10
+      },
+      {
+        "partition": 902,
+        "records": 10
+      },
+      {
+        "partition": 903,
+        "records": 10
+      },
+      {
+        "partition": 904,
+        "records": 10
+      },
+      {
+        "partition": 905,
+        "records": 10
+      },
+      {
+        "partition": 906,
+        "records": 10
+      },
+      {
+        "partition": 907,
+        "records": 10
+      },
+      {
+        "partition": 908,
+        "records": 10
+      },
+      {
+        "partition": 909,
+        "records": 10
+      },
+      {
+        "partition": 910,
+        "records": 10
+      },
+      {
+        "partition": 911,
+        "records": 10
+      },
+      {
+        "partition": 912,
+        "records": 10
+      },
+      {
+        "partition": 913,
+        "records": 10
+      },
+      {
+        "partition": 914,
+        "records": 10
+      },
+      {
+        "partition": 915,
+        "records": 10
+      },
+      {
+        "partition": 916,
+        "records": 10
+      },
+      {
+        "partition": 917,
+        "records": 10
+      },
+      {
+        "partition": 918,
+        "records": 10
+      },
+      {
+        "partition": 919,
+        "records": 10
+      },
+      {
+        "partition": 920,
+        "records": 10
+      },
+      {
+        "partition": 921,
+        "records": 10
+      },
+      {
+        "partition": 922,
+        "records": 10
+      },
+      {
+        "partition": 923,
+        "records": 10
+      },
+      {
+        "partition": 924,
+        "records": 10
+      },
+      {
+        "partition": 925,
+        "records": 10
+      },
+      {
+        "partition": 926,
+        "records": 10
+      },
+      {
+        "partition": 927,
+        "records": 10
+      },
+      {
+        "partition": 928,
+        "records": 10
+      },
+      {
+        "partition": 929,
+        "records": 10
+      },
+      {
+        "partition": 930,
+        "records": 10
+      },
+      {
+        "partition": 931,
+        "records": 10
+      },
+      {
+        "partition": 932,
+        "records": 10
+      },
+      {
+        "partition": 933,
+        "records": 10
+      },
+      {
+        "partition": 934,
+        "records": 10
+      },
+      {
+        "partition": 935,
+        "records": 10
+      },
+      {
+        "partition": 936,
+        "records": 10
+      },
+      {
+        "partition": 937,
+        "records": 10
+      },
+      {
+        "partition": 938,
+        "records": 10
+      },
+      {
+        "partition": 939,
+        "records": 10
+      },
+      {
+        "partition": 940,
+        "records": 10
+      },
+      {
+        "partition": 941,
+        "records": 10
+      },
+      {
+        "partition": 942,
+        "records": 10
+      },
+      {
+        "partition": 943,
+        "records": 10
+      },
+      {
+        "partition": 944,
+        "records": 10
+      },
+      {
+        "partition": 945,
+        "records": 10
+      },
+      {
+        "partition": 946,
+        "records": 10
+      },
+      {
+        "partition": 947,
+        "records": 10
+      },
+      {
+        "partition": 948,
+        "records": 10
+      },
+      {
+        "partition": 949,
+        "records": 10
+      },
+      {
+        "partition": 950,
+        "records": 10
+      },
+      {
+        "partition": 951,
+        "records": 10
+      },
+      {
+        "partition": 952,
+        "records": 10
+      },
+      {
+        "partition": 953,
+        "records": 10
+      },
+      {
+        "partition": 954,
+        "records": 10
+      },
+      {
+        "partition": 955,
+        "records": 10
+      },
+      {
+        "partition": 956,
+        "records": 10
+      },
+      {
+        "partition": 957,
+        "records": 10
+      },
+      {
+        "partition": 958,
+        "records": 10
+      },
+      {
+        "partition": 959,
+        "records": 10
+      },
+      {
+        "partition": 960,
+        "records": 10
+      },
+      {
+        "partition": 961,
+        "records": 10
+      },
+      {
+        "partition": 962,
+        "records": 10
+      },
+      {
+        "partition": 963,
+        "records": 10
+      },
+      {
+        "partition": 964,
+        "records": 10
+      },
+      {
+        "partition": 965,
+        "records": 10
+      },
+      {
+        "partition": 966,
+        "records": 10
+      },
+      {
+        "partition": 967,
+        "records": 10
+      },
+      {
+        "partition": 968,
+        "records": 10
+      },
+      {
+        "partition": 969,
+        "records": 10
+      },
+      {
+        "partition": 970,
+        "records": 10
+      },
+      {
+        "partition": 971,
+        "records": 10
+      },
+      {
+        "partition": 972,
+        "records": 10
+      },
+      {
+        "partition": 973,
+        "records": 10
+      },
+      {
+        "partition": 974,
+        "records": 10
+      },
+      {
+        "partition": 975,
+        "records": 10
+      },
+      {
+        "partition": 976,
+        "records": 10
+      },
+      {
+        "partition": 977,
+        "records": 10
+      },
+      {
+        "partition": 978,
+        "records": 10
+      },
+      {
+        "partition": 979,
+        "records": 10
+      },
+      {
+        "partition": 980,
+        "records": 10
+      },
+      {
+        "partition": 981,
+        "records": 10
+      },
+      {
+        "partition": 982,
+        "records": 10
+      },
+      {
+        "partition": 983,
+        "records": 10
+      },
+      {
+        "partition": 984,
+        "records": 10
+      },
+      {
+        "partition": 985,
+        "records": 10
+      },
+      {
+        "partition": 986,
+        "records": 10
+      },
+      {
+        "partition": 987,
+        "records": 10
+      },
+      {
+        "partition": 988,
+        "records": 10
+      },
+      {
+        "partition": 989,
+        "records": 10
+      },
+      {
+        "partition": 990,
+        "records": 10
+      },
+      {
+        "partition": 991,
+        "records": 10
+      },
+      {
+        "partition": 992,
+        "records": 10
+      },
+      {
+        "partition": 993,
+        "records": 10
+      },
+      {
+        "partition": 994,
+        "records": 10
+      },
+      {
+        "partition": 995,
+        "records": 10
+      },
+      {
+        "partition": 996,
+        "records": 10
+      },
+      {
+        "partition": 997,
+        "records": 10
+      },
+      {
+        "partition": 998,
+        "records": 10
+      },
+      {
+        "partition": 999,
+        "records": 10
+      }
+    ],
+    "queue_full_retries": 0,
+    "records_consumed": 10000,
+    "records_offered": 10000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-fetch-1000p/nb-fetch-1000p-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

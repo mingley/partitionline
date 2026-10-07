@@ -1,0 +1,28 @@
+{
+  "broker": "Apache Kafka 4.3.1",
+  "repetitions": 5,
+  "rerun_repetitions": 5,
+  "bulk_measured_records": 8000000,
+  "warmup_records": 10000,
+  "partitions": 6,
+  "payload_bytes": 100,
+  "seed": 1592590337,
+  "acks": 1,
+  "idempotence": false,
+  "compression": "none",
+  "batch_bytes": 1048576,
+  "batch_records": 32768,
+  "max_in_flight": 5,
+  "client_cpus": [
+    2,
+    4
+  ],
+  "broker_cpus": [
+    0,
+    1
+  ],
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "open_loop_rates": "10/50/80 percent of matching sequential 1-record RPC capacity",
+  "retained_broker_data": "Topics removed after exact fences and full Rust/Java byte verification; raw segments not retained"
+}

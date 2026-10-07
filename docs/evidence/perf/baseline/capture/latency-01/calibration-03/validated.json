@@ -1,0 +1,28 @@
+{
+  "cell": "lb-capacity-sequential",
+  "repetition": 3,
+  "raw": {
+    "kind": "produce_ack",
+    "latency_mode": "sequential-smoke",
+    "qualification": false,
+    "coordinated_omission_avoidance": false,
+    "samples": 10000,
+    "p50_us": 94,
+    "p99_us": 345,
+    "min_us": 51,
+    "max_us": 7809,
+    "mean_us": 111,
+    "payload_bytes": 100,
+    "acks": 1,
+    "linger_ms": 0,
+    "client": "partitionline"
+  },
+  "records_per_second": 9009.009009009009,
+  "java": {
+    "status": "pass",
+    "verified": 20000,
+    "consumer_closed": true,
+    "unique_ids_checked": false,
+    "integrity_scope": "contiguous partition offsets and complete fixed payload"
+  }
+}

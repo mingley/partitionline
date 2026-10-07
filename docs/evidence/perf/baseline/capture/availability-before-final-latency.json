@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "not_run": [
+    {
+      "cell": "micro-share-ranges",
+      "reason": "KL09-51 is pending; the pinned codec crate has no acquisition-range benchmark."
+    },
+    {
+      "cell": "lb-tls-connect",
+      "reason": "The pinned ci-auth-smoke script sets up and tests TLS/SASL authentication; it has no eight-socket timed connection benchmark or repeated-result validator."
+    },
+    {
+      "cell": "lb-tls-bulk",
+      "reason": "The pinned auth smoke is a correctness recipe. No owned TLS baseline orchestration with eight sockets, timing boundaries, independent full readback and repeated-result validation exists at this source."
+    },
+    {
+      "cell": "lb-oidc-connect",
+      "reason": "The auth smoke has an OIDC token stub and correctness examples, but no measured eight-open driver with actual IdP-request counts and connection clocks."
+    },
+    {
+      "cell": "lb-share-2leader",
+      "reason": "KL03-17 supplies conformance topology and peer qualification, not a source-bound throughput driver with timed share consumption, record verification and reproducible repeated results."
+    },
+    {
+      "cell": "lb-rtt-bulk",
+      "reason": "KL09-58 is pending; no owned Linux netem benchmark wrapper exists at the pinned source."
+    }
+  ],
+  "metric_limits": [
+    "Native cycle and hardware instruction events are not exposed by this KVM guest; perf probe receipts retained. Iai reports simulated user instructions only.",
+    "Iai has ten ordinary and twenty-four JSON1K instruction cells; zstd and the other ordinary fixture/entropy instruction cases are absent from the pinned instruction harness.",
+    "The ordinary allocation census has fourteen rows, including text compression. Random compression allocation rows are absent. Ordinary decode census includes its fixture clone; Criterion batched setup excludes that clone.",
+    "The producer driver has no phase allocation counter or latency population. Its wait4 CPU and max RSS cover the complete process, including warmup, setup and shutdown; unmeasured producer metrics are not replaced by zeros.",
+    "The native fetch phase includes inline full record verification, uses a ten-millisecond RSS sampler, and excludes warmup readback and per-partition reseeks.",
+    "Open-loop results use fixed x payloads without unique IDs. Java independently verifies contiguous offsets and complete fixed payloads; this does not qualify uniquely identified delivery histories.",
+    "Optional miniz gzip previously failed the same sixteen-allocation default budget with twenty-one allocations. Its failures and thresholds remain unchanged; no miniz qualification or backend budget waiver is inferred.",
+    "Guest frequency is uncontrolled. Measurements support local engineering analysis, not a world-ranking or production qualification."
+  ]
+}

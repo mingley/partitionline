@@ -1,0 +1,507 @@
+[
+  {
+    "cell": "micro-request",
+    "repetition": 1,
+    "median_ns_per_operation": 9781.45905,
+    "raw": {
+      "acks": 1,
+      "allocated_bytes_per_operation": 70766,
+      "allocations_per_operation": 17,
+      "api_key": 0,
+      "cell": "micro-request",
+      "entropy": "random",
+      "headers": 0,
+      "iterations_per_sample": 10000,
+      "key_bytes": 16,
+      "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+      "native_samples_ns_per_operation": [
+        9690.6062,
+        9936.3387,
+        9894.586,
+        10513.2082,
+        10375.4591,
+        9610.677,
+        9663.8459,
+        9779.8013,
+        9989.7181,
+        9817.5551,
+        9850.8262,
+        9849.1435,
+        9713.9263,
+        9779.3387,
+        9747.8574,
+        9802.2861,
+        9785.7292,
+        9715.5007,
+        9571.2046,
+        9419.769,
+        9840.1931,
+        9808.028,
+        9765.1338,
+        9868.8336,
+        9931.1374,
+        9676.3102,
+        9631.2894,
+        9783.1168,
+        9551.5135,
+        9459.9709
+      ],
+      "partition": 0,
+      "records": 100,
+      "samples": 30,
+      "schema_version": 1,
+      "scope": "local/unsigned",
+      "seed": 789996,
+      "suite_hold": "active",
+      "timeout_ms": 30000,
+      "topic": "t",
+      "value_bytes": 100,
+      "version": 9,
+      "warmup_iterations": 10000,
+      "wire_bytes": 12653
+    },
+    "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+    "sdk_peers": [
+      {
+        "version": "4.1.2",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.2.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.3.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      }
+    ]
+  },
+  {
+    "cell": "micro-request",
+    "repetition": 2,
+    "median_ns_per_operation": 10044.73815,
+    "raw": {
+      "acks": 1,
+      "allocated_bytes_per_operation": 70766,
+      "allocations_per_operation": 17,
+      "api_key": 0,
+      "cell": "micro-request",
+      "entropy": "random",
+      "headers": 0,
+      "iterations_per_sample": 10000,
+      "key_bytes": 16,
+      "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+      "native_samples_ns_per_operation": [
+        10236.9933,
+        10760.3406,
+        9664.9571,
+        9637.3737,
+        9770.9214,
+        9701.4149,
+        9824.4709,
+        9976.736,
+        10191.6461,
+        9925.9505,
+        9870.9819,
+        10022.4557,
+        9906.1738,
+        10085.7233,
+        9752.9754,
+        9808.8204,
+        10065.7759,
+        10035.4592,
+        10200.4823,
+        10463.0932,
+        10079.9892,
+        10136.387,
+        10183.3235,
+        9989.0544,
+        9974.809,
+        10091.7109,
+        10054.0171,
+        10208.0225,
+        10157.743,
+        10372.494
+      ],
+      "partition": 0,
+      "records": 100,
+      "samples": 30,
+      "schema_version": 1,
+      "scope": "local/unsigned",
+      "seed": 789996,
+      "suite_hold": "active",
+      "timeout_ms": 30000,
+      "topic": "t",
+      "value_bytes": 100,
+      "version": 9,
+      "warmup_iterations": 10000,
+      "wire_bytes": 12653
+    },
+    "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+    "sdk_peers": [
+      {
+        "version": "4.1.2",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.2.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.3.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      }
+    ]
+  },
+  {
+    "cell": "micro-request",
+    "repetition": 3,
+    "median_ns_per_operation": 10458.527549999999,
+    "raw": {
+      "acks": 1,
+      "allocated_bytes_per_operation": 70766,
+      "allocations_per_operation": 17,
+      "api_key": 0,
+      "cell": "micro-request",
+      "entropy": "random",
+      "headers": 0,
+      "iterations_per_sample": 10000,
+      "key_bytes": 16,
+      "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+      "native_samples_ns_per_operation": [
+        9845.6327,
+        10089.4433,
+        11554.0834,
+        10562.5368,
+        10474.913,
+        10637.7409,
+        10611.214,
+        10688.0089,
+        9658.329,
+        10428.6154,
+        9737.7765,
+        9975.5601,
+        10078.5539,
+        10428.4838,
+        9971.0576,
+        9740.5791,
+        10867.6759,
+        9958.2314,
+        10373.2995,
+        10563.5055,
+        10574.7865,
+        10388.3441,
+        10442.1421,
+        11166.4331,
+        10758.7211,
+        10266.7984,
+        10771.7787,
+        10538.8234,
+        10477.2178,
+        11496.2973
+      ],
+      "partition": 0,
+      "records": 100,
+      "samples": 30,
+      "schema_version": 1,
+      "scope": "local/unsigned",
+      "seed": 789996,
+      "suite_hold": "active",
+      "timeout_ms": 30000,
+      "topic": "t",
+      "value_bytes": 100,
+      "version": 9,
+      "warmup_iterations": 10000,
+      "wire_bytes": 12653
+    },
+    "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+    "sdk_peers": [
+      {
+        "version": "4.1.2",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.2.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.3.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      }
+    ]
+  },
+  {
+    "cell": "micro-request",
+    "repetition": 4,
+    "median_ns_per_operation": 9972.9646,
+    "raw": {
+      "acks": 1,
+      "allocated_bytes_per_operation": 70766,
+      "allocations_per_operation": 17,
+      "api_key": 0,
+      "cell": "micro-request",
+      "entropy": "random",
+      "headers": 0,
+      "iterations_per_sample": 10000,
+      "key_bytes": 16,
+      "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+      "native_samples_ns_per_operation": [
+        9676.6996,
+        9797.5633,
+        10132.8184,
+        10176.5963,
+        10686.5397,
+        10208.2428,
+        10496.0868,
+        11927.3114,
+        9831.5875,
+        9846.615,
+        11584.6658,
+        10000.0328,
+        9769.9257,
+        9932.1072,
+        9886.4039,
+        10176.5402,
+        10819.8505,
+        10621.3161,
+        9974.5024,
+        10578.9072,
+        11617.1266,
+        9971.4268,
+        9730.168,
+        9811.5553,
+        9673.7241,
+        9922.6173,
+        9511.6844,
+        9498.3624,
+        10130.3818,
+        9448.3992
+      ],
+      "partition": 0,
+      "records": 100,
+      "samples": 30,
+      "schema_version": 1,
+      "scope": "local/unsigned",
+      "seed": 789996,
+      "suite_hold": "active",
+      "timeout_ms": 30000,
+      "topic": "t",
+      "value_bytes": 100,
+      "version": 9,
+      "warmup_iterations": 10000,
+      "wire_bytes": 12653
+    },
+    "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+    "sdk_peers": [
+      {
+        "version": "4.1.2",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.2.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.3.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      }
+    ]
+  },
+  {
+    "cell": "micro-request",
+    "repetition": 5,
+    "median_ns_per_operation": 10311.164,
+    "raw": {
+      "acks": 1,
+      "allocated_bytes_per_operation": 70766,
+      "allocations_per_operation": 17,
+      "api_key": 0,
+      "cell": "micro-request",
+      "entropy": "random",
+      "headers": 0,
+      "iterations_per_sample": 10000,
+      "key_bytes": 16,
+      "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+      "native_samples_ns_per_operation": [
+        9635.1254,
+        9640.6879,
+        9951.342,
+        9885.8054,
+        10262.8444,
+        10104.5504,
+        10382.0397,
+        9806.7736,
+        13528.7028,
+        11145.1772,
+        11909.0573,
+        12757.07,
+        10352.1319,
+        10327.1185,
+        10317.2907,
+        10581.3359,
+        10337.3709,
+        10523.0461,
+        10295.6222,
+        10151.18,
+        10181.763,
+        10573.491,
+        10722.7214,
+        10527.8495,
+        10096.7771,
+        10305.0373,
+        10097.6836,
+        9823.7045,
+        10296.3483,
+        10626.666
+      ],
+      "partition": 0,
+      "records": 100,
+      "samples": 30,
+      "schema_version": 1,
+      "scope": "local/unsigned",
+      "seed": 789996,
+      "suite_hold": "active",
+      "timeout_ms": 30000,
+      "topic": "t",
+      "value_bytes": 100,
+      "version": 9,
+      "warmup_iterations": 10000,
+      "wire_bytes": 12653
+    },
+    "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+    "sdk_peers": [
+      {
+        "version": "4.1.2",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.2.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      },
+      {
+        "version": "4.3.1",
+        "actual": {
+          "status": "pass",
+          "version": 9,
+          "batches": 1,
+          "records": 100,
+          "full_seeded_records_verified": true,
+          "crc_validated": true,
+          "body_roundtrip_identical": true
+        }
+      }
+    ]
+  }
+]

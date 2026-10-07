@@ -1,0 +1,20 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-connect/nb-connect-rep0.result.json"
+  ],
+  "started": 1791390392.7833114,
+  "parent_waited": true,
+  "pid": 646952,
+  "exit_code": 0,
+  "ended": 1791390392.8453948,
+  "artifacts": {
+    "validator.stdout": "9e6bfe614f7d4504685c3f2d0d1752bbde2adcf74edb805b17a4e4e9fdd25dc0",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

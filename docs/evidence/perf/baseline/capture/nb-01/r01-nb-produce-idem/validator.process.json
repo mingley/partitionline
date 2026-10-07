@@ -1,0 +1,20 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r01-nb-produce-idem/nb-produce-idem-rep0.result.json"
+  ],
+  "started": 1791390354.40639,
+  "parent_waited": true,
+  "pid": 645182,
+  "exit_code": 0,
+  "ended": 1791390354.4480455,
+  "artifacts": {
+    "validator.stdout": "cab1e0b58de3fc4508e6a66b89bf9b14a9cb7a2f7678d1d73997882e51bd1a8f",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

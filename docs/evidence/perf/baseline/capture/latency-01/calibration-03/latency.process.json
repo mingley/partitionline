@@ -1,0 +1,21 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "694183",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/latency-01/bin/bench_latency"
+  ],
+  "started": 1791395720.8678627,
+  "parent_waited": true,
+  "pid": 699412,
+  "exit_code": 0,
+  "ended": 1791395723.2605774,
+  "artifacts": {
+    "latency.stdout": "29121f6125b701d2c023a092cab157a3a570571819e64c7dc7e211fc566c6764",
+    "latency.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

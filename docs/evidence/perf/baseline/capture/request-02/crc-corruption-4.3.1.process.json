@@ -1,0 +1,26 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "690971",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/request-02/classes-4.3.1:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "RequestBodyPeer",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/request-02/crc-corruption.body"
+  ],
+  "started": 1791395502.0163438,
+  "parent_waited": true,
+  "pid": 692399,
+  "exit_code": 1,
+  "ended": 1791395502.1590233,
+  "artifacts": {
+    "crc-corruption-4.3.1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "crc-corruption-4.3.1.stderr": "15cb469e0bbffc341a472546ecdfd0239bbcaeb43604a628eaa288ff3bb0589a"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "665813",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/measure-process.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/native-02/reproduce-04/producer-time.json",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/native-02/bin/bench_produce"
+  ],
+  "started": 1791395215.5311131,
+  "parent_waited": true,
+  "pid": 686740,
+  "exit_code": 0,
+  "ended": 1791395255.8447273,
+  "artifacts": {
+    "producer.stdout": "0a1dff4f1b4a234a31082c7c16f804e8b44c2fa4329be6c586a2c256635d0947",
+    "producer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

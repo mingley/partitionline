@@ -1,0 +1,188 @@
+[
+  {
+    "control": "crc-corruption",
+    "sdk": "4.1.2",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.1.2:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.1.2.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/crc-corruption.body"
+      ],
+      "started": 1791395609.3079987,
+      "parent_waited": true,
+      "pid": 693820,
+      "exit_code": 1,
+      "ended": 1791395609.4301844,
+      "artifacts": {
+        "crc-corruption-4.1.2.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crc-corruption-4.1.2.stderr": "9b82e795e30de8bd7ff51a77f7a63e8a26da4b92f6091959f10b6f31727f8be2"
+      }
+    },
+    "rejection": "CorruptRecordException"
+  },
+  {
+    "control": "crc-corruption",
+    "sdk": "4.2.1",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.2.1:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/crc-corruption.body"
+      ],
+      "started": 1791395609.8991103,
+      "parent_waited": true,
+      "pid": 693877,
+      "exit_code": 1,
+      "ended": 1791395610.0414894,
+      "artifacts": {
+        "crc-corruption-4.2.1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crc-corruption-4.2.1.stderr": "9b82e795e30de8bd7ff51a77f7a63e8a26da4b92f6091959f10b6f31727f8be2"
+      }
+    },
+    "rejection": "CorruptRecordException"
+  },
+  {
+    "control": "crc-corruption",
+    "sdk": "4.3.1",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.3.1:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/crc-corruption.body"
+      ],
+      "started": 1791395610.4902384,
+      "parent_waited": true,
+      "pid": 693934,
+      "exit_code": 1,
+      "ended": 1791395610.6328435,
+      "artifacts": {
+        "crc-corruption-4.3.1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "crc-corruption-4.3.1.stderr": "9b82e795e30de8bd7ff51a77f7a63e8a26da4b92f6091959f10b6f31727f8be2"
+      }
+    },
+    "rejection": "CorruptRecordException"
+  },
+  {
+    "control": "payload-corruption-with-valid-crc",
+    "sdk": "4.1.2",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.1.2:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.1.2.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/payload-corruption-with-valid-crc.body"
+      ],
+      "started": 1791395611.1049795,
+      "parent_waited": true,
+      "pid": 693991,
+      "exit_code": 1,
+      "ended": 1791395611.267628,
+      "artifacts": {
+        "payload-corruption-with-valid-crc-4.1.2.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "payload-corruption-with-valid-crc-4.1.2.stderr": "2e622c7d897af337e6d6b2df69959234e69eba142ffadccedad96d7d84a9c6e3"
+      }
+    },
+    "rejection": "complete seeded record differs"
+  },
+  {
+    "control": "payload-corruption-with-valid-crc",
+    "sdk": "4.2.1",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.2.1:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/payload-corruption-with-valid-crc.body"
+      ],
+      "started": 1791395611.716879,
+      "parent_waited": true,
+      "pid": 694048,
+      "exit_code": 1,
+      "ended": 1791395611.880403,
+      "artifacts": {
+        "payload-corruption-with-valid-crc-4.2.1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "payload-corruption-with-valid-crc-4.2.1.stderr": "2e622c7d897af337e6d6b2df69959234e69eba142ffadccedad96d7d84a9c6e3"
+      }
+    },
+    "rejection": "complete seeded record differs"
+  },
+  {
+    "control": "payload-corruption-with-valid-crc",
+    "sdk": "4.3.1",
+    "receipt": {
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+        "692484",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/classes-4.3.1:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+        "RequestBodyPeer",
+        "/workspace/work/open-cards-20261006/local-baseline-20261007/request-03/payload-corruption-with-valid-crc.body"
+      ],
+      "started": 1791395612.3544636,
+      "parent_waited": true,
+      "pid": 694105,
+      "exit_code": 1,
+      "ended": 1791395612.537193,
+      "artifacts": {
+        "payload-corruption-with-valid-crc-4.3.1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "payload-corruption-with-valid-crc-4.3.1.stderr": "2e622c7d897af337e6d6b2df69959234e69eba142ffadccedad96d7d84a9c6e3"
+      }
+    },
+    "rejection": "complete seeded record differs"
+  }
+]

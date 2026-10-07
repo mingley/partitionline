@@ -1,0 +1,20 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r03-nb-produce-idle-rss/nb-produce-idle-rss-rep0.result.json"
+  ],
+  "started": 1791390481.9647372,
+  "parent_waited": true,
+  "pid": 650976,
+  "exit_code": 0,
+  "ended": 1791390482.0064006,
+  "artifacts": {
+    "validator.stdout": "3218fe3280dd4f4558c7a3a197a6ef963fe96f644b92ed001a9e5471f1a1a927",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

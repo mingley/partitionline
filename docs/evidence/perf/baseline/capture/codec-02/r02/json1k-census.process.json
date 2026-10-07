@@ -1,0 +1,17 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/codec-02/bin/json1k-census"
+  ],
+  "started": 1791393164.692432,
+  "parent_waited": true,
+  "pid": 661078,
+  "exit_code": 0,
+  "ended": 1791393164.7342694,
+  "artifacts": {
+    "json1k-census.stdout": "162350df105098f2e5b6ea8f81d8cc439434b366c874f3353c0f718d2353b642",
+    "json1k-census.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

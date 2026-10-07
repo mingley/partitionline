@@ -1,0 +1,27 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "689962",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-reproduce-01/bin/runtime",
+    "--cell",
+    "nb-produce-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-reproduce-01/r04-nb-produce-bulk",
+    "--repetitions",
+    "1"
+  ],
+  "started": 1791395371.7274003,
+  "parent_waited": true,
+  "pid": 690442,
+  "exit_code": 0,
+  "ended": 1791395372.4964721,
+  "artifacts": {
+    "runtime.stdout": "c44f992c4f363f5974c93b7269b01fa6ea5011b937f2bd56a4bb9562502caf01",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

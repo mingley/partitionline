@@ -1,0 +1,25 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "665813",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.3.1/bin/kafka-get-offsets.sh",
+    "--bootstrap-server",
+    "127.0.0.1:38401",
+    "--topic",
+    "pl-baseline-666734-1"
+  ],
+  "started": 1791394706.917826,
+  "parent_waited": true,
+  "pid": 668427,
+  "exit_code": 0,
+  "ended": 1791394708.7276664,
+  "artifacts": {
+    "offsets-before.stdout": "4e6179005894f6b2de5e62c535c4476576cadc991347f481dabf9929cc822004",
+    "offsets-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

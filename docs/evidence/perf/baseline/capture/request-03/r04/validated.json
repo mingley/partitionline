@@ -1,0 +1,101 @@
+{
+  "cell": "micro-request",
+  "repetition": 4,
+  "median_ns_per_operation": 9972.9646,
+  "raw": {
+    "acks": 1,
+    "allocated_bytes_per_operation": 70766,
+    "allocations_per_operation": 17,
+    "api_key": 0,
+    "cell": "micro-request",
+    "entropy": "random",
+    "headers": 0,
+    "iterations_per_sample": 10000,
+    "key_bytes": 16,
+    "measurement_note": "Exact Iai request setup; fresh output buffer per operation. Setup, warmup, allocation census and wire retention excluded from native timing.",
+    "native_samples_ns_per_operation": [
+      9676.6996,
+      9797.5633,
+      10132.8184,
+      10176.5963,
+      10686.5397,
+      10208.2428,
+      10496.0868,
+      11927.3114,
+      9831.5875,
+      9846.615,
+      11584.6658,
+      10000.0328,
+      9769.9257,
+      9932.1072,
+      9886.4039,
+      10176.5402,
+      10819.8505,
+      10621.3161,
+      9974.5024,
+      10578.9072,
+      11617.1266,
+      9971.4268,
+      9730.168,
+      9811.5553,
+      9673.7241,
+      9922.6173,
+      9511.6844,
+      9498.3624,
+      10130.3818,
+      9448.3992
+    ],
+    "partition": 0,
+    "records": 100,
+    "samples": 30,
+    "schema_version": 1,
+    "scope": "local/unsigned",
+    "seed": 789996,
+    "suite_hold": "active",
+    "timeout_ms": 30000,
+    "topic": "t",
+    "value_bytes": 100,
+    "version": 9,
+    "warmup_iterations": 10000,
+    "wire_bytes": 12653
+  },
+  "wire_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+  "sdk_peers": [
+    {
+      "version": "4.1.2",
+      "actual": {
+        "status": "pass",
+        "version": 9,
+        "batches": 1,
+        "records": 100,
+        "full_seeded_records_verified": true,
+        "crc_validated": true,
+        "body_roundtrip_identical": true
+      }
+    },
+    {
+      "version": "4.2.1",
+      "actual": {
+        "status": "pass",
+        "version": 9,
+        "batches": 1,
+        "records": 100,
+        "full_seeded_records_verified": true,
+        "crc_validated": true,
+        "body_roundtrip_identical": true
+      }
+    },
+    {
+      "version": "4.3.1",
+      "actual": {
+        "status": "pass",
+        "version": 9,
+        "batches": 1,
+        "records": 100,
+        "full_seeded_records_verified": true,
+        "crc_validated": true,
+        "body_roundtrip_identical": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r04-nb-fetch-committed-aborts/nb-fetch-committed-aborts-rep0.result.json"
+  ],
+  "started": 1791390510.0715363,
+  "parent_waited": true,
+  "pid": 652754,
+  "exit_code": 0,
+  "ended": 1791390510.1132934,
+  "artifacts": {
+    "validator.stdout": "3a4b48f28e5a36b257347e8a503e380eec851be01857c2143eec211d2cb2d369",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

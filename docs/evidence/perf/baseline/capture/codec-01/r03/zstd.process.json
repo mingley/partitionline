@@ -1,0 +1,27 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/codec-01/bin/zstd",
+    "--bench",
+    "--noplot",
+    "--warm-up-time",
+    "1",
+    "--measurement-time",
+    "2",
+    "--sample-size",
+    "30",
+    "--nresamples",
+    "20000"
+  ],
+  "started": 1791392079.9781885,
+  "parent_waited": true,
+  "pid": 660172,
+  "exit_code": 0,
+  "ended": 1791392362.5232146,
+  "artifacts": {
+    "zstd.stdout": "7a79b6fb170d00ef3b52d59ae69d4fc8c8a6c453cd04d64475c6d71d69053832",
+    "zstd.stderr": "a38d3dfe83629cac88a088c38ba9b319c602e611e424bfa3d703c60230f4533e"
+  }
+}

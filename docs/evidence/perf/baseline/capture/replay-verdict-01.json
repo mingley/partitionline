@@ -1,0 +1,151 @@
+{
+  "status": "pass",
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "process_receipts": 525,
+  "retained_nonzero_receipts": 20,
+  "qualified_native_timing_cases": 610,
+  "qualified_instruction_cases": 170,
+  "native_bulk_fetch_repetitions": 10,
+  "micro_request_repetitions": 5,
+  "genuine_request_corruption_controls": 6,
+  "open_loop_repetitions": 15,
+  "open_loop_independent_replay": true,
+  "negative_replay_controls": [
+    {
+      "load_percent": 10,
+      "mutation": "arrival-id",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "absolute-schedule",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "ack-before-offer",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "fake-acceptance",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "raw-duration",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "percentile",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "sample-count",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "offered",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "unknown",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "disposition",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "rate",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "warmup",
+      "rejected": true
+    },
+    {
+      "load_percent": 10,
+      "mutation": "floor",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "arrival-id",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "absolute-schedule",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "ack-before-offer",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "fake-acceptance",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "raw-duration",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "percentile",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "sample-count",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "offered",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "unknown",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "disposition",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "rate",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "warmup",
+      "rejected": true
+    },
+    {
+      "load_percent": 80,
+      "mutation": "floor",
+      "rejected": true
+    }
+  ],
+  "overloaded_runs_retained": 5,
+  "excluded_unwaited_codec_partial": "codec-01/r04; environment interruption retained separately; no completion inferred",
+  "canonical_nb_validators": 95,
+  "no_missing_metric_filled_with_zero": true,
+  "performance_claims_valid": false
+}

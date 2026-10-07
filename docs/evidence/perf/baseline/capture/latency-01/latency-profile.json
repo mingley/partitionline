@@ -1,0 +1,33 @@
+{
+  "broker": "Apache Kafka 4.3.1",
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "calibration_repetitions": 5,
+  "load_percentages": [
+    10,
+    50,
+    80
+  ],
+  "repetitions_per_rate": 5,
+  "measured_records": 10000,
+  "excluded_sequential_warmup": 10000,
+  "payload": "100 bytes of x",
+  "partitions": 1,
+  "batch_records": 1,
+  "max_in_flight": 1,
+  "connections": 1,
+  "linger_ms": 0,
+  "acks": 1,
+  "saturation_basis": "median sequential reciprocal mean_us, matching single-record single-inflight workload; integer microsecond diagnostic resolution",
+  "integrity_scope": "independent Java full fixed-payload and contiguous-offset verification; driver has no unique record IDs",
+  "client_cpus": [
+    2,
+    4
+  ],
+  "broker_cpus": [
+    0,
+    1
+  ],
+  "raw_timestamps": "nanoseconds since measurement origin"
+}

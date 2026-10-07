@@ -46,7 +46,7 @@ tracing, zstd and combined-feature builds each compiled 24 documentation example
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has 206 completed cards and 134 open cards. The client
+The task registry has 207 completed cards and 133 open cards. The client
 conformance registry has 63 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
@@ -57,8 +57,13 @@ The repository has pinned benchmark peers, result checks, codec benchmarks and
 a resource-soak runner. Java peer checks passed against an isolated Kafka 4.3.1
 broker. Those short runs qualify the driver and its delivery accounting.
 
-Controlled x86_64/arm64 comparisons, paired repetitions, confidence intervals
-and independent reproduction remain open. Paired-run orchestration now has
+A pinned local baseline now records repeated codec, null-broker, native broker
+and open-loop latency measurements, with confidence intervals and throughput
+reruns. All five 80% latency profiles contain bounded-capacity rejections. The
+[baseline evidence](evidence/perf/baseline/README.md) retains those failures and
+the missing-cell list.
+
+Controlled x86_64/arm64 comparisons and independent peer reproduction remain open. Paired-run orchestration now has
 source-bound process tests and an isolated Kafka rehearsal. The miniz fallback gzip allocation
 baseline also needs reconciliation. No fastest-client or fastest-server result
 is established. Suite HOLD remains in effect until the comparison requirements

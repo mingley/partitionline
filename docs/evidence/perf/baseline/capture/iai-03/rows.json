@@ -1,0 +1,1252 @@
+[
+  {
+    "family": "iai",
+    "repetition": 1,
+    "cases": {
+      "iai::tracked::iai_crc/f03": {
+        "instructions": 146964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_crc.f03/summary.json",
+        "sha256": "8af710dc0ed4b0ef8cf13a3fac3a0353526cf93b58bf9fb0325b831c70cb1695",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_gzip/text": {
+        "instructions": 1447314,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_decompress_gzip.text/summary.json",
+        "sha256": "841179e473b82a62bfc9cc9d3603580f388f182c8165e24f952cd65efbabe273",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_gzip/text": {
+        "instructions": 11190360,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_compress_gzip.text/summary.json",
+        "sha256": "6dc46ff7de3b542e1f27099e7194ce9923215183231d9b9e88fa9c1513be7584",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_snappy/text": {
+        "instructions": 1078218,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_decompress_snappy.text/summary.json",
+        "sha256": "7c69b0ee57cc23429a342c0510d8cb9d3f8248099c7bc0e3351731c016abd026",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_snappy/text": {
+        "instructions": 1512683,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_compress_snappy.text/summary.json",
+        "sha256": "b604d54e6e253e3aff53e561fd443efe6c4b8f948aee8c99564c53d260af32cd",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_encode/f03": {
+        "instructions": 751483,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_encode.f03/summary.json",
+        "sha256": "bab7a021b15690a126c7ca6d0d91ed164068f5ca22f85328d5f0ed013381024c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decode/f03": {
+        "instructions": 567829,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_decode.f03/summary.json",
+        "sha256": "5171209a78316acede4b36b64872288fda100ff0768ca575b88c5d43a0bc7d09",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_lz4/text": {
+        "instructions": 2225964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_compress_lz4.text/summary.json",
+        "sha256": "2d13490f17775634ff016a6d0fa43625c0a288cb66d313416b26a64f6f92835a",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_lz4/text": {
+        "instructions": 1176131,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_decompress_lz4.text/summary.json",
+        "sha256": "24ffb05f32cf64e9173efac706604354da1c83937da962300864fbfc2aaa83dc",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_request/v9": {
+        "instructions": 161724,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/iai-callgrind/codec/iai/tracked/iai_request.v9/summary.json",
+        "sha256": "b6b2cde8dcfcaa3c65410645a11773288b4d34b3489bc69d2aeaecc04894fc0f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "json1k_iai",
+    "repetition": 1,
+    "cases": {
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_256k": {
+        "instructions": 2166722,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_256k/summary.json",
+        "sha256": "6eabfbdce97b2db3ace44719b9f7d9137392604d97a009c95de915362ffdc0dc",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_16k": {
+        "instructions": 346986,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_16k/summary.json",
+        "sha256": "75c3e24643547f6163545a40d0167102a989d85f323fc6be1f703cf4d0a70bf3",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_256k": {
+        "instructions": 2133250,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_256k/summary.json",
+        "sha256": "1a597b0dfd504799771e59d32096d313022943b1db0c2d3d9c870989391f10fd",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_16k": {
+        "instructions": 199007,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_16k/summary.json",
+        "sha256": "5b9df9a3541846a70419c44cf7c68a746a5fcd9928c7f392f89c58cd4f6e2584",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_256k": {
+        "instructions": 5073385,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_256k/summary.json",
+        "sha256": "0df1f972c9f301ff33506a5b255fd656f9aacdabc9984697cb9f4e2badd37420",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_16k": {
+        "instructions": 380236,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_16k/summary.json",
+        "sha256": "7c7384e20a1762e9bf3faa30b881091c8e324cb518eea0b7cf7e41958bcec13b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_16k": {
+        "instructions": 2358586,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_16k/summary.json",
+        "sha256": "78f99fa2d9743490674a0c7b41e55dfcce25ba1438451af3b4dd2ca11558d140",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_256k": {
+        "instructions": 2448500,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_256k/summary.json",
+        "sha256": "16c125c0dd61dbef0771c612ef5435df1cb68fbfcef631cc4b0b3f6b75f02b65",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_256k": {
+        "instructions": 2417832,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_256k/summary.json",
+        "sha256": "3580c786c19821ffbcaa3b7c927a8252ec9158ca6d726dc5e1a26359721027cc",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_16k": {
+        "instructions": 235878,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_16k/summary.json",
+        "sha256": "7801ac39b4bf5e5201865c3e8287a7782b0402b120c757eb0e07018d9bcdc8eb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_16k": {
+        "instructions": 109822,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_16k/summary.json",
+        "sha256": "f7d4224f784153e47a254614fc3afc3896edef0982b824d96d38d1c6d5f5541d",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_16k": {
+        "instructions": 222728,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_16k/summary.json",
+        "sha256": "6138801403ed8d7fa056ab0d659edbe8ff7002f63d9080d78a4b534a59bbaae7",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_16k": {
+        "instructions": 151111,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_16k/summary.json",
+        "sha256": "f19d4d8045de3980eb9688019405705027ca4694a9f33133f893f1992efa9ab6",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_256k": {
+        "instructions": 37904569,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_256k/summary.json",
+        "sha256": "4700549647a596e087c9d5d156e260ac1c512075e7297f921d67f2831c640c17",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_256k": {
+        "instructions": 37328933,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_256k/summary.json",
+        "sha256": "4acb37750d5ceceae73973af97ea3c78bf27ea889f2b6ad1c7c958826f5de70c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_16k": {
+        "instructions": 399917,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_16k/summary.json",
+        "sha256": "88263e7ad20dcdbfedb4d8f3efcb80de2641cd607987a8ffc4ecd325945f8baf",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_16k": {
+        "instructions": 271330,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_16k/summary.json",
+        "sha256": "fd5152ef6f23dea574daefb69c9b8da43d4068b05daf57e0cf7c9f6e2fc56c6b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_256k": {
+        "instructions": 3327743,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_256k/summary.json",
+        "sha256": "57c500af9782e690cd54dfe482470e7d1436cbda94ee0f345b0805b863ac4651",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_256k": {
+        "instructions": 3453315,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_256k/summary.json",
+        "sha256": "b15191603e514b50991f3e483de8b6b8eedfbed32aa1970577b0d3cb55fbcb65",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_256k": {
+        "instructions": 3233667,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_256k/summary.json",
+        "sha256": "3a0a56be39e11098fb357a8ac275c3e4f32bc2a33dc1dcfb54e542d47f64bb71",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_256k": {
+        "instructions": 1588588,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_256k/summary.json",
+        "sha256": "77cfe0b9b6f49f21fdb7ae31f11be149d5fe74d9df9bcc3df343b59844b13a09",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_16k": {
+        "instructions": 2389595,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_16k/summary.json",
+        "sha256": "b3e5a252f6b137f45bc85729239be9e9b1544455edfb29c1dc5bcd3d8ce321fd",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_16k": {
+        "instructions": 363289,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_16k/summary.json",
+        "sha256": "1cf5b4a44f75a18c931225293f712d40979fc7e37a5983640029b8175e7fb176",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_256k": {
+        "instructions": 5792350,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r01/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_256k/summary.json",
+        "sha256": "889f14d926608d6d658134085b965f480145ee09bbccf65a498e949635a4b8f5",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "iai",
+    "repetition": 2,
+    "cases": {
+      "iai::tracked::iai_crc/f03": {
+        "instructions": 146964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_crc.f03/summary.json",
+        "sha256": "ef8c480e11f42db4cce9e0750db4ee4d61162e17012f4461e6c469f822b4ba0f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_gzip/text": {
+        "instructions": 1447314,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_decompress_gzip.text/summary.json",
+        "sha256": "5253b7e3c860625a4c17ab4f0c8cd0311cc198ecc9d1bdc46321dc6d48c94fab",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_gzip/text": {
+        "instructions": 11190360,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_compress_gzip.text/summary.json",
+        "sha256": "37c12cacbb3fa5c9a60130ee2383804cdfe5534acec36595eac14cd6a8b3683c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_snappy/text": {
+        "instructions": 1078218,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_decompress_snappy.text/summary.json",
+        "sha256": "1b0ddb7b846e41bcf07eb8918d6bc9ab89ac445331d4664363a6c506fd95ed8b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_snappy/text": {
+        "instructions": 1512683,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_compress_snappy.text/summary.json",
+        "sha256": "4fcf848d40328348cdec69331013c88186033c00de83884f766129ee67985385",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_encode/f03": {
+        "instructions": 751483,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_encode.f03/summary.json",
+        "sha256": "fad84d25566b304ce0aab7f765b00bd6e6f3c2ab6c0e88aae8d5133f521074f5",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decode/f03": {
+        "instructions": 567829,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_decode.f03/summary.json",
+        "sha256": "95f5ad9248181c8a44309a4d82817c1f8abd123d312d3bf7cfb7545ed09e0ef3",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_lz4/text": {
+        "instructions": 2225964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_compress_lz4.text/summary.json",
+        "sha256": "f910473455e05d0a28625d55318222943dd6ccf96d817990d19f07ffb1cadbf4",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_lz4/text": {
+        "instructions": 1176131,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_decompress_lz4.text/summary.json",
+        "sha256": "f4ca075bd484f4f3e4e677d118fe0432b9aa568431c4859e9b539087b9d1693c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_request/v9": {
+        "instructions": 161724,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/iai-callgrind/codec/iai/tracked/iai_request.v9/summary.json",
+        "sha256": "d13e36f879dd7a3aaa78d2546a1c6386ee8d7db3c06baa6f26b1b5888658275f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "json1k_iai",
+    "repetition": 2,
+    "cases": {
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_256k": {
+        "instructions": 2166722,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_256k/summary.json",
+        "sha256": "3bf019ffa329f27812b6ab29a79e898c3e0da3908dec75712b98e6289dbf09cd",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_16k": {
+        "instructions": 346986,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_16k/summary.json",
+        "sha256": "3643cf26ac144b3819fef572fe2f319cd86fd0d94bccb560311b2d5f92ca676b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_256k": {
+        "instructions": 2133250,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_256k/summary.json",
+        "sha256": "b158be54bfb01f508a503aa4a88b7a091dc2c8bc475645351b953d1ec76dd147",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_16k": {
+        "instructions": 199007,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_16k/summary.json",
+        "sha256": "46ce3221bd93b0e2992b52069cfc6d51b777e616f09a21787256908ddb0f5aa9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_256k": {
+        "instructions": 5073385,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_256k/summary.json",
+        "sha256": "440def469dbf627441f8bb1583999b93c5e692895f1235be5f570c5ce188bb3b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_16k": {
+        "instructions": 380236,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_16k/summary.json",
+        "sha256": "c794eb51dba357c60ebbaeb79b18cc1198746fb64d27420b0b201b26264e5ca1",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_16k": {
+        "instructions": 2358586,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_16k/summary.json",
+        "sha256": "2cc401c40cec5a975974fb60c7199c6208a7d0632e0cf6765d0193ffea3c96c1",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_256k": {
+        "instructions": 2448500,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_256k/summary.json",
+        "sha256": "3a647f8389031fcc081d4b5c76e1e62f434617a99ac0492e8958be397d8e6e76",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_256k": {
+        "instructions": 2417832,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_256k/summary.json",
+        "sha256": "4400818bd5f4faacdde3d646ed717cc345d8e78a19d6808d0d29aff91a8e4566",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_16k": {
+        "instructions": 235878,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_16k/summary.json",
+        "sha256": "994d6e4a1ac851e8d3e4a04aba3587f6a9876b163d821b62541938e3055e4420",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_16k": {
+        "instructions": 109822,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_16k/summary.json",
+        "sha256": "872aec3b055f4ca9d00869c8e15186a79147fb6130dbae2f0e7d9fffc6095f58",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_16k": {
+        "instructions": 222728,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_16k/summary.json",
+        "sha256": "c328eebf1eb7f4246b1c6eda2373d480d91a3852055b9af2a7947706d634f17b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_16k": {
+        "instructions": 151111,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_16k/summary.json",
+        "sha256": "f92997b4a11cb13d44e5a11ee1c68d5e50695532409274682005e8d9f1cbe04d",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_256k": {
+        "instructions": 37904569,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_256k/summary.json",
+        "sha256": "d40e2bec5fd1771dd23d6cad11706b84722d91ee5a9f00737c16fd5d30571ea0",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_256k": {
+        "instructions": 37328933,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_256k/summary.json",
+        "sha256": "22fd0a00689e9c7172818ed076014e6e648ce565a25ef921a5a8f868d178f369",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_16k": {
+        "instructions": 399917,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_16k/summary.json",
+        "sha256": "a8cd50c52ce207532453d55493c41795900fcce322e5b2fab3d69fcf196bfa96",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_16k": {
+        "instructions": 271330,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_16k/summary.json",
+        "sha256": "ec9735e23b9c271d91e2f9e31ea9df24deeec9348b2730381d06c5889f048a31",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_256k": {
+        "instructions": 3327743,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_256k/summary.json",
+        "sha256": "f7dd91726dae1744ecf95c8fb3bd6d8013ca49ab9bed30af284c0c9ae3a79714",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_256k": {
+        "instructions": 3453315,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_256k/summary.json",
+        "sha256": "5d4bbbe04ca194a37c525dad4a3943c46dfa406b59b227456d6fd5f40daf699a",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_256k": {
+        "instructions": 3233667,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_256k/summary.json",
+        "sha256": "797b418bd69336539c2a85dd78936b7b5d632ce659be1dceed3da15127e588df",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_256k": {
+        "instructions": 1588588,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_256k/summary.json",
+        "sha256": "0785dc42521e109b54eba0883fcc4cd474c4429e8c83e4461d60194f5d1dfc86",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_16k": {
+        "instructions": 2389595,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_16k/summary.json",
+        "sha256": "3ac3b75be3dde6ae8c4cc07ef54b4b0ec2278ac63b6b4d0bbbd5e55861577ebe",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_16k": {
+        "instructions": 363289,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_16k/summary.json",
+        "sha256": "a99aa05307136af8c8da7e13787e08f09c320ef3249f4f2f6994bdfeddd5180e",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_256k": {
+        "instructions": 5792350,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r02/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_256k/summary.json",
+        "sha256": "cc0d7025797ac4f2e3e89bc4e3940b249c4038781af643dcbca181348e2fbfac",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "iai",
+    "repetition": 3,
+    "cases": {
+      "iai::tracked::iai_crc/f03": {
+        "instructions": 146964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_crc.f03/summary.json",
+        "sha256": "2a4db905825ac866fc6d73ad4af5ecf154445e7ca5a66d69345188bb10fb64d9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_gzip/text": {
+        "instructions": 1447314,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_decompress_gzip.text/summary.json",
+        "sha256": "0b3b764d745259cbf73a4d64d1ecc56bed3d9a2271c606919ffef3ec9a32fcda",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_gzip/text": {
+        "instructions": 11190360,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_compress_gzip.text/summary.json",
+        "sha256": "9e89960903ad20c76153bc303996100a586b4033203e1c23498c8aba526941b9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_snappy/text": {
+        "instructions": 1078218,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_decompress_snappy.text/summary.json",
+        "sha256": "ca8a8d24b9e50718f2f15eccc84dbccd006096aba79a4e63c0784ae23c024bdb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_snappy/text": {
+        "instructions": 1512683,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_compress_snappy.text/summary.json",
+        "sha256": "68452fbbe0e8a502f0b2a03c4945273a908738b99b25c70acef93988587a9205",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_encode/f03": {
+        "instructions": 751483,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_encode.f03/summary.json",
+        "sha256": "697f173ab0aa7e9c2d9b3887ca079d09d1628dc128c0eb9df74836866f70582b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decode/f03": {
+        "instructions": 567829,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_decode.f03/summary.json",
+        "sha256": "b5fd32028f424f3e9ea4ffe40a39f17e313bb12f47d9299f6df233effc899133",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_lz4/text": {
+        "instructions": 2225964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_compress_lz4.text/summary.json",
+        "sha256": "a7905b2e52234b58d109729a82c54a486dc153ddbf1a4f4e46aa5635701b9976",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_lz4/text": {
+        "instructions": 1176131,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_decompress_lz4.text/summary.json",
+        "sha256": "717af3f549eff0da906b69dc5f50b6dc889d9b1415fdf38ab5c1d3e871b7d5f9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_request/v9": {
+        "instructions": 161724,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/iai-callgrind/codec/iai/tracked/iai_request.v9/summary.json",
+        "sha256": "481c90ab8dbf020f7fd9cea958cf3e52960ac02d2925274f9cb5e18807f59416",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "json1k_iai",
+    "repetition": 3,
+    "cases": {
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_256k": {
+        "instructions": 2166722,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_256k/summary.json",
+        "sha256": "ce1d202f494d7eb3f90c070aaa5a5422dcf295dbef37c3311f83aae27f1a5848",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_16k": {
+        "instructions": 346986,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_16k/summary.json",
+        "sha256": "cb1e7622d13ccea05615d7406bbdc13272b289f8037472e0427efda623e153d3",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_256k": {
+        "instructions": 2133250,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_256k/summary.json",
+        "sha256": "3d13a4e1920eb8e71f8c363d056c6a2ffab7b6464ee91b0945e4178d72bada5c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_16k": {
+        "instructions": 199007,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_16k/summary.json",
+        "sha256": "d7c09d36012f3972b0f6323a276ee2d1f1513a94061e8d23bfe06420ca74f121",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_256k": {
+        "instructions": 5073385,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_256k/summary.json",
+        "sha256": "3b46aaf8b23d963f99b759aa65cce066e4a865504d1e4960e7b7db46da371af5",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_16k": {
+        "instructions": 380236,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_16k/summary.json",
+        "sha256": "c0f18bcded7e5bf7f4aa1a7a1dea04e207c4c19fb74c4a576db0f13f56531e29",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_16k": {
+        "instructions": 2358586,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_16k/summary.json",
+        "sha256": "2b3c08497ba1cfbac0b822c90791fe5bed899bf9f801c67e454a14902d7a5af2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_256k": {
+        "instructions": 2448500,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_256k/summary.json",
+        "sha256": "70962a36f67cee9c75ab040460e91193b5d7331b767d42dcbeffa7bc99a8552c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_256k": {
+        "instructions": 2417832,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_256k/summary.json",
+        "sha256": "ce4e1ed992d5f586a22fb90b77cd543e9f6fbaff1397a2812d999ff049f0a1b9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_16k": {
+        "instructions": 235878,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_16k/summary.json",
+        "sha256": "32af3e4111fc8b7fc488d5bfd012d74a3aa51217c0ba28d080a41b91ab8d7965",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_16k": {
+        "instructions": 109822,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_16k/summary.json",
+        "sha256": "81ca77f67b2941e0dc4a214c4154b80ae0c28e31598a3b97c9b955a5de1607f0",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_16k": {
+        "instructions": 222728,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_16k/summary.json",
+        "sha256": "7d1d8c84917cbfd80f166b9219580b138567adb70db5dc298ef6753260023aa8",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_16k": {
+        "instructions": 151111,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_16k/summary.json",
+        "sha256": "10700eac454066f183c2dd7371d61a54abab688d6b2457223e1ed22c21fe8b80",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_256k": {
+        "instructions": 37904569,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_256k/summary.json",
+        "sha256": "9c847a0fadfc31af64c4e3d373244263d3b5f6e9b71b4d132eada2a3577e843b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_256k": {
+        "instructions": 37328933,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_256k/summary.json",
+        "sha256": "c62f53e3983feb7acd97c8821537dd3e6d02902b9e0ff7c0cec1c708b0686888",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_16k": {
+        "instructions": 399917,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_16k/summary.json",
+        "sha256": "f52c800c63fc9d67318c24c43432b3208b7aba5a515f897ca8c6297d40bf97a1",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_16k": {
+        "instructions": 271330,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_16k/summary.json",
+        "sha256": "2ae56df449a71cc5bb9202db0d1ad3d00a0f490aee47958c35bd77c414d0e053",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_256k": {
+        "instructions": 3327743,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_256k/summary.json",
+        "sha256": "b71a73046772d99a6de426f7efcae062fb4f34ae9e489fa3f38a7f4835417fdc",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_256k": {
+        "instructions": 3453315,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_256k/summary.json",
+        "sha256": "c0f44c9068c50c2e5b1096dbb3c7693d401ecd40fabe7755f751d4852ff422fb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_256k": {
+        "instructions": 3233667,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_256k/summary.json",
+        "sha256": "7466ecea6a10014e9737fad30b0ab6c89ffc58357cbe90a0630b9b1d8c7d1e91",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_256k": {
+        "instructions": 1588588,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_256k/summary.json",
+        "sha256": "1a5f42e6b8819898f4b3cf3c459118859803186770678fe066054e370817bcc0",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_16k": {
+        "instructions": 2389595,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_16k/summary.json",
+        "sha256": "1b12fa1020f8e5b7002a98e9637da034709f2c0232c67777e4c73844a160df03",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_16k": {
+        "instructions": 363289,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_16k/summary.json",
+        "sha256": "1ed30916431e26f178360e9ea49a3919a12cddb79cb695f101264c9b6fab0c85",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_256k": {
+        "instructions": 5792350,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r03/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_256k/summary.json",
+        "sha256": "3230739b06c95ecfb89a85e65c591268e4d793ce19e365321bc5be8f28c4df12",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "iai",
+    "repetition": 4,
+    "cases": {
+      "iai::tracked::iai_crc/f03": {
+        "instructions": 146964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_crc.f03/summary.json",
+        "sha256": "3942019780d34e02a133ff1eef94b6efec5e168b73a98ef06949e4711ac534d9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_gzip/text": {
+        "instructions": 1447314,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_decompress_gzip.text/summary.json",
+        "sha256": "62c558eba76f26137fb8a25b1121f122938f448f2a6b90d24aa63a70eaf9454e",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_gzip/text": {
+        "instructions": 11190360,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_compress_gzip.text/summary.json",
+        "sha256": "29e508921ae27aacb94dca5be417f0dddd7505f5068add9023070cc692611f06",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_snappy/text": {
+        "instructions": 1078218,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_decompress_snappy.text/summary.json",
+        "sha256": "3b7d44828be44f38a3def90ec5096f3450f9fc854c12ce13afe81d177b048571",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_snappy/text": {
+        "instructions": 1512683,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_compress_snappy.text/summary.json",
+        "sha256": "ccb29aab156eeb529748916c541564bdaafd3e8b584fc5062dd803a87c90bed3",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_encode/f03": {
+        "instructions": 751483,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_encode.f03/summary.json",
+        "sha256": "beaca37f057ba1a95378eb758a593f007d587ad79df3d85bdb32fdc3dd173df9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decode/f03": {
+        "instructions": 567829,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_decode.f03/summary.json",
+        "sha256": "a5d65177557f701548ef54f0ed7282b16ecd639155ace28416c6e0d14c196f2b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_lz4/text": {
+        "instructions": 2225964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_compress_lz4.text/summary.json",
+        "sha256": "8284072b57304407b6e5d14e7efe54f416ad2a8325be05cbdf236ecdc9a0c1df",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_lz4/text": {
+        "instructions": 1176131,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_decompress_lz4.text/summary.json",
+        "sha256": "722d481a5ea8e5f8a48b9fc3844832e886d6fa7e85b21915ac43c86e7dc87647",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_request/v9": {
+        "instructions": 161724,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/iai-callgrind/codec/iai/tracked/iai_request.v9/summary.json",
+        "sha256": "bce5410bc2a9be2593ae330bad2c02ab5332a34ccaaa6ebede2fddfe978e6a00",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "json1k_iai",
+    "repetition": 4,
+    "cases": {
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_256k": {
+        "instructions": 2166722,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_256k/summary.json",
+        "sha256": "aa0da9728f914ccf536b1c4f43daef5e20caaa55154572f6c4ec2e6ec97d7212",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_16k": {
+        "instructions": 346986,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_16k/summary.json",
+        "sha256": "788405b817c15e8851bf1ae03f8c4e24117a34283a71ad975355013003fd4369",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_256k": {
+        "instructions": 2133250,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_256k/summary.json",
+        "sha256": "d4bb34ce7c8387cab49cb58fcbab7a46f6eb84bbe44be669dd418455eb7c478d",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_16k": {
+        "instructions": 199007,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_16k/summary.json",
+        "sha256": "01abc9fc4f372a12d8e0a4a314f664672738d3c0a1933239a6bb8ac508faef7e",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_256k": {
+        "instructions": 5073385,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_256k/summary.json",
+        "sha256": "7dbe6d215be04a55e862bdf7e8766dc8d40afae77bfe94eac8ceb02335e863a4",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_16k": {
+        "instructions": 380236,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_16k/summary.json",
+        "sha256": "996d3fa23aacb22a349766a0d93f0fa3ad184d2f149055a3ed71c665f52b6adb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_16k": {
+        "instructions": 2358586,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_16k/summary.json",
+        "sha256": "633a657067e0fffa00eef475ba1998ec479a7a9afa5c93d6485f7ea80d48c55d",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_256k": {
+        "instructions": 2448500,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_256k/summary.json",
+        "sha256": "c702806f71e9df6f94e0eb5dd901747afcd5aa09d8b93f3d7b7829b8d7675992",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_256k": {
+        "instructions": 2417832,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_256k/summary.json",
+        "sha256": "47fa7fcd0d6280710eb941f18fc2a175e2c4e07eef30a3bbded72c40f274a189",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_16k": {
+        "instructions": 235878,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_16k/summary.json",
+        "sha256": "f2a29455ba27c1be53f3efef359ac606f5ffb0922068b2bb39614a22839b14d4",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_16k": {
+        "instructions": 109822,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_16k/summary.json",
+        "sha256": "c5d287c1d9bb846ffac31a1f6972dab01eaf7d4010c1545f9efeb673f358b24f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_16k": {
+        "instructions": 222728,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_16k/summary.json",
+        "sha256": "87831baab6f5d94f9c8f6eeaa150dd6f4505ffb4606a6af19d96ef3e186ea1ef",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_16k": {
+        "instructions": 151111,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_16k/summary.json",
+        "sha256": "16977c16112ddaadf5f057c2e6d33f73b1090421791b8a01ad70ad74563ccf11",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_256k": {
+        "instructions": 37904569,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_256k/summary.json",
+        "sha256": "31cada42deba96c3fb8a1bb78fadb52f88e0492aa3f5a585a92fd15eddb4febc",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_256k": {
+        "instructions": 37328933,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_256k/summary.json",
+        "sha256": "e05402dcea846c557dbec87f4f1e4feb115e0de3b2b8c8f5cfd7b6615265b7ae",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_16k": {
+        "instructions": 399917,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_16k/summary.json",
+        "sha256": "6fb68646ec7212903987d22adfd0eb41fc8ee9f61d6c6be190b9aeaef7fed1ab",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_16k": {
+        "instructions": 271330,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_16k/summary.json",
+        "sha256": "63714212dca4de62a1438b2b962ed9e43e0699843eccd9a587f12d938f845535",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_256k": {
+        "instructions": 3327743,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_256k/summary.json",
+        "sha256": "ebd049888f754ade85506259baa5362a98c667faf8b9dd38f422b8f129b663ee",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_256k": {
+        "instructions": 3453315,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_256k/summary.json",
+        "sha256": "829838319809ba8334206d611c8c380195025f22934fb1454f037359e8f1fac6",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_256k": {
+        "instructions": 3233667,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_256k/summary.json",
+        "sha256": "cc194c52c6f7fabdaa807e89cb2e3366f76ba8ad7648af3230efaa2d424d9851",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_256k": {
+        "instructions": 1588588,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_256k/summary.json",
+        "sha256": "24e29b1e23c973b5e6ae6615b93de31c78611326b5ab3d9dd0ce82c1285822ff",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_16k": {
+        "instructions": 2389595,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_16k/summary.json",
+        "sha256": "e064a7b75c1d52b983571213a5a5cf50c1acfb41a22afa8e6c408391eed0e408",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_16k": {
+        "instructions": 363289,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_16k/summary.json",
+        "sha256": "db44804bcdf1cce0b2d1007a49659c9a28d66046898a726954bdcc28880125db",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_256k": {
+        "instructions": 5792350,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r04/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_256k/summary.json",
+        "sha256": "faa98af5626e6888ce53eb5a243b66be7ec10217434ae90a40aa3cdce209d75b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "iai",
+    "repetition": 5,
+    "cases": {
+      "iai::tracked::iai_crc/f03": {
+        "instructions": 146964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_crc.f03/summary.json",
+        "sha256": "46a6ba0b6f3d4c07f2552674c650d8025573b6adc8e18403bae6b92bf30caa21",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_gzip/text": {
+        "instructions": 1447314,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_decompress_gzip.text/summary.json",
+        "sha256": "8bec7fe141c7e0d175fcca4a08d396dea9d70010c5fa0a0bf3f85ec24d4d57d3",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_gzip/text": {
+        "instructions": 11190360,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_compress_gzip.text/summary.json",
+        "sha256": "07621d41a5e7795bba233ebf9353d02b75a35777600c4a0e5eb5a2d1502b3af9",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_snappy/text": {
+        "instructions": 1078218,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_decompress_snappy.text/summary.json",
+        "sha256": "6dec3357c4eee87f81b9eeefc1a4dddc1c6432cbf716717c406d8c0096ded0eb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_snappy/text": {
+        "instructions": 1512683,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_compress_snappy.text/summary.json",
+        "sha256": "d99c54c0d10486f00aa40273c515225a4abbb0eb5de268ab1828edfac0460ff1",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_encode/f03": {
+        "instructions": 751483,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_encode.f03/summary.json",
+        "sha256": "4da7f00e19af95ccf42ac86cc4e5ea2a3fc27898767dc9a75b5dc58a9da31edb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decode/f03": {
+        "instructions": 567829,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_decode.f03/summary.json",
+        "sha256": "a661fce88b2995fa2c8c4f4795cbc36fb1f33ad869bf75b83e0e0167d1ef58a2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_compress_lz4/text": {
+        "instructions": 2225964,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_compress_lz4.text/summary.json",
+        "sha256": "a6ceef891358f5d067e32226854bf65ce0f30fe4b4f906299a5d94e9c9c0cfd2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_decompress_lz4/text": {
+        "instructions": 1176131,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_decompress_lz4.text/summary.json",
+        "sha256": "b319f46fe458b40554a1ee55ebbca7625a58e28ab5e19f14192562a5fccc77a8",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "iai::tracked::iai_request/v9": {
+        "instructions": 161724,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/iai-callgrind/codec/iai/tracked/iai_request.v9/summary.json",
+        "sha256": "767948a3a872dee62be11a55c9db7dc0c52c6a4e44259c52e8327be27408fa64",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  },
+  {
+    "family": "json1k_iai",
+    "repetition": 5,
+    "cases": {
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_256k": {
+        "instructions": 2166722,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_256k/summary.json",
+        "sha256": "633da66c43bfa0384358c62d81aee49fcad532c1a3e5554aada823ddc91f9477",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_16k": {
+        "instructions": 346986,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_16k/summary.json",
+        "sha256": "94b67906bfd2c80306895849799d3893300802c8ff3f66d345d3da4e85733002",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_256k": {
+        "instructions": 2133250,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_256k/summary.json",
+        "sha256": "c5e23ccac8134059b06c79e4669dcf183c3c4bbc3adfdd141deff75e6d6c9608",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/lz4_16k": {
+        "instructions": 199007,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.lz4_16k/summary.json",
+        "sha256": "0e34f4ac0d8abe7436a539d7038158057161972090bbded4e20769267f47950c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_256k": {
+        "instructions": 5073385,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_256k/summary.json",
+        "sha256": "eafecb125759a551278828e7b6dab0a0381a88826af2a6b8e3a62c348d874df2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_16k": {
+        "instructions": 380236,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_16k/summary.json",
+        "sha256": "f5f62c3aaafec4782e2d56254b262a573b2ca2ba8b32979a7960cbb6980cae1c",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_16k": {
+        "instructions": 2358586,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_16k/summary.json",
+        "sha256": "a644452806fadabfb313c2ebd60b77c8b5896c41d0f7243ef9424399300054b2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_256k": {
+        "instructions": 2448500,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_256k/summary.json",
+        "sha256": "cd6b0d149d860a4153ca18a58fe5b7e7152bd418ba255d4490544e9f7a87d997",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_256k": {
+        "instructions": 2417832,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_256k/summary.json",
+        "sha256": "e2ea6e22f4004d1f3bc1691b86578ec3e86fb3e4326d1bfcbdcccc19c120a51f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/snappy_16k": {
+        "instructions": 235878,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.snappy_16k/summary.json",
+        "sha256": "683e4f8c387099b5636e7900ea9e4b65a634f94740fa60c477d76a9bd04e00df",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_16k": {
+        "instructions": 109822,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_16k/summary.json",
+        "sha256": "a1c501217fb26ac33a94e073b629f26d1a23ad7463e919e0c78049c7845188e0",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/lz4_16k": {
+        "instructions": 222728,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.lz4_16k/summary.json",
+        "sha256": "06142095846055923b2d20f19813bf23c0a2a55c837191df10a665edc25cb19b",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/snappy_16k": {
+        "instructions": 151111,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.snappy_16k/summary.json",
+        "sha256": "f293d03a010de3ee4bce52ac769e97e1a2de197ca730023a30556bdfc92ff88f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_256k": {
+        "instructions": 37904569,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_256k/summary.json",
+        "sha256": "42e11fc524398cff631f618b425814f7317059e4e05e444a555daca893d8f9c6",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/gzip_256k": {
+        "instructions": 37328933,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.gzip_256k/summary.json",
+        "sha256": "94819258f78a0d52738ca084a07ab15a54e18da53a4690f383ea6b39c577ae4d",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_16k": {
+        "instructions": 399917,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_16k/summary.json",
+        "sha256": "5f83fd30c17c45bfd25643e815d8137c50f8bdd4262f67c376298ffb5f884fba",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_16k": {
+        "instructions": 271330,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_16k/summary.json",
+        "sha256": "1ee68d30293a6adacc8eb16bd77e22fa9aad808edb261828269968aba8b889d2",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_decompress/gzip_256k": {
+        "instructions": 3327743,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_decompress.gzip_256k/summary.json",
+        "sha256": "5e32d7793911ec665315c56997ccbb1fb79262ba483ac0c5398ce640f9d2bf38",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/snappy_256k": {
+        "instructions": 3453315,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.snappy_256k/summary.json",
+        "sha256": "4486b49bbee59d11d87543ba3534eb71870f8c5511ac66797259e98cf25238d5",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/gzip_256k": {
+        "instructions": 3233667,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.gzip_256k/summary.json",
+        "sha256": "adde7cb830fb32a44dba3b376fde489e2e7df42ffecd90375696e7be02a6969f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_decompress/snappy_256k": {
+        "instructions": 1588588,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_decompress.snappy_256k/summary.json",
+        "sha256": "b1b9a45428d3141ca0099386ed8445217ccee6a3bfc4898abe54ab623e512b4a",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/gzip_16k": {
+        "instructions": 2389595,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.gzip_16k/summary.json",
+        "sha256": "8a72409ddad50c52846f382ad92f1887f084811974361fa263713c2915594a7f",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_raw_compress/lz4_16k": {
+        "instructions": 363289,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_raw_compress.lz4_16k/summary.json",
+        "sha256": "865dc92c787a7c48769ea3ffb29918fc92403936a9e7453d00b7d2e1deeab4bb",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      },
+      "json1k_iai::json1k::json1k_compress/lz4_256k": {
+        "instructions": 5792350,
+        "source_summary": "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-03/r05/json1k_iai-callgrind/codec/json1k_iai/json1k/json1k_compress.lz4_256k/summary.json",
+        "sha256": "4a935f0afe01843578b84b3bc1d46707cc0f7b35d0420bc844700c3119775142",
+        "event": "Ir",
+        "scope": "Simulated user instructions; no native cycle estimate"
+      }
+    }
+  }
+]

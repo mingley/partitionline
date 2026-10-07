@@ -1,0 +1,20 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r03-nb-fetch-seek-in-batch/nb-fetch-seek-in-batch-rep0.result.json"
+  ],
+  "started": 1791390468.8444011,
+  "parent_waited": true,
+  "pid": 650710,
+  "exit_code": 0,
+  "ended": 1791390468.886446,
+  "artifacts": {
+    "validator.stdout": "c44ee084277df760d1d115434664d8cf25b4baa2ec6d5dcad6fd8c9ca3bbcac5",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

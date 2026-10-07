@@ -1,0 +1,114 @@
+{
+  "policy": {
+    "scope": "local/unsigned",
+    "suite_hold": "active",
+    "declared_utc": "2026-10-07T17:39:53Z",
+    "cells": [
+      "nb-produce-bulk",
+      "lb-bulk"
+    ],
+    "metric": "records_per_second",
+    "primary_repetitions": 5,
+    "reproduce_repetitions": 5,
+    "max_absolute_relative_median_difference": 0.2,
+    "policy": "Both unchanged-binary rerun medians must be within 20% of their initial five-repetition median. All attempts remain retained. The shared KVM guest and uncontrolled frequency limit inference.",
+    "baseline_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25"
+  },
+  "results": [
+    {
+      "cell": "nb-produce-bulk",
+      "metric": "throughput.records_per_second",
+      "primary": {
+        "family": "nb-01",
+        "cell": "nb-produce-bulk",
+        "metric": "throughput.records_per_second",
+        "repetitions": 5,
+        "values": [
+          73806.9941714506,
+          77079.08142638787,
+          73469.39456226636,
+          74467.53681933794,
+          76445.37243690467
+        ],
+        "median": 74467.53681933794,
+        "bootstrap_95_ci": [
+          73469.39456226636,
+          77079.08142638787
+        ],
+        "bootstrap_resamples": 20000,
+        "bootstrap_seed": 912
+      },
+      "reproduce": {
+        "family": "nb-reproduce-01",
+        "cell": "nb-produce-bulk",
+        "metric": "throughput.records_per_second",
+        "repetitions": 5,
+        "values": [
+          74216.96564730072,
+          74930.36159519247,
+          72454.40364678664,
+          75068.37443364992,
+          76299.23500937293
+        ],
+        "median": 74930.36159519247,
+        "bootstrap_95_ci": [
+          72454.40364678664,
+          76299.23500937293
+        ],
+        "bootstrap_resamples": 20000,
+        "bootstrap_seed": 912
+      },
+      "relative_median_difference": 0.006215121321621941,
+      "declared_limit": 0.2,
+      "within_declared_noise": true
+    },
+    {
+      "cell": "lb-bulk",
+      "metric": "records_per_second",
+      "primary": {
+        "family": "primary",
+        "cell": "lb-bulk",
+        "metric": "records_per_second",
+        "repetitions": 5,
+        "values": [
+          217105.09,
+          204747.195,
+          192235.879,
+          194091.166,
+          191061.28
+        ],
+        "median": 194091.166,
+        "bootstrap_95_ci": [
+          191061.28,
+          217105.09
+        ],
+        "bootstrap_resamples": 20000,
+        "bootstrap_seed": 912
+      },
+      "reproduce": {
+        "family": "reproduce",
+        "cell": "lb-bulk",
+        "metric": "records_per_second",
+        "repetitions": 5,
+        "values": [
+          189188.663,
+          187700.792,
+          193905.495,
+          199388.178,
+          190510.689
+        ],
+        "median": 190510.689,
+        "bootstrap_95_ci": [
+          187700.792,
+          199388.178
+        ],
+        "bootstrap_resamples": 20000,
+        "bootstrap_seed": 912
+      },
+      "relative_median_difference": 0.018447398064474374,
+      "declared_limit": 0.2,
+      "within_declared_noise": true
+    }
+  ],
+  "all_within_declared_noise": true
+}

@@ -1,0 +1,101 @@
+{
+  "cell": "nb-produce-idem",
+  "repetition": 3,
+  "artifact": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r03-nb-produce-idem/nb-produce-idem-rep0.result.json",
+  "sha256": "e0b19b8a0298cd61b439de1cdae63467b2c61b9ca5bd55c4bd2f09ee6eb32c1f",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 771,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 3653632,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.007223,
+      "user_cpu_seconds": 0.007223
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 21454,
+        "allocations_per_record": 1.0727,
+        "total_allocated_bytes": 45833714,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 1957.35,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 13.775086024087388,
+      "rss": {
+        "average_rss_bytes": 13883830,
+        "baseline_rss_bytes": 9908224,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 26710016,
+        "process_peak_rss_bytes": 32075776,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.015946,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.023201
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 76409.83140802775,
+        "unit": "microseconds",
+        "upper": 76494.03359197224
+      },
+      "max": 229620,
+      "mean": 76451.9325,
+      "min": 71825,
+      "p50": 76414.0,
+      "p90": 79979.0,
+      "p95": 80367.05,
+      "p99": 80706.0,
+      "p99_9": 80810.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 19996,
+            "upper_bound_us": 131072
+          },
+          {
+            "count": 4,
+            "upper_bound_us": 262144
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 3037.751798870963,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 7.7854533256966,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 70376.20264177275,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "execution": {
+    "cell_id": "nb-produce-idem",
+    "drive_mode": "pipelined",
+    "flush_us_total": 202349,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "offsets_observed": false,
+    "queue_full_retries": 35,
+    "records_consumed": 0,
+    "records_offered": 20000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/local-baseline-20261007/nb-01/r03-nb-produce-idem/nb-produce-idem-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  }
+}

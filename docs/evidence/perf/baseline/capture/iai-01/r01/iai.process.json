@@ -1,0 +1,25 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "661760",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-01/bin/iai",
+    "--allow-aslr=true",
+    "--save-summary=json",
+    "--home",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/iai-01/r01/iai-callgrind"
+  ],
+  "started": 1791393784.3917103,
+  "parent_waited": true,
+  "pid": 661817,
+  "exit_code": 101,
+  "ended": 1791393784.477285,
+  "artifacts": {
+    "iai.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "iai.stderr": "0c5a08d7baf94d99af0dc624ea53366206ee51707120aa942a80ac694e9ee252"
+  }
+}

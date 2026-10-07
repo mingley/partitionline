@@ -1,0 +1,18 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/codec-01/bin/codec-preflight",
+    "preflight"
+  ],
+  "started": 1791392363.04278,
+  "parent_waited": true,
+  "pid": 660236,
+  "exit_code": 0,
+  "ended": 1791392363.0649881,
+  "artifacts": {
+    "preflight.stdout": "ee01fae6e9f972b4eb022e3971c31c4f55a0d364c1e4025f4790ee6536494108",
+    "preflight.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
