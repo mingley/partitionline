@@ -93,9 +93,11 @@ async fn actual_sdk_assign_replicas_to_dirs_bodies() {
 }
 
 fn uuid_from_environment(name: &str) -> [u8; 16] {
-    let text = std::env::var(name).unwrap();
+    let text = std::env::var(name).expect("required owned-controller UUID input");
     assert_eq!(text.len(), 32);
-    std::array::from_fn(|i| u8::from_str_radix(&text[2 * i..2 * i + 2], 16).unwrap())
+    std::array::from_fn(|i| {
+        u8::from_str_radix(&text[2 * i..2 * i + 2], 16).expect("owned-controller UUID must be hex")
+    })
 }
 
 #[tokio::test]
