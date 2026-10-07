@@ -17731,7 +17731,8 @@
         "benchmarks/codec/src/share-ranges.rs",
         "benchmarks/codec/SHARE-RANGES.md",
         "docs/plan/evidence/KL09-51.json",
-        "docs/evidence/perf/KL09-51/"
+        "docs/evidence/perf/KL09-51/",
+        "tests/fixtures/zstd-decode/"
       ],
       "qualification_notes": [
         {

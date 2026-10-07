@@ -62,7 +62,7 @@ mod tests {
                 .map(|i| AcquiredRange {
                     first_offset: i * 7,
                     last_offset: i * 7 + i % 4,
-                    delivery_count: (i % 11 + 1) as i16,
+                    delivery_count: i16::try_from(i % 11 + 1).unwrap(),
                 })
                 .collect();
             let mut offsets: Vec<_> = (-3..count * 7 + 8).collect();
@@ -75,7 +75,9 @@ mod tests {
                         state ^= state << 13;
                         state ^= state >> 7;
                         state ^= state << 17;
-                        offsets.swap(i, state as usize % (i + 1));
+                        let modulus = u64::try_from(i + 1).unwrap();
+                        let index = usize::try_from(state % modulus).unwrap();
+                        offsets.swap(i, index);
                     }
                 }
                 let mut lookup = AcquisitionRanges::new(&ranges);
