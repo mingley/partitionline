@@ -1,0 +1,16 @@
+{
+  "commit": "de7c68d30c97373656eed0afa287ed39ef84d4f6",
+  "parent": "946ebb9a2474e06e576f9bd23f82faad9e04f0da",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "src/share.rs": "9c4dce7b75450c77297fd429b452e2dfafca72e2511b679311b000a5824813dc",
+    "src/share/acquired.rs": "b9b608ef920f98d75b9d0ad90bd861a3a4cc1be4213516b3707082deca78d7f2",
+    "benchmarks/codec/Cargo.toml": "001ccb1131cbb08e16855eb79f320d02ee2a822e0b2ac3190daccc3b83db8cd8",
+    "benchmarks/codec/src/share-ranges.rs": "c579899b154633fa0edf712765d4623ba14adeaeb082a6704067d690e7027210",
+    "benchmarks/codec/SHARE-RANGES.md": "e5d1a650e293eaf6f6e6d66e8118d56b8045baac526519cc271ac4a35469e660",
+    "docs/plan/tasks.json": "3a7c8142612e909daf52cdfb769048acf314e4429812135bcf10a2e78a39cda4"
+  },
+  "scope": "Review branch only; no merge or release"
+}

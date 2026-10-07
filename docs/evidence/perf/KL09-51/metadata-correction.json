@@ -1,0 +1,8 @@
+{
+  "scope": "Metadata correction before publication; raw data, source, binaries and statistical results unchanged",
+  "field": "complexity.net_added_production_lines",
+  "old_value": 69,
+  "correct_value": 51,
+  "previous_summary_sha256": "d460d0d2ad71baf48619ea731df31ecded97ef0af5eec36e214ca18142ec0151",
+  "method": "53 new helper lines before cfg(test), plus4 caller lines added and6 removed against946ebb"
+}

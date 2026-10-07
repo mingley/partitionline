@@ -1,0 +1,8 @@
+   Compiling zlib-rs v0.6.8
+   Compiling flate2 v1.1.10
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/share-ranges-source-candidate)
+   Compiling codec v0.1.0 (/workspace/work/open-cards-20261006/share-ranges-source-candidate/benchmarks/codec)
+    Finished `test` profile [unoptimized] target(s) in 13.92s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/share-ranges.rs (/workspace/work/target-codec/debug/deps/share_ranges-f4facf7d5b931aec)

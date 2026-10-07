@@ -11234,11 +11234,49 @@
       "title": "Rank hotspot hypotheses from the baseline profile",
       "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
-      "files": ["docs/plan/performance-leadership.md", "new: docs/evidence/perf/baseline/profile/"],
+      "files": ["docs/plan/performance-leadership.md", "new: docs/evidence/perf/baseline-profile/"],
       "deliverable": "KL09-11 profiles of the baseline cells and a ranking of every section 3 hypothesis by measured share of CPU, allocations or syscalls in its cell.",
       "acceptance": ["Each hypothesis gets a measured share and the cell it was measured on; hypotheses under 1% are marked deprioritized, not deleted.", "New hotspots found in the profiles are added as hypotheses with a proposed card only when they exceed 3% of a cell.", "The ranking lives in performance-leadership.md section 3 with links to the profile artifacts."],
       "validation": ["Link every ranked number to a profile artifact and capture command.", "Re-capture one profile to show its ranking is stable."],
-      "evidence": [],
+      "evidence": [
+        {
+          "schema_version": 1,
+          "task": "KL09-13",
+          "status": "in_progress",
+          "scope": "Initial partial local CPU/syscall diagnostics; no complete hypothesis ranking",
+          "source_sha": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+          "evidence_directory": "docs/evidence/perf/baseline-profile/initial-20261007",
+          "summary_sha256": "90da6cbea4e146cf5b563cd0da4dd9da3c53fd97dbaaee690d14ed298fa07c0e",
+          "archive_sha256_manifest": "f3ef5d4648e4d3a00780a243029859b69f1df723d845149f92ad6a84681969ba",
+          "cpu_fresh_captures": 2,
+          "cpu_repetitions_per_capture": 25,
+          "measured_client_samples": [
+            511,
+            493
+          ],
+          "unresolved_leaf_share_percent": [
+            42.857142857142854,
+            45.233265720081135
+          ],
+          "syscall_repetitions": 5,
+          "measured_client_syscall_entries": 1378,
+          "source_guards_passed": true,
+          "owned_process_groups_empty": true,
+          "limitations": [
+            "Only nb-produce-bulk is profiled here; other required cells and every section3 hypothesis are not ranked.",
+            "About43\u201345 percent of measured client leaf samples are unresolved in libc. The available debug package build ID differs; it was not used.",
+            "Software userspace CPU samples do not measure hardware cycles, kernel CPU or off-CPU time. Hardware events are unavailable on this host.",
+            "Inlining merges work into enclosing symbols. Missing attribution is not a measured zero or a below-one-percent rejection.",
+            "Inclusive call-chain shares overlap and cannot be added. About500 measured samples per capture do not support precise fine-grained rankings.",
+            "Syscall elapsed time includes blocking and ptrace overhead. Count share is not CPU cost. Raw arguments contain no decoded strings or payloads.",
+            "The observed libc hash/build ID was recorded after capture, not independently attested for every loaded process.",
+            "No complete ShareFetch/TLS/OIDC/native-broker profile or allocation call-site attribution is supplied.",
+            "The standalone tree-control03 passed. A prior control timed out before a receipt; it is unqualified. Control02 exposed a missing proc children file and was cleaned up by the outer owner.",
+            "Capture01 raw recording completed, but the first report left a resolver child; the owner terminated/reaped it. Replay04 uses the same raw capture and is not a third fresh sample.",
+            "Capture02 failed its clean-source guard after a control created bytecode. Capture03 failed on an existing validator filename. Both failures and the bytecode repair are retained."
+          ]
+        }
+      ],
       "write_set": [
         "docs/plan/performance-leadership.md",
         "docs/evidence/perf/baseline-profile/",
@@ -17717,13 +17755,57 @@
     {
       "id": "KL09-51",
       "title": "Index share acquisition ranges",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "codex-root-20261007",
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "codex-root-20261007",
       "depends_on": ["KL05-15", "KL09-04"],
       "files": ["src/share.rs"],
       "deliverable": "ShareRecords resolves each record's acquisition range through a checked cursor or index instead of a linear acquired.iter().find per record.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Land micro-share-ranges in the codec bench crate in a first commit and record the baseline on that commit; the optimization lands in a second commit.", "Delivery counts, gaps and range precedence are identical per offset."],
       "validation": ["cargo test --locked --test full_surface", "cargo test --locked --lib share", "A/B cell micro-share-ranges (ns/record over 1,000 short ranges): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": [],
+      "evidence": [
+        {
+          "schema_version": 1,
+          "task": "KL09-51",
+          "status": "done",
+          "disposition": "accepted",
+          "source_sha": "b829dc627446ea6ad92042d319fc7ad04c3761bb",
+          "baseline_sha": "de7c68d30c97373656eed0afa287ed39ef84d4f6",
+          "source_bound": true,
+          "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable",
+          "evidence_directory": "docs/evidence/perf/KL09-51",
+          "summary_sha256": "ec04496e5240ae6a4d9dfc69faf70cc672046d8235cd422d40ca3a13ab39c580",
+          "archive_sha256_manifest": "36d9618fd82eac655b73db849a27152b5da18ae44d4baeb7d6451cd39eea4ecc",
+          "lookup_ns_medians": {
+            "parent": 11.8887781,
+            "candidate": 3.98177788
+          },
+          "paired_ratio_95_ci": [
+            0.3188538324220216,
+            0.34673662537210703
+          ],
+          "baseline_repetitions": 5,
+          "paired_repetitions": 7,
+          "paired_cohorts": 2,
+          "tests": {
+            "share_passed": 103,
+            "full_surface_passed": 330,
+            "shared_benchmark_tests_passed": 2,
+            "zstd_fixture_fuzz_passed": 9,
+            "zstd_decode_passed": 4,
+            "zstd_encode_passed": 7,
+            "zstd_encode_existing_ignored_native_case": 1
+          },
+          "strict_core_and_benchmark_clippy": true,
+          "fmt": true,
+          "limitations": [
+            "Local unsigned isolated lookup; no full ShareFetch throughput improvement inferred.",
+            "Current parent already used binary search; no historical linear-scan baseline is substituted.",
+            "Whole-child CPU/RSS receipts include fixture/oracle/warmup; they are not measured-phase guardrails.",
+            "No controlled hardware or independent reproduction; no performance leadership claim.",
+            "The existing native-only zstd test remains ignored in this finite local check; its previous qualification is not rerun or counted as passed.",
+            "No Kafka wire format, range validation, delivery semantics, public API, runtime dependency, default or allocation budget changed."
+          ]
+        }
+      ],
       "write_set": [
         "src/share.rs",
         "src/share/acquired.rs",
@@ -17739,7 +17821,8 @@
           "source": "src/share.rs",
           "scope": "The current parent already uses a checked binary search after rejecting malformed/overlapping ranges. Measure that actual parent, then evaluate a monotone cursor with binary fallback. No prior linear-scan timing is invented."
         }
-      ]
+      ],
+      "disposition": "accepted"
     },
     {
       "id": "KL09-52",

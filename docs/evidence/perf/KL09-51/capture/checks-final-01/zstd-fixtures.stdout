@@ -1,0 +1,36 @@
+
+running 9 tests
+test decode_record_batches_with_limit_adversarial ... ok
+test compact_string_roundtrip_property ... ok
+test empty_and_short_buffers_do_not_panic ... ok
+test truncated_varint_is_error_not_panic ... ok
+test varint_roundtrip_property ... ok
+test decompression_bombs_adversarial_smoke ... ok
+test varlong_roundtrip_property ... ok
+test random_blobs_do_not_panic_hot_decoders ... ok
+test zstd_inner_frame_mutations_never_panic ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+
+
+running 4 tests
+test actual_librdkafka_batches_contain_all_128_independently_verified_records ... ok
+test truncated_inner_frames_are_errors_with_valid_outer_crc ... ok
+test corrupt_and_over_limit_frames_fail_before_records_are_returned ... ok
+test java_and_native_frames_preserve_records_headers_nulls_and_timestamps ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 8 tests
+test compression_expansion_obeys_configured_batch_limit_before_send ... ok
+test native_zstd_producer_levels ... ignored, requires explicit fresh native Kafka topic and independent readers
+test raw_encoded_batch_limit_is_exact_and_transactional ... ok
+test backend_input_limit_releases_buffer_memory_and_sequence_reservations ... ok
+test encoder_errors_preserve_output_and_allow_scratch_reuse ... ok
+test unsupported_produce_version_releases_reservations_without_application_send ... ok
+test reused_context_survives_empty_small_and_block_boundary_batches ... ok
+test each_explicit_level_emits_independently_decodable_record_batches ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.42s
+

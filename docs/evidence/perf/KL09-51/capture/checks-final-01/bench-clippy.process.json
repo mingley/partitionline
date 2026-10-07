@@ -1,0 +1,28 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "744396",
+    "cargo",
+    "+stable",
+    "clippy",
+    "--locked",
+    "--manifest-path",
+    "benchmarks/codec/Cargo.toml",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "started": 1791401784.9091523,
+  "parent_waited": true,
+  "pid": 745359,
+  "exit_code": 0,
+  "ended": 1791401798.5087435,
+  "artifacts": {
+    "bench-clippy.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bench-clippy.stderr": "26cccb88e64a91e25af3b255300656c42dc22000d96a9a9d86b4c36fa0707ee6"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "original": "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-01",
+  "sha256": "1648b578d65c8236ec1a1ebbacc8278d4929873b2dd454eb5d3bce3917f5fc97",
+  "original_command_receipt": {
+    "command": [
+      "taskset",
+      "-c",
+      "2,4",
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-B",
+      "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+      "728866",
+      "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/bin/perf",
+      "record",
+      "-e",
+      "cpu-clock:u",
+      "-F",
+      "997",
+      "--clockid",
+      "realtime",
+      "--call-graph",
+      "dwarf,16384",
+      "-o",
+      "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-01/cpu.data",
+      "--",
+      "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-01/runtime-parent-bound",
+      "--cell",
+      "nb-produce-bulk",
+      "--out",
+      "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-01/workload",
+      "--repetitions",
+      "25"
+    ],
+    "started": 1791397809.385453,
+    "parent_waited": true,
+    "pid": 728923,
+    "exit_code": 0,
+    "ended": 1791397826.5528388,
+    "artifacts": {
+      "capture.stdout": "ccc808765380f0153a672904fe5b38b93fbbdcbc54c86ff673dbacdb4dc76a26",
+      "capture.stderr": "2b6462d97687193b032daea3efda1ea3d6bcea11868ec4587a05ade4ddc492ae"
+    }
+  },
+  "fresh_capture": false,
+  "scope": "Replay of cleanly completed capture after failed resolver cleanup; not a new profile repetition"
+}

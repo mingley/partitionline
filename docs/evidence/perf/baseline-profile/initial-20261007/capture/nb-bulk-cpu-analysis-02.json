@@ -1,0 +1,723 @@
+{
+  "scope": "Local sampled userspace CPU; original ELF; actual phase timestamps; no hardware cycle estimate",
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "raw_script_sha256": "78931c2fe254e4d67b04a48ad875a458d24972b5e84c7d1e97fb96a97143187d",
+  "phase_count": 25,
+  "all_runtime_samples": 685,
+  "measured_runtime_samples": 493,
+  "excluded_setup_fixture_shutdown_samples": 192,
+  "sample_period_total_ns": 494483437,
+  "unresolved_leaf_percent": 45.233265720081135,
+  "event": "cpu-clock:u",
+  "nominal_frequency": 997,
+  "self_symbols": [
+    {
+      "symbol": "[unknown]",
+      "period_ns": 223671007,
+      "share_percent": 45.233265720081135
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Producer>::try_send",
+      "period_ns": 24072216,
+      "share_percent": 4.8681541582150105
+    },
+    {
+      "symbol": "cfree",
+      "period_ns": 24072216,
+      "share_percent": 4.8681541582150105
+    },
+    {
+      "symbol": "__vdso_clock_gettime",
+      "period_ns": 20060180,
+      "share_percent": 4.056795131845842
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::task::atomic_waker::AtomicWaker>::wake",
+      "period_ns": 20060180,
+      "share_percent": 4.056795131845842
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::compact_record_backing",
+      "period_ns": 14042126,
+      "share_percent": 2.839756592292089
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::encode_record",
+      "period_ns": 13039117,
+      "share_percent": 2.636916835699797
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::to_produce_record",
+      "period_ns": 11033099,
+      "share_percent": 2.231237322515213
+    },
+    {
+      "symbol": "<bytes[965301398de9428d]::bytes_mut::BytesMut as bytes[965301398de9428d]::buf::buf_mut::BufMut>::put_slice",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::take_count",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<partitionline[2a51030ae3fdf566]::producer::ProduceRecord>",
+      "period_ns": 9027081,
+      "share_percent": 1.8255578093306288
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::pendings_bytes",
+      "period_ns": 9027081,
+      "share_percent": 1.8255578093306288
+    },
+    {
+      "symbol": "crc32c[9016e476dd0203c]::hw_x86_64::crc_u64_parallel3",
+      "period_ns": 8024072,
+      "share_percent": 1.6227180527383367
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::try_send_one::{closure#0}",
+      "period_ns": 8024072,
+      "share_percent": 1.6227180527383367
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Sender<partitionline[2a51030ae3fdf566]::producer::Pending>>::try_send",
+      "period_ns": 7021063,
+      "share_percent": 1.4198782961460445
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::size_of_key_value_headers",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<core[a9090a07a7fa7517]::hash::sip::Hasher<core[a9090a07a7fa7517]::hash::sip::Sip13Rounds> as core[a9090a07a7fa7517]::hash::Hasher>::write",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "malloc",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::topic_tracker",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<core[a9090a07a7fa7517]::iter::adapters::map::Map<core[a9090a07a7fa7517]::iter::adapters::flatten::FlatMap<core[a9090a07a7fa7517]::slice::iter::Iter<(alloc[12ca63220423dfc2]::sync::Arc<str>, i32, alloc[12ca63220423dfc2]::vec::Vec<partitionline[2a51030ae3fdf566]::producer::Pending>)>, core[a9090a07a7fa7517]::slice::iter::Iter<partitionline[2a51030ae3fdf566]::producer::Pending>, <partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}::{closure#0}>, <partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}::{closure#1}> as core[a9090a07a7fa7517]::iter::traits::iterator::Iterator>::fold::<std[c29fa2d9dbea2b0e]::time::Instant, core[a9090a07a7fa7517]::iter::traits::iterator::Iterator::min_by::fold<std[c29fa2d9dbea2b0e]::time::Instant, <std[c29fa2d9dbea2b0e]::time::Instant as core[a9090a07a7fa7517]::cmp::Ord>::cmp>::{closure#0}>",
+      "period_ns": 4012036,
+      "share_percent": 0.8113590263691683
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::sys::pal::unix::time::Timespec>::sub_timespec",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::list::Rx<partitionline[2a51030ae3fdf566]::producer::Pending>>::pop",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::protocol::group::Topic>::validate",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::hash::random::RandomState as core[a9090a07a7fa7517]::hash::BuildHasher>::hash_one::<&(alloc[12ca63220423dfc2]::sync::Arc<str>, i32)>",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::reject_oversized",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<bytes[965301398de9428d]::bytes::Bytes as core[a9090a07a7fa7517]::convert::From<alloc[12ca63220423dfc2]::boxed::Box<[u8]>>>::from",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::chan::Tx<partitionline[2a51030ae3fdf566]::producer::Pending, tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Semaphore> as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::micros",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::purge_expired_pending",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::note_queued_n",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::time::Instant>::now",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::group::detect_invalid_topic_name",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "crc32c[9016e476dd0203c]::hw_x86_64::crc_u64_append",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<partitionline[2a51030ae3fdf566]::producer::WorkerHandle>",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::can_fire",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::sys::pal::unix::time::Timespec>::now",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<alloc[12ca63220423dfc2]::vec::Vec<u8> as core[a9090a07a7fa7517]::convert::From<bytes[965301398de9428d]::bytes::Bytes>>::from",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::header::response_header_version",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<hashbrown[ec5eb3d1610e94b1]::map::HashMap<alloc[12ca63220423dfc2]::sync::Arc<str>, alloc[12ca63220423dfc2]::sync::Arc<partitionline[2a51030ae3fdf566]::metrics::ProduceTopicTracker>, std[c29fa2d9dbea2b0e]::hash::random::RandomState>>::rustc_entry",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::time::timeout::Timeout<runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}::{closure#1}> as core[a9090a07a7fa7517]::future::future::Future>::poll",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::fire::{closure#0}",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::hash::random::RandomState as core[a9090a07a7fa7517]::hash::BuildHasher>::hash_one::<&alloc[12ca63220423dfc2]::sync::Arc<str>>",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::time::entry::TimerEntry as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "bytes[965301398de9428d]::bytes::promotable_even_to_vec",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::chan::Tx<alloc[12ca63220423dfc2]::sync::Arc<str>, tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Semaphore> as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "__rustc[9d087a5ab36ea756]::__rust_dealloc",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "codec[3c98f3320b0430c7]::payload",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::protocol::records::RecordBatch>::estimate_batch_size_upper_bound",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::buf::usize_from_i32",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::earliest_pending_deadline",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::note_ack_latency_batch",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::ack_latency_ns",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::time::wheel::Wheel>::next_expiration",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "clock_gettime",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::buf::put_varint",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    }
+  ],
+  "inclusive_symbols": [
+    {
+      "symbol": "[unknown]",
+      "period_ns": 225677025,
+      "share_percent": 45.63894523326572
+    },
+    {
+      "symbol": "tokio[b5bf798d0efb4a4d]::runtime::context::runtime::enter_runtime::<<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}>::{closure#0}, ()>",
+      "period_ns": 147442323,
+      "share_percent": 29.81744421906694
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::CoreGuard>::block_on::<core[a9090a07a7fa7517]::pin::Pin<&mut runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}>>",
+      "period_ns": 147442323,
+      "share_percent": 29.81744421906694
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::context::scoped::Scoped<tokio[b5bf798d0efb4a4d]::runtime::scheduler::Context>>::set::<<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::CoreGuard>::block_on<core[a9090a07a7fa7517]::pin::Pin<&mut runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}>>::{closure#0}, core[a9090a07a7fa7517]::option::Option<()>>::{closure#0}, (alloc[12ca63220423dfc2]::boxed::Box<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::Core>, core[a9090a07a7fa7517]::option::Option<()>)>",
+      "period_ns": 147442323,
+      "share_percent": 29.81744421906694
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::runtime::Runtime>::block_on::<runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}>",
+      "period_ns": 147442323,
+      "share_percent": 29.81744421906694
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::Context>::enter::<core[a9090a07a7fa7517]::task::poll::Poll<()>, <tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::CoreGuard>::block_on<core[a9090a07a7fa7517]::pin::Pin<&mut runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}>>::{closure#0}::{closure#0}>",
+      "period_ns": 146439314,
+      "share_percent": 29.614604462474645
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}",
+      "period_ns": 146439314,
+      "share_percent": 29.614604462474645
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::time::timeout::Timeout<runtime[de1cc6b3177788f]::drive::drive_cell::{closure#0}::{closure#1}> as core[a9090a07a7fa7517]::future::future::Future>::poll",
+      "period_ns": 145436305,
+      "share_percent": 29.41176470588235
+    },
+    {
+      "symbol": "runtime[e4e237ff4a56901e]::run_produce",
+      "period_ns": 142427278,
+      "share_percent": 28.803245436105477
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::try_send_one::{closure#0}",
+      "period_ns": 141424269,
+      "share_percent": 28.600405679513184
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Producer>::try_send",
+      "period_ns": 110330990,
+      "share_percent": 22.31237322515213
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::task::harness::Harness<<partitionline[2a51030ae3fdf566]::producer::Worker>::run::{closure#0}, alloc[12ca63220423dfc2]::sync::Arc<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::Handle>>>::poll",
+      "period_ns": 62186558,
+      "share_percent": 12.57606490872211
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::run::{closure#0}",
+      "period_ns": 62186558,
+      "share_percent": 12.57606490872211
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::task::core::Core<<partitionline[2a51030ae3fdf566]::producer::Worker>::run::{closure#0}, alloc[12ca63220423dfc2]::sync::Arc<tokio[b5bf798d0efb4a4d]::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+      "period_ns": 62186558,
+      "share_percent": 12.57606490872211
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::drain_inflight::{closure#0}",
+      "period_ns": 54162486,
+      "share_percent": 10.953346855983773
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::fire::{closure#0}",
+      "period_ns": 54162486,
+      "share_percent": 10.953346855983773
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::encode_produce_body",
+      "period_ns": 35105315,
+      "share_percent": 7.099391480730223
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::encode_pendings",
+      "period_ns": 35105315,
+      "share_percent": 7.099391480730223
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::write_record_batch_scratch::<core[a9090a07a7fa7517]::iter::adapters::map::Map<core[a9090a07a7fa7517]::slice::iter::Iter<partitionline[2a51030ae3fdf566]::producer::Pending>, partitionline[2a51030ae3fdf566]::producer::encode_pendings::{closure#2}>>",
+      "period_ns": 35105315,
+      "share_percent": 7.099391480730223
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}",
+      "period_ns": 32096288,
+      "share_percent": 6.490872210953347
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Sender<partitionline[2a51030ae3fdf566]::producer::Pending>>::try_send",
+      "period_ns": 26078234,
+      "share_percent": 5.273833671399594
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::encode_record",
+      "period_ns": 25075225,
+      "share_percent": 5.070993914807302
+    },
+    {
+      "symbol": "cfree",
+      "period_ns": 24072216,
+      "share_percent": 4.8681541582150105
+    },
+    {
+      "symbol": "clock_gettime",
+      "period_ns": 21063189,
+      "share_percent": 4.259634888438134
+    },
+    {
+      "symbol": "__vdso_clock_gettime",
+      "period_ns": 20060180,
+      "share_percent": 4.056795131845842
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::task::atomic_waker::AtomicWaker>::wake",
+      "period_ns": 20060180,
+      "share_percent": 4.056795131845842
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::take_count",
+      "period_ns": 18054162,
+      "share_percent": 3.6511156186612577
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::compact_record_backing",
+      "period_ns": 18054162,
+      "share_percent": 3.6511156186612577
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::reject_oversized",
+      "period_ns": 12036108,
+      "share_percent": 2.4340770791075053
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::to_produce_record",
+      "period_ns": 11033099,
+      "share_percent": 2.231237322515213
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::note_queued_n",
+      "period_ns": 11033099,
+      "share_percent": 2.231237322515213
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::finish_record_batch",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "crc32c[9016e476dd0203c]::hw_x86_64::crc_u64_parallel3",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "crc32c[9016e476dd0203c]::hw_x86_64::crc32c",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<partitionline[2a51030ae3fdf566]::producer::Pending>",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<partitionline[2a51030ae3fdf566]::producer::ProduceRecord>",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "<bytes[965301398de9428d]::bytes_mut::BytesMut as bytes[965301398de9428d]::buf::buf_mut::BufMut>::put_slice",
+      "period_ns": 10030090,
+      "share_percent": 2.028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::pendings_bytes",
+      "period_ns": 9027081,
+      "share_percent": 1.8255578093306288
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::topic_tracker",
+      "period_ns": 9027081,
+      "share_percent": 1.8255578093306288
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::hash::random::RandomState as core[a9090a07a7fa7517]::hash::BuildHasher>::hash_one::<&(alloc[12ca63220423dfc2]::sync::Arc<str>, i32)>",
+      "period_ns": 6018054,
+      "share_percent": 1.2170385395537526
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::records::size_of_key_value_headers",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<core[a9090a07a7fa7517]::hash::sip::Hasher<core[a9090a07a7fa7517]::hash::sip::Sip13Rounds> as core[a9090a07a7fa7517]::hash::Hasher>::write",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<partitionline[2a51030ae3fdf566]::producer::WorkerHandle>",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "malloc",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::protocol::group::Topic>::validate",
+      "period_ns": 5015045,
+      "share_percent": 1.0141987829614605
+    },
+    {
+      "symbol": "<core[a9090a07a7fa7517]::iter::adapters::map::Map<core[a9090a07a7fa7517]::iter::adapters::flatten::FlatMap<core[a9090a07a7fa7517]::slice::iter::Iter<(alloc[12ca63220423dfc2]::sync::Arc<str>, i32, alloc[12ca63220423dfc2]::vec::Vec<partitionline[2a51030ae3fdf566]::producer::Pending>)>, core[a9090a07a7fa7517]::slice::iter::Iter<partitionline[2a51030ae3fdf566]::producer::Pending>, <partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}::{closure#0}>, <partitionline[2a51030ae3fdf566]::producer::Worker>::wait_one::{closure#0}::{closure#1}> as core[a9090a07a7fa7517]::iter::traits::iterator::Iterator>::fold::<std[c29fa2d9dbea2b0e]::time::Instant, core[a9090a07a7fa7517]::iter::traits::iterator::Iterator::min_by::fold<std[c29fa2d9dbea2b0e]::time::Instant, <std[c29fa2d9dbea2b0e]::time::Instant as core[a9090a07a7fa7517]::cmp::Ord>::cmp>::{closure#0}>",
+      "period_ns": 4012036,
+      "share_percent": 0.8113590263691683
+    },
+    {
+      "symbol": "<hashbrown[ec5eb3d1610e94b1]::map::HashMap<alloc[12ca63220423dfc2]::sync::Arc<str>, alloc[12ca63220423dfc2]::sync::Arc<partitionline[2a51030ae3fdf566]::metrics::ProduceTopicTracker>, std[c29fa2d9dbea2b0e]::hash::random::RandomState>>::rustc_entry",
+      "period_ns": 4012036,
+      "share_percent": 0.8113590263691683
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::protocol::records::RecordBatch>::estimate_batch_size_upper_bound",
+      "period_ns": 4012036,
+      "share_percent": 0.8113590263691683
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::sys::pal::unix::time::Timespec>::sub_timespec",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::time::Instant>::saturating_duration_since",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<core[a9090a07a7fa7517]::future::poll_fn::PollFn<<partitionline[2a51030ae3fdf566]::producer::Worker>::run::{closure#0}::{closure#3}> as core[a9090a07a7fa7517]::future::future::Future>::poll",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::chan::Rx<partitionline[2a51030ae3fdf566]::producer::Pending, tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Semaphore>>::recv_many",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::list::Rx<partitionline[2a51030ae3fdf566]::producer::Pending>>::pop",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::hash::random::RandomState as core[a9090a07a7fa7517]::hash::BuildHasher>::hash_one::<&alloc[12ca63220423dfc2]::sync::Arc<str>>",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::producer::ack_latency_ns",
+      "period_ns": 3009027,
+      "share_percent": 0.6085192697768763
+    },
+    {
+      "symbol": "<bytes[965301398de9428d]::bytes::Bytes as core[a9090a07a7fa7517]::convert::From<alloc[12ca63220423dfc2]::boxed::Box<[u8]>>>::from",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::chan::Tx<partitionline[2a51030ae3fdf566]::producer::Pending, tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Semaphore> as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::drive::micros",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::purge_expired_pending",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::time::Instant>::now",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::group::detect_invalid_topic_name",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "crc32c[9016e476dd0203c]::hw_x86_64::crc_u64_append",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::buf::put_varint",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::can_fire",
+      "period_ns": 2006018,
+      "share_percent": 0.4056795131845842
+    },
+    {
+      "symbol": "<std[c29fa2d9dbea2b0e]::sys::pal::unix::time::Timespec>::now",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<alloc[12ca63220423dfc2]::vec::Vec<u8> as core[a9090a07a7fa7517]::convert::From<bytes[965301398de9428d]::bytes::Bytes>>::from",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::header::response_header_version",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "core[a9090a07a7fa7517]::ptr::drop_glue::<core[a9090a07a7fa7517]::option::Option<tokio[b5bf798d0efb4a4d]::runtime::Timer>>",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::time::entry::TimerEntry as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "bytes[965301398de9428d]::bytes::promotable_even_to_vec",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::chan::Tx<alloc[12ca63220423dfc2]::sync::Arc<str>, tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Semaphore> as core[a9090a07a7fa7517]::ops::drop::Drop>::drop",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "__rustc[9d087a5ab36ea756]::__rust_dealloc",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "codec[3c98f3320b0430c7]::payload",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "runtime[de1cc6b3177788f]::cells::gen_one",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::sync::mpsc::bounded::Sender<alloc[12ca63220423dfc2]::sync::Arc<str>>>::try_send",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Producer>::nudge_topic",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "partitionline[2a51030ae3fdf566]::protocol::buf::usize_from_i32",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Worker>::earliest_pending_deadline",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<partitionline[2a51030ae3fdf566]::producer::Shared>::note_ack_latency_batch",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::time::Driver>::park_internal",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::Context>::park_internal",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::scheduler::current_thread::Context>::park_yield",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    },
+    {
+      "symbol": "<tokio[b5bf798d0efb4a4d]::runtime::time::wheel::Wheel>::next_expiration",
+      "period_ns": 1003009,
+      "share_percent": 0.2028397565922921
+    }
+  ],
+  "limitations": [
+    "Symbol attribution groups inlined work into enclosing functions. A missing symbol is not a measured zero.",
+    "Inclusive symbol shares overlap and must not be summed.",
+    "User-only sampling excludes kernel CPU and off-CPU waits.",
+    "Sampling and observer overhead make these diagnostic profiles, not comparable throughput measurements."
+  ]
+}

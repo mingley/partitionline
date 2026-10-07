@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task": "KL09-51",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "b829dc627446ea6ad92042d319fc7ad04c3761bb",
+  "baseline_sha": "de7c68d30c97373656eed0afa287ed39ef84d4f6",
+  "source_bound": true,
+  "toolchain": "rustc1.99.0 (b940084d7 2026-09-28), latest stable",
+  "evidence_directory": "docs/evidence/perf/KL09-51",
+  "summary_sha256": "ec04496e5240ae6a4d9dfc69faf70cc672046d8235cd422d40ca3a13ab39c580",
+  "archive_sha256_manifest": "36d9618fd82eac655b73db849a27152b5da18ae44d4baeb7d6451cd39eea4ecc",
+  "lookup_ns_medians": {
+    "parent": 11.8887781,
+    "candidate": 3.98177788
+  },
+  "paired_ratio_95_ci": [
+    0.3188538324220216,
+    0.34673662537210703
+  ],
+  "baseline_repetitions": 5,
+  "paired_repetitions": 7,
+  "paired_cohorts": 2,
+  "tests": {
+    "share_passed": 103,
+    "full_surface_passed": 330,
+    "shared_benchmark_tests_passed": 2,
+    "zstd_fixture_fuzz_passed": 9,
+    "zstd_decode_passed": 4,
+    "zstd_encode_passed": 7,
+    "zstd_encode_existing_ignored_native_case": 1
+  },
+  "strict_core_and_benchmark_clippy": true,
+  "fmt": true,
+  "limitations": [
+    "Local unsigned isolated lookup; no full ShareFetch throughput improvement inferred.",
+    "Current parent already used binary search; no historical linear-scan baseline is substituted.",
+    "Whole-child CPU/RSS receipts include fixture/oracle/warmup; they are not measured-phase guardrails.",
+    "No controlled hardware or independent reproduction; no performance leadership claim.",
+    "The existing native-only zstd test remains ignored in this finite local check; its previous qualification is not rerun or counted as passed.",
+    "No Kafka wire format, range validation, delivery semantics, public API, runtime dependency, default or allocation budget changed."
+  ]
+}

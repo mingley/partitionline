@@ -1,0 +1,37 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "731687",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/observe-owned-tree.py",
+    "--receipt",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-04/stacks-tree.json",
+    "--parent-exec",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "--timeout",
+    "60",
+    "--",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/bin/perf",
+    "script",
+    "--ns",
+    "--comms",
+    "runtime",
+    "-i",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-04/cpu.data"
+  ],
+  "started": 1791398792.4858959,
+  "parent_waited": true,
+  "pid": 732917,
+  "exit_code": 0,
+  "ended": 1791398793.5208938,
+  "artifacts": {
+    "stacks.stdout": "e0827fa1a85d12f3f5ae31a970714753ee7ea5ed9797e1543851a2066dbf3298",
+    "stacks.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

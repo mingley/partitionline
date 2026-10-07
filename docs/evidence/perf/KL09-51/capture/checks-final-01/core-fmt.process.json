@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "744396",
+    "cargo",
+    "+stable",
+    "fmt",
+    "--all",
+    "--",
+    "--check"
+  ],
+  "started": 1791401780.9615777,
+  "parent_waited": true,
+  "pid": 745249,
+  "exit_code": 0,
+  "ended": 1791401784.558486,
+  "artifacts": {
+    "core-fmt.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "core-fmt.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

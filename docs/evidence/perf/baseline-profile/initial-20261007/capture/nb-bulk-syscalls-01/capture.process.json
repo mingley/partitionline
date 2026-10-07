@@ -1,0 +1,37 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "735840",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/strace-tools/usr/bin/strace",
+    "-f",
+    "-ttt",
+    "-T",
+    "-s",
+    "0",
+    "-e",
+    "raw=all",
+    "-o",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/syscalls.txt",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/runtime-parent-bound",
+    "--cell",
+    "nb-produce-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/workload",
+    "--repetitions",
+    "5"
+  ],
+  "started": 1791399950.8421347,
+  "parent_waited": true,
+  "pid": 735900,
+  "exit_code": 0,
+  "ended": 1791399970.7652068,
+  "artifacts": {
+    "capture.stdout": "a85f1cd23974e800798ba3b71a97472855519d5fb3af443cff6b5ecf10b0c012",
+    "capture.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

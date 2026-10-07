@@ -1,0 +1,432 @@
+{
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "runtime_main_pid": 735903,
+  "trace_sha256": "d2426dd5063c5c7b47a453f111603dc67853802f92735e6d294e77a7845ae495",
+  "analyzer_sha256": "89c06f862bb1a513adfd2c1b9af9bae784e63126dbe22386041e969385e6f60a",
+  "phase_clock_analyzer_sha256": "0208a6cd0db65b3f6d49788b4b4f3726da7fd8616bc3827ad78dfcf5749642bf",
+  "client_lifetime_entries": 4138,
+  "excluded_client_entries": 2760,
+  "excluded_descendant_lines": 1206961,
+  "phases": [
+    {
+      "bounds_utc": {
+        "duration_seconds": 0.25583583,
+        "duration_unit": "seconds",
+        "end_time_utc": "2026-10-07T19:05:51.187310696Z",
+        "start_time_utc": "2026-10-07T19:05:50.931474605Z"
+      },
+      "entry_count": 334,
+      "calls": [
+        {
+          "syscall": "epoll_wait",
+          "count": 120,
+          "count_share_percent": 35.92814371257485,
+          "elapsed_ns": 188508000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "brk",
+          "count": 70,
+          "count_share_percent": 20.95808383233533,
+          "elapsed_ns": 3111000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "write",
+          "count": 40,
+          "count_share_percent": 11.976047904191617,
+          "elapsed_ns": 763000,
+          "successful_returned_write_bytes": 320
+        },
+        {
+          "syscall": "recvfrom",
+          "count": 26,
+          "count_share_percent": 7.7844311377245505,
+          "elapsed_ns": 1585000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "mmap",
+          "count": 21,
+          "count_share_percent": 6.287425149700598,
+          "elapsed_ns": 564000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "sendto",
+          "count": 18,
+          "count_share_percent": 5.389221556886228,
+          "elapsed_ns": 967000,
+          "successful_returned_write_bytes": 2521413
+        },
+        {
+          "syscall": "munmap",
+          "count": 9,
+          "count_share_percent": 2.694610778443114,
+          "elapsed_ns": 943000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "socket",
+          "count": 6,
+          "count_share_percent": 1.7964071856287425,
+          "elapsed_ns": 161000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "connect",
+          "count": 6,
+          "count_share_percent": 1.7964071856287425,
+          "elapsed_ns": 428000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "epoll_ctl",
+          "count": 6,
+          "count_share_percent": 1.7964071856287425,
+          "elapsed_ns": 119000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "getsockopt",
+          "count": 6,
+          "count_share_percent": 1.7964071856287425,
+          "elapsed_ns": 108000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "setsockopt",
+          "count": 6,
+          "count_share_percent": 1.7964071856287425,
+          "elapsed_ns": 109000,
+          "successful_returned_write_bytes": 0
+        }
+      ],
+      "errors": {
+        "connect:EINPROGRESS": 6
+      }
+    },
+    {
+      "bounds_utc": {
+        "duration_seconds": 0.273226337,
+        "duration_unit": "seconds",
+        "end_time_utc": "2026-10-07T19:05:54.117114269Z",
+        "start_time_utc": "2026-10-07T19:05:53.843887492Z"
+      },
+      "entry_count": 327,
+      "calls": [
+        {
+          "syscall": "epoll_wait",
+          "count": 134,
+          "count_share_percent": 40.97859327217125,
+          "elapsed_ns": 228540000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "brk",
+          "count": 76,
+          "count_share_percent": 23.24159021406728,
+          "elapsed_ns": 2653000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "write",
+          "count": 43,
+          "count_share_percent": 13.149847094801224,
+          "elapsed_ns": 641000,
+          "successful_returned_write_bytes": 344
+        },
+        {
+          "syscall": "recvfrom",
+          "count": 26,
+          "count_share_percent": 7.951070336391437,
+          "elapsed_ns": 558000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "sendto",
+          "count": 18,
+          "count_share_percent": 5.504587155963303,
+          "elapsed_ns": 887000,
+          "successful_returned_write_bytes": 2521413
+        },
+        {
+          "syscall": "socket",
+          "count": 6,
+          "count_share_percent": 1.834862385321101,
+          "elapsed_ns": 160000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "connect",
+          "count": 6,
+          "count_share_percent": 1.834862385321101,
+          "elapsed_ns": 557000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "epoll_ctl",
+          "count": 6,
+          "count_share_percent": 1.834862385321101,
+          "elapsed_ns": 92000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "getsockopt",
+          "count": 6,
+          "count_share_percent": 1.834862385321101,
+          "elapsed_ns": 77000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "setsockopt",
+          "count": 6,
+          "count_share_percent": 1.834862385321101,
+          "elapsed_ns": 80000,
+          "successful_returned_write_bytes": 0
+        }
+      ],
+      "errors": {
+        "connect:EINPROGRESS": 6
+      }
+    },
+    {
+      "bounds_utc": {
+        "duration_seconds": 0.259738941,
+        "duration_unit": "seconds",
+        "end_time_utc": "2026-10-07T19:05:59.014407439Z",
+        "start_time_utc": "2026-10-07T19:05:58.754668117Z"
+      },
+      "entry_count": 237,
+      "calls": [
+        {
+          "syscall": "epoll_wait",
+          "count": 124,
+          "count_share_percent": 52.32067510548523,
+          "elapsed_ns": 226482000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "write",
+          "count": 39,
+          "count_share_percent": 16.455696202531644,
+          "elapsed_ns": 605000,
+          "successful_returned_write_bytes": 312
+        },
+        {
+          "syscall": "recvfrom",
+          "count": 26,
+          "count_share_percent": 10.970464135021096,
+          "elapsed_ns": 470000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "sendto",
+          "count": 18,
+          "count_share_percent": 7.594936708860759,
+          "elapsed_ns": 1352000,
+          "successful_returned_write_bytes": 2521413
+        },
+        {
+          "syscall": "socket",
+          "count": 6,
+          "count_share_percent": 2.5316455696202533,
+          "elapsed_ns": 145000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "connect",
+          "count": 6,
+          "count_share_percent": 2.5316455696202533,
+          "elapsed_ns": 396000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "epoll_ctl",
+          "count": 6,
+          "count_share_percent": 2.5316455696202533,
+          "elapsed_ns": 101000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "getsockopt",
+          "count": 6,
+          "count_share_percent": 2.5316455696202533,
+          "elapsed_ns": 84000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "setsockopt",
+          "count": 6,
+          "count_share_percent": 2.5316455696202533,
+          "elapsed_ns": 116000,
+          "successful_returned_write_bytes": 0
+        }
+      ],
+      "errors": {
+        "connect:EINPROGRESS": 6
+      }
+    },
+    {
+      "bounds_utc": {
+        "duration_seconds": 0.25786989,
+        "duration_unit": "seconds",
+        "end_time_utc": "2026-10-07T19:06:03.184891927Z",
+        "start_time_utc": "2026-10-07T19:06:02.927021766Z"
+      },
+      "entry_count": 235,
+      "calls": [
+        {
+          "syscall": "epoll_wait",
+          "count": 120,
+          "count_share_percent": 51.06382978723404,
+          "elapsed_ns": 218038000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "write",
+          "count": 38,
+          "count_share_percent": 16.170212765957448,
+          "elapsed_ns": 598000,
+          "successful_returned_write_bytes": 304
+        },
+        {
+          "syscall": "recvfrom",
+          "count": 29,
+          "count_share_percent": 12.340425531914894,
+          "elapsed_ns": 1729000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "sendto",
+          "count": 18,
+          "count_share_percent": 7.659574468085107,
+          "elapsed_ns": 2353000,
+          "successful_returned_write_bytes": 2521413
+        },
+        {
+          "syscall": "socket",
+          "count": 6,
+          "count_share_percent": 2.5531914893617023,
+          "elapsed_ns": 123000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "connect",
+          "count": 6,
+          "count_share_percent": 2.5531914893617023,
+          "elapsed_ns": 332000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "epoll_ctl",
+          "count": 6,
+          "count_share_percent": 2.5531914893617023,
+          "elapsed_ns": 86000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "getsockopt",
+          "count": 6,
+          "count_share_percent": 2.5531914893617023,
+          "elapsed_ns": 75000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "setsockopt",
+          "count": 6,
+          "count_share_percent": 2.5531914893617023,
+          "elapsed_ns": 77000,
+          "successful_returned_write_bytes": 0
+        }
+      ],
+      "errors": {
+        "connect:EINPROGRESS": 6
+      }
+    },
+    {
+      "bounds_utc": {
+        "duration_seconds": 0.263334063,
+        "duration_unit": "seconds",
+        "end_time_utc": "2026-10-07T19:06:06.177337452Z",
+        "start_time_utc": "2026-10-07T19:06:05.91400301Z"
+      },
+      "entry_count": 245,
+      "calls": [
+        {
+          "syscall": "epoll_wait",
+          "count": 132,
+          "count_share_percent": 53.87755102040816,
+          "elapsed_ns": 228368000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "write",
+          "count": 41,
+          "count_share_percent": 16.73469387755102,
+          "elapsed_ns": 584000,
+          "successful_returned_write_bytes": 328
+        },
+        {
+          "syscall": "recvfrom",
+          "count": 24,
+          "count_share_percent": 9.795918367346939,
+          "elapsed_ns": 408000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "sendto",
+          "count": 18,
+          "count_share_percent": 7.346938775510204,
+          "elapsed_ns": 897000,
+          "successful_returned_write_bytes": 2521413
+        },
+        {
+          "syscall": "socket",
+          "count": 6,
+          "count_share_percent": 2.4489795918367347,
+          "elapsed_ns": 157000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "connect",
+          "count": 6,
+          "count_share_percent": 2.4489795918367347,
+          "elapsed_ns": 495000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "epoll_ctl",
+          "count": 6,
+          "count_share_percent": 2.4489795918367347,
+          "elapsed_ns": 90000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "getsockopt",
+          "count": 6,
+          "count_share_percent": 2.4489795918367347,
+          "elapsed_ns": 74000,
+          "successful_returned_write_bytes": 0
+        },
+        {
+          "syscall": "setsockopt",
+          "count": 6,
+          "count_share_percent": 2.4489795918367347,
+          "elapsed_ns": 74000,
+          "successful_returned_write_bytes": 0
+        }
+      ],
+      "errors": {
+        "connect:EINPROGRESS": 6
+      }
+    }
+  ],
+  "scope": "Actual runtime main-thread entries within measured UTC phases; no broker or RSS-sampler thread counts",
+  "limitations": [
+    "Syscall elapsed time includes blocking and ptrace overhead; it is not CPU time.",
+    "Raw arguments expose no strings, payloads, I/O-vector elements or TLS record sizes.",
+    "Byte-returning calls report actual returned bytes; file/socket descriptors are not classified.",
+    "Count share does not measure syscall CPU cost. VDSO clock reads do not appear as syscalls."
+  ]
+}

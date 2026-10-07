@@ -1,0 +1,7 @@
+Add a benchmark for ShareFetch acquisition lookup
+
+Extract the existing binary-search lookup without changing its behavior.
+Benchmark the actual production helper over1000 short ranges and5000 offsets,
+including gaps. Check delivery counts against a linear oracle, repeated and
+out-of-order offsets, empty input and integer limits. This is the measured
+parent for KL09-51; the cursor change is a separate commit.

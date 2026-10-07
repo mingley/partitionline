@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/bin/perf",
+    "report",
+    "--stdio",
+    "--header",
+    "--children",
+    "-i",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-05/cpu.data"
+  ],
+  "parent_waited": true,
+  "tool_exit_code": 0,
+  "adopted_children": [
+    {
+      "pid": 735541,
+      "exit_code": 0
+    }
+  ],
+  "children_empty": true,
+  "failure": null,
+  "elapsed_seconds": 3.3926410149870208,
+  "supervisor_pid": 735539,
+  "child_parent_death_bound": true,
+  "scope": "Owned observer tool tree; leftover resolver children joined before return"
+}

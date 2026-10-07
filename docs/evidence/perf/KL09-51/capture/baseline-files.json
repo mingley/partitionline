@@ -1,0 +1,8 @@
+[
+  "src/share.rs",
+  "src/share/acquired.rs",
+  "benchmarks/codec/Cargo.toml",
+  "benchmarks/codec/src/share-ranges.rs",
+  "benchmarks/codec/SHARE-RANGES.md",
+  "docs/plan/tasks.json"
+]

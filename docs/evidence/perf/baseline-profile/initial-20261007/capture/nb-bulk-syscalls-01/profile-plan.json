@@ -1,0 +1,41 @@
+{
+  "cell": "nb-produce-bulk",
+  "mode": "syscalls",
+  "repetitions": 5,
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "scope": "Local diagnostic profile; tool overhead excludes any throughput comparison",
+  "cpu_event": null,
+  "cpu_frequency": null,
+  "timestamp_clock": null,
+  "frame_attribution": "Must be verified from actual profile; no attribution inferred from absent symbols",
+  "profile_includes_setup": true,
+  "phase_boundaries": "Filter CPU samples by each generated actual result timestamp",
+  "syscall_scope": "Raw trace includes all descendants and setup. Isolate the recorded runtime main PID and actual measured-phase UTC intervals before counting.",
+  "syscall_argument_policy": "Raw hexadecimal arguments only; no decoded strings or packet payloads",
+  "broker_parent_death_bound": true,
+  "workload_parent_death_bound": true,
+  "tool_parent_death_bound": true,
+  "workload_pid_marker": "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/runtime.pid",
+  "command": [
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/strace-tools/usr/bin/strace",
+    "-f",
+    "-ttt",
+    "-T",
+    "-s",
+    "0",
+    "-e",
+    "raw=all",
+    "-o",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/syscalls.txt",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/runtime-parent-bound",
+    "--cell",
+    "nb-produce-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-syscalls-01/workload",
+    "--repetitions",
+    "5"
+  ],
+  "dependency_library_path": {
+    "LD_LIBRARY_PATH": "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/lib/x86_64-linux-gnu"
+  }
+}

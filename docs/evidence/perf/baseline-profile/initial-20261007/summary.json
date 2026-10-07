@@ -1,0 +1,52 @@
+{
+  "task": "KL09-13",
+  "status": "in_progress",
+  "scope": "Initial partial local CPU/syscall diagnostics; no complete hypothesis ranking",
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "cpu_event": "cpu-clock:u",
+  "frequency_hz": 997,
+  "cpu_fresh_captures": 2,
+  "repetitions_per_cpu_capture": 25,
+  "completed_analysis_sources": [
+    "nb-bulk-cpu-04 (replay of the original01 raw capture)",
+    "nb-bulk-cpu-05 (fresh capture)"
+  ],
+  "measured_client_samples": [
+    511,
+    493
+  ],
+  "unresolved_leaf_share_percent": [
+    42.857142857142854,
+    45.233265720081135
+  ],
+  "excluded_runtime_setup_samples": [
+    210,
+    192
+  ],
+  "syscall_repetitions": 5,
+  "measured_client_syscall_entries": 1378,
+  "syscall_phase_entry_counts": [
+    334,
+    327,
+    237,
+    235,
+    245
+  ],
+  "completed_capture_guards_and_owned_process_groups": true,
+  "limitations": [
+    "Only nb-produce-bulk is profiled here; other required cells and every section3 hypothesis are not ranked.",
+    "About43\u201345 percent of measured client leaf samples are unresolved in libc. The available debug package build ID differs; it was not used.",
+    "Software userspace CPU samples do not measure hardware cycles, kernel CPU or off-CPU time. Hardware events are unavailable on this host.",
+    "Inlining merges work into enclosing symbols. Missing attribution is not a measured zero or a below-one-percent rejection.",
+    "Inclusive call-chain shares overlap and cannot be added. About500 measured samples per capture do not support precise fine-grained rankings.",
+    "Syscall elapsed time includes blocking and ptrace overhead. Count share is not CPU cost. Raw arguments contain no decoded strings or payloads.",
+    "The observed libc hash/build ID was recorded after capture, not independently attested for every loaded process.",
+    "No complete ShareFetch/TLS/OIDC/native-broker profile or allocation call-site attribution is supplied.",
+    "The standalone tree-control03 passed. A prior control timed out before a receipt; it is unqualified. Control02 exposed a missing proc children file and was cleaned up by the outer owner.",
+    "Capture01 raw recording completed, but the first report left a resolver child; the owner terminated/reaped it. Replay04 uses the same raw capture and is not a third fresh sample.",
+    "Capture02 failed its clean-source guard after a control created bytecode. Capture03 failed on an existing validator filename. Both failures and the bytecode repair are retained."
+  ],
+  "new_performance_claims": false,
+  "production_qualification": false,
+  "suite_hold": "active"
+}

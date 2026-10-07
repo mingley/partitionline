@@ -1,0 +1,4 @@
+{
+  "error": "RuntimeError",
+  "message": "adapter left child processes running"
+}

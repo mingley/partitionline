@@ -1,0 +1,9 @@
+{
+  "cause": "Control test imported the pinned owner module without python -B and created an untracked bytecode cache.",
+  "original": "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/__pycache__/run-benchmark-matrix.cpython-312.pyc",
+  "retained": "/workspace/work/open-cards-20261006/baseline-profile-20261007/bytecode-from-control-01.pyc",
+  "sha256": "fb3ef634986de78e756504024e88bbbbe1158dbe2713ce90c5ca875225d988e3",
+  "tracked_files_changed": false,
+  "source_tree_clean_restored": true,
+  "failed_guard_attempt": "nb-bulk-cpu-02"
+}

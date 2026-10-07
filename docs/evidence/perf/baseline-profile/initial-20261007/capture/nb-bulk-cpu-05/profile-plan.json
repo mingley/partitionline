@@ -1,0 +1,42 @@
+{
+  "cell": "nb-produce-bulk",
+  "mode": "cpu",
+  "repetitions": 25,
+  "source_commit": "c4b915757b47fd2d6e2ab11c85a9db93c2e8ed25",
+  "scope": "Local diagnostic profile; tool overhead excludes any throughput comparison",
+  "cpu_event": "cpu-clock:u",
+  "cpu_frequency": 997,
+  "timestamp_clock": "realtime",
+  "frame_attribution": "Must be verified from actual profile; no attribution inferred from absent symbols",
+  "profile_includes_setup": true,
+  "phase_boundaries": "Filter CPU samples by each generated actual result timestamp",
+  "syscall_scope": "Whole runtime lifetime including owned broker descendants; syscall totals are not isolated client phase counts",
+  "broker_parent_death_bound": true,
+  "workload_parent_death_bound": true,
+  "tool_parent_death_bound": true,
+  "command": [
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/bin/perf",
+    "record",
+    "-e",
+    "cpu-clock:u",
+    "-F",
+    "997",
+    "--clockid",
+    "realtime",
+    "--call-graph",
+    "dwarf,16384",
+    "-o",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-05/cpu.data",
+    "--",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-05/runtime-parent-bound",
+    "--cell",
+    "nb-produce-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-05/workload",
+    "--repetitions",
+    "25"
+  ],
+  "dependency_library_path": {
+    "LD_LIBRARY_PATH": "/workspace/work/open-cards-20261006/local-baseline-20261007/perf-tools/usr/lib/x86_64-linux-gnu"
+  }
+}

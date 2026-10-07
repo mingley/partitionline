@@ -1,0 +1,14 @@
+{"arm": "parent", "repetition": 1, "ns_per_record": 12.47760122}
+{"arm": "candidate", "repetition": 1, "ns_per_record": 3.83306052}
+{"arm": "candidate", "repetition": 2, "ns_per_record": 3.73391888}
+{"arm": "parent", "repetition": 2, "ns_per_record": 11.51054304}
+{"arm": "parent", "repetition": 3, "ns_per_record": 11.54247926}
+{"arm": "candidate", "repetition": 3, "ns_per_record": 3.98177788}
+{"arm": "candidate", "repetition": 4, "ns_per_record": 3.79078246}
+{"arm": "parent", "repetition": 4, "ns_per_record": 11.8887781}
+{"arm": "parent", "repetition": 5, "ns_per_record": 11.5995786}
+{"arm": "candidate", "repetition": 5, "ns_per_record": 4.1596079}
+{"arm": "candidate", "repetition": 6, "ns_per_record": 4.00670322}
+{"arm": "parent", "repetition": 6, "ns_per_record": 12.49790254}
+{"arm": "parent", "repetition": 7, "ns_per_record": 12.09844762}
+{"arm": "candidate", "repetition": 7, "ns_per_record": 4.1949749}

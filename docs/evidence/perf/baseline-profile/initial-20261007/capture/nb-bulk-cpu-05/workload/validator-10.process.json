@@ -1,0 +1,24 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "733025",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-source-c4b915/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/nb-bulk-cpu-05/workload/nb-produce-bulk-rep18.result.json"
+  ],
+  "started": 1791399153.196413,
+  "parent_waited": true,
+  "pid": 734864,
+  "exit_code": 0,
+  "ended": 1791399153.2585938,
+  "artifacts": {
+    "validator-10.stdout": "28311165cb7c0be5607c777fd0b2866b4325e93115c7590548eab5080be795d8",
+    "validator-10.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

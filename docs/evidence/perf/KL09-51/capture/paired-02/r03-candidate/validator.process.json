@@ -1,0 +1,24 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "741741",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/share-ranges-20261007/validate-result.py",
+    "/workspace/work/open-cards-20261006/share-ranges-20261007/paired-02/r03-candidate/result.json"
+  ],
+  "started": 1791401547.9731157,
+  "parent_waited": true,
+  "pid": 742849,
+  "exit_code": 0,
+  "ended": 1791401548.0357702,
+  "artifacts": {
+    "validator.stdout": "71d7cfba19a267b2345175d0ebd144ba0072b5e59520aebb94d8a689f184d1fc",
+    "validator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

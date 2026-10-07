@@ -142,6 +142,13 @@ The measurable gaps are:
 
 ## 3. Hot-path map (source hypotheses; KL09-13 ranks them by measurement)
 
+Initial profiles of the pinned baseline are [retained here](../evidence/perf/baseline-profile/initial-20261007/README.md).
+Two fresh bulk captures contain 511 and 493 measured client CPU samples;
+42.9% and 45.2% have unresolved libc leaf symbols. A five-run trace counts
+1,378 client syscalls within the measured phases. These partial diagnostics
+leave KL09-13 open. Inlined or unresolved work and unprofiled cells do not
+support a complete ranking or a below-one-percent rejection.
+
 Line numbers are hints at `19b4399`; re-locate code by function name.
 **R** = per record, **B** = per batch, **Q** = per request.
 

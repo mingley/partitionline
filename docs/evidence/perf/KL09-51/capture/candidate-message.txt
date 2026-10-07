@@ -1,0 +1,6 @@
+Use a bounded cursor for ShareFetch acquisition lookup
+
+Reuse the current range for ordered offsets. Advance at most four ranges,
+then binary-search the remaining tail on a sparse jump. Rewind with a full
+binary search for out-of-order records. Preserve delivery counts, gaps and
+integer limits. This candidate awaits the paired KL09-51 measurements.

@@ -1,0 +1,65 @@
+{
+  "parent": {
+    "median": 12.1729236,
+    "bootstrap_95_ci": [
+      11.60366292,
+      12.72833494
+    ],
+    "values": [
+      11.7211445,
+      11.28943784,
+      12.72833494,
+      12.6853269,
+      12.1729236,
+      11.60366292,
+      12.87913244
+    ]
+  },
+  "candidate": {
+    "median": 3.91414478,
+    "bootstrap_95_ci": [
+      3.72219,
+      4.0775734
+    ],
+    "values": [
+      4.0775734,
+      4.73488062,
+      3.91414478,
+      3.76347872,
+      3.71670836,
+      3.72219,
+      3.95849578
+    ]
+  },
+  "paired_time_ratio_candidate_over_parent": {
+    "median": 0.30751428198981695,
+    "bootstrap_95_ci": [
+      0.3053258594344583,
+      0.34788184720357307
+    ],
+    "values": [
+      0.34788184720357307,
+      0.4194080065903441,
+      0.30751428198981695,
+      0.2966796795753052,
+      0.3053258594344583,
+      0.3207771568048962,
+      0.30735733159367995
+    ]
+  },
+  "bootstrap": {
+    "resamples": 20000,
+    "seed": 951,
+    "method": "Resample complete same-repetition pairs; median of candidate/parent ratios"
+  },
+  "median_time_reduction_percent": 67.84548306866888,
+  "allocations_equal": true,
+  "performance_acceptance": true,
+  "limits": [
+    "Local unsigned isolated lookup; no full ShareFetch throughput improvement inferred.",
+    "Current parent already used binary search; no historical linear-scan baseline is substituted.",
+    "Whole-child CPU/RSS receipts include fixture/oracle/warmup; they are not measured-phase guardrails.",
+    "No controlled hardware or independent reproduction; no performance leadership claim."
+  ],
+  "rows_sha256": "a7551110c2565ec79d1edd45dc42c0a72b7c7ff665b5812cd40d91672ac8bef2"
+}

@@ -1,0 +1,86 @@
+{
+  "positive_passed": true,
+  "negative_controls": [
+    {
+      "control": "wrong-cell",
+      "rejected": true,
+      "reason": "fixture differs: cell"
+    },
+    {
+      "control": "wrong-range-count",
+      "rejected": true,
+      "reason": "fixture differs: range_count"
+    },
+    {
+      "control": "wrong-offset-count",
+      "rejected": true,
+      "reason": "fixture differs: lookups_per_iteration"
+    },
+    {
+      "control": "wrong-gaps",
+      "rejected": true,
+      "reason": "fixture differs: gap_offsets_per_iteration"
+    },
+    {
+      "control": "wrong-warmup",
+      "rejected": true,
+      "reason": "fixture differs: excluded_warmup_iterations"
+    },
+    {
+      "control": "zero-count",
+      "rejected": true,
+      "reason": "invalid count/clock"
+    },
+    {
+      "control": "zero-clock",
+      "rejected": true,
+      "reason": "invalid count/clock"
+    },
+    {
+      "control": "wrong-checksum",
+      "rejected": true,
+      "reason": "actual lookup checksum differs"
+    },
+    {
+      "control": "wrong-expected",
+      "rejected": true,
+      "reason": "actual lookup checksum differs"
+    },
+    {
+      "control": "wrong-metric",
+      "rejected": true,
+      "reason": "time per lookup differs"
+    },
+    {
+      "control": "nan-metric",
+      "rejected": true,
+      "reason": "nonfinite JSON"
+    },
+    {
+      "control": "negative-census",
+      "rejected": true,
+      "reason": "invalid allocation census"
+    },
+    {
+      "control": "wrong-count-type",
+      "rejected": true,
+      "reason": "invalid count/clock"
+    },
+    {
+      "control": "negative-bytes",
+      "rejected": true,
+      "reason": "invalid allocation census"
+    },
+    {
+      "control": "duplicate-key",
+      "rejected": true,
+      "reason": "duplicate result key"
+    },
+    {
+      "control": "oversize",
+      "rejected": true,
+      "reason": "oversize measurement"
+    }
+  ],
+  "mode": "Executed validator against actual captured result and16 changed result files; function invocation, no subprocess claim"
+}

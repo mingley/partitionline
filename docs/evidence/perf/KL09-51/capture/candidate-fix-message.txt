@@ -1,0 +1,7 @@
+Make the share lookup qualification pass in a clean checkout
+
+Use checked integer conversions in the new tests. Include the independently
+generated zstd fixture set already used by the maintained decode, encode and
+fuzz tests. A clean-checkout Clippy run exposed the missing fixture; no codec
+behavior, budgets or test selectors change. Retain that failed attempt in
+the KL09-51 evidence.

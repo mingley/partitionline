@@ -1,0 +1,10 @@
+{
+  "deb": "/workspace/work/open-cards-20261006/baseline-profile-20261007/strace_6.13+ds-1_amd64.deb",
+  "deb_sha256": "cae290b67cf835350a2cde58ca332256fba475784b3e02a9a8677d73eaf47511",
+  "binary": "/workspace/work/open-cards-20261006/baseline-profile-20261007/strace-tools/usr/bin/strace",
+  "binary_sha256": "69f88291a4e47f258b8e32b089c919a247509f063ef3d6afe5389939051102b3",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "summary": "% time     seconds  usecs/call     calls    errors syscall\n------ ----------- ----------- --------- --------- ----------------\n  0.00    0.000000           0         1           read\n  0.00    0.000000           0         2           close\n  0.00    0.000000           0         2           fstat\n  0.00    0.000000           0         8           mmap\n  0.00    0.000000           0         3           mprotect\n  0.00    0.000000           0         1           munmap\n  0.00    0.000000           0         1           brk\n  0.00    0.000000           0         2           pread64\n  0.00    0.000000           0         1         1 access\n  0.00    0.000000           0         1           execve\n  0.00    0.000000           0         1           arch_prctl\n  0.00    0.000000           0         1           set_tid_address\n  0.00    0.000000           0         2           openat\n  0.00    0.000000           0         1           set_robust_list\n  0.00    0.000000           0         1           prlimit64\n  0.00    0.000000           0         1           rseq\n------ ----------- ----------- --------- --------- ----------------\n100.00    0.000000           0        29         1 total\n"
+}

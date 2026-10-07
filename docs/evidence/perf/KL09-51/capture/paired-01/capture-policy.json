@@ -1,0 +1,10 @@
+{
+  "iterations": 10000,
+  "excluded_warmup_iterations": 100,
+  "ordering": "Alternating A-B then B-A in successive pairs; both arms repeat the same deterministic fixture",
+  "primary": "ns per offset lookup",
+  "acceptance": "At least3 percent improvement and paired bootstrap95 percent CI excluding zero; no allocation increase; no guardrail regression above2 percent",
+  "candidate_commit": "56525ec1e70a527bf78e8471c669b2e09e620310",
+  "primary_cell": "micro-share-ranges",
+  "scope": "Local unsigned production-helper microbenchmark; no full ShareFetch throughput or leadership claim"
+}

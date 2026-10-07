@@ -1,0 +1,5 @@
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/share-ranges-source-candidate)
+    Finished `test` profile [unoptimized] target(s) in 13.06s
+     Running tests/fuzz_decode_smoke.rs (/workspace/work/target/debug/deps/fuzz_decode_smoke-38d047c9b6a8295c)
+     Running tests/zstd_decode.rs (/workspace/work/target/debug/deps/zstd_decode-49efe2bafea12839)
+     Running tests/zstd_encode.rs (/workspace/work/target/debug/deps/zstd_encode-960a7fecd0b7d567)

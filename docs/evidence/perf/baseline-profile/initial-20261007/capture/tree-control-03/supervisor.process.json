@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/observe-owned-tree.py",
+    "--receipt",
+    "/workspace/work/open-cards-20261006/baseline-profile-20261007/tree-control-03/tree.json",
+    "--parent-exec",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "--timeout",
+    "5",
+    "--",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-c",
+    "import os,time; child=os.fork(); os._exit(0) if child else time.sleep(30)"
+  ],
+  "started": 1791398444.5176055,
+  "parent_waited": true,
+  "pid": 731504,
+  "exit_code": 0,
+  "ended": 1791398444.8070428,
+  "artifacts": {
+    "supervisor.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "supervisor.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

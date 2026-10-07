@@ -1,0 +1,14 @@
+start share
+passed share
+start full-surface
+passed full-surface
+start zstd-fixtures
+passed zstd-fixtures
+start core-fmt
+passed core-fmt
+start bench-fmt
+passed bench-fmt
+start bench-clippy
+passed bench-clippy
+start bench-shared-tests
+passed bench-shared-tests

@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/local-baseline-20261007/parent-bound-exec.py",
+    "744396",
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "--features",
+    "zstd",
+    "--test",
+    "zstd_decode",
+    "--test",
+    "zstd_encode",
+    "--test",
+    "fuzz_decode_smoke"
+  ],
+  "started": 1791401766.126225,
+  "parent_waited": true,
+  "pid": 745087,
+  "exit_code": 0,
+  "ended": 1791401780.8438683,
+  "artifacts": {
+    "zstd-fixtures.stdout": "716c0f0bb3a096603e728749e5bf4066a0731a4c0577ee3e0fec84e235ee42e6",
+    "zstd-fixtures.stderr": "f623fcf47e72fe1a00062f02f0d0106c621b01e0afc61a79caf067d3fb8c4125"
+  }
+}
