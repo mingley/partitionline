@@ -62,3 +62,11 @@ hashes, command receipts, result-validator output, and closure receipts.
 
 These are local unsigned observations. They do not qualify a production
 configuration, compare peers, lift Suite HOLD, or establish a speed ranking.
+
+`canonical-native-views.py` retains the original native result and adds fields
+required by the JSON schema: the `kraft` mode, histogram range endpoints, and
+attempt metadata. It verifies every referenced raw artifact and executable,
+records the formatter revision, and checks both the schema and result CLI.
+Timing, resource measurements, outcomes, integrity, and percentile values stay
+unchanged. An early result that passed the CLI but lacked schema fields remains
+available alongside its corrected view.

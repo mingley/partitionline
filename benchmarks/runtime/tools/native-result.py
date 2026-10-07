@@ -73,7 +73,7 @@ def latency_stats(values):
         p99_9=quantile(999), min=values[0], max=values[-1], mean=mean, stddev=stddev,
         confidence_interval_95=dict(lower=max(0, mean-error), upper=mean+error, unit='microseconds',
             method='Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons.'),
-        raw_histogram=dict(bucket_unit='microseconds', buckets=[dict(upper_bound_us=k, count=v)
+        raw_histogram=dict(bucket_unit='microseconds', buckets=[dict(min_us=0 if k == 0 else k//2+1, max_us=k, upper_bound_us=k, count=v)
             for k,v in sorted(histogram.items())]))
 
 
@@ -168,7 +168,7 @@ def build_result(r, directory, config, rep, cohort, cell, produced, audited, cre
             toolchains=dict(compiler=r.host_observation['rustc'], build_tool=r.host_observation['cargo'],
                 runtime='Tokio 1.53.2; explicit runtime recorded from actual handle/metrics'),
             broker=dict(image='Apache Kafka distribution archive '+broker['archive_sha256'], version='4.3.1',
-                mode='Owned single-node KRaft broker/controller; acks=1 RF=1 minISR=1',
+                mode='kraft', deployment_scope='Owned single-node broker/controller; acks=1 RF=1 minISR=1',
                 cluster_id=broker['cluster'], node_count=1, endpoints=[broker['bootstrap']]),
             host=resources['host'], topology=dict(environment='loopback', rtt_ms=rtt_ms,
                 rtt_unit='milliseconds', client_nodes=1, broker_nodes=1, network_interface='lo',
@@ -204,6 +204,10 @@ def build_result(r, directory, config, rep, cohort, cell, produced, audited, cre
                 missing_ids_count=0, duplicate_ids_count=0, checksum_algorithm=identity_note,
                 payload_checksum_matches=True, unique_producer_payload_ids_checked=(cell == 'lb-bulk'))),
         repetition_history=dict(total_attempts=1, failed_attempts=int(disposition=='failed'),
-            attempts=[dict(repetition_index=rep, status='failed_capacity' if disposition=='failed' else 'passed_measurement',
+            attempts=[dict(attempt_number=1, repetition_index=rep,
+                status='failed_abort' if disposition=='failed' else 'passed_measurement',
+                failure_kind='capacity_rejection' if disposition=='failed' else None,
+                error_message='benchmark pending capacity exhausted' if disposition=='failed' else None,
+                timestamp_utc=resources['end_time_utc'], timestamp_scope='Observed workload end',
                 integrity_failure=False)]))
     return doc

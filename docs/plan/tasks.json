@@ -9754,13 +9754,29 @@
     {
       "id": "KL06-08",
       "title": "Choose the opt-in GSSAPI support boundary",
-      "priority": "P2", "kind": "decision", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "decision", "status": "in_progress", "owner": "codex-root-20261007",
       "depends_on": ["KL05-01", "KL06-01"],
       "files": ["docs/security.md", "docs/gaps.md", "Cargo.toml", "deny.toml"],
       "deliverable": "A maintainer-approved provider/backend design for enterprise Kerberos support.",
       "acceptance": ["Evaluate existing approved pure-Rust/native-provider options, licensing, MSRV, platform and credential lifecycle.", "No Cyrus/native SASL enters defaults and unsafe remains forbidden in this crate; policy exceptions require explicit approval.", "If approval/backend availability blocks implementation, keep enterprise-profile completeness blocked with a named next decision."],
       "validation": ["Review the proposed feature/dependency graph and mechanism exchange contract.", "Record backend verification and platform constraints without installing unreviewed integrations."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/security.md",
+        "docs/gaps.md",
+        "docs/gssapi-boundary.md",
+        "docs/evidence/security/gssapi-boundary/",
+        "docs/plan/evidence/KL06-08.json"
+      ],
+      "read_only_held": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "deny.toml",
+        "src/config.rs",
+        "src/protocol/sasl.rs",
+        "partitionline-broker/src/security/"
+      ],
+      "qualification_limit": "Provider/backend source review and a concrete proposal only until actual maintainer approval and isolated KDC interoperability. No default or optional provider dependency is approved by this claim."
     },
     {
       "id": "KL06-09",
@@ -34554,7 +34570,8 @@
       "status": "pending",
       "owner": null,
       "depends_on": [
-        "KL11-36"
+        "KL11-36",
+        "KL06-08"
       ],
       "files": [
         "partitionline-broker/src/security/gssapi.rs"
@@ -34569,7 +34586,12 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "qualification_notes": [
+        {
+          "scope": "The approved-backend implementation depends on the actual maintainer decision in KL06-08; a mechanism primitive alone does not approve a GSSAPI provider."
+        }
+      ]
     },
     {
       "id": "KL11-39",
