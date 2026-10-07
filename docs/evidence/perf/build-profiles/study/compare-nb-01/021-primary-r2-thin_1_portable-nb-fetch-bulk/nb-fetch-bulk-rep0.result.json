@@ -1,0 +1,283 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "allocs_per_round": 135451.0,
+    "cell_id": "nb-fetch-bulk",
+    "cpu_ns_per_round": 55968000.0,
+    "drive_mode": "fetch-verify",
+    "empty_rounds": 0,
+    "fetch_requests": 1,
+    "fetch_rounds": 1,
+    "fetched_records": 135000,
+    "flush_us_total": 0,
+    "latency_note": "per-record delivery-latency bound: the enclosing fetch() call's duration, shared by every record in the batch; empty rounds carry no latency",
+    "mismatched": 0,
+    "offsets_observed": false,
+    "per_partition_delivered": [
+      {
+        "partition": 0,
+        "records": 20000
+      }
+    ],
+    "queue_full_retries": 0,
+    "records_consumed": 20000,
+    "records_offered": 20000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/021-primary-r2-thin_1_portable-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [],
+      "total_offset_delta": 0
+    },
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+      "duplicate_ids_count": 0,
+      "end_id": 20000,
+      "expected_count": 20000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 20000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 635,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 36593664,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.020509,
+      "user_cpu_seconds": 0.08302
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 135451,
+        "allocations_per_record": 6.77255,
+        "total_allocated_bytes": 107710031,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 2798.4,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 29.499312576098045,
+      "rss": {
+        "average_rss_bytes": 13227493,
+        "baseline_rss_bytes": 5234688,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 54681600,
+        "process_peak_rss_bytes": 64225280,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.015655,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.040313
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 144089.0,
+        "unit": "microseconds",
+        "upper": 144089.0
+      },
+      "max": 144089,
+      "mean": 144089.0,
+      "min": 144089,
+      "p50": 144089.0,
+      "p90": 144089.0,
+      "p95": 144089.0,
+      "p99": 144089.0,
+      "p99_9": 144089.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 20000,
+            "upper_bound_us": 262144
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 11.661654744260625,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 105414.92487170543,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 20000,
+    "acknowledged": 0,
+    "consumed": 20000,
+    "offered": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/021-primary-r2-thin_1_portable-nb-fetch-bulk/nb-fetch-bulk-rep0.broker.json",
+        "sha256": "751ed8ff4a701885600060d278f1e89eff80ee73c06bbadafbb526fad20fcf75",
+        "size_bytes": 635,
+        "type": "broker-counts"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/021-primary-r2-thin_1_portable-nb-fetch-bulk/nb-fetch-bulk-rep0.latency-us.txt",
+        "sha256": "ecef08099129a3ef7c09c120a33145f2a908326e5d534e50b4ec91097f1f0124",
+        "size_bytes": 140000,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_1_portable/runtime",
+      "sha256": "5c2c066eb54219154befc88f4c045269a8b63d33a6c1cc430ce39a74e8401a95",
+      "size_bytes": 9852336
+    },
+    "broker": {
+      "cluster_id": "nb-serve-single",
+      "endpoints": [
+        "127.0.0.1:35203"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null-broker loopback",
+      "node_count": 1,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": null,
+        "app_delay_per_batch_ms": 0,
+        "batch_size_bytes": null,
+        "buffer_memory": null,
+        "idempotence": false,
+        "isolation": "read_uncommitted",
+        "linger_ms": null,
+        "max_bytes": null,
+        "max_in_flight": null,
+        "max_partition_fetch_bytes": null,
+        "max_poll_records": null,
+        "nodes": 1,
+        "paused_partitions": [],
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 1022,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 0,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        },
+        "seed": 4269539329,
+        "seek_offset": null,
+        "slow_delay_ms": 0,
+        "slow_node": null,
+        "synth": {
+          "abort_every": 0,
+          "codec": 0,
+          "payload_bytes": 100,
+          "records_per_batch": 500,
+          "records_per_partition": 100000,
+          "seed": 4269539329
+        },
+        "target_records": 20000,
+        "timeout_secs": 120
+      },
+      "sha256": "4c7c12d7ac42318171da1dc3ea1b16d0820399f51792fda829da908612b4a2d0"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.144,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "e852fb1a1688",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714819355442196,
+      "partition_seed": 14029467335781010694,
+      "payload_seed": 4269539329,
+      "repetition_seed": 4269539329
+    },
+    "source": {
+      "dirty_tree": false,
+      "git_branch": "HEAD",
+      "git_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+      "tree_hash": "40b84e82bcca414cd2e05aac12804108e2e39d1b"
+    },
+    "timestamps": {
+      "duration_seconds": 0.189726455,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-07T22:24:35.510384877Z",
+      "start_time_utc": "2026-10-07T22:24:35.320658122Z"
+    },
+    "toolchains": {
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "rustc 1.99.0 (b940084d7 2026-09-28)"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.023899,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "integrity_failure": false,
+        "repetition_index": 0,
+        "status": "passed_measurement"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "cell_id": "nb-fetch-bulk",
+    "equal_semantics": {
+      "isolation": "read_uncommitted"
+    },
+    "peer": "partitionline",
+    "profile": "fetch",
+    "scenario_id": "nb-fetch-bulk",
+    "tier": "exploratory"
+  },
+  "schema_version": "1.0.0",
+  "suite_hold": {
+    "status": "active"
+  }
+}

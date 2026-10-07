@@ -1,0 +1,38 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "851728",
+    "java",
+    "--add-modules",
+    "jdk.compiler",
+    "com.sun.tools.javac.Main",
+    "-source",
+    "21",
+    "-target",
+    "21",
+    "-Xlint:all",
+    "-Werror",
+    "-cp",
+    "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "-d",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/java-classes",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/RuntimeTopic.java",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/LatencyReadback.java",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/AuditAndDelete.java",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/tests/conformance/java/ConformanceBenchProduceSettings.java"
+  ],
+  "started": 1791411988.8067908,
+  "parent_waited": true,
+  "pid": 851808,
+  "exit_code": 0,
+  "ended": 1791411989.7183847,
+  "artifacts": {
+    "java-compile.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "java-compile.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

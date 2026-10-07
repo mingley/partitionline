@@ -1,0 +1,37 @@
+{
+  "label": "client-ceiling",
+  "unix_time": 1791411900,
+  "accepted_records": 20000,
+  "accepted_wire_bytes": 2520282,
+  "produce_requests": 11,
+  "fetch_requests": 0,
+  "fetched_records": 0,
+  "fetched_wire_bytes": 0,
+  "injected_errors": 0,
+  "injected_requests": 0,
+  "metadata_requests": 1,
+  "leader_mismatches": 0,
+  "modes": {
+    "nodes": 1,
+    "dead_nodes": 0,
+    "slow_node": null,
+    "slow_delay_ms": 0,
+    "fault_seed": 1592590337,
+    "fault_rate_per_million": 0
+  },
+  "validation_failures": {
+    "framing": 0,
+    "crc": 0,
+    "count": 0,
+    "sequence": 0,
+    "transactional": 0
+  },
+  "end_offsets": {
+    "nb-bulk/0": 3334,
+    "nb-bulk/1": 3334,
+    "nb-bulk/2": 3333,
+    "nb-bulk/3": 3333,
+    "nb-bulk/4": 3333,
+    "nb-bulk/5": 3333
+  }
+}

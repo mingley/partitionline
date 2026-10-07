@@ -1,0 +1,22 @@
+{
+ "baselines": {
+  "aarch64-1.98.1": {
+   "arch": "aarch64",
+   "benches": {
+    "iai_compress_gzip/text": 17896158,
+    "iai_compress_lz4/text": 1884387,
+    "iai_compress_snappy/text": 1374836,
+    "iai_crc/f03": 111880,
+    "iai_decode/f03": 554829,
+    "iai_decompress_lz4/text": 999829,
+    "iai_encode/f03": 763295,
+    "iai_request/v9": 153730
+   },
+   "git_sha": "1a40ce6",
+   "rustc": "1.98.1",
+   "valgrind": "3.24.0"
+  }
+ },
+ "tolerance_pct": 1.0,
+ "tool": "iai-callgrind 0.14.2 (callgrind Ir, --allow-aslr)"
+}

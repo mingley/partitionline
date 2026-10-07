@@ -1,0 +1,11 @@
+{
+  "commit": "7667b6d5bfe39d867359282f26084b09aaae65e8",
+  "parent": "dccd4817501454e267191c30995d79c5ceb75193",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "benchmarks/runtime/measure-runtime-flavors.py": "852440ecb33e2929d5cd4caafb0fc8aa1b65c0c3fc928f6f3138ea59e89ff97f"
+  },
+  "scope": "Review branch only; no merge or release"
+}

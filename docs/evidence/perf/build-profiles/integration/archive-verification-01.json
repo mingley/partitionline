@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "benchmarks/runtime/verify-evidence-archive.py",
+    "docs/evidence/perf/build-profiles"
+  ],
+  "observed_tool_exit_code": 0,
+  "stored_and_reconstructed_files_verified": 2474,
+  "inventory_sha256": "789551e8cdfe864f017116a202787ebcbe572157da78787b4ce6ba7c3a08e427"
+}

@@ -46,7 +46,7 @@ tracing, zstd and combined-feature builds each compiled 24 documentation example
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has 210 completed cards and 132 open cards. The client
+The task registry has 211 completed cards and 131 open cards. The client
 conformance registry has 66 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
@@ -63,6 +63,12 @@ reruns. All five 80% latency profiles contain bounded-capacity rejections. The
 [baseline evidence](evidence/perf/baseline/README.md) retains those failures and
 the missing-cell list. The [publication inventory](evidence/perf/baseline-publication.json)
 identifies the raw files retained in the original workspace.
+
+A [build-profile comparison](evidence/perf/build-profiles/README.md) now records
+LTO, codegen-unit, CPU-target and PGO variants with matched repetitions and a
+fresh baseline cohort. Native results pass the complete schema. The original
+null-broker format has recorded schema failures tracked by KL09-73. These local
+results did not change library defaults.
 
 Controlled x86_64/arm64 comparisons and independent peer reproduction remain open. Paired-run orchestration now has
 source-bound process tests and an isolated Kafka rehearsal. The miniz fallback gzip allocation

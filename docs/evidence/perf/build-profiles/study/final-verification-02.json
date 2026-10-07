@@ -1,0 +1,2649 @@
+{
+  "source_files_verified": 171,
+  "driver_source": {
+    "compiler_source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+    "driver_source_commit": "7667b6d5bfe39d867359282f26084b09aaae65e8",
+    "compiler_library_manifests_and_examples_identical": [
+      {
+        "path": "Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "benchmarks/codec/Cargo.lock",
+        "sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709"
+      },
+      {
+        "path": "benchmarks/codec/Cargo.toml",
+        "sha256": "001ccb1131cbb08e16855eb79f320d02ee2a822e0b2ac3190daccc3b83db8cd8"
+      },
+      {
+        "path": "benchmarks/codec/src/json1k-census.rs",
+        "sha256": "c3e57753496e71e80a3ce900a1166744b03c8bfb70b5868bfce1e10f1d6bb399"
+      },
+      {
+        "path": "benchmarks/codec/src/json1k.rs",
+        "sha256": "064e33b3718760b8d9a70f1defd3a1dce68e4ba78b991c6aa4f6ac3712e9c8f4"
+      },
+      {
+        "path": "benchmarks/codec/src/lib.rs",
+        "sha256": "ad8b5a6426166adf17216d13337e218fafaf8806df696c6700bd41c859a8919e"
+      },
+      {
+        "path": "benchmarks/codec/src/main.rs",
+        "sha256": "ab79bd2f918516cf5747f731e25fdc78b0e614a7af194b04a9f11bdd013f3780"
+      },
+      {
+        "path": "benchmarks/codec/src/share-ranges.rs",
+        "sha256": "c579899b154633fa0edf712765d4623ba14adeaeb082a6704067d690e7027210"
+      },
+      {
+        "path": "benchmarks/codec/src/zstd-census.rs",
+        "sha256": "c39b66ef7865f7ada0d1da1b8a28746fb959a964a6c69256cfcd2a69354688ab"
+      },
+      {
+        "path": "benchmarks/codec/src/zstd.rs",
+        "sha256": "8b3a79f59f1dcd3e2ca57b658a205697053ea3edf79837faf8af20bc4af55402"
+      },
+      {
+        "path": "benchmarks/nullbroker/Cargo.lock",
+        "sha256": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327"
+      },
+      {
+        "path": "benchmarks/nullbroker/Cargo.toml",
+        "sha256": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006"
+      },
+      {
+        "path": "benchmarks/nullbroker/src/lib.rs",
+        "sha256": "b2008e582537e0a1354abc2c223ed081e3cbed3a973d6598826486a724bfb406"
+      },
+      {
+        "path": "benchmarks/nullbroker/src/main.rs",
+        "sha256": "96fcab00f058e2838dec49d6441546f9c8aa03342ccb25644104f0e7c6284fe3"
+      },
+      {
+        "path": "benchmarks/nullbroker/src/synth.rs",
+        "sha256": "0cfd57784fd7ece239660c6a7bc01e9ccf90bf34c8d2bb32ab2a831a841777a2"
+      },
+      {
+        "path": "benchmarks/peers/rust/Cargo.lock",
+        "sha256": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01"
+      },
+      {
+        "path": "benchmarks/peers/rust/Cargo.toml",
+        "sha256": "287176ecd025628ea8118eaa27e023a2431f020ed78f2cbb3cdbe971f15f5326"
+      },
+      {
+        "path": "benchmarks/runtime/Cargo.lock",
+        "sha256": "2582dd9c3773500e878ec1f3e4da8b66dcc8fcb12d6ce8b9711fd98e65e6b077"
+      },
+      {
+        "path": "benchmarks/runtime/Cargo.toml",
+        "sha256": "55fcb0642e31013959aabb704b2e850a1df0269f0b394437364b8e21833dbbf2"
+      },
+      {
+        "path": "benchmarks/runtime/src/artifact.rs",
+        "sha256": "357766e701350957ec4c7f1c61597f49c5473c1bf72c1795e68515ee5759ab10"
+      },
+      {
+        "path": "benchmarks/runtime/src/bin/native-latency-runtime.rs",
+        "sha256": "3ffba1918bc7a3f608d46054ceac9d3afb0803e57057468c2ee2b5c17fe49140"
+      },
+      {
+        "path": "benchmarks/runtime/src/bin/native-produce-runtime.rs",
+        "sha256": "2daf9f58d27a4d0200839157c725e22b9ea461c26a732912075c511972337ae2"
+      },
+      {
+        "path": "benchmarks/runtime/src/bin/nb-serve.rs",
+        "sha256": "0a84c1ff1774feedbd7ad46a8e2526e00a4e66df67d98b5b98c7a64c1f85a74a"
+      },
+      {
+        "path": "benchmarks/runtime/src/cells.rs",
+        "sha256": "92fadd14118474d43a1cf38693d7d0c556c37f3c80e6dcc76ab9596e1f3ea22c"
+      },
+      {
+        "path": "benchmarks/runtime/src/drive.rs",
+        "sha256": "25dad0303a91d360a4ceaa5551508a7a87603c8b9c105aeacfe04607c4f5e98f"
+      },
+      {
+        "path": "benchmarks/runtime/src/executor.rs",
+        "sha256": "9f730e1872863c26f3153e08f8b32c50a1b1af704c1955c6042e8bd5c7b60aef"
+      },
+      {
+        "path": "benchmarks/runtime/src/fcells.rs",
+        "sha256": "ae9c4f6fd33ed1515580990e74cf31aecc3f9bbdccdef452be496c870b0dd63f"
+      },
+      {
+        "path": "benchmarks/runtime/src/fdrive.rs",
+        "sha256": "673e7d1b867bc176cb763dbd68bd840f9cbb6fcf040153a628961382f777a22d"
+      },
+      {
+        "path": "benchmarks/runtime/src/host.rs",
+        "sha256": "5cf1d93ea343194ff3a87139790925f2b928e8f21fbc383b8043db787d3ac535"
+      },
+      {
+        "path": "benchmarks/runtime/src/lib.rs",
+        "sha256": "bcb4b810ae8cdb6ac5364a7e2e06dce30f830c8af4492a0bdc66955ecaf57b87"
+      },
+      {
+        "path": "benchmarks/runtime/src/main.rs",
+        "sha256": "f566aaf8d5b417b4d7897b2857e5f492a27929188190d90213cbbdde6a27e0aa"
+      },
+      {
+        "path": "benchmarks/runtime/src/measure.rs",
+        "sha256": "2712277e5deb0b801fd53685651394b9f5d2d3ece38ce0763199c7601fea2030"
+      },
+      {
+        "path": "benchmarks/runtime/src/stalled_dial.rs",
+        "sha256": "abd4494e11c093dd36f72229e10c4c5a6c41a9a48adc0d101ba1354be3b335fa"
+      },
+      {
+        "path": "benchmarks/sticky-partitioner/Cargo.lock",
+        "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6"
+      },
+      {
+        "path": "benchmarks/sticky-partitioner/Cargo.toml",
+        "sha256": "ae3cf1909fbcb96accd51baf3ad35007c832d2dad0880fb8be68c3a79870ce45"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/peers/rust-adopter/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/peers/rust-adopter/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/development/rust-peer-build-attempt-1/source/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/development/rust-peer-build-attempt-1/source/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-all-features/source/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-all-features/source/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-default/source/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-default/source/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-all-features/source/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-all-features/source/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/source/Cargo.lock",
+        "sha256": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/source/Cargo.toml",
+        "sha256": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/Cargo.toml",
+        "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/Cargo.toml",
+        "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.lock",
+        "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.toml",
+        "sha256": "c8a4cffdfa614ee90b70a898a43458c0bf338ec6bcfeafa10f49e3d880e20b9c"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.lock",
+        "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+        "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-72/peers/server/Cargo.lock",
+        "sha256": "f0c4a8106df828a88a67d3d129c28c60ad16290cf4b669d53d17eaf5bbcc9d8b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-72/peers/server/Cargo.toml",
+        "sha256": "78500c7d85cb5ef152663fad7c988314a0b1a3a66b7b9e1bd47f6c6f2a0ffeb6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-75/oracle/peers/rust-adopter/Cargo.lock",
+        "sha256": "2d276042a8b3769c08fe78233107ae81e4cfc4de6242f1cefcecbcd0e494e38b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-75/oracle/peers/rust-adopter/Cargo.toml",
+        "sha256": "faf0e2d9201f2581fedbea42caf5527bc3e4b329cf1f088c83bba32d2f03e33d"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.lock",
+        "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.toml",
+        "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml",
+        "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml",
+        "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock",
+        "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6"
+      },
+      {
+        "path": "docs/evidence/client/KL05-10/performance/preparation/practical-review-02/history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml",
+        "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1"
+      },
+      {
+        "path": "docs/evidence/codecs/KL05-02/harness/Cargo.lock",
+        "sha256": "d4e8b4c4d6511ce960e06ba73a99b8d397e1bf69a3ed20f3c437a7b7ad81a4f0"
+      },
+      {
+        "path": "docs/evidence/codecs/KL05-02/harness/Cargo.toml",
+        "sha256": "246cfe8bbc68308d500528ea85c8e238f31da61d2a15b175323f9ab2309cfea8"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/execution-source/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/execution-source/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-all-01/executed-source/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-all-01/executed-source/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-default-01/executed-source/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-default-01/executed-source/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-default-02/executed-source/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/conformance/q-conf-assignreplicastodirsraw/qualification/study/sdk-default-02/executed-source/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/candidate/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/candidate/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/candidate/benchmarks/codec/Cargo.lock",
+        "sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/candidate/benchmarks/codec/Cargo.toml",
+        "sha256": "001ccb1131cbb08e16855eb79f320d02ee2a822e0b2ac3190daccc3b83db8cd8"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/parent/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/parent/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/parent/benchmarks/codec/Cargo.lock",
+        "sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-51/source/parent/benchmarks/codec/Cargo.toml",
+        "sha256": "001ccb1131cbb08e16855eb79f320d02ee2a822e0b2ac3190daccc3b83db8cd8"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/capture/fetch-verifier-src/Cargo.lock",
+        "sha256": "8e6d6749c8cfb904841401ebefed2e53b493e209647c3bb1490989e706f7915f"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/capture/fetch-verifier-src/Cargo.toml",
+        "sha256": "677be52967c3734cf9a09109a1c117f023b1ee0ab835022f52f4005d3409a8e7"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/codec/Cargo.lock",
+        "sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/codec/Cargo.toml",
+        "sha256": "ec2e7bdf7ccf5b94f8698851d1a604069df62b7d15e61cfb25b5caebf397cddb"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/nullbroker/Cargo.lock",
+        "sha256": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/nullbroker/Cargo.toml",
+        "sha256": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/runtime/Cargo.lock",
+        "sha256": "8e600b9ecb8f683f3f1ab2377b1fc8e0521b2d8cb4c8cba9d9e549ac6f5f6092"
+      },
+      {
+        "path": "docs/evidence/perf/baseline/source/benchmarks/runtime/Cargo.toml",
+        "sha256": "43d19f88e0cddab2babec0b433a7be4386c8f2b80fdb1fca485d434277ef8995"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/Cargo.lock",
+        "sha256": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/Cargo.toml",
+        "sha256": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/codec/Cargo.lock",
+        "sha256": "336af559d1114bce04fc95becbcf2281954910482cdc22c4532056656c7f6709"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/codec/Cargo.toml",
+        "sha256": "001ccb1131cbb08e16855eb79f320d02ee2a822e0b2ac3190daccc3b83db8cd8"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/nullbroker/Cargo.lock",
+        "sha256": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/nullbroker/Cargo.toml",
+        "sha256": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/runtime/Cargo.lock",
+        "sha256": "2582dd9c3773500e878ec1f3e4da8b66dcc8fcb12d6ce8b9711fd98e65e6b077"
+      },
+      {
+        "path": "docs/evidence/perf/runtime-flavors/source-17a634/benchmarks/runtime/Cargo.toml",
+        "sha256": "55fcb0642e31013959aabb704b2e850a1df0269f0b394437364b8e21833dbbf2"
+      },
+      {
+        "path": "examples/admin.rs",
+        "sha256": "114c742991f42ed83f77bf59d55239227f7ef111e33083e5dcecded9ca71ff0e"
+      },
+      {
+        "path": "examples/bench_fetch.rs",
+        "sha256": "54a716749266cfe3987b6605120837a31d874bbb97d463ce686b90ae3de3cc01"
+      },
+      {
+        "path": "examples/bench_latency.rs",
+        "sha256": "4a5806acbd84bd78bb1ec008eb401a974f296cc5f18808a05c29279ac2e3e4d9"
+      },
+      {
+        "path": "examples/bench_produce.rs",
+        "sha256": "a12b9933b5ceec8868c52565ba282255265dbe3591ebf82d88c547f60ba87403"
+      },
+      {
+        "path": "examples/common/bench_fetch_settings.rs",
+        "sha256": "fa6f91189184ed04ea84b17520992eeeb90cbd06c33d22854fa7bceee4ac3470"
+      },
+      {
+        "path": "examples/common/bench_history.rs",
+        "sha256": "31e67d77c64a90e2ea9d5c4c47c78462472006aa5fbd49fc2304515c9a45d7f4"
+      },
+      {
+        "path": "examples/common/bench_produce_settings.rs",
+        "sha256": "76f751c2f5bd713a895b118a22b6ee472db48c7609af6dacc7159abcd17b8ad1"
+      },
+      {
+        "path": "examples/common/resource_peer.rs",
+        "sha256": "e0b99821c7692b74d87828a5692badc4baf2c4a870de905e15146c500d17b50d"
+      },
+      {
+        "path": "examples/common/verifiable.rs",
+        "sha256": "03a89bbaa3c86bc88f8c74920035fcadc8d63dfd75a48ad03224b156197638f4"
+      },
+      {
+        "path": "examples/consume.rs",
+        "sha256": "4bd7517ef4c9a498424c9717ccebf52bb9bbc03c1abc20031b06efd6a75d8127"
+      },
+      {
+        "path": "examples/consume_intercept.rs",
+        "sha256": "92cde971467a0554ff8ac1af3edb0c9f0bca310e493348a2734e7622555a56f6"
+      },
+      {
+        "path": "examples/cooperative.rs",
+        "sha256": "52bc0a49a5fb30a3c6819ebc7fec81f5e8892d403d803dcc529695ed6245bc2c"
+      },
+      {
+        "path": "examples/describe_quorum.rs",
+        "sha256": "27570774bd803352c16867774e1e96f88164ca5ce8fc00bc4765e82d770d7452"
+      },
+      {
+        "path": "examples/eos.rs",
+        "sha256": "95efd25c7c40c591aada5b1f207d3396cf68a18fe1983d7bc7ca480f9bc62bde"
+      },
+      {
+        "path": "examples/group.rs",
+        "sha256": "a2e7261b9e02c52730dfa47b37758455ff1f9907ccbd11cc79584315ed56b38f"
+      },
+      {
+        "path": "examples/intercept.rs",
+        "sha256": "4341a92714c64bfe5141bbfc83897b5ae0c76579aff418487467671e9c7fa71d"
+      },
+      {
+        "path": "examples/kip848.rs",
+        "sha256": "dcee85c4e2dd97f90c00713d6ddf23293df2efb4391a5b63c09d0eb7f26cd4c0"
+      },
+      {
+        "path": "examples/metrics.rs",
+        "sha256": "a491125fe4e3af6b93bfa6620f165545db14aa6e1825d307cc75a615ea30aeb4"
+      },
+      {
+        "path": "examples/oauth.rs",
+        "sha256": "2356b66d45862d7ed43d570ade8e597cf2a30d85093cc4796f83b238d3699b17"
+      },
+      {
+        "path": "examples/offsets.rs",
+        "sha256": "e26411207c8234dc2350875418f0f1baa131b8ac7316a9d272590c6e9320b963"
+      },
+      {
+        "path": "examples/pause.rs",
+        "sha256": "87856cb483360596b7c61d7f25d689929470f2b8dc6d92b20e8503b94834b0e0"
+      },
+      {
+        "path": "examples/produce.rs",
+        "sha256": "ff77d69b6d11392b295ee7fbc2a99f0dc40b3eb7c41f7db3aa9a2e96a05a1d4f"
+      },
+      {
+        "path": "examples/produce_cancel.rs",
+        "sha256": "565e41dd83a9723901039262fc2c89b05ecbd1de53aae2f4dc10c5880d69b14a"
+      },
+      {
+        "path": "examples/resource_soak.rs",
+        "sha256": "d4ddd963c81adffd94df4996e00042fee2f596fe2a724755a588ff29a59fe587"
+      },
+      {
+        "path": "examples/roundtrip.rs",
+        "sha256": "d06f1d0eac6ee8346e4a10633eb4025fba59c5263819a2b8ee7f565b1c2fa838"
+      },
+      {
+        "path": "examples/sasl.rs",
+        "sha256": "d051fbcfcb4ca31745f6834e90ca8b59ef7470723fdf44742ddfe6348d67c5fb"
+      },
+      {
+        "path": "examples/share.rs",
+        "sha256": "00eb7d2b4d26f292178e742a39ee7e30ac4156742c47806adbb55fcd9649e89a"
+      },
+      {
+        "path": "examples/tls.rs",
+        "sha256": "6b4972eef0813ad192d086c673b17db95d724e1a5ab3b7a1fef7610a0b15b7ee"
+      },
+      {
+        "path": "examples/txn.rs",
+        "sha256": "4f123d4aa35959ca51a3e92cdd3137e2f527da075573ec8b23d6b7f28fe03ec1"
+      },
+      {
+        "path": "examples/verifiable_consumer.rs",
+        "sha256": "535d57d81acc32883f1ba99b3e9810bb8912d25ef39d80aade9f8a4d68b8d2dd"
+      },
+      {
+        "path": "examples/verifiable_producer.rs",
+        "sha256": "f1065de1a7c456deead695d3177e6e1783d539a189eb90c9de5058aff179c762"
+      },
+      {
+        "path": "examples/wakeup.rs",
+        "sha256": "ba5b150d448b1ba8b01cb6b2c0e73747bd8df4de83d03bc4c7e1a400d6620617"
+      },
+      {
+        "path": "fuzz/Cargo.lock",
+        "sha256": "4bd325689c474b38e87292f1c194d8a0addbefb86918a7423c9dc8e86e46366a"
+      },
+      {
+        "path": "fuzz/Cargo.toml",
+        "sha256": "c0a6785ce46c44d51d4622af6f0347b0c6b2cd56458b99623d5f4ff22c2ceabf"
+      },
+      {
+        "path": "partitionline-broker/Cargo.lock",
+        "sha256": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146"
+      },
+      {
+        "path": "partitionline-broker/Cargo.toml",
+        "sha256": "22fc753af7e6bc4c4dc0f99951d59bd60de5c39ea56ce767ba418eb4706f33a4"
+      },
+      {
+        "path": "partitionline-schema/Cargo.lock",
+        "sha256": "0774a868db3c31b8ab221f63be5f186193773deaaed5dd275d21ed8898008f2c"
+      },
+      {
+        "path": "partitionline-schema/Cargo.toml",
+        "sha256": "fe47662be235137595a78d4f415be770a01558bb3e37ae44355193357388fde1"
+      },
+      {
+        "path": "src/admin.rs",
+        "sha256": "6b9d8b9518f75d06372338afb820a09377165dbc83d99c3bbc890d0e8c5d3dbf"
+      },
+      {
+        "path": "src/admin/offsets.rs",
+        "sha256": "d241b411804a1f4297aa53d147695573cf9e2ce4a816e05ff8110f2ada738dce"
+      },
+      {
+        "path": "src/admin/streams.rs",
+        "sha256": "30b20faa0e6e0b067d87014734f338d67e337878044a48cef4314afeb8bf02e3"
+      },
+      {
+        "path": "src/cluster.rs",
+        "sha256": "ca51942a7f3f9ae64a8a2603f634c2bbc407e95e404412a2897178725266c3c5"
+      },
+      {
+        "path": "src/config.rs",
+        "sha256": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c"
+      },
+      {
+        "path": "src/consumer.rs",
+        "sha256": "9beaf274f90a1af9c9da79b774a47e25a0abd41e0124abe56286d9df7158d628"
+      },
+      {
+        "path": "src/error.rs",
+        "sha256": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2"
+      },
+      {
+        "path": "src/group.rs",
+        "sha256": "72a596e9a983ea5f49e571e93c5ae14c61d389fe7ae9e53f56880ba92c6b8f2b"
+      },
+      {
+        "path": "src/group/offsets.rs",
+        "sha256": "b56438f1175b101feeea51e49ab31a25e1370c98961951b9ee28e59b7d3cc22e"
+      },
+      {
+        "path": "src/interceptor.rs",
+        "sha256": "15e71dbacfc19bd5716d82ea0afd2f1f61f63e78faa2c01cef812aaf34a0d7ab"
+      },
+      {
+        "path": "src/lib.rs",
+        "sha256": "f4889fa88d0bf8fc2295b758ab4e1669c1e24483c58d3bd28613ae449c44230b"
+      },
+      {
+        "path": "src/metrics.rs",
+        "sha256": "bf0db9254b07106e15110fb70ad7bc71ce4f2a1dd32f8daccdc9c638001d76ee"
+      },
+      {
+        "path": "src/net.rs",
+        "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+      },
+      {
+        "path": "src/offsets.rs",
+        "sha256": "e5fd2f28aa6a087ca24ffcee81a7ea4c5272f94dd68061b41889d02bdbf1efad"
+      },
+      {
+        "path": "src/partitioner.rs",
+        "sha256": "b84142ce7f31f6036f4d264367f91c20a30b79d3b73870fd9dca7ee7be9aba9a"
+      },
+      {
+        "path": "src/producer.rs",
+        "sha256": "cda70c40623904750d0f265e0995c60aa43d15bfff844cc2d33bdf7a3c660691"
+      },
+      {
+        "path": "src/protocol/acl.rs",
+        "sha256": "39a9d56f0d586eaff84bd8e1f28d1d0f033a653dac46b5cdc4f2b18cef79f6f8"
+      },
+      {
+        "path": "src/protocol/admin.rs",
+        "sha256": "1a539182686f5691ff9221b87dfc46cdf0b42228a44dc1ebf0fdeb1ad5e44e71"
+      },
+      {
+        "path": "src/protocol/api.rs",
+        "sha256": "a43af6b9e08643db485787c4a2605ff09c22ed08f992b752c79c089bd848e821"
+      },
+      {
+        "path": "src/protocol/api/metadata_legacy.rs",
+        "sha256": "2028303473ee68b0f176abcbae0674efe50fcbba4bfa7bd619f15a9683075247"
+      },
+      {
+        "path": "src/protocol/api_keys.rs",
+        "sha256": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa"
+      },
+      {
+        "path": "src/protocol/buf.rs",
+        "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+      },
+      {
+        "path": "src/protocol/cgheartbeat.rs",
+        "sha256": "49311de5e97fb0e9402260c3dcea0534582952cc7c6d8777128e431c464932f4"
+      },
+      {
+        "path": "src/protocol/epoch.rs",
+        "sha256": "76ec51fd15879b027f4bd499a5b58dcac30004b63e37e8aee117367ffade143d"
+      },
+      {
+        "path": "src/protocol/fetch.rs",
+        "sha256": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed"
+      },
+      {
+        "path": "src/protocol/group.rs",
+        "sha256": "5414d679b1dcafab1d7d0d64beabad7132e80feb23a50f9c73924925c4005cfa"
+      },
+      {
+        "path": "src/protocol/group/offsets.rs",
+        "sha256": "5fd7f90962ed15c3496cba360d819d80c9c81eab03f4f5e61732fa3067fb0a4f"
+      },
+      {
+        "path": "src/protocol/header.rs",
+        "sha256": "39d3a51966bdb3d7ff580865e51c977c9e37cd2330c5e4e141b9f2729c0be8ba"
+      },
+      {
+        "path": "src/protocol/idem.rs",
+        "sha256": "ac24caf3369db13a8aac24b1debdc1a2ddd04a3413f5fd73c499a5cd4f242de0"
+      },
+      {
+        "path": "src/protocol/mod.rs",
+        "sha256": "fa09149d89ac3076dada38a0c8d0692d379d2d8b3ecf443b7161a28b3571af23"
+      },
+      {
+        "path": "src/protocol/oauth.rs",
+        "sha256": "0ce921f988b4058ad8a207cb609c920b20f9a0589da6773f57b4d090a109066f"
+      },
+      {
+        "path": "src/protocol/offsets.rs",
+        "sha256": "be167364402bf33631717a3f45685b84680c4ffbb40a7093ff60f4fe7aeb7126"
+      },
+      {
+        "path": "src/protocol/oidc.rs",
+        "sha256": "3c8bf1f299065bbb12924818aa7fd242fe607a2176a7b1639cf675f2736672a8"
+      },
+      {
+        "path": "src/protocol/records.rs",
+        "sha256": "c06f67cc1070d80d4f53f9aaeb1aac26389819fda9a0b658421afde8003b58a0"
+      },
+      {
+        "path": "src/protocol/sasl.rs",
+        "sha256": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50"
+      },
+      {
+        "path": "src/protocol/scram.rs",
+        "sha256": "ed474ed5eb62d3cd6b0865653cec6c2d033acb2be0f88a6e9af785075402636c"
+      },
+      {
+        "path": "src/protocol/share.rs",
+        "sha256": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd"
+      },
+      {
+        "path": "src/protocol/streams.rs",
+        "sha256": "6105e44169c60b0f676dc5e6f1dd6ed25666aa702ea713288521a65c01179e6d"
+      },
+      {
+        "path": "src/protocol/txn.rs",
+        "sha256": "a8c40e4c2f14354e29867c25c34d93f740546d4d9a02778d4b744d55c3da8942"
+      },
+      {
+        "path": "src/share.rs",
+        "sha256": "9c4dce7b75450c77297fd429b452e2dfafca72e2511b679311b000a5824813dc"
+      },
+      {
+        "path": "src/share/acquired.rs",
+        "sha256": "dd73b5bbe5cd2819149d412794aa206c29babe5e9c5a4e514e47c7de58bf25eb"
+      },
+      {
+        "path": "src/streams.rs",
+        "sha256": "561d307aa0aa670abe5c39e4b7a6cdae98e293d705bc4b2e3757caa6d4c1fc66"
+      },
+      {
+        "path": "tests/conformance/broker/interop/Cargo.lock",
+        "sha256": "7ca4ffda72baa65ac10cfefb8e138fd6833670d48abdc3777df1afd7f94cb959"
+      },
+      {
+        "path": "tests/conformance/broker/interop/Cargo.toml",
+        "sha256": "728e5bbb9503023c612c221654e56aa2ec895221a7a38f4d3ab146a552b2aee8"
+      },
+      {
+        "path": "tests/conformance/librdkafka/rust/Cargo.lock",
+        "sha256": "2c67770f1bee13fe774a510bdbec9f6d1105ec3adb8987d368acb6b4aa513616"
+      },
+      {
+        "path": "tests/conformance/librdkafka/rust/Cargo.toml",
+        "sha256": "5377fbb550415a45ce819bb97f5dc7ba9e66021e1cb06be8b975dad93b23aa60"
+      }
+    ],
+    "driver_files": {
+      "/workspace/work/open-cards-20261006/build-profiles-driver-7667b6/benchmarks/runtime/analyze-build-profiles.py": "9e6cf21ee9cabe45e33d1363d5b08b5b6f282712b878e873ee8c044bbe9c0d8f",
+      "/workspace/work/open-cards-20261006/build-profiles-driver-7667b6/benchmarks/runtime/measure-runtime-flavors.py": "852440ecb33e2929d5cd4caafb0fc8aa1b65c0c3fc928f6f3138ea59e89ff97f"
+    },
+    "driver_clean": true
+  },
+  "retained_result_count": 108,
+  "comparison_results": 105,
+  "instrumented_training_results": 3,
+  "positive_report_cli_invocations": 108,
+  "full_schema_native_results": 36,
+  "full_schema_all_results": 36,
+  "actual_changed_result_controls": 180,
+  "semantic_controls": 144,
+  "schema_controls": 36,
+  "waited_process_receipts": [
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/training-matrix-01/rustc.process.json",
+      "sha256": "809e25077b2c2bd5aceb5ae44a3a256a0a471d1b724592659eca9629c78d3d9b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/rustc.process.json",
+      "sha256": "c63788fb63eea82d43e6fa4cd79fcf3aaf524a79e196f5c0dc2ffb9ea4d1da01",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/comparison-matrix-01/rustc.process.json",
+      "sha256": "6c9b2feb63ab544ce6e00f9be74426ce478f9f76d8d6ddc23da49733acf7bd20",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/format.process.json",
+      "sha256": "9254d64219de63eb292be7a556e5b47690f669449e9ee41dbaa31f026c7b4c91",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/identity.process.json",
+      "sha256": "0e69ac1546764e4e2c0e3940386cba7da993c8b95ba3c415442faa8dec56897a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/java-compile.process.json",
+      "sha256": "ceb2f0d8b4a3555520ed5914e3eb0ab66ba48f40f13f119b6fafdc97d15c2a7c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/cluster-uuid.process.json",
+      "sha256": "dc6ae851349140f1c1f982ff25b34b465383db0d38e7501ae611c1059f00609f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/format.process.json",
+      "sha256": "077e900c81c09ddae312afab4e61ef55721f6aff24d7008f82ae5752a7679165",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/identity.process.json",
+      "sha256": "e94149775802976b04c843ac0867283fd212ae872d5a19ba41854d3a9fe370d2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/java-compile.process.json",
+      "sha256": "2fd4ca9055c4d664106583e3db80b34bda6d77834112177f87f4e7f5d37d410b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/cluster-uuid.process.json",
+      "sha256": "19abaffebb9e7019d9f00733c1e22c3dfd33a1c10475b2c7b0200c50b8f74699",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/rustc.process.json",
+      "sha256": "988b1d4784a0fc6fa6ada31cbd019491085b05ba7d1e46dedcb81c9e98bdfa7b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/llvm-profdata-version.process.json",
+      "sha256": "2dd0c61633e6ea1800bce4ebaea51c66dfddd4225dc331091d15acd29d6ecb01",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/show-profiles.process.json",
+      "sha256": "d950510513017e288d352f7c61dde8ebbe6ba32068e3d1b9da6bf2901556209e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/sysroot.process.json",
+      "sha256": "f17674d08c454280a6dc643d10c03745aa0e68d53b327e27bea8d5b7b00370b3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/merge-profiles.process.json",
+      "sha256": "b72a0074c8de7619353afd3d404b1ab91da80a69722c45022dbf3f7ec1eaaab9",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/rustc.process.json",
+      "sha256": "79823ea3887d58e97829d985711a13f9a8ff0bca49ee5e1167b600a13bef3b92",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/055-primary-r5-thin_1_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "3b0891076d95a15f63d06c19612e42c8ce302860ea3875f0a9c2ab73ed17b4d1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/055-primary-r5-thin_1_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "87832eca690b57cfc247606c0613e49e88a56f5b7a28400c6248eeca62289589",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/062-reproduce-r2-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "2659768471d94fe465e294a400827404597990105318f0394ab0e757541a8042",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/062-reproduce-r2-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "9b9be36533768697db705adbb0454ad4d4a8ad5421bb394df9e1ea816cbedf4b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/025-primary-r3-thin_16_native-nb-produce-bulk/runtime.process.json",
+      "sha256": "357352b00b79e99e2a45489acaf37dc07488d967ff7981f3275cfa5abd61afd9",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/025-primary-r3-thin_16_native-nb-produce-bulk/validator.process.json",
+      "sha256": "80327eecc3c1be36ebfe48ef4cf6ce8606e0f4deb264adc831cc488b6725a4dd",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/053-primary-r5-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "10f37f574b85a609e833f3d0da77d3b1d99c0742f3f82e30fdf92892919a2d89",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/053-primary-r5-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "8343fff9feb4a08270ec450b9c023fb8b1ab632df95b00f0633cda27687c38fc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/032-primary-r3-thin_1_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "16e3190c7ddba2b81a2ec236d7cf348a7081c0b93b905be8d4c3227a9d55cec2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/032-primary-r3-thin_1_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "c8e434df0a8023a1e93fdfbfdba42968d7c34a0c86d80f8aa64f1113269e3cd4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/066-reproduce-r4-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "c0848fff551ea6e62cd708d7d1aa58a275302a166cca5da203cd218dd9fffd62",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/066-reproduce-r4-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "bf0158fffd0493f31d588e9afabc5ed41a5912db08d7c548c4ff71d714d4173d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/033-primary-r3-thin_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "e6e8a2abad6fd56ddd6d625798f4d3b11130957cbd024eb81b9c4bf254abdb04",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/033-primary-r3-thin_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "ad72989f3f8361caa231635e96aa5e975ffcd6c0ace8c9fda96318b74addbce2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/040-primary-r4-thin_16_native-nb-fetch-bulk/runtime.process.json",
+      "sha256": "174fc7e4ed67ab51ac92cb9a94bd54afc05ec7737c6d3bca9e2f0b1f19acf2e0",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/040-primary-r4-thin_16_native-nb-fetch-bulk/validator.process.json",
+      "sha256": "8472f032a570cd1b7fa3626057ea819eed4f5c7fdbe9c392ed505125f99dad41",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/051-primary-r5-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "4e2b6d411f8d286dbd992301c4c8ba2cf9d533fcc31185ff2c941e48d351e5b0",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/051-primary-r5-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "045d934212fc5dfb2b7a6f37ff92c00e2bfc0dc598a18f661f391e0d0ace1407",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/016-primary-r2-pgo_use-nb-fetch-bulk/runtime.process.json",
+      "sha256": "08fea0d2fb7e53c6403659a919969f42f51355513a518ce7ce72388dcdb23bce",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/016-primary-r2-pgo_use-nb-fetch-bulk/validator.process.json",
+      "sha256": "ca328718d3e0601f46c6504af4ccaccf53946f7d91ef3f458acb360d1ad1d4f3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/047-primary-r4-thin_1_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "dde9b51aa24abc97842524a5eaebeabf7cb2f9b3a1d6feccc6b090279bf7170b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/047-primary-r4-thin_1_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "2aea8ce79e6e347f2db48524ea0d2566b9b236d6f4a0dd7c54dee75032df9e27",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/064-reproduce-r3-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "43eee3336365f9482274627ecb786c5123d55cd0dc33a62613cb72536febd987",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/064-reproduce-r3-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "cb52134c0b7962e9f2dc98b2e49e5f662679f1dd8e973b7df6a446f254835196",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/056-primary-r5-thin_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "1acae1c13c864e59af0fce3d7dbade0f6700324a9d2bb3a7e8b07a9ad7aae9ad",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/056-primary-r5-thin_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "360c38f3b88d3c6244ca46224a50507ccc832e5975ab718d8e5db510e086cd2f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/034-primary-r3-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "d1783ea9eb7d4dd8a46fc291cd473bd80068f08e5c50f21b97fda304f33c42a6",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/034-primary-r3-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "7e0f5c9d7a2f921a647b607da029f5a72b26f786fe2f391273fb23978d46c667",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/031-primary-r3-thin_1_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "cce0969175e95ebae2d38723250bca80864eab700d1850dea0fad5eeecc033c3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/031-primary-r3-thin_1_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "fc6356200b007fabef6cd351293f048d8b4ed471ecc0e1e1014051fadc815d80",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/003-primary-r1-fat_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "810ad2a2b325d6bef533f440889f12862afc255b5c8502048f6116e517d57f23",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/003-primary-r1-fat_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "a6569696c29f73f49f2d5912a428dfd3a9a241dad3b9b5002555345116bb3c34",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/035-primary-r3-thin_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "be0b3a28eed3c9aaa7b04a0e7c8938f18bf055eaf7bd64c88591bda4a50f7b20",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/035-primary-r3-thin_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "25bbd1c25738cd8af47abb28b1026b9f4b36bb3b1173995917ce3359f5108206",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/030-primary-r3-pgo_use-nb-fetch-bulk/runtime.process.json",
+      "sha256": "35e0ec571018aee862cb0fd9d5d496c1be2d71b2fb8927e77bd1eb27edb953cd",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/030-primary-r3-pgo_use-nb-fetch-bulk/validator.process.json",
+      "sha256": "ca226eada20a72b820738d4a705405490132dd1256336be74407fe435ae6e855",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/061-reproduce-r1-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "50a50d5ca0f1c1a98f133c779cf8e3ff2b9c3e1e9de08f483b4aa198aef2d884",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/061-reproduce-r1-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "ed14c259a05bda3750b8867e6910749bac56172419bb624ec88d1ff69211d2fa",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/017-primary-r2-fat_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "a9b4bbd23b8503ffa5985948449e0f063c74ff0239dac6f59bf12a54c1db72dc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/017-primary-r2-fat_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "363a2a59b7ac590788dd8e62eac0e407a3070cd3d6308451ee752c0ad07d01b2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/024-primary-r3-fat_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "a6a5ee9763b217e49b713270a28af049bfb27037f5a8b32d166c54e3993528bb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/024-primary-r3-fat_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "0386ca18c049234f0e2d56c5c65f17954ee75f338343c6c57273471acb810504",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/020-primary-r2-thin_16_native-nb-produce-bulk/runtime.process.json",
+      "sha256": "07296b116d1e6a3eba797c418b8c26fd9495406adae1b82d719fbe0120dda236",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/020-primary-r2-thin_16_native-nb-produce-bulk/validator.process.json",
+      "sha256": "b24d369f93c8f1a734345452c53e87a062023a83bddb454b506b887a591d96ed",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/039-primary-r4-thin_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "dc93f581958cf321aa1044044bcafc231651d8b02fe17facea9028e60776a0b8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/039-primary-r4-thin_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "1c7df2e9cda04d8016ed378b45e0a534b39385c5178e1c659965eadbd4bb746b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/027-primary-r3-pgo_use-nb-produce-bulk/runtime.process.json",
+      "sha256": "07813ea2ce49285fbf2e50a5cc9b4c35e047e1fa2f59b4f92b5d23dcd653c8b7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/027-primary-r3-pgo_use-nb-produce-bulk/validator.process.json",
+      "sha256": "9372fcfcd975d96e8bf003cf4fc037a0c02840e704689e97a9e2839dc8ecee4f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/046-primary-r4-thin_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "f4bbe706508f19d3fddcf730e9d073ec53dcf5e08b19ffdb6c93ea06c432e01a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/046-primary-r4-thin_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "499ab472bd3229f9c6384fa0c4dc1b89a0c33767b3969e871cf8e8256abd84b9",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/048-primary-r5-fat_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "3de6895223b25043f91a8e85d0505c3da2d5bd32eee04a8b2bcf74b12e876251",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/048-primary-r5-fat_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "da845c22a5b539a4d5c8762a56e7971292c2c755bd4109ef92a25f6c21919474",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/022-primary-r2-thin_1_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "e5f59a637a0fe844becf1781702196006c578a21cc21d09e8bbd7045ce319778",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/022-primary-r2-thin_1_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "2a5c1728622b58a700129593b532af605f052003a798c109c3358ed3b79f702c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/054-primary-r5-pgo_use-nb-fetch-bulk/runtime.process.json",
+      "sha256": "2dfd8dfe789c2c6af45dd2727ec752fdf0d33fb8e720edbd5b195e04d47bb763",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/054-primary-r5-pgo_use-nb-fetch-bulk/validator.process.json",
+      "sha256": "bb266f7e2d1318337e762a8cd272dc6307a920dde37eef5446349a12f02063b6",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/007-primary-r1-thin_1_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "cfb3e339ba82b28228b36c99bd5b29b40ae531aeaf2bf3add9208d8b1730d980",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/007-primary-r1-thin_1_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "1f44b073fb5093ad6f755591c9a9d605020a1c56727bf7b684f059590ef85f09",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/038-primary-r4-fat_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "f45f5472f1f2e62bc5d4e34f14af40acab7b415b3566d87f44e242288d406f51",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/038-primary-r4-fat_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "688a1c1eb60bc3a1d5f17e723b66bf94f98089ff5f1c7f9e70bea9a1ff13e16c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/068-reproduce-r5-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "9fa62592e64f3460d8cb4ac35f9d1c73b1b0dabfac63bf867fe94357d86662d1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/068-reproduce-r5-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "5abd1099611672ebd237743ef149e9bfb9695416d7b3aafa79a8ea3eddb8f793",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/012-primary-r2-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "f4259d01e68712abcaaa12b0242326c72d73f0aee51d987af622b7650cdde4fd",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/012-primary-r2-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "6e32944da428e59b10a3d93c9693a5e30472ea1c04c74c5840f3ccf1ec848f9b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/060-reproduce-r1-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "7a3077d6edae91652f3dc76aaef309b3717c6441b3ea0c098e8a5b90314120b1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/060-reproduce-r1-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "12a042d103785ad1d1e0db440892699c45a70b85d80589383b1a1da0ba27824d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/058-primary-r5-thin_16_native-nb-fetch-bulk/runtime.process.json",
+      "sha256": "253d037aa26a29c55a30c4aa4d9aa5bbd5463ac30e2de31444b4d9c48a9fa222",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/058-primary-r5-thin_16_native-nb-fetch-bulk/validator.process.json",
+      "sha256": "fc6ce416b5eae5e04b8f4d5c150858861fd15ad0151a29fcef43e92dbeeb58b4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/006-primary-r1-fat_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "22997c269a8a0ba711d1cad5833e75053323e726def8848786f6ed8bf0334fb1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/006-primary-r1-fat_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "c6cae10d566a421c89911ef436bb37c5ede10d388f3d0b4b88076fe45974c4bc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/018-primary-r2-thin_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "244dcab926ac1818227b0af25324a2202182e6dc8cb2c2b88cf7e3dcbb732d35",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/018-primary-r2-thin_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "b766d1b0c3420116b5b7464ac947163a0e3e443463756ed77f09b67d79f20b99",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/043-primary-r4-fat_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "c44f4d86b26b59c1e88c892535dfe5a30675ddbc0962777315a0e0cb2b3c6820",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/043-primary-r4-fat_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "0637b6ca545e44dcebbb51f3ffc852f466e40020b7a656fd3aa5fae0f2293711",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/049-primary-r5-pgo_use-nb-produce-bulk/runtime.process.json",
+      "sha256": "4c8bda30d08e5764eea8b11f59aa2d618a8377fc908901c6f727b05633f0f5f2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/049-primary-r5-pgo_use-nb-produce-bulk/validator.process.json",
+      "sha256": "d8e1c0e8768e5ae3382497467e572e1d61ad4408af3b8a0dbb2ca4e024a19fb6",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/009-primary-r1-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "e9e6ade23ec3cee6958d0559707d8979a14060174307bf9ff7a69491c7be01f8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/009-primary-r1-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "8c8bdd3cdaa6b7e539477f985f4016b41198400befeb9e4fe957a6f85f79287d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/063-reproduce-r2-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "5e76cd5afa9da51009a39a20ded734f5392548a5b401fa30eeb3a1d90b7b3535",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/063-reproduce-r2-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "dcf7f1d97552bcbc9986814a55d557b017f481ea4b9d3cadd850a9abca9844c8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/000-primary-r1-thin_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "c189e2108fc292151bb5a41ad962414f02970de31e266025a0d00ef305b0d975",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/000-primary-r1-thin_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "f7343989ed245da028a275788320f2e73efc542c6f3384b42030139be62fbaaf",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/037-primary-r4-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "bcf1a23664baa5e1026b1e541b9a0936324931a10b366ac28d65b9612f38f4f9",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/037-primary-r4-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "d13fbdd9c8788bc1862514b5387a12a1f19919a84dd1f7685076599b6f742e7f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/015-primary-r2-thin_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "535dae27b5387ddc27bb1dd57892f4491f301bedbde4eb078ac67c2da43586fb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/015-primary-r2-thin_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "2e94e37d47c1d694f0e24c90c93df28909a00e028e7d8fc41fb4c427be800ba5",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/002-primary-r1-thin_1_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "ccf77fe4d471215a4765c91dd943604e032ba63c0fc954c7c05185e3559fc67a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/002-primary-r1-thin_1_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "d1968d90de7dd7f7d67968b9dba39466bf13716d027ad0218460c0aaf77f805c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/042-primary-r4-pgo_use-nb-produce-bulk/runtime.process.json",
+      "sha256": "e855956ca0a21123ef747e4f54e4360bdd16da5d37a9c6ac60cd6cffae1305a2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/042-primary-r4-pgo_use-nb-produce-bulk/validator.process.json",
+      "sha256": "f2aa3d7b65281438bcd2178d3934853df4097f98b5e24d54af8a93054e86caec",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/019-primary-r2-pgo_use-nb-produce-bulk/runtime.process.json",
+      "sha256": "accee0c4ca0884bf05d08b9cd1a62d064be41ab7a8d04c85ad81f8518328e223",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/019-primary-r2-pgo_use-nb-produce-bulk/validator.process.json",
+      "sha256": "004be99926450899f3c99837442da12951942bc02bd587484b19747d2a99d0c3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/044-primary-r4-thin_1_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "6da7bdfddc9650aefc5c2434e1356e98c619336dd91232865c7de9237a9362ac",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/044-primary-r4-thin_1_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "705bf2ad00fdabd977d0f9a21ec2875bef80c87fe0dc9770fcc1e299c282963a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/052-primary-r5-fat_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "4bd49bc23523a5e2b2d89f27e7d7dfbaae3c6e49a314f4e024156145e0afd2c9",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/052-primary-r5-fat_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "eece9f8dd0e4c1c89291b4b984e936b9b6ac91293230b260426f8a1423f4a978",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/069-reproduce-r5-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "8e486951628d3a3f3905dff5c96441888d21b10dac4406aabaf536cad34049b4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/069-reproduce-r5-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "b88149c9be514ea1627396e90bae77c4df06ad5da2a1929c2f5b21dea0c982d3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/065-reproduce-r3-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "74256306f0b39681c820eed5c41fb5e71b4c35fb9dcb4de8455b1e97d9541003",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/065-reproduce-r3-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "b7cc5450dfd367991cb198d1ebbc85638cfecb1590bb08fd28e2bd8b2d77998b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/010-primary-r1-thin_16_native-nb-produce-bulk/runtime.process.json",
+      "sha256": "a9ea20d37c95ae90fa30f3e9142f914d0b4eedeabd795d7b03d47ecaba626cc8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/010-primary-r1-thin_16_native-nb-produce-bulk/validator.process.json",
+      "sha256": "c4e70f20387182a8a65710783cc7c4eeb0b28c5c8982be63c7b8ce195c6e7744",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/005-primary-r1-thin_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "c1d932f13f40c320976cb2d34e4ed4b632c3be6b164c4386b5ba2b6b852f5a74",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/005-primary-r1-thin_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "e08266adac26a23c27c9c5a27bdb9b69b16ece686ec581f83f50481860fb2067",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/050-primary-r5-thin_16_native-nb-produce-bulk/runtime.process.json",
+      "sha256": "80f2c321148ba9fe8e831b36d54e071066ed8fabe17c08c26637dc3807ca5c5c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/050-primary-r5-thin_16_native-nb-produce-bulk/validator.process.json",
+      "sha256": "ab98861987cd04c82bbd4808a8f7179bce9cc6ee75152d8f2e2042515352d6bc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/014-primary-r2-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "2ef5d10c19418eba51be88cd5e6a5169598b306335c46393f8a09061796187c2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/014-primary-r2-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "83f4bf58c2afa06164d300a4c26bbf8c4e3fd6ab3a97ae117cc0e89e1b3278d7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/028-primary-r3-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "10c59138c12deb44762137e023485930eb3e6d3a05c5a98d7d2aeafd4eec2aa7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/028-primary-r3-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "8b8b946504ff5e60e4cda01a72943e9d1eca9e0a2b570e69d4ba24ac9f736bb8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/011-primary-r1-pgo_use-nb-produce-bulk/runtime.process.json",
+      "sha256": "bd9ea1e4d703b7ccce84138a69526a2bbbb109483d7c5f767236ca45e5d0fb39",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/011-primary-r1-pgo_use-nb-produce-bulk/validator.process.json",
+      "sha256": "2536278b79d9caef766c2d1271279ee4f4dc46e550b4546004e51e238014f6bb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/023-primary-r2-fat_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "a083346a1224136d57a73a5a3c1b4169ede42ff6148cec435e37919d7150bd63",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/023-primary-r2-fat_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "1edf69c7274766dcc82b9440bfa24f28158576c90a092d7b7a45376cd95c68f3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/057-primary-r5-thin_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "19e9f06738d55d16c39b98e007382f41a7f35a8d1d62e9ad2bd6dfedeadf693e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/057-primary-r5-thin_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "309f8563effed55de5966a7e2629fe81509057d46af99483c03a6b4c2557e482",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/036-primary-r4-thin_16_native-nb-produce-bulk/runtime.process.json",
+      "sha256": "1bcb9597859bc9b2c93b9302755e62ab1f80cce9323431ff634a12535c3d8d72",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/036-primary-r4-thin_16_native-nb-produce-bulk/validator.process.json",
+      "sha256": "ccb9666a2b3683b65103dcbea4c627747de18e22b575f655ca68220647405ada",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/026-primary-r3-thin_16_native-nb-fetch-bulk/runtime.process.json",
+      "sha256": "d5c47918c8136f24ecf3deb7c72d425c9b58bab6c7f4e79c0a1cbe91374bd8bd",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/026-primary-r3-thin_16_native-nb-fetch-bulk/validator.process.json",
+      "sha256": "88be577a0841012b8df3201264bc109ea186c05d7b577d61dda8e463ff106d59",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/045-primary-r4-none_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "b04889a9cea921b19dcc4364e6a65ef8becbc1df853eff50724424c16e91a71f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/045-primary-r4-none_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "95a9e5b93af33de987a20ac3d63c5cf652952ae2274a05e8c541a722d0069465",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/059-primary-r5-thin_1_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "b747daae503a3e46e41b9d67d571a264dfa69f86675198b9b7a839f3c8f95777",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/059-primary-r5-thin_1_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "3c6cb2a6380bee489df00bac99f0933aabd8938210214033e7f3a880a3c88961",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/008-primary-r1-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "3570d02afaf9b4bbd7a82472fd80399effe61aa390e0649bc270c94eb67d8b75",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/008-primary-r1-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "780d1264fb7d361e9b43500305a1a9b3eec42e89766ad248034c2f3a275ab863",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/067-reproduce-r4-none_16_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "1444b847b2491aa2f3e32e787139e60db385b36bbbe64d6ac870b29839ab5385",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/067-reproduce-r4-none_16_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "a74db86b9c8f03038b2f62f7658bd1e1e7a132fc98c5d572ae5892b0b41f3209",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/004-primary-r1-pgo_use-nb-fetch-bulk/runtime.process.json",
+      "sha256": "bf6c9fc878281341762210e168682d5bf448663d4f7bdf9ce2b2e1190342aa25",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/004-primary-r1-pgo_use-nb-fetch-bulk/validator.process.json",
+      "sha256": "5aeb99c5c8736a27f9249c7b087d058dd1e1e323f977c7d7fa30fb8a7830f9ea",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/013-primary-r2-thin_16_native-nb-fetch-bulk/runtime.process.json",
+      "sha256": "897d7a7137df5adb48aaf99476f8aa42ea125cdd0e6587eaeb085214d0350859",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/013-primary-r2-thin_16_native-nb-fetch-bulk/validator.process.json",
+      "sha256": "bd1d5d5b66be5cca0a63934f468cae067b802a824af7adfd5550462eca0c381e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/021-primary-r2-thin_1_portable-nb-fetch-bulk/runtime.process.json",
+      "sha256": "8c04c95e5490a02ec4e85d7827da8a4cc093ee7541c6a0752e18efcd3048bc48",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/021-primary-r2-thin_1_portable-nb-fetch-bulk/validator.process.json",
+      "sha256": "6eb5101c0a8181eef967efc6691cf4b02de5cd40ab6206c7010f0e8618ee8231",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/029-primary-r3-fat_16_portable-nb-produce-bulk/runtime.process.json",
+      "sha256": "bc5b8891a2ea943872663fbb23731d3acb5ee4fa0dc07f4f9b93d4f24113846d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/029-primary-r3-fat_16_portable-nb-produce-bulk/validator.process.json",
+      "sha256": "3e2a8c8f811c18ef3fd0ec1e7600c15e50d47f45dde8afe10ad3800990e4a02b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/041-primary-r4-pgo_use-nb-fetch-bulk/runtime.process.json",
+      "sha256": "ac2bcf82883a13bb01d3d5fd69bc2ab552d3862d12c62f7e4215f1040617b7d5",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/041-primary-r4-pgo_use-nb-fetch-bulk/validator.process.json",
+      "sha256": "2bc5bc0f31ca092498405fc3233b2a29d48717b673c17130d74d05614601558e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/001-primary-r1-thin_16_native-nb-fetch-bulk/runtime.process.json",
+      "sha256": "4efccf3091f14c096fd758a43b8631a9e3048ce4086c225c4758b9073f48eb1d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/001-primary-r1-thin_16_native-nb-fetch-bulk/validator.process.json",
+      "sha256": "a553d559104bd43c3ee3b04ecf8c6fef6ad050abc3b08dadb2475f80a446b7e0",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/fat_16_portable/cargo-clean.process.json",
+      "sha256": "7052f3b964aa4dd57424b06c24d4e6ce09abec603c6077c86a8168fbd69a8dbd",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/fat_16_portable/cargo-build.process.json",
+      "sha256": "6d5a9a8c2191d1d7d1cb23ee7eda6aaf93a2968e914cf011dfb43fc1c0d09e1e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_16_native/cargo-clean.process.json",
+      "sha256": "51e3d9a248b157df3905dfcf4f05ca2ea690040970393ecbe545b3d76c0a9612",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_16_native/cargo-build.process.json",
+      "sha256": "594083fea0294acd7be6ad5ab9f7db90db1d7a00bd9665e60257e98dbabeca5e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_1_portable/cargo-clean.process.json",
+      "sha256": "9ed176d2d825cd11493f0e12374af5dce078ff5746bea82c5c4962222203422a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_1_portable/cargo-build.process.json",
+      "sha256": "5d7b4cff8b5c2edd1d11e49554f373eb222d77ead9f10af291e89798889b430f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/cargo-clean.process.json",
+      "sha256": "2678d6caca827c15bbe67ddc7f9f54d4ba39854ee58e983e3e8d2d5392ebae29",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/cargo-build.process.json",
+      "sha256": "afa9ca4d15a6b05b7c94d27e71b1cfab24617f50cc982a65f45c307a9619145f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_16_portable/cargo-clean.process.json",
+      "sha256": "8c92fa91cfba0685931d2ef1911cb360f8598ce11666e6555ac46b0ec6e40a0f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_16_portable/cargo-build.process.json",
+      "sha256": "c32e08e461c50217c0a7e41ccf08b2c06b5cd7e2807ad111bbf57970cb3379d3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/cargo-clean.process.json",
+      "sha256": "7e1365a6385b840b5a2058c4844b7cbf009d62303c417456078466de53ce82fb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/cargo-build.process.json",
+      "sha256": "3717407b825861dee6bdc06df62e3f4ceb21b167bb362b3f69b31965d415daaf",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/client.process.json",
+      "sha256": "2ce6507c5c42f590d6af7ee82ec14398fa5b2f2f3111dedb7441171460ef00ea",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "8b7eef7b4df0ef90272c3fa1586c854fcc589d41a886db20a4bdffa6fc13c9f2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "54acc428f1a14cae5fab8d2832d7a80d61b92a1c730e8b58480332a61da88172",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/validator.process.json",
+      "sha256": "1cd7945a13c60009005d8d189a8a3db86b657aa3d998cc3880f0722b6cd9e331",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "8b2919b18eaae6d50309286bddc8c66d4a0d1eedd8b983f72ed6dcad5894f7db",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "addfb14c914eb82327f8fbe96e89b0b8c21145748e9dc4d32b29b1a5a0ca8770",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "614c09209270235695512ddff15e42ce8b808061674d5ad4706aac230e3f00e7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "5deaebfb2a86b687d678ccc7576cbd1e24974b726f166a694d0b0da5d2df9f73",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "53065ef5b157bcfdfda48fac71bcec0a4b335e96b5f2700f2edc4946dfb33eee",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "8f132e601a20cbf68be7d927723ce5f0240816f7f13f89a198c47531e53ac530",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "a5540b1637708cec10bb930a9de264fc6242eb22326ee4c1ded23706ce40fc80",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "a76f441e8c32eb9b3fe59d829cd6b921ad0bcca4767f352558929e80535766a5",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "d480b6b2dd7bfb04cd46b6819d41075257b18f05730869479de15bbc29cace28",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "52ca82f11ea1e9d6300c51c107922498bd2399d7706b2dbff21d4fd796cf6ad7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "7db328a1a1ff4261f259ddb70b77e9fa3507b7ccf36e693633e057d37c38fc45",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "c94acf41be60cad779c9a7ba94d770364ad727dbd0b4b7022939e3a75959ba19",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "3d03fa84cb27394cb6ec79681fdcf9768b3a1a71cccc0e6aacd17a784d56f94b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "83fa938cb14851378c4f21c9130b9e5801fe82917baa9e7eb709da1f5917877f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "2678932ddea48f810a9a1782e9c464647e8ce0ed765e752ab0a1717af7617cb1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "9834f3786def25f4d467f43080815d6fb24885fa24e8cd0705f9e22e1f5b0a84",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "d2853b2efab08b651668ad7c727faafa4d00086c9129fb14b9e97aec8b464622",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "ad21bf7fddbf2f8cddedff70500f831bcf8a341e3bbefd6c69dfc665603ba4cb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "9348718957058bad6bccb1e303f72e135c95239add33ef7378721b824624f885",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "8c97089beb4f1e544b0d443e5809bd8207e3d62ee5dba3030cd539c8a23bdf29",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "0c6921b4f9bb2d2cf438a0be4f7c6a8dfd717f6e4aae0e24405b683918970851",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/client.process.json",
+      "sha256": "48c3b4e6d3754dd411e1b405cbae77f7a6af6f6fd7c7af1c61ece3d88f2567b8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "d57466858ae12c620dee912c08724a0fcafbacc7bae4fe9508dc4f0261601dbe",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/topic-create.process.json",
+      "sha256": "164098358c719b233e5d5b103baacd08532708d25a383f6b85f0adcc70d28382",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/validator.process.json",
+      "sha256": "5d5f015230934c246929f6c213a3837ed5c31e906ee944838a616651d2ff6d90",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/producer-config.process.json",
+      "sha256": "6f7d3c0a7263acb55e4b577529d1b6b88280f12285ec02bed95aa51bbd790e7d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/client.process.json",
+      "sha256": "864d4d5a988cbf32ace4072108c359d10be671077fba8651ae3de7eba3908537",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "576062d41e0c8210021f946e9f5d6dafb55cdedfc583b98e6417d62718ce3b4a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/topic-create.process.json",
+      "sha256": "c80883982ed8d4af20deca2dd04793b2e28a48bbf17d9bf5974421b997a4f74f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/validator.process.json",
+      "sha256": "b327676af7c03454cf55b5e83ebf59cda7497395555fef01c60d48c8d1d3d00f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/producer-config.process.json",
+      "sha256": "66264d961a924ed903c9abf734c5d2131431a56db50317f215e25b9df7042876",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "46662ef181f94422243688f58938c1c5a439e4c22acb702461e1ab2948d7570b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "3814f0a6e3aa4bdaeaf626946ac25b3e6211a0a2c7779b3321e1db84d731a504",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "34a4399d56f2a7e03b85ed30cbe619f057091ad205a03ceb167fcf5180f43a8f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "0cef0a6ac0b86fea534b9521d4e5e4686e2842a42da14ee8f2ea06a513fa8ce1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "2f962f409a17c9b70e0e8d756716830389f0aef8003f9b5a31d85780db9ad20d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/client.process.json",
+      "sha256": "b3ea41c3937418f026ff885e1c2327356e68f7c9bf71cacb571966443b354f02",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "63e911770989470fa83a9831c1ee4d7904c8d76196fe24565c01dd8e40efa153",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/topic-create.process.json",
+      "sha256": "e0170fa1c783788f3f3699473457f8cfb6146b08e5539d5450d4a575e5a58d61",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/validator.process.json",
+      "sha256": "7ca2ba98f6b9f674ee4e5365aa926d23bc41734f7cd9fc6355c03c9ae20596da",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/producer-config.process.json",
+      "sha256": "547c2417d1cf90b7e1e2ca2b4917bcf6dcb3a3143faf8228bf36fa28aa6d8c75",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/client.process.json",
+      "sha256": "fec0936c21a6f6fc26aa49901c16f10e539ac66363cb81a5565baa4ba49d814e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "9c64482bc820d4dcfd37a0f7cdf9dcf22dad2076f6e35dc3c1247acd7f1e19db",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "e1501ecee36d24d47ff4300b3e56c29fd84377d4df1e987b21cc0bb9038bc033",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/validator.process.json",
+      "sha256": "34d260dd839771c565e302f8e752466a4f900259bf6048b54a8c2f8c414b54c4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "4104032aeed2c1137534b3143b3cfa36e6be2babe3ed42aea5db83b1da68e0c7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/client.process.json",
+      "sha256": "afc1f466d5a475b7470e164c79b2f86c9a144502e9555b84c04fa8df92cbbdca",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "8825318f0cd1166d79e354a72f4fc8ebb21f900b87ea00aad645acb4030f7da3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/topic-create.process.json",
+      "sha256": "7999f9f9841330c6f084c0004e88d6982cc0717b3f3c2c3ee1712e688b301944",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/validator.process.json",
+      "sha256": "36aab606b9dec83600aa71fa8e7fd29dc1f24ef753865da25c1a5dfc8e7d6524",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/producer-config.process.json",
+      "sha256": "649d81aff5fdefb252422de4a8ecdace0f5b4083f7caa093515d263750db2bc2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "305f98da9096fc8883499776a13dd2c0f794b401e18026f7636e7a3d0e893131",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "d36f9dd5cbe9b561d80493bb0b1f2ae97f28c5a1f37702ec1f8f9c2034b08712",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "17f387acdf94e619b8e82d7f7df3bc2bd608a62dc0f568f3a0328b121337b515",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "6bb45728fcc95eb3fe64680644f895f0e35948b480f7d8dcf440074f3213e5a5",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "fdb4df064f33f34205fd74f298e00112948a5a5d12d68875c6a6b95f0705d8e4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/client.process.json",
+      "sha256": "af06592739f4e231ade1989c0dce014388725668e9ab38a5f5901cf9418a0caa",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "c4bb59295ffce21c3c87db9cfeac697e39bdd26ff66c718e679bcc45e9cb4b54",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/topic-create.process.json",
+      "sha256": "40297b1f61485ed1b39a18a64aab7d0a931d393acc12bf760f9f44baede2ca7b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/validator.process.json",
+      "sha256": "613215043a1708216b60fa383b975716f07a0f06545ec12818dae5418692e13c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/producer-config.process.json",
+      "sha256": "33f397d5b058214ddbfc2896b37229e3b1bf59c6c160d145824b5ed4f48ef56f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "b168fe2d39e3a5ebc94befbc82d12cc664cf6e28cd7940c03dfedeb8a8ed660c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "a0a6120d593ec3a1c5999e6e06c950fd0a8e6aca0ba446668768c07d806c7c47",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "86b80c6aea1b7136a26d3be673345a4a8886853bd445b95a2f973685a544980e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "c5f5cf16cce05b7888278e215d14225a7edf81dbedc392444b1f5a1c01002a31",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "90d742a8c5de057952f514e06b8510233d98784b3e12161622b80d2992194aff",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/client.process.json",
+      "sha256": "dbd4d8aba141e9df6ec85c19656a6d59664b4b0fb6ac4991904dd2b4ddbf2819",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "971effa7de8332d663613bb04f8eb7b10aaa7408c0570eddfe60e9403b7feedc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/topic-create.process.json",
+      "sha256": "57c03d53edcaf953e58029a6a6ab647a8f59d611926c975cf4f4b9909aab7b08",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/validator.process.json",
+      "sha256": "bfd3830a4ef97f34989a830ff30d9c8df158aa5a0933011ac20130321a0b619a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/producer-config.process.json",
+      "sha256": "9d342e221e94f2669da8600e95d6e212fa113cf9bb03080a90634ff3aa94002a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "1c7ed29c24bc8d2ee876ff36e2bd61d744d7342e9fc9490dfe12e01bc8070f72",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "5d775af54e5d9652042022c841c85d8fcea0d967fe7f60459b1f11cb0118ea0b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "ff25f4989844c3903db48b3c363d035a1025914ee27bcaaf025506c74021b658",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "54889065556188931c4c7b2a4c23686b6eb4a9934db358339717d804a2db92f4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "c024d95d5da9bb41c204ce30c602838ba007993d604e12bdd8764f7f97ec8710",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/client.process.json",
+      "sha256": "8434c29acd20e5bb2e221eccbce9dc9b31ca5e5d719cfecd02dd705b3179682e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "7afee8e416b5dfac36c2d6b3c25775abb2d16938e70a1fe43d7bc400ce27e8f7",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/topic-create.process.json",
+      "sha256": "91fb51eaab39c421ef683693fafc6b49e4c09321577f731f652cfdbac1670834",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/validator.process.json",
+      "sha256": "6a1e21cfb25c5de0ce99898ff18e76e6cb48d997345f8ad212c48accad18dda4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/producer-config.process.json",
+      "sha256": "5c62a3bdf118afa70947f7fa1cb8cb8b9fae5f4b04a22c8607f4ddab18003b50",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/client.process.json",
+      "sha256": "14f2a18972a6f3857abd70c6ab589cb05dfc54369193c79e582b7f83df540dfe",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "5646281ef6941aed7156be8c1c68a2bdce910b863188490b6ae4b971940a1204",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/topic-create.process.json",
+      "sha256": "b5ddb9daca15e488eeea55a89cddedf14d788c4eb84d91aee92e945e76b477ba",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/validator.process.json",
+      "sha256": "de4dc090207de7b4c6eb20f9d0e783b6f273fd0da403a1467d5b5ee03577ab3c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/producer-config.process.json",
+      "sha256": "9f465d4b98574bf2fe3439e3564178924771f7936fdeb22a9efaca8468f240c2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "a3f10af3f1f70e18e7371760640cc20799f9e0f33dd0e9c7476d452c39e957c2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "915d05729a0f25902e49e57815682049b834bab56b6370f05aab6632b4c55425",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "c147230e25139e684484364e8b692056361343e8fa92787480073ad53bf42480",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "3cb848934034a36f84af73a1ddb98f27e7bfac4f547219a4c98d8975539ccb75",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "c87a09e93cebe63e9576d9ee8b44d4b9fc1e67a5eed8dde8f67097307ef222ec",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "f8a933c6c593fe045c03c0e1eef08d88bb656bf67abb93d5fef02bf1de378d88",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "ac013b7c6fcb9f302e68ff4e20910314de61605a711f247d88f4d2f31c80ee73",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "b6ac711afad61bb3f73ae881ac4400fef79fbfa8a97fedcba22e6b4bd7b79a2a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "cad41acbd7c6940fa7b4a00b02cdc14c15fdbbd51d4d649392e262965f1200f8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "a2bd2a66aa68010b02f2c60425d6f34b3fbe90c1fd47106d47d09a6c517fa5bb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "29ab60f8f471ed0e33db8915ad1153184e028cf01a8490d4197f837cce53decf",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "7dcd3de113c99948295cdd0069dfc1bd15a4f090cf0212a105fe17bf42fac026",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "efbd62dc9c5fae5027a6d581bbe2680a230143d48c2e25ebef2ad587f980a238",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "e59682156de2958e24d2b8fb35b2daef9827ec10f4aadd3ca7468d0da0fc857d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "3c51a7351644802c1c96b10d71d36e1d1b1a14401d5b59eee6953388ad93e1c4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/client.process.json",
+      "sha256": "3698df28b7e006e209b9cf4e269d9a84c5e5ce33fd3b48aced94ae50de4f2d99",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "f139d3398db0b26af40dfafc92230ebc074d46bc4bfa17ff9d0cc6c7530b5801",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "b70e25d777da3a19faca97334d84316f99511d3639927fb8a42e0c7f5dbbe0eb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/validator.process.json",
+      "sha256": "8c2756bca6a24f5a77c78aac8e587255d8ab332c8ea24022b3dd1c0f07b3e208",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "23beaf97079822ffaf55412e053b0160c5a1b42320068baa25886bb3d761146f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "0acde6bede9217d0781520795578a4a3f7dfdc1730dfa268732f7fcd60299218",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "3b7df285e8bf6a6fda53302f9568e00a1ffb63651e2af0f01ce2538373181ad3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "51bcd60f16cec05a64d38d3e9e5ec83d25263432edda29d284b9ccd95a7ddc59",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "9734d667e6c7a3560e2ae93dfb07c76b1b8f284d4bf17f40110163fb7601d96d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "5abfd38dd9d5b1ea8c1a1a692d4c5ab124cf0090dc73908a9d7a0d1239184324",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/client.process.json",
+      "sha256": "a36a04a4509464666f350aa0f5aa39ccfc21e25110dcedcc127d75708f5accc3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "e5d33138d1ca92a4c83dbdd2207967f52d1074710214b19ea0c33a830a859d07",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "534a970476a586aea06c158277d1059b2d5dba8b020ff935865df75fecb69c91",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/validator.process.json",
+      "sha256": "ca31df9399bde69ab1c0c033bda0787ec8ae4564d2d633567bb3ec7a528d9e2f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "23cae1b2d1cfa9ce9b834ea6e9f2a73ea8f78679f8944e6cce0707fc97eac4c1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "252166dcbd5ed3f3468ac6e0f735f0c0610dbd754f22d13dea9ed6f254d626cb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "f96856c5ccff7823b9dd5252a08210f6e0230cbf6e4236db6a034ab65656e768",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "406ee2808e0591ae35cf7a11234e203916edcab9bb7f55967ebc2479afb9da11",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "bf14ac5b8afa02a548fc316cde230f0e60afee344b1ce64d94508166f744eb26",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "38cb8fd6d7dc7908c11908661ec7ec4b2146d46be0eaf3af7e7d940887424d6f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "608a96390ee1bbcbabd0e63939dda4d662ea9bed7d754c465e70e4943e5a317d",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "05b9423a62b4da745b2b4f49d4aa951eac097c4a97515d09d5b455522ea60673",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "c757148489cb98bc74dfa6870c5e36b03a6933598e5262c74beac42be6125ada",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "5676bc5476e932d8a2a205554d3eb8dc7e57c2aa858d0dcea8df01d0a653e17c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "c39105f30348b8ff6adb06688f0388c9f56150f92fdaf1943cebc2b2bd3cdc2a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "d40ea0091cab41c0cd79325b4d695acaaf98ac861e9e05c69e24ba746fd5d3c6",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "0adaa8f1d5403f2fe5cacb4add82b732926c5f2aea747b5dd7ecaf84bfb762bc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "ae0020d81d60620999f06bddcb3704282d70452e1e6b9866c46739f004cebb13",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "52960ec075ec8ae9f6ec7f8549134825bab6648f682099fd47861ef431658f5e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "ed2cfcfd6008941d90aba28009ffea9b3e9a8049ce80afffcf3a2e4ba1e42672",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "369619721c2a6a3f5647b57821dbb2f2563fdfb7b77a2afa49f36bef0b30a59b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "d91937c204ae30b33234db46bd48446b664a228ac4661700a55d77a9adb33a77",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "8c22a05067a480c9b7f3a6ed45d2fe8861795961bf24599a08815885f5bfc2ac",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "0827622ca8b4b3088df3d5a90a11e1afff2f2cb7fb971d38b00eb859b8b335fa",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "564b229ceab1cf1526326e7c21c0091a4a0a20ad5a43456d63c7173c7cd42c22",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "c980f6a10ff8ceb641f42ff190e2b218b1e575cfe418d558c15e94ea9ef6f9d5",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "a9569d029b07ae11355c112f00117779b3f4d4bcc5b9c8d1b766573c2d23b556",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "2f56f69e00b8986bc5e44631b74cefb1fc107b533484e1175961900020f3bffc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "1135dc9ca7b8e11ef3d6d743292a0fbb79e863a0d181acde49342fac128ad2a4",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "e639fc3fa154d600678d32be469b3afd4a1969bf37a78c709fcf6c3a15ee112a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/client.process.json",
+      "sha256": "013777297945056548f9a6bd9cf22c6c9878b4158cfc2077eb4bfb0fa64a3385",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "ef1cc6bd54496e467d37ce5dd5febee72a4004ab5aa515d6e01e943e3c3ec5eb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/topic-create.process.json",
+      "sha256": "df4e742b14a605b63a9e3e9abffd7c15e061e8d4fb7777fe0f271cac044f029c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/validator.process.json",
+      "sha256": "6dfe85c88b64fda6b16f9229bf9cf8a0047968d24e8c87a88d106f8d4fcd6a9e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/producer-config.process.json",
+      "sha256": "0cfe772327dc95ea9bb480597d4050d41b2488ceb01fdca30a52a9f957df8f27",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "1c3c9f663c2ed7643c3f61d0d5fa768810eafd9eb91b4a29ab384a9e82713349",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "7d963b953190c5d1138751fd7400e822d39cfe47d7a90e845ee8c2bf87acbbad",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "17b145883d4f36a0cb89385945606f540d8a84fd6a4984a2e7f414786e2e6bde",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "5fccd9151aeaa1767dc020b31175d1fe27abe735c72481a2af93923144d9a1b8",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "9c3eb0b92cddba8a9898d2078eaaf4c0253f051c1b09add457f4ab88039186ec",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "242b81eb2c2f0c63e1eaa178ba50e0329d29fa33a691dfb7e942abb252478f63",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "ff80a25c13d118c9b3ef2758349f33fc820d7da362e0e8bebe9f083466919b2c",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "b59b37eea5fce77051f7f0ad93d8518fd07a3b265d1664c89265188c5110b70b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "054101813942c08bb0def1975a8fc818842904040fb1465eae5dd35aad0bdf6e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "35892d96cbaad80d597e2fa1a15050259ccdee056bda8b4e9c833978dc122476",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/client.process.json",
+      "sha256": "ed196b977b89952289de0bef616c346cfdff7bfef640b5301ad6e13fdfa23093",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "781aede569da13dc9b1aeb465f0182ef9592cab8d31b45ba05608b722e827502",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "9cc9ffb210fe7998e14178da757a080cd99cc3371cf5d2b6c67e1e3fdfde3371",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/validator.process.json",
+      "sha256": "cf54616a7e90551a6a2ca6647f49621e654d9ece9b5d3479e49ddb6290ebf12a",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "abc61594c414c6045443eecaa0223b7c91a8fb29e8abba4c693d6711a5275248",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/client.process.json",
+      "sha256": "b292e0225d6bf455c418fd0728c272a5df941f8371ebab1bb22902d889a64387",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "ef3daf5304bf89af059eb52529f3eaacdc0a459d14a9847516c017447445c5f1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/topic-create.process.json",
+      "sha256": "3ae05f959d55c2f15c705456a275b6c81bb59a169f53ccfec2d1ad2097ddb25b",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/validator.process.json",
+      "sha256": "8b26046f08e0ee5b34b2dfce10874dd630909daa09c9597dfb6aaf732257b56f",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/producer-config.process.json",
+      "sha256": "1503bb70d74233f3766b985ebcc3a9e91f2b05832126e73cb9a9438f12c66469",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/client.process.json",
+      "sha256": "d0867390ffc5cca034d77080f7f65f289ed21abed2220a1c35004611ac149af1",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "cd8cd9c03f0ec2bbf336fdcb24c145f5cb9f16e90d4bb0d7c15bafba914fdaf3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/topic-create.process.json",
+      "sha256": "a78a804b3e44a7ffe2f76c6a43127aea6a64cc060d7152e1132820e2c0bf1450",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/validator.process.json",
+      "sha256": "64557feaa762b4704f05496e03106fc25117ea8e0a86880bc614ab491c8242f3",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/producer-config.process.json",
+      "sha256": "2ef13d532173bfd40abf709d3942e8b2006311c43ec125166e40ff7b3d5efb67",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/client.process.json",
+      "sha256": "e3467caf701723ceddc23fd99d481807b3e4abd48edd604dfcf595f80245889e",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/java-audit-delete.process.json",
+      "sha256": "07ae549d47c313f150be43bbc9463c900d49208e3f8d9be23aee888d4aacc879",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/topic-create.process.json",
+      "sha256": "e2012456a7a2ad592bfa782ed21079017e04cdf7396425927d0d8793ad905b85",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/validator.process.json",
+      "sha256": "8057a067037463ef436a9499699976c870f65ed213f93747370dd564844b6228",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/producer-config.process.json",
+      "sha256": "075457b283369dfbf44abd3796fc81520c9c85dd494fe304d66b26a64ef1df51",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/runtime.process.json",
+      "sha256": "7cd2162a3fab11128a59bfbf26794d9d4325e985a5f47bcb6a3dc0e73702fa60",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/validator.process.json",
+      "sha256": "dffcdf540bdb81601ee08a4af33dd32565a3986a0d3d8497c94c038326ac65da",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/runtime.process.json",
+      "sha256": "0c93c8945fc85cfe3add7ed4d02e2e16b581f83d0a47e4b510b837cb19f457a2",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/validator.process.json",
+      "sha256": "11d25857c1dcd5b5062dada5421420f9e8b0a7d4c1bf85eaae2e2ea8327eb6dc",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/cargo-clean.process.json",
+      "sha256": "62a9e3f1e874c9f8244827469558ab38871f02389e61514f8dfe77df046573cb",
+      "exit_code": 0
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/cargo-build.process.json",
+      "sha256": "ea43f5bbc0b305894d6245c03fef7e8557dd88ac529b1c6802f2f6ee025d3158",
+      "exit_code": 0
+    }
+  ],
+  "owned_broker_closures": [
+    {
+      "directory": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01",
+      "closure": {
+        "parent_waited": true,
+        "exit_code": 143,
+        "group_empty": true,
+        "adopted_children": [],
+        "supervisor_joined": true,
+        "ports": [
+          {
+            "port": 57717,
+            "reusable": true
+          },
+          {
+            "port": 52057,
+            "reusable": true
+          }
+        ]
+      }
+    },
+    {
+      "directory": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01",
+      "closure": {
+        "parent_waited": true,
+        "exit_code": 143,
+        "group_empty": true,
+        "adopted_children": [],
+        "supervisor_joined": true,
+        "ports": [
+          {
+            "port": 55417,
+            "reusable": true
+          },
+          {
+            "port": 37319,
+            "reusable": true
+          }
+        ]
+      }
+    }
+  ],
+  "native_independently_verified_records": 288360000,
+  "comparison_native_verified_records": 280350000,
+  "profile_merge": {
+    "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+    "raws": [
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw",
+        "sha256": "ccdacb5110b5b0b318991b9613758c46fdca8c5cb5a61ded32a2b0eb011b1319"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw",
+        "sha256": "85d5968bd1f07745285d13a5457b3b0b00d60970608257d5798109e2d9cae8ee"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw",
+        "sha256": "156a83dc7c5dce5be079ab0aa5d810c9de669078948b3a57b3dd4e2a47ab3dae"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw",
+        "sha256": "53827c57463cff1c3dff567266f30dee3bbd7a8c1af08a90132dd9adbee2e203"
+      }
+    ],
+    "merged": {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/merged.profdata",
+      "sha256": "4771e534ca8f81c14151546a83953cd3e8f2b973914562fb6def47a401651405"
+    },
+    "llvm_version": "LLVM (http://llvm.org/):\n  LLVM version 23.1.1-rust-1.99.0-stable\n  Optimized build.\n",
+    "inputs": {
+      "/workspace/work/open-cards-20261006/build-profiles-20261007/source-pins-01.json": "d3de7a0d39c56e6e7a410217a38824cac9075969d8784ec68b9e9aadaeb35fbf",
+      "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/measure-build-profiles.py": "ff4e34c827e12565a37073de21d92d7368745e253ef85b78765899c83bb94cb3",
+      "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw": "ccdacb5110b5b0b318991b9613758c46fdca8c5cb5a61ded32a2b0eb011b1319",
+      "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw": "85d5968bd1f07745285d13a5457b3b0b00d60970608257d5798109e2d9cae8ee",
+      "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw": "156a83dc7c5dce5be079ab0aa5d810c9de669078948b3a57b3dd4e2a47ab3dae",
+      "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw": "53827c57463cff1c3dff567266f30dee3bbd7a8c1af08a90132dd9adbee2e203",
+      "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata": "d70a42ea1a575e6c55878aa2b46b9b1dd7b3c97ca24fac52fa07ce1f260a5ada"
+    }
+  },
+  "scope": "Local exploratory source-bound compiler-profile measurements; training excluded from comparisons.",
+  "previous_verification_sha256": "50f3a06bf2f22a23a785607e891582fd8b05d7273df44fc2dd4eb091fe04b94e",
+  "analysis_source_commit": "8d32f523dd98611e8f503dcc5667553ab8107327",
+  "analysis_sha256": "1137ccbc71e039f38c727441881a6b964fd046ce5f8f88e23ae864cc11ef8dc1",
+  "analysis_actual_matrix_controls": 4,
+  "analysis_owned_process_receipts": [
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/changed_artifact_hash/reject.process.json",
+      "sha256": "0e63c7dc00bbef8f4891940a9d7a6eae9d9c5bc4e833f95a7683cae84d15f0bb",
+      "exit_code": 1
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/changed_build_binding/reject.process.json",
+      "sha256": "2ffe0195a33a51a0420d33190af091210ba2ddac4c9ce8c80e832ac025d95a27",
+      "exit_code": 1
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/instrumented_comparison/reject.process.json",
+      "sha256": "941926d219312bc212e25f52662fd0c75b1109bfa1a9ee9a589202567bb2a058",
+      "exit_code": 1
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/missing_repetition/reject.process.json",
+      "sha256": "ee6e7a8f289da55ae239d31ddf180b9b7c1b7d222b9924f668e982b4135c9e05",
+      "exit_code": 1
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/positive.process.json",
+      "sha256": "e693bfa6315b4fa3fc682ce21c289d321573714158e2fee42f62388e271426a1",
+      "exit_code": 0
+    }
+  ],
+  "total_waited_command_receipts": 360,
+  "expected_negative_analysis_exits": 4
+}

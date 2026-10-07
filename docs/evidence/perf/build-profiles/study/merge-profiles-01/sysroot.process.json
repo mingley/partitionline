@@ -1,0 +1,21 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "836375",
+    "rustc",
+    "+stable",
+    "--print",
+    "sysroot"
+  ],
+  "started": 1791411700.9060986,
+  "parent_waited": true,
+  "pid": 836470,
+  "exit_code": 0,
+  "ended": 1791411700.9483054,
+  "artifacts": {
+    "sysroot.stdout": "ca1e931883234c084a36be16b497420db4cad97d12844f2fe73a75d3d5e81e2f",
+    "sysroot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

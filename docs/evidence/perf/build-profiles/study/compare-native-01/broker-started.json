@@ -1,0 +1,10 @@
+{
+  "pid": 852671,
+  "cluster": "Q1PkkSxLRZq9_QW9bDXCyA",
+  "bootstrap": "127.0.0.1:55417",
+  "archive_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+  "ports": [
+    55417,
+    37319
+  ]
+}

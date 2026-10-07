@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "864088",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-analysis-8d32f5/benchmarks/runtime/analyze-build-profiles.py",
+    "--nb",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/instrumented_comparison/nb",
+    "--native",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/instrumented_comparison/native",
+    "--output",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/instrumented_comparison/must-not-exist.json"
+  ],
+  "started": 1791413859.8088248,
+  "parent_waited": true,
+  "pid": 864396,
+  "exit_code": 1,
+  "ended": 1791413859.8707213,
+  "artifacts": {
+    "reject.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reject.stderr": "a265f070ed5c4cd49ab53e724f40ec11d8ddff2e22e184bffbb41b51d4353c0e"
+  }
+}

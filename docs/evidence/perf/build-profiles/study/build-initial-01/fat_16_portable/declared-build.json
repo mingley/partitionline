@@ -1,0 +1,19 @@
+{
+  "lto": "fat",
+  "codegen_units": 16,
+  "target_cpu": "x86-64",
+  "pgo": null,
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+    "CARGO_PROFILE_RELEASE_LTO": "fat",
+    "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "16",
+    "CARGO_PROFILE_RELEASE_DEBUG": "0",
+    "CARGO_PROFILE_RELEASE_STRIP": "none",
+    "RUSTFLAGS": "-C target-cpu=x86-64"
+  },
+  "target": "x86_64-unknown-linux-gnu",
+  "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "profile_data_sha256": null
+}

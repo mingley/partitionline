@@ -1,0 +1,5 @@
+[
+  "benchmarks/runtime/measure-runtime-flavors.py",
+  "benchmarks/runtime/analyze-build-profiles.py",
+  "docs/plan/tasks.json"
+]

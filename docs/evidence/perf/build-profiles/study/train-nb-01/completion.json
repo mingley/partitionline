@@ -1,0 +1,9 @@
+{
+  "status": "recorded",
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "repetitions": 1,
+  "source_guards_passed": true,
+  "owned_process_groups_empty": true,
+  "rows": 2
+}

@@ -1,0 +1,27 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "864590",
+    "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata",
+    "merge",
+    "--failure-mode=all",
+    "-o",
+    "/workspace/partitionline/docs/evidence/perf/build-profiles/integration/strict-merge-01/previous-all-corrupt.profdata",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw",
+    "/workspace/partitionline/docs/evidence/perf/build-profiles/integration/strict-merge-01/captured-profile-truncated.profraw"
+  ],
+  "started": 1791414651.8662174,
+  "parent_waited": true,
+  "pid": 864597,
+  "exit_code": 0,
+  "ended": 1791414652.0908267,
+  "artifacts": {
+    "previous-all-corrupt.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "previous-all-corrupt.stderr": "e40cb796c804769d0208fa3c2adb1eb1b8e16dc83ce90bddc49dd6d6048259ef"
+  }
+}

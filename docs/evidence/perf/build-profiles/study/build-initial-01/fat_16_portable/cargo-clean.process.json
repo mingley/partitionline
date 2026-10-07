@@ -1,0 +1,24 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "817827",
+    "cargo",
+    "+stable",
+    "clean",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/Cargo.toml",
+    "--target-dir",
+    "/workspace/work/target-build-profiles-20261007"
+  ],
+  "started": 1791411338.5578191,
+  "parent_waited": true,
+  "pid": 825527,
+  "exit_code": 0,
+  "ended": 1791411338.6421857,
+  "artifacts": {
+    "cargo-clean.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cargo-clean.stderr": "635b4c003c42aef6d72bc894b57920644410d45e80a8050d989c1976d09d095d"
+  }
+}

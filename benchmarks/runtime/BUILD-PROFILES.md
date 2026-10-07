@@ -17,7 +17,7 @@ train PGO on null produce, null fetch and native bulk. Every raw profile is
 retained and hash-bound to the merged profile passed to the final compiler.
 Training results are diagnostics, not comparison candidates.
 
-The planned comparison has five interleaved repetitions per profile and cell,
+The completed comparison has five interleaved repetitions per profile and cell,
 plus five fresh portable-baseline repetitions. Null-broker cells retain their
 20,000-record fixtures; native bulk retains eight million timed records and
 10,000 warmup records. Actual durations and warmup observations are recorded.
@@ -41,5 +41,7 @@ defaults.
 
 Profile gains are specific to this host, workload and instrumentation. The
 native target is not portable to every x86_64 machine. PGO may help its training
-workloads and regress others. The evidence card stays open until the complete
-matrix, report validation and reproduction are retained.
+workloads and regress others. The [recorded comparison](../../docs/evidence/perf/build-profiles/README.md)
+retains the complete matrix, report validation and fresh baseline cohort.
+All native results pass the complete schema; original null-broker results have
+recorded schema failures tracked by KL09-73. No library defaults were changed.

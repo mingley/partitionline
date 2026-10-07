@@ -1,0 +1,3 @@
+Prepare source-bound benchmark build-profile experiments
+
+Add owned compiler, profile merge and matrix stages for stable Rust with fixed broker builds and current-thread clients. Allow explicit training cohorts and bulk-only native runs without changing runtime-flavor defaults, library source, manifests or benchmark examples. Keep KL09-62 open until measurements and reproduction are qualified.

@@ -1,0 +1,26 @@
+usage: measure-build-profiles.py [-h] --source SOURCE --source-pins
+                                 SOURCE_PINS --output OUTPUT --commit COMMIT
+                                 [--target-dir TARGET_DIR]
+                                 [--only {initial,pgo_use}]
+                                 [--profile-data PROFILE_DATA] [--training]
+                                 [--build-manifest BUILD_MANIFEST]
+                                 [--training-directory TRAINING_DIRECTORY]
+                                 {build,matrix,merge}
+
+Build source-bound benchmark profiles and assemble their measurement matrix.
+
+positional arguments:
+  {build,matrix,merge}
+
+options:
+  -h, --help            show this help message and exit
+  --source SOURCE
+  --source-pins SOURCE_PINS
+  --output OUTPUT
+  --commit COMMIT
+  --target-dir TARGET_DIR
+  --only {initial,pgo_use}
+  --profile-data PROFILE_DATA
+  --training
+  --build-manifest BUILD_MANIFEST
+  --training-directory TRAINING_DIRECTORY

@@ -1,0 +1,1190 @@
+[
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/000-primary-r1-fat_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/001-primary-r1-thin_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/003-primary-r1-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/004-primary-r1-thin_16_native-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/005-primary-r1-pgo_use-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/006-primary-r2-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/007-primary-r2-pgo_use-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/008-primary-r2-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/009-primary-r2-thin_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/010-primary-r2-fat_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/011-primary-r2-thin_16_native-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/012-primary-r3-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/013-primary-r3-thin_16_native-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/015-primary-r3-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/016-primary-r3-fat_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/017-primary-r3-thin_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/018-primary-r4-thin_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/019-primary-r4-pgo_use-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/020-primary-r4-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/021-primary-r4-fat_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/022-primary-r4-thin_16_native-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/023-primary-r4-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/024-primary-r5-thin_16_native-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/025-primary-r5-fat_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/026-primary-r5-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/028-primary-r5-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/029-primary-r5-thin_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/030-reproduce-r1-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/031-reproduce-r2-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/032-reproduce-r3-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/033-reproduce-r4-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  },
+  {
+    "control": "watermark",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: broker high-watermark offset delta (7999999) does not match acknowledged record count (8000000). Every acknowledged record must be independently proven by log end offset deltas."
+    ]
+  },
+  {
+    "control": "identity",
+    "rejected": true,
+    "errors": [
+      "Integrity check failed: verified record IDs (7999999) != expected (8000000)"
+    ]
+  },
+  {
+    "control": "acks",
+    "rejected": true,
+    "errors": [
+      "Mismatched acks: scenario equal_semantics requires acks=1, but client effective_settings configured acks=-1."
+    ]
+  },
+  {
+    "control": "runtime",
+    "rejected": true
+  },
+  {
+    "control": "schema-broker-mode",
+    "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/034-reproduce-r5-none_16_portable-lb-bulk-0/lb-bulk.result.json",
+    "rejected": true,
+    "errors": [
+      "'unqualified-mode' is not one of ['kraft', 'zookeeper']"
+    ]
+  }
+]

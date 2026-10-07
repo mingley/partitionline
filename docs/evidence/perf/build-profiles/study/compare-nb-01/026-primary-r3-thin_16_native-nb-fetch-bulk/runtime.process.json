@@ -1,0 +1,31 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "840070",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/thin_16_native/runtime",
+    "--cell",
+    "nb-fetch-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/026-primary-r3-thin_16_native-nb-fetch-bulk",
+    "--repetitions",
+    "1",
+    "--runtime",
+    "current_thread",
+    "--workers",
+    "0"
+  ],
+  "started": 1791411883.459168,
+  "parent_waited": true,
+  "pid": 844469,
+  "exit_code": 0,
+  "ended": 1791411883.8641894,
+  "artifacts": {
+    "runtime.stdout": "393d396212e434f905c6cd5c2dcee635da615eb632a23f4824c895e933159f0c",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

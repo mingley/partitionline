@@ -1,0 +1,8 @@
+{
+  "status": "failed_before_manifest_creation",
+  "observed_tool_exit_code": 1,
+  "working_directory": "/workspace/partitionline/docs/evidence/perf/build-profiles",
+  "error": "FileNotFoundError: docs/evidence/perf/build-profiles/README.md; sha256sum: SHA256SUMS: No such file or directory",
+  "reason": "Repository-relative Python paths were used with the evidence directory as cwd.",
+  "measured_evidence_changed": false
+}

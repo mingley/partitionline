@@ -1,0 +1,31 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "840070",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/runtime",
+    "--cell",
+    "nb-fetch-bulk",
+    "--out",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/004-primary-r1-pgo_use-nb-fetch-bulk",
+    "--repetitions",
+    "1",
+    "--runtime",
+    "current_thread",
+    "--workers",
+    "0"
+  ],
+  "started": 1791411846.9924936,
+  "parent_waited": true,
+  "pid": 840833,
+  "exit_code": 0,
+  "ended": 1791411847.3774023,
+  "artifacts": {
+    "runtime.stdout": "151f9b2e080719a49b91f877f411bdaee3cb0325b5e41a38fc3dd6f024b0ed04",
+    "runtime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

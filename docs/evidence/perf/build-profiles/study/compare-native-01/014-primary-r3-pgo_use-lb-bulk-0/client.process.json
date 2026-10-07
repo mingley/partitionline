@@ -1,0 +1,25 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "851728",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/measure-process.py",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/014-primary-r3-pgo_use-lb-bulk-0/wait4.json",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/native-produce-runtime"
+  ],
+  "started": 1791412620.821266,
+  "parent_waited": true,
+  "pid": 857837,
+  "exit_code": 0,
+  "ended": 1791412655.2365074,
+  "artifacts": {
+    "client.stdout": "c37dd3822c4627e8a9ff4db8a05da543fd471b3e1f0a68985b2878c4adc910fa",
+    "client.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

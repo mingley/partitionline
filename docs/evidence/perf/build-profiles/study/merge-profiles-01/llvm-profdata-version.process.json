@@ -1,0 +1,19 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "836375",
+    "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata",
+    "--version"
+  ],
+  "started": 1791411701.0671883,
+  "parent_waited": true,
+  "pid": 836521,
+  "exit_code": 0,
+  "ended": 1791411701.1090212,
+  "artifacts": {
+    "llvm-profdata-version.stdout": "4a988e07fab3bc95984ec9198cf8b9511a0b70d49d7a089787dbadca51a8bf52",
+    "llvm-profdata-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

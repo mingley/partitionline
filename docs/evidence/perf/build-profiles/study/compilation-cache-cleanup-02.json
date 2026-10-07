@@ -1,0 +1,2311 @@
+{
+  "scope": "Generated inactive target-schema debug intermediates only; executable and shared-library bytes retained. Dedicated profile builds use a separate target.",
+  "files": [
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libadler2-254702c8add5b50d.rlib",
+      "bytes": 99958,
+      "sha256": "c02c2b926c4f2616caaab12cffd5233d3c01e3d1b47f7a2cece69d0d245a82a3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libadler2-254702c8add5b50d.rmeta",
+      "bytes": 22291,
+      "sha256": "7c25cc51a312a69b0ebd9efc1e1d95143a239096ae43601c8506e45362cdb84d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libadler2-66f3729cf99a989c.rmeta",
+      "bytes": 16388,
+      "sha256": "6627bfb66104323e67f9c4ab0c26aeec78a2a6e7dfe4cc2e8f90dc40e7794799"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libahash-0561cb0daa30f30a.rlib",
+      "bytes": 334788,
+      "sha256": "45022ffb85813759b57c064ced7a85377c217cd6b1e3420bf14de0c086d52e89"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libahash-0561cb0daa30f30a.rmeta",
+      "bytes": 247439,
+      "sha256": "a656e4376b99643d70b7dba555967634d43b38bc68dfdc92f02267d433a8a6a5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libahash-8475dc960a73027d.rmeta",
+      "bytes": 195266,
+      "sha256": "4c6a71d90d0b39c9abe5da9a8342795d78227433e3912685248c1e6d12e9b251"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaho_corasick-60063a33f6651321.rmeta",
+      "bytes": 1506266,
+      "sha256": "3342d7746d6de8de32a75934c633fa68c7c1084d8486b1a1f60a56f0338fcdfe"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaho_corasick-84481b7457a84fc2.rlib",
+      "bytes": 10822574,
+      "sha256": "2f549b62f6cb0eb23b7185054e61cfc03d2981e4e6d080b99a3b7cdbe4d7b75e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaho_corasick-84481b7457a84fc2.rmeta",
+      "bytes": 1890863,
+      "sha256": "036992acac957fbbc87ebbdaa735455504c141737ec7c3a08cb79b1e61510e70"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaliasable-2a41fb42742517ca.rlib",
+      "bytes": 151292,
+      "sha256": "412899695fcb3de8fc203c563d3a12996fa7c44ed415eb512d3d4c962bb81979"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaliasable-2a41fb42742517ca.rmeta",
+      "bytes": 50591,
+      "sha256": "4bdd2735a44fdc7a2a6b98ac6821f726e5173ae662c02fc8779962575fb8debf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libaliasable-68582d3449a3bfcc.rmeta",
+      "bytes": 40089,
+      "sha256": "7f738846009194c319ab4b51bf4fc5dcc96f6c121bf71aad790832d912fa2457"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-0646e36a4a688da2.rlib",
+      "bytes": 20751996,
+      "sha256": "0ce7f72f974c489fb94c4f6157c15c48266f1c1469947b4262a618667bd4e525"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-0646e36a4a688da2.rmeta",
+      "bytes": 3723897,
+      "sha256": "160d4105a494eabb88114c22a653b587af4f25e5a03f1fc7c9a6d1ba96a53cc3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-18c89647e0054d56.rlib",
+      "bytes": 20740028,
+      "sha256": "638b04ab6d4318372ec44547f634c358a401cc6e1c06af83ed5a18269b1fd7b3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-18c89647e0054d56.rmeta",
+      "bytes": 3723897,
+      "sha256": "16f90e1fc4d813de06780785d010c25856823d5618e91451b8b637fb15ae72ae"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-a56f867a9ccdeda9.rlib",
+      "bytes": 20802786,
+      "sha256": "82c4c78b3d5a1a4df2cecb7bbf2fa69dc93c61c920c045454256e0c3c2c84481"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-a56f867a9ccdeda9.rmeta",
+      "bytes": 3723897,
+      "sha256": "2d0eac2224f35580a76ab4ab708f2a145026918d95eed7b433214a4c22ef4ee1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-ac5e518cb4f78fef.rmeta",
+      "bytes": 2489344,
+      "sha256": "a8f4576b77f86df5eb191d5e7ee9d50abc17243c81ebefd53fe9f0767099b499"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libapache_avro-f2afd72586cc19f4.rmeta",
+      "bytes": 2489344,
+      "sha256": "ea9019699524872adb2b811b66a9104e0e4367c93b5e6c69fb5aac7a07176cb2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libautocfg-856175fbd5b6f428.rlib",
+      "bytes": 703394,
+      "sha256": "5de463c3f3d5d3ca0a6b161c945132056108a226ecf317ecc2a05c13add725a7"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libautocfg-856175fbd5b6f428.rmeta",
+      "bytes": 82948,
+      "sha256": "bd43608093ac95cd4f57b2a1703f4842bfad7136ee464b4c2f62ed180be6b01d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro-0741bdb1c154a874.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro-2714b4af34585487.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro-32f19aff1d6cd571.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro-f68def24418d3753.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro_selected_codec_conformance-7364b78166fe7074.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro_selected_codec_conformance-84a58cac2b9cee59.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libavro_selected_codec_conformance-e51f7049b9ad50fc.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbase64-13b143f0a570d6a9.rmeta",
+      "bytes": 227033,
+      "sha256": "4875fd3d10da6802d7c11e9afc2f2b01486c24d21383568b247ce3d757fcbbf4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbase64-6ee8ec72165049e2.rlib",
+      "bytes": 727882,
+      "sha256": "0bf64da4a9592f322c11bfe08483e90dc494e34e156f1081c5b7f843a1785118"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbase64-6ee8ec72165049e2.rmeta",
+      "bytes": 315765,
+      "sha256": "8b8141b8cfa36d68df26d0b0b2dbd04b73b03991a0b3b2f16e96c8056f1152d7"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-2287c52265977155.rlib",
+      "bytes": 4955164,
+      "sha256": "eefb4543b6ec1d1eb49c09ea53cdf81d3c682cdd3ee9159cd13bd68ff1e02a4f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-2287c52265977155.rmeta",
+      "bytes": 1316391,
+      "sha256": "a21c0f28bad324c8e7c789c92612dc812d9c5f6bcdedda4e537f0d893d850c74"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-74a6c241dc76d630.rmeta",
+      "bytes": 1117761,
+      "sha256": "efddb00e51bae18cf5922b810f7432ede437d0fb3bce6c801fff4b4de9f5e806"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-7e0ab8f2129b6fed.rlib",
+      "bytes": 4960444,
+      "sha256": "be03d0a911907185facd6446af01f47b2061ad17453442d5593f23ef367acf78"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-7e0ab8f2129b6fed.rmeta",
+      "bytes": 1316391,
+      "sha256": "c01057a216fac95255221d67c9d473aa4b9bb96e2b714b9573a07530709ad4b2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbigdecimal-cb6a2206f40894ee.rmeta",
+      "bytes": 1117761,
+      "sha256": "e82dc00896a945e98b7d085e3e7fe1eb0e9ae3d6d5ee92dfb3ad5c359eb99b2f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_set-557d49280b3cf5d2.rmeta",
+      "bytes": 61718,
+      "sha256": "56d015f351604efb5ff00385d5a8b6e0362a88f1371fa6b797fd2de6accf879d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_set-ecbd1f809b659a1a.rlib",
+      "bytes": 101356,
+      "sha256": "f2166b673158a0fffc37eedf204c0d543713daa462dde8b8fe70434dcfe2019c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_set-ecbd1f809b659a1a.rmeta",
+      "bytes": 94435,
+      "sha256": "0f21654d03045d9b88f9dc1e290c756f5d0a56f459b627063f2bfa40c3c553d1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_vec-2dde4e28e53e1e30.rlib",
+      "bytes": 270520,
+      "sha256": "82d08b2667aa1cef41c2a9fe2ff6171962639397f3a93dba9c7a77d836a6915e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_vec-2dde4e28e53e1e30.rmeta",
+      "bytes": 183456,
+      "sha256": "749a356ba589106471ceb3d77f60fb864191de6bb12f522eb4a8164f84a0e21e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbit_vec-b0512341a1c4ad75.rmeta",
+      "bytes": 92129,
+      "sha256": "da2352171e0ee334e44032e70d1af3fb812bb1300058394cce8f8e8cc0b020e5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libblock_buffer-5b5dc5db4516343e.rmeta",
+      "bytes": 55252,
+      "sha256": "2cccdc83e8b31f1049f0ca7124ab9b6a5db79b29a7371dd2bfd49d46c45877d7"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libblock_buffer-d4cf21afec6bfd62.rlib",
+      "bytes": 93806,
+      "sha256": "4f306e817580a05660f8c8fd07244fe53b4b36caa6fff10acf28bb35fcf229f6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libblock_buffer-d4cf21afec6bfd62.rmeta",
+      "bytes": 87149,
+      "sha256": "8ba61a157a832cfdcf580e06e834534e61c997ea38f0c48f29e44734919cc888"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-40f20223fbf38937.rmeta",
+      "bytes": 50009,
+      "sha256": "4859c336f5f8ec2dccdd58f0f799a29084f0ac7e0e78869875da4fb46d97bdf7"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-72e0e5cc7aeb8ac6.rmeta",
+      "bytes": 50009,
+      "sha256": "d73907dfad57f77c15997a81ed5010e9547833c3835bbda9eab8e5ca142de97d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-e32870f46e5e25e5.rlib",
+      "bytes": 53692,
+      "sha256": "31dba45c038b69802d354de89981af750c0bd2b032bc456acee76fdd1e1c18e2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-e32870f46e5e25e5.rmeta",
+      "bytes": 51491,
+      "sha256": "a821d12b3198f39dc2d14420a60fc1106346014e2118a9a1bf6427d3a4b4ea31"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-f58c0e909e50a5ef.rlib",
+      "bytes": 53692,
+      "sha256": "c7d3e773aa0f6698cd52d12fbae3799ce44c1a60855032714d39ee68820059fb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbon-f58c0e909e50a5ef.rmeta",
+      "bytes": 51491,
+      "sha256": "2da5b1ab9ae4ca0ae20061a8bb1e182e06f15296601a8ff392c6c7622f83b24f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libborrow_or_share-015a5b5fce0e4407.rmeta",
+      "bytes": 24214,
+      "sha256": "455801bbf1660275d303e187366644a30d5b25a0a7523aa008adfa05ac932d77"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libborrow_or_share-a1acdbc5ba4e7ded.rlib",
+      "bytes": 28788,
+      "sha256": "ea0031f4aa6c55564b908201c6538c656f860090989687fe4131419911e34a65"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libborrow_or_share-a1acdbc5ba4e7ded.rmeta",
+      "bytes": 26535,
+      "sha256": "0a0931dd7752932f4ea664881307e7d7a4e2921f0ca66aa5ecd30239b0296d87"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytecount-b25e5171a2633f4e.rlib",
+      "bytes": 253602,
+      "sha256": "c969e15a32d5d4a7b75984e43a840f7c7242a31fe1658edea956c6df7584c088"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytecount-b25e5171a2633f4e.rmeta",
+      "bytes": 21664,
+      "sha256": "6363be91e6eb8f5a88c11a888673bf0f879b954103239df45fd849cf1174fb1f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytecount-f15e66f73c4ea93b.rmeta",
+      "bytes": 21111,
+      "sha256": "803f1777ec92fe1d0955a7ba29e7d62b0a0555a3a43d6b136b714423072550b5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytes-a1c93c9c33c208ab.rlib",
+      "bytes": 1788308,
+      "sha256": "82301fa2e312f86005e7c0d9918c65222d71dc13eb3107fd44518d6a63ae9280"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytes-a1c93c9c33c208ab.rmeta",
+      "bytes": 885294,
+      "sha256": "65b103df6192ea9591fd88371511ce3e8ae29806b8eed5a6bc40872726b8f9a1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libbytes-e08f75b06712dbd0.rmeta",
+      "bytes": 599190,
+      "sha256": "6e99c7dcfef768ca1fdc45ee5c3c1c5d85578d14f007870a267d0288b8fefa69"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcache-34c82ae3e1710d7c.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcache-67d2cd6e0812a43e.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcache-7e9f6f3b05092f75.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcache-82213139e9149652.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcc-4d72c29df5603ada.rlib",
+      "bytes": 3287666,
+      "sha256": "703e86d7d1d0672125115b343a7f6804ec43d98afef4472e2abff23cb6007620"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcc-4d72c29df5603ada.rmeta",
+      "bytes": 463140,
+      "sha256": "9f7a663b9bf2b14894b20823386bc4d4093eec8c760f8a51ce1ec40e01760c09"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcfg_if-1e9c5a118a245144.rlib",
+      "bytes": 8106,
+      "sha256": "67f26eb37448b1165dc2afa24b94cc75ad77bf306141ba3dd9a3b26f77346581"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcfg_if-1e9c5a118a245144.rmeta",
+      "bytes": 5889,
+      "sha256": "c28e55b3ec4898c5889b7b6b88fba0fc64e46f1b9273a0f8040ba970f7794739"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcfg_if-dbae1560be7738fc.rmeta",
+      "bytes": 5889,
+      "sha256": "1f1a75c622197c9339746ec09ebc13707e618eb34b4a50405c078b6dd7e8d392"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libchacha20-3c34eb5db14af5f9.rlib",
+      "bytes": 863408,
+      "sha256": "670538ec40c392fa73fc2f364dec243816bbadade0f9700254f9f90a9c506d65"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libchacha20-3c34eb5db14af5f9.rmeta",
+      "bytes": 690131,
+      "sha256": "0f810cb78c33cfea3cf0e67245e0dbbc72c6c4e20ef2aec286a47bf466b33762"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libchacha20-43b992860636a9fc.rmeta",
+      "bytes": 592307,
+      "sha256": "281f93d9bdb10ffb1c54a0f0c8254cf95817dfc3350d971ab039091b4f7e470b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcpufeatures-bb22d4d99d623cf0.rmeta",
+      "bytes": 43831,
+      "sha256": "041818c02b98e0b67379bd8a8f2a1ee962a716c4471475b0a768f2fdc281d67d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcpufeatures-f62c9710c3cf6ad3.rlib",
+      "bytes": 46068,
+      "sha256": "b7303183db39d9762330d10cbc2971b293298e2a3de7608dbe96d8d75a689d6c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcpufeatures-f62c9710c3cf6ad3.rmeta",
+      "bytes": 43831,
+      "sha256": "7eb35d3dcc92772686ff7c5eed6b43694ab955389ecb5840d0234fc947a325b5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcrypto_common-3c09aad04479d9a8.rmeta",
+      "bytes": 315821,
+      "sha256": "792214d608d7ed85fa5671fe7126fd11e6ce0e5712d80c8c65de4677a3908da9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcrypto_common-c9c0a39bcdaef460.rlib",
+      "bytes": 4001598,
+      "sha256": "669d36915e0e3ea320c51cc5d956305d42580f910e9d034156d73e3779e8f49c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libcrypto_common-c9c0a39bcdaef460.rmeta",
+      "bytes": 369357,
+      "sha256": "9c6dfd9923800931c17d112a771af4f4e02ed6274e7a798aeb06c9ff817eb947"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling-98acea927543a117.rlib",
+      "bytes": 22476,
+      "sha256": "c1fc943d5d905dbec234c799c62ad5be004743fd6fbb43ac7a2ba71b5204c2fd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling-98acea927543a117.rmeta",
+      "bytes": 20264,
+      "sha256": "0a20e9a3d93757d2058f9c2971839f0161667c4a91e93507ebe46ec777ee1957"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling-c2390f1211c8728c.rlib",
+      "bytes": 22476,
+      "sha256": "39ffd172a620d5e289722f2492d4528a6474b3d75c7aa9a431ea42597c2321a6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling-c2390f1211c8728c.rmeta",
+      "bytes": 20264,
+      "sha256": "28b86baa6b5809e76873429eec26c1fe24883cdd8bef6d281fd1d37424c43819"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling_core-9897cf046b0d3cd0.rlib",
+      "bytes": 8832798,
+      "sha256": "4ce905fd943b2e6581b2344c5e9e256b6c6c314234c13b1c7c4d33a592b3e097"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling_core-9897cf046b0d3cd0.rmeta",
+      "bytes": 1650150,
+      "sha256": "5a810c11276a064190c31f931a0807d297d3ccef838247ac19d8c26d907fdbce"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling_core-e810a50c1995c378.rlib",
+      "bytes": 8826990,
+      "sha256": "7f63cb64def417e07287ff35e4b30fa81a03e72bed4cac98f0f1acec11444b30"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdarling_core-e810a50c1995c378.rmeta",
+      "bytes": 1650150,
+      "sha256": "477951ea00a6821c43527c18e8e66f8c5eba00111452aba9e8c593adbd0f2377"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdigest-86b3a6d6ff0ebf2c.rmeta",
+      "bytes": 192311,
+      "sha256": "71b5ddd3790927470c635500b091b14d92382f9db5efe99e4352aac0a3641c73"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdigest-b5a3712539bf30d5.rlib",
+      "bytes": 221488,
+      "sha256": "bf6236f3d2135835dc0d181f60549437258328213c3e51caab7bb8084f1b0bf1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libdigest-b5a3712539bf30d5.rmeta",
+      "bytes": 213282,
+      "sha256": "87874f18f7706a85700c95608b421bf970e48e24722a7b1ea14136b7f4d2803b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libemail_address-c1e43ba2941d7994.rlib",
+      "bytes": 588820,
+      "sha256": "6ec9919a182a6dcf1bbfbe6a749e6bac1cc7872152484b3934c071100674a9cf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libemail_address-c1e43ba2941d7994.rmeta",
+      "bytes": 71991,
+      "sha256": "7a1fa540affc00a0419f8e68c2cbc3ee0a05758f9c563671fc97a27fad1bc194"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libemail_address-db6019b24814a3f1.rmeta",
+      "bytes": 61054,
+      "sha256": "f03714b706ce5dc2e9226042d20105771fc8ff7e7f443460b4a1896dad6f7f63"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfancy_regex-c003627cfc612c0f.rmeta",
+      "bytes": 330360,
+      "sha256": "393764ae185c378dbc9316ed4c3c5394da7143d1eb6137bd5387f917dd054a31"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfancy_regex-f5424de6cb149387.rlib",
+      "bytes": 4901958,
+      "sha256": "7e0f7edc1e4244a725f10d1b565fdfbc30f7ef628378cc1329cf90868be68bc3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfancy_regex-f5424de6cb149387.rmeta",
+      "bytes": 444271,
+      "sha256": "d4a580cd82412dea414fe432e797ae07f77b09a84c36fbe6dedef7c0c26cfb10"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfind_msvc_tools-e8e6b155795b674a.rlib",
+      "bytes": 328190,
+      "sha256": "98e2b97a5129fb5c6a1347fa35e3f77450ee61e511a8f1ebb548dce6fd5eaa9d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfind_msvc_tools-e8e6b155795b674a.rmeta",
+      "bytes": 52719,
+      "sha256": "0a91372c746d784858490f7ad76a98d241269d76485e7a40079666e067c5576e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfluent_uri-2f36ae253b3e9f86.rmeta",
+      "bytes": 685646,
+      "sha256": "e1040c59794138ed03cffac6a38c6d7f79f5ca2aae87e68b4ee0303402b38fd6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfluent_uri-aae26df285e9475a.rlib",
+      "bytes": 1893418,
+      "sha256": "40ea3d5c94da3d336102b077281d5987597aec3bbfdf5fb884c1c6e565ff9f90"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfluent_uri-aae26df285e9475a.rmeta",
+      "bytes": 812091,
+      "sha256": "05db3e156e06d212e7203e07b97c3973a52f94dc0280fdcf6c297bc1837eac11"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfraction-4bda97485faf644c.rmeta",
+      "bytes": 361800,
+      "sha256": "95a241b0cc2c756a1c4d2374be5567f21bede4e99fd9dce82f6c15b7169f2443"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfraction-696303318aebb05b.rlib",
+      "bytes": 933124,
+      "sha256": "4ce4c0c8c865324092ed0c7158caa2fdbd46079c8a892f0e5ae60d701986b3a0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libfraction-696303318aebb05b.rmeta",
+      "bytes": 650503,
+      "sha256": "794577a0678b997a21a114311856ac5779afd2a25c90b0f654d5caa6c65f4490"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgeneric_schema_header_conformance-7b394fff520a1e5d.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgeneric_schema_header_conformance-8881af0abf98a53e.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgeneric_schema_header_conformance-986b9e60805fca5c.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-1b7877f0e4ada6ca.rlib",
+      "bytes": 241872,
+      "sha256": "8cb2de4ad1f8e8f19aad7448103a695acc42d3aa1f238350f3405b8cb943d423"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-1b7877f0e4ada6ca.rmeta",
+      "bytes": 73480,
+      "sha256": "6b902da6829de3cb54fec361d68f8fb8f59584b8c512098a7d988059a5eaf1e6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-33176b19160d9bb1.rlib",
+      "bytes": 321308,
+      "sha256": "02fd0b46bdd474fa2716e9dd72f38dda524059762c2522c936c043ccd252c90f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-33176b19160d9bb1.rmeta",
+      "bytes": 91475,
+      "sha256": "52604a87b7d44568d46c758871ed77814315badd33ddb19597e70205af52136c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-43dd1e68e1f41e6b.rmeta",
+      "bytes": 62139,
+      "sha256": "a145a67d953ca9a6b841870b13c83f1bf357b5afce5d48db42b940f22494c5b8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-46691a99e1d50a59.rmeta",
+      "bytes": 60674,
+      "sha256": "8440de9b1c67d5344644324100a5cdedb9534a91ddceaa9d650d1b212a4cbaec"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-47d71d28af93d181.rlib",
+      "bytes": 232722,
+      "sha256": "193152fd20fe5f60df1bcb533374cdb383505640e2fdd1cdf24f3dcccb607bb5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-47d71d28af93d181.rmeta",
+      "bytes": 65541,
+      "sha256": "80b28a1df5726dd35da6d015dea75325a3f9bef817802006d09ff50deefda86f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-7b0b23a8ee4db2b0.rlib",
+      "bytes": 321300,
+      "sha256": "f1cc92d32a90b750fb6bd9d9b6b16d614a253818fd11f96d98c96862891a5a7c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-7b0b23a8ee4db2b0.rmeta",
+      "bytes": 91475,
+      "sha256": "f70dd0ed672ca32226f7d55d3facdad26a91ad19543a39acdfdc62bf1faabc98"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libgetrandom-daf9a797d2a4a2b1.rmeta",
+      "bytes": 76409,
+      "sha256": "0ad41cf874e16dc3aec8dbd3472ec832df34f7336c4c0a4703b17ccca6c337ce"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libheck-9966026b5258179b.rlib",
+      "bytes": 213482,
+      "sha256": "6f62729a1cab6e1ebccdf957bc6cfaa3db50aebdc7d7604f8585df1537f5ca64"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libheck-9966026b5258179b.rmeta",
+      "bytes": 76207,
+      "sha256": "c6c8b03e0090eb2d82bf7e0a238ea65598504fd95316feb4e6cfbe739692150d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libheck-d8f5fb9d4d015e13.rlib",
+      "bytes": 309612,
+      "sha256": "8bbc9f31c24d1913da05c5806fc3ff484ed7db60fb6491a169dc2ccd24b5d934"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libheck-d8f5fb9d4d015e13.rmeta",
+      "bytes": 79728,
+      "sha256": "a4dd9dd337dccb2834b45b1e085a3555a1ded1a8864f036f5a25b2aef68d140d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libhybrid_array-56862b477eac7529.rmeta",
+      "bytes": 1142848,
+      "sha256": "8cf9cac4cbebe4719f63fc9625a41ae3d26582b76289bfc4c26e65ea75b26e5b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libhybrid_array-63162ebdbdfaad71.rlib",
+      "bytes": 1242314,
+      "sha256": "62de4a65abfddb1a4814221aaff7522348a4f5c3de9e4974e5495f0c8c16bd7e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libhybrid_array-63162ebdbdfaad71.rmeta",
+      "bytes": 1235476,
+      "sha256": "8d99d6deec5f71b7ae2bb859ae5fbd4f5f762b28dd3aaccfc867bb9fb9a644af"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_collections-1c69eea3ad23d776.rlib",
+      "bytes": 1728520,
+      "sha256": "78f859526cbb7676608fef885020ef494d1ad370d4fd5628df7e38d6d4546255"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_collections-1c69eea3ad23d776.rmeta",
+      "bytes": 425788,
+      "sha256": "f91b02c535dc97fc1038c764739ca715dd3cd26f5a7bd6aab538b95ee9335f94"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_collections-3f4eb5dc93ad057c.rmeta",
+      "bytes": 301577,
+      "sha256": "0026737e0bcc6392c015cc9dc643a8aed55163987706f7fe02c1b17f7d640779"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_locale_core-a2132327d06f5ec1.rmeta",
+      "bytes": 1377087,
+      "sha256": "9917b533745b8b90eff054bcf4f215a7613f63c8d4b8832c75266a76861d23b8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_locale_core-f530ec31a0df5286.rlib",
+      "bytes": 4403104,
+      "sha256": "c320bcf4161e813a7271ef85f7c82bb947c0ccb33c17e57c1b10ebb7c17807cd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_locale_core-f530ec31a0df5286.rmeta",
+      "bytes": 1590871,
+      "sha256": "e14c4e49dded4c8b97fee056d23141d1b0e16f97857adc4279ceeb6cc1fdf1b3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer-b3960c07bb08b261.rmeta",
+      "bytes": 440937,
+      "sha256": "088bb8ee507fc3e0073ab5efbf6f72d9d9151b75d65981d4fd678b1da4ac04ec"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer-d5e4be97e4cea090.rlib",
+      "bytes": 2552852,
+      "sha256": "2e2c68f53ab08f2c0d9e3bd40c395e613c0f47e5f15b6cfb1ef16071b2363256"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer-d5e4be97e4cea090.rmeta",
+      "bytes": 590965,
+      "sha256": "d487967188e68ba646cf4b7b3d44e8915ec45577d7d0ba8231035cf942df7ecf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer_data-3240c4ba26801651.rmeta",
+      "bytes": 436496,
+      "sha256": "88b599e72e5f1e8c92f9b6c51764b52f95403d900a1e6d166e63bd847a01c500"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer_data-33689e7acd25cef2.rlib",
+      "bytes": 438772,
+      "sha256": "94b7a2e2343afd60045e6bda085efce8010f710f2f2fe43c3ca39b0a28967fd4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_normalizer_data-33689e7acd25cef2.rmeta",
+      "bytes": 436496,
+      "sha256": "0797d04065d47655164fde6660e2faa4fc20bc44c78b8535a9f20087c7efa67b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties-0350c000dde08215.rmeta",
+      "bytes": 2528130,
+      "sha256": "190c456d0d7452de98bd3293f7926da5219336c5bb274830e3a140c161a21284"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties-18597cf07563078f.rlib",
+      "bytes": 5891626,
+      "sha256": "f26ca1c9707c93209cd37d1c2a63141489445f4a671dbeb2fa5fdb1bfaa8492d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties-18597cf07563078f.rmeta",
+      "bytes": 2734865,
+      "sha256": "ecd5cb06da9f46c771655d88a84f14f416ae506ac58610d1bfa727d49a8b9ed5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties_data-05f3e117e13cdf72.rmeta",
+      "bytes": 1861767,
+      "sha256": "6711fb0962f7582637628435bb9b8f0a6db19e2c51c0ddd6f804ed31c9fbef4f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties_data-dc1ccafdd0d637be.rlib",
+      "bytes": 1864044,
+      "sha256": "d1c5b0497566ca5ed56fae5e226746cc2a9c567acb2a79576d7796f2801c2661"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_properties_data-dc1ccafdd0d637be.rmeta",
+      "bytes": 1861767,
+      "sha256": "99988fd9cca254bf08906f4cbb676ca6aa75e05865ce3e7ae30aff4c7ccb1e21"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_provider-3251c5894d44c110.rmeta",
+      "bytes": 357203,
+      "sha256": "3d9252a730139f9133527302dc82243a74a2e4268f3a925509e83bfe7f7c1600"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_provider-44997db1d55a814b.rlib",
+      "bytes": 823718,
+      "sha256": "0a9c0c305ec243477502b73672315ae0110410699133c5f918d7793aa5d8463d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libicu_provider-44997db1d55a814b.rmeta",
+      "bytes": 428698,
+      "sha256": "2e159cd4669a55b0bb1e3c453a694176114068e2e06ff469f085c54276b0a9b5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libident_case-74bd00448feb139c.rlib",
+      "bytes": 22506,
+      "sha256": "1b1313a0dd9269f37bbfeb5578e1b59c2b6c95a72a63800ee4367c72a5338899"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libident_case-74bd00448feb139c.rmeta",
+      "bytes": 17380,
+      "sha256": "1cca7e9ea4f03b7354327bfb1a4fc066b5c85d13d1cf324baec06f580442c991"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna-43bf05773da2dec0.rmeta",
+      "bytes": 144063,
+      "sha256": "95b00c787e2cdf1adb1b53ecba6bcbf8f2f1fa7e92689231641e9ae0ad2a937f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna-f183fbda80038ef8.rlib",
+      "bytes": 3660808,
+      "sha256": "b6ba307b6ba3a1121f5596485348056161157ff875900cea1e9d26039692bbf5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna-f183fbda80038ef8.rmeta",
+      "bytes": 243766,
+      "sha256": "b5af8d8582615592db5726a63175f0cd146ff9d36f073913ce7399c4bb4ba852"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna_adapter-10885ff9896dece3.rlib",
+      "bytes": 106314,
+      "sha256": "bc581f3518cec829ddec91ce5015fd76e9d11fca089a8da3335483d2b284fd45"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna_adapter-10885ff9896dece3.rmeta",
+      "bytes": 32689,
+      "sha256": "b329717aee143459a96300709cfb06bcf2e7d74d8f5f69bb7cfcd5e386924f05"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libidna_adapter-85a286fcb9ef1fa2.rmeta",
+      "bytes": 27844,
+      "sha256": "c0d7584789845f7e35d6e57556baf599a31e89753c78afca0b9fc278966daaa3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libitoa-3b22045401a7ddb7.rmeta",
+      "bytes": 50345,
+      "sha256": "d82c5083eccdecb36145a8544bfc4c04b26b2f98c381cf5413754ca7cc9e2d1f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libitoa-5b56393bc94cfad5.rlib",
+      "bytes": 203182,
+      "sha256": "4048079f96c32399f1ad6fb2238afbcb592c78ed1f8a77166f3a9b79d2abea9b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libitoa-5b56393bc94cfad5.rmeta",
+      "bytes": 61634,
+      "sha256": "e453653fb2705774cd8353974bbfb15dfb2f5de2ac8760e17ee3ce282ac8c167"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjson_schema-0909d4aed53053fc.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjson_schema-69ca1dc3ff366b57.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjson_schema-7527fb1137103a0a.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjson_schema-cf9e23d267015a6c.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjson_schema_selected_codec_conformance-b781b9744ccc475a.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjsonschema-906f7151d96e5a3b.rlib",
+      "bytes": 23663956,
+      "sha256": "1729467c9aae5b34a485bc9aff441b8729169c2a6e529a86ea6c2d5f8b86fe46"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjsonschema-906f7151d96e5a3b.rmeta",
+      "bytes": 1608632,
+      "sha256": "6297cf8b702bbd19bb66ff99567ef14528316f473d1f801ed41f0572edb443ec"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libjsonschema-a605e53f5bf9026f.rmeta",
+      "bytes": 1276505,
+      "sha256": "2333494e9bf56e1a1f3527724a4c5e18c89d6fa6a58883ecbd9106571707afb2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblazy_static-18ba895117afd0ce.rmeta",
+      "bytes": 20058,
+      "sha256": "25c05a298228c94423998d31ea3c3ddfe72bdae7b89ad98480004f5b51c54c7d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblazy_static-c8be0d07d8ba3913.rlib",
+      "bytes": 24132,
+      "sha256": "39b4587ee4b8a7ca7e8282c37eaf91509075240354f111b16b0dc135e3e0c46a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblazy_static-c8be0d07d8ba3913.rmeta",
+      "bytes": 21890,
+      "sha256": "111d1e4cda3fb614d21060ada164538c1b5ccf2f69759669d25dbd1ac6561dd2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibc-4a611bc452236a13.rlib",
+      "bytes": 4245436,
+      "sha256": "f709f711137203516183d5c5b38fb11b9fbb42ee57befc7a3dda1d144154c4cf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibc-4a611bc452236a13.rmeta",
+      "bytes": 4199370,
+      "sha256": "04add42300107685996561c0a6959b489ca6bb044f7ca97a022e5ebc9f757a50"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibc-9bfd3a44ad3f87ef.rmeta",
+      "bytes": 3730145,
+      "sha256": "965880f77f6a661aaba23e13c5407a9a95121b7a888e597f5eb1a9e5b1fcca82"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibc-cfc6bd596224c782.rlib",
+      "bytes": 4245236,
+      "sha256": "7870998114366382e61b277b4bf52f1a4f6a6f6ec09fc975b600f36d83f6f40b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibc-cfc6bd596224c782.rmeta",
+      "bytes": 4199170,
+      "sha256": "dd414d09c57243e0a679074c3ea59aeebbab07e91bebbf3900ac016f814c847c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibm-1cbbaeddd9bf4ff5.rlib",
+      "bytes": 3623464,
+      "sha256": "3b5fd043aa5c645148ca5268d0be7608c80dbdc69abdadcf63cca0c11a1c3037"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibm-1cbbaeddd9bf4ff5.rmeta",
+      "bytes": 1119092,
+      "sha256": "946f5f4d44ecbff23cb5b2b5b757d4929a90e885be5eeedeb578f68da5350570"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblibm-21c726a984821e5e.rmeta",
+      "bytes": 1055069,
+      "sha256": "0f84f7f4484a302b15719d6f622469123af741b0c7b3bb40f0d28232d1d7d513"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblitemap-95aa33bf4c6d36aa.rmeta",
+      "bytes": 210847,
+      "sha256": "0b1862389f6645b0625e63c36ab50489166b2fbb6aa946eb16be24d20cade9ea"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblitemap-dbf974391a511422.rlib",
+      "bytes": 290678,
+      "sha256": "7ad8d5310543b54798e24897dd08090a39ec391403bb02abfc7d8a52e091f85b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblitemap-dbf974391a511422.rmeta",
+      "bytes": 282467,
+      "sha256": "2eeff781f7ae94d7185ae1a8ad219cc8d340a579e609844ab77fb0a475114ac9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblock_api-052372b6b50f420c.rlib",
+      "bytes": 397284,
+      "sha256": "de609e9eba5fe583dbb1123ce68c679a223cb7bcc6b6976fdad672ff15569340"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblock_api-052372b6b50f420c.rmeta",
+      "bytes": 388767,
+      "sha256": "bc5c3df75c81d27df8a9abf175a6a1351b67533d7989e2cf9bb16d2514a4f4a8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblock_api-9e3ded3d69eede6f.rmeta",
+      "bytes": 293423,
+      "sha256": "5c667866914b45adcaab78108f726010dbf52f46f37372606e8c44832af0a3ab"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblog-823af2c8d42e3649.rlib",
+      "bytes": 332762,
+      "sha256": "5331677786a1efabf4e85ae183055d882adf6dcf1d30d1ee3e195f2101070ac6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblog-823af2c8d42e3649.rmeta",
+      "bytes": 192437,
+      "sha256": "b2366ba87f262083f9c5fa7a753cadadd6ab16a258bf905982f2e023df3f66af"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liblog-bc9b75e0e85b8545.rmeta",
+      "bytes": 166072,
+      "sha256": "3d486b6eb6a64dd60f5493b8f2829858ed03b6123c7d60fee19f0a8c2aa4fcf9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmemchr-08e5e92435a596da.rmeta",
+      "bytes": 991135,
+      "sha256": "d08e00b53dcc79514d37e07597a8b425698dd51d87d3e590c63f19b887b1f5e1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmemchr-e16633741164b756.rlib",
+      "bytes": 2543410,
+      "sha256": "b016640740671155396ec9c11de836351b13b24a974f14621127ffbde6c66df1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmemchr-e16633741164b756.rmeta",
+      "bytes": 1310054,
+      "sha256": "fd356ec91cf3d007a532d19ab3d7eaba3b12e1aaa629ba0d5d7211eb4d45de5c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libminiz_oxide-8eb3149702576c40.rlib",
+      "bytes": 2345452,
+      "sha256": "010f9cb6ea5c84c5d1806ad71ec4700bb1cc4a984dca948d79f871a8d90ba6d2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libminiz_oxide-8eb3149702576c40.rmeta",
+      "bytes": 409337,
+      "sha256": "8b2f6587cad8ec05b4b44762668ea4614c39163949018ebd0fdab12978a1c06e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libminiz_oxide-e186068333dc2d43.rmeta",
+      "bytes": 363975,
+      "sha256": "bdc9df57f1ce63180dc1b57ad68089510dbf6e2e043f50e3911deb66919706ed"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmio-5c9803bad46806c3.rlib",
+      "bytes": 1783446,
+      "sha256": "79bf4b29a3740c5326bdaf1c8a6aadf2edf2796ab93d913352d5fc27c37bd087"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmio-5c9803bad46806c3.rmeta",
+      "bytes": 445206,
+      "sha256": "bd89a5a4d5d1b0fe763fbcd1b9d6cfe7c0648fbc9d204e74f834689fd1a2bde6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libmio-c6b9185de219b178.rmeta",
+      "bytes": 413417,
+      "sha256": "fcaec1525f2f6ae19a6ee5ac356ea6c913d938275466df5470ade70ba4aae45e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum-5442dd2b10cca485.rlib",
+      "bytes": 15196,
+      "sha256": "9cf56f00cbfdddfc7718a9112ad812ab6548670bb059e08414828c03d74ecee5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum-5442dd2b10cca485.rmeta",
+      "bytes": 12997,
+      "sha256": "99212cd1027756d483818e6386c6c263377a096499474a7d9120fdb88ef3f708"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum-6afcb1a9fce3cf33.rmeta",
+      "bytes": 12997,
+      "sha256": "b7a4f3ca1e217a3a0cb195fe38127597155bf72b2b2aaec049b15ac5cd83570a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-1722cb93cd33918c.rlib",
+      "bytes": 4678694,
+      "sha256": "7c42997d1a909f243e05fc1004ccafd89052abfde4558b1af3797bd768a591d5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-1722cb93cd33918c.rmeta",
+      "bytes": 2067548,
+      "sha256": "fab86495f6bcbc8beda750427d5e2f34e61667503eb3cb59d75a11652424470d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-b15600a16d59ad1f.rmeta",
+      "bytes": 1478077,
+      "sha256": "9b547017eee8213916189f702300d206fd8cde3aa9cd0ac6d3ec54cf1e19a643"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-bafa11cdd05caae3.rlib",
+      "bytes": 4678728,
+      "sha256": "b86350aca05b0055c327f7e3dfdbea0cf3aefa6d9a244e1c402dbbe68ad01002"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-bafa11cdd05caae3.rmeta",
+      "bytes": 2067548,
+      "sha256": "713bf13396d9d15a94d6fdbab91e47fb0ef0f6c922372435b9b008b755c38e47"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_bigint-d31bc946d1067dd4.rmeta",
+      "bytes": 1478077,
+      "sha256": "ce6852b0788e4e788cac18601e70c6824c7497473d049e381b1f9454190c3a70"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_cmp-9e7aac1bcb7eed95.rmeta",
+      "bytes": 232010,
+      "sha256": "4ee4e607e959bd2c59529774b08c172113ca61cfe8860c4d31fd5b496001b4bf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_cmp-e1600a8c1cfbeb5c.rlib",
+      "bytes": 487788,
+      "sha256": "4892e6851a863928232a5ee02aee273b95ef5b72da6625eec76b6533ee440df5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_cmp-e1600a8c1cfbeb5c.rmeta",
+      "bytes": 485569,
+      "sha256": "5c1c3a23edf2f0dded617fbead363ebf26c3cc4e08fc2d5d56a16fae6b721078"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_complex-17175c4af7e3ea44.rmeta",
+      "bytes": 478208,
+      "sha256": "5163ee1cd3de317900edf16c5900d1d8571c3a8ffd552e279ca5d1f7a50ef05e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_complex-df5794162c1ed6d0.rlib",
+      "bytes": 869538,
+      "sha256": "1f2f37100211891f49eec25d33f186bc34514b4a0bd5bd065df9f99791f75928"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_complex-df5794162c1ed6d0.rmeta",
+      "bytes": 745010,
+      "sha256": "8252c1dcbb83e6c8749c719ddc2b3b50b7ed162cec10065dbfb019caf3ce37fe"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-75b9b6eee6702939.rlib",
+      "bytes": 672326,
+      "sha256": "8af4b992f8dc3b5c4d8c0c63bc13f9711dceaebaafbda6a25430258080334e38"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-75b9b6eee6702939.rmeta",
+      "bytes": 321500,
+      "sha256": "96d7898baa2265f597412dc66db2d1d304b4eb2e797f373d7e840260f60768d4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-8deba642fca6bea3.rmeta",
+      "bytes": 181927,
+      "sha256": "ec3c782aecd35d7146da36e41db16362eeb967efb1ef3da4187348afea75c3d0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-ef150102445ba2a4.rlib",
+      "bytes": 672958,
+      "sha256": "70df8fb72e1ec068dcc4e4025e457cf1342b057c2d175bd9c0b6f498d2f7d5cb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-ef150102445ba2a4.rmeta",
+      "bytes": 321500,
+      "sha256": "b4e43f7bb0e1c14f6ef1cf72264d7dff5a738a6493ada3422ce5bd8dd1424a3c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_integer-ef9cb08f17640da3.rmeta",
+      "bytes": 181927,
+      "sha256": "539665ac9a302a391e23c12d4be6edb686f044678733ef77d2682fd3388cfbb3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_iter-b45c706e3750f11b.rlib",
+      "bytes": 43102,
+      "sha256": "33c3e4903ed2583976ccc8fdcc29fb722dc2c05157758fd82d6e0c64f2bdf5bd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_iter-b45c706e3750f11b.rmeta",
+      "bytes": 40880,
+      "sha256": "3648ee9fa6f9b6473d6ea7e1d36c623fd74e217c4c47eb71f8090cf5f9dfe4d5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_iter-c291f7effbaafd0b.rmeta",
+      "bytes": 25662,
+      "sha256": "1315340c5a3bb0082d2d9946631a0a32cd2fed767a2fe500bb5f92b6fdc1ddb3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_rational-065c0f503b835ad2.rlib",
+      "bytes": 1839154,
+      "sha256": "7cc74504edab4d8d7b883229e3f2a0b7e281fc4213dcdbafb989ea4378192fdb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_rational-065c0f503b835ad2.rmeta",
+      "bytes": 445891,
+      "sha256": "031c0bd5cf3fb7c549679e584beca2f4841dce2486a2e4c5befd6d730c99c179"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_rational-1870044b1570d9c0.rmeta",
+      "bytes": 245893,
+      "sha256": "112aa4c0e72e2e5c5104b431eb513493e76610f0035d4ac232842288f08fba1d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-0fd97f5688620df2.rmeta",
+      "bytes": 1285240,
+      "sha256": "24c7f6a42cc4f45deda00c2828e5d5692123b0ccfa39b57453debdf735f652bb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-b030a12cd4b07b5e.rmeta",
+      "bytes": 1285240,
+      "sha256": "2644f1a812bfd87d687e54802e04802c5fac3def020b06b4008d01db9d0ad6aa"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-bc8d77c96857d7e0.rlib",
+      "bytes": 2006772,
+      "sha256": "86c09f86432977c2af0135904d89d15afb0718a6854c08c60b15f45bdefd1756"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-bc8d77c96857d7e0.rmeta",
+      "bytes": 1828671,
+      "sha256": "5b88dc2da574499cba0d1c1ad0ed48a167a544663f8e24bfdb831ca37670c055"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-e9cfbafadb0db7e3.rlib",
+      "bytes": 2007018,
+      "sha256": "df5a34e360de3bff45a39aa8c7a10d2452ef59609a2b4beeb97e303a9889f9e1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libnum_traits-e9cfbafadb0db7e3.rmeta",
+      "bytes": 1828671,
+      "sha256": "76d9925b882af226e5080bdea07fc87924b0983c9df717f6b63ed34e50242522"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-428095ce5d8434a6.rlib",
+      "bytes": 291654,
+      "sha256": "8926281a52edcd48125c5c47dc4c88cd6c16915d9828eea47ce6b03fc1531fac"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-428095ce5d8434a6.rmeta",
+      "bytes": 196863,
+      "sha256": "13cda479bba13bf169294042d9a37cada4cb5667cde753e90ebd73139c8d2501"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-5026415241240233.rmeta",
+      "bytes": 140997,
+      "sha256": "e6135c96d9e126a71260baaabb439dd1bfe9577159686fbc3983fbc0f58fcbf5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-aad5452b668913cc.rmeta",
+      "bytes": 140997,
+      "sha256": "ffe28b31fe8ac6d3eb7feb2af54e9bdb9d4d0a71c10e9bb93ce4120ea086774d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-e0cacd25ac9ca48d.rlib",
+      "bytes": 291806,
+      "sha256": "7c4a42b99e1d5a690b4ae7d07e3742c39ba138784e9a632796795ed19b9f2774"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libonce_cell-e0cacd25ac9ca48d.rmeta",
+      "bytes": 196863,
+      "sha256": "80e8813a5f806a8bd8efa13be2f88aee5e9e78532975d4d2eae8392e2e56a7f2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libouroboros-abba1f917d120535.rmeta",
+      "bytes": 26520,
+      "sha256": "beb60174a2ac829dc6c449b568986d06e53f83044adae391f5c31db27c74f826"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libouroboros-d97f0e2ef2292b3f.rlib",
+      "bytes": 29912,
+      "sha256": "70c53d7f5441f1230664382aaf0c3fcc1cbab79b46070b5fe7067aae0d8236a2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libouroboros-d97f0e2ef2292b3f.rmeta",
+      "bytes": 27673,
+      "sha256": "caaba45643843edc6c456fe15111aa2107efa00ac4e65a6b76ebe719cd78f07b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liboutref-12add1ee7a41ce58.rlib",
+      "bytes": 22322,
+      "sha256": "baf7bf525ac9e582d9ff22771249627260c543260703ead841382d890aabdc3c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liboutref-12add1ee7a41ce58.rmeta",
+      "bytes": 20109,
+      "sha256": "bea1a5a9e01801193ea6021bb6e442dab5125238ef1e92ae1c97f58437bd4b5e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/liboutref-aa65208eeddc4401.rmeta",
+      "bytes": 16266,
+      "sha256": "05f0c3e84da841d4a08042551fd72603a5c179f9cacd42c128ea5ff6028b9e34"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot-5643f9c06b90c2e1.rmeta",
+      "bytes": 157677,
+      "sha256": "958c2a53eeac0c5eadeacba7792aae3fae476b7ce0a68805a027036b79fcb4db"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot-97363f635fc956a7.rlib",
+      "bytes": 1455146,
+      "sha256": "19df6fe5a35d649912c27a164725aa9d756c637e4c0161ae8d237324ffeb4894"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot-97363f635fc956a7.rmeta",
+      "bytes": 207190,
+      "sha256": "7ad0d25ef2fc9f650d342b2da3b9315501be0d3499f46b73a3836d2963be2a6e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot_core-042ef8f69e67744b.rlib",
+      "bytes": 507140,
+      "sha256": "51f1a64f0b200bf9d89f57439bc98ed2a83f611a159ed8990a033c953da8db07"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot_core-042ef8f69e67744b.rmeta",
+      "bytes": 172911,
+      "sha256": "c9af97981b92fd57b92e0c559820be0bf61f2fdc60f101ca74b66bbb5621c6c4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libparking_lot_core-59653ea3e9439e6d.rmeta",
+      "bytes": 89148,
+      "sha256": "7f9669ca045237b94938cf4b840178fb2d1f9254d92ef04e34e3078e4e4ff373"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-2bfa21db4a1f5a4a.rlib",
+      "bytes": 991942,
+      "sha256": "ed9f8887c6afb00cc602516d17a3d460c966695554209a8d6971b0cb06fd0d2f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-2bfa21db4a1f5a4a.rmeta",
+      "bytes": 141691,
+      "sha256": "ca287d7172ac4b4d99d9223bb9a3879fab9f6c695de878a120a3e809a556b97b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-307e15679185192a.rlib",
+      "bytes": 5087326,
+      "sha256": "701198dfbdd742e40439f3ac3e4eb66843c411a2ecaf577f4b54374c7a42ac1e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-307e15679185192a.rmeta",
+      "bytes": 524978,
+      "sha256": "368c275b1c7d6e2dc012726355a96448560ec2a5a82acb3a85b28b686ebc3c16"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-3f74e644c4324680.rlib",
+      "bytes": 5362080,
+      "sha256": "27ba39ae8b4379140150571a39acd12745e6920a79360f4422ea2929b62d2fe6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-3f74e644c4324680.rmeta",
+      "bytes": 602266,
+      "sha256": "1e18b95b0bf8baf5b34a89216522b3da6b5d7434c70814d27fac354273e83d7a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-594876b93c70ad80.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-8156bf62b65cf256.rmeta",
+      "bytes": 437595,
+      "sha256": "b95cf79d3567e1061c36cb0263be295b689f87afc20fe2691e928eff6273a53e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-8834e0a55bea2cb2.rlib",
+      "bytes": 4844066,
+      "sha256": "927a5b418b5fd7ad500b0140b82df1a973352e9c44a4c4ae814f7a2d7d50ae36"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-8834e0a55bea2cb2.rmeta",
+      "bytes": 464153,
+      "sha256": "d843124e741bf2cdeb55ee87d450824c6ac71b12b4072223a7956f63aead517d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-89c6850ba8ba1346.rlib",
+      "bytes": 727222,
+      "sha256": "e4d10b3fc19a4687bd3787fcb9a9d0491cc7c2562770d2865a6a0ecfd825d61f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-89c6850ba8ba1346.rmeta",
+      "bytes": 159243,
+      "sha256": "0d39224fbd63a2476a4fc90735c003c43f230651da791639dc2917fc4e1bebc1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-93f2e8b9c8d839d4.rlib",
+      "bytes": 4259762,
+      "sha256": "76f5b5e8beab253e627d121d627d1aa13a8c9a7b3031690a7e54f6f9618493d9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-93f2e8b9c8d839d4.rmeta",
+      "bytes": 601472,
+      "sha256": "5b98fa5d4d9e9827c3e222e3405da8ce31ab8613a61f4d6089eda97e95532226"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-ab4092f516338431.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-af42da58b59c2c59.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-c8f57c20d4191119.rmeta",
+      "bytes": 555181,
+      "sha256": "996a541127a137dde2ed403335cc87799a73b91862b65853378c468976bef324"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-d1892a4e01ff8215.rmeta",
+      "bytes": 554179,
+      "sha256": "bcdc92f506639260332140f5f0e0be1d155191e0a26655227d87b0720f034992"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-f35a5d7d5c43cfc7.rlib",
+      "bytes": 4037282,
+      "sha256": "cb6d55c41967adde534c4ba9fb8477ca277bed9283e2f1c090190f6af55d77d9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-f35a5d7d5c43cfc7.rmeta",
+      "bytes": 542606,
+      "sha256": "c4abfd7653c2037847bd0a37494410dce7442b73b22c42c7d8991fcdd1fef3fb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-f4f30b2cec033563.rmeta",
+      "bytes": 491342,
+      "sha256": "d070b8ee231b0eb1cdcfec093aec450252841f6ceb99a4468de902e4ea9f2b26"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpartitionline_schema-fd46846ad62eb2b6.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpercent_encoding-0afa79f3260a3d39.rlib",
+      "bytes": 276888,
+      "sha256": "c4e3e23db4d056c2240fa137b2a36374996651009c5447a10df478e3f11156a9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpercent_encoding-0afa79f3260a3d39.rmeta",
+      "bytes": 51719,
+      "sha256": "9a385dbebcf5e56f7478c5c6f8ce588cf35e98b83c024a66cfd063fcfbbd6e2d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpercent_encoding-568557ecd78abc59.rmeta",
+      "bytes": 45853,
+      "sha256": "edcaa6e15e24af434ebb4d30d64e359a6422cb2ab72546e5fe1f72a9cd56bda1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpin_project_lite-6e1861374f55a758.rlib",
+      "bytes": 97014,
+      "sha256": "37c079bb10ec5f297c455cffe09e85f9043321ab913c2ac13abc85925757759e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpin_project_lite-6e1861374f55a758.rmeta",
+      "bytes": 94747,
+      "sha256": "76361133d505ea18cc9aca53a7463d0f222f61c7ed51932d077106aa0540da12"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpin_project_lite-c6793d068cff9c5b.rmeta",
+      "bytes": 93590,
+      "sha256": "3f8ae3ba6e0231a121ff2a2aae39e1559cf54680e8b1c738a796e2bad37873c6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpotential_utf-15ae87e429c557b5.rmeta",
+      "bytes": 38301,
+      "sha256": "22ff8f66101776c4cb4956592c13db04effc55c98368c806833e55b1cd8d9d91"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpotential_utf-50b0c984d926b106.rlib",
+      "bytes": 166058,
+      "sha256": "f7c29ce0dbf0a47c7d39bfc40cb6db588f8caec5e9d4b2d1329a8c264eb7cac4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libpotential_utf-50b0c984d926b106.rmeta",
+      "bytes": 44871,
+      "sha256": "142b55cf525b5a6d0a1af73dc48d9db53726d2fc39ad053ffc1e03ccd51863bf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprettyplease-371b2d1218aad5c7.rlib",
+      "bytes": 1780430,
+      "sha256": "487ff4be80d3f7c1d60d5f044ec27f81769ba4283b9c6c37caaed016972445ff"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprettyplease-371b2d1218aad5c7.rmeta",
+      "bytes": 344247,
+      "sha256": "8111844f7f445c3090e2cea6a4befe1318da2220db819bce72d8897a8789a5d2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprettyplease-abb4f8f103210964.rlib",
+      "bytes": 1780446,
+      "sha256": "6450fe31f4c1a52306cdb47571464bf16840d170a4df90ec78cb796a65725825"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprettyplease-abb4f8f103210964.rmeta",
+      "bytes": 344247,
+      "sha256": "e95fa819e7f6e837c72f4fa8e8039d6097ddc5137596f255bea36f32379de3a8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libproc_macro2-378d9a773d1eff57.rlib",
+      "bytes": 1254882,
+      "sha256": "01a1cc97481c43bf0187d335b8a259682eac5a8704d2635692d14c4d2f31619a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libproc_macro2-378d9a773d1eff57.rmeta",
+      "bytes": 351281,
+      "sha256": "61d2db82444859702596e6ca9dd8813475f92267261b4db08949075881c35676"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libproc_macro2_diagnostics-483a7bc51cef3088.rlib",
+      "bytes": 390754,
+      "sha256": "4aa432a5b03c1c905506d1b34ba731d168ca96d31d2702a7bd6a7ed7b846d12f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libproc_macro2_diagnostics-483a7bc51cef3088.rmeta",
+      "bytes": 58811,
+      "sha256": "240f28671ba6396634320063225c9ae9c1bcc1a1ba19a8bd0d39a3e4cb0fd400"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprotobuf-12eec823cfeefc53.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprotobuf-3000580edb7d3dae.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprotobuf-6145f00df97d1672.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libprotobuf-d2ee53b20dbf3718.rmeta",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libquote-31403cb87be77403.rlib",
+      "bytes": 516296,
+      "sha256": "f46930572ee69a760d8df9bb2519c4e910de35c66e3839f7490b45dc6f33469a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libquote-31403cb87be77403.rmeta",
+      "bytes": 275652,
+      "sha256": "d56fd7b59779f93e3d76d7abc8016bb3e5cf21e9f575205a1575c42a47044722"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand-421d0808f9a49441.rlib",
+      "bytes": 1945102,
+      "sha256": "63f8929ea3a4400166def5ed308cee4733a9bf46701887890db7867fd8ed7d08"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand-421d0808f9a49441.rmeta",
+      "bytes": 1122154,
+      "sha256": "dbde32e9272f2dd5f953891108b192cdc0ae7cb71d1aea106ccb51efc9c02abb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand-a8c1d288ab63f2f4.rmeta",
+      "bytes": 789891,
+      "sha256": "bf864108204a84a1602879f57060fb1d96ad3520b109bfa7d4bb236e80a4192e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand-fc07421a3e721315.rlib",
+      "bytes": 1950452,
+      "sha256": "44075a4c4508edafedfb8aef52e50df39ea5420791642f940e6a905691ab609e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand-fc07421a3e721315.rmeta",
+      "bytes": 1122154,
+      "sha256": "6f11d7e03fce72376b88e34c549db500e2994008f11b587aebc620c2a2d3f84f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand_core-38805a8156128229.rmeta",
+      "bytes": 81350,
+      "sha256": "66d4532d22dc057bb3dfb92cade48a0921caddc1e36515fbc0ac91d216e5aa32"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand_core-a2dbb9d7a0b29734.rlib",
+      "bytes": 129766,
+      "sha256": "72d0df30a04ec27a72e15a5aa9fba6f79dc4a7927509d94dc85e767b5c0b9ed4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librand_core-a2dbb9d7a0b29734.rmeta",
+      "bytes": 121270,
+      "sha256": "8d0396a73592b3fb5a0c472dd1cc2b595c909aa8ca27d005c656d659ecb7c4cf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libref_cast-bb8f91b726fb7695.rmeta",
+      "bytes": 23659,
+      "sha256": "e55e46d76fc2574cf128f477aebc4e372ca86aeb875eed3c0a49ae2b5a20a679"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libref_cast-db7eddb0707bc6ff.rlib",
+      "bytes": 29262,
+      "sha256": "e4430d83eb5727ba259ef4770009ce81795b01e3d12f776af5387df1e0d53af2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libref_cast-db7eddb0707bc6ff.rmeta",
+      "bytes": 27040,
+      "sha256": "472d0435d73a08f6aeb4ebb69e87ba517955be3b6d1536ad73d590b355398f0f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libreferencing-3071ec7be0bad0ae.rlib",
+      "bytes": 5882160,
+      "sha256": "0e0a9db18af831a7f7dd2756d26132171a126dbdc82fac963c4ac3b205e3d287"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libreferencing-3071ec7be0bad0ae.rmeta",
+      "bytes": 455688,
+      "sha256": "9d1af6da89942b6639283f7b37936d12cc883271a4ca366e293fd341c9c4b737"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libreferencing-751488cbd16ac951.rmeta",
+      "bytes": 317694,
+      "sha256": "f0de7070ecf88419b3983424f09a35d3a2793d17f91dab65ab1058b96aefac7f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex-410ffc66da49fa09.rlib",
+      "bytes": 1570334,
+      "sha256": "d4f4de47d0ede21db95a6cc54ee9e3bcefc49ee4e28d04ac86c34207deb84c8b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex-410ffc66da49fa09.rmeta",
+      "bytes": 683201,
+      "sha256": "80fccf6b934eff1da16a9fec7fa3dfecc7dc3facc4edcce5cad2afc106f24794"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex-c48e880294b22f53.rmeta",
+      "bytes": 577450,
+      "sha256": "f4812bc7776d8179963492b6732ea33ea919b35bdb32a5421fabda4348b543e2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_automata-30b727269a1ac78e.rlib",
+      "bytes": 26412334,
+      "sha256": "2942460e73c94d3f4214ba2893137bc6c872ac48186a7a620efd75319e2b7037"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_automata-30b727269a1ac78e.rmeta",
+      "bytes": 4309779,
+      "sha256": "294945c834d7f27eb3ce1cabac34608c26f36c5661064fbdcea8815c52a7daf4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_automata-9361605d5724d388.rmeta",
+      "bytes": 3234034,
+      "sha256": "3c8895fd9c1454719a69aa71a1089f7926d7a6ec8bf76b7d4cad74de94ded2e3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_lite-0e8f26e1fbc18538.rmeta",
+      "bytes": 514253,
+      "sha256": "6b66c80ea19b9e47f1170d9f9cd77048f1eb8013632113f513bba7fea86f8e23"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_lite-e4184e1d3745f698.rlib",
+      "bytes": 4643038,
+      "sha256": "1a74296ae3af9da35e074a12d48a32ba1e5784a4b01e5f9e6ecb146cfc229cfe"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_lite-e4184e1d3745f698.rmeta",
+      "bytes": 641703,
+      "sha256": "58dc9f3b6ac7eecad0a156f61b6ce16f83278122a2ab307ab1c5463b93764daf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_syntax-1e55c064ae9af1da.rlib",
+      "bytes": 14813228,
+      "sha256": "e9faf74522f1014345ab536f378b709a28768f54cb722d7f26fc9a7b5033c016"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_syntax-1e55c064ae9af1da.rmeta",
+      "bytes": 4650024,
+      "sha256": "29a32eb14c6b0ec9ca052c573ce027f6a4f0b8f7f4757eba5f05f2a40e8cab31"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libregex_syntax-33ef8cf796ee9c70.rmeta",
+      "bytes": 4212232,
+      "sha256": "d5692d3d146876707c519f06b057e43588db31e5769d5b0edcc59cdd893a048b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libring-1e69e1112ebdaf2b.rmeta",
+      "bytes": 1818391,
+      "sha256": "e2f4fd62fdf9167c35508cf522587a34566b11adf6d6fff0d9e6537cff5c214a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libring-76dc1abe13fdb12d.rlib",
+      "bytes": 10925878,
+      "sha256": "4284f5e9c32530561bac7c82b80a728b0cfcce1288832ad7a48c5f8c6fa482e5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libring-76dc1abe13fdb12d.rmeta",
+      "bytes": 1985304,
+      "sha256": "2d9d968b1c677e4bed9cd96c48ec24f7a16a9d144cb7854e8f91c8252e0b3672"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-1f7c0e61f633d9cb.rlib",
+      "bytes": 28786558,
+      "sha256": "40cad50067c23c2a8913aabfb3538c7c86475339dd866afd90fa22a951b706a6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-1f7c0e61f633d9cb.rmeta",
+      "bytes": 4241464,
+      "sha256": "695b965f5f343da8ce1aab25914d3ea415f3fa1664acb5f31ccf3411cff8b597"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-a8a07197d5f71407.rlib",
+      "bytes": 28799354,
+      "sha256": "162a1256b913fcdd6517b8690b43a6ba6ba54b49b699dfc85b958d43967f3c5f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-a8a07197d5f71407.rmeta",
+      "bytes": 4241464,
+      "sha256": "0a2de5c9e34653fab22910b59e1b897f40767c632d1f5f727ef45203064fcd00"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-ba1c06c80c94fad5.rmeta",
+      "bytes": 3695699,
+      "sha256": "161d770881555b7853dd0c79070ffafcf7bc88499eda4e82bf17b5d62c3c8b00"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls-fb26f7065eae771f.rmeta",
+      "bytes": 3695699,
+      "sha256": "dde30b938066554aee8df4295c15ac9e91d8291d6eaf7944628a35e1c5e79801"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls_pki_types-924cfd71621d0a7f.rmeta",
+      "bytes": 336340,
+      "sha256": "c4d990df5ca307f2fc505a607176fe9bea2502d35b2343805a0ad6667e8f39c7"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls_pki_types-9fb4937b9a0b29c8.rlib",
+      "bytes": 1431594,
+      "sha256": "fbdfacdbf9466502704fb3bdf9c03d0d01f8feec57a16d8744e753b7420cf92d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/librustls_pki_types-9fb4937b9a0b29c8.rmeta",
+      "bytes": 404440,
+      "sha256": "fa3d5194b04a0d84ad7edbd7e810a5e44a5636fe8ea4f04931a14f71e2d7bed6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libscopeguard-614a351501420358.rmeta",
+      "bytes": 22127,
+      "sha256": "b642c563a08b95b6ba511ede27b20f6daae6214d1cfadbfa9d64d2af284be933"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libscopeguard-dd7e42edb450752a.rlib",
+      "bytes": 28338,
+      "sha256": "0d62215978b7d64da6a4135c220b5e09fa047c0de007dab6ea6d5418755225d5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libscopeguard-dd7e42edb450752a.rmeta",
+      "bytes": 26099,
+      "sha256": "7ae73975b25ec9bb62d1f7604fb5b624743d0697265dc12be5ab9e6f876fc30b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-6b6909e3a3d5b5c8.rmeta",
+      "bytes": 526210,
+      "sha256": "cd9aef5df56874522fec43dc86f45992c98bbdadc8b5548d902a21512546802c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-70a02038b8caa272.rmeta",
+      "bytes": 526210,
+      "sha256": "a173c484792c00130e773d24065f76456be4a127a7b0cd1d3692a9ae926131f3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-d418854c85a78d2a.rlib",
+      "bytes": 1193422,
+      "sha256": "b6ef2546805c9307b513c97b3372cedf392debeb1b441e3a157497f1986bbcc1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-d418854c85a78d2a.rmeta",
+      "bytes": 842337,
+      "sha256": "a49fab549d5648946804f663a9126eab5e6daa7af0d75b31abe33b396708ab22"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-df4a6aafd69a8671.rlib",
+      "bytes": 1193422,
+      "sha256": "15115ce378420924ee707a73fc2f3a6de3764132273a10bf9e440589e5fcc3d6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde-df4a6aafd69a8671.rmeta",
+      "bytes": 842337,
+      "sha256": "297a44a1a83acdfd867e7fbd46149340b45338d1e6363440309b61361352e92b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_bytes-07bc8a54d28f0b3f.rmeta",
+      "bytes": 109661,
+      "sha256": "1e368a4a05874c834a75f0bb2451ff4080ef48007877c6418be22181eae27b00"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_bytes-31b832cb65b3304b.rlib",
+      "bytes": 355058,
+      "sha256": "0d9b82d1e35f161441a07aa20febf27090cd02464875ff321480284f4c30d13b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_bytes-31b832cb65b3304b.rmeta",
+      "bytes": 164148,
+      "sha256": "4d2ca275dd28e3e29749efd5b35b25de323e537cffa7665fcf5f46f6079e66f6"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_core-3171c1058a562577.rmeta",
+      "bytes": 2725028,
+      "sha256": "f2b6299275a01401e825514478c890c200d259dc46906051e7a0888aef6e83a2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_core-b468be6fa8c1f936.rlib",
+      "bytes": 5361070,
+      "sha256": "c03614646712ab4eff437ea3672b5e82b301ce45ae15bd1ed6b1921429f325fc"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_core-b468be6fa8c1f936.rmeta",
+      "bytes": 4847725,
+      "sha256": "58bedf63a57bf35513b405bb50aedd75a1f47b8cd1eb07217cd3526d6cb76f0d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_json-76dc87088753b61e.rlib",
+      "bytes": 4465808,
+      "sha256": "3ac9bd4b2f481d3a8c99b55305b24869ae852ad49fa5bcc20069f993906af7cb"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_json-76dc87088753b61e.rmeta",
+      "bytes": 1452739,
+      "sha256": "a439c160715dd37eca68a5dfd19ba4c649deff2ceec39c4a5060632a65323696"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libserde_json-9cae37fb27a2e0e0.rmeta",
+      "bytes": 965160,
+      "sha256": "f2a710237d53953055d930ddd6197a33abf6c94eedc4e43f5e84eccbda0d3b32"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libshlex-7000c8965d055859.rlib",
+      "bytes": 137984,
+      "sha256": "afb0f5897129e902952fe6bfd538de383f2193daf266abb65450c736e447f025"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libshlex-7000c8965d055859.rmeta",
+      "bytes": 49768,
+      "sha256": "a0cecd2aab3028a3aab33e9b203a240463ae5cb62a68558b9a04a6c38662b09f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsmallvec-925146b89a01a403.rmeta",
+      "bytes": 114274,
+      "sha256": "5d73af8e37dd3363769efbf8ff1b08bb84d03668232bed8a51682d6ac00beb3e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsmallvec-f252928fd12268fc.rlib",
+      "bytes": 254506,
+      "sha256": "573560fd4d19151f0dab5101b366fd6553f759b9b81e3851dfeba3d8ea5ab0f0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsmallvec-f252928fd12268fc.rmeta",
+      "bytes": 213350,
+      "sha256": "9fd5d48298b56f415c8ae4628d11f94f325fa827a1a4d3b4f479adc2fc9714f1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsocket2-876c6de21be789c5.rlib",
+      "bytes": 1851310,
+      "sha256": "f06b11d169c86547cc992e9610ffddff50dabca45ee952a7dccffafc293eb02e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsocket2-876c6de21be789c5.rmeta",
+      "bytes": 417660,
+      "sha256": "d43300966a3584dd69f343d3f0ad963fe087e6c2d53a918cd8fa8784b3afd432"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsocket2-aa7e5a1f768fdf79.rmeta",
+      "bytes": 395435,
+      "sha256": "714b1fd012eb13249fed3952908b03b0e2a1f56269bbae087a1b24d360d7a119"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstable_deref_trait-01ad4690134ab799.rmeta",
+      "bytes": 10359,
+      "sha256": "99ab1a98c158f9366d1f59e3307207aa1d2b43f3406c0974ab3f3bba31efb63e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstable_deref_trait-bf6ee564ab40ea72.rlib",
+      "bytes": 12634,
+      "sha256": "af8b83cdea891775a9f594901f28f727b94f47a9ec1b7c71379b9ce94732f461"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstable_deref_trait-bf6ee564ab40ea72.rmeta",
+      "bytes": 10359,
+      "sha256": "a6f6079deb8312a572146459ba4452111ecad9cae028be9b5bf7709622616107"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstatic_assertions-40b680686eb43a27.rmeta",
+      "bytes": 52539,
+      "sha256": "12b3415d79c1971fdcdeee59a41688e91ab8d8e467a376dac366c7317128c568"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstatic_assertions-78d2e7d8b357ca22.rlib",
+      "bytes": 54816,
+      "sha256": "f9466fafe5ee2c7c3aef326640096779bd35a8a4b14b8274343f67805eac586c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstatic_assertions-78d2e7d8b357ca22.rmeta",
+      "bytes": 52539,
+      "sha256": "a2140d8b3b46a507508fdc33739f988a96704b687dd33e0b9b111a40f37db5e5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstrsim-a0e6493e1d49207b.rlib",
+      "bytes": 491170,
+      "sha256": "a1a565b0ffa67d07ed6542459685119fb1205afbf1f3c8a1d40cba3baef0440d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstrsim-a0e6493e1d49207b.rmeta",
+      "bytes": 72173,
+      "sha256": "5b1d33f88b265a327c6325ba2db8365b1b8397d2c8f49caf4c697dd37e803766"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstrum-4cf292937f71afb7.rmeta",
+      "bytes": 26776,
+      "sha256": "76c99a737046ae4a820a9338c8eac1acb619ed46f2e16d447f3de75e0dcc2b00"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstrum-6b5a49f558e76101.rlib",
+      "bytes": 51568,
+      "sha256": "46c66ef9f5ed8c4e703d836226b6cc2c757ab21161c3cc9b429ff5808f73b980"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libstrum-6b5a49f558e76101.rmeta",
+      "bytes": 27843,
+      "sha256": "4d8e6c00a8b09118195d8641992bc50cf69fc1af3d0c1bf7f45c52cde0d0b5d3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsubtle-91e86d2cdd8788e5.rmeta",
+      "bytes": 72475,
+      "sha256": "c3bf5d1f9d98dabcfc0a3f5a8007561c0251a18fd63d2ed880354c2873795739"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsubtle-99d1bfff670988c4.rlib",
+      "bytes": 130070,
+      "sha256": "4ede4a0716733234fdc140360bda0984ae1bf84ea51a2802a1800e0f1a33de4f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsubtle-99d1bfff670988c4.rmeta",
+      "bytes": 119617,
+      "sha256": "2220efd3fb0e96e6e61a164871d7db2949374bd6a7d71ff0e25d937ab2fdddac"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-4b21d6d355c29d99.rlib",
+      "bytes": 9265856,
+      "sha256": "93610b5a92b20a0a93fcf3354e9d883be2a74df4d040dce88c57a30d1c535b8d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-4b21d6d355c29d99.rmeta",
+      "bytes": 2806931,
+      "sha256": "fd60f91363d4721108a351944615b2f1947745a1412033e6ef8b916d5218029d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-9dc86898adef72cc.rlib",
+      "bytes": 12522062,
+      "sha256": "30e9143c84acf06cfff24a39981fecabb9a537a8ccb0653c1e996a0690e93538"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-9dc86898adef72cc.rmeta",
+      "bytes": 4828169,
+      "sha256": "f92f44089cfe8e3749005105ffca382c203df5c2304a89c11029109d55568737"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-a97e5f7832ba3e82.rlib",
+      "bytes": 12949984,
+      "sha256": "ecd58dd6537c97e1552ddeb49ac46982eed316c4bd55ca6061d69ac6f46dba88"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsyn-a97e5f7832ba3e82.rmeta",
+      "bytes": 5253757,
+      "sha256": "9462b8d4ebd3c4c6c65154d2afb4e8c15436cf806efa810f0ff9bfa602cb7c53"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsynstructure-6956e24771de740b.rlib",
+      "bytes": 1542130,
+      "sha256": "449a5f598b8e8eba23ba5ba33496d100e355625fafcbea1a85b0a45cd756053c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libsynstructure-6956e24771de740b.rmeta",
+      "bytes": 240397,
+      "sha256": "67643bbfb1ff9ee556ac913dbb23dba96734c14444ddc2d3da83c6df27138737"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-13aa638606a40264.rlib",
+      "bytes": 36914,
+      "sha256": "2b8e74759027a03da9a28b561796a637146c892f379780f1507c25e0dcc648f1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-13aa638606a40264.rmeta",
+      "bytes": 29608,
+      "sha256": "2e3f0835254b3c74624436b022dedb85aa56d5ebcd5ca08b0e8c8b72bd0dd586"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-486fc26624828666.rlib",
+      "bytes": 36914,
+      "sha256": "8c98fd68486e9144f20df1d6fddfe6ca440bf5453506f6ebb14e1d149056904d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-486fc26624828666.rmeta",
+      "bytes": 29608,
+      "sha256": "cc4662f443aab97268c3a43bc547ac938b2ace522f3e9da0b21975d5dd9bb7d3"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-731ca7e3475938c3.rmeta",
+      "bytes": 28143,
+      "sha256": "bef34789782e49ec903c392be15746a2a4f7b911dfe25de1b495e89ba5243856"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libthiserror-fa24ba6b0c782d15.rmeta",
+      "bytes": 28143,
+      "sha256": "f8de985d83a24199ebb6ade0f61966e1c77e571ef1571b1211b9c8ccef50f40c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtinystr-bca411a972c2808c.rmeta",
+      "bytes": 257894,
+      "sha256": "622ef0d4f744641ba122a6edc4dc008570a04595369316a85593c8e04359ab88"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtinystr-f6e8f27bcaddc8ba.rlib",
+      "bytes": 410428,
+      "sha256": "4f6f3bebbd5e5ca1e1e09c886f59d4211307218951ac4da91c15ff86665c42ec"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtinystr-f6e8f27bcaddc8ba.rmeta",
+      "bytes": 313630,
+      "sha256": "03e7ddb9345db31dcf633f2f7b412dbd3738cfe6d6eba1048108419efd2f9d59"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-86725979c87ae400.rmeta",
+      "bytes": 6491488,
+      "sha256": "09919c3190a9f8afc0fe4060fef0e4a5030a11b4bdf7ff4d40d205c31d5543bd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-aef67c4775ec5793.rmeta",
+      "bytes": 5160306,
+      "sha256": "d3cbde771e21b02537be9d2736b0b3c2f2e66dd207ef946888711b918cb6d7ca"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-b87e5ef85cf2774b.rlib",
+      "bytes": 19414070,
+      "sha256": "9448bb5fe9fb9ea243cf644bbaed2d41cd796856b492285a4dd71c387264b7e4"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-b87e5ef85cf2774b.rmeta",
+      "bytes": 7622936,
+      "sha256": "3601805138604e9586eae9dac36fdc57acca8dc24f9693c21310a8c0ba198fbd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-e6229a013dee5028.rmeta",
+      "bytes": 6491488,
+      "sha256": "ca5a5344c66724f2921743f5874d61372e9cc8ff138c9aed466515c941e673db"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-e810ab5c338573c2.rlib",
+      "bytes": 19423560,
+      "sha256": "9c0b68558b244b5c33dce546192dd366d4d913dc72d4176b8852ba54a5eee21e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-e810ab5c338573c2.rmeta",
+      "bytes": 7622936,
+      "sha256": "6304505863c7ff5942fc56a958fca5c26e319d1ba10e606b67ea4ab976a5ba0c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-f13d81fbf5a2a342.rlib",
+      "bytes": 11495730,
+      "sha256": "94e7bc2cd33d8e63eb25487a5285652f7e2f42bd5c7781c3585a42c5fcf0ec9b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-f13d81fbf5a2a342.rmeta",
+      "bytes": 4148619,
+      "sha256": "4141f4a085981708d66408b5ebdac8573a647944832540ec5dd5d9fb40b1890b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-fbaf69bce231202b.rlib",
+      "bytes": 11485368,
+      "sha256": "6c98f0a02d1b78c8ff064b7d29faef85c251f2963f3d315578992f1afdcf799b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio-fbaf69bce231202b.rmeta",
+      "bytes": 4148619,
+      "sha256": "0ff8a19c0bacd36c59ba85ab06c5ceb7dd9b8e635b99fe4448c77431f31af0b2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-9dae65164f535cad.rlib",
+      "bytes": 335364,
+      "sha256": "b4a95d34700056f2827ed3bfc88b51600402e7db159d24a9dfe640fc5c4019e5"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-9dae65164f535cad.rmeta",
+      "bytes": 238365,
+      "sha256": "16b9df3a0f494d1168c7c26c6b85045fd5b59ddfbe7a7ed26dd88dadc06365da"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-b4a73edf413c013a.rlib",
+      "bytes": 335364,
+      "sha256": "d209db79ec5080e8c0c79f8600ccc4be8381c479ca0e4a15400d54bd1a17a4cf"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-b4a73edf413c013a.rmeta",
+      "bytes": 238365,
+      "sha256": "d5a917922462a303d35296b7e3805f7d628970f04b2a9d71861d0b0ac5212a59"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-c5738cdfe101ce9e.rmeta",
+      "bytes": 130188,
+      "sha256": "5f9e8823f19b0f5eba1e28bba22fb05988bf4a3bb7e9fcdde95a50e3d11b6300"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-c9109c2711640c3a.rmeta",
+      "bytes": 130549,
+      "sha256": "c5ab4600d1d0df496e6a38abfd6c709997fdff5c0291e04a2f5deb9f0bdb0972"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtokio_rustls-ed55eccc69021a82.rmeta",
+      "bytes": 130549,
+      "sha256": "801f67b72e235f667fa88b37ac16cb434f1374757aa0a81f4bdb7240a87cc4b0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtypenum-5cd025ab4bd212bc.rmeta",
+      "bytes": 3424568,
+      "sha256": "d78262098d0352d127d067f76625cc376d35f67cb60e756f8da607db744d0136"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtypenum-8219c8836dbe38b0.rlib",
+      "bytes": 3710982,
+      "sha256": "008c3798758671cd0c0326eb17d2f9bb37b00a1d6c0ecb1e558da02681230298"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libtypenum-8219c8836dbe38b0.rmeta",
+      "bytes": 3681582,
+      "sha256": "aacf238c8d1cd14c13de882e1fd622495016d8d6ab62fd1de7e8c84fe99adc64"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libunicode_ident-1e23094c28f51ebc.rlib",
+      "bytes": 56710,
+      "sha256": "d2c4dfd11f560aeff4cef3b4a3a8a445a0ff98d7939d50b7534d18240e241ca0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libunicode_ident-1e23094c28f51ebc.rmeta",
+      "bytes": 34658,
+      "sha256": "f749790f042c9bdff2978a51b45b4d6ac0f1e42f0c77c9b2c29f02457f85105c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuntrusted-b436eafd8994d7d4.rlib",
+      "bytes": 54026,
+      "sha256": "461ee28f3afebb9d9c18399b0e38c79068744d2fdac99d953d181f6bf38ed19f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuntrusted-b436eafd8994d7d4.rmeta",
+      "bytes": 43149,
+      "sha256": "9c4c2475fd9b51ea12dbd57188bc3f21e6da4cf980fbf336bf72b6f4e8c46a90"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuntrusted-f511769c49132da1.rmeta",
+      "bytes": 30906,
+      "sha256": "445d89e9f5f25460d11992ec58c28966a655787a09a2f939bfee848ff4d1c757"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libutf8_iter-599cfec92559ec54.rlib",
+      "bytes": 106992,
+      "sha256": "42828b28001434b4f93f47599d6a84facba6b4317d8ebc5771944c9a083fba67"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libutf8_iter-599cfec92559ec54.rmeta",
+      "bytes": 51233,
+      "sha256": "c7863ef4ca0f4cb78f08ffdbef87a1c35f610ddd92bfbb41b9c21c69a0a70c2d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libutf8_iter-7547c902914e0a7a.rmeta",
+      "bytes": 27197,
+      "sha256": "f6ad880653e32d268a977437d47cb83e288f577ddc8ac3481b80edee43ebdca0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-570fa6b11808ca65.rmeta",
+      "bytes": 446211,
+      "sha256": "bf299545879c8c081741aea68ccfe3b67b0de72a195badc6bae6f0c3f30fb28c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-647e4b5090ca307c.rlib",
+      "bytes": 1178134,
+      "sha256": "564eee56114688ec19fb2dd44872910dbf490f01df5e2453607f8f43a9916013"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-647e4b5090ca307c.rmeta",
+      "bytes": 545195,
+      "sha256": "14798a6ad6a6643f8d56b5fb32804d187cfbbedcd9bab6d16e70d1dc8f906cff"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-761a262f9f3f557e.rmeta",
+      "bytes": 446211,
+      "sha256": "fd1eff966d14b93ae3af4b054c5153c1c36137c0d4b4d45a2f7b8133bf00c04a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-f278153f7bbdf0c9.rlib",
+      "bytes": 1175654,
+      "sha256": "14117d1f750b8fb707bada5bcc96548216ee4e1f97736a522a6547a7deccedb8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid-f278153f7bbdf0c9.rmeta",
+      "bytes": 545195,
+      "sha256": "02784be2f8cac28bd129b2fde0b6608a9f0ff236d93fa9e12bc5e8ce4f0c07c8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid_simd-43366198f40863e6.rlib",
+      "bytes": 1190202,
+      "sha256": "effef46e486a4e88e28eefca91a9ba82df94ebd510b974e2f8d2b4987bdc34ae"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid_simd-43366198f40863e6.rmeta",
+      "bytes": 419636,
+      "sha256": "7a7d14e16b4f53bb783fc1ca4122ff76d2dde76a5cbe26ec964c2ca46679ab83"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libuuid_simd-b355ff7a65229b09.rmeta",
+      "bytes": 373116,
+      "sha256": "ea86b0364a3345e535071c574b5b7ccece7a1263915112d61c77bb9c8997a478"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libversion_check-371b5f2dedfc9d12.rlib",
+      "bytes": 463504,
+      "sha256": "93cdf63c7f0f7de8b06e34ffd1dd37a61fb5fbabda22576ef64c38eae6e0958f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libversion_check-371b5f2dedfc9d12.rmeta",
+      "bytes": 76469,
+      "sha256": "85ad946ca5a3bf451fc607d4d1389b54eb8db8c2c610e7a72cad1366620c1ff9"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libvsimd-47815ee83234a7ea.rmeta",
+      "bytes": 1561530,
+      "sha256": "e3e64a90d4f86d50b674c377d234be3240aeac4c06397b8e4bfe3d0e04932445"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libvsimd-8588db60a425d5f5.rlib",
+      "bytes": 1788650,
+      "sha256": "e2d26a7c3a871765a04374b280fe0af6bb1d79001d17cc86dbdd0b33f63506b1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libvsimd-8588db60a425d5f5.rmeta",
+      "bytes": 1781482,
+      "sha256": "00d62ad332527e3767c416ed2813d6af33ad9b0b869ef0581c39f0600c6cba4c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki-2a7278319b1eed3c.rmeta",
+      "bytes": 495508,
+      "sha256": "ee607c1ea0be9a105176167917e6c9d709d99913dea7e9cff421e2aeada17f9e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki-60fb9db7ac7a7de0.rlib",
+      "bytes": 4498664,
+      "sha256": "a724f1566b92bfc0a8f2f909516187cb5bf83c9809344b43277ab968143904b8"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki-60fb9db7ac7a7de0.rmeta",
+      "bytes": 595987,
+      "sha256": "5f2ba5b6a37a59792e547c6db8078f42502b8259ab17699280eeae1a29965eac"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki_roots-4cc9728b3d23b567.rmeta",
+      "bytes": 140348,
+      "sha256": "6c32039ee1730d18836a83c5c00031fdcf1aa6648f39d23a1a7cef3cf525f3a2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki_roots-ee1d19d8f73eeb95.rlib",
+      "bytes": 142598,
+      "sha256": "ad40e39e29124d92ecf5b33ba20df9ce3b836d1ee1b14fac1a0c5ff6ec8ef367"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwebpki_roots-ee1d19d8f73eeb95.rmeta",
+      "bytes": 140348,
+      "sha256": "1bd7f061ddbcacfeefc13175be014440458287d0c03e18288521065815048ba0"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwriteable-5abcc97df5a65912.rlib",
+      "bytes": 442540,
+      "sha256": "145db38b2cf1fbfa32af83274c4784f0a2032e527adc9aec73a8ddb2f2fc2a9c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwriteable-5abcc97df5a65912.rmeta",
+      "bytes": 251106,
+      "sha256": "b9f68ac2e258291896dc0450b37cbc55cd685c10fcd7fa668f050b2145fe601a"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libwriteable-768aee23ed5345d3.rmeta",
+      "bytes": 182036,
+      "sha256": "b81fe4cf1947a6d69231f8490081a1129bb356419652dd4164e5098043576b95"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libyansi-420300b82bcbade3.rlib",
+      "bytes": 702010,
+      "sha256": "bb13c6893122d8f9fea8ee7692abb86a2e8caec6efa4e95d7627c66f194e0877"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libyansi-420300b82bcbade3.rmeta",
+      "bytes": 612789,
+      "sha256": "e102c3a56c40c91ee8c159ab695fc297fa492179db5d6829d7eda51dfbcdb053"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libyoke-17526bf3550d88f0.rlib",
+      "bytes": 244360,
+      "sha256": "ec1f51c35110398d37b82133d09f408f684f80b377d5fc90fbde4494d281aa66"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libyoke-17526bf3550d88f0.rmeta",
+      "bytes": 240065,
+      "sha256": "4604c53be0241de8be0c9aac631abe874aa574aa2a3ee40e6a25875e7e5b271e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libyoke-f8bafbc28ef4a98b.rmeta",
+      "bytes": 191367,
+      "sha256": "7745d8dd301c347e2e91fb1af6788313b78e6df49edc0c7aed05c052e55b9a7e"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerocopy-bd1d4bb687597cea.rlib",
+      "bytes": 14901698,
+      "sha256": "c74f52cc8ed99c0bbf9495b406042deb62085fdc868a76e35cf3519202303391"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerocopy-bd1d4bb687597cea.rmeta",
+      "bytes": 14586147,
+      "sha256": "63cae2ca537fb8890ed8e5a61a3407c2d7854000aeefb58bd2e8cb7a1651d9dd"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerocopy-dd0784de48185d4a.rmeta",
+      "bytes": 13093443,
+      "sha256": "f47b40f66bae829ed0b068946d7e822595f228ac5db09f68b1e647df4dd46d2f"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerofrom-7a284843832b6f11.rlib",
+      "bytes": 97998,
+      "sha256": "fe4189c31169d4dbec711037df8dd282d4e8f45e7d632803af52ffb9e68617e2"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerofrom-7a284843832b6f11.rmeta",
+      "bytes": 95771,
+      "sha256": "31c24307e7fc41d90466544d3703188157e0f613a58cc6fdb60e6c353f182209"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerofrom-b2092b592a94f184.rmeta",
+      "bytes": 53494,
+      "sha256": "d72d50172f600bd6e00ef9913dca3d51e227791125adff4af0bd033b9ab64b7d"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzeroize-2b28f4292d58679d.rlib",
+      "bytes": 545654,
+      "sha256": "f1b6e436db6d9cde679515a6459b6dcef9de262488bb6784c5d322f0c81a2fac"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzeroize-2b28f4292d58679d.rmeta",
+      "bytes": 429869,
+      "sha256": "84cf7d7b7ffa7bd810dc49c0e18c1f0cb7f3b55e907fcfce944eff5d5f1b2517"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzeroize-624d212f63623654.rmeta",
+      "bytes": 408623,
+      "sha256": "42e8ee5907c9242bb5845705ef72751b75327adb1410a3f7ef0d8f2c28260ddc"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerotrie-2297a3fd3f8311a6.rmeta",
+      "bytes": 352932,
+      "sha256": "9c544ccc13ed864f30cfd58736c7437b816510f7417b1d781c93b0d48927122b"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerotrie-d8ce9169b8ba7736.rlib",
+      "bytes": 662396,
+      "sha256": "0ac759f7f5fd1dff5ec9db889d50fcfb622507510bf319e441e45a48e53e1872"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerotrie-d8ce9169b8ba7736.rmeta",
+      "bytes": 453709,
+      "sha256": "3c21d7d8236173bd32bca38d2572a0b32ded3da8c57a5861ce3807eed81a9458"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerovec-486bd07b654bf2a6.rmeta",
+      "bytes": 837773,
+      "sha256": "c7fa9cb3ae6f8de2053fe5c8677e73a46148048bb22e5436ffe49acb635a7d09"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerovec-e0d4c59aba564be8.rlib",
+      "bytes": 1242284,
+      "sha256": "c27d2c2273cc1bbbbfdb1faa800beefda6d95f9eecd6efe06c98b9016cdb1023"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzerovec-e0d4c59aba564be8.rmeta",
+      "bytes": 1112843,
+      "sha256": "7318d1acd7972eeb8dcf9704a80969110589aaa33c0125b12ea6a72631f633b1"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzmij-9d3e9e7b02b1a066.rlib",
+      "bytes": 667626,
+      "sha256": "7fcafe3768cef0b1707b2a59ede9ee69c89eb2267b60a4d6fb03e25514e5b44c"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzmij-9d3e9e7b02b1a066.rmeta",
+      "bytes": 421628,
+      "sha256": "381e584698e2182d8fa0e20c2f91041c5b32ef3d10d57ee2c4b0c43526f74d75"
+    },
+    {
+      "path": "/workspace/work/target-schema/debug/deps/libzmij-d0a85f4f222b3099.rmeta",
+      "bytes": 412266,
+      "sha256": "3b9fbe0dac15c1cc830f6edbe42959ce4f4f39c566b858b91c4995c501ec87cc"
+    }
+  ],
+  "bytes_removed": 786349724
+}

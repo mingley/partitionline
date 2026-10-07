@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "836375",
+    "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata",
+    "merge",
+    "--failure-mode=all",
+    "-o",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/merged.profdata",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw"
+  ],
+  "started": 1791411701.232364,
+  "parent_waited": true,
+  "pid": 836566,
+  "exit_code": 0,
+  "ended": 1791411701.4764981,
+  "artifacts": {
+    "merge-profiles.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "merge-profiles.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

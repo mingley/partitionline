@@ -1,0 +1,69 @@
+{
+ "seed": 789996,
+ "fixtures": {
+  "f01": {
+   "file": "f01.bin",
+   "bytes": 1061,
+   "sha256": "4a02b8358cb1b3fc94196724727b0eb978c7a11b2b9d4d3d9d4938ef3db0f97d",
+   "records": 8,
+   "key_bytes": 16,
+   "payload_bytes": 100,
+   "entropy": "random",
+   "header_count": 0,
+   "first_key_sha256": "1c0b5f0ae98d9a4f750f3fdd204de02bad15d143174c4d8a9f4fa9195f1c07c4",
+   "first_value_sha256": "2db2a8a2fd617b5eb4c451cb05ec97d1cbbe433e1fcfa8c28f907193c5da6e09",
+   "last_key_sha256": "38e9e1b097aba7cf4db3a69f1bd6098c2c373e612a479065cb7d605fcb81b081",
+   "last_value_sha256": "9bbbea6c1f016a406d36adddcb69fbf65154a1c695a5974d7c5443011b2f3bb1",
+   "first_ts": 1700000000000,
+   "last_ts": 1700000000007
+  },
+  "f02": {
+   "file": "f02.bin",
+   "bytes": 1349,
+   "sha256": "18a57676ec4df9cb8cf3a9f966b626c007dbc37047d3ad79383968338854a700",
+   "records": 8,
+   "key_bytes": 16,
+   "payload_bytes": 100,
+   "entropy": "text",
+   "header_count": 3,
+   "first_key_sha256": "f0c5c5477a247ac4b4cbb7e9b5018452792555c22dd7b65caf224972b0a1cd01",
+   "first_value_sha256": "df79d226951bbc0469f586db3b9daee9ffb6fcb5faeaa99ca3886c7e81bd915f",
+   "last_key_sha256": "bb52bcee3305d51a621ab74b473a79346f20d2075732496b28dd5cf3218e544a",
+   "last_value_sha256": "b299779adbd9fd5676059113d8b9c9a2827e9d1be8c638cb1662ec6256251237",
+   "first_ts": 1700000000000,
+   "last_ts": 1700000000007
+  },
+  "f03": {
+   "file": "f03.bin",
+   "bytes": 63433,
+   "sha256": "e2c48f2bcf7bad6748f16e46b277ffcdf06daa18ed92f93502e7c80f51424024",
+   "records": 500,
+   "key_bytes": 16,
+   "payload_bytes": 100,
+   "entropy": "random",
+   "header_count": 0,
+   "first_key_sha256": "a5e825e2a9e2919f0080f0be8a435d7926429bf15bba486fdad33f1a360c8165",
+   "first_value_sha256": "ab7cb7b081153e34a958cd8ed33f93d0c981042f016e9070df625ba336ee555c",
+   "last_key_sha256": "6e4f34f91b3ba11dcb41d3a0673612f56461fd1a328d2e95f1e253bd50740fc3",
+   "last_value_sha256": "71cdbf91cb5a38db37ebec74d7aa120cdef581ae61cc09b96f3f01b445140799",
+   "first_ts": 1700000000000,
+   "last_ts": 1700000000499
+  },
+  "f04": {
+   "file": "f04.bin",
+   "bytes": 34141,
+   "sha256": "52fef2972e02b8a20b0a5f6cc4390d5e024b3bff29fa00be6397eebf8ce6a6c6",
+   "records": 32,
+   "key_bytes": 16,
+   "payload_bytes": 1024,
+   "entropy": "text",
+   "header_count": 2,
+   "first_key_sha256": "753c7180d7de15ed03d185e54226773cdf10988530d37eeb6c06e18b4911c9ce",
+   "first_value_sha256": "07618d9fb5e67cf581765d7fb4308e6f648cf254cdda5c0bf57e2c36e41dface",
+   "last_key_sha256": "9ad075b4e345dea944a13f5155b984c450fe4fb8024af50477d8ef5ffe812651",
+   "last_value_sha256": "c9eb0ca5c094decc8412dba032be906627286ec150bac87a72d2574ab54e212c",
+   "first_ts": 1700000000000,
+   "last_ts": 1700000000031
+  }
+ }
+}

@@ -1,0 +1,35 @@
+{
+  "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+  "raws": [
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw",
+      "sha256": "ccdacb5110b5b0b318991b9613758c46fdca8c5cb5a61ded32a2b0eb011b1319"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw",
+      "sha256": "85d5968bd1f07745285d13a5457b3b0b00d60970608257d5798109e2d9cae8ee"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw",
+      "sha256": "156a83dc7c5dce5be079ab0aa5d810c9de669078948b3a57b3dd4e2a47ab3dae"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw",
+      "sha256": "53827c57463cff1c3dff567266f30dee3bbd7a8c1af08a90132dd9adbee2e203"
+    }
+  ],
+  "merged": {
+    "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/merged.profdata",
+    "sha256": "4771e534ca8f81c14151546a83953cd3e8f2b973914562fb6def47a401651405"
+  },
+  "llvm_version": "LLVM (http://llvm.org/):\n  LLVM version 23.1.1-rust-1.99.0-stable\n  Optimized build.\n",
+  "inputs": {
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/source-pins-01.json": "d3de7a0d39c56e6e7a410217a38824cac9075969d8784ec68b9e9aadaeb35fbf",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/measure-build-profiles.py": "ff4e34c827e12565a37073de21d92d7368745e253ef85b78765899c83bb94cb3",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw": "ccdacb5110b5b0b318991b9613758c46fdca8c5cb5a61ded32a2b0eb011b1319",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw": "85d5968bd1f07745285d13a5457b3b0b00d60970608257d5798109e2d9cae8ee",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/profile-14876044841137409848_0-833897.profraw": "156a83dc7c5dce5be079ab0aa5d810c9de669078948b3a57b3dd4e2a47ab3dae",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/profile-14876044841137409848_0-834050.profraw": "53827c57463cff1c3dff567266f30dee3bbd7a8c1af08a90132dd9adbee2e203",
+    "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata": "d70a42ea1a575e6c55878aa2b46b9b1dd7b3c97ca24fac52fa07ce1f260a5ada"
+  }
+}

@@ -1,0 +1,3 @@
+Analyze matched one-factor build-profile contrasts
+
+Compare thin versus disabled LTO, fat versus thin, one versus sixteen codegen units, native versus portable CPU, and PGO versus the matching non-PGO native build. Keep the original baseline analysis and captured measurements; label per-comparison exploratory intervals. No timing or Rust source changes.

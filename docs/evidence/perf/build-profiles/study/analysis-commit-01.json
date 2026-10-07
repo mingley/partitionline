@@ -1,0 +1,11 @@
+{
+  "commit": "8d32f523dd98611e8f503dcc5667553ab8107327",
+  "parent": "779eab6b922931297ff5bffe2ab50a299e3fbfaa",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "benchmarks/runtime/analyze-build-profiles.py": "3fc8b4c9a012080ada6501bbea0102085d6b0bd184977cab9529b5ce079350dc"
+  },
+  "scope": "Review branch only; no merge or release"
+}

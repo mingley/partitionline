@@ -1,0 +1,192 @@
+{
+  "config": {
+    "name": "pgo_use",
+    "flavor": "current_thread",
+    "workers": 0,
+    "build": {
+      "lto": "thin",
+      "codegen_units": 16,
+      "target_cpu": "native",
+      "pgo": "use",
+      "environment": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+        "CARGO_PROFILE_RELEASE_LTO": "thin",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "16",
+        "CARGO_PROFILE_RELEASE_DEBUG": "0",
+        "CARGO_PROFILE_RELEASE_STRIP": "none",
+        "RUSTFLAGS": "-C target-cpu=native -C profile-use=/workspace/work/open-cards-20261006/build-profiles-20261007/merge-profiles-01/merged.profdata"
+      },
+      "target": "x86_64-unknown-linux-gnu",
+      "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "profile_data_sha256": "4771e534ca8f81c14151546a83953cd3e8f2b973914562fb6def47a401651405"
+    },
+    "binaries": {
+      "runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/runtime",
+        "sha256": "85a22532325a55267d34f565c5982625832b476e4229e0b8972118286b13af9c",
+        "bytes": 11221800
+      },
+      "nb-serve": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/nb-serve",
+        "sha256": "997e2e6a6bbd3fffbab807489329fdb5aeafb9492a8fe6fcfb2fb02480b2f1eb",
+        "bytes": 4842144
+      },
+      "native-produce-runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/native-produce-runtime",
+        "sha256": "33ba49ff4b760a6c6658bb64ba8f2841d73dd05089bf7c70a9c82cb4c6f06658",
+        "bytes": 9412432
+      },
+      "native-latency-runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-pgo-use-01/pgo_use/native-latency-runtime",
+        "sha256": "58b25ac8d0560f263dabfdbafb0e7408963e7339e31c87212a0baa8a96fb7d67",
+        "bytes": 11079800
+      }
+    },
+    "instrumented_training": false
+  },
+  "cell": "lb-bulk",
+  "rep": 5,
+  "cohort": "primary",
+  "load": null,
+  "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/027-primary-r5-pgo_use-lb-bulk-0/lb-bulk.result.json",
+  "sha256": "d829e9044c9e7d8251814b48a1018adb710106e160361c27e7fa0cef83e0f0ba",
+  "measurements": {
+    "throughput": {
+      "records_per_second": 208016.0168172629,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 20.801601681726293,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 800000000,
+      "total_bytes_unit": "bytes",
+      "byte_scope": "Acknowledged timed payload bytes only; excludes keys, framing and retries"
+    },
+    "latency": {
+      "sample_count": 15625,
+      "unit": "microseconds",
+      "sample_floor_met": true,
+      "p50": 21163842,
+      "p90": 35931162,
+      "p95": 37676164,
+      "p99": 38401721,
+      "p99_9": 38451387,
+      "min": 561535,
+      "max": 38458576,
+      "mean": 20779040.051008,
+      "stddev": 11086830.997130197,
+      "confidence_interval_95": {
+        "lower": 20605198.540973,
+        "upper": 20952881.561043,
+        "unit": "microseconds",
+        "method": "Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons."
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "min_us": 524289,
+            "max_us": 1048576,
+            "upper_bound_us": 1048576,
+            "count": 192
+          },
+          {
+            "min_us": 1048577,
+            "max_us": 2097152,
+            "upper_bound_us": 2097152,
+            "count": 363
+          },
+          {
+            "min_us": 2097153,
+            "max_us": 4194304,
+            "upper_bound_us": 4194304,
+            "count": 798
+          },
+          {
+            "min_us": 4194305,
+            "max_us": 8388608,
+            "upper_bound_us": 8388608,
+            "count": 1379
+          },
+          {
+            "min_us": 8388609,
+            "max_us": 16777216,
+            "upper_bound_us": 16777216,
+            "count": 3340
+          },
+          {
+            "min_us": 16777217,
+            "max_us": 33554432,
+            "upper_bound_us": 33554432,
+            "count": 6969
+          },
+          {
+            "min_us": 33554433,
+            "max_us": 67108864,
+            "upper_bound_us": 67108864,
+            "count": 2584
+          }
+        ]
+      }
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 100.36193254561691,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 38.200332,
+      "system_cpu_seconds": 0.635666,
+      "cpu_seconds_unit": "seconds",
+      "cpu_ns_per_record": 4854.49975,
+      "allocations": {
+        "unit": "bytes",
+        "allocation_count": 48700776,
+        "total_allocated_bytes": 18045342226,
+        "scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+        "allocations_per_record": 6.087597
+      },
+      "rss": {
+        "unit": "bytes",
+        "peak_rss_bytes": 163512320,
+        "average_rss_bytes": 161785928,
+        "process_peak_rss_bytes": 163430400,
+        "note": "10ms samples across workload interval; sampler created before census and joined after census"
+      },
+      "threads_count": 2,
+      "threads_scope": "Actual /proc/self/status snapshot after executor/sampler construction and before workload; not a lifetime peak",
+      "resource_scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 10.730037826187862,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 2.6,
+      "system_cpu_seconds": 1.63,
+      "cpu_seconds_unit": "seconds",
+      "peak_rss_bytes": 735203328,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 1009913856,
+      "disk_write_unit": "bytes",
+      "observation_seconds": 39.422041828,
+      "note": "CPU and write_bytes deltas between owned broker snapshots around the whole client workload; VmHWM is the broker lifetime high-water mark observed afterward, not a timed-phase RSS peak."
+    },
+    "errors": []
+  },
+  "outcomes": {
+    "offered": 8000000,
+    "accepted": 8000000,
+    "acknowledged": 8000000,
+    "consumed": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "current_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 2094844,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 3,
+    "requested_background_workers": 0,
+    "requested_flavor": "current_thread"
+  },
+  "disposition": "executed"
+}

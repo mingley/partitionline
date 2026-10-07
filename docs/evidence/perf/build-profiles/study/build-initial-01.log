@@ -1,0 +1,12 @@
+build none_16_portable
+retained none_16_portable
+build thin_16_portable
+retained thin_16_portable
+build fat_16_portable
+retained fat_16_portable
+build thin_1_portable
+retained thin_1_portable
+build thin_16_native
+retained thin_16_native
+build pgo_generate
+retained pgo_generate

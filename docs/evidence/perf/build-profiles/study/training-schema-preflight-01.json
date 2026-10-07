@@ -1,0 +1,536 @@
+{
+  "schema_sha256": "faae8686985df634986226c7aa1e9811ff14fc189d5a53b682f7d6aa7a304111",
+  "compiler_source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+  "results": [
+    {
+      "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/lb-bulk.result.json",
+      "sha256": "6a2d7ad1dc58839df0b433b15d75ed7e035d3bc62a9b67d80408fe8daaa60b11",
+      "full_schema_valid": true,
+      "errors": []
+    },
+    {
+      "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "sha256": "547c812dd4cf5fd73ec6e29ab69b7ca5e819b32fa2f09394469ef8102bbdd6a7",
+      "full_schema_valid": false,
+      "errors": [
+        {
+          "path": [
+            "suite_hold"
+          ],
+          "message": "'policy' is a required property"
+        },
+        {
+          "path": [
+            "scenario"
+          ],
+          "message": "Additional properties are not allowed ('cell_id' was unexpected)"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'durability' is a required property"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'acks' is a required property"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'idempotence' is a required property"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'security' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "source"
+          ],
+          "message": "'repo_url' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "source"
+          ],
+          "message": "'clean' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "config"
+          ],
+          "message": "'path' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "config",
+            "effective_settings",
+            "acks"
+          ],
+          "message": "None is not of type 'integer', 'string'"
+        },
+        {
+          "path": [
+            "provenance",
+            "config",
+            "effective_settings",
+            "linger_ms"
+          ],
+          "message": "None is not of type 'number'"
+        },
+        {
+          "path": [
+            "provenance",
+            "config",
+            "effective_settings",
+            "batch_size_bytes"
+          ],
+          "message": "None is not of type 'integer'"
+        },
+        {
+          "path": [
+            "provenance",
+            "config",
+            "effective_settings",
+            "max_in_flight"
+          ],
+          "message": "None is not of type 'integer'"
+        },
+        {
+          "path": [
+            "provenance",
+            "broker",
+            "mode"
+          ],
+          "message": "'null-broker loopback' is not one of ['kraft', 'zookeeper']"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'phase' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_completed' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_records' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_duration_seconds' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'steady_state_duration_seconds' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'total_repetitions' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'pairing_order' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'coordinated_omission_avoidance' is a required property"
+        },
+        {
+          "path": [
+            "execution",
+            "repetition_index"
+          ],
+          "message": "0 is less than the minimum of 1"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            0
+          ],
+          "message": "'min_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            0
+          ],
+          "message": "'max_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            1
+          ],
+          "message": "'min_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            1
+          ],
+          "message": "'max_us' is a required property"
+        },
+        {
+          "path": [
+            "integrity"
+          ],
+          "message": "'idempotence_sequence_verified' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'attempt_number' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'error_message' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'timestamp_utc' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0,
+            "repetition_index"
+          ],
+          "message": "0 is less than the minimum of 1"
+        }
+      ]
+    },
+    {
+      "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/001-primary-r1-pgo_generate-nb-produce-bulk/nb-produce-bulk-rep0.result.json",
+      "sha256": "758f1c44fd9a4c11b10eac2bd2fb080b1a08b34649371b765319325f63076fa6",
+      "full_schema_valid": false,
+      "errors": [
+        {
+          "path": [
+            "suite_hold"
+          ],
+          "message": "'policy' is a required property"
+        },
+        {
+          "path": [
+            "scenario"
+          ],
+          "message": "Additional properties are not allowed ('cell_id' was unexpected)"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'durability' is a required property"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'isolation' is a required property"
+        },
+        {
+          "path": [
+            "scenario",
+            "equal_semantics"
+          ],
+          "message": "'security' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "source"
+          ],
+          "message": "'repo_url' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "source"
+          ],
+          "message": "'clean' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "config"
+          ],
+          "message": "'path' is a required property"
+        },
+        {
+          "path": [
+            "provenance",
+            "broker",
+            "mode"
+          ],
+          "message": "'null-broker loopback' is not one of ['kraft', 'zookeeper']"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'phase' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_completed' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_records' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'warmup_duration_seconds' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'steady_state_duration_seconds' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'total_repetitions' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'pairing_order' is a required property"
+        },
+        {
+          "path": [
+            "execution"
+          ],
+          "message": "'coordinated_omission_avoidance' is a required property"
+        },
+        {
+          "path": [
+            "execution",
+            "repetition_index"
+          ],
+          "message": "0 is less than the minimum of 1"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            0
+          ],
+          "message": "'min_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            0
+          ],
+          "message": "'max_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            1
+          ],
+          "message": "'min_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            1
+          ],
+          "message": "'max_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            2
+          ],
+          "message": "'min_us' is a required property"
+        },
+        {
+          "path": [
+            "measurements",
+            "latency",
+            "raw_histogram",
+            "buckets",
+            2
+          ],
+          "message": "'max_us' is a required property"
+        },
+        {
+          "path": [
+            "integrity"
+          ],
+          "message": "'idempotence_sequence_verified' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            0
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            1
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            2
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            3
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            4
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "integrity",
+            "high_watermark_audit",
+            "partitions",
+            5
+          ],
+          "message": "'offset_delta' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'attempt_number' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'error_message' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0
+          ],
+          "message": "'timestamp_utc' is a required property"
+        },
+        {
+          "path": [
+            "repetition_history",
+            "attempts",
+            0,
+            "repetition_index"
+          ],
+          "message": "0 is less than the minimum of 1"
+        }
+      ]
+    }
+  ],
+  "scope": "Actual captured training artifacts; report CLI receipts are separate and retain their successful exit."
+}

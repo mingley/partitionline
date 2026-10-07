@@ -1,0 +1,542 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Local unsigned runtime sensitivity; no ranking or production qualification"
+  },
+  "scenario": {
+    "scenario_id": "lb-bulk",
+    "peer": "partitionline",
+    "profile": "bulk",
+    "tier": "exploratory",
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "durability": {
+        "replication_factor": 1,
+        "min_insync_replicas": 1
+      },
+      "acks": 1,
+      "idempotence": false,
+      "isolation": "read_uncommitted",
+      "security": {
+        "protocol": "PLAINTEXT",
+        "mechanism": "NONE"
+      },
+      "payload_bytes": 100,
+      "partitions": 6,
+      "offered_load": null
+    }
+  },
+  "provenance": {
+    "source": {
+      "git_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+      "git_branch": "detached pinned review source",
+      "dirty_tree": false,
+      "clean": true,
+      "repo_url": "https://github.com/mingley/partitionline",
+      "tree_hash": "40b84e82bcca414cd2e05aac12804108e2e39d1b",
+      "source_pins": "/workspace/work/open-cards-20261006/build-profiles-20261007/source-pins-01.json"
+    },
+    "binary": {
+      "name": "native-produce-runtime",
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/native-produce-runtime",
+      "sha256": "7a6471de54b94cc30d2b1283bc4d529601b457727440ae4ba3cfe27c56245d45",
+      "size_bytes": 24489344
+    },
+    "config": {
+      "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/effective-settings.json",
+      "sha256": "6a94765a4e112f25032eb2b248efeb5b96a8628070d55fe081ffdbdb9ba3c461",
+      "effective_settings": {
+        "acks": 1,
+        "linger_ms": 5,
+        "batch_size_bytes": 1048576,
+        "batch_records": 32768,
+        "max_in_flight": 5,
+        "idempotence": false,
+        "connections": 1,
+        "buffer_memory_bytes": 33554432,
+        "max_request_size": 1048576,
+        "delivery_timeout_ms": 30000,
+        "compression": "none",
+        "payload_bytes": 100,
+        "payload_mode": "seeded",
+        "key_mode": "id",
+        "record_seed": 1592590337,
+        "warmup_requested_records": 10000,
+        "warmup_min_duration_ms": 0,
+        "measure_duration_ms": 0,
+        "requested_records": 8000000,
+        "explicit_partitions": 6,
+        "run_timeout_ms": 300000,
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 2120319,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 3,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        }
+      }
+    },
+    "toolchains": {
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)\n",
+      "runtime": "Tokio 1.53.2; explicit runtime recorded from actual handle/metrics"
+    },
+    "broker": {
+      "image": "Apache Kafka distribution archive f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "version": "4.3.1",
+      "mode": "kraft",
+      "deployment_scope": "Owned single-node broker/controller; acks=1 RF=1 minISR=1",
+      "cluster_id": "ijRXz1dMQTmOoPFN5hNQ7A",
+      "node_count": 1,
+      "endpoints": [
+        "127.0.0.1:57717"
+      ]
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.144,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "e852fb1a1688",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "topology": {
+      "environment": "loopback",
+      "rtt_ms": 1.376039,
+      "rtt_unit": "milliseconds",
+      "client_nodes": 1,
+      "broker_nodes": 1,
+      "network_interface": "lo",
+      "client_affinity": [
+        2,
+        4
+      ],
+      "broker_affinity": [
+        0,
+        1
+      ],
+      "rtt_scope": "Actual TCP-connect wall time immediately before workload; no emulated network delay"
+    },
+    "timestamps": {
+      "start_time_utc": "2026-10-07T22:20:43.951857486Z",
+      "end_time_utc": "2026-10-07T22:21:24.386506495Z",
+      "duration_seconds": 40.434625443,
+      "duration_unit": "seconds"
+    },
+    "seeds": {
+      "payload_seed": 1592590337,
+      "key_seed": 1592590337,
+      "partition_seed": 0,
+      "repetition_seed": 961,
+      "note": "Bulk phase-local monotonic IDs, round-robin partitions, shared key/value seed; latency fixed-x payload, null key, partition 0, no payload PRNG"
+    },
+    "artifacts": [
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/actual-completion.json",
+        "type": "native-runtime-observation",
+        "sha256": "57220624cb75b4d79ec86689aadf2ee6881688a7b1beab015640d48a09743578",
+        "size_bytes": 1261
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/benchmark-build.json",
+        "type": "native-runtime-observation",
+        "sha256": "de00fb71884b5577547eef5cc8bbf82a2c6a1b988134b7f01d3973242dcb7927",
+        "size_bytes": 2063
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/broker-after.json",
+        "type": "native-runtime-observation",
+        "sha256": "79bbeeb0f049efec5a25982661868963d2e5c89480a683738a280fe6e874996b",
+        "size_bytes": 1871
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/broker-before.json",
+        "type": "native-runtime-observation",
+        "sha256": "abc0da1d46e12fdc87ebc06fc91254555f064c5d38fb2233b08780e28672208d",
+        "size_bytes": 1856
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/bulk-samples.json",
+        "type": "native-runtime-observation",
+        "sha256": "d15946fcd4afff97b2ea3027361fbeb2767b4d43b06ca3ca3d86c6d1b61f0e6b",
+        "size_bytes": 2108915
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/client.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "e3467caf701723ceddc23fd99d481807b3e4abd48edd604dfcf595f80245889e",
+        "size_bytes": 1062
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/client.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/client.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "17094c7c9983247fd39f982916038b4b63b688d9c7c90d20fdf41892d1fe1fbe",
+        "size_bytes": 1032
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/effective-settings.json",
+        "type": "native-runtime-observation",
+        "sha256": "6a94765a4e112f25032eb2b248efeb5b96a8628070d55fe081ffdbdb9ba3c461",
+        "size_bytes": 765
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/java-audit-delete.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "07ae549d47c313f150be43bbc9463c900d49208e3f8d9be23aee888d4aacc879",
+        "size_bytes": 1111
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/java-audit-delete.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "size_bytes": 210
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/java-audit-delete.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "8ef7d0d9019b413469b10de363ada60eb0f94414981edb6ff435d7fc736875fd",
+        "size_bytes": 191
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/producer-config.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "075457b283369dfbf44abd3796fc81520c9c85dd494fe304d66b26a64ef1df51",
+        "size_bytes": 763
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/producer-config.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/producer-config.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "537d292c9fdabb047736e8d0d3ea077f61e7438c01feeec75876f047f3709794",
+        "size_bytes": 503
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836135.profraw",
+        "type": "native-runtime-observation",
+        "sha256": "ccdacb5110b5b0b318991b9613758c46fdca8c5cb5a61ded32a2b0eb011b1319",
+        "size_bytes": 3358712
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/profile-8709469841180776248_0-836182.profraw",
+        "type": "native-runtime-observation",
+        "sha256": "85d5968bd1f07745285d13a5457b3b0b00d60970608257d5798109e2d9cae8ee",
+        "size_bytes": 3360840
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime-config.closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "3e23790c2deaf960cea52b596f41627e4f0c7f4499ad0725d53bc26b6e0578d1",
+        "size_bytes": 306
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime-config.json",
+        "type": "native-runtime-observation",
+        "sha256": "7867b31fda1d413ac8f3bebb317cff2c2a175122e7f15f3aa5807900afd73447",
+        "size_bytes": 183
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime-config.resources.json",
+        "type": "native-runtime-observation",
+        "sha256": "f40eeb222ba5f8f005a5b83efa6d6670d08602ef4ae36fb755bfec5d9925e3d5",
+        "size_bytes": 2551
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime.closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "660a02ecf61ffeeba2a872d44ed0bfcd88549729c615774e9d54014037aa4a77",
+        "size_bytes": 309
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime.json",
+        "type": "native-runtime-observation",
+        "sha256": "7867b31fda1d413ac8f3bebb317cff2c2a175122e7f15f3aa5807900afd73447",
+        "size_bytes": 183
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/runtime.resources.json",
+        "type": "native-runtime-observation",
+        "sha256": "3bf34aa2bfab2a8a60b29657035b64b081e0df92f07ceaa54a4b15b4e2e65cc4",
+        "size_bytes": 2569
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/topic-closure.json",
+        "type": "native-runtime-observation",
+        "sha256": "e4dedced6bb813ee2aa2ee1c19adedd23a4e768b52232ce2f50b7ddc81b00841",
+        "size_bytes": 138
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/topic-create.process.json",
+        "type": "native-runtime-observation",
+        "sha256": "e2012456a7a2ad592bfa782ed21079017e04cdf7396425927d0d8793ad905b85",
+        "size_bytes": 1006
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/topic-create.stderr",
+        "type": "native-runtime-observation",
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "size_bytes": 210
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/topic-create.stdout",
+        "type": "native-runtime-observation",
+        "sha256": "4f647b6981fb114dff3bcb86f6b7ba81a2af92c7e7eaf636788478eacabb33b9",
+        "size_bytes": 131
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/wait4.json",
+        "type": "native-runtime-observation",
+        "sha256": "943694ab3523f898cb2fe350b770f320d055a2c5d3b9bc0cec5eb745a09b7362",
+        "size_bytes": 376
+      }
+    ]
+  },
+  "execution": {
+    "phase": "steady_state",
+    "warmup_completed": true,
+    "warmup_duration_seconds": 0.230189,
+    "steady_state_duration_seconds": 39.96364,
+    "total_repetitions": 1,
+    "pairing_order": "Randomized within matched repetition; seed 961; exact order retained in matrix-plan.json",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "cell_id": "lb-bulk",
+    "repetition_index": 1,
+    "cohort": "primary",
+    "runtime_config": "pgo_generate",
+    "latency_note": "Every 512th accepted record: successful admission call start to final measured-phase flush completion upper bound. This is not a per-record acknowledgment timestamp or an ack-latency percentile.",
+    "measured_seconds": 39.96364,
+    "warmup_records": 10000,
+    "warmup_excluded": true,
+    "raw_path": "/workspace/work/open-cards-20261006/build-profiles-20261007/train-native-01/000-primary-r1-pgo_generate-lb-bulk-0/client.stdout",
+    "load": null,
+    "qualification_scope": "Local compiler-profile comparison with a fixed current-thread runtime; whole-workload resources and sampled bulk bounds are diagnostic."
+  },
+  "outcomes": {
+    "offered": 8000000,
+    "accepted": 8000000,
+    "acknowledged": 8000000,
+    "consumed": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "measurements": {
+    "throughput": {
+      "records_per_second": 200181.96540655458,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 20.018196540655456,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 800000000,
+      "total_bytes_unit": "bytes",
+      "byte_scope": "Acknowledged timed payload bytes only; excludes keys, framing and retries"
+    },
+    "latency": {
+      "sample_count": 15625,
+      "unit": "microseconds",
+      "sample_floor_met": true,
+      "p50": 21030720,
+      "p90": 37017481,
+      "p95": 39071801,
+      "p99": 39896777,
+      "p99_9": 39958822,
+      "min": 631122,
+      "max": 39963640,
+      "mean": 20915192.65856,
+      "stddev": 11555309.821169578,
+      "confidence_interval_95": {
+        "lower": 20734005.40056406,
+        "upper": 21096379.91655594,
+        "unit": "microseconds",
+        "method": "Nominal normal mean interval under an independent-sample model; serial dependence is not corrected. Use between-repetition bootstrap intervals for comparisons."
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "min_us": 524289,
+            "max_us": 1048576,
+            "upper_bound_us": 1048576,
+            "count": 119
+          },
+          {
+            "min_us": 1048577,
+            "max_us": 2097152,
+            "upper_bound_us": 2097152,
+            "count": 405
+          },
+          {
+            "min_us": 2097153,
+            "max_us": 4194304,
+            "upper_bound_us": 4194304,
+            "count": 829
+          },
+          {
+            "min_us": 4194305,
+            "max_us": 8388608,
+            "upper_bound_us": 8388608,
+            "count": 1539
+          },
+          {
+            "min_us": 8388609,
+            "max_us": 16777216,
+            "upper_bound_us": 16777216,
+            "count": 3253
+          },
+          {
+            "min_us": 16777217,
+            "max_us": 33554432,
+            "upper_bound_us": 33554432,
+            "count": 6606
+          },
+          {
+            "min_us": 33554433,
+            "max_us": 67108864,
+            "upper_bound_us": 67108864,
+            "count": 2874
+          }
+        ]
+      }
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 100.01595305243792,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 39.842298,
+      "system_cpu_seconds": 0.598778,
+      "cpu_seconds_unit": "seconds",
+      "cpu_ns_per_record": 5055.1345,
+      "allocations": {
+        "unit": "bytes",
+        "allocation_count": 48706284,
+        "total_allocated_bytes": 18045410962,
+        "scope": "process-wide allocation census over all client threads in the same workload interval; diagnostic sampling/output included",
+        "allocations_per_record": 6.0882855
+      },
+      "rss": {
+        "unit": "bytes",
+        "peak_rss_bytes": 171159552,
+        "average_rss_bytes": 168590910,
+        "process_peak_rss_bytes": 171073536,
+        "note": "10ms samples across workload interval; sampler created before census and joined after census"
+      },
+      "threads_count": 2,
+      "threads_scope": "Actual /proc/self/status snapshot after executor/sampler construction and before workload; not a lifetime peak",
+      "resource_scope": "whole native workload including setup, warmup, timed work, output and close cancellation barrier; runtime construction excluded"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 49.44284541406491,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 18.92,
+      "system_cpu_seconds": 1.4,
+      "cpu_seconds_unit": "seconds",
+      "peak_rss_bytes": 484868096,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 1010753536,
+      "disk_write_unit": "bytes",
+      "observation_seconds": 41.097958319,
+      "note": "CPU and write_bytes deltas between owned broker snapshots around the whole client workload; VmHWM is the broker lifetime high-water mark observed afterward, not a timed-phase RSS peak."
+    },
+    "errors": []
+  },
+  "integrity": {
+    "verified": true,
+    "integrity_failure": false,
+    "idempotence_sequence_verified": false,
+    "high_watermark_audit": {
+      "partitions": [
+        {
+          "partition": 0,
+          "start_offset": 1667,
+          "end_offset": 1335001,
+          "offset_delta": 1333334
+        },
+        {
+          "partition": 1,
+          "start_offset": 1667,
+          "end_offset": 1335001,
+          "offset_delta": 1333334
+        },
+        {
+          "partition": 2,
+          "start_offset": 1667,
+          "end_offset": 1335000,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 3,
+          "start_offset": 1667,
+          "end_offset": 1335000,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 4,
+          "start_offset": 1666,
+          "end_offset": 1334999,
+          "offset_delta": 1333333
+        },
+        {
+          "partition": 5,
+          "start_offset": 1666,
+          "end_offset": 1334999,
+          "offset_delta": 1333333
+        }
+      ],
+      "total_offset_delta": 8000000,
+      "matches_acknowledged": true,
+      "source": "Full independent readback verifies end-offset fences; measured delta excludes the separately verified warmup prefix"
+    },
+    "record_ids": {
+      "start_id": 0,
+      "end_id": 7999999,
+      "expected_count": 8000000,
+      "verified_count": 8000000,
+      "missing_ids_count": 0,
+      "duplicate_ids_count": 0,
+      "checksum_algorithm": "Genuine Kafka Java 4.3.1 full seeded byte/key readback in warmup and timed namespaces, with per-partition end offsets checked by the verifier.",
+      "payload_checksum_matches": true,
+      "unique_producer_payload_ids_checked": true
+    }
+  },
+  "repetition_history": {
+    "total_attempts": 1,
+    "failed_attempts": 0,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "failure_kind": null,
+        "error_message": null,
+        "timestamp_utc": "2026-10-07T22:21:24.386506495Z",
+        "timestamp_scope": "Observed workload end",
+        "integrity_failure": false
+      }
+    ]
+  }
+}

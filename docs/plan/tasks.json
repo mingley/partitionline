@@ -18782,13 +18782,17 @@
     {
       "id": "KL09-62",
       "title": "Measure build-profile options for benchmark binaries",
-      "priority": "P2", "kind": "evidence", "status": "in_progress", "owner": "codex-root-20261007",
+      "priority": "P2", "kind": "evidence", "status": "done", "owner": "codex-root-20261007",
       "depends_on": ["KL09-12"],
       "files": ["benchmarks/runtime/", "new: docs/evidence/perf/build-profiles/"],
       "deliverable": "Labeled exploratory results for thin vs fat LTO, codegen-units, target-cpu and PGO on nb-produce-bulk, nb-fetch-bulk and lb-bulk.",
       "acceptance": ["The library's own Cargo profile and dependencies are unchanged; only benchmark builds vary.", "Every configuration and toolchain is recorded; host- or workload-specific gains are labeled as such."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Reproduce one configuration on a second run."],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL09-62.json",
+        "docs/evidence/perf/build-profiles/README.md",
+        "docs/evidence/perf/build-profiles/archive-inventory.json"
+      ],
       "write_set": [
         "benchmarks/runtime/measure-build-profiles.py",
         "benchmarks/runtime/BUILD-PROFILES.md",
@@ -18802,7 +18806,8 @@
         "examples/",
         "Cargo.toml",
         "Cargo.lock"
-      ]
+      ],
+      "qualification_limit": "Local exploratory six-profile compiler matrix with five matched repetitions and fresh baseline cohorts. Native full-schema checks pass; original null artifacts retain their full-schema failures under KL09-73. No library defaults, production gate or ranking changed."
     },
     {
       "id": "KL09-63",

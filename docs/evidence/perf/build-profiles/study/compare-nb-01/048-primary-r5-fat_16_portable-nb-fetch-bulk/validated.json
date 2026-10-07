@@ -1,0 +1,151 @@
+{
+  "config": {
+    "name": "fat_16_portable",
+    "flavor": "current_thread",
+    "workers": 0,
+    "build": {
+      "lto": "fat",
+      "codegen_units": 16,
+      "target_cpu": "x86-64",
+      "pgo": null,
+      "environment": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+        "CARGO_PROFILE_RELEASE_LTO": "fat",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "16",
+        "CARGO_PROFILE_RELEASE_DEBUG": "0",
+        "CARGO_PROFILE_RELEASE_STRIP": "none",
+        "RUSTFLAGS": "-C target-cpu=x86-64"
+      },
+      "target": "x86_64-unknown-linux-gnu",
+      "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "profile_data_sha256": null
+    },
+    "binaries": {
+      "runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/fat_16_portable/runtime",
+        "sha256": "f040a33cdbd8b54a3878e7280a5f40781f47046cc51e6a896158754624a08192",
+        "bytes": 9943168
+      },
+      "nb-serve": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/nb-serve",
+        "sha256": "997e2e6a6bbd3fffbab807489329fdb5aeafb9492a8fe6fcfb2fb02480b2f1eb",
+        "bytes": 4842144
+      },
+      "native-produce-runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/fat_16_portable/native-produce-runtime",
+        "sha256": "9e4ddd14de603c7dd0069a4f9ae38e08b62c76a38043dddf6aca793686978d52",
+        "bytes": 8356944
+      },
+      "native-latency-runtime": {
+        "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/fat_16_portable/native-latency-runtime",
+        "sha256": "adb6f392ef8b672d1a99d5c301501bf0d038c101bb015568ee2d848ab3b971f2",
+        "bytes": 9275256
+      }
+    },
+    "instrumented_training": false
+  },
+  "cell": "nb-fetch-bulk",
+  "rep": 5,
+  "cohort": "primary",
+  "load": null,
+  "artifact": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-nb-01/048-primary-r5-fat_16_portable-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+  "sha256": "d7681821a36b13abf440392b71bebd351269149af85abfd93eadd3c64da5044b",
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 635,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 36560896,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.026705,
+      "user_cpu_seconds": 0.069056
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 135451,
+        "allocations_per_record": 6.77255,
+        "total_allocated_bytes": 107710031,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 2505.25,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 28.417528373885446,
+      "rss": {
+        "average_rss_bytes": 13370481,
+        "baseline_rss_bytes": 5128192,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 46411776,
+        "process_peak_rss_bytes": 64450560,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.02878,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.021325
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 130323.0,
+        "unit": "microseconds",
+        "upper": 130323.0
+      },
+      "max": 130323,
+      "mean": 130323.0,
+      "min": 130323,
+      "p50": 130323.0,
+      "p90": 130323.0,
+      "p95": 130323.0,
+      "p99": 130323.0,
+      "p99_9": 130323.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 20000,
+            "upper_bound_us": 131072
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 12.54854312235014,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 113431.90649190878,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 20000,
+    "acknowledged": 0,
+    "consumed": 20000,
+    "offered": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "current_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 1372,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 0,
+    "requested_background_workers": 0,
+    "requested_flavor": "current_thread"
+  }
+}

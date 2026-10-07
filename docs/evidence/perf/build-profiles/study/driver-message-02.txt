@@ -1,0 +1,3 @@
+Bind profile results to the executable actually measured
+
+Select each retained build for execution and result provenance together. Record the actual repetition count in native results and label compiler-profile scope. These corrections precede training and comparison; no Rust source or executable bytes change.

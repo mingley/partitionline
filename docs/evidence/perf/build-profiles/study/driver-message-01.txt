@@ -1,0 +1,3 @@
+Record actual profile-training repetition counts and add the matched profile analyzer
+
+Fix one-run training plan metadata and bulk-only calibration scope. Analyze all six compiler profiles against the portable baseline, verifying retained result, executable and build-sidecar bytes. Runtime and library source, manifests and dependencies are unchanged.

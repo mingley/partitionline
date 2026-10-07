@@ -1,0 +1,124 @@
+# Contributing
+
+This project is MIT OR Apache-2.0. Patches are under the same licenses unless you say otherwise.
+
+Execution starts with [one task per session](docs/plan/README.md):
+claim one ready card in [tasks.json](docs/plan/tasks.json), run its focused
+checks, record evidence and stop. [TODO.md](TODO.md) gives the first pickups;
+[ROADMAP.md](docs/ROADMAP.md) defines package/profile gates. The
+[source audit](docs/audits/2026-09-21.md) supplies verified starting evidence.
+Capability tracker: [docs/gaps.md](docs/gaps.md).
+Release / semver: [docs/RELEASE.md](docs/RELEASE.md). Security: [docs/security.md](docs/security.md)
+and [SECURITY.md](SECURITY.md).
+
+```
+cargo fmt
+cargo clippy --all-targets --all-features -- -D warnings
+cargo build --locked --example verifiable_producer --example verifiable_consumer
+cargo test --locked --all-targets
+cargo test --doc --all-features
+RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features
+```
+
+The verifiable CLI contract tests execute the standalone producer and consumer
+examples. Build those binaries before testing a clean target directory;
+`cargo test --all-targets` builds example test harnesses, which have different
+filenames. The CI test and tracing jobs run this prerequisite explicitly.
+For a focused run, use the same `CARGO_TARGET_DIR` for the example build and
+`cargo test --locked --test verifiable_contract`.
+
+Or run the documentation gate directly:
+
+```
+bash scripts/ci-docs.sh              # strict rustdoc (-D warnings) + doctests
+bash scripts/ci-docs.sh --self-test  # verifies broken intra-doc link fails gate
+```
+
+Documentation gate rules: Rustdoc must build with all features with warnings
+denied (`RUSTDOCFLAGS='-D warnings'`). Doctests run in a separate lane
+(`cargo test --doc --all-features`); `cargo test --all-targets` does not
+cover doctests. Suppressing warnings with `allow(rustdoc::...)` or making
+private items public to silence documentation warnings is forbidden.
+
+GitHub Actions: `dev/**` tip pushes do **not** auto-queue CI (org runners were
+starved by perpetual tip `branch-lite` re-queues). Tip gate locally:
+
+```
+bash scripts/ci-branch-lite.sh   # fmt, clippy, lib + fuzz_decode_smoke, docs
+```
+
+Full matrix (latest stable Rust, broker smoke, fuzz, deny, package, …) runs on pull requests,
+`main`, and `workflow_dispatch`. Open a PR (or dispatch the workflow) for the
+full gate. If Actions stay queued, owner: `bash scripts/owner-cancel-stuck-runs.sh`.
+
+Real-broker smoke (Docker required; skipped locally if Docker is missing unless `CI=true`):
+
+```
+bash scripts/ci-broker-smoke.sh
+# optional: KAFKA_IMAGE=apache/kafka:4.0.0 bash scripts/ci-broker-smoke.sh
+# TLS + PLAIN/SCRAM/OAUTHBEARER (isolated ports; needs local Kafka/Java/openssl):
+bash scripts/ci-auth-smoke.sh   # PLAIN + SCRAM + OAUTHBEARER + OIDC + mTLS
+```
+
+Optional feature compile:
+
+```
+cargo test --features tracing
+```
+
+libFuzzer smoke (nightly + cargo-fuzz):
+
+```
+bash scripts/ci-fuzz-smoke.sh
+```
+
+Supply-chain (`deny.toml`):
+
+```
+bash scripts/ci-deny.sh
+```
+
+Combined package, dependency, and documentation checks (broker optional):
+
+```
+bash scripts/ci-civilization-check.sh
+```
+
+Lab A integrity smoke (HW == acked and consumed == seeded + unsigned latency;
+needs a broker — native Kafka is fine):
+
+```
+bash scripts/ci-integrity-smoke.sh
+# or: REQUIRE_INTEGRITY=1 bash scripts/ci-integrity-smoke.sh
+```
+
+Before a crates.io cut (owner token required for the real publish):
+
+```
+bash scripts/ci-publish-ready.sh
+```
+
+When Docker overlay is unavailable (common in nested VMs), use a native broker
+(defaults to Kafka 4.1 with `group.share.enable` and `share.version=1` so KIP-932
+share smoke can run):
+
+```
+bash scripts/ci-native-kafka.sh start
+SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
+bash scripts/ci-native-kafka.sh stop
+```
+
+Broker/auth smokes stamp `requested=` vs `actual=` (docker / native / external) so
+a matrix cell cannot silently claim a Docker image after native fallback. Timed
+steps use `pl_timeout` (`scripts/lib/pl-timeout.sh`): GNU `timeout` or Homebrew
+`gtimeout` (`brew install coreutils`). There is no silent no-op path on macOS.
+
+Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.
+
+Use the latest stable Rust (`rustup update stable`). Older compilers are not supported. Mock TLS fixtures use the `openssl` CLI (not `rcgen`) so the
+dev graph stays free of the affected `time` dependency (RUSTSEC-2026-0009).
+
+Do not claim Suite HOLD / signed bench wins without the process in `docs/STATUS.md` and `docs/benchmark.md`.
+
+When mapping Java helpers, name the Java API and spoken version range in the
+commit message (existing convention).

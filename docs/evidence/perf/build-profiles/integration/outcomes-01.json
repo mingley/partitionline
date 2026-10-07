@@ -1,0 +1,13 @@
+{
+  "outcomes": {
+    "accepted": 289440000,
+    "acknowledged": 288720000,
+    "consumed": 720000,
+    "offered": 289440000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "measured_results": 108,
+  "source": "Actual retained original rows; controls excluded."
+}

@@ -1,0 +1,2 @@
+{"status":"pass","verified":8010000,"warmup":10000,"measured":8000000,"partitions":6,"consumer_closed":true}
+{"status":"deletion_requested","topic":"pl-runtime-835168-0","admin_closed":true}

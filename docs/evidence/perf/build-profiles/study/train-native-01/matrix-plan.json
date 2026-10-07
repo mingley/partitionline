@@ -1,0 +1,152 @@
+{
+  "scope": "local/unsigned",
+  "suite_hold": "active",
+  "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+  "configs": [
+    {
+      "name": "pgo_generate",
+      "flavor": "current_thread",
+      "workers": 0,
+      "build": {
+        "lto": "thin",
+        "codegen_units": 16,
+        "target_cpu": "native",
+        "pgo": "generate",
+        "environment": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+          "CARGO_PROFILE_RELEASE_LTO": "thin",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "16",
+          "CARGO_PROFILE_RELEASE_DEBUG": "0",
+          "CARGO_PROFILE_RELEASE_STRIP": "none",
+          "RUSTFLAGS": "-C target-cpu=native -C profile-generate=/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/profile-defaults"
+        },
+        "target": "x86_64-unknown-linux-gnu",
+        "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+        "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+        "profile_data_sha256": null
+      },
+      "binaries": {
+        "runtime": {
+          "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/runtime",
+          "sha256": "3d15d7bb87b8373cbcd79048ab11de4cd1a68c4475cefd162d624ab0db7a9966",
+          "bytes": 25782032
+        },
+        "nb-serve": {
+          "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/nb-serve",
+          "sha256": "997e2e6a6bbd3fffbab807489329fdb5aeafb9492a8fe6fcfb2fb02480b2f1eb",
+          "bytes": 4842144
+        },
+        "native-produce-runtime": {
+          "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/native-produce-runtime",
+          "sha256": "7a6471de54b94cc30d2b1283bc4d529601b457727440ae4ba3cfe27c56245d45",
+          "bytes": 24489344
+        },
+        "native-latency-runtime": {
+          "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/native-latency-runtime",
+          "sha256": "f0c5949f3e9a2a27b20ea7f65a1dd22e6444650656829b857898539f4fa8383e",
+          "bytes": 25925856
+        }
+      },
+      "instrumented_training": true
+    }
+  ],
+  "client_cpus": [
+    2,
+    4
+  ],
+  "native_broker_cpus": [
+    0,
+    1
+  ],
+  "N_definition": "All build-profile arms use current_thread with zero background workers on the same two client CPUs.",
+  "primary": [
+    {
+      "config": {
+        "name": "pgo_generate",
+        "flavor": "current_thread",
+        "workers": 0,
+        "build": {
+          "lto": "thin",
+          "codegen_units": 16,
+          "target_cpu": "native",
+          "pgo": "generate",
+          "environment": {
+            "CARGO_INCREMENTAL": "0",
+            "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+            "CARGO_PROFILE_RELEASE_LTO": "thin",
+            "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "16",
+            "CARGO_PROFILE_RELEASE_DEBUG": "0",
+            "CARGO_PROFILE_RELEASE_STRIP": "none",
+            "RUSTFLAGS": "-C target-cpu=native -C profile-generate=/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/profile-defaults"
+          },
+          "target": "x86_64-unknown-linux-gnu",
+          "source_commit": "999133586acfd88604222dc92c01c9eadd2fc6a5",
+          "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+          "profile_data_sha256": null
+        },
+        "binaries": {
+          "runtime": {
+            "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/runtime",
+            "sha256": "3d15d7bb87b8373cbcd79048ab11de4cd1a68c4475cefd162d624ab0db7a9966",
+            "bytes": 25782032
+          },
+          "nb-serve": {
+            "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/none_16_portable/nb-serve",
+            "sha256": "997e2e6a6bbd3fffbab807489329fdb5aeafb9492a8fe6fcfb2fb02480b2f1eb",
+            "bytes": 4842144
+          },
+          "native-produce-runtime": {
+            "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/native-produce-runtime",
+            "sha256": "7a6471de54b94cc30d2b1283bc4d529601b457727440ae4ba3cfe27c56245d45",
+            "bytes": 24489344
+          },
+          "native-latency-runtime": {
+            "path": "/workspace/work/open-cards-20261006/build-profiles-20261007/build-initial-01/pgo_generate/native-latency-runtime",
+            "sha256": "f0c5949f3e9a2a27b20ea7f65a1dd22e6444650656829b857898539f4fa8383e",
+            "bytes": 25925856
+          }
+        },
+        "instrumented_training": true
+      },
+      "cell": "lb-bulk",
+      "rep": 1,
+      "cohort": "primary",
+      "load": null
+    }
+  ],
+  "reproduce": [],
+  "random_seed": 961,
+  "repetitions": 1,
+  "native_bulk": {
+    "timed_records": 8000000,
+    "warmup": 10000,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "key_mode": "id",
+    "payload_mode": "seeded",
+    "seed": 1592590337,
+    "acks": 1,
+    "idempotence": false,
+    "linger_ms": 5,
+    "batch_bytes": 1048576,
+    "batch_records": 32768,
+    "max_in_flight": 5,
+    "connections": 1
+  },
+  "open_loop": {
+    "timed_offers": 20000,
+    "warmup": 10000,
+    "sample_floor": 10000,
+    "offered_load_policy": "Same absolute 10/50/80 percent rates for every runtime, based on five fresh current-thread sequential calibration runs. Percentages refer to the current-thread calibration only, not per-flavor saturation.",
+    "failed_capacity_runs": "Retain normal exit1 and every raw rejection; independently verify all acknowledged payloads and offsets. Never relabel as executed.",
+    "payload": "100 bytes of x; null key; partition0; no unique payload IDs",
+    "batch_records": 1,
+    "max_in_flight": 1,
+    "connections": 1,
+    "linger_ms": 0,
+    "max_pending": 1024
+  },
+  "uncertainty": "1 matched repetitions; inferential comparisons require the five-repetition matrix. Instrumented training is not a comparison. Raw per-run normal mean intervals are diagnostic.",
+  "reproduce_policy": "Skipped explicitly for training"
+}

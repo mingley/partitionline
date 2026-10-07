@@ -1,0 +1,17 @@
+{
+  "parent_waited": true,
+  "exit_code": 143,
+  "group_empty": true,
+  "adopted_children": [],
+  "supervisor_joined": true,
+  "ports": [
+    {
+      "port": 55417,
+      "reusable": true
+    },
+    {
+      "port": 37319,
+      "reusable": true
+    }
+  ]
+}

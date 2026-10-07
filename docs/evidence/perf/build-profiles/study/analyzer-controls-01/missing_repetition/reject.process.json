@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-source-999133/benchmarks/runtime/tools/parent-bound-exec.py",
+    "864088",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/build-profiles-analysis-8d32f5/benchmarks/runtime/analyze-build-profiles.py",
+    "--nb",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/missing_repetition/nb",
+    "--native",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/missing_repetition/native",
+    "--output",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/analyzer-controls-01/missing_repetition/must-not-exist.json"
+  ],
+  "started": 1791413859.5560718,
+  "parent_waited": true,
+  "pid": 864309,
+  "exit_code": 1,
+  "ended": 1791413859.6212459,
+  "artifacts": {
+    "reject.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reject.stderr": "606f9db6218a3fda4b36e7a6ad9ded5316f502904406b14e6bd00bf438e8e539"
+  }
+}

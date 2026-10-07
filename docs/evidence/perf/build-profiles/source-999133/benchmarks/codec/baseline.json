@@ -1,0 +1,326 @@
+{
+ "arch": "aarch64",
+ "benches": [
+  {
+   "id": "encode/f01",
+   "ns_mean": 608.5088071962881,
+   "ns_mean_hi": 610.393357099862,
+   "ns_mean_lo": 606.7767989518209,
+   "ns_median": 607.0110649774006,
+   "ns_stddev": 9.253812115285832
+  },
+  {
+   "id": "encode/f02",
+   "ns_mean": 851.2673629660816,
+   "ns_mean_hi": 853.8177066213009,
+   "ns_mean_lo": 848.7629922594123,
+   "ns_median": 851.2195617468835,
+   "ns_stddev": 12.970370809542883
+  },
+  {
+   "id": "encode/f03",
+   "ns_mean": 19485.607590374544,
+   "ns_mean_hi": 19508.83844611473,
+   "ns_mean_lo": 19463.48005372413,
+   "ns_median": 19468.315186757216,
+   "ns_stddev": 117.25740582495794
+  },
+  {
+   "id": "encode/f04",
+   "ns_mean": 4141.495337803686,
+   "ns_mean_hi": 4147.417005711786,
+   "ns_mean_lo": 4135.968814206632,
+   "ns_median": 4136.743383833937,
+   "ns_stddev": 29.394287831391484
+  },
+  {
+   "id": "decode/f01",
+   "ns_mean": 405.15783982334574,
+   "ns_mean_hi": 407.5384633508278,
+   "ns_mean_lo": 403.20097085047115,
+   "ns_median": 402.67654170006244,
+   "ns_stddev": 11.163304227903007
+  },
+  {
+   "id": "decode/f02",
+   "ns_mean": 1072.8535926934599,
+   "ns_mean_hi": 1079.4174360522854,
+   "ns_mean_lo": 1067.0172028059358,
+   "ns_median": 1063.5836254747296,
+   "ns_stddev": 31.776426976035143
+  },
+  {
+   "id": "decode/f03",
+   "ns_mean": 20347.035188032183,
+   "ns_mean_hi": 20418.572400486515,
+   "ns_mean_lo": 20274.923228780634,
+   "ns_median": 20376.812696635207,
+   "ns_stddev": 367.2948198432917
+  },
+  {
+   "id": "decode/f04",
+   "ns_mean": 4266.727867801015,
+   "ns_mean_hi": 4293.670208532107,
+   "ns_mean_lo": 4240.431994290555,
+   "ns_median": 4293.8477206699135,
+   "ns_stddev": 136.18152938125775
+  },
+  {
+   "id": "crc32c/f01",
+   "ns_mean": 49.21031990430751,
+   "ns_mean_hi": 49.24191108767209,
+   "ns_mean_lo": 49.17734209312828,
+   "ns_median": 49.19970021476247,
+   "ns_stddev": 0.1646933027214215
+  },
+  {
+   "id": "crc32c/f02",
+   "ns_mean": 76.48507174466114,
+   "ns_mean_hi": 76.57946372214614,
+   "ns_mean_lo": 76.39497916788245,
+   "ns_median": 76.35193507482836,
+   "ns_stddev": 0.475924889043154
+  },
+  {
+   "id": "crc32c/f03",
+   "ns_mean": 2128.019027969615,
+   "ns_mean_hi": 2131.2508029099863,
+   "ns_mean_lo": 2125.031592555115,
+   "ns_median": 2120.86855035609,
+   "ns_stddev": 15.862822111085313
+  },
+  {
+   "id": "crc32c/f04",
+   "ns_mean": 1167.8450941333008,
+   "ns_mean_hi": 1169.7715973879249,
+   "ns_mean_lo": 1165.916576381115,
+   "ns_median": 1171.7829292019455,
+   "ns_stddev": 9.812018122040216
+  },
+  {
+   "id": "compress/gzip_random",
+   "ns_mean": 765798.0450219875,
+   "ns_mean_hi": 767999.2434076321,
+   "ns_mean_lo": 763647.146237683,
+   "ns_median": 765475.9838235294,
+   "ns_stddev": 11105.021440015445
+  },
+  {
+   "id": "compress/gzip_text",
+   "ns_mean": 1506822.4666158827,
+   "ns_mean_hi": 1513124.5129122355,
+   "ns_mean_lo": 1500797.69874586,
+   "ns_median": 1503966.9176868557,
+   "ns_stddev": 31623.190886635137
+  },
+  {
+   "id": "compress/snappy_random",
+   "ns_mean": 26340.87250220213,
+   "ns_mean_hi": 26423.95510150667,
+   "ns_mean_lo": 26263.846179277967,
+   "ns_median": 26237.47039473684,
+   "ns_stddev": 409.628641660344
+  },
+  {
+   "id": "compress/snappy_text",
+   "ns_mean": 118198.90709548046,
+   "ns_mean_hi": 123455.42992815498,
+   "ns_mean_lo": 113365.21465039806,
+   "ns_median": 116867.69404761904,
+   "ns_stddev": 25896.4464416118
+  },
+  {
+   "id": "compress/lz4_random",
+   "ns_mean": 33968.29497480676,
+   "ns_mean_hi": 35848.37755289765,
+   "ns_mean_lo": 32315.831835569184,
+   "ns_median": 29766.251602958146,
+   "ns_stddev": 9108.721554026364
+  },
+  {
+   "id": "compress/lz4_text",
+   "ns_mean": 84019.465806306,
+   "ns_mean_hi": 84412.03665391753,
+   "ns_mean_lo": 83742.25422747858,
+   "ns_median": 83731.33333333334,
+   "ns_stddev": 1761.918886033171
+  },
+  {
+   "id": "decompress/gzip_random",
+   "ns_mean": 166566.1698245068,
+   "ns_mean_hi": 166860.53141978054,
+   "ns_mean_lo": 166273.51844454955,
+   "ns_median": 165787.7910762483,
+   "ns_stddev": 1504.9050720512148
+  },
+  {
+   "id": "decompress/gzip_text",
+   "ns_mean": 78371.16140140122,
+   "ns_mean_hi": 78554.240801532,
+   "ns_mean_lo": 78173.51467153209,
+   "ns_median": 78658.23284023668,
+   "ns_stddev": 983.4166514025103
+  },
+  {
+   "id": "decompress/snappy_random",
+   "ns_mean": 23817.709751643426,
+   "ns_mean_hi": 23991.021037471746,
+   "ns_mean_lo": 23643.414209921153,
+   "ns_median": 24007.416800592426,
+   "ns_stddev": 890.6917184320254
+  },
+  {
+   "id": "decompress/snappy_text",
+   "ns_mean": 50014.73661931613,
+   "ns_mean_hi": 50322.893041283955,
+   "ns_mean_lo": 49772.5551652849,
+   "ns_median": 49830.66513099725,
+   "ns_stddev": 1430.0268168480634
+  },
+  {
+   "id": "decompress/lz4_random",
+   "ns_mean": 25007.748793389714,
+   "ns_mean_hi": 25144.080946014208,
+   "ns_mean_lo": 24874.84518869161,
+   "ns_median": 24977.14230600997,
+   "ns_stddev": 688.0779969710034
+  },
+  {
+   "id": "decompress/lz4_text",
+   "ns_mean": 41132.77007339814,
+   "ns_mean_hi": 41287.484538727185,
+   "ns_mean_lo": 40999.834647056996,
+   "ns_median": 41038.241273729334,
+   "ns_stddev": 735.0426267261423
+  },
+  {
+   "id": "transform/fast",
+   "ns_mean": 29886.778963011737,
+   "ns_mean_hi": 30007.9755337112,
+   "ns_mean_lo": 29779.378140684246,
+   "ns_median": 29703.131969785434,
+   "ns_stddev": 587.1808608617182
+  },
+  {
+   "id": "transform/slow",
+   "ns_mean": 77047.36374085741,
+   "ns_mean_hi": 77183.40529059469,
+   "ns_mean_lo": 76934.84481709902,
+   "ns_median": 77030.44230769231,
+   "ns_stddev": 641.1374115374518
+  }
+ ],
+ "census": [
+  {
+   "allocs": 9,
+   "bytes": 4088,
+   "op": "encode/f01"
+  },
+  {
+   "allocs": 3,
+   "bytes": 1917,
+   "op": "decode/f01"
+  },
+  {
+   "allocs": 9,
+   "bytes": 4088,
+   "op": "encode/f02"
+  },
+  {
+   "allocs": 35,
+   "bytes": 3597,
+   "op": "decode/f02"
+  },
+  {
+   "allocs": 14,
+   "bytes": 131064,
+   "op": "encode/f03"
+  },
+  {
+   "allocs": 3,
+   "bytes": 115457,
+   "op": "decode/f03"
+  },
+  {
+   "allocs": 11,
+   "bytes": 70115,
+   "op": "encode/f04"
+  },
+  {
+   "allocs": 99,
+   "bytes": 41205,
+   "op": "decode/f04"
+  },
+  {
+   "allocs": 29,
+   "bytes": 540993,
+   "op": "compress/gzip/text"
+  },
+  {
+   "allocs": 9,
+   "bytes": 266478,
+   "op": "decompress/gzip/text"
+  },
+  {
+   "allocs": 21,
+   "bytes": 282249,
+   "op": "compress/snappy/text"
+  },
+  {
+   "allocs": 5,
+   "bytes": 203033,
+   "op": "decompress/snappy/text"
+  },
+  {
+   "allocs": 25,
+   "bytes": 395765,
+   "op": "compress/lz4/text"
+  },
+  {
+   "allocs": 9,
+   "bytes": 334686,
+   "op": "decompress/lz4/text"
+  }
+ ],
+ "git_sha": "55dadff",
+ "inputs": [
+  {
+   "bytes": 1061,
+   "file": "f01.bin",
+   "name": "f01",
+   "records": 8,
+   "sha256": "4a02b8358cb1b3fc94196724727b0eb978c7a11b2b9d4d3d9d4938ef3db0f97d"
+  },
+  {
+   "bytes": 1349,
+   "file": "f02.bin",
+   "name": "f02",
+   "records": 8,
+   "sha256": "18a57676ec4df9cb8cf3a9f966b626c007dbc37047d3ad79383968338854a700"
+  },
+  {
+   "bytes": 63433,
+   "file": "f03.bin",
+   "name": "f03",
+   "records": 500,
+   "sha256": "e2c48f2bcf7bad6748f16e46b277ffcdf06daa18ed92f93502e7c80f51424024"
+  },
+  {
+   "bytes": 34141,
+   "file": "f04.bin",
+   "name": "f04",
+   "records": 32,
+   "sha256": "52fef2972e02b8a20b0a5f6cc4390d5e024b3bff29fa00be6397eebf8ce6a6c6"
+  }
+ ],
+ "os": "macos",
+ "profiles": {
+  "census": "dev",
+  "criterion": "bench"
+ },
+ "rustc": "1.98.1",
+ "rustc_host": "aarch64-apple-darwin",
+ "seed": 789996,
+ "slowcheck_ratio": 3.0241277763795713,
+ "tool": "baseline.py"
+}
