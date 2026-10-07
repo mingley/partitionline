@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "task": "KL01-32",
+  "declared_before_qualification": true,
+  "scope": "Current API73 v0 raw-extension cohort. No standard Java Admin operation and no historical peer cohort is registered for this card.",
+  "registered_case_ids": [
+    "current-claimed-api-073-v0-4-1-2",
+    "current-claimed-api-073-v0-4-2-1",
+    "current-claimed-api-073-v0-4-3-1"
+  ],
+  "peers": [
+    {
+      "release": "4.1.2",
+      "sources": [
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+          "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+          "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+          "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+          "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "35c97cfa4437d7eac8362976d2e99375abaeae73e4b1e8487219dbfe94d0d884"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+          "sha256": "7b96bde9e51fabe32afcc9986b216cc8b3d1ae5fc616a6be9f91f51255c419eb"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+          "sha256": "63ca7510497653fce857725cce98006138873431ad6288bb725918de8a8ac2d2"
+        }
+      ],
+      "source_methods": [
+        "testHandleAssignReplicasToDirsFailsOnOlderMv",
+        "testHandleAssignReplicasToDirs"
+      ],
+      "wire_case_source": "RequestResponseTest.createAssignReplicasToDirsRequest/createAssignReplicasToDirsResponse and generated JSON v0 fields",
+      "reference_state_scope": "ReplicationControlManager tests also exercise two-broker offline-directory state and internal record replay; these are reference broker-state tests, not a Rust client-owned replica directory store. This card qualifies the declared raw RPC cohort only."
+    },
+    {
+      "release": "4.2.1",
+      "sources": [
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+          "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+          "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+          "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+          "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "960081d4601a6241fc16219b77761eaf4b026c4b39f68a4e3cf0e98b688dcafd"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+          "sha256": "db6074b91880707e51351bd3c25efa3a21dca8f1e9543854f6475edd68ed3be6"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+          "sha256": "1adf18da4e681ec3fad738e8e53118efccbca313ba0e05fcac7143ef30c5f803"
+        }
+      ],
+      "source_methods": [
+        "testHandleAssignReplicasToDirsFailsOnOlderMv",
+        "testHandleAssignReplicasToDirs"
+      ],
+      "wire_case_source": "RequestResponseTest.createAssignReplicasToDirsRequest/createAssignReplicasToDirsResponse and generated JSON v0 fields",
+      "reference_state_scope": "ReplicationControlManager tests also exercise two-broker offline-directory state and internal record replay; these are reference broker-state tests, not a Rust client-owned replica directory store. This card qualifies the declared raw RPC cohort only."
+    },
+    {
+      "release": "4.3.1",
+      "sources": [
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsRequest.java",
+          "sha256": "a560858c7726e96f9474a3abe3dca52b302146542cc79d780aa0fd644723f13f"
+        },
+        {
+          "path": "clients/src/main/java/org/apache/kafka/common/requests/AssignReplicasToDirsResponse.java",
+          "sha256": "e2316438d7d77c8c0e752e6c33cfa30fc2732dcb13f560f51fff2bc5e5582ec6"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsRequest.json",
+          "sha256": "1e4c8952e08739e2d7abe2c917c32c51c5934063ebffb26300db8ac88195fa14"
+        },
+        {
+          "path": "clients/src/main/resources/common/message/AssignReplicasToDirsResponse.json",
+          "sha256": "af8d8cc7fc0aa506de229926528a410e717481ad43a36ce19f92164e6aa258da"
+        },
+        {
+          "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+          "sha256": "63d71dbc27c3e129a84138392b0407fd528bab43191c2aced47cfaa12136c9cc"
+        },
+        {
+          "path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+          "sha256": "431b9de2300b73deb754cc5da2f38e6a03e2f1e8bb0ba52591fb8b0e10487c0f"
+        },
+        {
+          "path": "metadata/src/test/java/org/apache/kafka/controller/ReplicationControlManagerTest.java",
+          "sha256": "779755ff3fe0126652b8c532afb196b9f7e84e609f6d7f9d14419a871d7fdda3"
+        }
+      ],
+      "source_methods": [
+        "testHandleAssignReplicasToDirsFailsOnOlderMv",
+        "testHandleAssignReplicasToDirs"
+      ],
+      "wire_case_source": "RequestResponseTest.createAssignReplicasToDirsRequest/createAssignReplicasToDirsResponse and generated JSON v0 fields",
+      "reference_state_scope": "ReplicationControlManager tests also exercise two-broker offline-directory state and internal record replay; these are reference broker-state tests, not a Rust client-owned replica directory store. This card qualifies the declared raw RPC cohort only."
+    }
+  ],
+  "wire_invocations": [
+    "generated defaults",
+    "four signed broker-id/epoch extrema",
+    "duplicate nested directory/topic/partition known fields",
+    "unknown tags at all four nesting levels",
+    "2250 and 2251 assignments: upstream packet-size hint is not an enforced builder limit",
+    "five top-level error factories and throttle",
+    "four top-level response codes with nested identities/errors, repeated with tags",
+    "response defaults",
+    "every strict prefix of every body",
+    "independent parse of Rust normalized known fields"
+  ],
+  "native_invocations": [
+    "valid registered epoch with empty directories",
+    "unknown broker epoch rejection",
+    "stale epoch rejection",
+    "unknown topic: three partition indices",
+    "empty directory",
+    "empty topic partitions",
+    "existing topic unknown partition",
+    "existing topic assignment to its owned online directory",
+    "duplicate existing partition assignment"
+  ],
+  "budgets": {
+    "overall_seconds": 900,
+    "startup_seconds": 60,
+    "raw_call_seconds": 5,
+    "frame_bytes": 65536,
+    "generated_fixture_bodies_per_peer": 23,
+    "raw_requests_per_caller_per_peer": 9,
+    "owned_topic_partitions": 1,
+    "owned_brokers_per_topology": 1
+  },
+  "limits": [
+    "No offline directory movement, two-broker not-replica branch, controller failover, authorization or restoration qualification. Those remain independent broker/data-plane work.",
+    "No exhaustive upstream applicability closure under KL01-14 and no revision of historical dispositions.",
+    "Unknown numeric error codes remain raw integers in Rust; Java Errors.forCode groups unknown values as UNKNOWN_SERVER_ERROR. Wire preservation does not imply identical typed enumeration for unrecognized codes."
+  ]
+}

@@ -52656,8 +52656,8 @@
       "title": "Qualify current AssignReplicasToDirs raw extension cells",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-root-20261007",
       "depends_on": [
         "KL01-03"
       ],
@@ -52688,7 +52688,9 @@
         "tests/conformance/java/generate_assign_replicas_to_dirs_raw.py",
         "tests/assign_replicas_to_dirs_raw_conformance.rs",
         "tests/fixtures/assign_replicas_to_dirs_raw/",
-        "docs/evidence/conformance/q-conf-assignreplicastodirsraw/"
+        "docs/evidence/conformance/q-conf-assignreplicastodirsraw/",
+        "tests/conformance/run-assign-replicas-to-dirs-raw.py",
+        "docs/plan/evidence/KL01-32.json"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
