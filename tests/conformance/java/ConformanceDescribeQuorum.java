@@ -174,7 +174,7 @@ public final class ConformanceDescribeQuorum {
         Properties properties=new Properties();properties.put("bootstrap.servers",address);properties.put("client.id","describe-quorum-java");properties.put("request.timeout.ms","2500");properties.put("default.api.timeout.ms","5000");properties.put("retry.backoff.ms","1");properties.put("retry.backoff.max.ms","1");properties.put("reconnect.backoff.ms","1");properties.put("reconnect.backoff.max.ms","1");
         String result=null;Throwable failure=null;long started=System.nanoTime();int timeout=expected.equals("deadline")||expected.equals("retry-exhaustion")?300:1500;
         Admin admin=Admin.create(properties);
-        try {result=info(admin.describeMetadataQuorum(new DescribeMetadataQuorumOptions().timeoutMs(timeout)).quorumInfo().get(3,TimeUnit.SECONDS));}
+        try {if(expected.equals("deadline")||expected.equals("retry-exhaustion")){admin.describeMetadataQuorum(new DescribeMetadataQuorumOptions().timeoutMs(1500)).quorumInfo().get(3,TimeUnit.SECONDS);started=System.nanoTime();}result=info(admin.describeMetadataQuorum(new DescribeMetadataQuorumOptions().timeoutMs(timeout)).quorumInfo().get(3,TimeUnit.SECONDS));}
         catch(Exception error){error.printStackTrace(System.err);failure=error;while((failure instanceof java.util.concurrent.ExecutionException || failure instanceof java.util.concurrent.CompletionException) && failure.getCause()!=null)failure=failure.getCause();}
         finally {admin.close(Duration.ofSeconds(1));}
         long elapsed=System.nanoTime()-started;

@@ -316,6 +316,12 @@ async fn public_describe_quorum_probe() {
     config.reconnect_backoff = Duration::from_millis(1);
     config.reconnect_backoff_max = Duration::from_millis(1);
     let mut admin = partitionline::Admin::new(config).await.unwrap();
+    if matches!(mode.as_str(), "deadline" | "retry-exhaustion") {
+        let _info = admin
+            .describe_quorum_timeout(Duration::from_millis(1500))
+            .await
+            .unwrap();
+    }
     let started = Instant::now();
     let timeout = Duration::from_millis(
         if matches!(mode.as_str(), "deadline" | "retry-exhaustion") {

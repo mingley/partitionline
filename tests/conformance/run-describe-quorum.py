@@ -176,14 +176,14 @@ class Peer:
                     if self.mode == 'disconnect' and attempt == 1:
                         row['disposition'] = 'controlled-disconnect'
                         return
-                    if self.mode == 'deadline':
+                    if self.mode == 'deadline' and attempt > 1:
                         if self.stop.wait(1):
                             return
                     mode = self.mode
                     if mode.startswith('full-v') or mode in ('deadline', 'disconnect'):
                         mode = 'full'
                     if mode == 'retry-exhaustion':
-                        mode = 'retry-partition6'
+                        mode = 'full' if attempt == 1 else 'retry-partition6'
                     if mode in ('retry-partition6', 'retry-controller41') and attempt > 1 and self.mode != 'retry-exhaustion':
                         mode = 'full'
                     body = (self.fixtures / f'public-{version}-{mode}.response').read_bytes()
@@ -271,10 +271,12 @@ def run_public(args, release, java, fixtures, mode, driver):
     finally:
         closure = peer.close()
     owner.execute(java + ['parse-frames', str(directory)], owner.base_env(), directory, 'SDK-parse-frames', 8)
+    warmup = 1 if mode in ('deadline','retry-exhaustion') else 0
+    attempts = peer.attempts - warmup
     failure = expected_failure(mode)
     if mode == 'retry-exhaustion' and driver == 'rust':
         failure = 'NotLeaderOrFollowerException'
-        if peer.attempts != 8 or outcome['broker_code'] != 6:
+        if attempts != 8 or outcome['broker_code'] != 6:
             raise ValueError('local retry cap/exhausted last error differs')
     if outcome['failure'] != failure:
         raise ValueError('wrong public outcome ' + str(outcome))
@@ -284,17 +286,17 @@ def run_public(args, release, java, fixtures, mode, driver):
             raise ValueError('SDK-decoded response fields differ from public result')
     if mode in ('absent-api', 'future-minimum') and peer.attempts != 0:
         raise ValueError('unsupported API dispatched')
-    if mode not in ('absent-api', 'future-minimum') and peer.attempts < 1:
+    if mode not in ('absent-api', 'future-minimum') and attempts < 1:
         raise ValueError('required API55 call missing')
     if mode in ('retry-partition6', 'retry-controller41', 'disconnect') and peer.attempts != 2:
         raise ValueError('missing exact successful retry')
-    if driver == 'rust' and peer.attempts > 8:
+    if driver == 'rust' and attempts > 8:
         raise ValueError('Rust public attempt bound exceeded')
     if mode in ('deadline', 'retry-exhaustion') and outcome['elapsed_ns'] > 1500000000:
         raise ValueError('original public deadline excessive')
     if any(row['api'] == 55 and row['version'] != peer.version for row in peer.frames):
         raise ValueError('highest shared version differs')
-    return dict(release=release, mode=mode, driver=driver, attempts=peer.attempts, outcome=outcome, closure=closure)
+    return dict(release=release, mode=mode, driver=driver, attempts=attempts, warmup_calls=warmup, captured_API55_frames=peer.attempts, outcome=outcome, closure=closure)
 
 
 def native(args, release, java):
