@@ -1450,6 +1450,16 @@ impl Producer {
     /// `InitProducerId` when idempotent or transactional.
     /// FindCoordinator is required only when a transactional id is configured.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
+        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        deadline.run(Self::new_until(cfg)).await
+    }
+
+    async fn new_until(cfg: ProducerConfig) -> Result<Self> {
+        if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
+            return Err(Error::protocol(
+                "bootstrap/client ID exceeds discovery limit",
+            ));
+        }
         let mut cfg = cfg;
         if !matches!(cfg.acks, -1..=1) {
             return Err(Error::protocol("acks must be -1, 0, or 1"));
@@ -1487,14 +1497,14 @@ impl Producer {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
         }
-        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6);
+        let find_coord_version = pick(&versions, FIND_COORDINATOR, 0, 6);
         if cfg.transactional_id.is_some() {
             let _version = required_find_coordinator(find_coord_version)?;
         }
         if let Some(pv) = pick(&versions, PRODUCE, 3, 13) {
             meta.set_produce_version(pv);
         }
-        let metadata_version = pick(&versions, METADATA, 1, 13)
+        let metadata_version = pick(&versions, METADATA, 0, 13)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let transaction_v2 =
             resp.finalized_features.iter().any(|feature| {
@@ -3171,7 +3181,7 @@ async fn discover_typed_coord_once(
             }
             continue;
         }
-        let coord_addr = format!("{host}:{port}");
+        let coord_addr = crate::net::format_address(&host, port);
         if coord_addr == hop.addr() {
             return Ok(coordinator_connection(hop, &hop_versions));
         }
@@ -3195,7 +3205,9 @@ fn coordinator_connection(
 }
 
 fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
-    version.ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))
+    version.filter(|version| *version >= 1).ok_or_else(|| {
+        Error::Unsupported("transaction discovery requires FindCoordinator v1-6".into())
+    })
 }
 
 async fn init_producer_id_roundtrip(

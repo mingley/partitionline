@@ -14,13 +14,12 @@ varies by API and version; see the [support matrix](support.md).
 Recent completed work includes producer startup retries, retained-buffer
 accounting, zstd encoding/decoding, cross-SDK codec checks, InitProducerId v6,
 reassignment options, WriteTxnMarkers v2, share-offset lag support, Streams v0
-codecs, caller-driven Streams heartbeats, typed group descriptions and all-broker
+codecs, caller-driven Streams heartbeats, typed group descriptions, UUID offset routing and all-broker
 transaction listings with transaction-ID pattern filters. Admin
 capability checks use actual Apache SDK frames and public Java calls. Their
 scripted peers do not implement broker transaction or share state.
 
-Current gaps include topic identities in
-OffsetCommit/OffsetFetch v10, prepared transaction initialization. Fault recovery, session reauthentication and
+Current gaps include prepared transaction initialization. Fault recovery, session reauthentication and
 mixed-version behavior need further implementation or independent checks.
 
 ## Broker
@@ -33,13 +32,13 @@ records the remaining work.
 
 ## Development checks
 
-Latest-stable Rust1.99.0 passed2,034 default-feature tests and2,046 all-feature
+Latest-stable Rust1.99.0 passed2,062 default-feature tests and2,074 all-feature
 tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
-tracing, zstd and combined-feature builds each compiled23 documentation examples.
+tracing, zstd and combined-feature builds each compiled24 documentation examples.
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has201 completed cards and139 open cards. The client
+The task registry has202 completed cards and138 open cards. The client
 conformance registry has51 independently qualified cases out of182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.

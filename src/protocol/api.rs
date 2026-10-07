@@ -11,6 +11,7 @@ use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
 use crate::net::BrokerConn;
+mod metadata_legacy;
 
 /// One key in an ApiVersions response.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1456,8 +1457,8 @@ impl MetadataRequest {
     /// Java `MetadataRequest.isAllTopics`.
     ///
     /// Null Topics is all topics. An empty Topics list is all topics only on
-    /// Metadata v0 (this crate does not speak v0; encode rejects versions
-    /// older than 1).
+    /// Metadata v0. Raw v0 encoding is separate from Java's builder policy,
+    /// which rejects v0.
     #[must_use]
     pub const fn is_all_topics(version: i16, topics: Option<&[MetadataRequestTopic]>) -> bool {
         match topics {
@@ -1727,6 +1728,14 @@ pub fn encode_metadata_request_with(
     allow_auto: bool,
     include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    if version == 0 {
+        return metadata_legacy::encode_names(
+            buf,
+            topics,
+            allow_auto,
+            include_topic_authorized_operations,
+        );
+    }
     let owned = topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
     encode_metadata_request_topics(
         buf,
@@ -1781,6 +1790,15 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
     include_topic_authorized_operations: bool,
     include_cluster_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    if version == 0 {
+        return metadata_legacy::encode_topics(
+            buf,
+            topics,
+            allow_auto,
+            include_topic_authorized_operations,
+            include_cluster_authorized_operations,
+        );
+    }
     MetadataRequest::build(version, topics, allow_auto)?;
     let flexible = version >= 9;
     match topics {
@@ -1845,6 +1863,15 @@ pub fn decode_metadata_request_topics<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Option<Vec<MetadataRequestTopic>>, bool, bool, bool)> {
+    if version == 0 {
+        let body = metadata_legacy::take_body(buf)?;
+        return Ok((
+            Some(metadata_legacy::decode_request(&body)?),
+            true,
+            false,
+            false,
+        ));
+    }
     let flexible = version >= 9;
     let topics = match buf::get_array_len(buf, flexible)? {
         None => None,
@@ -1913,6 +1940,10 @@ fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::
 
 /// Decode Metadata.
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
+    if version == 0 {
+        let body = metadata_legacy::take_body(buf)?;
+        return metadata_legacy::decode_response(&body);
+    }
     let flexible = version >= 9;
     let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
     let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -2036,6 +2067,9 @@ pub fn encode_metadata_response(
     version: i16,
     resp: &MetadataResponse,
 ) -> crate::error::Result<()> {
+    if version == 0 {
+        metadata_legacy::validate_response(resp)?;
+    }
     let flexible = version >= 9;
     if version >= 3 {
         buf.put_i32(resp.throttle_time_ms);
@@ -7401,12 +7435,13 @@ mod tests {
     #[test]
     fn metadata_builder_matches_java() {
         let names = ["t".to_string()];
-        let err = encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), true).unwrap_err();
+        let err = MetadataRequest::build(0, None, true).unwrap_err();
         assert!(
             matches!(err, Error::Unsupported(_)),
             "v0 is Java UnsupportedVersionException, got {err}"
         );
         assert!(err.to_string().contains("older than 1"), "got {err}");
+        encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), true).unwrap();
         encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), true).unwrap();
         let err =
             encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), false).unwrap_err();

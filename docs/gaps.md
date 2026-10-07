@@ -12,6 +12,7 @@ qualification details.
 | Manual consumer | Assignment, seek, pause/resume, wakeup, bounded polls, leader recovery, incremental Fetch sessions and committed isolation. |
 | Classic groups | Range, sticky and cooperative-sticky assignment; subscriptions, commits, rebalance callbacks and static membership. |
 | Consumer protocol | KIP-848 group join, heartbeat and polling APIs. |
+| Discovery | Metadata0–13 and GROUP FindCoordinator0–6; unsupported creation options, coordinator types and missing identities are refused. |
 | Committed offsets | Name-based methods and typed UUID requests; v10 group/Admin routing, member epochs and bounded batched fetches. |
 | Share groups | Join, polling, accept/release/reject, version negotiation, acquisition modes and lock renewal. |
 | Transactions | Initialize, begin, commit/abort and send group offsets with output records. |

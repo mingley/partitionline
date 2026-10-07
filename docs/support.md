@@ -118,6 +118,11 @@ requires v2; it is never silently dropped on an older broker. Three actual
 Apache SDKs qualify selected wire and public-call behavior against bounded
 scripted peers. Live transaction-state recovery remains separate work.
 
+Metadata and GROUP coordinator discovery include v0. Named v0 metadata requests
+require automatic topic creation to be enabled; unsupported options are refused.
+Absent controller, UUID and rack fields keep their sentinel values. The raw wire
+support differs from the current Java Metadata builder, which refuses v0.
+
 OffsetCommit and OffsetFetch support v10 topic UUIDs through typed requests,
 ConsumerGroup and Admin methods. Name-based calls retain older wire formats;
 UUID-only requests refuse older coordinators. Metadata snapshots and assignment

@@ -387,6 +387,20 @@ let _ = ProducerConfig::bootstrap(["broker:9093"])
 
 Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 
+## Older discovery versions
+
+Metadata v0 and GROUP coordinator discovery v0 are supported. At Metadata v0,
+an empty topic array means all topics. A named request cannot disable automatic
+topic creation, so Producer and Consumer callers must explicitly set
+`allow_auto_topic_creation = true` to use that version. Admin can list all topics;
+named Admin queries that require creation to stay disabled return Unsupported.
+
+Metadata v0 provides no controller ID, topic UUID, rack or internal-topic flag.
+Operations that need a controller or UUID refuse the missing identity. GROUP
+discovery v0 has no coordinator-type field; transaction discovery needs v1 or
+newer. Startup and discovery keep one timeout across connection setup, version
+fallback and retries. Bootstrap lists are limited to sixteen addresses.
+
 ## Defaults that differ from Java
 
 | Knob | partitionline | Java |

@@ -34,7 +34,7 @@ impl Cluster {
         for b in &md.brokers {
             let _prev = self
                 .brokers
-                .insert(b.node_id, format!("{}:{}", b.host, b.port));
+                .insert(b.node_id, crate::net::format_address(&b.host, b.port));
         }
         let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
         for t in &md.topics {
@@ -173,7 +173,7 @@ impl Cluster {
             }
             let _prev = self
                 .brokers
-                .insert(e.node_id, format!("{}:{}", e.host, e.port));
+                .insert(e.node_id, crate::net::format_address(&e.host, e.port));
         }
     }
 

@@ -116,7 +116,7 @@ impl FindCoordinatorResponse {
     /// top-level ErrorCode on the wire (JSON default `NONE`), so
     /// coordinator-level codes are ignored. Empty Coordinators is
     /// `false`. Java `error()` is `Errors.forCode` only (identity on
-    /// i16; not mapped). This crate speaks 1–6. This is not
+    /// i16; not mapped). This crate supports 0–6. This is not
     /// [`Self::error_counts`] / [`Self::coordinator_by_key`] /
     /// getErrorResponse / OffsetFetch `hasError`.
     #[must_use]
@@ -154,7 +154,7 @@ impl FindCoordinatorResponse {
     /// `ErrorMessage` stays the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Throttle is the JSON
     /// default (`0`). [`CoordinatorResult::error_for_key`] is this helper
-    /// with `Node.noNode`. This crate speaks 1–6. This is not
+    /// with `Node.noNode`. This crate supports 0–6. This is not
     /// [`Self::prepare_error_response`] / [`Self::error_results`].
     #[must_use]
     pub fn prepare_coordinator_response(
@@ -180,7 +180,7 @@ impl FindCoordinatorResponse {
     /// [`Self::prepare_coordinator_response`]. Throttle stays the JSON
     /// default (`0`). Convenience
     /// [`encode_find_coordinator_response`] still writes ErrorCode `0`.
-    /// This crate speaks 1–6. This is not [`Self::prepare_error_response`]
+    /// This crate supports 0–6. This is not [`Self::prepare_error_response`]
     /// / [`Self::error_results`] / [`CoordinatorResult::error_for_key`].
     #[must_use]
     pub fn prepare_response(
@@ -260,7 +260,7 @@ impl FindCoordinatorResponse {
     /// the generated top-level fields, which are not on the wire, so this
     /// is JSON defaults even when Coordinators has a broker. Rack stays
     /// null (Java `Node(id, host, port)`). This is not `Node.noNode`
-    /// (`-1` / empty / `-1`). This crate speaks 1–6. This is not
+    /// (`-1` / empty / `-1`). This crate supports 0–6. This is not
     /// [`Self::coordinator_by_key`] / [`Self::prepare_response`] /
     /// [`Self::prepare_coordinator_response`].
     #[must_use]
@@ -320,8 +320,8 @@ impl FindCoordinatorRequest {
     /// non-null `Key` copies that key into CoordinatorKeys and clears
     /// `Key` to the JSON default (`""`). Encode still writes Key on
     /// v1–v3 and CoordinatorKeys on v4+; this is the Builder rewrite.
-    /// This crate speaks 1–6. v0 is not spoken (the TRANSACTION check
-    /// is Java's). This is not [`FindCoordinatorResponse::has_error`] /
+    /// The builder rejects TRANSACTION at v0. Encoding rejects every
+    /// non-GROUP v0 request. This is not [`FindCoordinatorResponse::has_error`] /
     /// [`FindCoordinatorResponse::error_counts`] / getErrorResponse /
     /// OffsetFetch `Builder.build`.
     pub fn build(
@@ -752,7 +752,7 @@ fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(String, Vec<i3
 /// v7+ are not spoken.
 fn find_coordinator_flexible(version: i16) -> Result<bool> {
     match version {
-        1..=2 => Ok(false),
+        0..=2 => Ok(false),
         3..=6 => Ok(true),
         other => Err(Error::protocol(format!(
             "FindCoordinator version {other} is not implemented"
@@ -777,7 +777,7 @@ fn find_coordinator_top_level_for_key(key: impl Into<String>) -> CoordinatorResu
     }
 }
 
-/// One coordinator in a FindCoordinator response (v1–v6).
+/// One coordinator in a FindCoordinator response (v0–v6).
 ///
 /// v1–v3 have a single top-level coordinator (`key` is empty). v4+ is
 /// Coordinators[] (KIP-699); `key` is `Coordinators[].Key`.
@@ -850,7 +850,7 @@ pub fn encode_find_coordinator_request_typed(
 
 /// Encode FindCoordinator v4+ CoordinatorKeys of N (KIP-699).
 ///
-/// v1–v3 support one key only. More than one key below
+/// v0–v3 support one key only. More than one key below
 /// [`MIN_BATCHED_VERSION`] is Java `NoBatchedFindCoordinatorsException`.
 /// Empty `keys` below v4 is a protocol error (`does not support
 /// CoordinatorKeys`; use [`encode_find_coordinator_request_typed`]).
@@ -861,6 +861,11 @@ pub fn encode_find_coordinator_request_keys(
     key_type: i8,
 ) -> crate::error::Result<()> {
     let flexible = find_coordinator_flexible(version)?;
+    if version == 0 && key_type != COORDINATOR_GROUP {
+        return Err(Error::Unsupported(
+            "FindCoordinator v0 only supports GROUP".into(),
+        ));
+    }
     if find_coordinator_batched(version) {
         buf.put_i8(key_type);
         buf::put_array_len(buf, true, Some(keys.len()))?;
@@ -881,7 +886,9 @@ pub fn encode_find_coordinator_request_keys(
         )));
     };
     buf::put_string(buf, flexible, Some(key))?;
-    buf.put_i8(key_type);
+    if version >= 1 {
+        buf.put_i8(key_type);
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -902,6 +909,9 @@ pub fn decode_find_coordinator_request_keys<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<String>, i8)> {
+    if version == 0 && buf.remaining() > 65536 {
+        return Err(Error::protocol("FindCoordinator v0 request exceeds limit"));
+    }
     let flexible = find_coordinator_flexible(version)?;
     if find_coordinator_batched(version) {
         let key_type = buf::get_i8(buf)?;
@@ -913,10 +923,21 @@ pub fn decode_find_coordinator_request_keys<B: Buf>(
         buf::skip_tagged_fields(buf)?;
         return Ok((keys, key_type));
     }
-    let key = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let key_type = buf::get_i8(buf)?;
+    let key = match buf::get_string(buf, flexible)? {
+        Some(key) => key,
+        None if version == 0 => return Err(Error::protocol("null FindCoordinator v0 key")),
+        None => String::new(),
+    };
+    let key_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        COORDINATOR_GROUP
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
+    }
+    if version == 0 && buf.has_remaining() {
+        return Err(Error::protocol("trailing FindCoordinator v0 request"));
     }
     Ok((vec![key], key_type))
 }
@@ -960,13 +981,11 @@ pub fn encode_find_coordinator_response_coordinators(
     encode_find_coordinator_response_coordinators_with_throttle(buf, version, coordinators, 0)
 }
 
-/// Encode FindCoordinator v1–v6 with ThrottleTimeMs.
+/// Encode FindCoordinator v0–v6 with optional ThrottleTimeMs.
 ///
-/// ThrottleTimeMs is JSON `1+`: written on every spoken version (this
-/// crate does not speak v0). v1–v2 are classic. v3 is flexible. v4–v6
+/// ThrottleTimeMs is present from v1. v0–v2 are classic. v3 is flexible. v4–v6
 /// are Coordinators (KIP-699; v5 TRANSACTION_ABORTABLE; v6 share groups).
-/// Kafka 4.0 `validVersions` is `0-6`. This crate speaks 1–6. v0 and
-/// v7+ are not spoken. Official Java `getErrorResponse` sets
+/// This crate supports 0–6. v0 discovers GROUP coordinators only. Official Java `getErrorResponse` sets
 /// `throttleTimeMs` from the argument on v2+; v1 leaves the JSON
 /// default `0`. Top-level ErrorCode is at bytes 4–5 on v1–v3; v4+ has
 /// no top-level ErrorCode.
@@ -976,8 +995,20 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
     coordinators: &[CoordinatorResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    if version == 0
+        && (coordinators.len() != 1
+            || coordinators
+                .first()
+                .is_some_and(|c| c.host.len() > i16::MAX as usize))
+    {
+        return Err(Error::protocol(
+            "FindCoordinator v0 response count/host exceeds limit",
+        ));
+    }
     let flexible = find_coordinator_flexible(version)?;
-    buf.put_i32(throttle_time_ms);
+    if version >= 1 {
+        buf.put_i32(throttle_time_ms);
+    }
     if find_coordinator_batched(version) {
         buf::put_array_len(buf, true, Some(coordinators.len()))?;
         for c in coordinators {
@@ -1001,7 +1032,9 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
         .first()
         .ok_or_else(|| Error::protocol("missing FindCoordinator Coordinators"))?;
     buf.put_i16(c.error_code);
-    buf::put_string(buf, flexible, c.error_message.as_deref())?;
+    if version >= 1 {
+        buf::put_string(buf, flexible, c.error_message.as_deref())?;
+    }
     buf.put_i32(c.node_id);
     buf::put_string(buf, flexible, Some(&c.host))?;
     buf.put_i32(c.port);
@@ -1028,15 +1061,18 @@ pub fn decode_find_coordinator_response<B: Buf>(
 /// Decode FindCoordinator v0–v6: every Coordinators entry.
 ///
 /// Returns `(coordinators, throttle_time_ms)`. ThrottleTimeMs is JSON
-/// `1+` (always on the wire for spoken versions). v1–v3 return a vec
+/// `1+`. v0–v3 return a vec
 /// of 1 (`key` empty). v4+ is Coordinators[]. Top-level ErrorCode is at
 /// bytes 4–5 on v1–v3; v4+ has no top-level ErrorCode.
 pub fn decode_find_coordinator_response_coordinators<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<CoordinatorResult>, i32)> {
+    if version == 0 && buf.remaining() > 65536 {
+        return Err(Error::protocol("FindCoordinator v0 response exceeds limit"));
+    }
     let flexible = find_coordinator_flexible(version)?;
-    let throttle_time_ms = buf::get_i32(buf)?;
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     if find_coordinator_batched(version) {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
         let mut out = Vec::with_capacity(n);
@@ -1061,12 +1097,23 @@ pub fn decode_find_coordinator_response_coordinators<B: Buf>(
         return Ok((out, throttle_time_ms));
     }
     let error_code = buf::get_i16(buf)?;
-    let error_message = buf::get_string(buf, flexible)?;
+    let error_message = if version >= 1 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
     let node_id = buf::get_i32(buf)?;
-    let host = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let host = match buf::get_string(buf, flexible)? {
+        Some(host) => host,
+        None if version == 0 => return Err(Error::protocol("null FindCoordinator v0 host")),
+        None => String::new(),
+    };
     let port = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
+    }
+    if version == 0 && buf.has_remaining() {
+        return Err(Error::protocol("trailing FindCoordinator v0 response"));
     }
     Ok((
         vec![CoordinatorResult {
@@ -8008,8 +8055,8 @@ mod tests {
         );
         buf.clear();
         assert!(
-            encode_find_coordinator_request_typed(&mut buf, 0, "g", COORDINATOR_GROUP).is_err(),
-            "FindCoordinator v0 (no KeyType) is not spoken"
+            encode_find_coordinator_request_typed(&mut buf, 0, "g", COORDINATOR_GROUP).is_ok(),
+            "FindCoordinator v0 supports GROUP without KeyType"
         );
 
         let err = FindCoordinatorResponse::error_results(
@@ -8072,7 +8119,7 @@ mod tests {
         // Empty-error v1 == v2 (classic); v3 is compact; empty-Coordinators
         // v4 == v5 == v6 (KIP-699; TRANSACTION_ABORTABLE / share groups
         // same layout). Top-level ErrorCode is at bytes 4–5 on v1–v3;
-        // v4+ has no top-level ErrorCode. This crate speaks 1–6. This is
+        // v4+ has no top-level ErrorCode. This crate supports 0–6. This is
         // not JoinGroup / OffsetDelete ThrottleTimeMs.
         let one = vec![CoordinatorResult::error(0)];
         for version in [1, 2, 3] {
@@ -8667,8 +8714,9 @@ mod tests {
         )
         .unwrap_err();
         assert!(
-            v0.to_string().contains("not implemented"),
-            "v0 stays unspoken first, got {v0}"
+            v0.to_string()
+                .contains("features supported only in 4 or later"),
+            "v0 refuses batched coordinator keys, got {v0}"
         );
     }
 

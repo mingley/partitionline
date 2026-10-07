@@ -14,6 +14,8 @@ pub(super) struct AdminOffsetConn {
     pub(super) inner: crate::net::BrokerConn,
     commit: Option<(i16, i16)>,
     fetch: Option<(i16, i16)>,
+    pub(super) metadata: Option<i16>,
+    pub(super) find: Option<i16>,
 }
 
 impl AdminOffsetConn {
@@ -23,6 +25,16 @@ impl AdminOffsetConn {
     ) -> Self {
         Self {
             inner,
+            metadata: versions
+                .api_version(crate::protocol::api_keys::METADATA)
+                .and_then(|v| {
+                    crate::protocol::api_keys::pick_version(v.min_version, v.max_version, 0, 13)
+                }),
+            find: versions
+                .api_version(crate::protocol::api_keys::FIND_COORDINATOR)
+                .and_then(|v| {
+                    crate::protocol::api_keys::pick_version(v.min_version, v.max_version, 0, 6)
+                }),
             commit: versions
                 .api_version(OFFSET_COMMIT)
                 .map(|range| (range.min_version, range.max_version)),

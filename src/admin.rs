@@ -3926,6 +3926,16 @@ impl Admin {
     /// are optional at connect. Missing APIs fail on the method with
     /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
+        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        deadline.run(Self::new_until(cfg)).await
+    }
+
+    async fn new_until(cfg: AdminConfig) -> Result<Self> {
+        if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
+            return Err(Error::protocol(
+                "bootstrap/client ID exceeds discovery limit",
+            ));
+        }
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let stats = Arc::new(crate::metrics::AdminTracker::default());
@@ -3998,11 +4008,11 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3));
         let metadata_version = versions
             .get(&METADATA)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let find_coord_version = versions
             .get(&FIND_COORDINATOR)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6));
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6));
         let offset_delete_version = versions
             .get(&OFFSET_DELETE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -7849,6 +7859,12 @@ impl Admin {
         topics: Option<&[String]>,
         include_topic_authorized_operations: bool,
     ) -> Result<MetadataResponse> {
+        if self.metadata_version == 0 && topics.is_some() {
+            return Err(Error::Unsupported(
+                "Metadata v0 cannot represent this Admin topic selection or disable topic creation"
+                    .into(),
+            ));
+        }
         let owned =
             topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
         let timeout = self.cfg.request_timeout;
@@ -7866,7 +7882,41 @@ impl Admin {
         include_topic_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<MetadataResponse> {
+        let deadline = crate::net::Deadline::from_timeout(timeout);
+        deadline
+            .run(self.fetch_metadata_request_until(
+                topics,
+                include_topic_authorized_operations,
+                timeout,
+            ))
+            .await
+    }
+
+    async fn fetch_metadata_request_until(
+        &mut self,
+        topics: Option<&[MetadataRequestTopic]>,
+        include_topic_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<MetadataResponse> {
         let version = self.metadata_version;
+        if version == 0 && topics.is_some() {
+            return Err(Error::Unsupported(
+                "Metadata v0 cannot represent this Admin topic selection or disable topic creation"
+                    .into(),
+            ));
+        }
+        if version == 0 && include_topic_authorized_operations {
+            return Err(Error::Unsupported(
+                "Metadata v0 has no authorization fields".into(),
+            ));
+        }
+        self.ensure_bootstrap().await?;
+        let version = self.metadata_version;
+        if version == 0 && (topics.is_some() || include_topic_authorized_operations) {
+            return Err(Error::Unsupported(
+                "Metadata v0 cannot represent this Admin request".into(),
+            ));
+        }
         let body = self
             .roundtrip_bootstrap(
                 METADATA,
@@ -7876,7 +7926,7 @@ impl Admin {
                         buf,
                         version,
                         topics,
-                        false,
+                        version < 4 && topics.is_none(),
                         include_topic_authorized_operations,
                     )
                 },
@@ -7913,11 +7963,16 @@ impl Admin {
     }
 
     async fn ensure_bootstrap(&mut self) -> Result<()> {
-        if !self.conn.idle_expired(self.cfg.connections_max_idle) {
+        if !self.conn.is_closed() && !self.conn.idle_expired(self.cfg.connections_max_idle) {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
-        self.conn = self.open_node_conn(&addr).await?.inner;
+        let replacement = self.open_node_conn(&addr).await?;
+        self.metadata_version = replacement
+            .metadata
+            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        self.find_coord_version = replacement.find;
+        self.conn = replacement.inner;
         Ok(())
     }
 
@@ -12529,16 +12584,33 @@ impl Admin {
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {
+        let deadline = crate::net::Deadline::from_timeout(self.cfg.request_timeout);
+        deadline
+            .run(self.discover_group_coord_until(group_id))
+            .await
+    }
+
+    async fn discover_group_coord_until(&mut self, group_id: &str) -> Result<i32> {
+        if group_id.len() > i16::MAX as usize {
+            return Err(Error::protocol("coordinator key exceeds discovery limit"));
+        }
         let version = self.find_coord_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
+            Error::Unsupported("broker does not support FindCoordinator v0-6".into())
         })?;
-        if self.cluster.brokers.is_empty() {
+        if version > 0 && self.cluster.brokers.is_empty() {
             self.refresh_metadata(None).await?;
         }
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            if attempt >= 8 {
+                return Err(Error::protocol("FindCoordinator retry limit"));
+            }
+            self.ensure_bootstrap().await?;
+            let version = self.find_coord_version.ok_or_else(|| {
+                Error::Unsupported("broker does not support FindCoordinator v0-6".into())
+            })?;
             let body = self
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
@@ -12562,9 +12634,25 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, node, _host, _port) =
+            let (err, node, host, port) =
                 decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
+                if version == 0 {
+                    if node < 0 || host.is_empty() || !(1..=65535).contains(&port) {
+                        return Err(Error::protocol("invalid coordinator address"));
+                    }
+                    if !self.cluster.brokers.contains_key(&node)
+                        && self.cluster.brokers.len() >= 256
+                    {
+                        return Err(Error::protocol("coordinator broker limit"));
+                    }
+                    let address = crate::net::format_address(&host, port);
+                    if self.cluster.brokers.get(&node) != Some(&address) {
+                        let _old = self.conns.remove(&node);
+                        let _old = self.cluster.brokers.insert(node, address);
+                    }
+                    return Ok(node);
+                }
                 if !self.cluster.brokers.contains_key(&node) {
                     self.refresh_metadata(None).await?;
                 }
@@ -13059,6 +13147,11 @@ impl Admin {
         let version = self.find_coord_version.ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-6".into())
         })?;
+        if version == 0 {
+            return Err(Error::Unsupported(
+                "transaction discovery requires FindCoordinator v1-6".into(),
+            ));
+        }
         if self.cluster.brokers.is_empty() {
             self.refresh_metadata(None).await?;
         }

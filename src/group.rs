@@ -643,8 +643,14 @@ impl ConsumerGroup {
             .first()
             .cloned()
             .ok_or_else(reject_java_no_assignors)?;
-        let consumer = Consumer::new(cfg.clone()).await?;
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        let (consumer, coord) = deadline
+            .run(async {
+                let consumer = Consumer::new(cfg.clone()).await?;
+                let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+                Ok((consumer, coord))
+            })
+            .await?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -790,8 +796,14 @@ impl ConsumerGroup {
         reject_java_empty_group_id(&group_id)?;
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let consumer = Consumer::new(cfg.clone()).await?;
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        let (consumer, coord) = deadline
+            .run(async {
+                let consumer = Consumer::new(cfg.clone()).await?;
+                let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+                Ok((consumer, coord))
+            })
+            .await?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -3072,9 +3084,17 @@ pub(crate) async fn discover_coord(
     group_id: &str,
     key_type: i8,
 ) -> Result<BrokerConn> {
+    if cfg.bootstrap.len() > 16 || group_id.len() > i16::MAX as usize {
+        return Err(Error::protocol(
+            "bootstrap/group key exceeds discovery limit",
+        ));
+    }
     let deadline = Instant::now() + cfg.request_timeout;
     let mut attempt = 0u32;
     loop {
+        if attempt >= 8 {
+            return Err(Error::protocol("coordinator discovery retry limit"));
+        }
         let remaining = deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
             return Err(Error::Timeout);
@@ -3090,9 +3110,10 @@ pub(crate) async fn discover_coord(
         .map_err(|_| Error::Timeout)?;
         match result {
             Err(error)
-                if error
-                    .broker_code()
-                    .is_some_and(error::coordinator_retriable) =>
+                if matches!(error, Error::Io(_) | Error::Timeout)
+                    || error
+                        .broker_code()
+                        .is_some_and(error::coordinator_retriable) =>
             {
                 crate::config::sleep_retry_backoff(
                     cfg.retry_backoff.max(Duration::from_millis(1)),
@@ -3147,7 +3168,10 @@ async fn discover_coord_once(
             }
             continue;
         }
-        let coord_addr = format!("{host}:{port}");
+        if host.is_empty() || !(1..=65535).contains(&port) {
+            return Err(Error::protocol("invalid coordinator address"));
+        }
+        let coord_addr = crate::net::format_address(&host, port);
         if coord_addr == hop.addr() {
             return Ok(hop);
         }
@@ -3170,8 +3194,8 @@ async fn open_coord_with_find_version(
     let resp = crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
     let version = resp
         .api_version(FIND_COORDINATOR)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
-        .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))?;
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
+        .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v0-6".into()))?;
     conn.offset_commit_version = resp
         .api_version(OFFSET_COMMIT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 2, 10))

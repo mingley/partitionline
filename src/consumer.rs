@@ -1766,6 +1766,16 @@ impl Consumer {
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
+        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        deadline.run(Self::new_until(cfg)).await
+    }
+
+    async fn new_until(cfg: ConsumerConfig) -> Result<Self> {
+        if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
+            return Err(Error::protocol(
+                "bootstrap/client ID exceeds discovery limit",
+            ));
+        }
         let mut cfg = cfg;
         for (field, value) in [
             ("max_wait_ms", cfg.max_wait_ms),
@@ -1813,7 +1823,7 @@ impl Consumer {
         }
         let metadata_version = versions
             .get(&METADATA)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let telemetry_version = versions
             .get(&GET_TELEMETRY_SUBSCRIPTIONS)
@@ -2264,6 +2274,15 @@ impl Consumer {
             self.cfg.request_timeout,
         )
         .await?;
+        self.metadata_version = resp
+            .api_version(METADATA)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
+            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        self.versions = resp
+            .api_keys
+            .into_iter()
+            .map(|range| (range.api_key, range))
+            .collect();
         self.conn = conn;
         Ok(())
     }
@@ -2278,12 +2297,27 @@ impl Consumer {
         topics: Option<&[String]>,
         timeout: Duration,
     ) -> Result<()> {
-        if self.conn.idle_expired(self.cfg.connections_max_idle) {
-            let addr = self.conn.addr().to_string();
-            self.conn = self.open_node_conn(&addr).await?;
+        let deadline = crate::net::Deadline::from_timeout(timeout);
+        deadline
+            .run(self.refresh_metadata_until(topics, timeout))
+            .await
+    }
+
+    async fn refresh_metadata_until(
+        &mut self,
+        topics: Option<&[String]>,
+        timeout: Duration,
+    ) -> Result<()> {
+        if self.metadata_version == 0 {
+            let mut encoded = bytes::BytesMut::new();
+            let allow = self.cfg.allow_auto_topic_creation || topics.is_none();
+            encode_metadata_request(&mut encoded, 0, topics, allow)?;
         }
-        let version = self.metadata_version;
-        let allow = self.cfg.allow_auto_topic_creation;
+        if self.conn.idle_expired(self.cfg.connections_max_idle) {
+            self.reconnect_bootstrap().await?;
+        }
+        let mut version = self.metadata_version;
+        let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
         let body = match self
             .conn
             .roundtrip(
@@ -2297,6 +2331,8 @@ impl Consumer {
             Ok(b) => b,
             Err(e) if e.is_retriable() => {
                 self.reconnect_bootstrap().await?;
+                version = self.metadata_version;
+                let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
                 self.conn
                     .roundtrip(
                         METADATA,

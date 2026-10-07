@@ -231,7 +231,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 1. Version gaps
         self.assertIn("version_gaps", results)
         version_gaps = results["version_gaps"]
-        self.assertEqual(len(version_gaps), 43)
+        self.assertEqual(len(version_gaps), 41)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13 vs Apache3.9.1 max11
         self.assertFalse(any(g["api_key"] == 1 and g["version"] == 18 and g.get("direction") == "upstream_cap" for g in version_gaps))  # Fetch18 is implemented; old peer difference stays classified
@@ -322,7 +322,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         res = self.run_cli(["--diff-only"])
         self.assertEqual(res.returncode, 0)
         self.assertNotIn("Implemented Client APIs (71):", res.stdout)
-        self.assertIn("Version Gaps (43):", res.stdout)
+        self.assertIn("Version Gaps (41):", res.stdout)
 
     def test_cli_self_test_flag(self):
         """
@@ -376,14 +376,16 @@ class TestProtocolCoverageChecker(unittest.TestCase):
 
     def test_current_write_markers_and_share_lag_ranges(self):
         for key, expected in ((27, [[1, 1], [1, 2], [1, 2]]),
-                              (90, [[0, 0], [0, 1], [0, 1]])):
+                              (90, [[0, 0], [0, 1], [0, 1]]),
+                              (3, [[0, 13], [0, 13], [0, 13]]),
+                              (10, [[0, 6], [0, 6], [0, 6]])):
             for pin, versions in zip(cpc.CURRENT_PINS, expected):
                 self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"][pin], versions)
         self.assertEqual(cpc.CLIENT_SPOKEN_VERSIONS[27], [0, 1, 2])
         self.assertEqual(cpc.CLIENT_SPOKEN_VERSIONS[90], [0, 1])
 
     def test_forging_current_version_range_cannot_be_classified_away(self):
-        for key in (27, 90):
+        for key in (3, 10, 27, 90):
             with self.subTest(key=key):
                 inventory = copy.deepcopy(cpc.PINNED_APACHE_APIS)
                 inventory[key]["versions"]["4.3.1"] = [0, 0]
@@ -394,7 +396,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
                                     d["api_key"] == key for d in report["unclassified_drift"]))
 
     def test_client_cap_regression_for_27_or_90_fails(self):
-        for key in (27, 90):
+        for key in (3, 10, 27, 90):
             with self.subTest(key=key), patch.dict(cpc.CLIENT_SPOKEN_VERSIONS,
                                                   {key: [0, 1] if key == 27 else [0]}):
                 report = cpc.evaluate_protocol_coverage()

@@ -125,10 +125,10 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     0: list(range(3, 14)),   # Produce: 3-13
     1: list(range(4, 19)),   # Fetch: 4-18
     2: list(range(1, 12)),   # ListOffsets: 1-11
-    3: list(range(1, 14)),   # Metadata: 1-13
+    3: list(range(0, 14)),   # Metadata: 0-13
     8: list(range(2, 11)),   # OffsetCommit: legacy names and v10 UUIDs
     9: list(range(1, 11)),   # OffsetFetch: legacy names and v10 UUIDs
-    10: list(range(1, 7)),   # FindCoordinator: 1-6
+    10: list(range(0, 7)),   # FindCoordinator: 0-6 (GROUP-only at 0)
     11: list(range(2, 10)),  # JoinGroup: 2-9
     12: list(range(0, 5)),   # Heartbeat: 0-4
     13: list(range(0, 6)),   # LeaveGroup: 0-5
@@ -267,11 +267,9 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (2, 10): {"pin": "3.9.1", "direction": "client_only", "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Kafka 3.9.1 max is v9 (Kafka 4.0+ only, cases.json)"},
 
     # Metadata (3)
-    (3, 0): {"pin": "3.9.1/4.1.0+", "direction": "pin_only", "reason": "Metadata v0 legacy format; client starts at v1 (v0 rejected by builder)"},
     (3, 13): {"pin": "3.9.1", "direction": "client_only", "reason": "Metadata v13 adds top-level ErrorCode; Kafka 3.9.1 max is v12 (Kafka 4.0+ only, cases.json)"},
 
     # FindCoordinator (10)
-    (10, 0): {"pin": "all", "direction": "pin_only", "reason": "FindCoordinator v0 is legacy GroupCoordinator without key type; client speaks 1-6"},
 
     # AddPartitionsToTxn (24)
     (24, 4): {"pin": "all", "direction": "upstream_cap", "reason": "AddPartitionsToTxn v4 adds batched transactions; client capped at v3 (src/protocol/header.rs)"},
