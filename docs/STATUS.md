@@ -61,7 +61,8 @@ A pinned local baseline now records repeated codec, null-broker, native broker
 and open-loop latency measurements, with confidence intervals and throughput
 reruns. All five 80% latency profiles contain bounded-capacity rejections. The
 [baseline evidence](evidence/perf/baseline/README.md) retains those failures and
-the missing-cell list.
+the missing-cell list. The [publication inventory](evidence/perf/baseline-publication.json)
+identifies the raw files retained in the original workspace.
 
 Controlled x86_64/arm64 comparisons and independent peer reproduction remain open. Paired-run orchestration now has
 source-bound process tests and an isolated Kafka rehearsal. The miniz fallback gzip allocation

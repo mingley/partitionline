@@ -11205,7 +11205,8 @@
           "not_run_cells": 6,
           "reproducibility_within_declared_noise": true,
           "suite_hold": "active",
-          "miniz_default_budget_unchanged": true
+          "miniz_default_budget_unchanged": true,
+          "publication_inventory": "docs/evidence/perf/baseline-publication.json"
         }
       ],
       "qualification_notes": [
@@ -11223,7 +11224,8 @@
       "write_set": [
         "docs/evidence/perf/baseline/",
         "docs/plan/evidence/KL09-12.json",
-        "scripts/record-local-baseline.py"
+        "scripts/record-local-baseline.py",
+        "docs/evidence/perf/baseline-publication.json"
       ],
       "active_validation_toolchain": "latest stable Rust only"
     },
