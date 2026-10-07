@@ -108,7 +108,7 @@ def load_raw(oracle):
     import membership_raw
     return membership_raw
 
-def validate_settings(s, genesis):
+def validate_settings(s, genesis, direct_control=False):
     need(type(s) is dict, 'runtime settings missing')
     names = ('frame_bytes record_bytes chunk_bytes live_entries live_bytes operations wal_bytes '
              'fetch_bytes image_bytes image_records image_record_bytes image_payload_bytes '
@@ -132,7 +132,8 @@ def validate_settings(s, genesis):
          s['peer_mailbox_slots'] == 1 and s['dns_admissions'] == 0 and
          s['canonical_configuration_max_bytes'] == 135168 and s['task_bound'] == 2+p+inc and
          s['socket_bound_with_listener'] == 1+p+inc and
-         1 <= s['command_queue_capacity'] <= p+inc+clients+1,
+         ((s['command_queue_capacity'] in (1,16)) if direct_control else
+          (1 <= s['command_queue_capacity'] <= p+inc+clients+1)),
          'actual task/socket/channel/zero-DNS envelope')
     need(s['command_owner_bound'] == 2*s['command_queue_capacity']+1 and
          1 <= s['test_counter_fixed_bytes'] <= 1024, 'retained command/test-counter envelope')
@@ -157,7 +158,7 @@ def validate_settings(s, genesis):
                  'numeric immutable route zero-DNS')
 
 class Owner:
-    def __init__(self, root, raw, source_sha, overrides=None, json_overrides=None):
+    def __init__(self, root, raw, source_sha, overrides=None, json_overrides=None, direct_control=False):
         self.root, self.name = root, root.name
         f = root/'owner.jsonl'
         need(f.stat().st_size <= MAX_OWNER_BYTES, 'owner trace byte envelope')
@@ -178,7 +179,9 @@ class Owner:
         identity(self.local)
         self.genesis = raw.decode_configuration(bytes.fromhex(h['genesis_hex']))
         need(self.genesis['epoch'] == 0, 'owner genesis initial epoch')
-        validate_settings(h['runtime_settings'], self.genesis)
+        need(not direct_control or (root/'lifecycle-direct-owner-joined.json').is_file(),
+             'manual channel profile requires direct owner join receipt')
+        validate_settings(h['runtime_settings'], self.genesis, direct_control)
         self.settings = h['runtime_settings']
         self.lifecycle = []
         for stage in ['workers-owner-joined', 'supervisor-joined']:
@@ -344,7 +347,7 @@ WIRE_RE = re.compile(r'^wire-(\d+)-(\d+)-(\d+)-(request|response)-(\d+)\.bin$')
 HELLO_RE = re.compile(r'^hello-(\d+)-(\d+)-(\d+)\.bin$')
 
 class Packets:
-    def __init__(self, root, raw, overrides=None):
+    def __init__(self, root, raw, overrides=None, json_overrides=None):
         self.root, self.sessions, self.rows = root, {}, []
         self.profile = profile(root)
         files = sorted((root/'wire').glob('*.bin'))
@@ -374,6 +377,27 @@ class Packets:
                 self.group=group;sess['hello']=p;p['direction']='hello';p['ordinal']=-1
             else:
                 direction,ordinal=w.group(4),int(w.group(5));p.update(direction=direction,ordinal=ordinal)
+                receipt = f.with_name(f.name+'.forward.json')
+                need(receipt.is_file(), 'captured packet requires final forwarding receipt')
+                row = (json_overrides or {}).get(str(receipt.relative_to(root.parent)),json.loads(receipt.read_bytes()))
+                need(row is not None and row['schema_version']==2 and row['packet_file']==f.name and
+                     row['proxy_pid']==int(root.name.rsplit('-',2)[1]) and
+                     row['clock_basis']=='parent proxy process monotonic Instant epoch; not owner process clock' and
+                     row['source']==source and row['target']==target and row['connection']==connection and
+                     row['reply']==(direction=='response') and row['ordinal']==ordinal and
+                     row['kind']==d['kind'] and row['rpc']==d['rpc'] and
+                     integer(row['selected_delay_ms']) in (0,800), 'proxy receipt identity, clock and finite delay')
+                received = integer(row['received_ms'])
+                if row['disposition'] in ('forward-write-ok','forward-write-error'):
+                    start, finish = integer(row['forward_started_ms']), integer(row['forward_finished_ms'])
+                    need(received+row['selected_delay_ms']<=start<=finish and
+                         row['forward_write_ok'] is (row['disposition']=='forward-write-ok'),
+                         'proxy forwarding local order and write result')
+                else:
+                    need(row['disposition'] in ('partition-drop','shutdown-before-forward') and
+                         row['forward_started_ms'] is None and row['forward_finished_ms'] is None and
+                         row['forward_write_ok'] is None, 'unforwarded packet has no successful write')
+                p['forwarding']=row
                 need(ordinal not in sess[direction], 'session directional ordinal collision')
                 sess[direction][ordinal]=p
             self.rows.append(p)
@@ -686,8 +710,10 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
                 durable_only.append({'owner':d.name,'events':len(unit.events),'checkpoints':len(unit.checkpoints),
                                      'clock_epoch':unit.clock_epoch,'scope':'raw durable bytes and configured budgets only; no TCP consumption claim'})
         elif d.name.startswith('partitionline76-tcp-'):
-            groups.append(Packets(d,raw,packet_overrides))
+            groups.append(Packets(d,raw,packet_overrides,json_overrides))
     need(groups and owners,'actual TCP owners/proxy groups missing')
+    need(sorted((g.profile['nodes'],g.profile['genesis']) for g in groups)==
+         [(3,2),(3,3),(5,4),(5,5)], 'complete declared three/five fault and observer profile set')
     need(len(owners)<=64 and len(groups)<=8,'owner/group bound')
     summaries=[]
     for o in owners:
@@ -695,7 +721,7 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
         for key,count in summaries[-1]['counters'].items():statistics[key]+=count
     by_genesis=collections.defaultdict(list)
     for o in owners:by_genesis[o.genesis['canonical_hex']].append(o)
-    bindings=[]; observed_response_kinds=collections.Counter()
+    bindings=[]; observed_response_kinds=collections.Counter(); profile_summaries=[]
     for g in groups:
         oo=by_genesis[g.group['genesis']['canonical_hex']]
         need(len(g.group['genesis']['voters']) == g.profile['genesis'] and oo,'actual declared owner group missing')
@@ -744,6 +770,25 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
                 statistics['successful_owner_supervisor_joins']+=1
         actual_receipts={p.name for p in g.root.glob('*node-*-pid-*.json')}
         need(actual_receipts==expected_receipts,'complete process lifecycle receipt set')
+        forwarding=collections.Counter(p['forwarding']['disposition'] for p in g.rows if p['direction']!='hello')
+        delayed=sum(p['forwarding']['selected_delay_ms']>0 for p in g.rows if p['direction']!='hello')
+        if g.profile['nodes']==g.profile['genesis']:
+            need(delayed==1 and forwarding['partition-drop']>0,
+                 'fault profile requires real delayed response and partition-dropped packet reads')
+        else:
+            observer=configured_key(g.profile['nodes']-1,g.profile['nodes'])
+            observer_owners=[o for o in oo if o.local==observer]
+            need(observer_owners and any(len(o.states[0][0].operations)==1 and
+                                        not raw.contains(o.states[0][0].view,observer) for o in observer_owners) and
+                 any(raw.contains(o.states[-1][0].view,observer) for o in observer_owners),
+                 'configured observer becomes voter only through replayed membership')
+            need(any(sum(p['decoded']['kind']==32 for p in session['request'].values())>=2 and
+                     any(p['decoded']['kind']==34 for p in session['request'].values()) and
+                     any(p['decoded']['kind']==35 for p in session['response'].values())
+                     for (source,target,connection),session in g.sessions.items() if target==observer['id']),
+                 'observer profile completes real multichunk Finish/Finished stream')
+        profile_summaries.append(dict(case=g.root.name,topology=g.profile,owner_epochs=len(oo),
+                                      forwarding=dict(forwarding),delayed_packet_reads=delayed))
         sent=collections.defaultdict(list);received=collections.defaultdict(list);acks=collections.defaultdict(list)
         for o in oo:
             for n,(inp,out) in enumerate(o.decoded):
@@ -756,6 +801,10 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
         for p in g.rows:
             d=p['decoded'];kind=d['kind'];pid=p['id']
             if p['direction']=='response':observed_response_kinds[kind]+=1
+            if p['direction']!='hello':
+                statistics['proxy_'+p['forwarding']['disposition'].replace('-','_')]+=1
+                if p['forwarding']['selected_delay_ms']:
+                    statistics['actual_delayed_packet_reads']+=1
             forwarded[kind,d['body_sha256']].append(p)
             if kind in (1,2):continue
             direction=p['direction']; actor=p['source'] if direction=='request' else p['target']
@@ -781,7 +830,8 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
             for (ownerkey,kind,digest),entries in table.items():
                 for o,n,eid,x in entries:
                     candidates=[p for p in forwarded.get((kind,digest),[]) if p['direction']==direction and
-                                (p['target'] if direction=='request' else p['source'])==ownerkey[0]]
+                                (p['target'] if direction=='request' else p['source'])==ownerkey[0] and
+                                p['forwarding']['forward_write_ok'] is True]
                     need(candidates,'owner consumption lacks actual forwarded TCP response/request')
                     # Equal repeated bytes can be retried. The earliest source
                     # generation is unique; record the packet candidate set and
@@ -836,7 +886,7 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
     graph_receipt=graph.finish();after=audit_tree(root)
     need(before==after,'capture bytes/fullmodes changed during checking')
     source_inputs=[]
-    for p in (Path(__file__),Path(peer.__file__),oracle/'membership_raw.py',
+    for p in (Path(__file__),Path(peer.__file__),Path(__file__).with_name('profiles.json'),oracle/'membership_raw.py',
               oracle.parents[2]/'KL11-15/oracle/history/wal_oracle.py'):
         if p.is_file():
             source_inputs.append({'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
@@ -845,7 +895,7 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
             'passed':True,'captures':{'files':len(before),'bytes':sum(x['bytes'] for x in before.values()),
             'complete_sha256':hashlib.sha256(canonical(before).encode()).hexdigest(),
             'all_bytes_and_full_permission_modes_unchanged':True},'owners':summaries,'counters':dict(statistics),
-            'graph':graph_receipt,'observed_proxy_response_kinds':dict(observed_response_kinds),'response_consumption_bindings':bindings,'checker_inputs':source_inputs,
+            'graph':graph_receipt,'profiles':profile_summaries,'observed_proxy_response_kinds':dict(observed_response_kinds),'response_consumption_bindings':bindings,'checker_inputs':source_inputs,
             'excluded_owner_unit_traces':ignored,'durable_only_unit_owner_validation':durable_only,'limitations':[
                 'Finite captured histories; not an exhaustive consensus proof or Kafka native peer compatibility.',
                 'Typed owner trace inputs are not packets; only exact proxy packet bindings establish TCP consumption.',

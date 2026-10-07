@@ -62,7 +62,8 @@ def main():
         (args.out_dir/(name+'.json')).write_text(json.dumps(entry,indent=2,sort_keys=True)+'\n')
         print(json.dumps(entry),flush=True)
         assert entry['passed'],name
-    run('positive-original-actual-three-five',accepted=True)
+        return result if entry['accepted'] else None
+    positive = run('positive-original-actual-three-five',accepted=True)
     # Explicit clock epochs are local: shift an entire restarting process clock
     # into a disjoint numerical range. Equal local elapsed relationships remain
     # valid; no fabricated cross-PID comparison may reject that proof.
@@ -208,6 +209,18 @@ def main():
     document_mutation('negative-supervisor-transport-permit-leak',lifecycle,lambda row:row.update(available_transport_permits=row['available_transport_permits']-1))
     document_mutation('negative-supervisor-resource-current-leak',lifecycle,lambda row:row['resource_owners']['gauges'][2].update(current=1))
     run('negative-supervisor-lifecycle-receipt-absent',documents={str(lifecycle.relative_to(args.captures)):None})
+    binding=next(row for row in positive['response_consumption_bindings'] if row['kind']==21)
+    forwarded=args.captures/(binding['response']+'.forward.json')
+    document_mutation('negative-consumed-ACK-proxy-write-error',forwarded,lambda row:row.update(disposition='forward-write-error',forward_write_ok=False))
+    document_mutation('negative-consumed-ACK-proxy-partition-drop',forwarded,lambda row:row.update(disposition='partition-drop',forward_write_ok=None,forward_started_ms=None,forward_finished_ms=None))
+    document_mutation('negative-proxy-receipt-wrong-RPC',forwarded,lambda row:row.update(rpc=row['rpc']+100000))
+    document_mutation('negative-proxy-receipt-wrong-PID',forwarded,lambda row:row.update(proxy_pid=row['proxy_pid']+1))
+    document_mutation('negative-proxy-write-completes-before-start',forwarded,lambda row:row.update(forward_finished_ms=row['forward_started_ms']-1))
+    run('negative-proxy-forward-receipt-missing',documents={str(forwarded.relative_to(args.captures)):None})
+    delayed=next(path for path in args.captures.glob('partitionline76-tcp-*/wire/*.forward.json') if json.loads(path.read_bytes())['selected_delay_ms']==800)
+    document_mutation('negative-declared-delayed-packet-omitted',delayed,lambda row:row.update(selected_delay_ms=0))
+    document_mutation('negative-delayed-packet-forward-before-held-deadline',delayed,lambda row:row.update(forward_started_ms=row['received_ms']))
+    document_mutation('negative-undeclared-proxy-delay',delayed,lambda row:row.update(selected_delay_ms=801))
     assert original_audit==c.audit_tree(args.captures)
     after={}
     for name in initial:

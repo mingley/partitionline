@@ -21,7 +21,8 @@ def verify(root, source, oracle, owner_overrides=None, documents=None):
     counters = {}
     owners = []
     for path in sorted(root.glob('*/owner.jsonl')):
-        owner = c.Owner(path.parent, raw, source, (owner_overrides or {}).get(path.parent.name))
+        owner = c.Owner(path.parent, raw, source, (owner_overrides or {}).get(path.parent.name),
+                        direct_control=(path.parent/'lifecycle-direct-owner-joined.json').exists())
         proof = c.owner_proof(owner, raw, graph)
         for name, count in proof['counters'].items():
             counters[name] = counters.get(name, 0) + count
@@ -86,7 +87,7 @@ def main():
     spec = importlib.util.spec_from_file_location('producer_checker',Path(__file__).with_name('check-runtime-capture.py'))
     producer = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(producer)
-    binding = producer.verify_producer(args.producer_proof,args.captures,args.producer_command,args.source_sha)
+    binding, postguard = producer.verify_producer(args.producer_proof,args.captures,args.producer_command,args.source_sha)
     positive = verify(args.captures,args.source_sha,args.membership_oracle)
     controls = []
     def negative(name, owners=None, documents=None):
@@ -119,6 +120,9 @@ def main():
     mutant=copy.deepcopy(row);mutant['owner_joined']=False
     negative('direct-owner-thread-unjoined',documents={key:mutant})
     negative('direct-owner-join-receipt-missing',documents={key:None})
+    binding['independent_source_after'] = postguard()
+    c.need(binding['independent_source_before'] == binding['independent_source_after'],
+           'original immutable owner-control source changed')
     c.need(sources == audit_sources(), 'independent owner checker sources changed')
     result=dict(source_sha=args.source_sha,passed=True,producer=binding,positive=positive,negative_controls=controls,checker_sources=sources)
     (args.out_dir/'validation.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')

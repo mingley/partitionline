@@ -115,12 +115,22 @@ def main():
     a.add_argument('--source-sha',required=True);a.add_argument('--membership-oracle',type=Path,required=True)
     a.add_argument('--out',type=Path,required=True);args=a.parse_args()
     c.need(re.fullmatch('[0-9a-f]{40}',args.source_sha) and not args.out.exists(),'exact source/fresh output')
+    checker_paths = [Path(__file__),Path(c.__file__),Path(c.peer.__file__),Path(c.__file__).with_name('profiles.json'),
+                     args.membership_oracle/'membership_raw.py',
+                     args.membership_oracle.parents[2]/'KL11-15/oracle/history/wal_oracle.py']
+    def checker_guard():
+        return {str(p):{'sha256':hashlib.sha256(regular(p,MAX_PROOF_BYTES)).hexdigest(),
+                        'bytes':p.stat().st_size,'full_permission_mode':stat.S_IMODE(p.stat().st_mode)} for p in checker_paths}
+    checker_before=checker_guard()
     provenance,postguard=verify_producer(args.producer_proof,args.captures,args.producer_command,args.source_sha)
     result=c.verify(args.captures,args.source_sha,args.membership_oracle)
     provenance['independent_source_after']=postguard()
     c.need(provenance['independent_source_before']==provenance['independent_source_after'],'producer complete immutable source changed')
     result['actual_producer_provenance']=provenance
     result['actual_new_broker_or_Cargo_executions']=0
+    result['checker_sources_before']=checker_before
+    result['checker_sources_after']=checker_guard()
+    c.need(result['checker_sources_before']==result['checker_sources_after'],'independent checker sources changed')
     args.out.parent.mkdir(parents=True,exist_ok=True);args.out.write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
     print(json.dumps({'passed':True,'source':args.source_sha,'scope':provenance['scope'],'counters':result['counters'],'out':str(args.out)}))
 
