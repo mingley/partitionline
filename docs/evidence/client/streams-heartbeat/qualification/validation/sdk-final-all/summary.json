@@ -1,0 +1,33 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "public_Rust_calls": 45,
+      "actual_heartbeat_frames": 54,
+      "actual_GROUP_discovery_frames": 54,
+      "broker_execution": false,
+      "release": "4.1.2",
+      "builder_default": "accepted"
+    },
+    {
+      "public_Rust_calls": 45,
+      "actual_heartbeat_frames": 54,
+      "actual_GROUP_discovery_frames": 54,
+      "broker_execution": false,
+      "release": "4.2.1",
+      "builder_default": "accepted"
+    },
+    {
+      "public_Rust_calls": 45,
+      "actual_heartbeat_frames": 54,
+      "actual_GROUP_discovery_frames": 54,
+      "broker_execution": false,
+      "release": "4.3.1",
+      "builder_default": "accepted"
+    }
+  ],
+  "source_bound": true,
+  "all_processes_parent_waited": true,
+  "actual_sdk": true,
+  "scope": "Public Rust heartbeat against scripted GROUP peers; actual Apache builders/error factories/parsers. No broker or framework execution."
+}

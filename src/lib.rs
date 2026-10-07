@@ -3229,6 +3229,7 @@ pub use admin::{
     UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
     UPGRADE_TYPE_UPGRADE,
 };
+pub use admin::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
 pub use config::{
     Acks, AutoOffsetReset, Endpoint, IsolationLevel, ListenerName, Sasl, SecurityProtocol,
 };

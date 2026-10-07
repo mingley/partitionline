@@ -192,6 +192,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     80: [0],                 # AddRaftVoter: 0 (Admin::add_raft_voter)
     81: [0],                 # RemoveRaftVoter: 0 (Admin::remove_raft_voter)
     88: [0],                 # Caller-driven Streams heartbeat
+    89: [0],                 # Typed Streams group descriptions
     90: [0, 1],              # DescribeShareGroupOffsets: typed lag, legacy projection
     91: [0],                 # AlterShareGroupOffsets: 0
     92: [0],                 # DeleteShareGroupOffsets: 0
@@ -233,10 +234,7 @@ CLASSIFIED_OUT_OF_SCOPE_FRAMEWORKS: Dict[str, str] = {
 
 # Client APIs tracked as missing runtime wiring in features.json
 # (do not count a key name as an implemented client operation).
-CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {
-    89: {"name": "StreamsGroupDescribe", "feature_id": "streams.group_describe",
-         "reason": "Public Streams group description/client operation remains missing; Java framework exclusion does not cover API89"},
-}
+CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {}
 
 # Classified version gaps (known differences between pinned Apache validVersions and client spoken versions).
 # (api_key, version) -> reason
@@ -465,6 +463,7 @@ CLIENT_RUNTIME_FEATURES = {0: 'producer.send',
  80: 'full_admin.add_raft_voter',
  81: 'full_admin.remove_raft_voter',
  88: 'streams.group_heartbeat',
+ 89: 'streams.group_describe',
  90: 'full_admin.describe_share_group_offsets',
  91: 'full_admin.alter_share_group_offsets',
  92: 'full_admin.delete_share_group_offsets'}
@@ -1176,7 +1175,7 @@ def run_self_tests() -> int:
     res = evaluate_protocol_coverage()
     assert res["summary"]["exit_code"] == 0, "Frozen pins must exit 0"
     assert len(res["unclassified_drift"]) == 0, "Frozen pins must have 0 unclassified drift"
-    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 1, "Streams89 remains an actual missing runtime API"
+    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 0, "All cataloged client API keys have runtime wiring"
     assert res["gap_counts"]["excluded_broker_internal_apis"] == 20, "Public27/57 must not be wholly excluded"
     print("  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)")
 

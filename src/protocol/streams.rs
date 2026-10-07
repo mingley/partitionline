@@ -941,3 +941,48 @@ pub fn encode_streams_group_describe_response(
 ) -> Result<Vec<u8>> {
     encode(value, version, limits)
 }
+
+// Validate borrowed IDs before allocating the public Admin request model.
+pub(crate) fn validate_describe_ids(ids: &[&str], limits: Limits) -> Result<()> {
+    let mut writer = Writer::new(limits, None)?;
+    writer.budget.array::<String>(ids.len())?;
+    writer.varint(
+        u32::try_from(ids.len())
+            .ok()
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(|| Error::protocol("Streams group count overflow"))?,
+    )?;
+    for id in ids {
+        writer.string(id)?;
+    }
+    writer.byte(0)?;
+    writer.tags()
+}
+
+// Charge the owned group slots, not reference slots. In particular this checks
+// duplicate expansion before any topology/member/string clones are made.
+pub(crate) fn validate_described_groups(
+    groups: &[&DescribedStreamsGroup],
+    limits: Limits,
+) -> Result<()> {
+    let mut writer = Writer::new(limits, None)?;
+    writer.i32(&0)?;
+    writer.budget.array::<DescribedStreamsGroup>(groups.len())?;
+    writer.varint(
+        u32::try_from(groups.len())
+            .ok()
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(|| Error::protocol("Streams group count overflow"))?,
+    )?;
+    for group in groups {
+        group.write(&mut writer)?;
+    }
+    writer.tags()
+}
+
+impl DescribedStreamsGroup {
+    /// The protocol family of this description, distinct from Consumer/Share.
+    pub fn group_type(&self) -> &'static str {
+        "Streams"
+    }
+}

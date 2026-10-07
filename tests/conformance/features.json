@@ -2312,18 +2312,25 @@
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "current-public-api-088-v0-4-1-2",
+      "current-public-api-088-v0-4-2-1",
+      "current-public-api-088-v0-4-3-1"
+    ]
   },
   {
     "id": "streams.group_describe",
     "profile": "streams",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "tests/conformance/broker/api-matrix.json",
-    "notes": "Required public broker StreamsGroupDescribe89 v0;4.1.2 unstable and4.2.1/4.3.1 stable. Codec/client entrypoint remains missing; Java framework runtime exclusion does not cover this API.",
+    "disposition": "present",
+    "entrypoint": "partitionline::Admin::describe_streams_groups",
+    "evidence": "tests/streams_describe.rs",
+    "notes": "Explicit v0 opt-in, GROUP routing, actual per-connection negotiation, full typed fields, ordered duplicate results with distinct discovery/capability failures, bounded aggregate descriptions and one owned deadline. Public Java/Rust qualification tracked separately; no Streams framework or broker coordinator.",
     "backlog_tasks": [
       "KL05-31",
+      "KL05-33"
+    ],
+    "qualification_backlog_tasks": [
       "KL05-33"
     ]
   }

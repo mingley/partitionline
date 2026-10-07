@@ -76,8 +76,8 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(len(results["unclassified_drift"]), 0)
         self.assertEqual(results["summary"]["total_pinned_apis"], 93)
         self.assertEqual(results["summary"]["total_catalog_keys"], 93)
-        self.assertEqual(results["summary"]["implemented_client_apis_count"], 72)
-        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 1)
+        self.assertEqual(results["summary"]["implemented_client_apis_count"], 73)
+        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 0)
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 20)
         self.assertEqual(results["gap_counts"]["unclassified_drift"], 0)
 
@@ -139,7 +139,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
 
         # All cataloged client-facing admin keys now have runtime wiring.
         unimpl_keys = {ma["api_key"] for ma in results["missing_runtime_wiring"]["unimplemented_apis"]}
-        self.assertEqual(unimpl_keys, {89})
+        self.assertEqual(unimpl_keys, set())
 
     def test_synthetic_unclassified_api_fails_check(self):
         """
@@ -242,7 +242,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 2. Missing runtime wiring
         self.assertIn("missing_runtime_wiring", results)
         unimpl_apis = results["missing_runtime_wiring"]["unimplemented_apis"]
-        self.assertEqual(len(unimpl_apis), 1)
+        self.assertEqual(len(unimpl_apis), 0)
         for item in unimpl_apis:
             self.assertFalse(item["has_runtime_operation"])
             self.assertIn("StreamsGroup", item["name"])
@@ -504,7 +504,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         report = cpc.evaluate_protocol_coverage()
         self.assertEqual(report["summary"]["exit_code"], 0)
         self.assertFalse(report["full_current_protocol_complete"])
-        self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, {89})
+        self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, set())
         caps = {(r["api_key"], r["version"]) for r in report["version_gaps"] if r["direction"] == "upstream_cap"}
         self.assertTrue({(8, 10), (9, 10), (80, 1), (24, 4), (24, 5)} <= caps)
         self.assertNotIn((66, 2), caps)
@@ -529,6 +529,22 @@ class TestProtocolCoverageChecker(unittest.TestCase):
                 self.assertTrue(row["artifacts"])
                 for artifact in row["artifacts"]:
                     self.assertTrue((REPO_ROOT / artifact).is_file())
+            elif row["id"].startswith("current-public-api-088-"):
+                self.assertEqual(row["disposition"], "independent_pass")
+                self.assertEqual(row["qualification_scope"], "client_component_public_Streams_heartbeat_wire_and_error_factory")
+                for artifact in row["artifacts"]:
+                    self.assertTrue((REPO_ROOT / artifact).is_file())
+                qualification = json.loads((REPO_ROOT / row["evidence"]).read_text())
+                self.assertFalse(qualification["production_ready"])
+                self.assertFalse(qualification["performance_claims_valid"])
+                self.assertEqual(qualification["source_published_commit"], row["execution_source_commit"])
+                for artifact in row["artifacts"][1:]:
+                    result = json.loads((REPO_ROOT / artifact).read_text())
+                    self.assertTrue(result["source_bound"])
+                    self.assertTrue(result["actual_sdk"])
+                    release = next(r for r in result["results"] if r["release"] == row["peer_pin"])
+                    self.assertEqual((release["public_Rust_calls"], release["actual_heartbeat_frames"],
+                                      release["actual_GROUP_discovery_frames"]), (45, 54, 54))
             else:
                 self.assertIn(row["disposition"], ("not_run", "unsupported"))
                 self.assertNotIn("artifacts", row)
@@ -722,8 +738,8 @@ class TestConformanceBacklogModes(unittest.TestCase):
         self.assertEqual(backlog['summary']['exit_code'], 0)
         self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
         self.assertEqual(backlog['conformance_backlog']['required_cases'], 182)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 45)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 137)
+        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 48)
+        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 134)
         for mode in ('core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)

@@ -14,12 +14,12 @@ varies by API and version; see the [support matrix](support.md).
 Recent completed work includes producer startup retries, retained-buffer
 accounting, zstd encoding/decoding, cross-SDK codec checks, InitProducerId v6,
 reassignment options, WriteTxnMarkers v2, share-offset lag support, Streams v0
-codecs and all-broker
+codecs, caller-driven Streams heartbeats, typed group descriptions and all-broker
 transaction listings with transaction-ID pattern filters. Admin
 capability checks use actual Apache SDK frames and public Java calls. Their
 scripted peers do not implement broker transaction or share state.
 
-Current gaps include Streams heartbeat/description APIs, topic identities in
+Current gaps include topic identities in
 OffsetCommit/OffsetFetch v10, prepared transaction initialization. Fault recovery, session reauthentication and
 mixed-version behavior need further implementation or independent checks.
 
@@ -33,14 +33,14 @@ records the remaining work.
 
 ## Development checks
 
-Latest-stable Rust1.99.0 passed2,011 default-feature tests and2,023 all-feature
+Latest-stable Rust1.99.0 passed2,034 default-feature tests and2,046 all-feature
 tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
-tracing, zstd and combined-feature builds each compiled21 documentation examples.
+tracing, zstd and combined-feature builds each compiled23 documentation examples.
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has199 completed cards and141 open cards. The client
-conformance registry has45 independently qualified cases out of182 required
+The task registry has200 completed cards and140 open cards. The client
+conformance registry has48 independently qualified cases out of182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
 

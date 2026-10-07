@@ -130,7 +130,8 @@ offsets, endpoints and status fields. Heartbeats use GROUP coordinator discovery
 actual connection capabilities and one caller deadline, with explicit v0 opt-in.
 Three pinned Apache SDKs check selected public Rust socket histories and typed
 responses. This does not implement a Streams execution engine or broker
-coordinator. Public Streams group descriptions remain separate work.
+coordinator. Typed Admin descriptions retain every group/member/topology field,
+caller order and duplicates, with per-group discovery/capability failures.
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and
 `add_raft_voter` / `remove_raft_voter` Admin methods. Both membership operations

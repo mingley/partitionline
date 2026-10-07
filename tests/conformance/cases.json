@@ -3126,54 +3126,81 @@
       "api_family": "StreamsGroupHeartbeat",
       "api_version": 0,
       "profile": "group",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Actual pinned Apache builder/error factories and parsers verify full Streams v0 request/response fields and45 public Rust GROUP-routed calls per SDK in each feature build. Opt-in, bounded ownership, retries, epochs/null-empty and terminal error behavior are component checks against scripted peers; live broker membership or framework execution is not qualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-32"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-default/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-all/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Streams_heartbeat_wire_and_error_factory",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "execution_source_commit": "16b7a14d42e77e4541135182d80f0038e1784c5c"
     },
     {
       "id": "current-public-api-088-v0-4-2-1",
       "api_family": "StreamsGroupHeartbeat",
       "api_version": 0,
       "profile": "group",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Actual pinned Apache builder/error factories and parsers verify full Streams v0 request/response fields and45 public Rust GROUP-routed calls per SDK in each feature build. Opt-in, bounded ownership, retries, epochs/null-empty and terminal error behavior are component checks against scripted peers; live broker membership or framework execution is not qualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-32"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-default/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-all/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Streams_heartbeat_wire_and_error_factory",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "execution_source_commit": "16b7a14d42e77e4541135182d80f0038e1784c5c"
     },
     {
       "id": "current-public-api-088-v0-4-3-1",
       "api_family": "StreamsGroupHeartbeat",
       "api_version": 0,
       "profile": "group",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "unsupported",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public broker Streams API/client operation missing; Kafka4.1.2 marks v0 unstable, later current pins stable. Framework runtime exclusion is separate.",
+      "reason": "Actual pinned Apache builder/error factories and parsers verify full Streams v0 request/response fields and45 public Rust GROUP-routed calls per SDK in each feature build. Opt-in, bounded ownership, retries, epochs/null-empty and terminal error behavior are component checks against scripted peers; live broker membership or framework execution is not qualified.",
       "backlog_tasks": [
         "KL05-31",
         "KL05-32"
-      ]
+      ],
+      "evidence": "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+      "artifacts": [
+        "docs/evidence/client/streams-heartbeat/qualification/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-default/summary.json",
+        "docs/evidence/client/streams-heartbeat/qualification/validation/sdk-final-all/summary.json"
+      ],
+      "qualification_scope": "client_component_public_Streams_heartbeat_wire_and_error_factory",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "execution_source_commit": "16b7a14d42e77e4541135182d80f0038e1784c5c"
     },
     {
       "id": "current-public-api-089-v0-4-1-2",

@@ -10,6 +10,9 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+mod streams;
+pub use streams::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
+
 use bytes::{Bytes, BytesMut};
 
 use crate::cluster::Cluster;

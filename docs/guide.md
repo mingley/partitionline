@@ -877,6 +877,37 @@ and the RPC one total deadline. Cancellation discards its connections; a lost
 reply can still follow an accepted heartbeat. `close` closes the cached socket
 without sending a leave. This client does not run a Streams application.
 
+## Streams group descriptions
+
+`Admin::describe_streams_groups` returns groups in caller order, including
+repeated IDs. Each entry contains either the complete typed description or a
+discovery, connection or capability error. Broker response errors remain in
+`description.error_code`; topology, tasks, member offsets and endpoints are
+preserved. The operation uses GROUP coordinators and one total deadline.
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::{Admin, AdminConfig, DescribeStreamsGroupsOptions};
+let mut admin = Admin::new(AdminConfig::bootstrap(["127.0.0.1:9092"])).await?;
+let options = DescribeStreamsGroupsOptions {
+    allow_unstable: true,
+    include_authorized_operations: true,
+    ..Default::default()
+};
+for group in admin.describe_streams_groups(&["application"], &options).await? {
+    match group.description {
+        Ok(description) => println!("{}: {}", group.group_id, description.group_state),
+        Err(error) => eprintln!("{}: {}", group.group_id, error),
+    }
+}
+# Ok(())
+# }
+```
+
+The explicit opt-in is required because v0 alone does not identify whether a
+broker release treats the API as stable. This call observes groups without
+joining them or running their tasks.
+
 ## Integrity / benchmarks
 
 Unsigned Lab A integrity (produce → broker high-watermark == acked → fetch →

@@ -40,7 +40,9 @@ scratch, TLS and socket buffers add memory. See
 
 Codec interoperability checks are described in [the codec guide](zstd-spike.md).
 Schema adapter scope is described in [the companion guide](schema-companion.md).
-Streams, Connect and a drop-in librdkafka C ABI are outside this client's scope.
+Streams protocol codecs and caller-driven heartbeats are included. Streams and
+Connect execution engines and a drop-in librdkafka C ABI are outside this client's
+scope.
 
 [Benchmark results](benchmark.md) describe their tested workloads and hardware.
 Current comparative performance and broader client/server production
