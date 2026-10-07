@@ -1,0 +1,26 @@
+{
+  "scope": "Observed public metadata request failures; no cause inferred",
+  "requests": [
+    {
+      "url": "https://crates.io/api/v1/crates/libgssapi",
+      "curl_exit_code": 22,
+      "http_status": 403
+    },
+    {
+      "url": "https://crates.io/api/v1/crates/sspi",
+      "curl_exit_code": 22,
+      "http_status": 403
+    },
+    {
+      "url": "https://crates.io/api/v1/crates/rsasl",
+      "curl_exit_code": 22,
+      "http_status": 403
+    },
+    {
+      "url": "https://crates.io/api/v1/crates/picky-krb",
+      "curl_exit_code": 22,
+      "http_status": 403
+    }
+  ],
+  "resolution": "Fetch standard sparse-registry records and checksum-verified static registry archives through the inherited proxy; all six archive downloads completed0."
+}

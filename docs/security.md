@@ -21,7 +21,8 @@ miniz_oxide instead, which forbids `unsafe`; its gzip CRC-32 still comes from
 - **TLS:** `rustls` + `ring`. Custom CA PEM or Mozilla roots; optional mTLS.
 - **SASL:** PLAIN, SCRAM-SHA-256/512, OAUTHBEARER, OIDC token
   endpoint over HTTP(S) with rustls.
-- **Unfinished authentication:** GSSAPI / Kerberos.
+- **GSSAPI / Kerberos:** provider selection and runtime qualification are open.
+  The [proposed provider boundary](gssapi-boundary.md) awaits maintainer approval.
 
 Prefer SCRAM or OIDC over PLAIN. Prefer TLS (or SASL_SSL) on any network you
 do not fully control.

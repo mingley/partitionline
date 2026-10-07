@@ -1,0 +1,30 @@
+{
+  "status": "proposed-awaiting-maintainer-approval",
+  "scope": "Registry/source and installed-package review only",
+  "reviewed_options": 5,
+  "verified_archives": 6,
+  "unsafe_crate_source_change": false,
+  "cargo_changes": false,
+  "providers_installed": 0,
+  "providers_compiled": 0,
+  "providers_executed": 0,
+  "kdc_oracles": 0,
+  "toolchain_policy": "latest stable Rust only",
+  "proposed_backend": {
+    "crate": "libgssapi",
+    "version": "0.11.0",
+    "default_features": false,
+    "sys_version": "0.3.4",
+    "initial_target": "x86_64 Linux / MIT Kerberos",
+    "execution": "one serial security context per owned helper process"
+  },
+  "remaining": [
+    "Actual maintainer approval",
+    "Complete dependency/system license and build graph",
+    "Latest stable compile",
+    "Owned isolated KDC and authentic Java client/server interoperability",
+    "Credential/session lifecycle and process/resource closure qualification",
+    "Authentication/reconnect overhead measurement",
+    "Separate platform profiles"
+  ]
+}

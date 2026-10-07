@@ -1,0 +1,434 @@
+[
+  {
+    "archive": "cross-krb5-0.5.0.crate",
+    "path": "cross-krb5-0.5.0/Cargo.toml.orig",
+    "line": 15,
+    "text": "\n[features]\ndefault = [\"iov\"]\niov = [\"libgssapi/iov\"]\n\n[target.'cfg(unix)'.dependencies.libgssapi]\nversion = \"0.11.0\"\npath = \"../libgssapi/libgssapi\"\ndefault-features = false"
+  },
+  {
+    "archive": "cross-krb5-0.5.0.crate",
+    "path": "cross-krb5-0.5.0/Cargo.toml.orig",
+    "line": 21,
+    "text": "version = \"0.11.0\"\npath = \"../libgssapi/libgssapi\"\ndefault-features = false\n\n[target.'cfg(windows)'.dependencies.windows]\nversion = \"0.62\"\nfeatures = [\n    \"Win32_Foundation\",\n    \"Win32_Globalization\","
+  },
+  {
+    "archive": "cross-krb5-0.5.0.crate",
+    "path": "cross-krb5-0.5.0/src/lib.rs",
+    "line": 340,
+    "text": "    }\n\n    pub fn new_with_cred(\n        flags: InitiateFlags,\n        cred: Cred,\n        target_principal: &str,\n        channel_bindings: Option<&[u8]>\n    ) -> Result<(PendingClientCtx, impl Deref<Target=[u8]>)> {\n        let (pending, token) ="
+  },
+  {
+    "archive": "cross-krb5-0.5.0.crate",
+    "path": "cross-krb5-0.5.0/src/lib.rs",
+    "line": 455,
+    "text": "    }\n\n    pub fn new_with_cred(\n        flags: AcceptFlags,\n        cred: Cred,\n        channel_bindings: Option<&[u8]>,\n    ) -> Result<PendingServerCtx> {\n        Ok(PendingServerCtx(ServerCtxImpl::new_with_cred(\n            flags,"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 54,
+    "text": "}\n\nunsafe fn wrap(ctx: gss_ctx_id_t, encrypt: bool, msg: &[u8]) -> Result<Buf, Error> {\n    let mut minor = GSS_S_COMPLETE;\n    let mut msg = BufRef::from(msg);\n    let mut enc_msg = Buf::empty();\n    let major = unsafe {\n        gss_wrap(\n            &mut minor as *mut OM_uint32,"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 135,
+    "text": "}\n\nunsafe fn unwrap(ctx: gss_ctx_id_t, msg: &[u8]) -> Result<Buf, Error> {\n    let mut minor = GSS_S_COMPLETE;\n    let mut msg = BufRef::from(msg);\n    let mut out = Buf::empty();\n    let major = unsafe {\n        gss_unwrap(\n            &mut minor as *mut OM_uint32,"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 439,
+    "text": "    /// message. In any case the other side can always verify message\n    /// integrity.\n    fn wrap(&mut self, encrypt: bool, msg: &[u8]) -> Result<Buf, Error>;\n\n    /** From the MIT kerberos documentation,\n\n    > Sign and optionally encrypt a sequence of buffers. The buffers\n    > shall be ordered HEADER | DATA | PADDING | TRAILER. Suitable\n    > space for the header, padding and trailer should be provided"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 500,
+    "text": "    /// Unwrap a wrapped message, checking it's integrity and\n    /// decrypting it if necessary.\n    fn unwrap(&mut self, msg: &[u8]) -> Result<Buf, Error>;\n\n    /// Compute a MIC (message integrity code) over `msg`. The returned\n    /// buffer is the bare MIC token, suitable for use as an RPCSEC_GSS\n    /// verifier (RFC 2203 \u00a75.3.3).\n    fn get_mic(&mut self, msg: &[u8]) -> Result<Buf, Error>;\n"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 588,
+    "text": "// Callers who need to share a context across threads should wrap it in\n// `Mutex<ServerCtx>`.\nunsafe impl Send for ServerCtx {}\n\nimpl ServerCtx {\n    /// Create a new uninitialized server context with the specified\n    /// credentials. You must then call `step` until the context is\n    /// fully initialized. The mechanism is not specified because it\n    /// is dictated by the client."
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 611,
+    "text": "    /// return a token that needs to be sent to the client and fed to\n    /// `ClientCtx::step`.\n    pub fn step(\n        &mut self,\n        tok: &[u8],\n        channel_bindings: Option<&[u8]>,\n    ) -> Result<Option<Buf>, Error> {\n        #[inline]\n        fn empty_buffer() -> gss_buffer_desc {"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 710,
+    "text": "\nimpl SecurityContext for ServerCtx {\n    fn wrap(&mut self, encrypt: bool, msg: &[u8]) -> Result<Buf, Error> {\n        unsafe { wrap(self.ctx, encrypt, msg) }\n    }\n\n    #[cfg(feature = \"iov\")]\n    fn wrap_iov(&mut self, encrypt: bool, msg: &mut [GssIov]) -> Result<(), Error> {\n        unsafe { wrap_iov(self.ctx, encrypt, msg) }"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 728,
+    "text": "    }\n\n    fn unwrap(&mut self, msg: &[u8]) -> Result<Buf, Error> {\n        unsafe { unwrap(self.ctx, msg) }\n    }\n\n    #[cfg(feature = \"iov\")]\n    fn unwrap_iov(&mut self, msg: &mut [GssIov]) -> Result<(), Error> {\n        unsafe { unwrap_iov(self.ctx, msg) }"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 813,
+    "text": "\n// See the note on `ServerCtx`'s Send impl. Same reasoning here.\nunsafe impl Send for ClientCtx {}\n\nimpl ClientCtx {\n    /// Create a new uninitialized client security context using the\n    /// specified credentials, targeting the service named by target,\n    /// and optionally using a specific mechanism (otherwise gssapi\n    /// will pick a default for you). To finish initializing the"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 848,
+    "text": "    /// number of times until step returns `Ok(None)`. At that point\n    /// the context is fully initialized.\n    pub fn step(\n        &mut self,\n        tok: Option<&[u8]>,\n        channel_bindings: Option<&[u8]>,\n    ) -> Result<Option<Buf>, Error> {\n        #[inline]\n        fn empty_buffer() -> gss_buffer_desc {"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 934,
+    "text": "\nimpl SecurityContext for ClientCtx {\n    fn wrap(&mut self, encrypt: bool, msg: &[u8]) -> Result<Buf, Error> {\n        unsafe { wrap(self.ctx, encrypt, msg) }\n    }\n\n    #[cfg(feature = \"iov\")]\n    fn wrap_iov(&mut self, encrypt: bool, msg: &mut [GssIov]) -> Result<(), Error> {\n        unsafe { wrap_iov(self.ctx, encrypt, msg) }"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/context.rs",
+    "line": 952,
+    "text": "    }\n\n    fn unwrap(&mut self, msg: &[u8]) -> Result<Buf, Error> {\n        unsafe { unwrap(self.ctx, msg) }\n    }\n\n    #[cfg(feature = \"iov\")]\n    fn unwrap_iov(&mut self, msg: &mut [GssIov]) -> Result<(), Error> {\n        unsafe { unwrap_iov(self.ctx, msg) }"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/credential.rs",
+    "line": 126,
+    "text": "    /// of `usage`, and for use with `desired_mechs` or the default\n    /// mechanism.\n    pub fn acquire(\n        name: Option<&Name>,\n        time_req: Option<Duration>,\n        usage: CredUsage,\n        desired_mechs: Option<&OidSet>,\n    ) -> Result<Cred, Error> {\n        let time_req = time_req"
+  },
+  {
+    "archive": "libgssapi-0.11.0.crate",
+    "path": "libgssapi-0.11.0/src/credential.rs",
+    "line": 458,
+    "text": "\n    /// Return the lifetime of this credential\n    pub fn lifetime(&self) -> Result<Duration, Error> {\n        unsafe {\n            let c = self.info_c(CredInfoC {\n                lifetime: Some(0),\n                ..CredInfoC::empty()\n            })?;\n            Ok(Duration::from_secs(c.lifetime.unwrap() as u64))"
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/Cargo.toml.orig",
+    "line": 14,
+    "text": "keywords = [\"gssapi\", \"sspi\", \"kerberos\", \"krb5\", \"authentication\"]\ncategories = [\"api-bindings\", \"authentication\", \"cryptography\", \"os::unix-apis\"]\nlinks = \"gssapi_krb5\"\n\n[build-dependencies]\nbindgen = \"0.71\"\npkg-config = \"0.3\""
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/Cargo.toml.orig",
+    "line": 17,
+    "text": "\n[build-dependencies]\nbindgen = \"0.71\"\npkg-config = \"0.3\""
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/Cargo.toml.orig",
+    "line": 18,
+    "text": "[build-dependencies]\nbindgen = \"0.71\"\npkg-config = \"0.3\""
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/build.rs",
+    "line": 111,
+    "text": "}\n\n/// `LIBGSSAPI_IMPL` forces the implementation, overriding autodetection.\n/// Useful on machines that have both MIT and Heimdal installed, where the\n/// probe order would otherwise decide for you.\nfn forced_impl() -> Option<Gssapi> {\n    let val = env::var(\"LIBGSSAPI_IMPL\").ok()?;\n    match val.trim().to_ascii_lowercase().as_str() {\n        \"\" => None,"
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/build.rs",
+    "line": 115,
+    "text": "/// probe order would otherwise decide for you.\nfn forced_impl() -> Option<Gssapi> {\n    let val = env::var(\"LIBGSSAPI_IMPL\").ok()?;\n    match val.trim().to_ascii_lowercase().as_str() {\n        \"\" => None,\n        \"mit\" => Some(Gssapi::Mit),\n        \"heimdal\" => Some(Gssapi::Heimdal),\n        \"apple\" => Some(Gssapi::Apple),\n        other => panic!("
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/build.rs",
+    "line": 122,
+    "text": "        \"apple\" => Some(Gssapi::Apple),\n        other => panic!(\n            \"LIBGSSAPI_IMPL must be one of \\\"mit\\\", \\\"heimdal\\\", \\\"apple\\\"; got {:?}\",\n            other\n        ),\n    }\n}\n\n/// Select a forced impl. Prefer that impl's pkg-config (for include paths"
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/build.rs",
+    "line": 194,
+    "text": "    }\n    panic!(\n        \"no MIT or Heimdal gssapi library found. Set LIBGSSAPI_IMPL (\\\"mit\\\" or \\\n         \\\"heimdal\\\") to pick an implementation, and/or LIBGSSAPI_PREFIX to the \\\n         install prefix(es) to search, colon-separated - headers are expected \\\n         under <prefix>/include and libraries under <prefix>/lib.\"\n    );\n}\n"
+  },
+  {
+    "archive": "libgssapi-sys-0.3.4.crate",
+    "path": "libgssapi-sys-0.3.4/build.rs",
+    "line": 204,
+    "text": "    // Emitting any rerun-if instruction disables Cargo's default\n    // whole-package change detection, so we must name every input here.\n    println!(\"cargo:rerun-if-env-changed=LIBGSSAPI_IMPL\");\n    println!(\"cargo:rerun-if-env-changed=LIBGSSAPI_PREFIX\");\n    println!(\"cargo:rerun-if-changed=build.rs\");\n    println!(\"cargo:rerun-if-changed=src/consts.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_mit.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_heimdal.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_apple.h\");"
+  },
+  {
+    "archive": "picky-krb-0.13.0.crate",
+    "path": "picky-krb-0.13.0/Cargo.toml.orig",
+    "line": 9,
+    "text": "keywords = [\"kerberos\", \"asn1\", \"parse\"]\ncategories = [\"encoding\"]\ndescription = \"Encode/decode Kerberos ASN.1 DER structs\"\nlicense = \"MIT OR Apache-2.0\"\nrepository = \"https://github.com/Devolutions/picky-rs\"\nreadme = \"README.md\"\ninclude = [\"src/**/*\", \"README.md\", \"CHANGELOG.md\", \"LICENSE-*\"]\n\n[dependencies]"
+  },
+  {
+    "archive": "picky-krb-0.13.0.crate",
+    "path": "picky-krb-0.13.0/Cargo.toml.orig",
+    "line": 10,
+    "text": "categories = [\"encoding\"]\ndescription = \"Encode/decode Kerberos ASN.1 DER structs\"\nlicense = \"MIT OR Apache-2.0\"\nrepository = \"https://github.com/Devolutions/picky-rs\"\nreadme = \"README.md\"\ninclude = [\"src/**/*\", \"README.md\", \"CHANGELOG.md\", \"LICENSE-*\"]\n\n[dependencies]\npicky-asn1 = { version = \"0.10\", path = \"../picky-asn1\" }"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/Cargo.toml.orig",
+    "line": 70,
+    "text": "\n## Enable the KerberosV5 mechanism `GSSAPI`\ngssapi = [\"std\", \"dep:libgssapi\", \"dep:bitflags\"]\n\n#! # Provider flags\n#! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing\n#! network protocols\n\n## Enable provider mode"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/Cargo.toml.orig",
+    "line": 119,
+    "text": "document-features = { version = \"0.2.10\", optional = true }\nhmac = { version = \"0.12.1\", optional = true, features = [\"reset\"] }\nlibgssapi = { version = \"0.7.2\", optional = true, default-features = false }\nlinkme = { version = \"0.3.31\", optional = true, default-features = false }\npbkdf2 = { version = \"0.12.2\", optional = true, default-features = false }\nrand = { version = \"0.8.5\", optional = true }\nsha1 = { version = \"0.10.6\", optional = true }\nsha2 = { version = \"0.10.8\", optional = true }\nstringprep = { version = \"0.1.5\", optional = true, default-features = false }"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/client.rs",
+    "line": 127,
+    "text": "            GssapiState::Last(mut ctx, acceptable) => {\n                let input = input.ok_or(SessionError::InputDataRequired)?;\n                let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;\n                if unwrapped.len() != 4 {\n                    Err(Error::BadFinalToken)?;\n                }\n\n                let supported_sec =\n                    SecurityLayer::from_bits(unwrapped[0]).ok_or(Error::BadFinalToken)?;"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/client.rs",
+    "line": 158,
+    "text": "                };\n\n                let wrapped = ctx.wrap(false, &response).map_err(Error::Gss)?;\n                writer.write_all(&wrapped)?;\n                self.state = GssapiState::Completed(wrap.map(|e| (ctx, e)));\n                Ok(State::Finished(MessageSent::Yes))\n            }\n            GssapiState::Completed(..) | GssapiState::Errored => Err(SessionError::MechanismDone),\n        }"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/client.rs",
+    "line": 181,
+    "text": "        match self.state {\n            GssapiState::Completed(Some((ref mut ctx, _))) => {\n                let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;\n                writer.write_all(&unwrapped)?;\n                Ok(input.len())\n            }\n            _ => Err(SessionError::NoSecurityLayer),\n        }\n    }"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/server.rs",
+    "line": 110,
+    "text": "                    [supported.bits(), 0x00, 0x00, 0x00]\n                };\n                let wrapped = ctx.wrap(false, &out_bytes).map_err(Error::Gss)?;\n                writer.write_all(&wrapped)?;\n                self.state = GssapiState::Final(ctx, supported);\n                Ok(State::Running)\n            }\n            GssapiState::Final(mut ctx, supported) => {\n                let input = input.ok_or(SessionError::InputDataRequired)?;"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/server.rs",
+    "line": 117,
+    "text": "            GssapiState::Final(mut ctx, supported) => {\n                let input = input.ok_or(SessionError::InputDataRequired)?;\n                let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;\n                if unwrapped.len() != 4 {\n                    Err(Error::BadFinalToken)?;\n                }\n                let selected =\n                    SecurityLayer::from_bits(unwrapped[0]).ok_or(Error::BadFinalToken)?;\n"
+  },
+  {
+    "archive": "rsasl-2.3.1.crate",
+    "path": "rsasl-2.3.1/src/mechanisms/gssapi/server.rs",
+    "line": 164,
+    "text": "        match self.state {\n            GssapiState::Done(Some((ref mut ctx, _))) => {\n                let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;\n                writer.write_all(&unwrapped)?;\n                Ok(input.len())\n            }\n            _ => Err(SessionError::NoSecurityLayer),\n        }\n    }"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/mod.rs",
+    "line": 20,
+    "text": "use crate::crypto::compute_sha256;\nuse crate::generator::{\n    Generator, GeneratorAcceptSecurityContext, GeneratorChangePassword, GeneratorInitSecurityContext, NetworkRequest,\n    YieldPointLocal,\n};\nuse crate::kerberos::{self, Kerberos};\nuse crate::ntlm::{self, Ntlm, NtlmConfig, SIGNATURE_SIZE};\nuse crate::pku2u::{self, Pku2u, Pku2uConfig};\nuse crate::{"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/mod.rs",
+    "line": 816,
+    "text": "\n    #[instrument(ret, level = \"debug\", fields(security_package = self.package_name()), skip_all)]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> crate::Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |mut yield_point| async move {\n            self.accept_security_context_impl(&mut yield_point, builder).await\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/mod.rs",
+    "line": 828,
+    "text": "        &'ctx mut self,\n        builder: &'b mut FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> crate::Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g,\n    {\n        Ok(Generator::new(move |mut yield_point| async move {\n            self.initialize_security_context_impl(&mut yield_point, builder).await"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/mod.rs",
+    "line": 884,
+    "text": "    }\n\n    pub(crate) async fn accept_security_context_impl(\n        &mut self,\n        yield_point: &mut YieldPointLocal,\n        builder: FilledAcceptSecurityContext<'a, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> crate::Result<AcceptSecurityContextResult> {\n        match self {\n            SspiContext::Ntlm(ntlm) => {"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+    "line": 18,
+    "text": "use crate::credssp::sspi_cred_ssp::tls_connection::{DecryptionResult, DecryptionResultBuffers};\nuse crate::generator::{\n    GeneratorAcceptSecurityContext, GeneratorChangePassword, GeneratorInitSecurityContext, YieldPointLocal,\n};\nuse crate::{\n    AcquireCredentialsHandleResult, BufferType, CertContext, CertEncodingType, CertTrustErrorStatus,\n    CertTrustInfoStatus, CertTrustStatus, ClientRequestFlags, ClientResponseFlags, ConnectionInfo, ContextNames,\n    ContextSizes, CredentialUse, Credentials, CredentialsBuffers, DataRepresentation, DecryptionFlags, EncryptionFlags,\n    Error, ErrorKind, InitializeSecurityContextResult, PACKAGE_ID_NONE, PackageCapabilities, PackageInfo, Result,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+    "line": 358,
+    "text": "        &'ctx mut self,\n        builder: &'b mut builders::FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            self.initialize_security_context_impl(&mut yield_point, builder).await"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+    "line": 363,
+    "text": "        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            self.initialize_security_context_impl(&mut yield_point, builder).await\n        }))\n    }\n\n    #[instrument(level = \"debug\", ret, fields(state = ?self.state), skip(self, builder))]\n    fn accept_security_context_impl<'a>("
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+    "line": 369,
+    "text": "\n    #[instrument(level = \"debug\", ret, fields(state = ?self.state), skip(self, builder))]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: builders::FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |mut yield_point| async move {\n            self.accept_security_context_impl(&mut yield_point, builder).await\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+    "line": 380,
+    "text": "\nimpl SspiCredSsp {\n    pub(crate) async fn accept_security_context_impl(\n        &mut self,\n        _yield_point: &mut YieldPointLocal,\n        _builder: builders::FilledAcceptSecurityContext<'_, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> Result<crate::AcceptSecurityContextResult> {\n        Err(Error::new(\n            ErrorKind::UnsupportedFunction,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/generator.rs",
+    "line": 195,
+    "text": "}\n\npub type GeneratorInitSecurityContext<'a> =\n    Generator<'a, NetworkRequest, crate::Result<Vec<u8>>, crate::Result<InitializeSecurityContextResult>>;\n\npub type GeneratorAcceptSecurityContext<'a> =\n    Generator<'a, NetworkRequest, crate::Result<Vec<u8>>, crate::Result<AcceptSecurityContextResult>>;\n\npub type GeneratorChangePassword<'a> = Generator<'a, NetworkRequest, crate::Result<Vec<u8>>, crate::Result<()>>;"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 34,
+    "text": "use crate::builders::ChangePassword;\nuse crate::generator::{\n    GeneratorAcceptSecurityContext, GeneratorChangePassword, GeneratorInitSecurityContext, NetworkRequest,\n    YieldPointLocal,\n};\nuse crate::network_client::NetworkProtocol;\n#[cfg(feature = \"scard\")]\nuse crate::pk_init::DhParameters;\nuse crate::utils::{extract_encrypted_data, get_encryption_key, save_decrypted_data};"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 109,
+    "text": "\nimpl Kerberos {\n    pub fn new_client_from_config(config: KerberosConfig) -> Result<Self> {\n        let kdc_url = config.kdc_url.clone();\n        let mut rand = StdRng::try_from_rng(&mut SysRng)?;\n\n        Ok(Self {\n            state: KerberosState::TgtExchange,\n            config,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 131,
+    "text": "    }\n\n    pub fn new_server_from_config(config: KerberosConfig, server_properties: ServerProperties) -> Result<Self> {\n        let kdc_url = config.kdc_url.clone();\n        let mut rand = StdRng::try_from_rng(&mut SysRng)?;\n\n        Ok(Self {\n            state: KerberosState::TgtExchange,\n            config,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 466,
+    "text": "                Error::new(\n                    ErrorKind::UnsupportedFunction,\n                    \"integrity-only WRAP tokens are only supported for AES cipher suites\",\n                )\n            })?;\n            return decrypt_integrity_only_wrap(&wrap_token, key.as_ref(), &aes_size, key_usage, message);\n        }\n\n        let mut checksum = wrap_token.checksum;"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 707,
+    "text": "\n    #[instrument(level = \"debug\", ret, fields(state = ?self.state), skip(self, builder))]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: crate::builders::FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |mut yield_point| async move {\n            self.accept_security_context_impl(&mut yield_point, builder).await\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 719,
+    "text": "        &'ctx mut self,\n        builder: &'b mut crate::builders::FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'b,\n        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            self.initialize_security_context_impl(&mut yield_point, builder).await"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 724,
+    "text": "        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            self.initialize_security_context_impl(&mut yield_point, builder).await\n        }))\n    }\n}\n\nimpl<'a> Kerberos {"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/kerberos/mod.rs",
+    "line": 740,
+    "text": "    }\n\n    pub(crate) async fn accept_security_context_impl(\n        &'a mut self,\n        yield_point: &mut YieldPointLocal,\n        builder: crate::builders::FilledAcceptSecurityContext<'a, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> Result<AcceptSecurityContextResult> {\n        accept_security_context(self, yield_point, builder).await\n    }"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/lib.rs",
+    "line": 90,
+    "text": "use credssp::sspi_cred_ssp;\npub use generator::NetworkRequest;\nuse generator::{GeneratorAcceptSecurityContext, GeneratorChangePassword, GeneratorInitSecurityContext};\npub use network_client::NetworkProtocol;\nuse num_derive::{FromPrimitive, ToPrimitive};\nuse picky_asn1::restricted_string::CharSetError;\nuse picky_asn1_der::Asn1DerError;\nuse picky_asn1_x509::Certificate;\nuse picky_krb::gss_api::GssApiMessageError;"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/lib.rs",
+    "line": 1283,
+    "text": "        &'ctx mut self,\n        builder: &'b mut FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g;\n\n    fn accept_security_context_impl<'a>(\n        &'a mut self,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/lib.rs",
+    "line": 1288,
+    "text": "        'b: 'g;\n\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> Result<GeneratorAcceptSecurityContext<'a>>;\n}\n\nmod private {"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/negotiate/mod.rs",
+    "line": 19,
+    "text": "use crate::builders::{EmptyAcceptSecurityContext, FilledAcceptSecurityContext, FilledInitializeSecurityContext};\nuse crate::generator::{\n    GeneratorAcceptSecurityContext, GeneratorChangePassword, GeneratorInitSecurityContext, YieldPointLocal,\n};\nuse crate::kdc::detect_kdc_url;\nuse crate::kerberos::client::principal::{get_client_principal_name, get_client_principal_realm};\nuse crate::ntlm::NtlmConfig;\n#[allow(unused)]\nuse crate::utils::is_azure_ad_domain;"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/negotiate/mod.rs",
+    "line": 603,
+    "text": "\nimpl<'a> Negotiate {\n    pub(crate) async fn accept_security_context_impl(\n        &'a mut self,\n        yield_point: &mut YieldPointLocal,\n        builder: FilledAcceptSecurityContext<'a, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> Result<AcceptSecurityContextResult> {\n        server::accept_security_context(self, yield_point, builder).await\n    }"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/negotiate/mod.rs",
+    "line": 855,
+    "text": "\n    #[instrument(ret, level = \"debug\", fields(protocol = self.protocol.protocol_name()), skip_all)]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |mut yield_point| async move {\n            server::accept_security_context(self, &mut yield_point, builder).await\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/negotiate/mod.rs",
+    "line": 867,
+    "text": "        &'ctx mut self,\n        builder: &'b mut FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            client::initialize_security_context(self, &mut yield_point, builder).await"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/negotiate/mod.rs",
+    "line": 872,
+    "text": "        'b: 'g,\n    {\n        Ok(GeneratorInitSecurityContext::new(move |mut yield_point| async move {\n            client::initialize_security_context(self, &mut yield_point, builder).await\n        }))\n    }\n}\n\nimpl<'a> Negotiate {"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/ntlm/mod.rs",
+    "line": 19,
+    "text": "use super::channel_bindings::ChannelBindings;\nuse crate::crypto::{HASH_SIZE, Rc4, compute_hmac_md5};\nuse crate::generator::{GeneratorAcceptSecurityContext, GeneratorInitSecurityContext};\nuse crate::utils::{extract_encrypted_data, save_decrypted_data};\nuse crate::{\n    AcceptSecurityContextResult, AcquireCredentialsHandleResult, AuthIdentity, AuthIdentityBuffers, BufferType,\n    CertTrustStatus, ClientRequestFlags, ClientResponseFlags, ContextNames, ContextSizes, CredentialUse,\n    DecryptionFlags, EncryptionFlags, Error, ErrorKind, FilledAcceptSecurityContext, FilledAcquireCredentialsHandle,\n    FilledInitializeSecurityContext, InitializeSecurityContextResult, PACKAGE_ID_NONE, PackageCapabilities,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/ntlm/mod.rs",
+    "line": 300,
+    "text": "\n    #[instrument(level = \"debug\", ret, fields(state = ?self.state), skip(self, builder))]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> crate::Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |_yield_point| async move {\n            self.accept_security_context_impl(builder)\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/ntlm/mod.rs",
+    "line": 313,
+    "text": "        &'ctx mut self,\n        builder: &'b mut FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> crate::Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g,\n    {\n        Ok(self.initialize_security_context_impl(builder).into())\n    }"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/ntlm/mod.rs",
+    "line": 323,
+    "text": "\nimpl Ntlm {\n    pub(crate) fn accept_security_context_impl(\n        &mut self,\n        builder: FilledAcceptSecurityContext<'_, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> crate::Result<AcceptSecurityContextResult> {\n        let input = builder\n            .input\n            .ok_or_else(|| Error::new(ErrorKind::InvalidToken, \"Input buffers must be specified\"))?;"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 42,
+    "text": "use crate::builders::{ChangePassword, FilledAcceptSecurityContext};\nuse crate::channel_bindings::ChannelBindings;\nuse crate::generator::{GeneratorAcceptSecurityContext, GeneratorInitSecurityContext, YieldPointLocal};\nuse crate::kerberos::client::extractors::{\n    decrypt_ap_rep, extract_seq_number_from_ap_rep, extract_sub_session_key_from_ap_rep,\n};\nuse crate::kerberos::client::generators::{\n    ChecksumOptions, ChecksumValues, EncKey, GenerateAsReqOptions, GenerateAuthenticatorOptions, generate_ap_req,\n    generate_as_req, generate_as_req_kdc_body, generate_nonce,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 155,
+    "text": "\nimpl Pku2u {\n    pub fn new_server_from_config(config: Pku2uConfig) -> Result<Self> {\n        let mut rng = StdRng::try_from_rng(&mut SysRng)?;\n        let mut negoex_random = [0; RANDOM_ARRAY_SIZE];\n        rng.fill_bytes(&mut negoex_random);\n\n        Ok(Self {\n            mode: Pku2uMode::Server,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 190,
+    "text": "    }\n\n    pub fn new_client_from_config(config: Pku2uConfig) -> Result<Self> {\n        let mut rand = StdRng::try_from_rng(&mut SysRng)?;\n        let mut negoex_random = [0; RANDOM_ARRAY_SIZE];\n        rand.fill_bytes(&mut negoex_random);\n\n        Ok(Self {\n            mode: Pku2uMode::Client,"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 1007,
+    "text": "\n    #[instrument(level = \"debug\", ret, fields(state = ?self.state), skip(self, builder))]\n    fn accept_security_context_impl<'a>(\n        &'a mut self,\n        builder: FilledAcceptSecurityContext<'a, Self::CredentialsHandle>,\n    ) -> Result<GeneratorAcceptSecurityContext<'a>> {\n        Ok(GeneratorAcceptSecurityContext::new(move |mut yield_point| async move {\n            self.accept_security_context_impl(&mut yield_point, builder).await\n        }))"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 1019,
+    "text": "        &'ctx mut self,\n        builder: &'b mut crate::builders::FilledInitializeSecurityContext<'ctx, 'ctx, Self::CredentialsHandle>,\n    ) -> Result<GeneratorInitSecurityContext<'g>>\n    where\n        'ctx: 'g,\n        'b: 'g,\n    {\n        Ok(self.initialize_security_context_impl(builder).into())\n    }"
+  },
+  {
+    "archive": "sspi-0.23.0.crate",
+    "path": "sspi-0.23.0/src/pku2u/mod.rs",
+    "line": 1029,
+    "text": "\nimpl Pku2u {\n    pub(crate) async fn accept_security_context_impl(\n        &mut self,\n        yield_point: &mut YieldPointLocal,\n        builder: FilledAcceptSecurityContext<'_, <Self as SspiImpl>::CredentialsHandle>,\n    ) -> Result<AcceptSecurityContextResult> {\n        server::accept_security_context(self, yield_point, builder).await\n    }"
+  }
+]

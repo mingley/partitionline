@@ -1,0 +1,160 @@
+[
+  {
+    "name": "libgssapi-sys",
+    "version": "0.3.4",
+    "archive_sha256": "5103ac4557eacd36ff678b654b943f8966d3db9688fbd180a0b4c5464759ce17",
+    "members": [
+      {
+        "path": "libgssapi-sys-0.3.4/.cargo_vcs_info.json",
+        "sha256": "9a7386e8f2a3b9cc2011765bbfc432468a92b16d7850ab1ac9828f7cc1be3f84",
+        "bytes": 107
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/.gitignore",
+        "sha256": "2ebe6cb6f5289849dce5a8a6cdd77e06b1385302c862982f8e181c4782d19214",
+        "bytes": 19
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/Cargo.lock",
+        "sha256": "f36c75be2ac816d10dba3068be517c694bfd1bd1c67c9fb4d8f12b4b6682a5e7",
+        "bytes": 7985
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/Cargo.toml",
+        "sha256": "0bd657a2b00e8eafd04074d593d87cfda9c6d277fd8baf9c49f196e886a68a10",
+        "bytes": 1295
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/Cargo.toml.orig",
+        "sha256": "a6ffae71f847676e96c79ff7bcf544453dbe3d2d9b407a616a4ced9bbdefb1ca",
+        "bytes": 575
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/README.md",
+        "sha256": "d88c2819335b7afb16adf8bc2ff3a91fcbe656c945a98204eef5a0d797bf2cf0",
+        "bytes": 5260
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/build.rs",
+        "sha256": "508e419d25feccd063d8af761c60bb041118b5c3ae982c574b0bf9b2c2d18974",
+        "bytes": 8644
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/src/consts.h",
+        "sha256": "5c549c4af426ea288508aa4e0d7b1b9063b9fbda5483fefe406d3a34958cc2fd",
+        "bytes": 1916
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/src/lib.rs",
+        "sha256": "1f0c51a1d8af588a150ad38fd44b70b6214058747b52b0dd1c8317ea9ce19d32",
+        "bytes": 145
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/src/wrapper_apple.h",
+        "sha256": "add3c80269a56fab0f56aa7b5dbe411717447868b1d6c25b129ac266cb61e1c2",
+        "bytes": 158
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/src/wrapper_heimdal.h",
+        "sha256": "e7ffd759b6e92267b04c1b8780b1c04f054068f0f32b86c2a9c3832b750e268c",
+        "bytes": 40
+      },
+      {
+        "path": "libgssapi-sys-0.3.4/src/wrapper_mit.h",
+        "sha256": "280163487e3ff2766edfbfdc138a249ff06c1a6b7ecc997e262d48af509c1a45",
+        "bytes": 71
+      }
+    ],
+    "metadata": {
+      "libgssapi-sys-0.3.4/Cargo.toml.orig": "[package]\nname = \"libgssapi-sys\"\nversion = \"0.3.4\"\nauthors = [\"Eric Stokes <letaris@gmail.com>\"]\nedition = \"2018\"\nlicense = \"MIT\"\ndescription = \"A low level binding to gssapi\"\nreadme = \"../README.md\"\nhomepage = \"https://github.com/estokes/libgssapi\"\ndocumentation = \"https://docs.rs/libgssapi\"\nrepository = \"https://github.com/estokes/libgssapi\"\nkeywords = [\"gssapi\", \"sspi\", \"kerberos\", \"krb5\", \"authentication\"]\ncategories = [\"api-bindings\", \"authentication\", \"cryptography\", \"os::unix-apis\"]\nlinks = \"gssapi_krb5\"\n\n[build-dependencies]\nbindgen = \"0.71\"\npkg-config = \"0.3\"\n",
+      "libgssapi-sys-0.3.4/README.md": "# libgssapi\n\nA safe MIT licensed binding to gssapi\n\nsee [rfc2744](https://tools.ietf.org/html/rfc2744.html) for more info\n\ngssapi is a huge and complex beast that is also very old (like [Computer Chronicles](https://youtu.be/wpXnqBfgvPM?list=PLR6RS8PTcoXT4g8SgQEww7QMe8Vtv5LKe) old). The Kerberos 5 mech is covered by an integration test suite (`tests/test.sh`) that runs the same in-process-KDC handshake and credential tests against all three supported implementations: MIT natively, Heimdal in a podman container, and the Apple GSS framework natively on macOS.\n\nFor a simpler cross platform interface to Kerberos 5 see [cross-krb5](https://crates.io/crates/cross-krb5).\n\n### Features\n\n**The default is empty.** None of the optional features build on every\nimplementation, so the only honest cross-platform default is no features \u2014\neach feature does exactly what it says, and enabling one the linked\nimplementation can't provide is a compile error, not a silent no-op. `all`\nenables everything (MIT only).\n\n- `iov` \u2014 `wrap_iov`/`unwrap_iov` and the `GssIov` types. **MIT + Heimdal**\n  (Apple's GSS framework has no `gss_wrap_iov`).\n- `localname` \u2014 `Name::local_name` (POSIX local-name mapping). **MIT +\n  Heimdal** (Apple has no `gss_localname`).\n- `store` \u2014 `Cred::store` (store into the default ccache). **MIT +\n  Heimdal** (Apple has no `gss_store_cred`).\n- `s4u` \u2014 Kerberos S4U constrained delegation (`Cred::impersonate`,\n  `Cred::store_into`, impersonator lookup). **MIT only** \u2014 Heimdal and Apple\n  implement neither `gss_acquire_cred_impersonate_name` nor\n  `gss_store_cred_into`.\n\nTo enable a feature only where it's available, select it in a\ntarget-specific dependency table rather than unconditionally:\n\n```toml\n[target.'cfg(not(target_os = \"macos\"))'.dependencies]\nlibgssapi = { version = \"0.10\", features = [\"iov\", \"localname\", \"store\"] }\n```\n\n### Build configuration\n\nThe build finds gssapi via `pkg-config` (preferring MIT over Heimdal),\nfalling back to searching standard library directories. Two env vars\noverride this:\n\n- `LIBGSSAPI_IMPL` = `mit` | `heimdal` | `apple` \u2014 force the\n  implementation. Handy when both MIT and Heimdal are installed.\n- `LIBGSSAPI_PREFIX` = colon-separated install prefixes \u2014 for installs\n  pkg-config can't find. Each prefix adds `<prefix>/include` to the\n  header search and `<prefix>/lib` to the library search.\n\n### Example KRB5 Mutual Authentication Between Client and Server\n\nThis is the `krb5` example verbatim (`libgssapi/examples/krb5.rs`); run it\nwith `cargo run --example krb5 -- nfs@host.example.com`. See the comment at\nthe top of that file for how to set up the Kerberos environment it needs.\n\n```rust\nuse std::env::args;\nuse libgssapi::{\n    name::Name,\n    credential::{Cred, CredUsage},\n    error::Error,\n    context::{CtxFlags, ClientCtx, ServerCtx, SecurityContext},\n    util::Buf,\n    oid::{OidSet, GSS_NT_HOSTBASED_SERVICE, GSS_MECH_KRB5},\n};\n\nfn setup_server_ctx(\n    service_name: &[u8],\n    desired_mechs: &OidSet\n) -> Result<(ServerCtx, Name), Error> {\n    println!(\"import name\");\n    let name = Name::new(service_name, Some(GSS_NT_HOSTBASED_SERVICE))?;\n    let cname = name.canonicalize(Some(GSS_MECH_KRB5))?;\n    println!(\"canonicalize name for kerberos 5\");\n    println!(\"server name: {}, server cname: {}\", name, cname);\n    let server_cred = Cred::acquire(\n        Some(&cname), None, CredUsage::Accept, Some(desired_mechs)\n    )?;\n    println!(\"acquired server credentials: {:#?}\", server_cred.info()?);\n    Ok((ServerCtx::new(Some(server_cred)), cname))\n}\n\nfn setup_client_ctx(\n    service_name: Name,\n    desired_mechs: &OidSet\n) -> Result<ClientCtx, Error> {\n    let client_cred = Cred::acquire(\n        None, None, CredUsage::Initiate, Some(&desired_mechs)\n    )?;\n    println!(\"acquired default client credentials: {:#?}\", client_cred.info()?);\n    Ok(ClientCtx::new(\n        Some(client_cred), service_name, CtxFlags::GSS_C_MUTUAL_FLAG, Some(GSS_MECH_KRB5)\n    ))\n}\n\nfn run(service_name: &[u8]) -> Result<(), Error> {\n    let desired_mechs = OidSet::singleton(GSS_MECH_KRB5)?;\n    let (mut server_ctx, cname) = setup_server_ctx(service_name, &desired_mechs)?;\n    let mut client_ctx = setup_client_ctx(cname, &desired_mechs)?;\n    let mut server_tok: Option<Buf> = None;\n    loop {\n        match client_ctx.step(server_tok.as_ref().map(|b| &**b), None)? {\n            None => break,\n            Some(client_tok) => match server_ctx.step(&*client_tok)? {\n                None => break,\n                Some(tok) => { server_tok = Some(tok); }\n            }\n        }\n    }\n    println!(\"security context initialized successfully\");\n    println!(\"client ctx info: {:#?}\", client_ctx.info()?);\n    println!(\"server ctx info: {:#?}\", server_ctx.info()?);\n    let secret_msg = client_ctx.wrap(true, b\"super secret message\")?;\n    let decoded_msg = server_ctx.unwrap(&*secret_msg)?;\n    println!(\"the decrypted message is: '{}'\", String::from_utf8_lossy(&*decoded_msg));\n    Ok(())\n}\n\nfn main() {\n    let args = args().collect::<Vec<_>>();\n    if args.len() != 2 {\n        println!(\"usage: {}: <service@host>\", args[0]);\n    } else {\n        match run(&args[1].as_bytes()) {\n            Ok(()) => (),\n            Err(e) => println!(\"{}\", e),\n        }\n    }\n}\n```\n",
+      "libgssapi-sys-0.3.4/build.rs": "use std::{\n    env, fs,\n    path::{Path, PathBuf},\n    process::Command,\n};\n\nconst APPLE_FRAMEWORKS: &str =\n    \"-F/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks\";\n\n#[derive(Clone, Copy)]\nenum Gssapi {\n    Mit,\n    Heimdal,\n    Apple,\n}\n\nfn emit_link_line(imp: &Gssapi) {\n    match imp {\n        Gssapi::Mit => println!(\"cargo:rustc-link-lib=gssapi_krb5\"),\n        Gssapi::Heimdal => println!(\"cargo:rustc-link-lib=gssapi\"),\n        Gssapi::Apple => println!(\"cargo:rustc-link-lib=framework=GSS\"),\n    }\n}\n\n/// Install prefixes from `LIBGSSAPI_PREFIX` (colon-separated). Each prefix\n/// contributes `<prefix>/include` to bindgen and `<prefix>/lib` to the\n/// linker and the library search below.\nfn user_prefixes() -> Vec<PathBuf> {\n    match env::var(\"LIBGSSAPI_PREFIX\") {\n        Err(_) => Vec::new(),\n        Ok(s) => s\n            .split(':')\n            .filter(|p| !p.is_empty())\n            .map(PathBuf::from)\n            .collect(),\n    }\n}\n\nfn krb5_config_prefix() -> Option<PathBuf> {\n    Command::new(\"krb5-config\")\n        .arg(\"gssapi\")\n        .arg(\"--prefix\")\n        .output()\n        .ok()\n        .and_then(|o| String::from_utf8(o.stdout).ok())\n        .map(|s| PathBuf::from(s.trim()))\n        .filter(|p| !p.as_os_str().is_empty())\n}\n\n/// Non-recursive check for a `lib<stem>.so*` in `dir`. `stem` is matched\n/// exactly so that `libgssapi` does not also match `libgssapi_krb5` (the\n/// remainder after the stem must begin with `.so`).\nfn dir_has_lib(dir: &Path, stem: &str) -> bool {\n    let entries = match fs::read_dir(dir) {\n        Ok(e) => e,\n        Err(_) => return false,\n    };\n    entries.flatten().any(|entry| {\n        match entry.file_name().to_string_lossy().strip_prefix(stem) {\n            Some(rest) => rest.starts_with(\".so\"),\n            None => false,\n        }\n    })\n}\n\nfn builder_from_pkgconfig(lib: pkg_config::Library) -> bindgen::Builder {\n    bindgen::Builder::default().clang_args(\n        lib.include_paths\n            .iter()\n            .map(|path| format!(\"-I{}\", path.to_string_lossy())),\n    )\n}\n\n/// Builder for the cases where pkg-config didn't supply include paths\n/// (library search, cross compile, or a forced impl with no `.pc`). Adds\n/// `<prefix>/include` for each `LIBGSSAPI_PREFIX` entry, forwards Nix's\n/// cflags so headers in the Nix store are found, and the macOS framework\n/// search path for the Apple GSS framework.\nfn searched_builder(imp: &Gssapi) -> bindgen::Builder {\n    let builder = bindgen::Builder::default();\n    match imp {\n        Gssapi::Mit | Gssapi::Heimdal => {\n            let builder = user_prefixes().iter().fold(builder, |b, p| {\n                b.clang_arg(format!(\"-I{}\", p.join(\"include\").display()))\n            });\n            match env::var(\"NIX_CFLAGS_COMPILE\") {\n                Err(_) => builder,\n                Ok(flags) => builder.clang_args(flags.split(\" \")),\n            }\n        }\n        Gssapi::Apple => builder.clang_arg(APPLE_FRAMEWORKS),\n    }\n}\n\nfn emit_user_prefix_link_search() {\n    for p in user_prefixes() {\n        println!(\"cargo:rustc-link-search=native={}\", p.join(\"lib\").display());\n    }\n}\n\nfn try_pkgconfig() -> Result<(Gssapi, bindgen::Builder), pkg_config::Error> {\n    match pkg_config::probe_library(\"mit-krb5-gssapi\") {\n        Ok(lib) => Ok((Gssapi::Mit, builder_from_pkgconfig(lib))),\n        Err(_) => match pkg_config::probe_library(\"heimdal-gssapi\") {\n            Ok(lib) => Ok((Gssapi::Heimdal, builder_from_pkgconfig(lib))),\n            Err(lib) => Err(lib),\n        },\n    }\n}\n\n/// `LIBGSSAPI_IMPL` forces the implementation, overriding autodetection.\n/// Useful on machines that have both MIT and Heimdal installed, where the\n/// probe order would otherwise decide for you.\nfn forced_impl() -> Option<Gssapi> {\n    let val = env::var(\"LIBGSSAPI_IMPL\").ok()?;\n    match val.trim().to_ascii_lowercase().as_str() {\n        \"\" => None,\n        \"mit\" => Some(Gssapi::Mit),\n        \"heimdal\" => Some(Gssapi::Heimdal),\n        \"apple\" => Some(Gssapi::Apple),\n        other => panic!(\n            \"LIBGSSAPI_IMPL must be one of \\\"mit\\\", \\\"heimdal\\\", \\\"apple\\\"; got {:?}\",\n            other\n        ),\n    }\n}\n\n/// Select a forced impl. Prefer that impl's pkg-config (for include paths\n/// and the link directives it emits); fall back to emitting the link line\n/// ourselves with a bare/prefix/Nix/framework builder when pkg-config can't\n/// be used (cross compile, or no `.pc` for the chosen impl).\nfn select_forced(imp: Gssapi, cross_compile: bool) -> (Gssapi, bindgen::Builder) {\n    let pc = match imp {\n        Gssapi::Mit => Some(\"mit-krb5-gssapi\"),\n        Gssapi::Heimdal => Some(\"heimdal-gssapi\"),\n        Gssapi::Apple => None,\n    };\n    if !cross_compile {\n        if let Some(pc) = pc {\n            if let Ok(lib) = pkg_config::probe_library(pc) {\n                return (imp, builder_from_pkgconfig(lib));\n            }\n        }\n    }\n    emit_link_line(&imp);\n    emit_user_prefix_link_search();\n    (imp, searched_builder(&imp))\n}\n\n/// Autodetect MIT vs Heimdal by looking for the library, when pkg-config is\n/// unavailable. Searches `<prefix>/lib` for each `LIBGSSAPI_PREFIX` entry,\n/// the `krb5-config --prefix` lib dir, `LD_LIBRARY_PATH`, and the usual\n/// system lib dirs (non-recursively). When a match is found its directory\n/// is added to the linker search path.\nfn which() -> Gssapi {\n    let target_os = env::var(\"CARGO_CFG_TARGET_OS\").unwrap();\n    let target_family = env::var(\"CARGO_CFG_TARGET_FAMILY\").unwrap();\n\n    if target_os == \"macos\" {\n        emit_link_line(&Gssapi::Apple);\n        return Gssapi::Apple;\n    } else if target_os == \"windows\" {\n        panic!(\"use SSPI on windows\")\n    } else if target_family != \"unix\" {\n        panic!(\"libgssapi isn't ported to this platform yet\")\n    }\n\n    emit_user_prefix_link_search();\n    let mut lib_dirs: Vec<PathBuf> = Vec::new();\n    for p in user_prefixes() {\n        lib_dirs.push(p.join(\"lib\"));\n    }\n    if let Some(p) = krb5_config_prefix() {\n        lib_dirs.push(p.join(\"lib\"));\n    }\n    if let Ok(ldpath) = env::var(\"LD_LIBRARY_PATH\") {\n        lib_dirs.extend(ldpath.split(':').filter(|d| !d.is_empty()).map(PathBuf::from));\n    }\n    lib_dirs.extend([\"/lib\", \"/lib64\", \"/usr/lib\", \"/usr/lib64\"].map(PathBuf::from));\n\n    for dir in &lib_dirs {\n        if dir_has_lib(dir, \"libgssapi_krb5\") {\n            println!(\"cargo:rustc-link-search=native={}\", dir.display());\n            emit_link_line(&Gssapi::Mit);\n            return Gssapi::Mit;\n        }\n        if dir_has_lib(dir, \"libgssapi\") {\n            println!(\"cargo:rustc-link-search=native={}\", dir.display());\n            emit_link_line(&Gssapi::Heimdal);\n            return Gssapi::Heimdal;\n        }\n    }\n    panic!(\n        \"no MIT or Heimdal gssapi library found. Set LIBGSSAPI_IMPL (\\\"mit\\\" or \\\n         \\\"heimdal\\\") to pick an implementation, and/or LIBGSSAPI_PREFIX to the \\\n         install prefix(es) to search, colon-separated - headers are expected \\\n         under <prefix>/include and libraries under <prefix>/lib.\"\n    );\n}\n\nfn main() {\n    // Emitting any rerun-if instruction disables Cargo's default\n    // whole-package change detection, so we must name every input here.\n    println!(\"cargo:rerun-if-env-changed=LIBGSSAPI_IMPL\");\n    println!(\"cargo:rerun-if-env-changed=LIBGSSAPI_PREFIX\");\n    println!(\"cargo:rerun-if-changed=build.rs\");\n    println!(\"cargo:rerun-if-changed=src/consts.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_mit.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_heimdal.h\");\n    println!(\"cargo:rerun-if-changed=src/wrapper_apple.h\");\n\n    let cross_compile = env::var(\"HOST\").unwrap() != env::var(\"TARGET\").unwrap();\n\n    let (imp, builder) = match forced_impl() {\n        Some(imp) => select_forced(imp, cross_compile),\n        None => match (cross_compile, try_pkgconfig()) {\n            (false, Ok((imp, builder))) => (imp, builder),\n            _ => {\n                let imp = which();\n                (imp, searched_builder(&imp))\n            }\n        },\n    };\n    let bindings = builder\n        .allowlist_type(\"(OM_.+|gss_.+)\")\n        .allowlist_var(\"_?GSS_.+|gss_.+\")\n        .allowlist_function(\"gss_.*\")\n        .header(match imp {\n            Gssapi::Mit => \"src/wrapper_mit.h\",\n            Gssapi::Heimdal => \"src/wrapper_heimdal.h\",\n            Gssapi::Apple => \"src/wrapper_apple.h\",\n        })\n        .generate()\n        .expect(\"failed to generate gssapi bindings\");\n    let out_path = PathBuf::from(env::var(\"OUT_DIR\").unwrap());\n    bindings\n        .write_to_file(out_path.join(\"bindings.rs\"))\n        .expect(\"failed to write bindings\")\n}\n"
+    }
+  },
+  {
+    "name": "cross-krb5",
+    "version": "0.5.0",
+    "archive_sha256": "4d426da4c3f9df62d4dac801df95d980a8ba8c4b4f95d02b9b607dab079d6768",
+    "members": [
+      {
+        "path": "cross-krb5-0.5.0/.cargo_vcs_info.json",
+        "sha256": "39dd8e920f6c9ee1128134831bde8908096f194b67e14207e55529a95d9ae94d",
+        "bytes": 94
+      },
+      {
+        "path": "cross-krb5-0.5.0/.github/FUNDING.yml",
+        "sha256": "ea01f310eac4d135458617232a8a7a819ac8b49f3b09368a24fa220717fe0964",
+        "bytes": 929
+      },
+      {
+        "path": "cross-krb5-0.5.0/.gitignore",
+        "sha256": "c51cad6cd4021366f2351c5672bf1d021ee076d633efd917343f4324b127aaed",
+        "bytes": 1056
+      },
+      {
+        "path": "cross-krb5-0.5.0/CHANGELOG",
+        "sha256": "5966c8866567ec16c3dfa4887b14cc2f8ee32213ef923861f048166c96bd55a3",
+        "bytes": 4427
+      },
+      {
+        "path": "cross-krb5-0.5.0/CLAUDE.md",
+        "sha256": "768ef169f96e9e8df2b37e080d72a247363f0416756e3f1025b1270678102b1f",
+        "bytes": 5397
+      },
+      {
+        "path": "cross-krb5-0.5.0/Cargo.lock",
+        "sha256": "a0d9382bcf3bfd3dd0a9704237ec0bb5131cb52f79d25d5a5aa987db8bf6a783",
+        "bytes": 11676
+      },
+      {
+        "path": "cross-krb5-0.5.0/Cargo.toml",
+        "sha256": "11213da4a5ecfd948cf8de43666ad31cb2678ca9c908ffe9cb5fa3ab3b762275",
+        "bytes": 1751
+      },
+      {
+        "path": "cross-krb5-0.5.0/Cargo.toml.orig",
+        "sha256": "43a7ae8f865ac88829a7e732c360320accf2cfdedf6cae80cab9ca9f483a0b3f",
+        "bytes": 977
+      },
+      {
+        "path": "cross-krb5-0.5.0/README.md",
+        "sha256": "fe251d8926b9d9b6947a63a732645b59a64e105f6e4e9e6cb432b9b32e5b32f1",
+        "bytes": 3339
+      },
+      {
+        "path": "cross-krb5-0.5.0/examples/auth.rs",
+        "sha256": "8a7393ac3016baf03e5b62097fcacaf06de862c4b17818a794ddc04333522c71",
+        "bytes": 3573
+      },
+      {
+        "path": "cross-krb5-0.5.0/examples/cred.rs",
+        "sha256": "dde24fc9c589d6c5672e864f514c086fea719265b689357e6d017aee0803b83b",
+        "bytes": 295
+      },
+      {
+        "path": "cross-krb5-0.5.0/rustfmt.toml",
+        "sha256": "1a4f6e4728114b2a5df63c73308eb3cb8a69f0a7924c07515126fc008320bccd",
+        "bytes": 1713
+      },
+      {
+        "path": "cross-krb5-0.5.0/src/lib.rs",
+        "sha256": "d995a1bfb17dd66a11a1f239fcd528efa5bdbdf23abf1736f5def513b2851abb",
+        "bytes": 18563
+      },
+      {
+        "path": "cross-krb5-0.5.0/src/unix.rs",
+        "sha256": "6db3c886e51cb396098b42d520fdfb9ef4843114a5c955aab4d1a516b96d8bb7",
+        "bytes": 12878
+      },
+      {
+        "path": "cross-krb5-0.5.0/src/windows.rs",
+        "sha256": "67785700b750a9765694897ac1e1fcb73ff7e36d37491623d819894d9b860866",
+        "bytes": 30097
+      }
+    ],
+    "metadata": {
+      "cross-krb5-0.5.0/Cargo.toml.orig": "[package]\nname = \"cross-krb5\"\nauthors = [\"Eric Stokes <letaris@gmail.com>\"]\nversion = \"0.5.0\"\nedition = \"2021\"\nlicense = \"MIT\"\ndescription = \"Safe cross platform Kerberos v5 interface\"\nrepository = \"https://github.com/estokes/cross-krb5\"\ndocumentation = \"https://docs.rs/cross-krb5\"\nreadme = \"README.md\"\nkeywords = [\"kerberos\", \"krb5\", \"gssapi\", \"sspi\", \"authentication\"]\ncategories = [\"cryptography\"]\n\n[features]\ndefault = [\"iov\"]\niov = [\"libgssapi/iov\"]\n\n[target.'cfg(unix)'.dependencies.libgssapi]\nversion = \"0.11.0\"\npath = \"../libgssapi/libgssapi\"\ndefault-features = false\n\n[target.'cfg(windows)'.dependencies.windows]\nversion = \"0.62\"\nfeatures = [\n    \"Win32_Foundation\",\n    \"Win32_Globalization\",\n    \"Win32_Security_Authentication_Identity\",\n    \"Win32_Security_Credentials\",\n    \"Win32_System_Diagnostics_Debug\",\n    \"Win32_System_SystemInformation\",\n    \"Win32_System_SystemServices\",\n    \"Win32_System_Time\"\n]\n\n[dependencies]\nanyhow = \"1\"\nbytes = \"1\"\nbitflags = \"2\"\n",
+      "cross-krb5-0.5.0/README.md": "# Cross Platform Kerberos 5 Interface\n\ncross-krb5 is a safe interface for Kerberos 5 services on Windows\nand Unix. It provides most of the flexibility of using gssapi and\nsspi directly with a unified cross platform api.\n\nAs well as providing a uniform API, services using cross-krb5\nshould interoperate across all the supported OSes transparently,\nand should interoperate with other services assuming they are not\nplatform specific.\n\n# Example\n```rust\nuse bytes::Bytes;\nuse cross_krb5::{AcceptFlags, ClientCtx, InitiateFlags, K5Ctx, Step, ServerCtx};\nuse std::{env::args, process::exit, sync::mpsc, thread};\n\nenum Msg {\n    Token(Bytes),\n    Msg(Bytes),\n}\n\nfn server(spn: String, input: mpsc::Receiver<Msg>, output: mpsc::Sender<Msg>) {\n    let mut server = ServerCtx::new(AcceptFlags::empty(), Some(&spn), None).expect(\"new\");\n    let mut server = loop {\n        let token = match input.recv().expect(\"expected data\") {\n            Msg::Msg(_) => panic!(\"server not finished initializing\"),\n            Msg::Token(t) => t,\n        };\n        match server.step(&*token).expect(\"step\") {\n            Step::Finished((ctx, token)) => {\n                if let Some(token) = token {\n                    output.send(Msg::Token(Bytes::copy_from_slice(&*token))).expect(\"send\");\n                }\n                break ctx\n            },\n            Step::Continue((ctx, token)) => {\n                output.send(Msg::Token(Bytes::copy_from_slice(&*token))).expect(\"send\");\n                server = ctx;\n            }\n        }\n    };\n    match input.recv().expect(\"expected data msg\") {\n        Msg::Token(_) => panic!(\"unexpected extra token\"),\n        Msg::Msg(secret_msg) => println!(\n            \"{}\",\n            String::from_utf8_lossy(&server.unwrap(&*secret_msg).expect(\"unwrap\"))\n        ),\n    }\n}\n\nfn client(spn: &str, input: mpsc::Receiver<Msg>, output: mpsc::Sender<Msg>) {\n    let (mut client, token) =\n        ClientCtx::new(InitiateFlags::empty(), None, spn, None).expect(\"new\");\n    output.send(Msg::Token(Bytes::copy_from_slice(&*token))).expect(\"send\");\n    let mut client = loop {\n        let token = match input.recv().expect(\"expected data\") {\n            Msg::Msg(_) => panic!(\"client not finished initializing\"),\n            Msg::Token(t) => t,\n        };\n        match client.step(&*token).expect(\"step\") {\n            Step::Finished((ctx, token)) => {\n                if let Some(token) = token {\n                    output.send(Msg::Token(Bytes::copy_from_slice(&*token))).expect(\"send\");\n                }\n                break ctx\n            },\n            Step::Continue((ctx, token)) => {\n                output.send(Msg::Token(Bytes::copy_from_slice(&*token))).expect(\"send\");\n                client = ctx;\n            }\n        }\n    };\n    let msg = client.wrap(true, b\"super secret message\").expect(\"wrap\");\n    output.send(Msg::Msg(Bytes::copy_from_slice(&*msg))).expect(\"send\");\n}\n\nfn main() {\n    let args = args().collect::<Vec<_>>();\n    if args.len() != 2 {\n        println!(\"usage: {}: <service/host@REALM>\", args[0]);\n        exit(1);\n    }\n    let spn = String::from(&args[1]);\n    let (server_snd, server_recv) = mpsc::channel();\n    let (client_snd, client_recv) = mpsc::channel();\n    thread::spawn(move || server(spn, server_recv, client_snd));\n    client(&args[1], client_recv, server_snd);\n}\n```\n"
+    }
+  }
+]

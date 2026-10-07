@@ -1,0 +1,41 @@
+{
+  "task_id": "KL06-08",
+  "status": "in_progress",
+  "disposition": "proposed-awaiting-maintainer-approval",
+  "evidence_directory": "docs/evidence/security/gssapi-boundary",
+  "proposal": "docs/gssapi-boundary.md",
+  "summary": {
+    "status": "proposed-awaiting-maintainer-approval",
+    "scope": "Registry/source and installed-package review only",
+    "reviewed_options": 5,
+    "verified_archives": 6,
+    "unsafe_crate_source_change": false,
+    "cargo_changes": false,
+    "providers_installed": 0,
+    "providers_compiled": 0,
+    "providers_executed": 0,
+    "kdc_oracles": 0,
+    "toolchain_policy": "latest stable Rust only",
+    "proposed_backend": {
+      "crate": "libgssapi",
+      "version": "0.11.0",
+      "default_features": false,
+      "sys_version": "0.3.4",
+      "initial_target": "x86_64 Linux / MIT Kerberos",
+      "execution": "one serial security context per owned helper process"
+    },
+    "remaining": [
+      "Actual maintainer approval",
+      "Complete dependency/system license and build graph",
+      "Latest stable compile",
+      "Owned isolated KDC and authentic Java client/server interoperability",
+      "Credential/session lifecycle and process/resource closure qualification",
+      "Authentication/reconnect overhead measurement",
+      "Separate platform profiles"
+    ]
+  },
+  "limitations": [
+    "Source inspection and hashes establish review provenance, not backend behavior or production qualification.",
+    "No native/default/policy change is authorized by the proposal alone."
+  ]
+}

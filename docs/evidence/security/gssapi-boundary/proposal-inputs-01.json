@@ -1,0 +1,17 @@
+{
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_tree_dirty": true,
+  "source_files": {
+    "Cargo.toml": "72571422ff9478f925346ae5eec272daff633fb5bd7693665b048b31e7b44ac9",
+    "Cargo.lock": "c0d4deed664826e018478e78241f4aaa6fc75096916615a411db002e63a15ecc",
+    "deny.toml": "bea4daf2953cf456bcdfceb91e6a52a6ee73f39591301cc4e7a96fc6c8d34164",
+    "src/config.rs": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c",
+    "src/protocol/sasl.rs": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50",
+    "partitionline-broker/Cargo.toml": "22fc753af7e6bc4c4dc0f99951d59bd60de5c39ea56ce767ba418eb4706f33a4",
+    "partitionline-broker/src/security/mod.rs": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409",
+    "partitionline-broker/src/security/sasl.rs": "4fe763543c262b5635c555d9582ea883aaec59e533abde5bf9054722e765b0c7",
+    "partitionline-broker/src/security/session.rs": "63901540e4a97add4e3c9a6486b684357e315ae7a577325c3c1259dd5d7c5990",
+    "docs/gssapi-boundary.md": "547f7cc0266600e98c30e1c10bbe4b83b80b8e6497fd5156e08cd10a5d618fdd"
+  },
+  "scope": "Read-only design inputs and proposal; no compiler or runtime qualification"
+}

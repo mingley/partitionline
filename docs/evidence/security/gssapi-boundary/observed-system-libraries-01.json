@@ -1,0 +1,64 @@
+{
+  "scope": "Post-review installed library/package observation only; no provider loaded or executed",
+  "libraries": [
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2.2",
+      "sha256": "c290f761873ebeac539911010526e1c5db86218bfcb29672760da46841741de0",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libkrb5.so.3]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libk5crypto.so.3]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libcom_err.so.2]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libkrb5support.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ]
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkrb5.so.3",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libkrb5.so.3.3",
+      "sha256": "c4ab64e6bc2874a83e649e4439be752465da027a0041e2bb5343f81c80f0882d",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libk5crypto.so.3]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libcom_err.so.2]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libkrb5support.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libkeyutils.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libresolv.so.2]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ]
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libk5crypto.so.3",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libk5crypto.so.3.1",
+      "sha256": "c4c3221d0350f882cee0430b58d5fb289a5776c684d3156964864c8a9719dff1",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libkrb5support.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ]
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkrb5support.so.0",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libkrb5support.so.0.1",
+      "sha256": "f559f051ee5d39f151a57d79f2cde475c484030098b0c73f9f7035b421b187c4",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ]
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libkeyutils.so.1",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libkeyutils.so.1.10",
+      "sha256": "e5d5a7450d08eff7d4bbcaac75ef2b94d3447c81a1b2ddf3ab85d2de4709a9a8",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ]
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcom_err.so.2",
+      "resolved_path": "/usr/lib/x86_64-linux-gnu/libcom_err.so.2.1",
+      "sha256": "dc4828400674492839b630c001db424cd38e5cecfcf46dbf705a637647e04bea",
+      "needed": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]"
+      ]
+    }
+  ]
+}

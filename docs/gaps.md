@@ -20,7 +20,7 @@ qualification details.
 | Compression | None, gzip, Snappy and LZ4. Enable `zstd` for bounded zstd encoding and decoding. |
 | TLS | `rustls`, custom CA certificates or Mozilla roots, and optional mutual TLS. |
 | SASL | PLAIN, SCRAM-SHA-256/512 and OAUTHBEARER; OIDC token acquisition and application-owned refresh. |
-| Kerberos/GSSAPI | Not implemented. Provider selection and platform credential lifecycle remain open. |
+| Kerberos/GSSAPI | Not implemented. The [optional provider proposal](gssapi-boundary.md) awaits approval; credential lifecycle and interoperability remain unqualified. |
 | Diagnostics | Producer, consumer, share and Admin metric snapshots; optional `tracing`. |
 | Schema Registry | Separate unpublished companion with lookup, bounded caches and caller-selected format adapters. |
 

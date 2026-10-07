@@ -1,0 +1,1411 @@
+[
+  {
+    "name": "libgssapi",
+    "version": "0.11.0",
+    "archive_sha256": "e440a6151f5ef06571612e4121709aed90cfc0c40f8161f9090c71656758086d",
+    "members": [
+      {
+        "path": "libgssapi-0.11.0/.cargo_vcs_info.json",
+        "sha256": "f0480ccb85f31a410fbce59ded91df1d4bedf21ca7be65749be4d77b83a24383",
+        "bytes": 103
+      },
+      {
+        "path": "libgssapi-0.11.0/.gitignore",
+        "sha256": "2ebe6cb6f5289849dce5a8a6cdd77e06b1385302c862982f8e181c4782d19214",
+        "bytes": 19
+      },
+      {
+        "path": "libgssapi-0.11.0/Cargo.lock",
+        "sha256": "e751f18063faaece39a4089c97b03512550dc417d4e62a137650f6ad30cd8432",
+        "bytes": 17655
+      },
+      {
+        "path": "libgssapi-0.11.0/Cargo.toml",
+        "sha256": "950c8434c21451b0e484e35f2750279abe9289fdc3db2a2a523bf24368e8891a",
+        "bytes": 1854
+      },
+      {
+        "path": "libgssapi-0.11.0/Cargo.toml.orig",
+        "sha256": "749ae2c3122885ebd84338e6b517dbcb677f0599fc18dce138ae06edb444c786",
+        "bytes": 1843
+      },
+      {
+        "path": "libgssapi-0.11.0/README.md",
+        "sha256": "ae728b18bf89b13dd6e0c3e58caf623e66103505648752943689475d2a61d1f4",
+        "bytes": 5266
+      },
+      {
+        "path": "libgssapi-0.11.0/examples/krb5.rs",
+        "sha256": "d56fe1da708fd33119897c3bb9b9628165272835ec8f5f8ec7f1467534b1b523",
+        "bytes": 5539
+      },
+      {
+        "path": "libgssapi-0.11.0/examples/krb5_auth.rs",
+        "sha256": "243eb464f54ea1152b00a5afb58993bdd565d5db53e0f517d9fc785d78172f1b",
+        "bytes": 620
+      },
+      {
+        "path": "libgssapi-0.11.0/examples/krb5_iov.rs",
+        "sha256": "e02ff188e99f1a4f87905afb27e702f0bbd2a8d5748a6e82926bba33bfadeca8",
+        "bytes": 8350
+      },
+      {
+        "path": "libgssapi-0.11.0/src/context.rs",
+        "sha256": "52ed32f85e7dbcf0e43309090a77a2ab9b0a6f8a7c07b3d78a9ccde4333dc2b1",
+        "bytes": 30913
+      },
+      {
+        "path": "libgssapi-0.11.0/src/credential.rs",
+        "sha256": "59fd8203a82cc1d63b394706439219d3ec00cc459f7a30ce1e25dce8f1e60242",
+        "bytes": 15909
+      },
+      {
+        "path": "libgssapi-0.11.0/src/error.rs",
+        "sha256": "44de740e510b14d3d830c03d97b118c5bc46423abd5b9f8d8aba7105d70f31e7",
+        "bytes": 4622
+      },
+      {
+        "path": "libgssapi-0.11.0/src/lib.rs",
+        "sha256": "5987e56d4c302a1f1920c9f690386a6d4c3764eae5fd6a3cb19265716c300363",
+        "bytes": 4897
+      },
+      {
+        "path": "libgssapi-0.11.0/src/name.rs",
+        "sha256": "1750ee3a5f4f4bc4acc2d164331e26cd4205705b31a6f4fd2d9bd47be790290d",
+        "bytes": 6332
+      },
+      {
+        "path": "libgssapi-0.11.0/src/oid.rs",
+        "sha256": "4b7dbae5ed414e7a784f49333fc97230b6f3acb6879d07dcbfe490d4f666d67d",
+        "bytes": 16477
+      },
+      {
+        "path": "libgssapi-0.11.0/src/util.rs",
+        "sha256": "c1d5ae55be965deb283813de191c49857235609ee9cb75a8797601b4e9767197",
+        "bytes": 14232
+      },
+      {
+        "path": "libgssapi-0.11.0/tests/common/mod.rs",
+        "sha256": "698cd02b79f410247705027de4e14291727c8548aaf33ab5b85c518475eb2a14",
+        "bytes": 13656
+      },
+      {
+        "path": "libgssapi-0.11.0/tests/cred.rs",
+        "sha256": "cf2f188cb2df738a211aeea000111694003a5d2ae332b44a2c73606ec98639a9",
+        "bytes": 3006
+      },
+      {
+        "path": "libgssapi-0.11.0/tests/krb5_mutual_auth.rs",
+        "sha256": "8272c4a6cb80828f58bf7803e293c7cdba71765e1f571855ad1e1f2ce8526178",
+        "bytes": 3417
+      }
+    ],
+    "metadata": {
+      "libgssapi-0.11.0/Cargo.toml.orig": "[package]\nname = \"libgssapi\"\nversion = \"0.11.0\"\nauthors = [\"Eric Stokes <letaris@gmail.com>\"]\nedition = \"2024\"\nlicense = \"MIT\"\ndescription = \"A safe binding to gssapi\"\nhomepage = \"https://github.com/estokes/libgssapi\"\nreadme = \"../README.md\"\ndocumentation = \"https://estokes.github.io/libgssapi/libgssapi/index.html\"\nrepository = \"https://github.com/estokes/libgssapi\"\nkeywords = [\"gssapi\", \"sspi\", \"kerberos\", \"krb5\", \"authentication\"]\ncategories = [\"api-bindings\", \"authentication\", \"cryptography\", \"os::unix-apis\"]\n\n# No features are enabled by default: none of the optional features build on\n# every supported implementation, so an honest cross-platform default is the\n# empty set. Each feature does exactly what it says \u2014 enabling one the linked\n# implementation can't provide is a compile error, not a silent no-op.\n#\n# Per-impl support:\n#   iov, localname, store \u2014 MIT and Heimdal only (Apple's GSS.framework\n#     provides no gss_wrap_iov / gss_localname / gss_store_cred).\n#   s4u                   \u2014 MIT only (Heimdal and Apple provide neither\n#     gss_acquire_cred_impersonate_name nor gss_store_cred_into).\n#\n# Consumers that want a feature only where it's available should select it in a\n# target-specific dependency table, e.g.\n#   [target.'cfg(not(target_os = \"macos\"))'.dependencies]\n#   libgssapi = { version = \"...\", features = [\"iov\", \"localname\", \"store\"] }\n[features]\ndefault = []\nall = [\"iov\", \"localname\", \"s4u\", \"store\"]\niov = []\ns4u = []\nlocalname = []\nstore = []\n\n# Demonstrates wrap_iov/unwrap_iov, so it only builds with the `iov` feature\n# (and therefore not against Apple's GSS.framework).\n[[example]]\nname = \"krb5_iov\"\nrequired-features = [\"iov\"]\n\n[dependencies]\nbytes = \"1\"\nlibgssapi-sys = { version = \"0.3.1\", path = \"../libgssapi-sys\" }\nbitflags = \"2.0\"\n\n[dev-dependencies]\ntempfile = \"3\"\nlibc = \"0.2\"\n",
+      "libgssapi-0.11.0/README.md": "# libgssapi\n\nA safe MIT licensed binding to gssapi\n\nsee [rfc2744](https://tools.ietf.org/html/rfc2744.html) for more info\n\ngssapi is a huge and complex beast that is also very old (like [Computer Chronicles](https://youtu.be/wpXnqBfgvPM?list=PLR6RS8PTcoXT4g8SgQEww7QMe8Vtv5LKe) old). The Kerberos 5 mech is covered by an integration test suite (`tests/test.sh`) that runs the same in-process-KDC handshake and credential tests against all three supported implementations: MIT natively, Heimdal in a podman container, and the Apple GSS framework natively on macOS.\n\nFor a simpler cross platform interface to Kerberos 5 see [cross-krb5](https://crates.io/crates/cross-krb5).\n\n### Features\n\n**The default is empty.** None of the optional features build on every\nimplementation, so the only honest cross-platform default is no features \u2014\neach feature does exactly what it says, and enabling one the linked\nimplementation can't provide is a compile error, not a silent no-op. `all`\nenables everything (MIT only).\n\n- `iov` \u2014 `wrap_iov`/`unwrap_iov` and the `GssIov` types. **MIT + Heimdal**\n  (Apple's GSS framework has no `gss_wrap_iov`).\n- `localname` \u2014 `Name::local_name` (POSIX local-name mapping). **MIT +\n  Heimdal** (Apple has no `gss_localname`).\n- `store` \u2014 `Cred::store` (store into the default ccache). **MIT +\n  Heimdal** (Apple has no `gss_store_cred`).\n- `s4u` \u2014 Kerberos S4U constrained delegation (`Cred::impersonate`,\n  `Cred::store_into`, impersonator lookup). **MIT only** \u2014 Heimdal and Apple\n  implement neither `gss_acquire_cred_impersonate_name` nor\n  `gss_store_cred_into`.\n\nTo enable a feature only where it's available, select it in a\ntarget-specific dependency table rather than unconditionally:\n\n```toml\n[target.'cfg(not(target_os = \"macos\"))'.dependencies]\nlibgssapi = { version = \"0.10\", features = [\"iov\", \"localname\", \"store\"] }\n```\n\n### Build configuration\n\nThe build finds gssapi via `pkg-config` (preferring MIT over Heimdal),\nfalling back to searching standard library directories. Two env vars\noverride this:\n\n- `LIBGSSAPI_IMPL` = `mit` | `heimdal` | `apple` \u2014 force the\n  implementation. Handy when both MIT and Heimdal are installed.\n- `LIBGSSAPI_PREFIX` = colon-separated install prefixes \u2014 for installs\n  pkg-config can't find. Each prefix adds `<prefix>/include` to the\n  header search and `<prefix>/lib` to the library search.\n\n### Example KRB5 Mutual Authentication Between Client and Server\n\nThis is the `krb5` example verbatim (`libgssapi/examples/krb5.rs`); run it\nwith `cargo run --example krb5 -- nfs@host.example.com`. See the comment at\nthe top of that file for how to set up the Kerberos environment it needs.\n\n```rust\nuse std::env::args;\nuse libgssapi::{\n    name::Name,\n    credential::{Cred, CredUsage},\n    error::Error,\n    context::{CtxFlags, ClientCtx, ServerCtx, SecurityContext},\n    util::Buf,\n    oid::{OidSet, GSS_NT_HOSTBASED_SERVICE, GSS_MECH_KRB5},\n};\n\nfn setup_server_ctx(\n    service_name: &[u8],\n    desired_mechs: &OidSet\n) -> Result<(ServerCtx, Name), Error> {\n    println!(\"import name\");\n    let name = Name::new(service_name, Some(GSS_NT_HOSTBASED_SERVICE))?;\n    let cname = name.canonicalize(Some(GSS_MECH_KRB5))?;\n    println!(\"canonicalize name for kerberos 5\");\n    println!(\"server name: {}, server cname: {}\", name, cname);\n    let server_cred = Cred::acquire(\n        Some(&cname), None, CredUsage::Accept, Some(desired_mechs)\n    )?;\n    println!(\"acquired server credentials: {:#?}\", server_cred.info()?);\n    Ok((ServerCtx::new(Some(server_cred)), cname))\n}\n\nfn setup_client_ctx(\n    service_name: Name,\n    desired_mechs: &OidSet\n) -> Result<ClientCtx, Error> {\n    let client_cred = Cred::acquire(\n        None, None, CredUsage::Initiate, Some(&desired_mechs)\n    )?;\n    println!(\"acquired default client credentials: {:#?}\", client_cred.info()?);\n    Ok(ClientCtx::new(\n        Some(client_cred), service_name, CtxFlags::GSS_C_MUTUAL_FLAG, Some(GSS_MECH_KRB5)\n    ))\n}\n\nfn run(service_name: &[u8]) -> Result<(), Error> {\n    let desired_mechs = OidSet::singleton(GSS_MECH_KRB5)?;\n    let (mut server_ctx, cname) = setup_server_ctx(service_name, &desired_mechs)?;\n    let mut client_ctx = setup_client_ctx(cname, &desired_mechs)?;\n    let mut server_tok: Option<Buf> = None;\n    loop {\n        match client_ctx.step(server_tok.as_ref().map(|b| &**b), None)? {\n            None => break,\n            Some(client_tok) => match server_ctx.step(&*client_tok, None)? {\n                None => break,\n                Some(tok) => { server_tok = Some(tok); }\n            }\n        }\n    }\n    println!(\"security context initialized successfully\");\n    println!(\"client ctx info: {:#?}\", client_ctx.info()?);\n    println!(\"server ctx info: {:#?}\", server_ctx.info()?);\n    let secret_msg = client_ctx.wrap(true, b\"super secret message\")?;\n    let decoded_msg = server_ctx.unwrap(&*secret_msg)?;\n    println!(\"the decrypted message is: '{}'\", String::from_utf8_lossy(&*decoded_msg));\n    Ok(())\n}\n\nfn main() {\n    let args = args().collect::<Vec<_>>();\n    if args.len() != 2 {\n        println!(\"usage: {}: <service@host>\", args[0]);\n    } else {\n        match run(&args[1].as_bytes()) {\n            Ok(()) => (),\n            Err(e) => println!(\"{}\", e),\n        }\n    }\n}\n```\n"
+    }
+  },
+  {
+    "name": "picky-krb",
+    "version": "0.13.0",
+    "archive_sha256": "4a272e7c4191fbb5ea7e0b34f47208804d47a6f748344351ba9229b0e5a604ed",
+    "members": [
+      {
+        "path": "picky-krb-0.13.0/.cargo_vcs_info.json",
+        "sha256": "829466dbf4ec9529fd3750f2a89ecf860fd536bd95135c9e489a36366bc37381",
+        "bytes": 103
+      },
+      {
+        "path": "picky-krb-0.13.0/CHANGELOG.md",
+        "sha256": "1e28e2dc246bc1565fdf1b2eb681cf5993078ec1fc9aa73879b205c4b97b8170",
+        "bytes": 9847
+      },
+      {
+        "path": "picky-krb-0.13.0/Cargo.lock",
+        "sha256": "da88f11acc42e4b561f1337d25fe6703f8ff1a5d1aba02c256b7aef3d9bc54a1",
+        "bytes": 11286
+      },
+      {
+        "path": "picky-krb-0.13.0/Cargo.toml",
+        "sha256": "3a126f8ce13da7a6e251637a0a30bfbb6bd4864b1777b8cad9e7a10384a0052c",
+        "bytes": 1978
+      },
+      {
+        "path": "picky-krb-0.13.0/Cargo.toml.orig",
+        "sha256": "09e0107bd690b0c0fe9689e70befe25d901817895e39a8a57eadb0dc4cf9c172",
+        "bytes": 1032
+      },
+      {
+        "path": "picky-krb-0.13.0/LICENSE-APACHE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "bytes": 11358
+      },
+      {
+        "path": "picky-krb-0.13.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023
+      },
+      {
+        "path": "picky-krb-0.13.0/README.md",
+        "sha256": "4ec1e25299ee34bcaa88d125c3a6899926f2ad8b84dcc81b4a8b7b663fc58769",
+        "bytes": 1022
+      },
+      {
+        "path": "picky-krb-0.13.0/src/constants.rs",
+        "sha256": "f324b85f94e353d24c3234767adbce76655152250bb6c294092e9487fb4667cd",
+        "bytes": 10649
+      },
+      {
+        "path": "picky-krb-0.13.0/src/credssp.rs",
+        "sha256": "b6bff4c0d0c7ea3019869283e98371e22a0d3139ebf1952c6bee0a52ecb4d0fb",
+        "bytes": 14227
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/aes128_cts_hmac_sha1_96.rs",
+        "sha256": "b19f4a3f7a569b004a1836980d37a9f775aac1b992676551f654d9c5f89f665c",
+        "bytes": 17133
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/aes256_cts_hmac_sha1_96.rs",
+        "sha256": "f34ba5ddd84a6891c438b303b1aea872c37b2e630c424968308266c996bb9226",
+        "bytes": 17664
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/decrypt.rs",
+        "sha256": "3080ab32523b37a7a01d79cc39cad0bf973ff5e8b085b9bafdb252729ef5b535",
+        "bytes": 4227
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/encrypt.rs",
+        "sha256": "09c1aba87a19d5ea937e75c4b2f9754cfbc337dcad984fc3b0b672e83b3bfdcc",
+        "bytes": 4244
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/hmac_sha196_aes_128.rs",
+        "sha256": "25f51bf8bc3d220ce8e2dfd2be7e764583d72f8e320e0fc0279d7d00373d690a",
+        "bytes": 497
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/hmac_sha196_aes_256.rs",
+        "sha256": "a6490681f7b9c7595a5af83c05c87548f8e7e53bcf96fc6232a67ee61805ed77",
+        "bytes": 497
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/key_derivation.rs",
+        "sha256": "ebfe3fa5a9e391c73b05e2dd42de259730fdd83cab163c13668805309d21e46a",
+        "bytes": 2551
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/aes/mod.rs",
+        "sha256": "e3d65e584de95a66afd622a8b5b1e44634034d203466fc8329c72edd0d937409",
+        "bytes": 2265
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/checksum.rs",
+        "sha256": "4f05d3a0e8518d54ac5fc1235a27ae611759e4bd54d99e9f21bfbf0dc13a8402",
+        "bytes": 3121
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/cipher.rs",
+        "sha256": "aa0b222ca1ab09937079b34ca05185dc85287d9b2a33848674d3c2f43f33c20d",
+        "bytes": 4614
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/common.rs",
+        "sha256": "5e3fb1a18e4211af50e380a0e66b1fc532359736a0c26d25a0412ef379a6088e",
+        "bytes": 682
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/decrypt.rs",
+        "sha256": "5814c65d7e9f92e34681f0f6655d42765d16c59f7866f2679a7e60029d64e91c",
+        "bytes": 2658
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/des3_cbc_sha1_kd.rs",
+        "sha256": "51039838e039465f84a5b222475919e1b7a503ff0d6dd22dbf9a9b6f266f40cc",
+        "bytes": 7767
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/encrypt.rs",
+        "sha256": "fde1b649b780ae4401b16695981766b8906defd5eb5e81acaad040a8efdbec41",
+        "bytes": 5221
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/hmac_sha1_des3_kd.rs",
+        "sha256": "ec04c33ad82102aabf3398850e6fed12e5327b11ace9e482f5dce2534e6a972e",
+        "bytes": 606
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/key_derivation.rs",
+        "sha256": "cdf9bc31a0444a9d286bf90c066e6c951cbeceaf2498c53a0ff332721a6720d0",
+        "bytes": 4440
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/des/mod.rs",
+        "sha256": "a1485ade3bb393bb69586cd6bcf00a347ef34b8d1b5946bb72364792ac5d9afe",
+        "bytes": 948
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/diffie_hellman.rs",
+        "sha256": "51c2956675984734da8a50924b2346787db6e3794ade2a0a25e327cbf188e3bb",
+        "bytes": 5786
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/mod.rs",
+        "sha256": "4d3ae7d07f985f41267f52237d28c317b18343229fdd89696bdc5dd548f3a54b",
+        "bytes": 1903
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/nfold.rs",
+        "sha256": "abea80bb679909e332f32d4dbc018b9f7cbb941863dfc2f55c4584256799c109",
+        "bytes": 3679
+      },
+      {
+        "path": "picky-krb-0.13.0/src/crypto/utils.rs",
+        "sha256": "6e40126544db72c0c9cc164b9d73e25ceb7d1ba73a4a23fc191f2371e6dfbc9e",
+        "bytes": 663
+      },
+      {
+        "path": "picky-krb-0.13.0/src/data_types.rs",
+        "sha256": "078f1c43a52c6ff581b20362216881d6a6b4e8068a8cb383f8bbfc4685f5f949",
+        "bytes": 50157
+      },
+      {
+        "path": "picky-krb-0.13.0/src/gss_api.rs",
+        "sha256": "8208f600e01b0a7b503738cc7be68d64635b718f6d828e97ea6379cb3ad8dbc5",
+        "bytes": 46475
+      },
+      {
+        "path": "picky-krb-0.13.0/src/lib.rs",
+        "sha256": "717ba722bb47e5e8b66905ffc17944cf3bfdc45fbf9573fe017439e8d1e79036",
+        "bytes": 152
+      },
+      {
+        "path": "picky-krb-0.13.0/src/messages.rs",
+        "sha256": "74dbb30e5dc5ae93963562178c90234e42ca08243ba42ec6c4a1159932a6c989",
+        "bytes": 75985
+      },
+      {
+        "path": "picky-krb-0.13.0/src/negoex/data_types.rs",
+        "sha256": "01f8563f56b0423b362aec8d0fe913160ecfe1746f6d3c5a04623e1f298e544e",
+        "bytes": 16838
+      },
+      {
+        "path": "picky-krb-0.13.0/src/negoex/messages.rs",
+        "sha256": "3c946b6916354c79b330ccc807881bd2dc97af4c239125cfc7cc207416943d85",
+        "bytes": 20086
+      },
+      {
+        "path": "picky-krb-0.13.0/src/negoex/mod.rs",
+        "sha256": "366a26951dc26e4c97ecb7182c13b203e4b2c1a7879510bb23683d8394c59eb6",
+        "bytes": 4941
+      },
+      {
+        "path": "picky-krb-0.13.0/src/pac.rs",
+        "sha256": "9903751121098556ed98a3b156c2defb540c6ef32643a32a22e86b0c26a48c01",
+        "bytes": 19147
+      },
+      {
+        "path": "picky-krb-0.13.0/src/pkinit.rs",
+        "sha256": "7b0ab45517c6c2cc6b5ed38d5e4a74e15b9f39a5ea91e85a6d960cc8cc188765",
+        "bytes": 58606
+      }
+    ],
+    "metadata": {
+      "picky-krb-0.13.0/Cargo.toml.orig": "[package]\nname = \"picky-krb\"\nversion = \"0.13.0\"\nauthors = [\"Devolutions Inc.\"]\nedition = \"2024\"\nrust-version = \"1.85\"\nkeywords = [\"kerberos\", \"asn1\", \"parse\"]\ncategories = [\"encoding\"]\ndescription = \"Encode/decode Kerberos ASN.1 DER structs\"\nlicense = \"MIT OR Apache-2.0\"\nrepository = \"https://github.com/Devolutions/picky-rs\"\nreadme = \"README.md\"\ninclude = [\"src/**/*\", \"README.md\", \"CHANGELOG.md\", \"LICENSE-*\"]\n\n[dependencies]\npicky-asn1 = { version = \"0.10\", path = \"../picky-asn1\" }\npicky-asn1-der = { version = \"0.5\", path = \"../picky-asn1-der\" }\npicky-asn1-x509 = { version = \"0.15\", path = \"../picky-asn1-x509\" }\nserde = { version = \"1\", features = [\"derive\"] }\nbyteorder = \"1.5\"\nthiserror = \"2\"\n\npbkdf2 = { version = \"0.13.0\" }\nhmac = \"0.13\"\nsha1 = \"0.11\"\n\naes = \"0.9\"\nblock-padding = \"0.4\"\ncipher = \"0.5\"\ndes = \"0.9\"\ncbc = \"0.2\"\ninout = \"0.2\"\nrand = \"0.10\"\nrand_core = \"0.10\"\n\nuuid = { version = \"1.18\", default-features = false, features = [\"serde\"] }\noid = \"0.2\"\ncrypto-bigint = { version = \"0.7\", features = [\"alloc\"] }\n",
+      "picky-krb-0.13.0/LICENSE-APACHE": "\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for use, reproduction,\n      and distribution as defined by Sections 1 through 9 of this document.\n\n      \"Licensor\" shall mean the copyright owner or entity authorized by\n      the copyright owner that is granting the License.\n\n      \"Legal Entity\" shall mean the union of the acting entity and all\n      other entities that control, are controlled by, or are under common\n      control with that entity. For the purposes of this definition,\n      \"control\" means (i) the power, direct or indirect, to cause the\n      direction or management of such entity, whether by contract or\n      otherwise, or (ii) ownership of fifty percent (50%) or more of the\n      outstanding shares, or (iii) beneficial ownership of such entity.\n\n      \"You\" (or \"Your\") shall mean an individual or Legal Entity\n      exercising permissions granted by this License.\n\n      \"Source\" form shall mean the preferred form for making modifications,\n      including but not limited to software source code, documentation\n      source, and configuration files.\n\n      \"Object\" form shall mean any form resulting from mechanical\n      transformation or translation of a Source form, including but\n      not limited to compiled object code, generated documentation,\n      and conversions to other media types.\n\n      \"Work\" shall mean the work of authorship, whether in Source or\n      Object form, made available under the License, as indicated by a\n      copyright notice that is included in or attached to the work\n      (an example is provided in the Appendix below).\n\n      \"Derivative Works\" shall mean any work, whether in Source or Object\n      form, that is based on (or derived from) the Work and for which the\n      editorial revisions, annotations, elaborations, or other modifications\n      represent, as a whole, an original work of authorship. For the purposes\n      of this License, Derivative Works shall not include works that remain\n      separable from, or merely link (or bind by name) to the interfaces of,\n      the Work and Derivative Works thereof.\n\n      \"Contribution\" shall mean any work of authorship, including\n      the original version of the Work and any modifications or additions\n      to that Work or Derivative Works thereof, that is intentionally\n      submitted to Licensor for inclusion in the Work by the copyright owner\n      or by an individual or Legal Entity authorized to submit on behalf of\n      the copyright owner. For the purposes of this definition, \"submitted\"\n      means any form of electronic, verbal, or written communication sent\n      to the Licensor or its representatives, including but not limited to\n      communication on electronic mailing lists, source code control systems,\n      and issue tracking systems that are managed by, or on behalf of, the\n      Licensor for the purpose of discussing and improving the Work, but\n      excluding communication that is conspicuously marked or otherwise\n      designated in writing by the copyright owner as \"Not a Contribution.\"\n\n      \"Contributor\" shall mean Licensor and any individual or Legal Entity\n      on behalf of whom a Contribution has been received by Licensor and\n      subsequently incorporated within the Work.\n\n   2. Grant of Copyright License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      copyright license to reproduce, prepare Derivative Works of,\n      publicly display, publicly perform, sublicense, and distribute the\n      Work and such Derivative Works in Source or Object form.\n\n   3. Grant of Patent License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      (except as stated in this section) patent license to make, have made,\n      use, offer to sell, sell, import, and otherwise transfer the Work,\n      where such license applies only to those patent claims licensable\n      by such Contributor that are necessarily infringed by their\n      Contribution(s) alone or by combination of their Contribution(s)\n      with the Work to which such Contribution(s) was submitted. If You\n      institute patent litigation against any entity (including a\n      cross-claim or counterclaim in a lawsuit) alleging that the Work\n      or a Contribution incorporated within the Work constitutes direct\n      or contributory patent infringement, then any patent licenses\n      granted to You under this License for that Work shall terminate\n      as of the date such litigation is filed.\n\n   4. Redistribution. You may reproduce and distribute copies of the\n      Work or Derivative Works thereof in any medium, with or without\n      modifications, and in Source or Object form, provided that You\n      meet the following conditions:\n\n      (a) You must give any other recipients of the Work or\n          Derivative Works a copy of this License; and\n\n      (b) You must cause any modified files to carry prominent notices\n          stating that You changed the files; and\n\n      (c) You must retain, in the Source form of any Derivative Works\n          that You distribute, all copyright, patent, trademark, and\n          attribution notices from the Source form of the Work,\n          excluding those notices that do not pertain to any part of\n          the Derivative Works; and\n\n      (d) If the Work includes a \"NOTICE\" text file as part of its\n          distribution, then any Derivative Works that You distribute must\n          include a readable copy of the attribution notices contained\n          within such NOTICE file, excluding those notices that do not\n          pertain to any part of the Derivative Works, in at least one\n          of the following places: within a NOTICE text file distributed\n          as part of the Derivative Works; within the Source form or\n          documentation, if provided along with the Derivative Works; or,\n          within a display generated by the Derivative Works, if and\n          wherever such third-party notices normally appear. The contents\n          of the NOTICE file are for informational purposes only and\n          do not modify the License. You may add Your own attribution\n          notices within Derivative Works that You distribute, alongside\n          or as an addendum to the NOTICE text from the Work, provided\n          that such additional attribution notices cannot be construed\n          as modifying the License.\n\n      You may add Your own copyright statement to Your modifications and\n      may provide additional or different license terms and conditions\n      for use, reproduction, or distribution of Your modifications, or\n      for any such Derivative Works as a whole, provided Your use,\n      reproduction, and distribution of the Work otherwise complies with\n      the conditions stated in this License.\n\n   5. Submission of Contributions. Unless You explicitly state otherwise,\n      any Contribution intentionally submitted for inclusion in the Work\n      by You to the Licensor shall be under the terms and conditions of\n      this License, without any additional terms or conditions.\n      Notwithstanding the above, nothing herein shall supersede or modify\n      the terms of any separate license agreement you may have executed\n      with Licensor regarding such Contributions.\n\n   6. Trademarks. This License does not grant permission to use the trade\n      names, trademarks, service marks, or product names of the Licensor,\n      except as required for reasonable and customary use in describing the\n      origin of the Work and reproducing the content of the NOTICE file.\n\n   7. Disclaimer of Warranty. Unless required by applicable law or\n      agreed to in writing, Licensor provides the Work (and each\n      Contributor provides its Contributions) on an \"AS IS\" BASIS,\n      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\n      implied, including, without limitation, any warranties or conditions\n      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\n      PARTICULAR PURPOSE. You are solely responsible for determining the\n      appropriateness of using or redistributing the Work and assume any\n      risks associated with Your exercise of permissions under this License.\n\n   8. Limitation of Liability. In no event and under no legal theory,\n      whether in tort (including negligence), contract, or otherwise,\n      unless required by applicable law (such as deliberate and grossly\n      negligent acts) or agreed to in writing, shall any Contributor be\n      liable to You for damages, including any direct, indirect, special,\n      incidental, or consequential damages of any character arising as a\n      result of this License or out of the use or inability to use the\n      Work (including but not limited to damages for loss of goodwill,\n      work stoppage, computer failure or malfunction, or any and all\n      other commercial damages or losses), even if such Contributor\n      has been advised of the possibility of such damages.\n\n   9. Accepting Warranty or Additional Liability. While redistributing\n      the Work or Derivative Works thereof, You may choose to offer,\n      and charge a fee for, acceptance of support, warranty, indemnity,\n      or other liability obligations and/or rights consistent with this\n      License. However, in accepting such obligations, You may act only\n      on Your own behalf and on Your sole responsibility, not on behalf\n      of any other Contributor, and only if You agree to indemnify,\n      defend, and hold each Contributor harmless for any liability\n      incurred by, or claims asserted against, such Contributor by reason\n      of your accepting any such warranty or additional liability.\n\n   END OF TERMS AND CONDITIONS\n\n   APPENDIX: How to apply the Apache License to your work.\n\n      To apply the Apache License to your work, attach the following\n      boilerplate notice, with the fields enclosed by brackets \"[]\"\n      replaced with your own identifying information. (Don't include\n      the brackets!)  The text should be enclosed in the appropriate\n      comment syntax for the file format. We also recommend that a\n      file or class name and description of purpose be included on the\n      same \"printed page\" as the copyright notice for easier\n      identification within third-party archives.\n\n   Copyright [yyyy] [name of copyright owner]\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n",
+      "picky-krb-0.13.0/LICENSE-MIT": "Permission is hereby granted, free of charge, to any\nperson obtaining a copy of this software and associated\ndocumentation files (the \"Software\"), to deal in the\nSoftware without restriction, including without\nlimitation the rights to use, copy, modify, merge,\npublish, distribute, sublicense, and/or sell copies of\nthe Software, and to permit persons to whom the Software\nis furnished to do so, subject to the following\nconditions:\n\nThe above copyright notice and this permission notice\nshall be included in all copies or substantial portions\nof the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF\nANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED\nTO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A\nPARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT\nSHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY\nCLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION\nOF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR\nIN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER\nDEALINGS IN THE SOFTWARE.\n",
+      "picky-krb-0.13.0/README.md": "[![Crates.io](https://img.shields.io/crates/v/picky-krb.svg)](https://crates.io/crates/picky-krb)\n[![docs.rs](https://docs.rs/picky-krb/badge.svg)](https://docs.rs/picky-krb)\n![Crates.io](https://img.shields.io/crates/l/picky-krb)\n\nCompatible with rustc 1.85.\nMinimal rustc version bumps happen [only with minor number bumps in this project](https://github.com/Devolutions/picky-rs/issues/89#issuecomment-868303478).\n\n# picky-krb\n\nProvides implementation for types defined in [RFC 4120](https://www.rfc-editor.org/rfc/rfc4120.txt).\n\n## Serializing and deserializing Kerberos structures\n\nUse `picky_asn1_der::from_bytes` for deserialization from binary, for example:\n\n```rust\nuse picky_krb::messages::AsRep;\nlet as_rep: AsRep = picky_asn1_der::from_bytes(&raw).unwrap();\n```\n\nAnd `picky_asn1_der::to_vec` for serialization to binary, for example:\n\n```rust\nuse picky_krb::messages::TgsReq;\nlet tgs_req: TgsReq = picky_asn1_der::from_bytes(&raw).unwrap();\nlet tgs_req_encoded = picky_asn1_der::to_vec(&tgs_req).unwrap();\n```\n"
+    }
+  },
+  {
+    "name": "rsasl",
+    "version": "2.3.1",
+    "archive_sha256": "ed828a88913fd477c73bc3768b05d4b335ee775e29f2397bb59b9a4dd69ffb83",
+    "members": [
+      {
+        "path": "rsasl-2.3.1/.cargo_vcs_info.json",
+        "sha256": "6837e0c4acbadc971a65e32a2a3fee73e726a522a66bfc52b0d8cba1ed452eeb",
+        "bytes": 94
+      },
+      {
+        "path": "rsasl-2.3.1/CHANGELOG.md",
+        "sha256": "c14a57c858b9febea8ab411c564e0490263bea395937d6edcf47767daaa7a5a2",
+        "bytes": 15253
+      },
+      {
+        "path": "rsasl-2.3.1/Cargo.lock",
+        "sha256": "99c3cc028534a9ca1bc318baf2cae5d5fa07786d5d7f76383334c6623d57891d",
+        "bytes": 16681
+      },
+      {
+        "path": "rsasl-2.3.1/Cargo.toml",
+        "sha256": "4c97c59778b0737a2fac428bd7889d634508c4aedc18363ea87a220e0cfa4f52",
+        "bytes": 4796
+      },
+      {
+        "path": "rsasl-2.3.1/Cargo.toml.orig",
+        "sha256": "0a3a1e7d6460ba8d3bb7db384561d6992cb8a84691e4d71296b3636b19019cd4",
+        "bytes": 5522
+      },
+      {
+        "path": "rsasl-2.3.1/LICENSE.APACHE-2.0",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "bytes": 11358
+      },
+      {
+        "path": "rsasl-2.3.1/LICENSE.MIT",
+        "sha256": "eeb1b337d2d8e9eac0a2e35f4f472baa884f45c6f243ea42f25cb6e2668a9a57",
+        "bytes": 1082
+      },
+      {
+        "path": "rsasl-2.3.1/README.md",
+        "sha256": "28ae0553065af94ad9274c3ebd11b64a1263ebd7b2daa0bbb67536cd5950dfa5",
+        "bytes": 2812
+      },
+      {
+        "path": "rsasl-2.3.1/docs/decisions/0001-property-and-validation-newtype.md",
+        "sha256": "03765e6b57796010e5f39ba5957e2d9aefa19244205dd11e8a53f59f6a8bd19b",
+        "bytes": 4359
+      },
+      {
+        "path": "rsasl-2.3.1/docs/decisions/0002-context-vs-provide_any.md",
+        "sha256": "96eba5b3b2ff0ad8b5bc5bf1854948163702882091d3c8f53082903ad394d952",
+        "bytes": 1817
+      },
+      {
+        "path": "rsasl-2.3.1/docs/decisions/0003-prevent-recursive-callbacks.md",
+        "sha256": "0fe0403277619d435ec0bd8ec666113464a78fc3e3ac1c02e94c1c1c25769760",
+        "bytes": 2770
+      },
+      {
+        "path": "rsasl-2.3.1/docs/decisions/template.md",
+        "sha256": "5196ea504242b2614dbadf98bb2b215d74c3b043a2e4eed14df8f43bcd2bae13",
+        "bytes": 2238
+      },
+      {
+        "path": "rsasl-2.3.1/examples/client_simple.rs",
+        "sha256": "ca8587851cf37ce57ac23597309c43cd69fc9aedeabeab117be32c589b1f25c5",
+        "bytes": 2208
+      },
+      {
+        "path": "rsasl-2.3.1/examples/mechanism_selection.rs",
+        "sha256": "5f6bfb406f93dd2293d9ce256582c8a90c001ec6e717f7edd44a0064c9a528a4",
+        "bytes": 624
+      },
+      {
+        "path": "rsasl-2.3.1/examples/server_plain.rs",
+        "sha256": "1c2ac72769fb27c16a0b304ca4b909b7c2a015fa0409212979dbae97677db54e",
+        "bytes": 6671
+      },
+      {
+        "path": "rsasl-2.3.1/examples/server_scram.rs",
+        "sha256": "538b751bc4ee4256606d4d90a3bb5091a472c04709773c90c1eb84f78b9163df",
+        "bytes": 5266
+      },
+      {
+        "path": "rsasl-2.3.1/src/builder.rs",
+        "sha256": "fd431a2baef9080a64f8741784d5be9d7a45a0eff594d0d489c2cc46730db407",
+        "bytes": 4359
+      },
+      {
+        "path": "rsasl-2.3.1/src/callback.rs",
+        "sha256": "bc9fe3d740e2c27f26a11f07c3c64f27dca223773c480df453832826b007ad79",
+        "bytes": 20714
+      },
+      {
+        "path": "rsasl-2.3.1/src/channel_bindings.rs",
+        "sha256": "5b219b621dc4468054e251201ea564a2b301e98258f437dc298abbde52ae923f",
+        "bytes": 2835
+      },
+      {
+        "path": "rsasl-2.3.1/src/config.rs",
+        "sha256": "7d600922487a235ba1494efc3d63c448fd377b7a02b528b6b3f04eb8d42137c1",
+        "bytes": 7682
+      },
+      {
+        "path": "rsasl-2.3.1/src/context.rs",
+        "sha256": "74dd4881de6300e4149300b1f151dd9982e58c40a66012d1c8f8b3d9df8122ee",
+        "bytes": 7639
+      },
+      {
+        "path": "rsasl-2.3.1/src/error.rs",
+        "sha256": "060a34233ce11a884d36a0891bc82f6316e37eb1035935541cf3d9e4c3d90097",
+        "bytes": 4502
+      },
+      {
+        "path": "rsasl-2.3.1/src/io.rs",
+        "sha256": "55108da1e55770686431cd62360e6110bfb6d68175d2e921b6a8be704982c7c6",
+        "bytes": 404
+      },
+      {
+        "path": "rsasl-2.3.1/src/lib.rs",
+        "sha256": "5057f2ebf93bdce40e9e8948499257b12a4d7d874e7bb028ef95723a079d6623",
+        "bytes": 16165
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanism.rs",
+        "sha256": "27749f61aa27a8c2523fc1ff4092d7395e80ad73b554437a8caa841526c737ba",
+        "bytes": 6635
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/anonymous/client.rs",
+        "sha256": "93273115c664ce199824437de0557e9876c950f4cdc8375e2d8b11688662bf3f",
+        "bytes": 2133
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/anonymous/mechinfo.rs",
+        "sha256": "89e0b039879ea5d2cfffcd96d0d61ff949304fe1db5600b90ca0f8973e9f87e1",
+        "bytes": 1580
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/anonymous/server.rs",
+        "sha256": "8ae32a65613f1e04c26156f4a26d03292f182d48a6e39d5d2305597b91eb8b07",
+        "bytes": 3627
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/external/client.rs",
+        "sha256": "a39c90bdeb2c7b95552e6f17b2e845681abf878c1d6762549738dfb5914b95bb",
+        "bytes": 2253
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/external/mechinfo.rs",
+        "sha256": "837afae311837de6a50c5c01b4dd26e6cc644c07a9b13368f77639f22625a44f",
+        "bytes": 723
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/external/server.rs",
+        "sha256": "a5fe4ae0a4fa1ebda64c38f1a5656990a77c99e3b404ea35798a5f97173da41b",
+        "bytes": 3400
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/gssapi/client.rs",
+        "sha256": "6b5939fb600a0c61913561e9831c6f4827b8a404e0aca9c27fe72b1990b73997",
+        "bytes": 7632
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/gssapi/mechinfo.rs",
+        "sha256": "ba346903cb47d6aa50ed8695542714027f6a41ad3e2b848cf77180ee7674cfee",
+        "bytes": 808
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/gssapi/properties.rs",
+        "sha256": "e6166b5b77e25ac4024421495c9bb42264117f0004517d8959e5085058b0868f",
+        "bytes": 1153
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/gssapi/server.rs",
+        "sha256": "0e4df415aaf635384d762a0d809ba80c1b1dd06c627af9acff143947ad7fa3f2",
+        "bytes": 6902
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/login/client.rs",
+        "sha256": "d9dfa79ceec123dcae13ff915f408209e707e133943ff1270b82d77e2d709d90",
+        "bytes": 2282
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/login/mechinfo.rs",
+        "sha256": "51a700210d2f7e7dbf5319d7a7bb1a25c60fef4758b684efd70b01df29e86cc5",
+        "bytes": 700
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/login/server.rs",
+        "sha256": "5d6cd156cc1c64f1ac4769226233d1711c0fa468e707e3b5cf6001c06c9b5f85",
+        "bytes": 3075
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/mod.rs",
+        "sha256": "ba1884b3e911aa35f3a7c94d6ac41050103643478d1ad6889bc5298523d9722d",
+        "bytes": 8291
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/oauthbearer/client.rs",
+        "sha256": "013dc07be6b9c4fdaee647f81fc9d9bb858e4aa23ce2630a612e8bd11ce8cbfa",
+        "bytes": 3259
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/oauthbearer/mechinfo.rs",
+        "sha256": "fdc1a72940cc53c87a05a7a4ed9341936e6a6cd2d1fb280f5827441c3434340e",
+        "bytes": 843
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/oauthbearer/parser.rs",
+        "sha256": "157edb58d3af32cbebe93ddf09dbc0be9aeef87b0e404678f48b67e61e5073e0",
+        "bytes": 2760
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/oauthbearer/properties.rs",
+        "sha256": "a69f7ec2b52d2b91dc9483b7667fa3056cc5ca21d9ad9314c9acc30f727dcf67",
+        "bytes": 3752
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/oauthbearer/server.rs",
+        "sha256": "9161f00332a031ea156ff22b451e2e43df695e3207dcd402e2db982d04b5126f",
+        "bytes": 5403
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/plain/client.rs",
+        "sha256": "3fee389766f65c2690b0c3f6a3d35af2fa08c3997e2b2f68822cdb506fc5b4e8",
+        "bytes": 6482
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/plain/mechinfo.rs",
+        "sha256": "e57d7c9c9812d0d94979a3c9dfd910eff2b06b159bb91403fadf6ffb72e4f2a2",
+        "bytes": 1645
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/plain/server.rs",
+        "sha256": "b33e3422a53471b48488bd124e27047fecdff1fd015a6eec042ada1d84f3623b",
+        "bytes": 2830
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/client.rs",
+        "sha256": "6357bb1e822a3e77bdccb2f54f676424d0ee86d7357cc2a63725e3706b6cdd66",
+        "bytes": 19031
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/mechinfo.rs",
+        "sha256": "cd7250f8430af550233960357b122a5f432d199603c5819d5336eeda94384a34",
+        "bytes": 12494
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/parser.rs",
+        "sha256": "70d10fb660dd51bd5fe384c78b2ab72395e5a8c6f64decbaf4a69b29c7307bca",
+        "bytes": 22196
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/properties.rs",
+        "sha256": "ee74fae98738fe9c31b812449b09da4e8b92ff24dcbf1239ce27007c2c1abe5b",
+        "bytes": 2012
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/server.rs",
+        "sha256": "682df20210f1abae8c4ba1d4d64296f3b5f2639ffa56d441f0b47f85839f5ee8",
+        "bytes": 15904
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/scram/tools.rs",
+        "sha256": "8430dd2db69fe8a8cc5d2cdc7edaad175d42cbdaa4f34cd32705f64ebc8bb9f7",
+        "bytes": 3232
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/xoauth2/client.rs",
+        "sha256": "bd047293919973f7a539e4e20569d945ad1f5b83d28142c2910fd3278db3e80c",
+        "bytes": 7551
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/xoauth2/mechinfo.rs",
+        "sha256": "0fd06050878d4b9bc72ea28cf1d6446ad3476bf0487233dcf4687406cbfed950",
+        "bytes": 811
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/xoauth2/properties.rs",
+        "sha256": "cd76b619df628b31c5ccbbd783d24bda6c3c56b3cf1820d9ee8271ca2e32adc0",
+        "bytes": 860
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechanisms/xoauth2/server.rs",
+        "sha256": "7bfe45880ced24d909dec346160bfbf187e2d932820aae1cb99c1c501e790d31",
+        "bytes": 6625
+      },
+      {
+        "path": "rsasl-2.3.1/src/mechname.rs",
+        "sha256": "02e6824d9a6a8a510522440db1f1b852d5dee56aeedb192b1765ad518d86181d",
+        "bytes": 6482
+      },
+      {
+        "path": "rsasl-2.3.1/src/property.rs",
+        "sha256": "12ef045e512472d8d0158e8ca5f79dc2119cebb8ebaf7bf235cd3f52a24aa6d9",
+        "bytes": 6922
+      },
+      {
+        "path": "rsasl-2.3.1/src/registry.rs",
+        "sha256": "3597a93d2adb0186ed126ef738e76939043390df28984328009e80870a5aa285",
+        "bytes": 12409
+      },
+      {
+        "path": "rsasl-2.3.1/src/sasl.rs",
+        "sha256": "e19837a9cd00b6a21b5bf2aa31db73b3cef5946fb195348603646344b7a83285",
+        "bytes": 7011
+      },
+      {
+        "path": "rsasl-2.3.1/src/session.rs",
+        "sha256": "0d7274082d5f731a128dc4e7102aeaa40ea78612aa01e2e7da90b6cf7e3e65d5",
+        "bytes": 20053
+      },
+      {
+        "path": "rsasl-2.3.1/src/test/config.rs",
+        "sha256": "73c6cc0cd0186723f5f72de89e0db2e548f47002460593bcdbbe16142ada25b5",
+        "bytes": 1463
+      },
+      {
+        "path": "rsasl-2.3.1/src/test/mechanism.rs",
+        "sha256": "c8b6100572b5fd1888860d4da994a71bb0264af25a5b32e00cb9ff5b7cdaddb0",
+        "bytes": 4250
+      },
+      {
+        "path": "rsasl-2.3.1/src/test/mod.rs",
+        "sha256": "5852cd710c24c7c0423ba5c83646403b02ff1fb5eb71b962109db96e7a3a96be",
+        "bytes": 1159
+      },
+      {
+        "path": "rsasl-2.3.1/src/typed.rs",
+        "sha256": "f3e3a49c8fffe5e4a3262465458f29441a92e1c26cec71370b39cd9579b886f6",
+        "bytes": 2818
+      },
+      {
+        "path": "rsasl-2.3.1/src/validate.rs",
+        "sha256": "21a534640f8141f9e35edf7fc204550a0521cb34ec87fd9cb8dd0201bfcace4d",
+        "bytes": 6074
+      },
+      {
+        "path": "rsasl-2.3.1/src/vectored_io.rs",
+        "sha256": "f2bf68832485ca0c03b076891559947e62027ccca86866c0044666d7c33715c1",
+        "bytes": 3663
+      }
+    ],
+    "metadata": {
+      "rsasl-2.3.1/Cargo.toml.orig": "[package]\nname = \"rsasl\"\nversion = \"2.3.1\"\nauthors = [\"Nadja Reitzenstein <dequbed@paranoidlabs.org>\"]\ncategories = [\"authentication\", \"api-bindings\", \"network-programming\"]\ndocumentation = \"https://docs.rs/rsasl\"\nedition = \"2021\"\nhomepage = \"https://codeberg.org/dequbed/rsasl\"\n# Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when\n# rsasl is only used as a dependency.\ninclude = [\n    \"Cargo.toml\",\n    \"/src/\",\n    \"README.md\",\n    \"CHANGELOG.md\",\n    \"LICENSE.MIT\",\n    \"LICENSE.APACHE-2.0\",\n    \"/docs/\",\n    \"/tests/\",\n    \"/examples/\"\n]\nkeywords = [\"sasl\", \"authentication\", \"sso\", \"framework\", \"middleware\"]\nlicense = \"Apache-2.0 OR MIT\"\nreadme = \"README.md\"\nrepository = \"https://codeberg.org/dequbed/rsasl\"\nrust-version = \"1.65.0\"\ndescription = \"\"\"\nThe Rust SASL framework, aimed at both middleware-style protocol implementation and application code.\nDesigned to make SASL authentication simple and safe while handing as much control to the user as possible.\n\"\"\"\n\n[package.metadata.docs.rs]\nall-features = true\n\n[features]\ndefault = [\n    \"config_builder\",\n    # See https://github.com/dtolnay/linkme/issues/49\n    # \"registry_static\",\n    \"scram-sha-1\",\n    \"scram-sha-2\",\n    \"anonymous\",\n    \"external\",\n    \"oauthbearer\",\n    \"xoauth2\",\n    \"plain\",\n    \"login\",\n    \"gssapi\"\n]\n\n#! # Compile-time mechanism selection\n## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`\nscram-sha-1 = [\"std\", \"dep:stringprep\", \"dep:hmac\", \"dep:digest\", \"dep:sha1\", \"dep:base64\", \"dep:rand\", \"dep:pbkdf2\"]\n## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`\nscram-sha-2 = [\"std\", \"dep:stringprep\", \"dep:hmac\", \"dep:digest\", \"dep:sha2\", \"dep:base64\", \"dep:rand\", \"dep:pbkdf2\"]\n## Enable `ANONYMOUS`\nanonymous = [\"std\"]\n## Enable `EXTERNAL`\nexternal = [\"std\"]\n## Enable `PLAIN`\nplain = [\"std\", \"dep:stringprep\"]\n## Enable `LOGIN`\nlogin = [\"std\"]\n## Enable `XOAUTH2`\nxoauth2 = [\"std\"]\n## Enable the OAuth2 based `OAUTHBEARER`\noauthbearer = [\"std\", \"dep:serde\", \"serde_json\"]\n\n## Enable the KerberosV5 mechanism `GSSAPI`\ngssapi = [\"std\", \"dep:libgssapi\", \"dep:bitflags\"]\n\n#! # Provider flags\n#! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing\n#! network protocols\n\n## Enable provider mode\n##\n## This feature enables all the required code for providers, e.g. code surrounding `Session`\nprovider = [\"std\"]\n## Enable transparent Base64 wrapping for provider mode\n##\n## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate\nprovider_base64 = [\"std\", \"provider\", \"dep:base64\"]\n\n#! # Supplier flags\n#! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use\n#! of protocol implementations with rsasl support\n## Enable the ConfigBuilder\nconfig_builder = [\"std\"]\n\n## Enables the static registry using `linkme`\nregistry_static = [\"std\", \"dep:linkme\"]\n\n#! # Misc flags\n#! Other miscellanious flags\n\n## Enable utilities for testing authentication and SASL handling\ntestutils = [\"std\", \"config_builder\"]\n\n## Enable adding custom mechanisms.\n##\n## **NOTE: This flag indicates an opt-out of SemVer stability guarantees**\n##\n## The code for adding mechanism from other crates has not stabilized yet and is subject to *breaking* changes even in\n## a minor release.\nunstable_custom_mechanism = [\"std\"]\n\n## Enable use of libstd\n## If this flag is not set, rsasl is marked !\\[no_std\\]. However, currently this flag will *always* be enabled as core\n## parts of rsasl depend on the stdlib.\nstd = [\"serde_json/std\"]\n\n[dependencies]\nbase64 = { version = \"0.22.1\", optional = true }\nbitflags = { version = \"2.6.0\", optional = true }\ndigest = { version = \"0.10.7\", optional = true }\ndocument-features = { version = \"0.2.10\", optional = true }\nhmac = { version = \"0.12.1\", optional = true, features = [\"reset\"] }\nlibgssapi = { version = \"0.7.2\", optional = true, default-features = false }\nlinkme = { version = \"0.3.31\", optional = true, default-features = false }\npbkdf2 = { version = \"0.12.2\", optional = true, default-features = false }\nrand = { version = \"0.8.5\", optional = true }\nsha1 = { version = \"0.10.6\", optional = true }\nsha2 = { version = \"0.10.8\", optional = true }\nstringprep = { version = \"0.1.5\", optional = true, default-features = false }\nthiserror = { version = \"2.0.11\", default-features = false }\n\n[dependencies.serde]\nversion = \"1.0.217\"\noptional = true\ndefault-features = false\nfeatures = [\"alloc\", \"derive\"]\n\n[dependencies.serde_json]\nversion = \"1.0.132\"\noptional = true\ndefault-features = false\nfeatures = [\"alloc\"]\n\n[dev-dependencies]\nstatic_assertions = \"1.1.0\"\n\n[lints.rust]\nnon_upper_case_globals = \"allow\"\nnon_camel_case_types = \"allow\"\n\n[lints.clippy]\nall = { level = \"warn\", priority = -1 }\npedantic = { level = \"warn\", priority = -1 }\nnursery = { level = \"warn\", priority = -1 }\nexhaustive_enums = \"warn\"\nexhaustive_structs = \"warn\"\ndoc_markdown = \"allow\"\nmodule_name_repetitions = \"allow\"\ninline_always = \"allow\"\nmissing_errors_doc = \"allow\"\nbox_default = \"allow\"\n\n[[example]]\nname = \"client_simple\"\nrequired-features = [\"provider\", \"plain\"]\n\n[[example]]\nname = \"server_plain\"\nrequired-features = [\"provider\", \"plain\"]\n\n[[example]]\nname = \"server_scram\"\nrequired-features = [\"provider\", \"plain\", \"scram-sha-2\"]\n\n[[example]]\nname = \"mechanism_selection\"\nrequired-features = [\"provider\", \"login\", \"plain\", \"scram-sha-1\", \"scram-sha-2\"]\n",
+      "rsasl-2.3.1/README.md": "# The Rust SASL framework\n\n[![Latest Version]][crates.io]\n[![docs]][docs.rs]\n![maintenance]\n![license]\n![msrv]\n\nrsasl is an framework for [RFC 4422](https://tools.ietf.org/html/rfc4422); the Simple Authentication and Security\nLayer - aka SASL.\n\nIt is designed to enable implementing SASL support in protocol handling crates while abstracting away the details,\nallowing downstream users to select available mechanisms and add support for additional mechanisms without any\nchanges required in the protocol handling crate.\n\nrsasl provide a number of mechanisms by itself:\n\n- ANONYMOUS\n- EXTERNAL\n- GSSAPI\n- LOGIN\n- OAUTHBEARER\n- PLAIN\n- SCRAM-SHA-1 and SCRAM-SHA-1-PLUS\n- SCRAM-SHA-256 and SCRAM-SHA-256-PLUS\n- SCRAM-SHA-512 and SCRAM-SHA-512-PLUS\n- XOAUTH2\n\nSupport for the following mechanisms was available in rsasl 1 but is not yet implemented in rsasl 2:\n\n- OPENID20\n- SAML20\n- GS2-KRB5\n- KERBEROS_V5\n- NTLM\n- SECURID\n- CRAM-MD5\n- DIGEST-MD5\n\nAdditional mechanisms can be implemented by other crates. (**NOTE: In the current `v2.0.0` this feature is unstable**)\n\n## Conditional compilation of mechanism\n\nrsasl allows users to select the available mechanisms at compile time using cargo features.\nFor an overview refer to the module documentation of `rsasl::mechanisms`.\n\n## MSRV - Minimum Supported Rust Version\n\nThe current msrv rsasl is Rust `0`, however do note that certain features (e.g. `registry_static`) have\ndependencies with much more recent msrv.\n\n## Versions\n\nThe [CHANGELOG.md](CHANGELOG.md) contains a detailed release history, including added features and fixed bugs.\n\nMajor version 1 of this crate uses [gsasl-sys](https://crates.io/crates/gsasl-sys) which are binding\nto [GNU gsasl](https://www.gnu.org/software/gsasl). This makes the use of `unsafe` code and FFI necessary.\nYou can find the latest 1.X.Y version in the [branch `1.X.X`](https://codeberg.org/dequbed/rsasl/src/branch/1.X.X)\n\nVersion `2.0.0` is a pure-Rust rewrite of this crate that is able to drop almost all `unsafe` code from the crate.\nThe `main` branch contains the tagged stable releases, the current state of development can be found in the `development` state.\n\n## License\n\nVersion 2 and later of this library are dual licensed under both [Apache-2.0](LICENSE.APACHE-2.0) and\n[MIT](LICENSE.MIT), at your option.\n\n## Examples\n\nYou can find a few examples on [Codeberg](https://codeberg.org/dequbed/rsasl/src/branch/development/examples).\n\n[Latest Version]: https://img.shields.io/crates/v/rsasl.svg\n[crates.io]: https://crates.io/crates/rsasl\n[docs]: https://docs.rs/rsasl/badge.svg\n[docs.rs]: https://docs.rs/rsasl/\n[maintenance]: https://img.shields.io/badge/maintenance-actively%20developed-green.svg\n[license]: https://img.shields.io/crates/l/rsasl\n[msrv]: https://img.shields.io/badge/rust%20msrv-1.65.0-blueviolet\n"
+    }
+  },
+  {
+    "name": "sspi",
+    "version": "0.23.0",
+    "archive_sha256": "256b74a75c961d4eb11e0e302a4451cdc51d713d5f26b2ede8156ba61cca5d7e",
+    "members": [
+      {
+        "path": "sspi-0.23.0/.cargo_vcs_info.json",
+        "sha256": "92de5203865de2091a45a5b3ab94c442d9d82c163e1a700091e667722e474083",
+        "bytes": 94
+      },
+      {
+        "path": "sspi-0.23.0/.github/CODEOWNERS",
+        "sha256": "67bf6c630443f0b46717cec48d022d296ca4ab408dfd12ff8082798ceca4f499",
+        "bytes": 167
+      },
+      {
+        "path": "sspi-0.23.0/.github/dependabot.yml",
+        "sha256": "c57a041498c227749d7f91c4460a6419b4b5ea0d1714766d4b6bd27bddfbe94f",
+        "bytes": 745
+      },
+      {
+        "path": "sspi-0.23.0/.github/workflows/build-native.yml",
+        "sha256": "6ac181c4b0a540411ce3d183422576b99044f0d093f0e24d1e9d4eac904aa361",
+        "bytes": 24267
+      },
+      {
+        "path": "sspi-0.23.0/.github/workflows/ci.yml",
+        "sha256": "51f607d1df8d7dd2b1554b717210f89c90a1ce60d0657ee6d5c4500bf59e5cab",
+        "bytes": 9006
+      },
+      {
+        "path": "sspi-0.23.0/.github/workflows/nuget.yml",
+        "sha256": "b59c9d894f07ff0fc99027a9516627c812ff685603cfd6b8894b4d1c368075f7",
+        "bytes": 10181
+      },
+      {
+        "path": "sspi-0.23.0/.github/workflows/release-crates.yml",
+        "sha256": "7007142278ff8a2b0aba07e0379cf26792265bbb2e3656fdf17162da9412d93b",
+        "bytes": 1481
+      },
+      {
+        "path": "sspi-0.23.0/.gitignore",
+        "sha256": "24466902c937803aa81af2e2422608aee7b1afebedea06716685ca9a5155adfa",
+        "bytes": 6908
+      },
+      {
+        "path": "sspi-0.23.0/CHANGELOG.md",
+        "sha256": "637d4074b017662d7422176e937abd0f0de379e93d41b2ac287190b3d66fa617",
+        "bytes": 27322
+      },
+      {
+        "path": "sspi-0.23.0/Cargo.lock",
+        "sha256": "dc71e59e2d089d5272747bfd548881d22057402c241b93c63ba73105fb82ba85",
+        "bytes": 83174
+      },
+      {
+        "path": "sspi-0.23.0/Cargo.toml",
+        "sha256": "7a18d45490dae9b889f5174278b7e384187c9fb5398c740bb9db17c1865a6dfe",
+        "bytes": 7933
+      },
+      {
+        "path": "sspi-0.23.0/Cargo.toml.orig",
+        "sha256": "ad14053ecb63ca3f363d7d3ed8f040d6253e6545cdd3719daf8a3fb32a61b414",
+        "bytes": 7327
+      },
+      {
+        "path": "sspi-0.23.0/Info.plist",
+        "sha256": "67fe5d963d5fa0ec385d4853b020c4873ac686ce2ab74d9436e628a2afbd7d5a",
+        "bytes": 788
+      },
+      {
+        "path": "sspi-0.23.0/LICENSE-APACHE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "bytes": 11358
+      },
+      {
+        "path": "sspi-0.23.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023
+      },
+      {
+        "path": "sspi-0.23.0/README.md",
+        "sha256": "60ca9cb24a3fa56a6737a2f01b31eb624f83211d5f9e172f027944375f7fa16c",
+        "bytes": 5006
+      },
+      {
+        "path": "sspi-0.23.0/cliff.toml",
+        "sha256": "8b1a3741d9cfd9ef9758f6b861a1b0de619f27e5b16569fe2be874f0f2281905",
+        "bytes": 3095
+      },
+      {
+        "path": "sspi-0.23.0/clippy.toml",
+        "sha256": "c3779f1f16fb1f25c5f2bc5622ab919ff4c49efefc27c916b75df597e07f9e4a",
+        "bytes": 81
+      },
+      {
+        "path": "sspi-0.23.0/examples/client.rs",
+        "sha256": "057e29e8b2cb00ca8a27a7cdeed2a6c38a6c33ff113605e98bbdfca9924ae9aa",
+        "bytes": 6333
+      },
+      {
+        "path": "sspi-0.23.0/examples/kerberos.rs",
+        "sha256": "50c59464193b7f39f825a9223e9d2422bfec2aa965e30b0830bde0be5a6b3e1c",
+        "bytes": 6396
+      },
+      {
+        "path": "sspi-0.23.0/examples/server.rs",
+        "sha256": "16e583899f429d66a6d32b0c0a69384390924a6ea33c9b3a33271d3450776440",
+        "bytes": 5772
+      },
+      {
+        "path": "sspi-0.23.0/proptest-regressions/auth_identity.txt",
+        "sha256": "425adc08381da01fc9619e0ff33eb89e4ab9db7e22fc176301dae9820ab4b480",
+        "bytes": 708
+      },
+      {
+        "path": "sspi-0.23.0/release-plz.toml",
+        "sha256": "f0e631202c8b8805bd45ec688ffb9f2adcf710d01f610b231f0abe52a37eea27",
+        "bytes": 251
+      },
+      {
+        "path": "sspi-0.23.0/rust-toolchain.toml",
+        "sha256": "321b8e8e83ffcee28af583db93771cf3be2c44bc7df30aa8231ac3e6c71b1c1c",
+        "bytes": 68
+      },
+      {
+        "path": "sspi-0.23.0/rustfmt.toml",
+        "sha256": "694c6ddbc6f5ff4a55a6f97b6c09123b4a33a4905809f46e8b013ff6e7c0144a",
+        "bytes": 104
+      },
+      {
+        "path": "sspi-0.23.0/src/auth_identity.rs",
+        "sha256": "e563a07fb27a2dcb157255fb41b7f82e0f892f40d0bf406a24bb7b57f937ffda",
+        "bytes": 42065
+      },
+      {
+        "path": "sspi-0.23.0/src/ber/mod.rs",
+        "sha256": "be4fdd9195eca34e12398d5a9a26fb83fe4dc4627d7620e04e5034282184145b",
+        "bytes": 8735
+      },
+      {
+        "path": "sspi-0.23.0/src/ber/tests.rs",
+        "sha256": "5d260bc327aa389c6f9555ab0143ba52bbf39f6ab5df43626a209a76e1445f6d",
+        "bytes": 6649
+      },
+      {
+        "path": "sspi-0.23.0/src/builders/accept_sec_context.rs",
+        "sha256": "d6d6361ec7db366a1c5b11342ec857408bb726429109fd718983683c84a5fb1d",
+        "bytes": 8962
+      },
+      {
+        "path": "sspi-0.23.0/src/builders/acq_cred_handle.rs",
+        "sha256": "9b3bbec8cdf8ce5565286c99cc81701b321fc8d03d17e8986fba1a9896fee72c",
+        "bytes": 6400
+      },
+      {
+        "path": "sspi-0.23.0/src/builders/change_password.rs",
+        "sha256": "f5a61e05faac0aa93cb423ebd6cd91a7920751be2cdb8a1ca1ad97a8c80e8c70",
+        "bytes": 3393
+      },
+      {
+        "path": "sspi-0.23.0/src/builders/init_sec_context.rs",
+        "sha256": "6f5d95e81540252e686a94d3f759b4f1f120eb594b5a33b0ed3667281e748538",
+        "bytes": 10568
+      },
+      {
+        "path": "sspi-0.23.0/src/builders/mod.rs",
+        "sha256": "e8cbd1a87da6763368020421eee8a92ae1b09aaa1cbcef1410b9ceb9770f14fd",
+        "bytes": 3850
+      },
+      {
+        "path": "sspi-0.23.0/src/channel_bindings.rs",
+        "sha256": "0ee8bdf252cc88e489fac431121f818b9dcf2dd49eb7a27158e925c000f395bf",
+        "bytes": 6770
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/mod.rs",
+        "sha256": "e940787bc4b1a13f1bf94174b469037a0cf24c7db728e6398bf6a162f12183fe",
+        "bytes": 60586
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/cipher_block_size.rs",
+        "sha256": "b62afe6b9d5429594656c8e40806ef37d4b85e517c829d024fd7cbb098d771df",
+        "bytes": 4136
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/mod.rs",
+        "sha256": "31f7b69a7679c4bf173b3768dd3b7e341b12b78e12ed7dca1acdff0a21d8acfd",
+        "bytes": 25416
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/sspi_cred_ssp/tls_connection.rs",
+        "sha256": "840ec0b86d3a4949e497bdcbf2fa608e8263414cc6a948fb66aeb60c55d51065",
+        "bytes": 22114
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/ts_request/mod.rs",
+        "sha256": "5d231544dd4f8b6f213f295b751b30e2c4c7172a2d33cf70affe35fba9ed3e5d",
+        "bytes": 24090
+      },
+      {
+        "path": "sspi-0.23.0/src/credssp/ts_request/test.rs",
+        "sha256": "68ac5cd8d26755840fceafb65af3818585b5ed18505e6130f8b3be8086c2eebc",
+        "bytes": 30432
+      },
+      {
+        "path": "sspi-0.23.0/src/crypto/mod.rs",
+        "sha256": "5e110f880acb713e76716f1dc8bb8ea45fe2f9d346815f40e13758ef0e031374",
+        "bytes": 2807
+      },
+      {
+        "path": "sspi-0.23.0/src/crypto/rc4.rs",
+        "sha256": "c63d12fc46163501bcbfc3fd3e41561f2e0bb6594e77f9718bbca25a245f8227",
+        "bytes": 5245
+      },
+      {
+        "path": "sspi-0.23.0/src/dns.rs",
+        "sha256": "2eb3a7042480c62e338a5156c67a5b169e24aa354c26b5daa2d43741bb3c0356",
+        "bytes": 26390
+      },
+      {
+        "path": "sspi-0.23.0/src/generator.rs",
+        "sha256": "b42bfabe5f35f61b5ca22e5fe6e67ef6ff76f8549089c865d000c183faa04e73",
+        "bytes": 8059
+      },
+      {
+        "path": "sspi-0.23.0/src/kdc.rs",
+        "sha256": "10a6693f0bba80cb388061a5ebcffc45c9b31191dcc5878b0a78fbea524df119",
+        "bytes": 3102
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/as_exchange.rs",
+        "sha256": "4280b03716004bed55cecd7192d4f9a823a3e8479ec5fe5d3dea38b1221e2517",
+        "bytes": 4704
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/change_password.rs",
+        "sha256": "058b171fecc8eb5a24e4ff2d652b53b979a179f916895b5355846e9cfb95e732",
+        "bytes": 5681
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/extractors.rs",
+        "sha256": "8cb919d0ec3247764b3e9d61597b48afdb4f4f61b66c83c2843ee83913581853",
+        "bytes": 13149
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/generators.rs",
+        "sha256": "61ad0e1a1ff9225d7bf2daa95301ea863fc1b3b6267dc10edf9bb0e53db462ab",
+        "bytes": 43295
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/mod.rs",
+        "sha256": "42f45e58953b6deef83ab9756191d12d9c7060cab072f81010af53428051cf9f",
+        "bytes": 28287
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/client/principal.rs",
+        "sha256": "68408d3e85b0fb8aa095a56f376e7e91a9e2d75bbbec0d4eac6e55d0cc01a54a",
+        "bytes": 9230
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/config.rs",
+        "sha256": "3e40bcae9932e9e7ce496a11fcedf5da9a6b8fffb22336533e68155daac47aa5",
+        "bytes": 2918
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/encryption_params.rs",
+        "sha256": "571d45d67eef417318cd3a38f2d5936a715b3906709cdca8561d7c4e231de82c",
+        "bytes": 2333
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/flags.rs",
+        "sha256": "8a34dde70c5a9a0edee073657ba79f9749fbb9696f0b92246ffd81d3b0dfea9c",
+        "bytes": 1828
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/messages.rs",
+        "sha256": "e3039197383f9b6e3e2dd70513dddc3786d868e3e6a178012bd1c185008c9b19",
+        "bytes": 1280
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/mod.rs",
+        "sha256": "1bb920b81c2d0ac2f19af491d373dd7e47b1126e37dab48b458da03698aed51d",
+        "bytes": 37849
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/pa_datas.rs",
+        "sha256": "762b2565f1a70227e6f1c5f68dd653abc2796b6edeec02f869aa15062c9c7685",
+        "bytes": 6524
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/server/as_exchange.rs",
+        "sha256": "d8bce24976a65cc7d310d4f081c3b74e8339eaa47c8b55b4dadcf0675c29d597",
+        "bytes": 5181
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/server/cache.rs",
+        "sha256": "07b7f477099f2dde4dddd9e3e451d8806222b0bb019305df34d03f897324f24b",
+        "bytes": 2263
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/server/extractors.rs",
+        "sha256": "0798449f613c869e0d7ec0fc42ac9116203eb013918af32a05ee0a5b8d4364b1",
+        "bytes": 2258
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/server/generators.rs",
+        "sha256": "303b17e715fa2af80f46bf6805ed8c7dff4ee50cfd14304c6a6904eb1a6846bb",
+        "bytes": 2474
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/server/mod.rs",
+        "sha256": "00dbce639e443b56daef8865ea9a1e910be950524e1b2d0e2580d2d27d35a677",
+        "bytes": 26886
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/tests.rs",
+        "sha256": "df3f1e66c29cac52157785281a3f2517b0ec08c42583cf7bc7d9f4758b6e5917",
+        "bytes": 14295
+      },
+      {
+        "path": "sspi-0.23.0/src/kerberos/utils.rs",
+        "sha256": "5d4b09d29cac953a980bbd7ac4342a25b0fa5a3c6fed81de4aa8c0189d83e458",
+        "bytes": 3971
+      },
+      {
+        "path": "sspi-0.23.0/src/krb.rs",
+        "sha256": "de93baacc1e8aa716101ebd3ce8438a943c34ed4f7bc8ef7edcade47dbd684b2",
+        "bytes": 6067
+      },
+      {
+        "path": "sspi-0.23.0/src/lib.rs",
+        "sha256": "867df19d744e5ddb0e8da2f060601626f1c8b4838439a6802bafc73c6a359219",
+        "bytes": 102392
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/client.rs",
+        "sha256": "c9b4dd8a8e9aff337feca0504e3b37d2c7868ab5c0f3e6948d7a3acd9316ca31",
+        "bytes": 14366
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/config.rs",
+        "sha256": "fef7704c5458bf3c8dbd5227afd09c4e4a42b8afd15f58cf974d2e6721732b5a",
+        "bytes": 2322
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/extractors.rs",
+        "sha256": "c9ff1d44be25f33a6e5d013bdbb271e90375fa651ff28c16b8a468d144c8b299",
+        "bytes": 3039
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/generators.rs",
+        "sha256": "d9620087e6fe28db59c9bbc662925e2c651f94429300e3bddfc3b8db744be55d",
+        "bytes": 3886
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/mod.rs",
+        "sha256": "e87dd4c13968a06dcd95ff70781f6bd86a4bb4be979a19bda73ce5af500259ba",
+        "bytes": 37327
+      },
+      {
+        "path": "sspi-0.23.0/src/negotiate/server.rs",
+        "sha256": "defbb88d9d39695af9568cc47ecd2bf876dcc8de1121424b4541610ca39e2d77",
+        "bytes": 11777
+      },
+      {
+        "path": "sspi-0.23.0/src/network_client.rs",
+        "sha256": "d5f327b30af2a663b229d6b533038957441cd217e50b34b3019b821f6cd9ed16",
+        "bytes": 8320
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/config.rs",
+        "sha256": "b8813a3efb2a2cff0a88cfca87cebc8d535ce38f785e95ea391bc6c822f29986",
+        "bytes": 812
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/hash.rs",
+        "sha256": "b1282f054db2ef351a314eecc37813348628ae07d0bedc4ab8fbc22c57dd8d38",
+        "bytes": 7238
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/av_pair.rs",
+        "sha256": "bb5a6de83b552eb053a2649d92e70741b0fa73899885ec6e8885a741524b6890",
+        "bytes": 8136
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/client/authenticate.rs",
+        "sha256": "0e27fb6b9416d8c8bc6a19ba2ae729cff201526bed62709c2dde41fe5fffb785",
+        "bytes": 10957
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/client/challenge.rs",
+        "sha256": "643212331e2edbd49d925669cecdbfc145f5314d8db5c5921a29ce8277d3ebf8",
+        "bytes": 2770
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/client/negotiate.rs",
+        "sha256": "a6562a426652e92ff8f45ac0aad10db1208b117fd52cd1408798c0dad78d84d6",
+        "bytes": 4326
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/client/test.rs",
+        "sha256": "aa1d626d2df31cdbeb8534aa1d3cb430e40eacc03f2af8c959b4eacfe4f8a397",
+        "bytes": 14011
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/client.rs",
+        "sha256": "0bd03bf328c76d0f4c9d362844e6781ff59b618634177c226b6ffe3a7b869b62",
+        "bytes": 224
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/computations/test.rs",
+        "sha256": "d6d107868240536ca135b27b6d6e473e8bb71b2fd27dfdaefeffcca319508cf9",
+        "bytes": 15180
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/computations.rs",
+        "sha256": "d50e7fc97df40c4ed2f5d2a06d2e09b0508898e616e4f9ca0a2c317f077eb285",
+        "bytes": 10586
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/mod.rs",
+        "sha256": "5ef90b96f01a6bfc3bd73358d3b4ab14d2910dc17c3278914debb70d97b9d359",
+        "bytes": 4236
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server/authenticate.rs",
+        "sha256": "889a61cc3b2d942b7ce913082c320466744dccbc3c56a9c7b54cfd632fba99ec",
+        "bytes": 8256
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server/challenge.rs",
+        "sha256": "8d45193ae6ae44ee06d6874a1a93a5ae10f878b9df607d7b2abbe2c9ea7288c5",
+        "bytes": 3858
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server/complete_authenticate.rs",
+        "sha256": "f4003b10a997671754a75b954a0fccfd672656f58b8488baca5c057d6a6e2392",
+        "bytes": 6963
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server/negotiate.rs",
+        "sha256": "5edbb29f15bb230e62af089638f1b0e5fc9c46a6e8bd0a3d6724c45c134a3666",
+        "bytes": 2093
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server/test.rs",
+        "sha256": "b88bcb34c7269b7a0602c801974a7747bb88d43477b8de3c91eb729d2d91f1f6",
+        "bytes": 29580
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/server.rs",
+        "sha256": "a46d963663d3349871b62b8fa2697f6165707244a5a0bef0a611b305e12103ed",
+        "bytes": 317
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/messages/test.rs",
+        "sha256": "fea546866e10fbd00b0abe79958e813bcd38ece3546a2b1e10acd7767775a819",
+        "bytes": 7169
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/mod.rs",
+        "sha256": "091afe5d1a1fbae697b5fdf81244f0aca872faa18638588180f6c050de9d19f1",
+        "bytes": 34812
+      },
+      {
+        "path": "sspi-0.23.0/src/ntlm/test.rs",
+        "sha256": "561dd27c84a3814b41495c5d8621f6137c4af91183989826aff28c177fea9e04",
+        "bytes": 40124
+      },
+      {
+        "path": "sspi-0.23.0/src/pk_init.rs",
+        "sha256": "7588616b389ebf16bfc3d7f2695d33d98d6a35528ac4644d22a7729b62dc6c98",
+        "bytes": 12661
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/cert_utils/mod.rs",
+        "sha256": "94e415c8bb11c7d907d9f610913cfc6bb446e756acde8b40f43b549ed0571df9",
+        "bytes": 164
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/cert_utils/validation.rs",
+        "sha256": "44c5ff7608e968ed4cda6031b55642dd620b45a283e989a67dfdc8e011943662",
+        "bytes": 4827
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/cert_utils/win_extraction.rs",
+        "sha256": "3f47f5d2f389827369d4f7056c94d6adf22fab75ad535b5a5ce960ae02076a5d",
+        "bytes": 15879
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/config.rs",
+        "sha256": "674db314d31cfdb7772f0d758ec02aedee2d2c07abd8dac86472327bc6240988",
+        "bytes": 4223
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/extractors.rs",
+        "sha256": "471bba55cb892904b6db84953eb2d3f82030a15e13de492dccebdcd1e95d50aa",
+        "bytes": 7617
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/generators.rs",
+        "sha256": "313f074c8b11f36baba704b34b2c77cfc27137de8acb0414fd75335ee1ae08cc",
+        "bytes": 22916
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/macros.rs",
+        "sha256": "0f32d308c3e0d115696feda8f77f5252a8a9404ce76149715b47e0b08373d3af",
+        "bytes": 1517
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/mod.rs",
+        "sha256": "1504f63b53c9d734f7d3f01fb7d4436d72fd61e06ca7e84df4e3a2577cff29e3",
+        "bytes": 102263
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/server.rs",
+        "sha256": "874209a898928ce26da0d92fa38901f60e5e6f1c94b35e24ef6dfb034d5bf197",
+        "bytes": 47724
+      },
+      {
+        "path": "sspi-0.23.0/src/pku2u/validate.rs",
+        "sha256": "d28d99ea46202fde942f3f4a55098445e6d0ca0d7b3703a356699584d4834921",
+        "bytes": 3717
+      },
+      {
+        "path": "sspi-0.23.0/src/rustls.rs",
+        "sha256": "12f84657c05ef5d4c77ee8d7d89322fa51be43c76fb7755e6031bb9a31943a53",
+        "bytes": 2372
+      },
+      {
+        "path": "sspi-0.23.0/src/secret.rs",
+        "sha256": "6a3899e62b14a689b1af26c89ad5e4475812bb9e59ad5d005b29bc05d971a20d",
+        "bytes": 1701
+      },
+      {
+        "path": "sspi-0.23.0/src/security_buffer.rs",
+        "sha256": "51910cf3856f6d7f52d2e7a1332418a38d1e563bc1673afecf3133130910e4bf",
+        "bytes": 18910
+      },
+      {
+        "path": "sspi-0.23.0/src/smartcard.rs",
+        "sha256": "f8b6014d4533d106e00acc97625674007809268a736a4b7ac1b2221c5340cc49",
+        "bytes": 13401
+      },
+      {
+        "path": "sspi-0.23.0/src/utf16string.rs",
+        "sha256": "80c4db37f9f3fcf0cf39f2a5306aa270252d6d1fa70914bdc2b53749cef1dc3d",
+        "bytes": 16201
+      },
+      {
+        "path": "sspi-0.23.0/src/utils.rs",
+        "sha256": "f018af026c4bb4fbe023a652db28dcd753f700fa1ccf94d14374c97950869b27",
+        "bytes": 16363
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/krb5.conf",
+        "sha256": "f920ab5b69f1287f794daaf0e5bd1c6b8289bf199c934729beab97d047a39c3d",
+        "bytes": 1371
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11.cer",
+        "sha256": "e81723ccd34731cac3cf749a7c457f4d3badf4a23723c511f3f1b3b761c154dc",
+        "bytes": 2114
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11_upper_case_upn.cer",
+        "sha256": "48e51f76bea19e0d3e6450c33e6fabfaf597d145aca41f4b64e2c57ef5278bad",
+        "bytes": 2114
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11_without_client_auth.cer",
+        "sha256": "cd05fcb2edb57eff3024a1adeee561fbb987b7ee4f9bd5dfdfb57a1cf7df3af0",
+        "bytes": 2102
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11_without_ext_key_usage.cer",
+        "sha256": "d669f17bc0d13c9f1e03ec7d1b4e18236ca445dd5e48be4d2d088209546aebf4",
+        "bytes": 2069
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11_without_scard_logon.cer",
+        "sha256": "6b32c5ddaf09b7842e3389d297be8b21ecfcb9851cb755b9f38817456615e82e",
+        "bytes": 2098
+      },
+      {
+        "path": "sspi-0.23.0/test_assets/pw11_without_upn.cer",
+        "sha256": "24e59692467ae9b352b8343d35f6478fb47b237d73794163040d99974c07e8cf",
+        "bytes": 2053
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/credssp.rs",
+        "sha256": "9ff0da13ee9dadf2912bb01a7c4d1a6530e7ab7c0520ed95411c7c7e47fbedbe",
+        "bytes": 9157
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/kerberos/context_validator.rs",
+        "sha256": "eca2bf78eabe4b64d379de6d04c3ebd305fa01a079b7b7b4cb58587b7d6ffbcd",
+        "bytes": 2474
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/kerberos/kdc.rs",
+        "sha256": "3359df7a3532bfcb054c1594fe8760f459fc27e6085b454f9cda08d56ae8547b",
+        "bytes": 27813
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/kerberos/mod.rs",
+        "sha256": "e35fb7566628ac59403a23fd2f2455397acc46cae06ec59bd2dc53f77bb428d4",
+        "bytes": 37159
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/kerberos/network_client.rs",
+        "sha256": "f9a6f39f11a54aab70d1c13d5e909a721e4c552ee5fa5d66cd6019be2c51a041",
+        "bytes": 1869
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/mod.rs",
+        "sha256": "1d61770811e6024b7166d032dced69edcfbca7bc451f83ea5a7faaca89d07317",
+        "bytes": 3908
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/negotiate.rs",
+        "sha256": "4c0d4107d68ee5d1faa834c397e127d240a8d7be928adf22bd603c1c54522f19",
+        "bytes": 5052
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/client_server/ntlm.rs",
+        "sha256": "77921a7d18c1cd49d18458918d528f637ffe5b1145f34b7f18b2e58a19862b24",
+        "bytes": 5752
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/common.rs",
+        "sha256": "260171658c97aa4bae4fe694d8b750c0b3a2ba2fed7958a02d8f0e5b850f1a64",
+        "bytes": 6934
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/main.rs",
+        "sha256": "077cce2d309e38590ca028963dcd8d01a8379dc7a7ede8fccf23c491f5c70cbf",
+        "bytes": 114
+      },
+      {
+        "path": "sspi-0.23.0/tests/sspi/ntlm.rs",
+        "sha256": "aadcf673ce876862882ec364dd1e0c69eae1ad0fbae69c1fe7da0c1db31376cc",
+        "bytes": 3263
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/AADJoin.csproj",
+        "sha256": "63ebfffaf8ad886de7e826ca0b15e02e741fb964e04782c72d151ca204613105",
+        "bytes": 346
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/AzureAD.cs",
+        "sha256": "77f6316824bc6c8562b23776c74c7edccd90283c80cc70821c5ad3b718b6db1a",
+        "bytes": 22146
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Creds/DeviceCreds.cs",
+        "sha256": "273a486c31aaf9852edd72939477406b8caa877cbeb1d67ac2e64f0402de8827",
+        "bytes": 1346
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Creds/UserCreds.cs",
+        "sha256": "0adf5edf27bc346d0e150f10b25f5246744d873a5f513861312ed138c0af987c",
+        "bytes": 896
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Messages/AuthResponse.cs",
+        "sha256": "e9cb7b2f7c620bac15d1e73c20dbe2c66ca9d06b1fba3719fc0637e613b30709",
+        "bytes": 1209
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Messages/JoinDeviceRequest.cs",
+        "sha256": "bd649e19e44b2a16de8c07ceabf41e2977e0a3daaaf4f7d1593ff4d22313f32e",
+        "bytes": 3012
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Messages/JoinDeviceResponse.cs",
+        "sha256": "c613c16a956261531acd11e72f60aae1ee4ca65c7bee752e24451bc246108a6c",
+        "bytes": 974
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Messages/P2PCertificatesResponse.cs",
+        "sha256": "301b96906ab2ba0f781faf4b40261d6b1550971b13fa230f747413764eb01fab",
+        "bytes": 652
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Messages/TenantAuthResponse.cs",
+        "sha256": "559156e4136830de2dcaeafa67632312b22ac29c4cac00fe1e9b2632509606ff",
+        "bytes": 766
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Options.cs",
+        "sha256": "c5949c172e42f58d5d13d3dcd05c3319cb807be6e7bab5ebfb1b66971eaad832",
+        "bytes": 1296
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Program.cs",
+        "sha256": "fdfd9e86d9839676e60d018c9b8db06ae3182210071eb89e711f9aaff238c077",
+        "bytes": 1955
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Utils/CryptoUtils.cs",
+        "sha256": "c1dcbae537bf13e980d89b76e1b952879dc62105aa2381d02eef09d4a54d3fe6",
+        "bytes": 5808
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin/Utils/JwtUtils.cs",
+        "sha256": "4cf815e6605f321cd28434e1f91f3cafe35367ecb232a4c912b25720bf36fcab",
+        "bytes": 5018
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/AADJoin.sln",
+        "sha256": "b7410e269e6f8c3bd233e0a238a4f5386708605061369686b8d96b9765f6837e",
+        "bytes": 1577
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/README.md",
+        "sha256": "06351a9dce9e67d54a3358b74f07d37fe8fcdd673faef7b1556944cc0cd99cf5",
+        "bytes": 3091
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/UnitTests/UnitTest1.cs",
+        "sha256": "ded80f3716774261b163893989862c5b9ff2b3e3f0f42c896f18716fb9a947f6",
+        "bytes": 18715
+      },
+      {
+        "path": "sspi-0.23.0/tools/aadjoin/UnitTests/UnitTests.csproj",
+        "sha256": "633c7ce7ae470b39c8633d36f7cbdd45539bf66937c3be88e26fdfc9a665c981",
+        "bytes": 574
+      }
+    ],
+    "metadata": {
+      "sspi-0.23.0/Cargo.toml.orig": "[package]\nname = \"sspi\"\nversion = \"0.23.0\"\nedition = \"2024\"\nreadme = \"README.md\"\nlicense = \"MIT OR Apache-2.0\"\nhomepage = \"https://github.com/devolutions/sspi-rs\"\nrepository = \"https://github.com/devolutions/sspi-rs\"\nauthors = [\"Devolutions Inc. <infos@devolutions.net>\"]\ndescription = \"A Rust implementation of the Security Support Provider Interface (SSPI) API\"\nkeywords = [\"ntlm\", \"auth\", \"sspi\", \"windows\", \"kerberos\"]\nrust-version = \"1.93\"\n\n[workspace]\nresolver = \"2\"\nmembers = [\n  \"ffi\",\n  \"ffi/symbol-rename-macro\",\n  \"crates/winscard\",\n  \"crates/ffi-types\",\n  \"crates/dpapi\",\n  \"crates/dpapi-core\",\n  \"crates/dpapi-pdu\",\n  \"crates/dpapi-transport\",\n  \"crates/dpapi-native-transport\",\n  \"crates/dpapi-fuzzing\",\n  \"crates/dpapi-web\",\n  \"crates/kdc\",\n]\nexclude = [\n  \"tools/wasm-testcompile\",\n  \"tools/dpapi-cli-client\",\n]\n\n[workspace.lints.rust]\nunexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(fuzzing)'] }\n\n# == Correctness == #\nambiguous_negative_literals = \"warn\"\n\n# == Style, readability == #\nunreachable_pub = \"warn\"\nsingle_use_lifetimes = \"warn\"\nelided_lifetimes_in_paths = \"warn\"\nunused_lifetimes = \"warn\"\nredundant_lifetimes = \"warn\"\ntrivial_numeric_casts = \"warn\"\nunused_qualifications = \"warn\"\n\n[workspace.lints.clippy]\n\n# == Safer unsafe == #\nas_ptr_cast_mut = \"warn\"\nfn_to_numeric_cast_any = \"warn\"\nptr_cast_constness = \"warn\"\nunnecessary_safety_comment = \"warn\"\nmissing_safety_doc = \"warn\"\nas_pointer_underscore = \"warn\"\nundocumented_unsafe_blocks = \"warn\"\nmultiple_unsafe_ops_per_block = \"warn\"\n\n# == Correctness == #\nas_conversions = \"warn\"\nas_underscore = \"warn\"\nfiletype_is_file = \"warn\"\nfloat_cmp_const = \"warn\"\nfloat_cmp = \"warn\"\nget_unwrap = \"warn\"\nlossy_float_literal = \"warn\"\nmem_forget = \"warn\"\nmixed_read_write_in_expression = \"warn\"\nneedless_raw_strings = \"warn\"\nnon_ascii_literal = \"warn\"\npanic = \"warn\"\nrc_mutex = \"warn\"\nsuspicious_xor_used_as_pow = \"warn\"\nunused_result_ok = \"warn\"\n\n[workspace.dependencies]\nffi-types = { path = \"crates/ffi-types\" }\nwinscard = { version = \"0.4\", path = \"crates/winscard\" }\n\ndpapi = { version = \"0.0.0\", path = \"crates/dpapi\" }\ndpapi-core = { version = \"0.1.0\", path = \"crates/dpapi-core\" }\ndpapi-pdu = { version = \"0.1.0\", path = \"crates/dpapi-pdu\" }\ndpapi-transport = { version = \"0.1.0\", path = \"crates/dpapi-transport\" }\ndpapi-native-transport = { version = \"0.1.0\", path = \"crates/dpapi-native-transport\" }\n\n\n[features]\ndefault = [\"aws-lc-rs\"]\n\n# Enable reqwest for HTTP requests.\nnetwork_client = [\"dep:reqwest\", \"dep:portpicker\", \"dep:rustls-native-certs\", \"__rustls-used\"]\n# KDC discovery by querying DNS records.\ndns_resolver = [\"dep:hickory-resolver\", \"dep:hickory-proto\",\"dep:tokio\"]\n# TSSSP should be used only on Windows as a native CredSSP replacement.\ntsssp = [\"dep:rustls\", \"__rustls-used\"]\n# Turns on Kerberos smart card logon.\nscard = [\"dep:winscard\", \"dep:cryptoki\"]\n# Use AWS LC as TLS cryptography provider.\naws-lc-rs = [\"rustls?/aws-lc-rs\", \"__install-crypto-provider\"]\n# Use ring as TLS cryptography provider.\nring = [\"rustls?/ring\", \"reqwest?/rustls-tls-native-roots\", \"__install-crypto-provider\"]\n\n# Internal (PRIVATE!) features. Do not rely on these whatsoever. They may disappear at anytime.\n\n__test-data = []\n__rustls-used = [\"dep:rustls\"]\n__install-crypto-provider = []\n\n[dependencies]\nbitflags = \"2.11\"\nrand = \"0.10\"\nrand_core = \"0.10\"\ngetrandom = \"0.3\"\ncfg-if = \"1\"\npicky = { version = \"=7.0.0-rc.26\", default-features = false }\nsha1 = { version = \"0.11\", default-features = false }\nsha2 = \"0.11\"\nnum-derive = \"0.5\"\nnum-traits = { version = \"0.2\", default-features = true }\npicky-asn1-der = \"0.5\"\npicky-asn1-x509 = { version = \"0.15\", features = [\"pkcs7\"] }\nuuid = { version = \"1.23\", default-features = true, features = [\"v4\"] }\n# `rt-multi-thread` feature is required for `tokio::task::block_in_place` function.\ntokio = { version = \"1.52\", optional = true, features = [\"time\", \"rt\", \"rt-multi-thread\"] }\nwinscard = { workspace = true, optional = true }\nrsa = { version = \"=0.10.0-rc.18\", default-features = false }\ntracing = { version = \"0.1\", default-features = true }\nserde = \"1\"\npicky-krb = \"0.12\"\npicky-asn1 = { version = \"0.10\", features = [\"time_conversion\"] }\nbyteorder = \"1.5\"\ncrypto-bigint = { version = \"0.7\", default-features = false, features = [\"alloc\"] }\nhmac = \"0.13\"\nwidestring = \"1.2\"\n\nurl = \"2.5\"\n\nmd-5 = \"0.11\"\nmd4 = \"0.11\"\ncrypto-mac = \"0.11\"\noid = \"0.2\"\n\nreqwest = { version = \"0.12\", optional = true, default-features = false, features = [\"blocking\", \"rustls-tls-no-provider\"] }\nhickory-resolver = { version = \"0.25\", optional = true }\nhickory-proto = { version = \"0.25\", optional = true }\nportpicker = { version = \"0.1\", optional = true }\nrustls = { version = \"0.23\", optional = true, default-features = false, features = [\"logging\", \"std\", \"tls12\"] }\nrustls-native-certs = { version = \"0.8\", optional = true }\nzeroize = { version = \"1.8\", features = [\"zeroize_derive\"] }\nasync-recursion = \"1.1\"\nbytemuck = \"1.24\"\n\n[target.'cfg(windows)'.dependencies]\nwindows-registry = \"0.6\"\nwindows = { version = \"0.62\", features = [ \"Win32_Foundation\", \"Win32_System\", \"Win32_NetworkManagement_Dns\", \"Win32_Security_Cryptography\"] }\n\n[target.'cfg(target_arch = \"wasm32\")'.dependencies]\nuuid = { version = \"1.23\", default-features = false, features = [\"js\"]}\ngetrandom = { version = \"0.3\", features = [\"wasm_js\"] }\ntime = { version = \"0.3\", default-features = false, features = [\"wasm-bindgen\"] }\n\n[target.'cfg(not(target_arch = \"wasm32\"))'.dependencies]\ncryptoki = { version = \"0.12\", optional = true }\ntime = { version = \"0.3\", features = [\"std\"] }\n\n[target.'cfg(any(target_os = \"macos\", target_os = \"ios\"))'.dependencies]\nasync-dnssd = \"0.5\"\nfutures = \"0.3\"\ntokio = { version = \"1.52\", features = [\"time\", \"rt\", \"rt-multi-thread\"] }\n\n# Pin transitive dependencies\n# TODO: Remove when stable versions will be released\n# RustCrypto crates\npkcs1 = \"=0.8.0-rc.4\"\n\n[dev-dependencies]\nbase64 = \"0.23\"\nstatic_assertions = \"1\"\nwhoami = \"2.1\"\npicky = { version = \"=7.0.0-rc.26\", default-features = false, features = [\"x509\"] }\ntracing-subscriber = { version = \"0.3\", features = [\"env-filter\"] }\nproptest = \"1.6\"\ncfg-if = \"1\"\n\n[lints]\nworkspace = true\n\n[[example]]\nname = \"kerberos\"\nrequired-features = [\"network_client\"]\n\n[profile.ffi-production]\ninherits = \"release\"\nstrip = false\nsplit-debuginfo = \"packed\"\nlto = true\nopt-level = \"z\"\ncodegen-units = 1\npanic = \"abort\"\n\n# Optimize for speed the cryptographic libraries.\n[profile.ffi-production.package.crypto-bigint]\nopt-level = 3\n[profile.ffi-production.package.p256]\nopt-level = 3\n[profile.ffi-production.package.p384]\nopt-level = 3\n[profile.ffi-production.package.p521]\nopt-level = 3\n[profile.ffi-production.package.rsa]\nopt-level = 3\n[profile.ffi-production.package.sha1]\nopt-level = 3\n[profile.ffi-production.package.sha2]\nopt-level = 3\n[profile.ffi-production.package.sha3]\nopt-level = 3\n[profile.ffi-production.package.aes-gcm]\nopt-level = 3\n[profile.ffi-production.package.aes]\nopt-level = 3\n[profile.ffi-production.package.aes-kw]\nopt-level = 3\n[profile.ffi-production.package.argon2]\nopt-level = 3\n[profile.ffi-production.package.ctr]\nopt-level = 3\n[profile.ffi-production.package.cbc]\nopt-level = 3\n[profile.ffi-production.package.des]\nopt-level = 3\n[profile.ffi-production.package.pbkdf2]\nopt-level = 3\n[profile.ffi-production.package.hmac]\nopt-level = 3\n",
+      "sspi-0.23.0/LICENSE-APACHE": "\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for use, reproduction,\n      and distribution as defined by Sections 1 through 9 of this document.\n\n      \"Licensor\" shall mean the copyright owner or entity authorized by\n      the copyright owner that is granting the License.\n\n      \"Legal Entity\" shall mean the union of the acting entity and all\n      other entities that control, are controlled by, or are under common\n      control with that entity. For the purposes of this definition,\n      \"control\" means (i) the power, direct or indirect, to cause the\n      direction or management of such entity, whether by contract or\n      otherwise, or (ii) ownership of fifty percent (50%) or more of the\n      outstanding shares, or (iii) beneficial ownership of such entity.\n\n      \"You\" (or \"Your\") shall mean an individual or Legal Entity\n      exercising permissions granted by this License.\n\n      \"Source\" form shall mean the preferred form for making modifications,\n      including but not limited to software source code, documentation\n      source, and configuration files.\n\n      \"Object\" form shall mean any form resulting from mechanical\n      transformation or translation of a Source form, including but\n      not limited to compiled object code, generated documentation,\n      and conversions to other media types.\n\n      \"Work\" shall mean the work of authorship, whether in Source or\n      Object form, made available under the License, as indicated by a\n      copyright notice that is included in or attached to the work\n      (an example is provided in the Appendix below).\n\n      \"Derivative Works\" shall mean any work, whether in Source or Object\n      form, that is based on (or derived from) the Work and for which the\n      editorial revisions, annotations, elaborations, or other modifications\n      represent, as a whole, an original work of authorship. For the purposes\n      of this License, Derivative Works shall not include works that remain\n      separable from, or merely link (or bind by name) to the interfaces of,\n      the Work and Derivative Works thereof.\n\n      \"Contribution\" shall mean any work of authorship, including\n      the original version of the Work and any modifications or additions\n      to that Work or Derivative Works thereof, that is intentionally\n      submitted to Licensor for inclusion in the Work by the copyright owner\n      or by an individual or Legal Entity authorized to submit on behalf of\n      the copyright owner. For the purposes of this definition, \"submitted\"\n      means any form of electronic, verbal, or written communication sent\n      to the Licensor or its representatives, including but not limited to\n      communication on electronic mailing lists, source code control systems,\n      and issue tracking systems that are managed by, or on behalf of, the\n      Licensor for the purpose of discussing and improving the Work, but\n      excluding communication that is conspicuously marked or otherwise\n      designated in writing by the copyright owner as \"Not a Contribution.\"\n\n      \"Contributor\" shall mean Licensor and any individual or Legal Entity\n      on behalf of whom a Contribution has been received by Licensor and\n      subsequently incorporated within the Work.\n\n   2. Grant of Copyright License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      copyright license to reproduce, prepare Derivative Works of,\n      publicly display, publicly perform, sublicense, and distribute the\n      Work and such Derivative Works in Source or Object form.\n\n   3. Grant of Patent License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      (except as stated in this section) patent license to make, have made,\n      use, offer to sell, sell, import, and otherwise transfer the Work,\n      where such license applies only to those patent claims licensable\n      by such Contributor that are necessarily infringed by their\n      Contribution(s) alone or by combination of their Contribution(s)\n      with the Work to which such Contribution(s) was submitted. If You\n      institute patent litigation against any entity (including a\n      cross-claim or counterclaim in a lawsuit) alleging that the Work\n      or a Contribution incorporated within the Work constitutes direct\n      or contributory patent infringement, then any patent licenses\n      granted to You under this License for that Work shall terminate\n      as of the date such litigation is filed.\n\n   4. Redistribution. You may reproduce and distribute copies of the\n      Work or Derivative Works thereof in any medium, with or without\n      modifications, and in Source or Object form, provided that You\n      meet the following conditions:\n\n      (a) You must give any other recipients of the Work or\n          Derivative Works a copy of this License; and\n\n      (b) You must cause any modified files to carry prominent notices\n          stating that You changed the files; and\n\n      (c) You must retain, in the Source form of any Derivative Works\n          that You distribute, all copyright, patent, trademark, and\n          attribution notices from the Source form of the Work,\n          excluding those notices that do not pertain to any part of\n          the Derivative Works; and\n\n      (d) If the Work includes a \"NOTICE\" text file as part of its\n          distribution, then any Derivative Works that You distribute must\n          include a readable copy of the attribution notices contained\n          within such NOTICE file, excluding those notices that do not\n          pertain to any part of the Derivative Works, in at least one\n          of the following places: within a NOTICE text file distributed\n          as part of the Derivative Works; within the Source form or\n          documentation, if provided along with the Derivative Works; or,\n          within a display generated by the Derivative Works, if and\n          wherever such third-party notices normally appear. The contents\n          of the NOTICE file are for informational purposes only and\n          do not modify the License. You may add Your own attribution\n          notices within Derivative Works that You distribute, alongside\n          or as an addendum to the NOTICE text from the Work, provided\n          that such additional attribution notices cannot be construed\n          as modifying the License.\n\n      You may add Your own copyright statement to Your modifications and\n      may provide additional or different license terms and conditions\n      for use, reproduction, or distribution of Your modifications, or\n      for any such Derivative Works as a whole, provided Your use,\n      reproduction, and distribution of the Work otherwise complies with\n      the conditions stated in this License.\n\n   5. Submission of Contributions. Unless You explicitly state otherwise,\n      any Contribution intentionally submitted for inclusion in the Work\n      by You to the Licensor shall be under the terms and conditions of\n      this License, without any additional terms or conditions.\n      Notwithstanding the above, nothing herein shall supersede or modify\n      the terms of any separate license agreement you may have executed\n      with Licensor regarding such Contributions.\n\n   6. Trademarks. This License does not grant permission to use the trade\n      names, trademarks, service marks, or product names of the Licensor,\n      except as required for reasonable and customary use in describing the\n      origin of the Work and reproducing the content of the NOTICE file.\n\n   7. Disclaimer of Warranty. Unless required by applicable law or\n      agreed to in writing, Licensor provides the Work (and each\n      Contributor provides its Contributions) on an \"AS IS\" BASIS,\n      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\n      implied, including, without limitation, any warranties or conditions\n      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\n      PARTICULAR PURPOSE. You are solely responsible for determining the\n      appropriateness of using or redistributing the Work and assume any\n      risks associated with Your exercise of permissions under this License.\n\n   8. Limitation of Liability. In no event and under no legal theory,\n      whether in tort (including negligence), contract, or otherwise,\n      unless required by applicable law (such as deliberate and grossly\n      negligent acts) or agreed to in writing, shall any Contributor be\n      liable to You for damages, including any direct, indirect, special,\n      incidental, or consequential damages of any character arising as a\n      result of this License or out of the use or inability to use the\n      Work (including but not limited to damages for loss of goodwill,\n      work stoppage, computer failure or malfunction, or any and all\n      other commercial damages or losses), even if such Contributor\n      has been advised of the possibility of such damages.\n\n   9. Accepting Warranty or Additional Liability. While redistributing\n      the Work or Derivative Works thereof, You may choose to offer,\n      and charge a fee for, acceptance of support, warranty, indemnity,\n      or other liability obligations and/or rights consistent with this\n      License. However, in accepting such obligations, You may act only\n      on Your own behalf and on Your sole responsibility, not on behalf\n      of any other Contributor, and only if You agree to indemnify,\n      defend, and hold each Contributor harmless for any liability\n      incurred by, or claims asserted against, such Contributor by reason\n      of your accepting any such warranty or additional liability.\n\n   END OF TERMS AND CONDITIONS\n\n   APPENDIX: How to apply the Apache License to your work.\n\n      To apply the Apache License to your work, attach the following\n      boilerplate notice, with the fields enclosed by brackets \"[]\"\n      replaced with your own identifying information. (Don't include\n      the brackets!)  The text should be enclosed in the appropriate\n      comment syntax for the file format. We also recommend that a\n      file or class name and description of purpose be included on the\n      same \"printed page\" as the copyright notice for easier\n      identification within third-party archives.\n\n   Copyright [yyyy] [name of copyright owner]\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n",
+      "sspi-0.23.0/LICENSE-MIT": "Permission is hereby granted, free of charge, to any\nperson obtaining a copy of this software and associated\ndocumentation files (the \"Software\"), to deal in the\nSoftware without restriction, including without\nlimitation the rights to use, copy, modify, merge,\npublish, distribute, sublicense, and/or sell copies of\nthe Software, and to permit persons to whom the Software\nis furnished to do so, subject to the following\nconditions:\n\nThe above copyright notice and this permission notice\nshall be included in all copies or substantial portions\nof the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF\nANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED\nTO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A\nPARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT\nSHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY\nCLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION\nOF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR\nIN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER\nDEALINGS IN THE SOFTWARE.\n",
+      "sspi-0.23.0/README.md": "# sspi-rs\n\n[![](https://docs.rs/sspi/badge.svg)](https://docs.rs/sspi/) [![](https://img.shields.io/crates/v/sspi)](https://crates.io/crates/sspi)\n\n**sspi-rs** is a Rust implementation of [Security Support Provider Interface (SSPI)](https://docs.microsoft.com/en-us/windows/win32/rpc/security-support-provider-interface-sspi-). It ships with platform-independent implementations of [Security Support Providers (SSP)](https://docs.microsoft.com/en-us/windows/win32/rpc/security-support-providers-ssps-), and is able to utilize native Microsoft libraries when ran under Windows.\n\nThe purpose of sspi-rs is to clean the original interface from cluttering and provide users with Rust-friendly SSPs for execution under *nix or any other platform that is able to compile Rust.\n\n## Overview\n\nThe sspi-rs works in accordance with the MSDN documentation. At the moment, [NT LAN Manager (NTLM)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4) is implemented and available for platform independent execution. It is also possible to create your own SSPs by implementing the [`SspiImpl`]() trait.\n\n###### Ease of use\n\nSome SSPI functions tend to be cumbersome, that's why sspi-rs allows to use SSPI in a convenient way by utilizing builders.\n\n## Example\n\nThe usage of the SSPs is as simple as creating an instance of the security provider and calling its functions.\n\nHere is an example of acquiring a credentials handle and a timestamp of their validity:\n```rust\nuse sspi::{CredentialUse, Ntlm, Sspi, Username, builders::EmptyInitializeSecurityContext, SecurityBuffer, ClientRequestFlags, DataRepresentation, BufferType, SspiImpl};\n\nfn main() {\n    let account_name = \"example_user\";\n    let computer_name = \"example_computer\";\n    let mut ntlm = Ntlm::new();\n    let username = Username::new(&account_name, Some(&computer_name)).unwrap();\n    let identity = sspi::AuthIdentity {\n        username,\n        password: String::from(\"example_password\").into(),\n    };\n\n    let mut acq_cred_result = ntlm\n        .acquire_credentials_handle()\n        .with_credential_use(CredentialUse::Outbound)\n        .with_auth_data(&identity)\n        .execute()\n        .unwrap();\n\n    let mut output_buffer = vec![SecurityBuffer::new(Vec::new(), BufferType::Token)];\n    // first time calling initialize_security_context, the input buffer should be empty\n    let mut input_buffer = vec![SecurityBuffer::new(Vec::new(), BufferType::Token)];\n\n    // create a builder for the first call to initialize_security_context\n    // the target should start with the protocol name, e.g. \"HTTP/example.com\" or \"LDAP/example.com\"\n    let mut builder = EmptyInitializeSecurityContext::<<Ntlm as SspiImpl>::CredentialsHandle>::new()\n        .with_credentials_handle(&mut acq_cred_result.credentials_handle)\n        .with_context_requirements(ClientRequestFlags::CONFIDENTIALITY | ClientRequestFlags::ALLOCATE_MEMORY)\n        .with_target_data_representation(DataRepresentation::Native)\n        .with_target_name(\"LDAP/example.com\")\n        .with_input(&mut input_buffer)\n        .with_output(&mut output_buffer);\n\n    // call initialize_security_context\n    // Note: the initialize_security_context_impl returns a generator, for NTLM, \n    // this generator will never yield as NTLM requires no network communication to a third party\n    // but negotiate and kerberos do require network communication, so the generator is used to\n    // allow the caller to provide the network information through the generator.resume() method\n    // take a look at the examples/kerberos.rs for more information\n    let _result = ntlm\n        .initialize_security_context_impl(&mut builder)\n        .resolve_to_result()\n        .unwrap();\n    // ... exchange your token in output buffer with the server and repeat the process until either server is satisfied or an error is thrown\n}\n\n```\n\nExample of acquiring an SSP provided by Windows:\n```Rust\nlet mut negotiate = SecurityPackage::from_package_type(\n    SecurityPackageType::Other(String::from(\"Negotiate\"))\n);\n```\n\n## Projects using sspi-rs\n\n* [Devolutions Gateway](https://github.com/Devolutions/devolutions-gateway)\n* [IronRDP](https://github.com/Devolutions/IronRDP)\n* [Python SSPI Library](https://github.com/jborean93/sspilib)\n* [NetExec](https://github.com/Pennyw0rth/NetExec)\n* [LDAP client library](https://github.com/kanidm/ldap3/blob/master/proto/examples/sasltest/main.rs)\n* [Remote Desktop Manager](https://devolutions.net/remote-desktop-manager/)\n\n(Feel free to open a PR if you know about other projects!)\n\n## License\n\nLicensed under either of:\n\n * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)\n * [MIT license](http://opensource.org/licenses/MIT)\n\nat your option.\n\n### Contribution\n\nUnless you explicitly state otherwise, any contribution intentionally submitted\nfor inclusion in the work by you, as defined in the Apache-2.0 license, shall be\ndual licensed as above, without any additional terms or conditions.\n",
+      "sspi-0.23.0/tools/aadjoin/README.md": "\n# AADJoin\n\n### Purpose of this tool\n\nThis tool simulates new device joining to the Azure Active Directory and device certificates obtaining.\n\nIt can obtain three types of certificates:\n\n* the device certificate;\n* the client certificate for the P2P authorization\n* the server certificate for the P2P authorization\n\nAll generated keys, CSRs, and certificates will be saved in appropriate files. You will see paths to them in logs.\n\n### How use it\n\n```\nAADJoin 1.0.0\nCopyright (C) 2022 AADJoin\n\n  -j, --join-new-device     Join new device to the Azure AD\n\n  -c, --client-p2p-cert     Obtain P2P certificate for the client authorization\n\n  -s, --server-p2p-cert     Obtain P2P certificate for the server authorization\n\n  -d, --domain              Required. Azure AD domain\n\n  -u, --username            Required. User Azure AD username in FQDN format\n\n  -p, --password            Required. User password\n\n  -e, --existing-device     Path to the PFX file with the device key + certificate\n\n  -f, --pfx-key-password    PFX file password\n\n  --help                    Display this help screen.\n\n  --version                 Display version information.\n```\n\n*Attention: To run this tool you need .Net 6.0.8 runtime*\n\n### Example\n\nCreate and join a new device to the AzureAD:\n\n```bash\nAADJoin.exe --join-new-device --domain dataans.com --username s10@dataans.com --password wwwWWW222@@@\n```\n\nThe comman above will create a three files:\n\n* `<device id>.key` - the device private key;\n* `<random guid>.csr` - the certificate request that had been used for the device certificate generation;\n* `<device id>.cer` - the device certificate;\n\nMy example:\n\n```\n03b8620d-12ff-48ee-b036-e1cf4c598609.key\n007bfc57-2504-404c-99f4-6160d1bfe2cb.csr\n03b8620d-12ff-48ee-b036-e1cf4c598609.cer\n```\n\nWe can obtain the server P2P sertificate with the following command:\n\n```bash\nAADJoin.exe --existing-device 03b8620d-12ff-48ee-b036-e1cf4c598609.pfx --pfx-key-password 03b8620d-12ff-48ee-b036-e1cf4c598609 --domain dataans.com --username s10@dataans.com --password wwwWWW222@@@ --server-p2p-cert\n```\n\nThe command above will create two files:\n\n* `<device id>_server_auth_p2p.cer` - the P2P certificate for the server authentication;\n* `<device id>_server_auth_p2p_ca.cer` - the P2P CA certificate of the obtained certificate;\n\nWe can obtain the client P2P sertificate with the following command:\n\n```bash\nAADJoin.exe --existing-device 03b8620d-12ff-48ee-b036-e1cf4c598609.pfx --pfx-key-password 03b8620d-12ff-48ee-b036-e1cf4c598609 --domain dataans.com --username s10@dataans.com --password wwwWWW222@@@ --client-p2p-cert\n```\n\nThe command above will create two files:\n\n* `<device id>_client_auth_p2p.cer` - the P2P certificate for the client authentication;\n* `<device id>_client_auth_p2p_ca.cer` - the P2P CA certificate of the obtained certificate;\n\nAnd here are files I had:\n\n```\n03b8620d-12ff-48ee-b036-e1cf4c598609_client_auth_p2p.cer\n03b8620d-12ff-48ee-b036-e1cf4c598609_client_auth_p2p_ca.cer\n03b8620d-12ff-48ee-b036-e1cf4c598609_server_auth_p2p.cer\n03b8620d-12ff-48ee-b036-e1cf4c598609_server_auth_p2p_ca.cer\n```\n"
+    }
+  }
+]

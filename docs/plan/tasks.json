@@ -9760,7 +9760,12 @@
       "deliverable": "A maintainer-approved provider/backend design for enterprise Kerberos support.",
       "acceptance": ["Evaluate existing approved pure-Rust/native-provider options, licensing, MSRV, platform and credential lifecycle.", "No Cyrus/native SASL enters defaults and unsafe remains forbidden in this crate; policy exceptions require explicit approval.", "If approval/backend availability blocks implementation, keep enterprise-profile completeness blocked with a named next decision."],
       "validation": ["Review the proposed feature/dependency graph and mechanism exchange contract.", "Record backend verification and platform constraints without installing unreviewed integrations."],
-      "evidence": [],
+      "evidence": [
+        {
+          "receipt": "docs/plan/evidence/KL06-08.json",
+          "scope": "Source-bound proposal awaiting actual maintainer approval; no runtime/provider qualification"
+        }
+      ],
       "write_set": [
         "docs/security.md",
         "docs/gaps.md",
@@ -9776,7 +9781,15 @@
         "src/protocol/sasl.rs",
         "partitionline-broker/src/security/"
       ],
-      "qualification_limit": "Provider/backend source review and a concrete proposal only until actual maintainer approval and isolated KDC interoperability. No default or optional provider dependency is approved by this claim."
+      "qualification_limit": "Provider/backend source review and a concrete proposal only until actual maintainer approval and isolated KDC interoperability. No default or optional provider dependency is approved by this claim.",
+      "proposed_backend": {
+        "crate": "libgssapi",
+        "version": "0.11.0",
+        "default_features": false,
+        "sys_version": "0.3.4",
+        "initial_target": "x86_64 Linux / MIT Kerberos",
+        "execution": "one serial security context per owned helper process"
+      }
     },
     {
       "id": "KL06-09",
@@ -35315,7 +35328,8 @@
         "KL03-24",
         "KL05-43",
         "KL05-45",
-        "KL06-13"
+        "KL06-13",
+        "KL02-12"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
