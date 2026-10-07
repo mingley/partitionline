@@ -157,7 +157,7 @@ def validate_settings(s, genesis):
                  'numeric immutable route zero-DNS')
 
 class Owner:
-    def __init__(self, root, raw, source_sha, overrides=None):
+    def __init__(self, root, raw, source_sha, overrides=None, json_overrides=None):
         self.root, self.name = root, root.name
         f = root/'owner.jsonl'
         need(f.stat().st_size <= MAX_OWNER_BYTES, 'owner trace byte envelope')
@@ -185,7 +185,8 @@ class Owner:
             path = root / ('lifecycle-' + stage + '.json')
             if not path.exists():
                 continue
-            row = json.loads(path.read_bytes())
+            row = (json_overrides or {}).get(str(path.relative_to(root.parent)), json.loads(path.read_bytes()))
+            need(row is not None, 'missing joined lifecycle receipt')
             need(row['schema_version'] == 1 and row['capture_revision'] == 2 and
                  row['source_sha'] == source_sha and row['stage'] == stage and
                  row['pid'] == h['pid'] and row['local_id'] == self.local['id'] and
@@ -572,6 +573,9 @@ def owner_proof(o, raw, graph):
                                   request_identity(qkind,q)[1] == peerkey and
                                   request_identity(qkind,q)[3] == sequence]
                     need(len(candidates) == 1, 'released timeout lacks exact outstanding correlation')
+                    if kinds == (20,30):
+                        need((requests[candidates[0]][1] == 30) == target['image'],
+                             'timeout kind differs from prepared append/image owner')
                     used.add(candidates[0]);counts['exact_timeout_cancellations']+=1
         if e['command']=='disconnect' and e['result_ok']:
             need(type(e['target']) is dict and set(e['target']) == {'peer'},
@@ -669,16 +673,16 @@ def owner_proof(o, raw, graph):
     return {'owner':o.name,'clock_epoch':o.clock_epoch,'events':len(o.events),
             'checkpoints':len(o.checkpoints),'counters':dict(counts),'commit_proofs':proofs}
 
-def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None):
+def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None, json_overrides=None):
     root=root.resolve();before=audit_tree(root);raw=load_raw(oracle)
     owners=[];ignored=[];durable_only=[];groups=[];graph=Graph();statistics=collections.Counter()
     for d in sorted(root.iterdir()):
         if (d/'owner.jsonl').is_file():
             if re.fullmatch(r'\d+-node-\d+-\d+',d.name):
-                o=Owner(d,raw,source_sha,(owner_overrides or {}).get(d.name));owners.append(o)
+                o=Owner(d,raw,source_sha,(owner_overrides or {}).get(d.name),json_overrides);owners.append(o)
             else:
                 ignored.append(d.name)
-                unit=Owner(d,raw,source_sha,(owner_overrides or {}).get(d.name))
+                unit=Owner(d,raw,source_sha,(owner_overrides or {}).get(d.name),json_overrides)
                 durable_only.append({'owner':d.name,'events':len(unit.events),'checkpoints':len(unit.checkpoints),
                                      'clock_epoch':unit.clock_epoch,'scope':'raw durable bytes and configured budgets only; no TCP consumption claim'})
         elif d.name.startswith('partitionline76-tcp-'):
@@ -707,7 +711,8 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
             need(joined.exists() != crashed.exists(), 'each TCP process has one joined or controlled crash receipt')
             path = joined if joined.exists() else crashed
             expected_receipts.add(path.name)
-            row = json.loads(path.read_bytes())
+            row = (json_overrides or {}).get(str(path.relative_to(root)),json.loads(path.read_bytes()))
+            need(row is not None,'missing process lifecycle receipt')
             if crashed.exists():
                 need(row == {'node_id':o.local['id'],'pid':o.header['pid'],'exit_code':88,
                              'parent_waited':True,'runtime_joined':False,
@@ -734,7 +739,7 @@ def verify(root, source_sha, oracle, owner_overrides=None, packet_overrides=None
                                    ('sockets',s['peer_count']+s['incoming_slots']),
                                    ('transport_bytes',s['transport_pool_bytes']),
                                    ('client_slots',s['client_slots'])]:
-                    need(integer(row['sampled_peak_'+name])<=bound and row['final_'+name]==0,
+                    need(integer(row['sampled_peak_'+name])<=bound and integer(row['final_'+name])==0,
                          'successful joined sampled resource bounds and final zero')
                 statistics['successful_owner_supervisor_joins']+=1
         actual_receipts={p.name for p in g.root.glob('*node-*-pid-*.json')}

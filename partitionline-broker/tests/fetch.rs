@@ -1192,10 +1192,30 @@ async fn transport_joined_shutdown_cancels_live_long_poll_without_stopping_store
     let mut cfg = common();
     cfg.max_queued_requests = 1;
     let router = Arc::new(open(&root, cfg, fetch::Limits::default()).await?);
+    let (admitted, mut admission) = tokio::sync::watch::channel(false);
+    let handler_router = Arc::clone(&router);
+    let handler = Arc::new(move |request| {
+        let router = Arc::clone(&handler_router);
+        let admitted = admitted.clone();
+        async move {
+            let dispatch = router.dispatch(request);
+            tokio::pin!(dispatch);
+            std::future::poll_fn(|cx| {
+                let result = std::future::Future::poll(dispatch.as_mut(), cx);
+                // Dispatch acquires its data permit before its first await.
+                // Observe the socket's pending handler without competing for it.
+                if result.is_pending() {
+                    admitted.send_replace(true);
+                }
+                result
+            })
+            .await
+        }
+    });
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], 0).into(),
         transport::Config::default(),
-        Arc::clone(&router),
+        handler,
     )
     .await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
@@ -1204,22 +1224,21 @@ async fn transport_joined_shutdown_cancels_live_long_poll_without_stopping_store
         &fetch_request(6, 0, 30000, 1, 10000, &[(0, 10000)]),
     )
     .await?;
-    // A second data operation observes saturation only after the first socket's
-    // handler has actually obtained admission. No scheduler delay is guessed.
+    // Repeated try-acquire probes could take the only permit before the socket
+    // handler, close that connection on QueueFull, and then wait forever.
     tokio::time::timeout(Duration::from_secs(2), async {
-        loop {
-            if matches!(
-                router
-                    .respond(fetch_request(6, 0, 0, 0, 0, &[(0, 0)]))
-                    .await,
-                Err(metadata::Error::QueueFull)
-            ) {
-                break;
-            }
-            tokio::task::yield_now().await;
+        while !*admission.borrow_and_update() {
+            admission.changed().await?;
         }
+        Ok::<_, tokio::sync::watch::error::RecvError>(())
     })
-    .await?;
+    .await??;
+    assert!(matches!(
+        router
+            .respond(fetch_request(6, 0, 0, 0, 0, &[(0, 0)]))
+            .await,
+        Err(metadata::Error::QueueFull)
+    ));
     let report = tokio::time::timeout(Duration::from_secs(2), transport.shutdown()).await??;
     assert_eq!(report.worker_failures, 0);
     let mut byte = [0];

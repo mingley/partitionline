@@ -36,7 +36,7 @@ def main():
     a.add_argument('--out-dir',type=Path,required=True);args=a.parse_args()
     assert not args.out_dir.exists();args.out_dir.mkdir(parents=True)
     original_audit=c.audit_tree(args.captures)
-    source_paths=[Path(__file__),Path(c.__file__),Path(peer.__file__),args.membership_oracle/'membership_raw.py',
+    source_paths=[Path(__file__),Path(c.__file__),Path(peer.__file__),Path(c.__file__).with_name('profiles.json'),args.membership_oracle/'membership_raw.py',
                   args.membership_oracle.parents[2]/'KL11-15/oracle/history/wal_oracle.py']
     def source_audit():
         return {str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size,
@@ -49,10 +49,10 @@ def main():
                        'mode':stat.S_IMODE(p.stat().st_mode)}
     receipt={'schema_version':1,'source_sha':args.source_sha,'scope':'WORK development actual retained-history replay',
              'actual_new_broker_or_Cargo_executions':0,'actual_checker_affinity':sorted(os.sched_getaffinity(0)),'argv':sys.argv,'checker_sources_before':source_before,'initial_decoder_files_before':initial,'controls':[]}
-    def run(name,owners=None,packets=None,accepted=False):
+    def run(name,owners=None,packets=None,accepted=False,documents=None):
         start=time.monotonic(); entry={'name':name,'expected_accepted':accepted}
         try:
-            result=c.verify(args.captures,args.source_sha,args.membership_oracle,owners,packets)
+            result=c.verify(args.captures,args.source_sha,args.membership_oracle,owners,packets,documents)
             entry['accepted']=True;entry['counters']=result['counters']
         except (c.Rejected,peer.Rejected,ValueError) as error:
             entry['accepted']=False;entry['rejection']=str(error)
@@ -180,6 +180,34 @@ def main():
         begin=next(i for i,e in enumerate(x) if i and e['command']=='propose' and e['result_ok'])
         for e in x[begin:]:e['now_ms']+=3*x[0]['runtime_settings']['quorum_ms']
     owner_mutation('negative-expired-local-quorum-admission',expired_write,wr,writer)
+    for index,name in enumerate(c.RESOURCE_NAMES):
+        def exceed(rows,i=index):
+            rows[1]['resource_owners']['gauges'][i]['peak']=2**63
+        owner_mutation('negative-retained-owner-bound-'+name,exceed)
+    owner_mutation('negative-command-owner-envelope',lambda rows:rows[0]['runtime_settings'].update(command_owner_bound=1))
+    timeout_owner=next(f for f in owner_files if any(e.get('command')=='timeout' and
+                       e.get('cleanup',{}).get('append_or_image_released') is True
+                       for e in [json.loads(y) for y in f.read_text().splitlines()][1:] if e.get('cleanup')))
+    tr=[json.loads(y) for y in timeout_owner.read_text().splitlines()]
+    ti=next(i for i,e in enumerate(tr) if i and e['command']=='timeout' and e['cleanup']['append_or_image_released'])
+    owner_mutation('negative-timeout-wrong-sequence',lambda rows:rows[ti]['target'].update(sequence=rows[ti]['target']['sequence']+100000),tr,timeout_owner)
+    owner_mutation('negative-timeout-wrong-directory',lambda rows:rows[ti]['target']['peer'].update(directory='fe'*16),tr,timeout_owner)
+    owner_mutation('negative-timeout-wrong-image-fallback',lambda rows:rows[ti]['cleanup'].update(image_fallback_set=not rows[ti]['cleanup']['image_fallback_set']),tr,timeout_owner)
+    joined=next(args.captures.glob('partitionline76-tcp-*/joined-node-*-pid-*.json'))
+    crashed=next(args.captures.glob('partitionline76-tcp-*/crashed-node-*-pid-*.json'))
+    lifecycle=next(args.captures.glob('*-node-*/lifecycle-supervisor-joined.json'))
+    def document_mutation(name,path,mutate):
+        value=json.loads(path.read_bytes());mutate(value)
+        run(name,documents={str(path.relative_to(args.captures)):value})
+    document_mutation('negative-supervisor-shutdown-did-not-return',joined,lambda row:row.update(supervisor_shutdown_returned=False))
+    document_mutation('negative-shutdown-retains-task',joined,lambda row:row.update(final_network_tasks=1))
+    document_mutation('negative-crash-parent-did-not-wait',crashed,lambda row:row.update(parent_waited=False))
+    document_mutation('negative-crash-treated-as-runtime-join',crashed,lambda row:row.update(runtime_joined=True))
+    document_mutation('negative-crash-unexpected-exit-code',crashed,lambda row:row.update(exit_code=0))
+    document_mutation('negative-supervisor-worker-unjoined',lifecycle,lambda row:row.update(network_workers_joined=row['network_workers_spawned']+1))
+    document_mutation('negative-supervisor-transport-permit-leak',lifecycle,lambda row:row.update(available_transport_permits=row['available_transport_permits']-1))
+    document_mutation('negative-supervisor-resource-current-leak',lifecycle,lambda row:row['resource_owners']['gauges'][2].update(current=1))
+    run('negative-supervisor-lifecycle-receipt-absent',documents={str(lifecycle.relative_to(args.captures)):None})
     assert original_audit==c.audit_tree(args.captures)
     after={}
     for name in initial:
