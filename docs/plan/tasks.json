@@ -18794,7 +18794,8 @@
         "benchmarks/runtime/BUILD-PROFILES.md",
         "docs/evidence/perf/build-profiles/",
         "docs/plan/evidence/KL09-62.json",
-        "benchmarks/runtime/measure-runtime-flavors.py"
+        "benchmarks/runtime/measure-runtime-flavors.py",
+        "benchmarks/runtime/analyze-build-profiles.py"
       ],
       "read_only_held": [
         "src/",

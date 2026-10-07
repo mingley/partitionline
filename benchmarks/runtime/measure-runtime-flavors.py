@@ -149,7 +149,7 @@ def main():
         source_commit=a.commit,configs=configs,client_cpus=[2,4],native_broker_cpus=[0,1],
         N_definition=('All build-profile arms use current_thread with zero background workers on the same two client CPUs.'
             if build_matrix else '5 is the observed host affinity CPU count, fixed before measurement. Four/five workers oversubscribe the two client CPUs; no extra CPU is granted.'),
-        primary=primary,reproduce=reproduce,random_seed=961,repetitions=5,
+        primary=primary,reproduce=reproduce,random_seed=961,repetitions=a.repetitions,
         native_bulk=dict(timed_records=8_000_000,warmup=10_000,payload_bytes=100,partitions=6,
             key_mode='id',payload_mode='seeded',seed=1592590337,acks=1,idempotence=False,
             linger_ms=5,batch_bytes=1048576,batch_records=32768,max_in_flight=5,connections=1),
@@ -308,7 +308,9 @@ log.segment.delete.delay.ms=0
             median=statistics.median(row['records_per_second'] for row in calibrations) if calibrations else None
             rates={percent:max(1,round(median*percent/100)) for percent in (10,50,80)} if calibrations else {}
             baseline.save(r.output/'calibrated-rates.json',dict(capacity_values=[x['records_per_second'] for x in calibrations],
-                current_thread_median_capacity=median,rates=rates,scope='Five fresh current-thread sequential means, integer-microsecond resolution; identical absolute arrivals across all flavors'))
+                current_thread_median_capacity=median,rates=rates,scope=(
+                    'No sequential calibration requested for bulk-only measurements.' if a.bulk_only else
+                    'Five fresh current-thread sequential means, integer-microsecond resolution; identical absolute arrivals across all flavors')))
             for index,job in enumerate(primary+reproduce):
                 config=job['config'];cell=job['cell'];percent=job['load']
                 directory=r.output/f'{index:03d}-{job["cohort"]}-r{job["rep"]}-{config["name"]}-{cell}-{percent or 0}'
