@@ -31,6 +31,11 @@ current-version compatibility remain open. Selected unit and integration tests
 do not establish production readiness. The [broker plan](ROADMAP.md)
 records the remaining work.
 
+The fixed-peer metadata runtime passed finite three/five-node private TCP fault,
+snapshot and restart histories with independent journal replay. Whole broker
+checks passed344 default and484 all-feature tests on latest stable Rust. Native
+Kafka replication, peer authentication and production qualification remain open.
+
 ## Development checks
 
 Latest-stable Rust1.99.0 passed2,082 default-feature tests and2,094 all-feature
@@ -39,7 +44,7 @@ tracing, zstd and combined-feature builds each compiled24 documentation examples
 These are retained local results for the current uncommitted source, not hosted
 CI results or a replacement for the remaining fault and soak tests.
 
-The task registry has204 completed cards and136 open cards. The client
+The task registry has205 completed cards and135 open cards. The client
 conformance registry has54 independently qualified cases out of182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
