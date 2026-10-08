@@ -1,0 +1,10 @@
+{
+  "elapsed_seconds": 0.021918943006312475,
+  "commands": [],
+  "error": "RuntimeError: broker did not become ready",
+  "budgets": {
+    "peer_seconds": 15,
+    "broker_seconds": 20,
+    "readiness_seconds": 3
+  }
+}

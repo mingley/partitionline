@@ -1,0 +1,30 @@
+    Checking nullbroker v0.1.0 (/workspace/partitionline/benchmarks/nullbroker)
+error: using `chunks_exact` with a constant chunk size
+   --> src/synth.rs:149:27
+    |
+149 |     let mut chunks = data.chunks_exact(16);
+    |                           ^^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks::<16>()` instead
+   --> src/synth.rs:149:27
+    |
+149 |     let mut chunks = data.chunks_exact(16);
+    |                           ^^^^^^^^^^^^^^^^
+    = note: you can access the chunks using `chunks.0.iter()`, and the remainder using `chunks.1`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+    = note: `-D clippy::chunks-exact-to-as-chunks` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::chunks_exact_to_as_chunks)]`
+
+error: manual implementation of `.is_multiple_of()`
+   --> src/synth.rs:406:42
+    |
+406 |     let aborted = cfg.abort_every > 0 && (batch_index + 1) % cfg.abort_every == 0;
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `(batch_index + 1).is_multiple_of(cfg.abort_every)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+    = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: could not compile `nullbroker` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `nullbroker` (lib test) due to 2 previous errors

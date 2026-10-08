@@ -1,0 +1,52 @@
+   Compiling nullbroker v0.1.0 (/workspace/work/open-cards-20261006/nullbroker-peers-before-18e12b/benchmarks/nullbroker)
+    Finished `test` profile [unoptimized] target(s) in 0.85s
+     Running unittests src/lib.rs (work/target-nullbroker-peers/debug/deps/nullbroker-608709295aa1e265)
+
+running 19 tests
+test synth::tests::hash_vectors ... ok
+test tests::compact_string_and_bytes ... ok
+test tests::crc32c_known_vector ... ok
+test tests::parse_accepts_compressed_header_without_walk ... ok
+test tests::parse_empty_batch_is_zero_records ... ok
+test tests::parse_rejects_bad_crc ... ok
+test tests::parse_rejects_bad_magic ... ok
+test tests::parse_rejects_control_batch ... ok
+test tests::parse_rejects_count_mismatch ... ok
+test tests::parse_rejects_trailing_garbage ... ok
+test tests::parse_rejects_truncation ... ok
+test tests::parse_rejects_undeclared_record_bytes ... ok
+test tests::parse_valid_batch ... ok
+test tests::request_header_flexible_and_classic ... ok
+test tests::uvarint_roundtrip_and_overflow ... ok
+test tests::zigzag_varint_roundtrip ... ok
+test synth::tests::abort_every_marks_batches ... ok
+test synth::tests::stored_codecs_roundtrip_structurally ... ok
+test synth::tests::batches_are_deterministic_and_bounded ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/main.rs (work/target-nullbroker-peers/debug/deps/nullbroker-b17505b538db924b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/interop.rs (work/target-nullbroker-peers/debug/deps/interop-140e15e472405f02)
+
+running 7 tests
+test artifact_is_labeled_client_ceiling ... ok
+test multinode_metadata_advertises_topology ... ok
+test requests_to_wrong_node_return_not_leader ... ok
+test slow_node_delays_responses ... ok
+test fetch_and_list_offsets_roundtrip ... ok
+test handshake_produce_and_rejections ... ok
+test seeded_faults_are_deterministic ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.98s
+
+   Doc-tests nullbroker
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -18845,13 +18845,28 @@
     {
       "id": "KL09-66",
       "title": "Make the null broker accept every pinned peer",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "codex-root-20261008",
       "depends_on": ["KL09-07", "KL04-03", "KL04-04", "KL09-65"],
       "files": ["benchmarks/nullbroker/"],
       "deliverable": "Null-broker version ranges and behaviors that let the pinned Java, librdkafka and franz-go peers produce and fetch with the same validation as partitionline.",
       "acceptance": ["Each peer completes a produce and fetch round trip with zero validation failures; the version ranges used per peer are recorded.", "Behavior differences needed for a peer are explicit configuration, not silent special cases."],
       "validation": ["cargo test --locked --manifest-path benchmarks/nullbroker/Cargo.toml", "One validated round-trip artifact per peer."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL09-66.json",
+        "docs/evidence/perf/nullbroker-peers/README.md",
+        "docs/evidence/perf/nullbroker-peers/qualification.json",
+        "docs/evidence/perf/nullbroker-peers/archive-verification.json"
+      ],
+      "write_set": [
+        "benchmarks/nullbroker/",
+        "docs/evidence/perf/nullbroker-peers/",
+        "docs/plan/evidence/KL09-66.json"
+      ],
+      "read_only_held": [
+        "src/",
+        "benchmarks/peers/"
+      ],
+      "qualification_limit": "Qualified bounded genuine SDK Produce/seeded-Fetch compatibility only. Synthetic Fetch is independent of accepted Produce; no stored-readback, group, transaction, production or comparative performance qualification."
     },
     {
       "id": "KL09-67",

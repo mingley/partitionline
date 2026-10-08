@@ -54,7 +54,7 @@ These retained results refer to their cited source snapshots. Newer bounded
 UpdateFeatures checks pass on default and all-feature builds. They are source-bound SDK and native-broker
 checks; fault and soak qualification remains separate.
 
-The task registry has 213 completed cards and 129 open cards. The client
+The task registry has 214 completed cards and 128 open cards. The client
 conformance registry has 75 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
@@ -91,3 +91,11 @@ The benchmark report now enforces the complete schema. Corrected null-broker
 produce, fetch and connect outputs pass, and retain explicit fields for absent
 durability and warmup. [Format evidence](evidence/perf/null-result-schema/README.md)
 includes native-result checks and twenty rejected changed-result controls.
+
+
+Pinned Java, librdkafka and franz-go clients now pass bounded Produce and Fetch
+checks against the null broker, with observed protocol versions and zero
+validation failures. Fetch uses the fixture's independent seeded stream.
+The [peer evidence](evidence/perf/nullbroker-peers/README.md) records that limit,
+source hashes, retained failures and process cleanup. These checks establish
+functional fixture compatibility, with no storage or speed claim.

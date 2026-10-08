@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/benchmarks/runtime/tools/parent-bound-exec.py", line 24, in <module>
+    main()
+  File "/workspace/partitionline/benchmarks/runtime/tools/parent-bound-exec.py", line 20, in main
+    os.execvp(sys.argv[2], sys.argv[2:])
+  File "<frozen os>", line 609, in execvp
+  File "<frozen os>", line 632, in _execvpe
+PermissionError: [Errno 13] Permission denied

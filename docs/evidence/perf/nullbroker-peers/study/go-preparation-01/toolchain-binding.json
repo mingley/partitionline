@@ -1,0 +1,7 @@
+{
+  "metadata_url": "https://go.dev/dl/?mode=json&include=all",
+  "archive_url": "https://go.dev/dl/go1.26.0.linux-amd64.tar.gz",
+  "version": "go1.26.0",
+  "bytes": 66768540,
+  "sha256": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"
+}

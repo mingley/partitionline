@@ -1,0 +1,23 @@
+{
+  "task": "KL09-66",
+  "parent_source": "18e12bda8350d7631aeef2af8c19a6a38d85c4dc",
+  "candidate": "Qualify genuine Kafka 4.3.1, librdkafka 2.15.0 and franz-go 1.22.0 produce/fetch calls against the bounded validating null broker. Advertise only independently verified handlers/ranges; fixture fetch behavior must be declared explicitly.",
+  "scope": "Functional compatibility only; no comparative timing or throughput acceptance is inferred.",
+  "peers": [
+    "apache-java 4.3.1",
+    "librdkafka 2.15.0",
+    "franz-go 1.22.0"
+  ],
+  "budgets": {
+    "record_count_per_peer": 512,
+    "payload_bytes": 100,
+    "partitions": 1,
+    "peer_timeout_seconds": 30,
+    "broker_lifetime_seconds": 45,
+    "overall_seconds": 600,
+    "fixture_log": "Seeded synthetic Fetch stream, independent of accepted Produce batches; no persisted readback claim."
+  },
+  "declared_before_failure": "The current server advertises Produce3..12/Metadata1..13/Fetch4..17 but dispatches only Produce12/Metadata13/Fetch17.",
+  "resource_requirements": "All children parent-bound, peer/source/SDK hashes retained, all server handlers/listeners joined and ports rebound.",
+  "source_phase": "No Rust edits or peer build performed yet."
+}

@@ -1,0 +1,32 @@
+%7|1791425449.375|INIT|nullbroker-qualification#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) nullbroker-qualification#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x80)
+%7|1791425449.375|CONNECTED|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Connected (#1)
+%7|1791425449.375|FEATURE|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1791425449.376|SEND|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Sent ApiVersionRequest (v3, 58 bytes @ 0, CorrId 1)
+%7|1791425449.378|RECV|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 2.52ms)
+%7|1791425449.378|SEND|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Sent MetadataRequest (v13, 76 bytes @ 0, CorrId 2)
+%7|1791425449.419|RECV|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Received MetadataResponse (v13, 112 bytes, CorrId 2, rtt 40.64ms)
+%7|1791425449.420|CONNECTED|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Connected (#1)
+%7|1791425449.420|FEATURE|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1791425449.420|SEND|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Sent ApiVersionRequest (v3, 58 bytes @ 0, CorrId 1)
+%7|1791425449.424|RECV|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 4.03ms)
+%7|1791425449.424|SEND|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Sent ProduceRequest (v10, 64583 bytes @ 0, CorrId 2)
+%7|1791425449.471|RECV|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: Received ProduceResponse (v10, 58 bytes, CorrId 2, rtt 46.56ms)
+%7|1791425449.471|DESTROY|nullbroker-qualification#producer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1791425449.472|DESTROY|nullbroker-qualification#producer-1| [thrd:main]: Destroy internal
+%7|1791425449.472|DESTROY|nullbroker-qualification#producer-1| [thrd:main]: Removing all topics
+%7|1791425449.473|BRKTERM|nullbroker-qualification#producer-1| [thrd:127.0.0.1:43707/0]: 127.0.0.1:43707/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1791425449.473|BRKTERM|nullbroker-qualification#producer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1791425449.473|INIT|nullbroker-qualification#consumer-2| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) nullbroker-qualification#consumer-2 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x80)
+%7|1791425449.474|CONNECTED|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Connected (#1)
+%7|1791425449.474|FEATURE|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1791425449.474|SEND|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Sent ApiVersionRequest (v3, 58 bytes @ 0, CorrId 1)
+%7|1791425449.475|RECV|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Received ApiVersionResponse (v3, 57 bytes, CorrId 1, rtt 1.32ms)
+%7|1791425449.475|SEND|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Sent MetadataRequest (v13, 76 bytes @ 0, CorrId 2)
+%7|1791425449.475|UNSUPPORTED|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: Failing FindCoordinatorResponse (v-1, 0 bytes, CorrId 0): request not supported by broker (missing api.version.request=false or incorrect broker.version.fallback config?)
+fetch validation offset=-1001 error=Local: Required feature not supported by broker
+%7|1791425449.476|DESTROY|nullbroker-qualification#consumer-2| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1791425449.476|DESTROY|nullbroker-qualification#consumer-2| [thrd:main]: Destroy internal
+%7|1791425449.476|DESTROY|nullbroker-qualification#consumer-2| [thrd:main]: Removing all topics
+%7|1791425449.476|BRKTERM|nullbroker-qualification#consumer-2| [thrd:127.0.0.1:43707/bootstrap]: 127.0.0.1:43707/bootstrap: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1791425449.476|BRKTERM|nullbroker-qualification#consumer-2| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1791425449.476|BRKTERM|nullbroker-qualification#consumer-2| [thrd:GroupCoordinator]: GroupCoordinator: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)

@@ -1,0 +1,26 @@
+{
+  "source_commit": "3dbdadf047e73c2ddff78a59567cf518b6a7cf1a",
+  "source_sha256": {
+    "benchmarks/nullbroker/peers/NullBrokerPeer.java": "ec3afa2e4f647890787004c04a943230de7bd5f83763dd2bbac584dc03d3eb7b",
+    "benchmarks/nullbroker/peers/go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/nullbroker/peers/go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "benchmarks/nullbroker/peers/go/main.go": "16af175adbcb5927427803b3e2e483b3958b369a9bf56604cee06fd27909109b",
+    "benchmarks/nullbroker/peers/peer.c": "de70fcb31209f2c1d09e9851d8f20291f63fdf9aec9ab6ee573ff300161efd45",
+    "benchmarks/nullbroker/peers/run.py": "9561074c977cb7e17287bd7c781f3b84818636525f05e701684591c08a6f0654"
+  },
+  "artifacts_sha256": {
+    "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/c-peer-02.elf": "84a6527fd83a5bbb945d2898f2a5612724eeb2ed59c57800502d81468c2f09de",
+    "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/go-peer-02.elf": "24b9e1555fb3c258b264587299fbecc8377dc5d39ce24f5f24897c16c87d6d21",
+    "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/java-classes/NullBrokerPeer.class": "ae0377b33ca2661ddfb0f044bff9d5b21663f8c3263f540bd309c211eabec342",
+    "/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.3.1.jar": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+    "/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+    "/workspace/work/open-cards-20261006/zstd-c-peer/lib/librdkafka.so.1": "23698e1d7ec1f3f496133b946474f997ed690fa57222d3785c3a176ed57563ca"
+  },
+  "versions": {
+    "java": "4.3.1",
+    "librdkafka": "2.15.0",
+    "franz-go": "v1.22.0",
+    "go": "go1.26.0"
+  },
+  "go_mod_and_sum_match_pinned_peer": true
+}

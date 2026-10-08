@@ -1,0 +1,3 @@
+Accept the flexible Kafka versions used by pinned benchmark peers
+
+Advertise implemented ranges, handle classic coordinator discovery, and add bounded SDK Produce/seeded-Fetch checks with optional API-version tracing.

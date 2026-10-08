@@ -1,0 +1,33 @@
+{
+  "label": "client-ceiling",
+  "unix_time": 1791425469,
+  "accepted_records": 512,
+  "accepted_wire_bytes": 64509,
+  "produce_requests": 1,
+  "fetch_requests": 0,
+  "fetched_records": 0,
+  "fetched_wire_bytes": 0,
+  "injected_errors": 0,
+  "injected_requests": 0,
+  "metadata_requests": 2,
+  "leader_mismatches": 0,
+  "api_versions": [{"api_key":0,"version":10,"requests":1},{"api_key":3,"version":13,"requests":2},{"api_key":18,"version":3,"requests":3}],
+  "modes": {
+    "nodes": 1,
+    "dead_nodes": 0,
+    "slow_node": null,
+    "slow_delay_ms": 0,
+    "fault_seed": 1592590337,
+    "fault_rate_per_million": 0
+  },
+  "validation_failures": {
+    "framing": 0,
+    "crc": 0,
+    "count": 0,
+    "sequence": 0,
+    "transactional": 0
+  },
+  "end_offsets": {
+    "nullbroker-peer/0": 512
+  }
+}

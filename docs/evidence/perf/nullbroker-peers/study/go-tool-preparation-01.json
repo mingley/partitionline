@@ -1,0 +1,5 @@
+{
+  "observation": "/usr/bin/go is a different program and rejects the Go compiler version subcommand; no Go compiler/build result is claimed.",
+  "required_toolchain": "Go1.26.0 from the actual module go directive",
+  "plan": "Use an isolated official Go toolchain and isolated module/build caches under work; keep Rust latest stable."
+}

@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/confluentinc/librdkafka.git",
+  "tag": "v2.15.0",
+  "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "baseline": "Historical Lab A v2.15.0 retained; no newer baseline selected.",
+  "configure_flags": ["--enable-ssl", "--enable-zlib", "--enable-zstd", "--disable-gssapi", "--disable-curl", "--disable-lz4-ext"]
+}

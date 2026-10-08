@@ -1,0 +1,68 @@
+{
+  "scope": "functional-compatibility",
+  "peer": {
+    "peer": "librdkafka",
+    "version": "2.15.0",
+    "acknowledged": 512,
+    "validated_fetch": 512,
+    "validation_failures": 0,
+    "fetch_source": "seeded-independent-of-produce"
+  },
+  "observed_versions": [
+    {
+      "api_key": 0,
+      "version": 10,
+      "requests": 1
+    },
+    {
+      "api_key": 1,
+      "version": 16,
+      "requests": 2
+    },
+    {
+      "api_key": 3,
+      "version": 13,
+      "requests": 2
+    },
+    {
+      "api_key": 10,
+      "version": 2,
+      "requests": 2
+    },
+    {
+      "api_key": 18,
+      "version": 3,
+      "requests": 5
+    }
+  ],
+  "broker_sha256": "746c510004f6b7d3d2187a956bb1e04df6cba8185f325e25798847353d6d4221",
+  "source_binding": {
+    "source_commit": "42edda4ec0a903f4595fad42ebe89c8cfe488a71",
+    "clean_checkout": true,
+    "binary_sha256": "746c510004f6b7d3d2187a956bb1e04df6cba8185f325e25798847353d6d4221",
+    "source_files": {
+      "benchmarks/nullbroker/Cargo.lock": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327",
+      "benchmarks/nullbroker/Cargo.toml": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006",
+      "benchmarks/nullbroker/README.md": "9087f226835d2b949c3071b506ffa93cf94a146d79b1958f7a1f45aa6ec1e752",
+      "benchmarks/nullbroker/peers/NullBrokerPeer.java": "ab0f1e4741b39324882fbfac916cc364dc850d246a7000bbbff7606d6120c079",
+      "benchmarks/nullbroker/peers/go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+      "benchmarks/nullbroker/peers/go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+      "benchmarks/nullbroker/peers/go/main.go": "7b2f3974d1ddd8fefa795d631c0c01e4f6e02fb84e3f9d2c9c7d89c8136bedbc",
+      "benchmarks/nullbroker/peers/peer.c": "94f4391fd9ee57f651252ed219bb10a1dcc65f5edcb25e6c0e593482f304c47f",
+      "benchmarks/nullbroker/peers/run.py": "9561074c977cb7e17287bd7c781f3b84818636525f05e701684591c08a6f0654",
+      "benchmarks/nullbroker/src/lib.rs": "284e54ef6de7cd97e8a628b3cb034cf15d3908110f00b684f90a7ad8f0c100ad",
+      "benchmarks/nullbroker/src/main.rs": "ee78b03bb21b5ede4e69c16956edc5748aaf12d487761f636534ecfb3f485770",
+      "benchmarks/nullbroker/src/synth.rs": "cd1adc5932b3769e3676cbb19940dab03b3436dd23bbd2b774e523743b435153",
+      "benchmarks/nullbroker/tests/interop.rs": "eb0c358f1a66169e844d0e24eb27cf13af731b9d7f6da2fc6620170f25c2c454"
+    },
+    "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "checks": [
+      "final-tests-02.log",
+      "final-build-03.log",
+      "final-clippy-02.log",
+      "final-fmt-02.log"
+    ]
+  },
+  "fetch_source": "seeded-independent-of-produce",
+  "performance_claim": false
+}

@@ -1,0 +1,70 @@
+{
+  "elapsed_seconds": 20.054958754000836,
+  "commands": [
+    {
+      "pid": 944620,
+      "command": [
+        "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-peer-build-02/c-peer.elf",
+        "127.0.0.1:56559"
+      ],
+      "exit": 0,
+      "joined": true
+    },
+    {
+      "pid": 944614,
+      "command": [
+        "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-peer-build-02/nullbroker.elf",
+        "--bind",
+        "127.0.0.1:56559",
+        "--partitions",
+        "1",
+        "--seconds",
+        "20",
+        "--artifact",
+        "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-c-01/broker.json",
+        "--trace-api-versions",
+        "true",
+        "--fetch-seed",
+        "1592590337",
+        "--fetch-records",
+        "512",
+        "--fetch-batch-records",
+        "128",
+        "--fetch-payload-bytes",
+        "100",
+        "--fetch-headers",
+        "0",
+        "--fetch-codec",
+        "none",
+        "--fetch-abort-every",
+        "0",
+        "--nodes",
+        "1",
+        "--dead-nodes",
+        "0",
+        "--fault-rate-per-million",
+        "0"
+      ],
+      "exit": 0,
+      "joined": true
+    },
+    {
+      "port": 56559,
+      "rebound": true
+    },
+    {
+      "process_group": 944614,
+      "empty": true
+    },
+    {
+      "process_group": 944620,
+      "empty": true
+    }
+  ],
+  "error": null,
+  "budgets": {
+    "peer_seconds": 15,
+    "broker_seconds": 20,
+    "readiness_seconds": 3
+  }
+}

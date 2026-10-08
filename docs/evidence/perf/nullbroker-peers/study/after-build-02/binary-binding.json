@@ -1,0 +1,22 @@
+{
+  "binary_sha256": "f0804697d7c41f69edefdb5f1dbf40548b2a8fa7a32c03865b3248bdef096352",
+  "source_files": {
+    "benchmarks/nullbroker/Cargo.lock": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327",
+    "benchmarks/nullbroker/Cargo.toml": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006",
+    "benchmarks/nullbroker/README.md": "24b236d51b13bf7b4cdfd88414948a9dd92df26a9d4a11116244eb5cfdac59bb",
+    "benchmarks/nullbroker/peers/NullBrokerPeer.java": "413914941ddcf99b59a82c28ccb60038419fdf4bde3178643efd5347d6af31b4",
+    "benchmarks/nullbroker/peers/go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/nullbroker/peers/go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "benchmarks/nullbroker/peers/go/main.go": "f667ac34cc628468edb21d1c2a977177c6951f2560ae8484d510684134a213ad",
+    "benchmarks/nullbroker/peers/peer.c": "2656149f384d2fa713c0849d9b2d72b90c918d6d076b6215003962377f4f479c",
+    "benchmarks/nullbroker/peers/run.py": "9561074c977cb7e17287bd7c781f3b84818636525f05e701684591c08a6f0654",
+    "benchmarks/nullbroker/src/lib.rs": "478b36c77d429ba739be0b252ca4147032706003e0a5e879fec32483d18e215e",
+    "benchmarks/nullbroker/src/main.rs": "ee78b03bb21b5ede4e69c16956edc5748aaf12d487761f636534ecfb3f485770",
+    "benchmarks/nullbroker/src/synth.rs": "0cfd57784fd7ece239660c6a7bc01e9ccf90bf34c8d2bb32ab2a831a841777a2",
+    "benchmarks/nullbroker/tests/interop.rs": "57c021e94759c5f7a54d5597b4ffc7f4f6cf396d43cbb960d54750debbec9ad5"
+  },
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "test_log": "after-tests-01.log",
+  "build_log": "after-build-02.log",
+  "source_phase": "Working files, all pinned; review source commit will be verified before closure."
+}

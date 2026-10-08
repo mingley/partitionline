@@ -1,0 +1,16 @@
+[INFO] immediate metadata update triggered; why: forced load because we are producing to a topic for the first time
+[INFO] producing to a new topic for the first time, fetching metadata to learn its partitions; topic: nullbroker-peer
+[DEBUG] opening connection to broker; addr: 127.0.0.1:35659, broker: seed_0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:35659, broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: seed_0, bytes_written: 57, write_wait: 22.374µs, time_to_write: 17.957µs, err: <nil>
+[DEBUG] read ApiVersions v5; broker: seed_0, bytes_read: 0, read_wait: 20.08µs, time_to_read: 3.000893913s, err: read tcp 127.0.0.1:50530->127.0.0.1:35659: i/o timeout
+[DEBUG] connection initialization failed; addr: 127.0.0.1:35659, broker: seed_0, err: read tcp 127.0.0.1:50530->127.0.0.1:35659: i/o timeout
+[DEBUG] opening connection to broker; addr: 127.0.0.1:35659, broker: seed_0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:35659, broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: seed_0, bytes_written: 57, write_wait: 54.032µs, time_to_write: 19.188µs, err: <nil>
+[INFO] new topic metadata wait failed, done retrying, failing all records; topic: nullbroker-peer, err: records have timed out before they were able to be produced
+[DEBUG] read ApiVersions v5; broker: seed_0, bytes_read: 0, read_wait: 15.384µs, time_to_read: 999.152963ms, err: client closed
+[DEBUG] connection initialization failed; addr: 127.0.0.1:35659, broker: seed_0, err: client closed
+records have timed out before they were able to be produced

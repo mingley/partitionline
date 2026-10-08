@@ -1,0 +1,14 @@
+{
+  "scripts/run-benchmark-matrix.py": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+  "benchmarks/nullbroker/Cargo.lock": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327",
+  "benchmarks/nullbroker/Cargo.toml": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006",
+  "benchmarks/peers/franz-go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+  "benchmarks/peers/franz-go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+  "benchmarks/peers/java/source-pin.json": "cc3134cc9ae74a0cecd4cfe371ebf1e6880ea574ec952434959faac6797b2fdd",
+  "benchmarks/peers/librdkafka/source-pin.json": "084404914c692e0b11758634a7bc194b91898eb26f2f05c8f67ffb386f5774ba",
+  "benchmarks/nullbroker/tests/interop.rs": "bb578e7d2858151e371c8641a299d49719b96274c819d90fc240bf0e89f2e92b",
+  "benchmarks/nullbroker/src/main.rs": "96fcab00f058e2838dec49d6441546f9c8aa03342ccb25644104f0e7c6284fe3",
+  "benchmarks/nullbroker/src/lib.rs": "b2008e582537e0a1354abc2c223ed081e3cbed3a973d6598826486a724bfb406",
+  "benchmarks/nullbroker/src/synth.rs": "0cfd57784fd7ece239660c6a7bc01e9ccf90bf34c8d2bb32ab2a831a841777a2",
+  "benchmarks/runtime/tools/parent-bound-exec.py": "78332295936b700de1674e3affb77f7ef203cc6c3efa712431c86a0a0601201c"
+}

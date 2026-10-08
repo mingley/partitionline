@@ -1,0 +1,23 @@
+{
+  "commit": "3dbdadf047e73c2ddff78a59567cf518b6a7cf1a",
+  "parent": "18e12bda8350d7631aeef2af8c19a6a38d85c4dc",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "benchmarks/nullbroker/Cargo.lock": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327",
+    "benchmarks/nullbroker/Cargo.toml": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006",
+    "benchmarks/nullbroker/README.md": "dccdb0a07571d477301d181e27cfd0ec85a051e4b740960fd92b54abe513924d",
+    "benchmarks/nullbroker/peers/NullBrokerPeer.java": "ec3afa2e4f647890787004c04a943230de7bd5f83763dd2bbac584dc03d3eb7b",
+    "benchmarks/nullbroker/peers/go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/nullbroker/peers/go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "benchmarks/nullbroker/peers/go/main.go": "16af175adbcb5927427803b3e2e483b3958b369a9bf56604cee06fd27909109b",
+    "benchmarks/nullbroker/peers/peer.c": "de70fcb31209f2c1d09e9851d8f20291f63fdf9aec9ab6ee573ff300161efd45",
+    "benchmarks/nullbroker/peers/run.py": "9561074c977cb7e17287bd7c781f3b84818636525f05e701684591c08a6f0654",
+    "benchmarks/nullbroker/src/lib.rs": "c96c346526ba36c85d5b19efad5976a637d7701ecd22c9a932214597f918190a",
+    "benchmarks/nullbroker/src/main.rs": "ee78b03bb21b5ede4e69c16956edc5748aaf12d487761f636534ecfb3f485770",
+    "benchmarks/nullbroker/src/synth.rs": "cd1adc5932b3769e3676cbb19940dab03b3436dd23bbd2b774e523743b435153",
+    "benchmarks/nullbroker/tests/interop.rs": "ed7f37e5676c62932044519bd702418a020e4ddec8b55ef1912bb0c33745ad59"
+  },
+  "scope": "Review branch only; no merge or release"
+}

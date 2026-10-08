@@ -1,0 +1,59 @@
+[INFO] producing to a new topic for the first time, fetching metadata to learn its partitions; topic: nullbroker-peer
+[INFO] immediate metadata update triggered; why: forced load because we are producing to a topic for the first time
+[DEBUG] opening connection to broker; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: seed_0, bytes_written: 57, write_wait: 25.438µs, time_to_write: 16.164µs, err: <nil>
+[DEBUG] read ApiVersions v5; broker: seed_0, bytes_read: 20, read_wait: 30.977µs, time_to_read: 2.191065ms, err: <nil>
+[DEBUG] broker does not know our ApiVersions version but replied version 4, downgrading to version 4 and retrying; broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 4
+[DEBUG] wrote ApiVersions v4; broker: seed_0, bytes_written: 52, write_wait: 24.126µs, time_to_write: 23.696µs, err: <nil>
+[DEBUG] read ApiVersions v4; broker: seed_0, bytes_read: 65, read_wait: 6.92µs, time_to_read: 40.403021ms, err: <nil>
+[DEBUG] connection initialized successfully; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] wrote Metadata v13; broker: seed_0, bytes_written: 76, write_wait: 43.290672ms, time_to_write: 16.065µs, err: <nil>
+[DEBUG] read Metadata v13; broker: seed_0, bytes_read: 120, read_wait: 26.019µs, time_to_read: 47.855148ms, err: <nil>
+[DEBUG] metadata refresh new produce partition; topic: nullbroker-peer, partition: 0, leader: 0, leader_epoch: -1
+[INFO] done waiting on metadata for new topic; topic: nullbroker-peer
+[INFO] skipping producer id initialization because the client was configured to disable idempotent writes
+[DEBUG] opening connection to broker; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] issuing api versions request; broker: 0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: 0, bytes_written: 67, write_wait: 25.558µs, time_to_write: 16.445µs, err: <nil>
+[DEBUG] read ApiVersions v5; broker: 0, bytes_read: 20, read_wait: 17.266µs, time_to_read: 2.735448ms, err: <nil>
+[DEBUG] broker does not know our ApiVersions version but replied version 4, downgrading to version 4 and retrying; broker: 0
+[DEBUG] issuing api versions request; broker: 0, version: 4
+[DEBUG] wrote ApiVersions v4; broker: 0, bytes_written: 52, write_wait: 3.705µs, time_to_write: 15.103µs, err: <nil>
+[DEBUG] read ApiVersions v4; broker: 0, bytes_read: 65, read_wait: 4.817µs, time_to_read: 44.34893ms, err: <nil>
+[DEBUG] connection initialized successfully; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] wrote Produce v12; broker: 0, bytes_written: 64583, write_wait: 47.836705ms, time_to_write: 15.433µs, err: <nil>
+[DEBUG] read Produce v12; broker: 0, bytes_read: 66, read_wait: 21.432µs, time_to_read: 43.720726ms, err: <nil>
+[DEBUG] produced; broker: 0, to: nullbroker-peer[0{0=>512}]
+[DEBUG] rewinding produce sequence to resend pending batches; topic: nullbroker-peer, partition: 0, rewind_from: 512, rewind_to: 512, pending_batches: 0
+[INFO] immediate metadata update triggered; why: querying metadata for consumer initialization
+[DEBUG] opening connection to broker; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: seed_0, bytes_written: 57, write_wait: 6.27µs, time_to_write: 8.122µs, err: <nil>
+[DEBUG] read ApiVersions v5; broker: seed_0, bytes_read: 20, read_wait: 6.79µs, time_to_read: 2.857868ms, err: <nil>
+[DEBUG] broker does not know our ApiVersions version but replied version 4, downgrading to version 4 and retrying; broker: seed_0
+[DEBUG] issuing api versions request; broker: seed_0, version: 4
+[DEBUG] wrote ApiVersions v4; broker: seed_0, bytes_written: 52, write_wait: 4.727µs, time_to_write: 25.659µs, err: <nil>
+[DEBUG] read ApiVersions v4; broker: seed_0, bytes_read: 65, read_wait: 5.438µs, time_to_read: 44.295699ms, err: <nil>
+[DEBUG] connection initialized successfully; addr: 127.0.0.1:40125, broker: seed_0
+[DEBUG] wrote Metadata v13; broker: seed_0, bytes_written: 76, write_wait: 47.710085ms, time_to_write: 24.356µs, err: <nil>
+[DEBUG] read Metadata v13; broker: seed_0, bytes_read: 120, read_wait: 29.485µs, time_to_read: 43.833519ms, err: <nil>
+[DEBUG] metadata refresh new consume partition; topic: nullbroker-peer, partition: 0, leader: 0, leader_epoch: -1
+[INFO] assigning partitions; why: new assignments from direct consumer, how: assigning everything new, keeping current assignment, input: nullbroker-peer[0{0 e-1 ce0}]
+[DEBUG] assign requires loading offsets
+[DEBUG] opening connection to broker; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] connection opened to broker; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] issuing api versions request; broker: 0, version: 5
+[DEBUG] wrote ApiVersions v5; broker: 0, bytes_written: 67, write_wait: 13.8µs, time_to_write: 17.086µs, err: <nil>
+[DEBUG] read ApiVersions v5; broker: 0, bytes_read: 20, read_wait: 13.21µs, time_to_read: 4.301454ms, err: <nil>
+[DEBUG] broker does not know our ApiVersions version but replied version 4, downgrading to version 4 and retrying; broker: 0
+[DEBUG] issuing api versions request; broker: 0, version: 4
+[DEBUG] wrote ApiVersions v4; broker: 0, bytes_written: 52, write_wait: 3.836µs, time_to_write: 19.7µs, err: <nil>
+[DEBUG] read ApiVersions v4; broker: 0, bytes_read: 65, read_wait: 4.777µs, time_to_read: 46.498738ms, err: <nil>
+[DEBUG] connection initialized successfully; addr: 127.0.0.1:40125, broker: 0
+[DEBUG] wrote Fetch v17; broker: 0, bytes_written: 115, write_wait: 51.373229ms, time_to_write: 32.278µs, err: <nil>
+[DEBUG] read Fetch v17; broker: 0, bytes_read: 64578, read_wait: 20.03µs, time_to_read: 1.100736ms, err: <nil>

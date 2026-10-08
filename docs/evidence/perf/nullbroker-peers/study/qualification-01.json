@@ -1,0 +1,152 @@
+{
+  "task": "KL09-66",
+  "status": "qualified",
+  "source_commit": "42edda4ec0a903f4595fad42ebe89c8cfe488a71",
+  "rust_test_and_clippy_source": "68278185d202d9bf309f0df6f021b4d2a4b429de",
+  "rust_inputs_byte_identical": true,
+  "toolchain": "stable Rust 1.99.0",
+  "tests_passed": 30,
+  "strict_clippy_passed": true,
+  "formatting_passed": true,
+  "peers": [
+    {
+      "peer": {
+        "peer": "librdkafka",
+        "version": "2.15.0",
+        "acknowledged": 512,
+        "validated_fetch": 512,
+        "validation_failures": 0,
+        "fetch_source": "seeded-independent-of-produce"
+      },
+      "observed_versions": [
+        {
+          "api_key": 0,
+          "version": 10,
+          "requests": 1
+        },
+        {
+          "api_key": 1,
+          "version": 16,
+          "requests": 2
+        },
+        {
+          "api_key": 3,
+          "version": 13,
+          "requests": 2
+        },
+        {
+          "api_key": 10,
+          "version": 2,
+          "requests": 2
+        },
+        {
+          "api_key": 18,
+          "version": 3,
+          "requests": 5
+        }
+      ],
+      "validated_artifact": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-c-02/validated.json",
+      "process_receipts": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-c-02/receipts.json"
+    },
+    {
+      "peer": {
+        "peer": "apache-java",
+        "version": "4.3.1",
+        "acknowledged": 512,
+        "validated_fetch": 512,
+        "validation_failures": 0,
+        "fetch_source": "seeded-independent-of-produce"
+      },
+      "observed_versions": [
+        {
+          "api_key": 0,
+          "version": 12,
+          "requests": 6
+        },
+        {
+          "api_key": 1,
+          "version": 17,
+          "requests": 3
+        },
+        {
+          "api_key": 3,
+          "version": 13,
+          "requests": 2
+        },
+        {
+          "api_key": 18,
+          "version": 4,
+          "requests": 4
+        }
+      ],
+      "validated_artifact": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-java-02/validated.json",
+      "process_receipts": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-java-02/receipts.json"
+    },
+    {
+      "peer": {
+        "acknowledged": 512,
+        "fetch_source": "seeded-independent-of-produce",
+        "peer": "franz-go",
+        "validated_fetch": 512,
+        "validation_failures": 0,
+        "version": "1.22.0"
+      },
+      "observed_versions": [
+        {
+          "api_key": 0,
+          "version": 12,
+          "requests": 1
+        },
+        {
+          "api_key": 1,
+          "version": 17,
+          "requests": 1
+        },
+        {
+          "api_key": 3,
+          "version": 13,
+          "requests": 2
+        },
+        {
+          "api_key": 18,
+          "version": 4,
+          "requests": 4
+        },
+        {
+          "api_key": 18,
+          "version": 5,
+          "requests": 4
+        }
+      ],
+      "validated_artifact": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-go-02/validated.json",
+      "process_receipts": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/final-go-02/receipts.json"
+    }
+  ],
+  "acknowledged_records": 1536,
+  "independently_validated_fetch_records": 1536,
+  "validation_failures": 0,
+  "joined_qualification_children": 6,
+  "empty_process_groups": 6,
+  "rebound_qualification_ports": 3,
+  "limits": [
+    "Fetch serves the explicit seeded stream independently of Produce, with its own batch clock; no persisted readback or durability qualification.",
+    "One partition, 512 records per peer, 100-byte uncompressed values, zero headers, all acknowledgments, non-idempotent Produce, explicit manual Fetch position. No consumer groups or transactional Produce.",
+    "ApiVersions v5 observations are unsupported-version bootstrap attempts; the broker advertises maximum v4 and the Go SDK retries v4.",
+    "Finite functional checks, not comparative performance measurements."
+  ],
+  "before_proofs": [
+    "before-c-01/peer.json: genuine librdkafka acknowledged zero records because its Produce v10 was not handled",
+    "before-close-01/receipts.json: a protocol rejection left the cloned socket open until run shutdown"
+  ],
+  "retained_failed_preparations": [
+    "C SDK header warning corrected with -isystem",
+    "Go module-root invocation corrected; default proxy storage returned Forbidden, direct upstream download passed go.sum verification",
+    "Go uint64 constant overflow corrected to runtime wrapping multiplication",
+    "Non-executable copied broker corrected with preserved executable mode",
+    "Classic coordinator discovery was missing for librdkafka",
+    "Fetch timestamp checks assumed zero instead of the synthetic batch clock",
+    "ApiVersions v5 bootstrap originally closed instead of negotiating down",
+    "The pinned Go SDK times delivery from Record.Timestamp; a 1970 Produce timestamp expired before dispatch. All peers now use current-time defaults.",
+    "Two existing Clippy findings corrected for stable Rust; non-Drop test helper drops removed"
+  ]
+}

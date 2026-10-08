@@ -1,0 +1,37 @@
+[
+  {
+    "command": [
+      "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/c-peer.elf",
+      "127.0.0.1:51589"
+    ],
+    "pid": 940480,
+    "exit": 1,
+    "joined": true
+  },
+  {
+    "command": [
+      "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/before-build-01/nullbroker.elf",
+      "--bind",
+      "127.0.0.1:51589",
+      "--partitions",
+      "1",
+      "--seconds",
+      "10",
+      "--artifact",
+      "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/before-c-01/broker.json",
+      "--fetch-records",
+      "512",
+      "--fetch-batch-records",
+      "128",
+      "--fetch-payload-bytes",
+      "100"
+    ],
+    "pid": 940478,
+    "exit": 0,
+    "joined": true
+  },
+  {
+    "port": 51589,
+    "rebound": true
+  }
+]

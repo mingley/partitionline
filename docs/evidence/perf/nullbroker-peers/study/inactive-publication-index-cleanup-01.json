@@ -1,0 +1,25 @@
+{
+  "scope": "Four completed publisher temporary indexes only; the main working index is unchanged.",
+  "removed": [
+    {
+      "path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/source-publication-01.json.index",
+      "sha256": "fafe7db74f09fc3ec80cb7b1ccf2e5ad217d6bca1f40df7bb91af092d3b9f611",
+      "bytes": 21843241
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/source-publication-02.json.index",
+      "sha256": "21ae96936ca42917aca348f78338cd258a20850d3a0d9afd0107c1bfba4621a6",
+      "bytes": 21843241
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/source-publication-03.json.index",
+      "sha256": "77be5aeb30f1ca4d4f1e1352749072a22e536eb40c4c8c42f6341c8b657f384a",
+      "bytes": 21843241
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/source-publication-04.json.index",
+      "sha256": "8da8e3ef34ad2430ac4ead659d51ac949ac80f621c4a82ddb1f9040b35e84240",
+      "bytes": 21843241
+    }
+  ]
+}

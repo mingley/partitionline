@@ -1,0 +1,2 @@
+# github.com/mingley/partitionline/benchmarks/peers/franz-go
+./main.go:24:14: uint64(0x5eed0001) * uint64(0x9e3779b97f4a7c15) (constant 18156668256146826787144039445 of type uint64) overflows uint64

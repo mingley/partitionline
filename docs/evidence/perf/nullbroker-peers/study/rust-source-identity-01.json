@@ -1,0 +1,18 @@
+{
+  "test_and_clippy_source": "68278185d202d9bf309f0df6f021b4d2a4b429de",
+  "sdk_qualification_source": "42edda4ec0a903f4595fad42ebe89c8cfe488a71",
+  "rust_inputs_byte_identical": {
+    "benchmarks/nullbroker/Cargo.lock": "ff52fa7c6b9f099f8ee14de71296cf35182f14afa5720566ccb69ddf4ed95327",
+    "benchmarks/nullbroker/Cargo.toml": "89165f4517c31ebecd5cafa592b144f0681e2cce7dc4601e8c16d2daac3a6006",
+    "benchmarks/nullbroker/src/lib.rs": "284e54ef6de7cd97e8a628b3cb034cf15d3908110f00b684f90a7ad8f0c100ad",
+    "benchmarks/nullbroker/src/main.rs": "ee78b03bb21b5ede4e69c16956edc5748aaf12d487761f636534ecfb3f485770",
+    "benchmarks/nullbroker/src/synth.rs": "cd1adc5932b3769e3676cbb19940dab03b3436dd23bbd2b774e523743b435153",
+    "benchmarks/nullbroker/tests/interop.rs": "eb0c358f1a66169e844d0e24eb27cf13af731b9d7f6da2fc6620170f25c2c454"
+  },
+  "tests_passed": 30,
+  "qualified_broker_binary_byte_identical": true,
+  "new_source_changes": [
+    "SDK Produce timestamps use current-time defaults",
+    "README explains Produce and Fetch clocks"
+  ]
+}

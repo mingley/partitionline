@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/before-build-01/nullbroker.elf",
+    "--bind",
+    "127.0.0.1:57883",
+    "--seconds",
+    "2",
+    "--artifact",
+    "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/before-close-01/broker.json"
+  ],
+  "pid": 945098,
+  "exit": 0,
+  "joined": true,
+  "process_group_empty": true,
+  "port_rebound": true,
+  "observed": {
+    "read_timeout_before_shutdown": true
+  },
+  "source_commit": "18e12bda8350d7631aeef2af8c19a6a38d85c4dc",
+  "binary_sha256": "52c294e7d4335029762aaa02cbd1d3d49453f9de70c66ee5b4d1371757f7c849"
+}
