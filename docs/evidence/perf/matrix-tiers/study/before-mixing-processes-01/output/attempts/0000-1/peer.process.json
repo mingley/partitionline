@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/tmp/tmp_e35guxd/fake.py",
+    "ok",
+    "/tmp/tmp_e35guxd/config.json",
+    "/tmp/tmp_e35guxd/output/attempts/0000-1/result.json",
+    "/tmp/tmp_e35guxd/fixture.json"
+  ],
+  "started": 1791426950.6945534,
+  "parent_waited": true,
+  "pid": 946389,
+  "exit_code": 0,
+  "ended": 1791426950.7365022,
+  "artifacts": {
+    "peer.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "peer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

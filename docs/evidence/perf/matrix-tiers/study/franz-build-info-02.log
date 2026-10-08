@@ -1,0 +1,19 @@
+/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-peer.elf: go1.26.0
+	path	github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer
+	mod	github.com/mingley/partitionline/benchmarks/peers/franz-go	(devel)	
+	dep	github.com/klauspost/compress	v1.20.0	h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA=
+	dep	github.com/pierrec/lz4/v4	v4.1.30	h1:cchX8N2DVP668WkElI9QMwVyoNabLkq1LofDHFeIrdg=
+	dep	github.com/twmb/franz-go	v1.22.0	h1:/CN0IfwJIlkO8ml78sR+1nfciyJ1qzf/ebp2lJeTnus=
+	dep	github.com/twmb/franz-go/pkg/kadm	v1.19.0	h1:5Nx/WWFkpNUi8Z55Skxvn9x5HOCjw+BUntSNB1kLglk=
+	dep	github.com/twmb/franz-go/pkg/kmsg	v1.14.0	h1:gSxrBEKWl3qnsx3QKWol5OEVujuPmIoDkhMt3didFKM=
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1

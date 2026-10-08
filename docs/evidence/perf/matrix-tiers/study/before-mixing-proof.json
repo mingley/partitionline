@@ -1,0 +1,269 @@
+{
+  "scope": "Actual process test using explicitly synthetic result data; no Kafka or throughput evidence.",
+  "exit": 0,
+  "summary": {
+    "status": "complete",
+    "rows": 2,
+    "executed": 2,
+    "failed": 0,
+    "unsupported": 0,
+    "retained_failed_attempts": 0,
+    "retained_interrupted_attempts": 0,
+    "suite_hold": "active",
+    "performance_claims_valid": false
+  },
+  "stdout": "{\"row\": 0, \"state\": \"executed\"}\n{\"row\": 1, \"state\": \"executed\"}\n",
+  "stderr": "",
+  "manifest": {
+    "schema_version": 1,
+    "seed": 7,
+    "repetitions": 1,
+    "timeout_seconds": 5,
+    "broker": {
+      "bootstrap": "127.0.0.1:19000",
+      "image": "synthetic-test-only",
+      "version": "test",
+      "cluster_id": "owned-test-cluster"
+    },
+    "cells": [
+      {
+        "id": "nb-produce-bulk",
+        "env": {
+          "WARMUP": "100000",
+          "COUNT": "8000000",
+          "RECORD_SEED": "7"
+        },
+        "equal_semantics": {
+          "durability": {
+            "replication_factor": 1,
+            "min_insync_replicas": 1
+          },
+          "acks": -1,
+          "idempotence": true,
+          "isolation": "read_uncommitted",
+          "security": {
+            "protocol": "PLAINTEXT",
+            "mechanism": "NONE"
+          }
+        },
+        "target_kind": "null-broker",
+        "result_kind": "client-ceiling"
+      }
+    ],
+    "peers": [
+      {
+        "id": "a",
+        "emit_config": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "/tmp/tmpa4ej_efa/fake.py",
+          "config",
+          "/tmp/tmpa4ej_efa/config.json",
+          "ok"
+        ],
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "/tmp/tmpa4ej_efa/fake.py",
+          "ok",
+          "/tmp/tmpa4ej_efa/config.json",
+          "{result}",
+          "/tmp/tmpa4ej_efa/fixture.json"
+        ],
+        "inputs": [
+          {
+            "path": "/tmp/tmpa4ej_efa/fake.py",
+            "sha256": "179adff0a022fbb4117ceeecfd971abbd47302ce5536212275e067fad2bef6e0"
+          },
+          {
+            "path": "/tmp/tmpa4ej_efa/config.json",
+            "sha256": "baec95c3f6e1b7b8bff1d9021e4c26fc6563054784bd63ad7574580d3a1af042"
+          },
+          {
+            "path": "/tmp/tmpa4ej_efa/fixture.json",
+            "sha256": "e8a851e52a6c4fb88770ac7ac4bda54119dadc1a51a5df41a5236aaae799d5ce"
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "emit_config": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "/tmp/tmpa4ej_efa/fake.py",
+          "config",
+          "/tmp/tmpa4ej_efa/config.json",
+          "ok"
+        ],
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "/tmp/tmpa4ej_efa/fake.py",
+          "ok",
+          "/tmp/tmpa4ej_efa/config.json",
+          "{result}",
+          "/tmp/tmpa4ej_efa/fixture.json"
+        ],
+        "inputs": [
+          {
+            "path": "/tmp/tmpa4ej_efa/fake.py",
+            "sha256": "179adff0a022fbb4117ceeecfd971abbd47302ce5536212275e067fad2bef6e0"
+          },
+          {
+            "path": "/tmp/tmpa4ej_efa/config.json",
+            "sha256": "baec95c3f6e1b7b8bff1d9021e4c26fc6563054784bd63ad7574580d3a1af042"
+          },
+          {
+            "path": "/tmp/tmpa4ej_efa/fixture.json",
+            "sha256": "e8a851e52a6c4fb88770ac7ac4bda54119dadc1a51a5df41a5236aaae799d5ce"
+          }
+        ]
+      }
+    ],
+    "provision": {
+      "identity": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/tmp/tmpa4ej_efa/fake.py",
+        "identity",
+        "/tmp/tmpa4ej_efa/config.json"
+      ],
+      "identity_stdout": "owned-test-cluster",
+      "create": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/tmp/tmpa4ej_efa/fake.py",
+        "create",
+        "/tmp/tmpa4ej_efa/config.json",
+        "/tmp/tmpa4ej_efa/topics.log",
+        "{topic}"
+      ],
+      "delete": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/tmp/tmpa4ej_efa/fake.py",
+        "delete",
+        "/tmp/tmpa4ej_efa/config.json",
+        "/tmp/tmpa4ej_efa/topics.log",
+        "{topic}"
+      ]
+    }
+  },
+  "retained_events": [
+    {
+      "attempt": 1,
+      "directory": "attempts/0000-1",
+      "row": 0,
+      "state": "started",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-0-1"
+    },
+    {
+      "attempt": 1,
+      "row": 0,
+      "state": "created",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-0-1"
+    },
+    {
+      "artifacts": {
+        "attempts/0000-1/config.process.json": "14857df40f8419c702fba6e4add61ab22064ba60b9571c66456b2aef85c11dc7",
+        "attempts/0000-1/config.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0000-1/config.stdout": "d330fb5fd9cda19647485096875122599a0a4c97cfad4feae619f90c35c60066",
+        "attempts/0000-1/create.process.json": "c98f424e474a01718fc1b443831fe5673672021999681b2cf5e5cb544cab4136",
+        "attempts/0000-1/create.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0000-1/create.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0000-1/peer.process.json": "cbb1e91ff2460c814c290d20a0a0adb9b9648450b8f53234efba1566246f4e60",
+        "attempts/0000-1/peer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0000-1/peer.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0000-1/result.json": "a492182681194a86bf7b88a6929f1f709fb0f6b2643b4c14f14477196084a519",
+        "attempts/0000-1/result.json.raw": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310"
+      },
+      "attempt": 1,
+      "result": "attempts/0000-1/result.json",
+      "row": 0,
+      "settings": {
+        "acks": -1,
+        "batch_num_messages": 32768,
+        "batch_size_bytes": 1000000,
+        "compression": "none",
+        "connections_per_broker": 1,
+        "consume_timeout_ms": 30000,
+        "count": 8000000,
+        "delivery_timeout_ms": 30000,
+        "flush_timeout_ms": 35000,
+        "idempotence": true,
+        "isolation_level": "read_uncommitted",
+        "key_mode": "id",
+        "linger_ms": 5,
+        "max_in_flight": 5,
+        "partitioner": "explicit_round_robin",
+        "partitions": 6,
+        "payload_bytes": 100,
+        "payload_mode": "seeded",
+        "queue_max_kbytes": 32768,
+        "queue_max_messages": 1000000,
+        "record_seed": 7,
+        "run_timeout_ms": 120000,
+        "security_protocol": "PLAINTEXT",
+        "socket_nagle_disable": true,
+        "warmup": 100000
+      },
+      "state": "executed",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-0-1",
+      "topic_created": true
+    },
+    {
+      "attempt": 1,
+      "directory": "attempts/0001-1",
+      "row": 1,
+      "state": "started",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-1-1"
+    },
+    {
+      "attempt": 1,
+      "row": 1,
+      "state": "created",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-1-1"
+    },
+    {
+      "artifacts": {
+        "attempts/0001-1/config.process.json": "64bbf555c4bf16bc486dd376c4112b5cb6bf6873804e0ca882744a205f326ab0",
+        "attempts/0001-1/config.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0001-1/config.stdout": "ae18742a8a48849749d4eb7600e57ae1861d2f5eec8bf8bf1e67b7f98dbd5c77",
+        "attempts/0001-1/create.process.json": "1fb48e71a8e468a32332d29c58a323ff3af599bf19bc0dd3423d993e0702cb01",
+        "attempts/0001-1/create.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0001-1/create.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0001-1/peer.process.json": "808a42227d71968d19566d449ecbef8c6381a465cd9f70de7e26e4b790a19a66",
+        "attempts/0001-1/peer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0001-1/peer.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "attempts/0001-1/result.json": "2b99440ced252777e2fcce7df30d477533e7edbf4dc567bb4cef5e6552218218",
+        "attempts/0001-1/result.json.raw": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310"
+      },
+      "attempt": 1,
+      "result": "attempts/0001-1/result.json",
+      "row": 1,
+      "settings": {
+        "acks": -1,
+        "batch_num_messages": 32768,
+        "batch_size_bytes": 1000000,
+        "compression": "none",
+        "connections_per_broker": 1,
+        "consume_timeout_ms": 30000,
+        "count": 8000000,
+        "delivery_timeout_ms": 30000,
+        "flush_timeout_ms": 35000,
+        "idempotence": true,
+        "isolation_level": "read_uncommitted",
+        "key_mode": "id",
+        "linger_ms": 5,
+        "max_in_flight": 5,
+        "partitioner": "explicit_round_robin",
+        "partitions": 6,
+        "payload_bytes": 100,
+        "payload_mode": "seeded",
+        "queue_max_kbytes": 32768,
+        "queue_max_messages": 1000000,
+        "record_seed": 7,
+        "run_timeout_ms": 120000,
+        "security_protocol": "PLAINTEXT",
+        "socket_nagle_disable": true,
+        "warmup": 100000
+      },
+      "state": "executed",
+      "topic": "pl-matrix-5d3a935754a24f5cbff5fd3f82273337-1-1",
+      "topic_created": true
+    }
+  ]
+}

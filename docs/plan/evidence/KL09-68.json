@@ -1,0 +1,42 @@
+{
+  "task": "KL09-68",
+  "status": "in_progress",
+  "source_commit": "b8274f373a1fc12072e860df1a9dd3599639d59f",
+  "driver_source_commit": "90286f76673616f02abccec53b9cf52501673319",
+  "source_sha256": {
+    "scripts/run-benchmark-matrix.py": "dff2d0fcf1c876a6cdfcc2dc8b0219b795090cbd858a0aa056a3a8ec9e115655",
+    "benchmarks/tests/test_matrix.py": "f386559f8e4df330e92bdf80b1eb4563db2d3dc732fc7e5e17178ad850b90cc2",
+    "benchmarks/scenarios.json": "8ae5331b900256dd120fa83d0435c8520507015635a398eea5c028d27a100e61"
+  },
+  "process_tests_passed": 24,
+  "tests_scope": "Real processes with explicit fake adapters; includes franz-go-ID crash, timeout, resume and retention checks.",
+  "real_franz_config_and_scenarios_exits": [
+    0,
+    0
+  ],
+  "real_franz_comparability_qualified": false,
+  "client_ceiling_orchestration_qualified": false,
+  "qualification_limit": "Only tier-mixing refusals and explicit incomplete-config refusal are qualified. Own null-broker fixture lifecycle, adapters and a genuine tiny matrix remain required before closure.",
+  "before_failure": "docs/evidence/perf/matrix-tiers/study/before-mixing-processes-01/observed.json",
+  "real_driver_refusal": "docs/evidence/perf/matrix-tiers/study/franz-config-refusal-02.json",
+  "missing_driver_settings": [
+    "queue_max_messages",
+    "queue_max_kbytes",
+    "delivery_timeout_ms",
+    "flush_timeout_ms",
+    "run_timeout_ms",
+    "consume_timeout_ms",
+    "payload_mode",
+    "key_mode",
+    "connections_per_broker",
+    "socket_nagle_disable"
+  ],
+  "archive_manifest": "docs/evidence/perf/matrix-tiers/archive-manifest.json",
+  "archive_verification": {
+    "mapped_files": 67,
+    "stored_bytes": 8137454,
+    "original_bytes": 15001305,
+    "stored_and_decoded_bytes_verified": true
+  },
+  "performance_claim": false
+}

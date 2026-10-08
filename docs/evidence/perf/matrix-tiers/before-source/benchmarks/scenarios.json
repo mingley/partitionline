@@ -1,0 +1,1948 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "claim_gate": {
+    "frozen_by": "KL09-01",
+    "contract_section": "docs/benchmark-contract.md section 10",
+    "peer_set": [
+      {
+        "id": "partitionline",
+        "client": "this repository",
+        "standing": "subject under test"
+      },
+      {
+        "id": "librdkafka",
+        "client": "C client",
+        "pin": "current pinned release plus the 2.15.0 historical bar",
+        "driver_card": "KL04-04",
+        "standing": "driver pending"
+      },
+      {
+        "id": "kafka-clients",
+        "client": "Apache Java",
+        "pin": "Apache kafka-clients4.3.1 / JDK21.0.12.1 / dependency SHA-256 pins",
+        "driver_card": "KL04-03",
+        "standing": "pipelined producer and receipt-audit driver checked in; campaigns not_run",
+        "source_pin": "benchmarks/peers/java/source-pin.json",
+        "driver": "benchmarks/peers/java/run.py"
+      },
+      {
+        "id": "franz-go",
+        "client": "Go client",
+        "pin": "franz-go v1.22.0, kadm v1.19.0, go1.26.0 (go.mod/go.sum)",
+        "driver_card": "KL09-65",
+        "standing": "driver checked in (benchmarks/peers/franz-go)"
+      },
+      {
+        "id": "rust-rdkafka",
+        "client": "Rust BaseProducer bindings over librdkafka",
+        "wrapper_version": "0.39.0",
+        "binding_version": "4.10.0+2.12.1",
+        "native_version": "2.15.0",
+        "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "note": "Separate from C-only bar; shared ID keys require reconciliation with frozen UUID distribution before qualification",
+        "driver_card": "KL04-05",
+        "standing": "adapter available; frozen campaign not_run",
+        "source_pin": "benchmarks/peers/rust/source-pin.json"
+      },
+      {
+        "id": "pure-rust-peer",
+        "client": "audited rskafka 0.6.0 and kafka 0.10.0 candidates",
+        "note": "Neither matches an unchanged frozen cell; no runnable additional peer",
+        "driver_card": "KL04-05",
+        "standing": "blocked_no_comparable_frozen_cell",
+        "eligible_cell_ids": [],
+        "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+      }
+    ],
+    "best_peer_rule": "Superior is always relative to the best peer for that cell among peers that support the cell's capability and have a runnable driver. Peers without a driver, and peers lacking the capability, are listed as excluded, never counted.",
+    "superior_rule": "Throughput: paired 95% CI lower bound of the partitionline/peer ratio above 1.0. Latency: CI upper bound of each percentile ratio below 1.0 at every declared load.",
+    "claim_types": [
+      {
+        "wording": "Fastest Kafka client (global)",
+        "requirement": "superior in every required cell of all six contract profiles plus the required compressed cells (lz4, zstd), on both x86_64 and arm64, independently reproduced (KL04-14); no exceptions"
+      },
+      {
+        "wording": "Fastest for <profile> on <arch>",
+        "requirement": "superior in every required cell of that profile on that architecture, independently reproduced"
+      },
+      {
+        "wording": "X% faster (cell or profile)",
+        "requirement": "paired 95% CI lower bound of the throughput ratio at least 1+X in every covered cell; latency percentile ratio CI upper bound at most 1-X"
+      },
+      {
+        "wording": "Most CPU-efficient",
+        "requirement": "CPU-per-record ratio CI upper bound at most 0.80 against the best peer; never worded as fastest"
+      },
+      {
+        "wording": "ROADMAP performance-leadership scorecard",
+        "requirement": "throughput ratio CI lower bound at least 1.20, or CPU-per-record CI upper bound at most 0.80, with p99 ratio CI upper bound at most 1.05 at matched load"
+      }
+    ],
+    "scorecard_thresholds": {
+      "throughput_ratio_ci_lower_bound": 1.2,
+      "cpu_per_record_ratio_ci_upper_bound": 0.8,
+      "p99_ratio_ci_upper_bound_at_matched_load": 1.05
+    },
+    "tier_rules": {
+      "required": "gates profile and global wordings",
+      "exploratory": "diagnostic only, never gates",
+      "client_ceiling": "null-broker exploratory tier measuring client-side CPU headroom only; never feeds any claim wording; evidence lives in KL09 evidence JSONs, not result-schema filings"
+    },
+    "local_evidence_rules": "L0/L1 internal notes only; L2 local unsigned direction only; L3 dated per-cell comparison with all losses listed; L4 strongest met claim type. KL09 cards never publish claims; only KL04-12, KL04-14 and KL09-70 can.",
+    "result_filing_note": "franz-go, rust-rdkafka and pure-rust-peer results file under result-schema peer peer-adapter with the concrete peer in provenance.",
+    "zstd_required_cells": [
+      "bulk-req-idempotent-acks-all-zstd",
+      "fetch-req-standard-6p-zstd"
+    ],
+    "zstd_comparison_rule": "Required produce/fetch zstd cells use encoder level3 and record resolved backend/version and encoded batch corpus hash and sizes. Unknown backends, unequal levels or unavailable codecs are ineligible; these cells remain not_run."
+  },
+  "suite_hold": {
+    "status": "active",
+    "policy": "Preserve Suite HOLD. Unsigned Verifiable samples do not lift Suite HOLD. Historical signoff rules stay: do not silently move thresholds; the 2026-09-05 nested 1344us vs 750us miss is historical; GHA 5000us and local 750us relative gates are not redefined here.",
+    "historical_nested_gate": {
+      "measured_p99_us": 1344,
+      "ceiling_us": 750,
+      "status": "historical",
+      "ci_run": "33938039612",
+      "note": "integrity job nested latency under GHA load; now skipped via SKIP_LATENCY_GATE when REQUIRE_INTEGRITY=1"
+    },
+    "shared_runner_ceiling_us": 5000,
+    "local_relative_ceiling_us": 750,
+    "controlled_host_qualification": "Lab A / Kernel Integrity signoff required for official performance qualification"
+  },
+  "equal_semantics": {
+    "description": "A benchmark comparison is strictly invalid if durability/acks/idempotence/isolation/security differ. All comparison pairs must match across the frozen required match fields.",
+    "required_match_fields": [
+      "durability",
+      "acks",
+      "idempotence",
+      "isolation",
+      "security"
+    ],
+    "rules": [
+      "Durability, min.insync.replicas, replication factor, and broker ISR topology must match across all compared peers.",
+      "Producer acks level (0, 1, or -1/all) must be identical across compared clients.",
+      "Idempotence must be identically configured (both enabled or both disabled); when enabled, max.in.flight.requests.per.connection must be bounded <= 5.",
+      "Consumer isolation.level (read_uncommitted vs read_committed) must match across all compared clients.",
+      "Security protocol (PLAINTEXT, SSL/TLS, SASL_PLAINTEXT, SASL_SSL) and authentication mechanism (PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER) must match.",
+      "Enqueue acceptance (e.g. try_send returning Ok) is local buffering and must not be counted as broker acknowledgment; only broker produce responses count as acked.",
+      "Broker acknowledgment is not proof of a per-record fsync; fsync depends on broker log.flush configuration and OS page cache writeback.",
+      "High-watermark and count equality are necessary baseline assertions, but insufficient to establish exactly-once delivery; record payload and ID integrity must be verified."
+    ]
+  },
+  "measurement_protocol": {
+    "warmup": {
+      "required": true,
+      "min_duration_s": 15,
+      "min_records": 10000,
+      "percentile_inclusion": false,
+      "description": "Warmup traffic must run prior to steady-state measurement to stabilize JIT, TCP connection caches, and broker thread pools. All warmup records are discarded from steady-state percentiles and throughput totals."
+    },
+    "repetitions": {
+      "min_repetitions": 5,
+      "pairing": "paired_randomized",
+      "order": "randomized A/B or Latin square per repetition",
+      "description": "At least five paired randomized repetitions per cell to neutralize temporal drift, background noise, and host thermal throttling."
+    },
+    "duration": {
+      "steady_state_duration_s": 60,
+      "min_record_count": 1000000,
+      "description": "Each steady-state repetition must run for at least 60 seconds or until the sample floor is satisfied."
+    },
+    "sample_floor": {
+      "min_latency_samples": 10000,
+      "min_throughput_records": 1000000,
+      "description": "Strict sample floor required before computing percentiles or statistical aggregates."
+    },
+    "uncertainty": {
+      "metrics": [
+        "p50",
+        "p95",
+        "p99",
+        "p99.9",
+        "mean",
+        "min",
+        "max",
+        "throughput_rec_s"
+      ],
+      "confidence_level": 0.95,
+      "method": "95% bootstrap confidence interval and median +- MAD (Median Absolute Deviation)",
+      "description": "All published comparative results must report uncertainty intervals. Single-run peak values or unanchored point estimates are prohibited."
+    },
+    "failed_run_policy": {
+      "rule": "A failed cell stays failed; rerun success does not erase it; no progress-string success.",
+      "triggers": [
+        "Broker error code returned (e.g. NOT_ENOUGH_REPLICAS, OUT_OF_ORDER_SEQUENCE_NUMBER)",
+        "Missing or dropped records (sum of high watermarks != acked records)",
+        "Connection reset, broken pipe, or unhandled socket timeout",
+        "Client panic, SIGSEGV, unhandled exception, or unexpected termination",
+        "Progress strings without verified end-to-end completion",
+        "Latency sample count below declared sample floor"
+      ],
+      "rerun_erasure_forbidden": true,
+      "progress_string_success_forbidden": true
+    },
+    "historical_lab_a_rules": {
+      "reference_hardware": "Apple M4 Pro, macOS 26.6.2, arm64 (historical locked produce reference)",
+      "broker": "Docker apache/kafka:3.9.1 on 127.0.0.1:9092 or native KRaft 3.9.1 / 4.1.0",
+      "fresh_topic": "Topic must be deleted and recreated before each run",
+      "high_watermark_audit": "kafka-get-offsets sum of partition high watermarks must strictly equal acked record count",
+      "integrity_signoff": "Results are unsigned until Kernel Integrity signs; unsigned samples never lift Suite HOLD."
+    },
+    "universal_certification_disclaimer": "No universal Kafka performance certification exists in the inspected evidence. Repository targets and scorecard comparisons are proposed benchmarks, not industry-wide standards."
+  },
+  "profiles": {
+    "low-latency": {
+      "name": "low-latency",
+      "description": "Single-record and minimal-linger latency under scheduled open-loop arrivals to evaluate p50/p99 service time and queueing delay without coordinated omission.",
+      "cells": [
+        {
+          "id": "lat-req-openloop-p99-acks1",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Scheduled open-loop arrivals at 10,000 req/s, single message per batch, measuring produce-ack round-trip latency.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 1,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1000,
+              "batch_num_messages": 1
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 1,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "lat-req-openloop-p99-acks-all",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Scheduled open-loop arrivals at 10,000 req/s with acks=-1 and idempotence enabled.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1000,
+              "batch_num_messages": 1
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "lat-exp-saturation-curve",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Latency vs throughput saturation curve stepping from 1,000 to 100,000 req/s to locate knee of latency.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 256,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 1,
+              "batch_size_bytes": 16384,
+              "batch_num_messages": 100
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "bulk": {
+      "name": "bulk",
+      "description": "High-throughput saturated batch production and consumption measuring maximum sustained record and byte throughput.",
+      "cells": [
+        {
+          "id": "bulk-req-standard-acks1-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Standard 8,000,000 record bulk produce test at 100 bytes, acks=1, linger=5ms, 6 partitions, uncompressed.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent produce test at 8,000,000 records, acks=-1, linger=5ms, in-flight capped at 5.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-lz4",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent 8,000,000 record bulk produce at 100 bytes, acks=all, linger=5ms, 6 partitions, lz4 compression. Same uniform_random payload generator as the uncompressed cell, so every peer compresses identically distributed bytes (ratio near 1.0; the cell measures codec CPU overhead fairly, not ratio; campaigns pin the seed in the matched scenario).",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            },
+            "compression": {
+              "codec": "lz4"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-zstd",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent bulk produce with zstd level3. Use the same seeded random records for every peer and record the resolved backend, version, level and batch bytes.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            },
+            "compression": {
+              "codec": "zstd",
+              "level": 3
+            }
+          },
+          "peer_encoder_disclosures": {
+            "partitionline": {
+              "backend": "zstd-rs",
+              "version": "0.1.0",
+              "required_encoder_level": 3,
+              "source_pin": "Cargo.lock",
+              "qualification": "Microbenchmarks only; matched broker campaign not_run"
+            },
+            "kafka-clients": {
+              "backend": "libzstd",
+              "binding": "zstd-jni",
+              "target_reference_binding_version": "1.5.6-10",
+              "required_encoder_level": 3,
+              "qualification": "Pinned driver available; frozen cell/corpus campaign not_run; actual codec jar/native build must be retained"
+            },
+            "librdkafka": {
+              "backend": "libzstd",
+              "version": "resolve dynamically linked library per campaign",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/librdkafka/source-pin.json",
+              "qualification": "Must explicitly configure level3 and retain library version/hash; not_run"
+            },
+            "rust-rdkafka": {
+              "backend": "libzstd",
+              "version": "resolve the same native library as C bar",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/rust/source-pin.json",
+              "qualification": "Must explicitly configure level3 and retain library version/hash; not_run"
+            },
+            "franz-go": {
+              "backend": "klauspost/compress",
+              "version": "1.20.0",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/franz-go/go.mod",
+              "qualification": "Current adapter selects backend default; cannot assume it maps to level3. Resolve explicit level mapping and emitted configuration before comparing"
+            },
+            "pure-rust-peer": {
+              "backend": "unavailable",
+              "required_encoder_level": 3,
+              "qualification": "No eligible frozen idempotent cell; excluded, never counted as a win"
+            }
+          }
+        },
+        {
+          "id": "bulk-exp-large-payload-64kb",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Large payload batching throughput test with 64 KB messages to stress network buffer management and zero-copy transfer.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 65536,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": true,
+              "partition_skew": "uniform"
+            },
+            "partitions": 12,
+            "batching": {
+              "linger_ms": 10,
+              "batch_size_bytes": 4194304,
+              "batch_num_messages": 1024
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "fetch": {
+      "name": "fetch",
+      "description": "Consumer throughput and Fetch RPC round-trip latency from pre-populated topic partitions.",
+      "cells": [
+        {
+          "id": "fetch-req-standard-6p-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Consumer reading 8,000,000 records from pre-filled 6-partition topic with min_bytes=1, max_bytes=16MB, max_wait_ms=100.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 16777216,
+              "batch_num_messages": 65536
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 1,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "fetch-exp-high-partition-fanout",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Consumer reading across 64 partitions to measure request framing and multi-partition batch splitting overhead.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 512,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 64,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 33554432,
+              "batch_num_messages": 131072
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "fetch-req-standard-6p-zstd",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Fetch the same level3 zstd batch corpus on every peer. Record the encoder backend/version, level, corpus hash and compressed/uncompressed record bytes. Decoder level is not a setting.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 16777216,
+              "batch_num_messages": 65536
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 1,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            },
+            "compression": {
+              "codec": "zstd",
+              "level": 3
+            }
+          },
+          "peer_encoder_disclosures": {
+            "partitionline": {
+              "backend": "zstd-rs",
+              "version": "0.1.0",
+              "required_encoder_level": 3,
+              "source_pin": "Cargo.lock",
+              "qualification": "Microbenchmarks only; matched broker campaign not_run"
+            },
+            "kafka-clients": {
+              "backend": "libzstd",
+              "binding": "zstd-jni",
+              "target_reference_binding_version": "1.5.6-10",
+              "required_encoder_level": 3,
+              "qualification": "Pinned driver available; frozen cell/corpus campaign not_run; actual codec jar/native build must be retained"
+            },
+            "librdkafka": {
+              "backend": "libzstd",
+              "version": "resolve dynamically linked library per campaign",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/librdkafka/source-pin.json",
+              "qualification": "Must explicitly configure level3 and retain library version/hash; not_run"
+            },
+            "rust-rdkafka": {
+              "backend": "libzstd",
+              "version": "resolve the same native library as C bar",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/rust/source-pin.json",
+              "qualification": "Must explicitly configure level3 and retain library version/hash; not_run"
+            },
+            "franz-go": {
+              "backend": "klauspost/compress",
+              "version": "1.20.0",
+              "required_encoder_level": 3,
+              "source_pin": "benchmarks/peers/franz-go/go.mod",
+              "qualification": "Current adapter selects backend default; cannot assume it maps to level3. Resolve explicit level mapping and emitted configuration before comparing"
+            },
+            "pure-rust-peer": {
+              "backend": "unavailable",
+              "required_encoder_level": 3,
+              "qualification": "No eligible frozen idempotent cell; excluded, never counted as a win"
+            }
+          }
+        }
+      ]
+    },
+    "transactional": {
+      "name": "transactional",
+      "description": "Exactly-once transactional production and read_committed consumption under transaction coordinator epochs and commit markers.",
+      "cells": [
+        {
+          "id": "txn-req-produce-commit-cycle",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Transactional producer executing 1,000 sequential transactions of 100 records each, committing after each batch.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 3,
+              "min_insync_replicas": 2
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 200,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": true,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 65536,
+              "batch_num_messages": 100
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "three_node_local_kraft",
+              "rtt_ms": 0.2
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "txn-exp-abort-filter-overhead",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Consumer read_committed throughput when 20% of batches are aborted transactions, verifying abort-filtering cost.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 3,
+              "min_insync_replicas": 2
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 200,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 5000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "three_node_local_kraft",
+              "rtt_ms": 0.2
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "group/share": {
+      "name": "group/share",
+      "description": "Consumer group rebalance and partition assignment protocols (classic and KIP-848), plus KIP-932 Share Group concurrent record consumption.",
+      "cells": [
+        {
+          "id": "grp-req-kip848-steady-consumption",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "KIP-848 next-generation consumer group with 3 members consuming 6 partitions under server-side assignment.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 10000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "share-exp-kip932-concurrency",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "KIP-932 Share Group with 4 concurrent share consumers fetching and acknowledging records without static partition lock.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 256,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 5000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "secure": {
+      "name": "secure",
+      "description": "Secure transport and authentication overhead under TLS/SSL, SASL SCRAM-SHA-256, SCRAM-SHA-512, and OAUTHBEARER.",
+      "cells": [
+        {
+          "id": "sec-req-tls-bulk-produce",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "TLS 1.3 encrypted produce test matching the uncompressed bulk profile on 8,000,000 records.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SSL",
+              "tls_version": "TLSv1.3",
+              "cipher_suite": "TLS_AES_256_GCM_SHA384"
+            }
+          }
+        },
+        {
+          "id": "sec-req-sasl-scram256-bulk-produce",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "SASL_PLAINTEXT authenticated produce with SCRAM-SHA-256 (RFC 7677, 4096 iterations) on 8,000,000 records.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SASL_PLAINTEXT",
+              "sasl_mechanism": "SCRAM-SHA-256",
+              "iterations": 4096
+            }
+          }
+        },
+        {
+          "id": "sec-exp-mtls-rehandshake",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Mutual TLS (mTLS) with client certificate verification and periodic connection cycling to evaluate handshake overhead.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 1024,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 10000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SSL",
+              "client_auth": "required",
+              "tls_version": "TLSv1.3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "matched_scenarios": [
+    {
+      "id": "matched-bulk-acks-all-6p-uncompressed",
+      "profile": "bulk",
+      "tier": "required",
+      "status": "not_run",
+      "disposition": "not_run",
+      "description": "Fully specified three-way matched scenario for C (librdkafka), Java (kafka-clients), and Rust (partitionline) with identical frozen knobs.",
+      "frozen_knobs": {
+        "durability_isr": {
+          "replication_factor": 1,
+          "min_insync_replicas": 1,
+          "broker_version": "3.9.1",
+          "cluster_type": "KRaft"
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation_level": "read_committed",
+        "payload": {
+          "size_bytes": 100,
+          "entropy": "uniform_random",
+          "seed": "0x5EED0001"
+        },
+        "headers_keys_skew": {
+          "key_type": "string_uuid_16b",
+          "has_headers": false,
+          "partition_skew": "uniform"
+        },
+        "partitions": 6,
+        "batching": {
+          "linger_ms": 5,
+          "batch_size_bytes": 1048576,
+          "batch_num_messages": 32768
+        },
+        "connection_in_flight": {
+          "max_in_flight_requests_per_connection": 5,
+          "connections_per_broker": 1,
+          "tcp_nodelay": true
+        },
+        "network_topology": {
+          "environment": "loopback_single_host",
+          "interface": "127.0.0.1",
+          "port": 9092,
+          "rtt_ms": 0.1
+        },
+        "security": {
+          "protocol": "PLAINTEXT"
+        },
+        "workload": {
+          "record_count": 8000000,
+          "warmup_records": 10000,
+          "repetitions": 5,
+          "topic": "plbench-matched"
+        }
+      },
+      "peer_configurations": {
+        "rust_partitionline": {
+          "client_name": "partitionline",
+          "crate_version": "0.1.0+",
+          "invocation": "COUNT=8000000 WARMUP=10000 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_SIZE=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 KAFKA_TOPIC=plbench-matched cargo run --release --example bench_produce",
+          "config_properties": {
+            "acks": -1,
+            "linger_ms": 5,
+            "batch_bytes": 1048576,
+            "batch_records": 32768,
+            "idempotent": true,
+            "max_in_flight": 5,
+            "tcp_nodelay": true
+          }
+        },
+        "c_librdkafka": {
+          "client_name": "librdkafka",
+          "version": "2.15.0",
+          "binary": "examples/rdkafka_performance.c linked to librdkafka 2.15.0",
+          "invocation": "rdkafka_performance -P -t plbench-matched -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q -X enable.idempotence=true -X max.in.flight.requests.per.connection=5 -X linger.ms=5 -X batch.size=1048576 -X batch.num.messages=32768 -X queue.buffering.max.messages=1000000 -X socket.nagle.disable=true -X compression.codec=none",
+          "config_properties": {
+            "acks": -1,
+            "enable.idempotence": "true",
+            "max.in.flight.requests.per.connection": 5,
+            "linger.ms": 5,
+            "batch.size": 1048576,
+            "batch.num.messages": 32768,
+            "queue.buffering.max.messages": 1000000,
+            "socket.nagle.disable": "true",
+            "compression.codec": "none"
+          }
+        },
+        "java_kafka_clients": {
+          "client_name": "org.apache.kafka:kafka-clients",
+          "version": "3.9.1",
+          "driver": "org.apache.kafka.tools.ProducerPerformance",
+          "invocation": "bin/kafka-run-class.sh org.apache.kafka.tools.ProducerPerformance --topic plbench-matched --num-records 8000000 --record-size 100 --throughput -1 --producer-props bootstrap.servers=127.0.0.1:9092 acks=all enable.idempotence=true max.in.flight.requests.per.connection=5 linger.ms=5 batch.size=1048576 compression.type=none",
+          "config_properties": {
+            "acks": "all",
+            "enable.idempotence": "true",
+            "max.in.flight.requests.per.connection": 5,
+            "linger.ms": 5,
+            "batch.size": 1048576,
+            "compression.type": "none"
+          },
+          "historical_reference": true,
+          "current_driver": "benchmarks/peers/java/run.py (Apache4.3.1 / pinned JDK21.0.12.1)",
+          "current_driver_disposition": "unsupported",
+          "current_driver_note": "Frozen BATCH_RECORDS32768 cap and UUID key distribution are not matched by this byte-batching, seeded-ID driver. Existing historical settings/invocation retained. No frozen campaign qualification."
+        },
+        "rust_rdkafka": {
+          "client_name": "rust-rdkafka BaseProducer",
+          "wrapper_version": "0.39.0",
+          "binding_version": "4.10.0+2.12.1",
+          "native_version": "2.15.0",
+          "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "driver": "benchmarks/peers/rust/run.py (independent workspace)",
+          "invocation": "TIER=required RTT_MS=0.1 COUNT=8000000 WARMUP=10000 TOTAL_REPETITIONS=5 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_BYTES=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 ISOLATION=read_committed KAFKA_BOOTSTRAP=127.0.0.1:9092 KAFKA_TOPIC=plbench-matched SCENARIO_ID=matched-bulk-acks-all-6p-uncompressed python3 benchmarks/peers/rust/run.py roundtrip --binary \"$RUST_PEER_BUILD/rust-peer\" --kafka-home \"$KAFKA_HOME\" --result \"$FRESH_RESULT_PATH\"",
+          "config_properties": {
+            "acks": -1,
+            "enable.idempotence": "true",
+            "max.in.flight.requests.per.connection": 5,
+            "linger.ms": 5,
+            "batch.size": 1048576,
+            "batch.num.messages": 32768,
+            "queue.buffering.max.messages": 1000000,
+            "queue.buffering.max.kbytes": 32768,
+            "socket.nagle.disable": "true",
+            "compression.codec": "none",
+            "isolation.level": "read_committed",
+            "record_seed": "0x5EED0001",
+            "partitioner": "explicit index modulo partitions"
+          },
+          "disposition": "not_run",
+          "note": "Frozen counts/settings unchanged. Separately named smoke cannot qualify this campaign; common ID keys do not prove frozen UUID-key distribution. Wrapper bar only."
+        },
+        "go_franzgo": {
+          "client_name": "franz-go",
+          "version": "v1.22.0",
+          "driver": "benchmarks/peers/franz-go/cmd/peer (kadm v1.19.0, go1.26.0)",
+          "invocation": "COUNT=8000000 WARMUP=10000 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_BYTES=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 KAFKA_TOPIC=plbench-matched go run ./benchmarks/peers/franz-go/cmd/peer roundtrip",
+          "config_properties": {
+            "acks": -1,
+            "idempotence": true,
+            "max_in_flight": 5,
+            "linger_ms": 5,
+            "batch_size_bytes": 1048576,
+            "batch_num_messages": 32768,
+            "compression": "none",
+            "partitioner": "round_robin",
+            "record_seed": "0x5EED0001"
+          }
+        }
+      }
+    }
+  ],
+  "unsupported_peer_cells": [
+    {
+      "id": "unsupported-pure-rust-lat-req-openloop-p99-acks1",
+      "profile": "low-latency",
+      "cell_id": "lat-req-openloop-p99-acks1",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-lat-req-openloop-p99-acks-all",
+      "profile": "low-latency",
+      "cell_id": "lat-req-openloop-p99-acks-all",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Non-idempotent batches; frozen idempotence=true cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-lat-exp-saturation-curve",
+      "profile": "low-latency",
+      "cell_id": "lat-exp-saturation-curve",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-bulk-req-standard-acks1-uncompressed",
+      "profile": "bulk",
+      "cell_id": "bulk-req-standard-acks1-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-bulk-req-idempotent-acks-all-uncompressed",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Non-idempotent batches; frozen idempotence=true cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-bulk-req-idempotent-acks-all-lz4",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-lz4",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Non-idempotent batches; frozen idempotence=true cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-bulk-req-idempotent-acks-all-zstd",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-zstd",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Non-idempotent batches; frozen idempotence=true cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-bulk-exp-large-payload-64kb",
+      "profile": "bulk",
+      "cell_id": "bulk-exp-large-payload-64kb",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-fetch-req-standard-6p-uncompressed",
+      "profile": "fetch",
+      "cell_id": "fetch-req-standard-6p-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fetch/ListOffsets fixed ReadCommitted; frozen ReadUncommitted and TCP_NODELAY cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-fetch-exp-high-partition-fanout",
+      "profile": "fetch",
+      "cell_id": "fetch-exp-high-partition-fanout",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fetch/ListOffsets fixed ReadCommitted; frozen ReadUncommitted and TCP_NODELAY cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-txn-req-produce-commit-cycle",
+      "profile": "transactional",
+      "cell_id": "txn-req-produce-commit-cycle",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "No idempotent transactional lifecycle or verified aborted-record filtering",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-txn-exp-abort-filter-overhead",
+      "profile": "transactional",
+      "cell_id": "txn-exp-abort-filter-overhead",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "No idempotent transactional lifecycle or verified aborted-record filtering",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-grp-req-kip848-steady-consumption",
+      "profile": "group/share",
+      "cell_id": "grp-req-kip848-steady-consumption",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "No KIP-848 group lifecycle",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-share-exp-kip932-concurrency",
+      "profile": "group/share",
+      "cell_id": "share-exp-kip932-concurrency",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "No KIP-932 share protocol",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-sec-req-tls-bulk-produce",
+      "profile": "secure",
+      "cell_id": "sec-req-tls-bulk-produce",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-sec-req-sasl-scram256-bulk-produce",
+      "profile": "secure",
+      "cell_id": "sec-req-sasl-scram256-bulk-produce",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-pure-rust-sec-exp-mtls-rehandshake",
+      "profile": "secure",
+      "cell_id": "sec-exp-mtls-rehandshake",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "pure-rust-peer",
+      "peer_version": "rskafka 0.6.0 (audited, not selected)",
+      "missing_capability": "Fixed acks=-1 and no TCP_NODELAY control; frozen acks=1 cannot match",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win. kafka 0.10.0 also has no eligible frozen cells.",
+      "source_pin": "benchmarks/peers/rust/pure-rust-candidates.json"
+    },
+    {
+      "id": "unsupported-rust-rdkafka-share-groups",
+      "profile": "group/share",
+      "cell_id": "share-exp-kip932-concurrency",
+      "target_capability": "KIP-932 ShareConsume / ShareAcknowledge",
+      "peer": "rust-rdkafka",
+      "peer_version": "wrapper 0.39.0 / native 2.15.0",
+      "missing_capability": "Native 2.15.0 includes preview KIP-932, but wrapper 0.39.0/sys header 2.12.1 expose no share lifecycle and this adapter has no share driver; Kafka 3.9.1 fixture is ineligible",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Excluded; never scored as a win."
+    },
+    {
+      "id": "unsupported-librdkafka-share-groups",
+      "profile": "group/share",
+      "cell_id": "share-exp-kip932-concurrency",
+      "target_capability": "KIP-932 Share Groups (ShareConsume / ShareAcknowledge protocol)",
+      "peer": "librdkafka",
+      "peer_version": "2.15.0",
+      "missing_capability": "Current C benchmark peer has no share lifecycle driver or validated KIP-932 scenario; native librdkafka 2.15.0 itself provides preview rd_kafka_share_* APIs",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Must not be scored as a win. A benchmark comparison where a peer client lacks the required protocol capability is invalid as a performance victory. It must be explicitly reported as unsupported_peer.",
+      "note": "Pinned librdkafka 2.15.0 includes preview KIP-932 (CHANGELOG, public rdkafka.h and installed exported symbols). Current C peer driver does not exercise share APIs, and its Kafka 3.9.1 fixture is ineligible. This row records unavailable driver validation, not absent native library capability; no comparative score or win follows."
+    },
+    {
+      "id": "unsupported-java-driver-lat-req-openloop-p99-acks1",
+      "profile": "low-latency",
+      "cell_id": "lat-req-openloop-p99-acks1",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "No open-loop scheduler",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-lat-req-openloop-p99-acks-all",
+      "profile": "low-latency",
+      "cell_id": "lat-req-openloop-p99-acks-all",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "No open-loop scheduler",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-lat-exp-saturation-curve",
+      "profile": "low-latency",
+      "cell_id": "lat-exp-saturation-curve",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "No open-loop scheduler",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-bulk-req-standard-acks1-uncompressed",
+      "profile": "bulk",
+      "cell_id": "bulk-req-standard-acks1-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Frozen batch-record cap and null/UUID key distribution are not matched by this byte-batching, seeded-ID driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-bulk-req-idempotent-acks-all-uncompressed",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Frozen batch-record cap and null/UUID key distribution are not matched by this byte-batching, seeded-ID driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-bulk-req-idempotent-acks-all-lz4",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-lz4",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Frozen batch-record cap and null/UUID key distribution are not matched by this byte-batching, seeded-ID driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-bulk-req-idempotent-acks-all-zstd",
+      "profile": "bulk",
+      "cell_id": "bulk-req-idempotent-acks-all-zstd",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Frozen batch-record cap and null/UUID key distribution are not matched by this byte-batching, seeded-ID driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-bulk-exp-large-payload-64kb",
+      "profile": "bulk",
+      "cell_id": "bulk-exp-large-payload-64kb",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Frozen batch-record cap and null/UUID key distribution are not matched by this byte-batching, seeded-ID driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-fetch-req-standard-6p-uncompressed",
+      "profile": "fetch",
+      "cell_id": "fetch-req-standard-6p-uncompressed",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Receipt audit is not a separately timed fetch benchmark",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-fetch-exp-high-partition-fanout",
+      "profile": "fetch",
+      "cell_id": "fetch-exp-high-partition-fanout",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Receipt audit is not a separately timed fetch benchmark",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-fetch-req-standard-6p-zstd",
+      "profile": "fetch",
+      "cell_id": "fetch-req-standard-6p-zstd",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Receipt audit is not a separately timed fetch benchmark",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-txn-req-produce-commit-cycle",
+      "profile": "transactional",
+      "cell_id": "txn-req-produce-commit-cycle",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Transactions not implemented in this driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-txn-exp-abort-filter-overhead",
+      "profile": "transactional",
+      "cell_id": "txn-exp-abort-filter-overhead",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Transactions not implemented in this driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-grp-req-kip848-steady-consumption",
+      "profile": "group/share",
+      "cell_id": "grp-req-kip848-steady-consumption",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Group and share drivers not implemented",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-share-exp-kip932-concurrency",
+      "profile": "group/share",
+      "cell_id": "share-exp-kip932-concurrency",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "Group and share drivers not implemented",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-sec-req-tls-bulk-produce",
+      "profile": "secure",
+      "cell_id": "sec-req-tls-bulk-produce",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "TLS/SASL not implemented in this driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-sec-req-sasl-scram256-bulk-produce",
+      "profile": "secure",
+      "cell_id": "sec-req-sasl-scram256-bulk-produce",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "TLS/SASL not implemented in this driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    },
+    {
+      "id": "unsupported-java-driver-sec-exp-mtls-rehandshake",
+      "profile": "secure",
+      "cell_id": "sec-exp-mtls-rehandshake",
+      "target_capability": "Unchanged frozen semantic settings",
+      "peer": "kafka-clients",
+      "peer_version": "Apache4.3.1 / JDK21.0.12.1 driver",
+      "missing_capability": "TLS/SASL not implemented in this driver",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Driver restriction, not an Apache SDK capability limit. Excluded; never scored as a win.",
+      "source_pin": "benchmarks/peers/java/source-pin.json"
+    }
+  ],
+  "client_ceiling": {
+    "description": "Exploratory null-broker tier measuring client-side CPU headroom versus a peer on one host. Never feeds any claim wording; quoting a ceiling number as Kafka throughput is prohibited. Evidence lives in KL09 evidence JSONs, not result-schema filings.",
+    "tier": "exploratory",
+    "feeds_claims": false,
+    "broker": "null (in-process loopback harness, KL09-06..10, KL09-66/67)",
+    "cells": [
+      {
+        "id": "ceiling-exp-null-produce",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Client produce ceiling: records/s per client core against the null broker at fixed batching; diagnostic headroom only."
+      },
+      {
+        "id": "ceiling-exp-null-fetch",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Client fetch ceiling: records/s per client core against the null broker at fixed batch sizes; diagnostic headroom only."
+      },
+      {
+        "id": "nb-produce-bulk",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 20k x 100B records, 6 partitions, acks=1; bulk client ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-idem",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined idempotent produce, 20k x 100B records, acks=all, max.in.flight=5 (KL09-09)."
+      },
+      {
+        "id": "nb-produce-mixed-topics",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce across 8 topics, 20k x 100B records total, acks=1 (KL09-09)."
+      },
+      {
+        "id": "nb-produce-headers",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 5k records with 10 headers x 16B each, acks=1; header-path ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-128p",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 256k x 100B records over 128 partitions, acks=1; partition-scale ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-flush-heavy",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "2k records in flush-every-100 groups, acks=1; flush-path ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-send-seq",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Sequential send-and-await, 1k x 100B records, acks=1, linger 0; per-send latency floor (KL09-09)."
+      },
+      {
+        "id": "nb-produce-idle-rss",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "No sends; 10s idle RSS sample; client steady-state footprint (KL09-09)."
+      },
+      {
+        "id": "nb-fetch-bulk",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k x 100B records over 6 partitions; every ID/hash verified (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-1000p",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 10k records over 1,000 sparse partitions (10 each); CPU/allocs per round (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-committed-aborts",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "read_committed fetch of 20k records with 20% aborted batches; every ID/hash verified (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-seek-in-batch",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Seek to offset 500 in 1000-record batches, fetch 10k; allocs per delivered record (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-capped-paused",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "max_poll_records=1 with 100k-record paused backlog (5 x 20k); CPU per poll (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-appdelay",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k with 1ms application sleep per batch; rec/s and peak RSS (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-multinode",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k over 3 nodes with one 50ms-delayed node; fast-node rec/s, p99 delivery bound (KL09-10)."
+      },
+      {
+        "id": "nb-produce-retry",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Bulk-shaped produce under 1% seeded retriable errors (batch_records=20); metadata RPCs per retried batch (KL09-10)."
+      },
+      {
+        "id": "nb-connect",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Construction-to-first-ack at 1/6/64 partitions with and without an unreachable bootstrap host; open sockets (KL09-10)."
+      }
+    ]
+  },
+  "codec_conformance": {
+    "task": "KL05-05",
+    "scope": "Correctness profile for none, gzip, snappy, lz4 and optional zstd. Java/C/Rust writers and other-client readers on current Kafka4.1.2/4.2.1/4.3.1 and historical3.9.1/4.1.0, producer-selected and topic-forced gzip compression.",
+    "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
+    "raw_snappy_scope": "Independent native frame fixture; live SDK writers use framed Snappy.",
+    "measurement_status": "not_run",
+    "performance_claims_valid": false,
+    "notes": "Codec correctness does not supply compression ratio, CPU, latency, compressed leadership cells or world ranking. Frozen comparison settings and performance qualification gates still apply."
+  },
+  "codec_microbenchmarks": {
+    "card": "KL09-36",
+    "driver": "benchmarks/codec/src/zstd-census.rs",
+    "timing": "benchmarks/codec/benches/zstd.rs",
+    "backend": "zstd-rs0.1.0",
+    "encoder_levels": [
+      1,
+      3,
+      19
+    ],
+    "entropies": [
+      "random",
+      "text"
+    ],
+    "operations": [
+      "encode_cold",
+      "encode_reused",
+      "decode"
+    ],
+    "performance_claims_valid": false
+  },
+  "java_peer_driver": {
+    "card": "KL04-03",
+    "source_pin": "benchmarks/peers/java/source-pin.json",
+    "driver": "benchmarks/peers/java/run.py",
+    "api": "bounded asynchronous send callbacks; manual assignment receipt audit",
+    "frozen_campaign_disposition": "not_run",
+    "unsupported": [
+      "open-loop latency",
+      "standalone timed fetch",
+      "transactions",
+      "groups/share",
+      "TLS/SASL",
+      "BATCH_RECORDS cap",
+      "null/UUID key distribution"
+    ],
+    "claim": "No performance comparison qualified by driver tests or roundtrip validation."
+  }
+}

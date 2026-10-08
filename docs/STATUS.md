@@ -99,3 +99,11 @@ validation failures. Fetch uses the fixture's independent seeded stream.
 The [peer evidence](evidence/perf/nullbroker-peers/README.md) records that limit,
 source hashes, retained failures and process cleanup. These checks establish
 functional fixture compatibility, with no storage or speed claim.
+
+
+The orchestrator rejects client-ceiling cells and results in Kafka-throughput
+manifests. Its null-broker tier still needs qualified adapters and fixture
+lifecycle handling. The current franz-go driver also lacks ten settings required
+by the comparison preflight; those omissions are reported explicitly.
+[Orchestrator evidence](evidence/perf/matrix-tiers/README.md) retains the prior
+tier-mixing failure and the current checks. KL09-68 remains open.

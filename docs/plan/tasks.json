@@ -18882,13 +18882,29 @@
     {
       "id": "KL09-68",
       "title": "Register franz-go and client-ceiling cells in the orchestrator",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-root-20261008",
       "depends_on": ["KL04-08", "KL09-65", "KL09-66"],
       "files": ["scripts/run-benchmark-matrix.py", "benchmarks/scenarios.json", "benchmarks/tests/"],
       "deliverable": "The KL04-08 orchestrator runs franz-go and the null-broker client-ceiling tier with the same randomization, retention and comparability refusals.",
       "acceptance": ["It refuses to mix client-ceiling results into Kafka-throughput cells.", "franz-go cells get the same equal-semantics and effective-config checks as other peers; failed and skipped cells are preserved."],
       "validation": ["Orchestration tests with fake peers, including franz-go crash, timeout and resume.", "Rehearse a tiny matrix that includes one client-ceiling cell."],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL09-68.json",
+        "docs/evidence/perf/matrix-tiers/README.md"
+      ],
+      "write_set": [
+        "scripts/run-benchmark-matrix.py",
+        "benchmarks/scenarios.json",
+        "benchmarks/tests/",
+        "docs/evidence/perf/matrix-tiers/",
+        "docs/plan/evidence/KL09-68.json"
+      ],
+      "read_only_held": [
+        "src/",
+        "benchmarks/peers/",
+        "benchmarks/runtime/"
+      ],
+      "qualification_limit": "Partial: 24 process tests and an actual pinned Go config refusal qualify tier-mixing guards and explicit missing-settings errors. Null-broker lifecycle/adapters and genuine tier rehearsal remain open; no comparable franz-go campaign is qualified."
     },
     {
       "id": "KL09-69",

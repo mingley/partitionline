@@ -1,0 +1,11 @@
+{
+  "status": "complete",
+  "rows": 2,
+  "executed": 2,
+  "failed": 0,
+  "unsupported": 0,
+  "retained_failed_attempts": 0,
+  "retained_interrupted_attempts": 0,
+  "suite_hold": "active",
+  "performance_claims_valid": false
+}

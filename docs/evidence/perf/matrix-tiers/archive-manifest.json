@@ -1,0 +1,608 @@
+{
+  "scope": "Partial KL09-68: actual synthetic tier-mixing failure, bounded real-process guards and real pinned Go driver configuration refusal. No Kafka, client-ceiling campaign or comparative qualification.",
+  "files": [
+    {
+      "stored_path": "study/before-mixing-files.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-files.json",
+      "bytes": 3925,
+      "stored_bytes": 3925,
+      "gzip": false,
+      "sha256": "bcca758dcc091eae5d3a7dabfb659ed2a25d47b22b3656e2e8aa1deab7eb33b9",
+      "stored_sha256": "bcca758dcc091eae5d3a7dabfb659ed2a25d47b22b3656e2e8aa1deab7eb33b9"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/config.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/config.json",
+      "bytes": 628,
+      "stored_bytes": 628,
+      "gzip": false,
+      "sha256": "baec95c3f6e1b7b8bff1d9021e4c26fc6563054784bd63ad7574580d3a1af042",
+      "stored_sha256": "baec95c3f6e1b7b8bff1d9021e4c26fc6563054784bd63ad7574580d3a1af042"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/fake.py",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/fake.py",
+      "bytes": 1808,
+      "stored_bytes": 1808,
+      "gzip": false,
+      "sha256": "179adff0a022fbb4117ceeecfd971abbd47302ce5536212275e067fad2bef6e0",
+      "stored_sha256": "179adff0a022fbb4117ceeecfd971abbd47302ce5536212275e067fad2bef6e0"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/fixture.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/fixture.json",
+      "bytes": 5797,
+      "stored_bytes": 5797,
+      "gzip": false,
+      "sha256": "e8a851e52a6c4fb88770ac7ac4bda54119dadc1a51a5df41a5236aaae799d5ce",
+      "stored_sha256": "e8a851e52a6c4fb88770ac7ac4bda54119dadc1a51a5df41a5236aaae799d5ce"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/manifest.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/manifest.json",
+      "bytes": 2725,
+      "stored_bytes": 2725,
+      "gzip": false,
+      "sha256": "58240053d8ef5fa0392e83f98e0353ed77e03b34b2073457c2fd579d35b94d40",
+      "stored_sha256": "58240053d8ef5fa0392e83f98e0353ed77e03b34b2073457c2fd579d35b94d40"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/observed.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/observed.json",
+      "bytes": 217,
+      "stored_bytes": 217,
+      "gzip": false,
+      "sha256": "4924e1161118cd33eafc603a6fc2420415482c84bbea129efd11524aae2d043b",
+      "stored_sha256": "4924e1161118cd33eafc603a6fc2420415482c84bbea129efd11524aae2d043b"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/.lock",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/.lock",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/config.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/config.process.json",
+      "bytes": 518,
+      "stored_bytes": 518,
+      "gzip": false,
+      "sha256": "7ec4f4dd6c0e750b6dbb0bd8f220fb03821aee4a6c646fe41849f98ecab586c6",
+      "stored_sha256": "7ec4f4dd6c0e750b6dbb0bd8f220fb03821aee4a6c646fe41849f98ecab586c6"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/config.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/config.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/config.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/config.stdout",
+      "bytes": 720,
+      "stored_bytes": 720,
+      "gzip": false,
+      "sha256": "1fa9c6ef7fd7a06f3178cdf9abcee9ffc538ff979867ce51d3e74a0f4cfcf93d",
+      "stored_sha256": "1fa9c6ef7fd7a06f3178cdf9abcee9ffc538ff979867ce51d3e74a0f4cfcf93d"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/create.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/create.process.json",
+      "bytes": 596,
+      "stored_bytes": 596,
+      "gzip": false,
+      "sha256": "ea8a272295670f95823b820fbb9a3c7fd94a9a3e1fb53629b9afc4fdfecc1cc2",
+      "stored_sha256": "ea8a272295670f95823b820fbb9a3c7fd94a9a3e1fb53629b9afc4fdfecc1cc2"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/create.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/create.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/create.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/create.stdout",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/peer.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/peer.process.json",
+      "bytes": 596,
+      "stored_bytes": 596,
+      "gzip": false,
+      "sha256": "af496f0e5040175a8c7dc4be6ec86db3a8e28eefd01b88635fc8cc3772b86e61",
+      "stored_sha256": "af496f0e5040175a8c7dc4be6ec86db3a8e28eefd01b88635fc8cc3772b86e61"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/peer.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/peer.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/peer.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/peer.stdout",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/result.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/result.json",
+      "bytes": 6309,
+      "stored_bytes": 6309,
+      "gzip": false,
+      "sha256": "9667108c1759293ed490ccd24a90d8b617c78d2de191b2322156f62bb00f0ec2",
+      "stored_sha256": "9667108c1759293ed490ccd24a90d8b617c78d2de191b2322156f62bb00f0ec2"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0000-1/result.json.raw",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0000-1/result.json.raw",
+      "bytes": 26,
+      "stored_bytes": 26,
+      "gzip": false,
+      "sha256": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310",
+      "stored_sha256": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/config.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/config.process.json",
+      "bytes": 518,
+      "stored_bytes": 518,
+      "gzip": false,
+      "sha256": "5ae660f435df6c9ce4a3a83fd3274b7ee8a55b40ade4a0fd01425c8a569eb663",
+      "stored_sha256": "5ae660f435df6c9ce4a3a83fd3274b7ee8a55b40ade4a0fd01425c8a569eb663"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/config.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/config.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/config.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/config.stdout",
+      "bytes": 720,
+      "stored_bytes": 720,
+      "gzip": false,
+      "sha256": "f145b778605972c46f0c062b1cb4536cb8399991add45d9a1443472cb6701dbd",
+      "stored_sha256": "f145b778605972c46f0c062b1cb4536cb8399991add45d9a1443472cb6701dbd"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/create.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/create.process.json",
+      "bytes": 597,
+      "stored_bytes": 597,
+      "gzip": false,
+      "sha256": "1870f32d0e47637d5b5fdf4181ea16afcd5159d373dc672f4e02b5cae0b0d580",
+      "stored_sha256": "1870f32d0e47637d5b5fdf4181ea16afcd5159d373dc672f4e02b5cae0b0d580"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/create.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/create.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/create.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/create.stdout",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/peer.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/peer.process.json",
+      "bytes": 595,
+      "stored_bytes": 595,
+      "gzip": false,
+      "sha256": "cd6e6aaa700e3d9dd1478e3d948f9fbdd3d3ed7de0ea56f81299c9fe0872c58c",
+      "stored_sha256": "cd6e6aaa700e3d9dd1478e3d948f9fbdd3d3ed7de0ea56f81299c9fe0872c58c"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/peer.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/peer.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/peer.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/peer.stdout",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/result.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/result.json",
+      "bytes": 6309,
+      "stored_bytes": 6309,
+      "gzip": false,
+      "sha256": "556f92e18b6c5652f4736ad49f680eb0fe2688562c6aeab6a8053ef7d7da4d52",
+      "stored_sha256": "556f92e18b6c5652f4736ad49f680eb0fe2688562c6aeab6a8053ef7d7da4d52"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/attempts/0001-1/result.json.raw",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/attempts/0001-1/result.json.raw",
+      "bytes": 26,
+      "stored_bytes": 26,
+      "gzip": false,
+      "sha256": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310",
+      "stored_sha256": "0234f76d21b3cc81360b32290c885b0cfe4fce9a72df29b4e22c3c4d54f2e310"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/events.jsonl",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/events.jsonl",
+      "bytes": 5392,
+      "stored_bytes": 5392,
+      "gzip": false,
+      "sha256": "06552a7ccb135e6149994cf2cba9c6a6ccee23f7f9a3e4838ad8b3f9959e83e3",
+      "stored_sha256": "06552a7ccb135e6149994cf2cba9c6a6ccee23f7f9a3e4838ad8b3f9959e83e3"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/frozen.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/frozen.json",
+      "bytes": 177,
+      "stored_bytes": 177,
+      "gzip": false,
+      "sha256": "e654e8143dd26202bc0c9ef9cd207f7194cb5565649e9117da53887b020ccb02",
+      "stored_sha256": "e654e8143dd26202bc0c9ef9cd207f7194cb5565649e9117da53887b020ccb02"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.process.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.process.json",
+      "bytes": 514,
+      "stored_bytes": 514,
+      "gzip": false,
+      "sha256": "41fce0df9c6af4e01cecfbf1bb9719e41ce896d3bc1aac8938a1cd3209036764",
+      "stored_sha256": "41fce0df9c6af4e01cecfbf1bb9719e41ce896d3bc1aac8938a1cd3209036764"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/identity-afbfdfc1e4534b77b172949168100baa/identity.stdout",
+      "bytes": 19,
+      "stored_bytes": 19,
+      "gzip": false,
+      "sha256": "e7f02d64d248dc99f1fa0c22b5ef3f0f0a7e9539973943188a1bd0d16d14083f",
+      "stored_sha256": "e7f02d64d248dc99f1fa0c22b5ef3f0f0a7e9539973943188a1bd0d16d14083f"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/manifest.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/manifest.json",
+      "bytes": 3606,
+      "stored_bytes": 3606,
+      "gzip": false,
+      "sha256": "e2b564b50f6016f19c218881fc4188f1285c651de99357aa9c567675186f8a84",
+      "stored_sha256": "e2b564b50f6016f19c218881fc4188f1285c651de99357aa9c567675186f8a84"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/plan.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/plan.json",
+      "bytes": 1026,
+      "stored_bytes": 1026,
+      "gzip": false,
+      "sha256": "e93154be80e364c683fbff0eb0cfce7631e25bb6ee4171b5760de77ead2135ca",
+      "stored_sha256": "e93154be80e364c683fbff0eb0cfce7631e25bb6ee4171b5760de77ead2135ca"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/output/summary.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/output/summary.json",
+      "bytes": 226,
+      "stored_bytes": 226,
+      "gzip": false,
+      "sha256": "06cedb26e872e8971700c9e9c20bd2d32d3e969c1c448d79ebe4e2dcd0b3c057",
+      "stored_sha256": "06cedb26e872e8971700c9e9c20bd2d32d3e969c1c448d79ebe4e2dcd0b3c057"
+    },
+    {
+      "stored_path": "study/before-mixing-processes-01/topics.log",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-processes-01/topics.log",
+      "bytes": 108,
+      "stored_bytes": 108,
+      "gzip": false,
+      "sha256": "caf8ef25162e367681790223ec0caa59b22380ddb0415ea1e4683d0ad51531d1",
+      "stored_sha256": "caf8ef25162e367681790223ec0caa59b22380ddb0415ea1e4683d0ad51531d1"
+    },
+    {
+      "stored_path": "study/before-mixing-proof.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/before-mixing-proof.json",
+      "bytes": 9651,
+      "stored_bytes": 9651,
+      "gzip": false,
+      "sha256": "033105c82fcccf24d567b85956c3f7660ab4b8973b6852bd5a3b2389d0ebba6b",
+      "stored_sha256": "033105c82fcccf24d567b85956c3f7660ab4b8973b6852bd5a3b2389d0ebba6b"
+    },
+    {
+      "stored_path": "study/check-franz-config-01.py",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/check-franz-config-01.py",
+      "bytes": 1914,
+      "stored_bytes": 1914,
+      "gzip": false,
+      "sha256": "c5f6d25127d66b3d5da5693f8601a9769ba9ade69e1b8e21ac5727da8a1d2524",
+      "stored_sha256": "c5f6d25127d66b3d5da5693f8601a9769ba9ade69e1b8e21ac5727da8a1d2524"
+    },
+    {
+      "stored_path": "study/check-franz-config-02.py",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/check-franz-config-02.py",
+      "bytes": 1925,
+      "stored_bytes": 1925,
+      "gzip": false,
+      "sha256": "993c4b552fe7ea819f41db96f9531ca68d734233a6347781e55c54b0dabaa6ea",
+      "stored_sha256": "993c4b552fe7ea819f41db96f9531ca68d734233a6347781e55c54b0dabaa6ea"
+    },
+    {
+      "stored_path": "study/emit-config-02.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/emit-config-02.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/emit-config-02.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/emit-config-02.stdout",
+      "bytes": 1056,
+      "stored_bytes": 1056,
+      "gzip": false,
+      "sha256": "c6615e2941d82d03ad195cad155856042c3b4a8913b3029376254d2335ac5ff6",
+      "stored_sha256": "c6615e2941d82d03ad195cad155856042c3b4a8913b3029376254d2335ac5ff6"
+    },
+    {
+      "stored_path": "study/emit-config.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/emit-config.stderr",
+      "bytes": 55,
+      "stored_bytes": 55,
+      "gzip": false,
+      "sha256": "002995e2da5f5b7f913a886b1aae697730e0783ee804b079797b3ca6ca6d2a2a",
+      "stored_sha256": "002995e2da5f5b7f913a886b1aae697730e0783ee804b079797b3ca6ca6d2a2a"
+    },
+    {
+      "stored_path": "study/emit-config.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/emit-config.stdout",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/franz-build-01.log",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-build-01.log",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/franz-build-info-02.log",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-build-info-02.log",
+      "bytes": 962,
+      "stored_bytes": 962,
+      "gzip": false,
+      "sha256": "306120d448d0fb6d6c7fcb9ac46945cfc2a576c351915a54f45ddbf8d4b0270b",
+      "stored_sha256": "306120d448d0fb6d6c7fcb9ac46945cfc2a576c351915a54f45ddbf8d4b0270b"
+    },
+    {
+      "stored_path": "study/franz-config-refusal-02.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-config-refusal-02.json",
+      "bytes": 3407,
+      "stored_bytes": 3407,
+      "gzip": false,
+      "sha256": "bb07b7697d42004e276b1b56f7d1a13cf8cf614c2f538ac6d7c8ee80667abe8c",
+      "stored_sha256": "bb07b7697d42004e276b1b56f7d1a13cf8cf614c2f538ac6d7c8ee80667abe8c"
+    },
+    {
+      "stored_path": "study/franz-peer.elf.gz",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-peer.elf",
+      "bytes": 14633357,
+      "stored_bytes": 7769506,
+      "gzip": true,
+      "sha256": "deae6877b7e0d77e2a0d5e9c6c2e3df981d85d1628f696ede414b90b0b56c945",
+      "stored_sha256": "958eee606b6a5f6d734d0b7312b1011c907aa00821345d74be3b4452e6d06b95"
+    },
+    {
+      "stored_path": "study/guard-tests-01.log",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/guard-tests-01.log",
+      "bytes": 119,
+      "stored_bytes": 119,
+      "gzip": false,
+      "sha256": "5e0732760f8c0c8b2b3e555efa9a337f5cb9588bd9cc931cf1028b4efa29aad2",
+      "stored_sha256": "5e0732760f8c0c8b2b3e555efa9a337f5cb9588bd9cc931cf1028b4efa29aad2"
+    },
+    {
+      "stored_path": "study/guard-tests-02.log",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/guard-tests-02.log",
+      "bytes": 124,
+      "stored_bytes": 124,
+      "gzip": false,
+      "sha256": "b5e32c2a287d88bad2fdfd1b6927974f694ec81dea61ff7857a1833d464df1dd",
+      "stored_sha256": "b5e32c2a287d88bad2fdfd1b6927974f694ec81dea61ff7857a1833d464df1dd"
+    },
+    {
+      "stored_path": "study/preflight.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/preflight.json",
+      "bytes": 1204,
+      "stored_bytes": 1204,
+      "gzip": false,
+      "sha256": "f8117704e5d05e75fe8927083947efc7b5c8e7e2a6db101ea8d5726d14d3e8a0",
+      "stored_sha256": "f8117704e5d05e75fe8927083947efc7b5c8e7e2a6db101ea8d5726d14d3e8a0"
+    },
+    {
+      "stored_path": "study/scenarios-02.stderr",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/scenarios-02.stderr",
+      "bytes": 0,
+      "stored_bytes": 0,
+      "gzip": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stored_path": "study/scenarios-02.stdout",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-tiers-20261008/scenarios-02.stdout",
+      "bytes": 1047,
+      "stored_bytes": 1047,
+      "gzip": false,
+      "sha256": "afe8114ab2132319a985f20e7854e1b752831a10275b303443be50e31605e84e",
+      "stored_sha256": "afe8114ab2132319a985f20e7854e1b752831a10275b303443be50e31605e84e"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/README.md",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/README.md",
+      "bytes": 4159,
+      "stored_bytes": 4159,
+      "gzip": false,
+      "sha256": "e15c572daba8a37d32e80b3f28924eb60aec5aea69f4cc51d595f674922db8a3",
+      "stored_sha256": "e15c572daba8a37d32e80b3f28924eb60aec5aea69f4cc51d595f674922db8a3"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/cmd/peer/main.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/cmd/peer/main.go",
+      "bytes": 23027,
+      "stored_bytes": 23027,
+      "gzip": false,
+      "sha256": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b",
+      "stored_sha256": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/config.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/config.go",
+      "bytes": 11212,
+      "stored_bytes": 11212,
+      "gzip": false,
+      "sha256": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+      "stored_sha256": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/config_test.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/config_test.go",
+      "bytes": 4435,
+      "stored_bytes": 4435,
+      "gzip": false,
+      "sha256": "070629c980e9131e915346d45cc1509f286cad18aed1296e39884ee1cafd4bee",
+      "stored_sha256": "070629c980e9131e915346d45cc1509f286cad18aed1296e39884ee1cafd4bee"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/go.mod",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/go.mod",
+      "bytes": 359,
+      "stored_bytes": 359,
+      "gzip": false,
+      "sha256": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+      "stored_sha256": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/go.sum",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/go.sum",
+      "bytes": 1046,
+      "stored_bytes": 1046,
+      "gzip": false,
+      "sha256": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+      "stored_sha256": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/records.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/records.go",
+      "bytes": 3221,
+      "stored_bytes": 3221,
+      "gzip": false,
+      "sha256": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0",
+      "stored_sha256": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/records_test.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/records_test.go",
+      "bytes": 3355,
+      "stored_bytes": 3355,
+      "gzip": false,
+      "sha256": "6a421aed9d62ad23a466c559acbbb6d4d1b4e3344b4989e245229b196317b47f",
+      "stored_sha256": "6a421aed9d62ad23a466c559acbbb6d4d1b4e3344b4989e245229b196317b47f"
+    },
+    {
+      "stored_path": "before-source/benchmarks/peers/franz-go/result.go",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/peers/franz-go/result.go",
+      "bytes": 20097,
+      "stored_bytes": 20097,
+      "gzip": false,
+      "sha256": "d50f25220b30fbdb60e6ecd4436e51fa206524abdceccb53ded21a9db485c91c",
+      "stored_sha256": "d50f25220b30fbdb60e6ecd4436e51fa206524abdceccb53ded21a9db485c91c"
+    },
+    {
+      "stored_path": "before-source/benchmarks/result-schema.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/result-schema.json",
+      "bytes": 81897,
+      "stored_bytes": 81897,
+      "gzip": false,
+      "sha256": "082d98c505ff36e9c88b85c7bffc224cf5b5a2242ba22ca9723d9aa4b1e3c4e5",
+      "stored_sha256": "082d98c505ff36e9c88b85c7bffc224cf5b5a2242ba22ca9723d9aa4b1e3c4e5"
+    },
+    {
+      "stored_path": "before-source/benchmarks/scenarios.json",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/benchmarks/scenarios.json",
+      "bytes": 82077,
+      "stored_bytes": 82077,
+      "gzip": false,
+      "sha256": "0f1bbe62150fea4ab6ed2ddfd1abd726e92e0ad6a19b9377c1cfff7220e84305",
+      "stored_sha256": "0f1bbe62150fea4ab6ed2ddfd1abd726e92e0ad6a19b9377c1cfff7220e84305"
+    },
+    {
+      "stored_path": "before-source/scripts/benchmark-report.py",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/scripts/benchmark-report.py",
+      "bytes": 44260,
+      "stored_bytes": 44260,
+      "gzip": false,
+      "sha256": "72e3540bb3486b93cae603c7ddbbee598f95d8d460e69007dc6af0d2c8618c3e",
+      "stored_sha256": "72e3540bb3486b93cae603c7ddbbee598f95d8d460e69007dc6af0d2c8618c3e"
+    },
+    {
+      "stored_path": "before-source/scripts/run-benchmark-matrix.py",
+      "source_path": "/workspace/work/open-cards-20261006/matrix-before-90286/scripts/run-benchmark-matrix.py",
+      "bytes": 23641,
+      "stored_bytes": 23641,
+      "gzip": false,
+      "sha256": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+      "stored_sha256": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "stdout": "{\"row\": 0, \"state\": \"executed\"}\n{\"row\": 1, \"state\": \"executed\"}\n",
+  "stderr": "",
+  "scope": "Explicit synthetic real-process unit fixture; no Kafka or performance claim."
+}

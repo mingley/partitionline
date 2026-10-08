@@ -1,0 +1,37 @@
+[
+ {
+  "id": "bulk produce (acks -1/1/0, idempotent, compression, batching)",
+  "supported": true,
+  "reason": "produce/roundtrip commands"
+ },
+ {
+  "id": "bulk fetch with ID/hash verification (both isolation levels)",
+  "supported": true,
+  "reason": "fetch/roundtrip commands"
+ },
+ {
+  "id": "secure transport (SSL/SASL_SSL, PLAIN, SCRAM-SHA-256/512, mTLS)",
+  "supported": true,
+  "reason": "TLS/SASL env knobs"
+ },
+ {
+  "id": "low-latency open-loop scheduler",
+  "supported": false,
+  "reason": "driver is closed-loop only; open-loop cells need a scheduler this driver does not implement"
+ },
+ {
+  "id": "transactions (produce + read_committed filtering)",
+  "supported": false,
+  "reason": "driver does not implement transactional produce or abort filtering"
+ },
+ {
+  "id": "KIP-848/KIP-932 group and share cells",
+  "supported": false,
+  "reason": "driver consumes by direct assignment; no group coordinator or share RPCs"
+ },
+ {
+  "id": "OAUTHBEARER/OIDC refresh",
+  "supported": false,
+  "reason": "driver wires PLAIN and SCRAM only"
+ }
+]

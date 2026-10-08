@@ -1,0 +1,17 @@
+{
+  "task": "KL09-68",
+  "parent": "90286f76673616f02abccec53b9cf52501673319",
+  "inputs": {
+    "scripts/run-benchmark-matrix.py": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+    "benchmarks/scenarios.json": "0f1bbe62150fea4ab6ed2ddfd1abd726e92e0ad6a19b9377c1cfff7220e84305",
+    "benchmarks/tests/test_matrix.py": "f1a9b2a8e85715c899cca9414145edbc4348d7a9c7c68bb24c7ccaeffcd61724",
+    "benchmarks/tests/test_report.py": "33684147b6a88e152fe5e9632c1a00def75bd50843aa8425e0ad0e3bdc402a03",
+    "benchmarks/peers/franz-go/config.go": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+    "benchmarks/peers/franz-go/cmd/peer/main.go": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b"
+  },
+  "scope": "Orchestration only; no native Kafka or comparative timing qualification inferred.",
+  "known_gaps": [
+    "Orchestrator has no target tier and always uses native Kafka lifecycle/result assumptions.",
+    "The pinned Go driver does not emit queue capacities, timeout controls, payload/key modes, connection count or Nagle configuration required by the current MATCH check. These omissions must cause explicit refusal, not guessed fields."
+  ]
+}

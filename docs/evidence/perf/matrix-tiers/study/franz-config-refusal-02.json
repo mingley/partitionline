@@ -1,0 +1,83 @@
+{
+  "scope": "Actual pinned SDK driver config only; no broker or performance measurement.",
+  "source_commit": "90286f76673616f02abccec53b9cf52501673319",
+  "source_sha256": {
+    "benchmarks/peers/franz-go/records_test.go": "6a421aed9d62ad23a466c559acbbb6d4d1b4e3344b4989e245229b196317b47f",
+    "benchmarks/peers/franz-go/README.md": "e15c572daba8a37d32e80b3f28924eb60aec5aea69f4cc51d595f674922db8a3",
+    "benchmarks/peers/franz-go/records.go": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0",
+    "benchmarks/peers/franz-go/result.go": "d50f25220b30fbdb60e6ecd4436e51fa206524abdceccb53ded21a9db485c91c",
+    "benchmarks/peers/franz-go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/peers/franz-go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+    "benchmarks/peers/franz-go/config.go": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+    "benchmarks/peers/franz-go/config_test.go": "070629c980e9131e915346d45cc1509f286cad18aed1296e39884ee1cafd4bee",
+    "benchmarks/peers/franz-go/cmd/peer/main.go": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b"
+  },
+  "binary_sha256": "deae6877b7e0d77e2a0d5e9c6c2e3df981d85d1628f696ede414b90b0b56c945",
+  "process_receipts": [
+    {
+      "command": [
+        "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-peer.elf",
+        "emit-config"
+      ],
+      "exit": 0,
+      "joined": true
+    },
+    {
+      "command": [
+        "/workspace/work/open-cards-20261006/matrix-tiers-20261008/franz-peer.elf",
+        "scenarios"
+      ],
+      "exit": 0,
+      "joined": true
+    }
+  ],
+  "emitted_settings": {
+    "acks": -1,
+    "batch_num_messages": 32768,
+    "batch_size_bytes": 1048576,
+    "bootstrap": [
+      "127.0.0.1:19092"
+    ],
+    "compression": "none",
+    "count": 512,
+    "delivery_definition": "acknowledged = broker Produce response with nil promise error; enqueue is never counted",
+    "franzgo_client_id": "franzgo-peer",
+    "has_client_identity": false,
+    "has_custom_ca": false,
+    "has_sasl_credentials": false,
+    "idempotence": false,
+    "isolation_level": "read_uncommitted",
+    "linger_ms": 5,
+    "max_in_flight": 5,
+    "partitioner": "round_robin",
+    "partitions": 1,
+    "payload_bytes": 100,
+    "record_id_definition": "key = be64(index) || be64(splitmix64(seed^index)); value = splitmix64 stream; sha256 verified on consume",
+    "record_seed": "0x5EED0001",
+    "sasl_mechanism": "",
+    "security_protocol": "PLAINTEXT",
+    "tls_server_name": "",
+    "topic": "matrix-config-only",
+    "unsupported_by_driver": [
+      "low-latency open-loop scheduler",
+      "transactions (produce + read_committed filtering)",
+      "KIP-848/KIP-932 group and share cells",
+      "OAUTHBEARER/OIDC refresh"
+    ],
+    "warmup": 0
+  },
+  "missing_settings": [
+    "queue_max_messages",
+    "queue_max_kbytes",
+    "delivery_timeout_ms",
+    "flush_timeout_ms",
+    "run_timeout_ms",
+    "consume_timeout_ms",
+    "payload_mode",
+    "key_mode",
+    "connections_per_broker",
+    "socket_nagle_disable"
+  ],
+  "refusal": "peer lacks required comparable settings: queue_max_messages, queue_max_kbytes, delivery_timeout_ms, flush_timeout_ms, run_timeout_ms, consume_timeout_ms, payload_mode, key_mode, connections_per_broker, socket_nagle_disable",
+  "comparability_qualified": false
+}

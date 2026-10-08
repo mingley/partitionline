@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "run_id": "03617559f2a948e698e14f0a9bb441f5",
+  "topic_prefix": "pl-matrix-03617559f2a948e698e14f0a9bb441f5",
+  "seed": 7,
+  "rows": [
+    {
+      "index": 0,
+      "cell": "nb-produce-bulk",
+      "peer": "a",
+      "repetition": 1,
+      "order": "athenb"
+    },
+    {
+      "index": 1,
+      "cell": "nb-produce-bulk",
+      "peer": "b",
+      "repetition": 1,
+      "order": "athenb"
+    }
+  ],
+  "manifest_sha256": "58240053d8ef5fa0392e83f98e0353ed77e03b34b2073457c2fd579d35b94d40",
+  "source_pins": {
+    "/workspace/partitionline/scripts/run-benchmark-matrix.py": "1dfa1e84f5269bfef3cbdd609b25d5975eef963fd6c92358b90e5110e3a3edc3",
+    "/workspace/partitionline/scripts/benchmark-report.py": "72e3540bb3486b93cae603c7ddbbee598f95d8d460e69007dc6af0d2c8618c3e",
+    "/workspace/partitionline/benchmarks/result-schema.json": "082d98c505ff36e9c88b85c7bffc224cf5b5a2242ba22ca9723d9aa4b1e3c4e5"
+  },
+  "scope": "Paired diagnostics; no campaign or ranking qualification",
+  "suite_hold": "active"
+}
