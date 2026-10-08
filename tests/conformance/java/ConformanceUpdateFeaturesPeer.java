@@ -270,12 +270,12 @@ public final class ConformanceUpdateFeaturesPeer {
                 count++;
             }
             if (version < 2) {
-                var response = bytes(new UpdateFeaturesResponseData(), version);
+                var response = bytes(new UpdateFeaturesResponseData().setErrorMessage(null), version);
                 if (response[6] != 0 || response[7] != 1) throw new AssertionError("response array offset");
                 response[7] = 0;
                 var results = new UpdateFeaturesResponseData.UpdatableFeatureResultCollection();
                 results.add(new UpdateFeaturesResponseData.UpdatableFeatureResult().setFeature("f"));
-                var namedResponse = bytes(new UpdateFeaturesResponseData().setResults(results), version);
+                var namedResponse = bytes(new UpdateFeaturesResponseData().setErrorMessage(null).setResults(results), version);
                 if (namedResponse[8] != 2 || namedResponse[9] != 'f') throw new AssertionError("response name offset");
                 namedResponse[8] = 0;
                 namedResponse = removeByte(namedResponse, 9);
