@@ -124,7 +124,13 @@ public final class ConformanceUpdateFeaturesPeer {
                         + ",\"validate_only\":" + update.validateOnly() + ",\"response_code\":" + code + "}");
                     var names = new java.util.TreeSet<String>();
                     for (var feature : update.featureUpdates()) names.add(feature.feature());
-                    response = UpdateFeaturesResponse.createWithErrors(new ApiError(Errors.forCode(code)), names, 0).data();
+                    ApiError top = code == 0 ? ApiError.NONE : new ApiError(Errors.forCode(code));
+                    response = UpdateFeaturesResponse.createWithErrors(top, scenario.equals("empty-success") ? Set.of() : names, 0).data();
+                    if (scenario.equals("feature-error") && attempt == 1) {
+                        if (version != 1) throw new AssertionError("feature results absent in v2");
+                        ((UpdateFeaturesResponseData)response).results().find("test_feature_1")
+                            .setErrorCode(Errors.NOT_CONTROLLER.code());
+                    }
                 } else {
                     throw new AssertionError("undeclared API");
                 }
@@ -151,7 +157,7 @@ public final class ConformanceUpdateFeaturesPeer {
     private static void server(Path output, short maximum, String scenario) throws Exception {
         Files.createDirectory(output);
         if (maximum != 1 && maximum != 2) throw new AssertionError("version budget");
-        if (!Set.of("success", "top-error", "retry", "deadline").contains(scenario)) throw new AssertionError("scenario budget");
+        if (!Set.of("success", "top-error", "retry", "deadline", "empty-success", "feature-error").contains(scenario)) throw new AssertionError("scenario budget");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
         var executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(8));
         var threads = new ArrayList<Thread>();
@@ -210,7 +216,8 @@ public final class ConformanceUpdateFeaturesPeer {
                 admin.updateFeatures(updates, new UpdateFeaturesOptions().timeoutMs(scenario.equals("deadline") ? 250 : 2000)).all().get(3, TimeUnit.SECONDS);
             } catch (ExecutionException failed) { code = Errors.forException(failed.getCause()).code(); }
             short expected = scenario.equals("deadline") ? Errors.REQUEST_TIMED_OUT.code()
-                : scenario.equals("top-error") ? Errors.INVALID_REQUEST.code() : 0;
+                : scenario.equals("top-error") ? Errors.INVALID_REQUEST.code()
+                : scenario.equals("feature-error") ? Errors.NOT_CONTROLLER.code() : 0;
             if (code != expected) throw new AssertionError("unexpected public outcome " + code + " expected " + expected);
             String recovery = "null";
             if (scenario.equals("deadline")) {
