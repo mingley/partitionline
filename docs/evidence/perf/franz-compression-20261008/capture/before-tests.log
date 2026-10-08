@@ -1,0 +1,19 @@
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/default
+    main_test.go:68: reports "none" but SDK resolves compression [{2 0} {0 0}]; want [{0 0}]
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/none
+    main_test.go:68: reports "none" but SDK resolves compression [{2 0} {0 0}]; want [{0 0}]
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/gzip
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/snappy
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/lz4
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/zstd
+--- FAIL: TestClientOptsCompressionMatchesEffectiveSettings (0.00s)
+    --- FAIL: TestClientOptsCompressionMatchesEffectiveSettings/default (0.00s)
+    --- FAIL: TestClientOptsCompressionMatchesEffectiveSettings/none (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/gzip (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/snappy (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/lz4 (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/zstd (0.00s)
+FAIL
+FAIL	github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer	0.007s
+FAIL

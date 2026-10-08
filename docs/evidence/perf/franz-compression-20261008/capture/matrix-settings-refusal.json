@@ -1,0 +1,6 @@
+{
+  "status": "refused",
+  "reason": "peer lacks required comparable settings: queue_max_messages, queue_max_kbytes, delivery_timeout_ms, flush_timeout_ms, run_timeout_ms, consume_timeout_ms, payload_mode, key_mode, connections_per_broker, socket_nagle_disable",
+  "source_commit": "f4297cb6e73bfe096a996bf1d80c00dc207efb97",
+  "scope": "Actual compiled CLI configuration remains ineligible for the shared matrix"
+}

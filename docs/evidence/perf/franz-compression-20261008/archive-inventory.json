@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/after-source.json",
+      "original_sha256": "7e76441184962503766d6ebea44bc03ab6b95ed8c2b548939cdcffab2e97fcaa",
+      "original_bytes": 644,
+      "stored_path": "capture/after-source.json",
+      "stored_sha256": "7e76441184962503766d6ebea44bc03ab6b95ed8c2b548939cdcffab2e97fcaa",
+      "stored_bytes": 644,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/after-tests.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/after-tests.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/after-tests.log",
+      "original_sha256": "8f6161b2de9854f635b00cc013029cb720f252a4bec144e2a0502241bbabd138",
+      "original_bytes": 1739,
+      "stored_path": "capture/after-tests.log",
+      "stored_sha256": "8f6161b2de9854f635b00cc013029cb720f252a4bec144e2a0502241bbabd138",
+      "stored_bytes": 1739,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/before-main.go",
+      "original_sha256": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b",
+      "original_bytes": 23027,
+      "stored_path": "capture/before-main.go",
+      "stored_sha256": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b",
+      "stored_bytes": 23027,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/before-main_test.go",
+      "original_sha256": "2b08544d504d2a9aa5ae7dcb1a750508fdb9b09b66fec2f4095d8c4ac3b9545d",
+      "original_bytes": 2126,
+      "stored_path": "capture/before-main_test.go",
+      "stored_sha256": "2b08544d504d2a9aa5ae7dcb1a750508fdb9b09b66fec2f4095d8c4ac3b9545d",
+      "stored_bytes": 2126,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/before-source.json",
+      "original_sha256": "ce18033e70672b7bc79fce3960d8bc71b3fb73d1099fdde665cf4809d9a4bf3e",
+      "original_bytes": 603,
+      "stored_path": "capture/before-source.json",
+      "stored_sha256": "ce18033e70672b7bc79fce3960d8bc71b3fb73d1099fdde665cf4809d9a4bf3e",
+      "stored_bytes": 603,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/before-tests.exit",
+      "original_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "original_bytes": 2,
+      "stored_path": "capture/before-tests.exit",
+      "stored_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/before-tests.log",
+      "original_sha256": "071a50e5de34129a1f5c818550175b3daf92bf6d0997f48bc07e53793458cc92",
+      "original_bytes": 1264,
+      "stored_path": "capture/before-tests.log",
+      "stored_sha256": "071a50e5de34129a1f5c818550175b3daf92bf6d0997f48bc07e53793458cc92",
+      "stored_bytes": 1264,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/build-info.log",
+      "original_sha256": "d2b40b38accba47c477b600559868c0daba3a55415b9a48112a544be386a3d1c",
+      "original_bytes": 1027,
+      "stored_path": "capture/build-info.log",
+      "stored_sha256": "d2b40b38accba47c477b600559868c0daba3a55415b9a48112a544be386a3d1c",
+      "stored_bytes": 1027,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/build-info.log.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/build-info.log.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/build-info.log.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/build-info.log.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/build.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/build.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/build.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/build.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/diff-check.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/diff-check.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/emit-default.json",
+      "original_sha256": "325f7ca8757af5794eebb8a3f4fc094832fd157716873095f42c8ed3ac2b5daa",
+      "original_bytes": 1056,
+      "stored_path": "capture/emit-default.json",
+      "stored_sha256": "325f7ca8757af5794eebb8a3f4fc094832fd157716873095f42c8ed3ac2b5daa",
+      "stored_bytes": 1056,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/emit-default.json.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/emit-default.json.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/emit-default.json.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/emit-default.json.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/format.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/format.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/franz-peer.elf",
+      "original_sha256": "af57f262ae3713a0b53f013e614fa27008ec015d9cddd7a34a812b396bae5266",
+      "original_bytes": 14552879,
+      "stored_path": "capture/franz-peer.elf.gz",
+      "stored_sha256": "7370154ec60b6baf3d4ca62fa5aa718fc4a95ce6684fa2dc344dec33a7c74a0b",
+      "stored_bytes": 7759983,
+      "encoding": "gzip"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/modules-verify.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/modules-verify.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/modules-verify.log",
+      "original_sha256": "b4537ed75f533f993f371954de47e42a793b8e5b0587577de7e27fb3e50696bd",
+      "original_bytes": 21,
+      "stored_path": "capture/modules-verify.log",
+      "stored_sha256": "b4537ed75f533f993f371954de47e42a793b8e5b0587577de7e27fb3e50696bd",
+      "stored_bytes": 21,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/scenarios.json",
+      "original_sha256": "afe8114ab2132319a985f20e7854e1b752831a10275b303443be50e31605e84e",
+      "original_bytes": 1047,
+      "stored_path": "capture/scenarios.json",
+      "stored_sha256": "afe8114ab2132319a985f20e7854e1b752831a10275b303443be50e31605e84e",
+      "stored_bytes": 1047,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/scenarios.json.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/scenarios.json.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/scenarios.json.stderr",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/scenarios.json.stderr",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/tool-version.log",
+      "original_sha256": "81f9e73b1524e1dce78aa6f71509b33dbb1870728ea1d51d9bee5aca4e4a3645",
+      "original_bytes": 32,
+      "stored_path": "capture/tool-version.log",
+      "stored_sha256": "81f9e73b1524e1dce78aa6f71509b33dbb1870728ea1d51d9bee5aca4e4a3645",
+      "stored_bytes": 32,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/vet-module.exit",
+      "original_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_bytes": 2,
+      "stored_path": "capture/vet-module.exit",
+      "stored_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/vet-module.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_path": "capture/vet-module.log",
+      "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 0,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/vet.exit",
+      "original_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "original_bytes": 2,
+      "stored_path": "capture/vet.exit",
+      "stored_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "stored_bytes": 2,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/vet.log",
+      "original_sha256": "13adacf098f219f367ad798135bbe631f9c3df5ce2a48435dc1e3707ae1c4ed2",
+      "original_bytes": 92,
+      "stored_path": "capture/vet.log",
+      "stored_sha256": "13adacf098f219f367ad798135bbe631f9c3df5ce2a48435dc1e3707ae1c4ed2",
+      "stored_bytes": 92,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/README.md",
+      "original_sha256": "2d8cc5d63727c2a8fcd96b38cdee464c37c4e0647eed2e99a9271b6707438366",
+      "original_bytes": 4452,
+      "stored_path": "source/peer/README.md",
+      "stored_sha256": "2d8cc5d63727c2a8fcd96b38cdee464c37c4e0647eed2e99a9271b6707438366",
+      "stored_bytes": 4452,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/cmd/peer/main.go",
+      "original_sha256": "43c6d33fefb6ceb188d64843025199bd1ec2e48fdcf8c6bafb67539a293d6a74",
+      "original_bytes": 23114,
+      "stored_path": "source/peer/cmd/peer/main.go",
+      "stored_sha256": "43c6d33fefb6ceb188d64843025199bd1ec2e48fdcf8c6bafb67539a293d6a74",
+      "stored_bytes": 23114,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/cmd/peer/main_test.go",
+      "original_sha256": "88e5637043c5164a510f60979c88e961b011981540105e2f48c7f2afbe3bfdfc",
+      "original_bytes": 2126,
+      "stored_path": "source/peer/cmd/peer/main_test.go",
+      "stored_sha256": "88e5637043c5164a510f60979c88e961b011981540105e2f48c7f2afbe3bfdfc",
+      "stored_bytes": 2126,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/config.go",
+      "original_sha256": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+      "original_bytes": 11212,
+      "stored_path": "source/peer/config.go",
+      "stored_sha256": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+      "stored_bytes": 11212,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/config_test.go",
+      "original_sha256": "070629c980e9131e915346d45cc1509f286cad18aed1296e39884ee1cafd4bee",
+      "original_bytes": 4435,
+      "stored_path": "source/peer/config_test.go",
+      "stored_sha256": "070629c980e9131e915346d45cc1509f286cad18aed1296e39884ee1cafd4bee",
+      "stored_bytes": 4435,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/go.mod",
+      "original_sha256": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+      "original_bytes": 359,
+      "stored_path": "source/peer/go.mod",
+      "stored_sha256": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+      "stored_bytes": 359,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/go.sum",
+      "original_sha256": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+      "original_bytes": 1046,
+      "stored_path": "source/peer/go.sum",
+      "stored_sha256": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464",
+      "stored_bytes": 1046,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/records.go",
+      "original_sha256": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0",
+      "original_bytes": 3221,
+      "stored_path": "source/peer/records.go",
+      "stored_sha256": "765dfd6f009ef5427dda85f1c3e5e5a8eee5bfde43ec770737fcd353015765a0",
+      "stored_bytes": 3221,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/records_test.go",
+      "original_sha256": "6a421aed9d62ad23a466c559acbbb6d4d1b4e3344b4989e245229b196317b47f",
+      "original_bytes": 3355,
+      "stored_path": "source/peer/records_test.go",
+      "stored_sha256": "6a421aed9d62ad23a466c559acbbb6d4d1b4e3344b4989e245229b196317b47f",
+      "stored_bytes": 3355,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/benchmarks/peers/franz-go/result.go",
+      "original_sha256": "d50f25220b30fbdb60e6ecd4436e51fa206524abdceccb53ded21a9db485c91c",
+      "original_bytes": 20097,
+      "stored_path": "source/peer/result.go",
+      "stored_sha256": "d50f25220b30fbdb60e6ecd4436e51fa206524abdceccb53ded21a9db485c91c",
+      "stored_bytes": 20097,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/go-cache/modules/github.com/twmb/franz-go@v1.22.0/pkg/kgo/config.go",
+      "original_sha256": "ad6a5069b0fa85fbe36999a9a7db2a7f6c7b197a3471af5847a7f620b79487da",
+      "original_bytes": 109580,
+      "stored_path": "source/sdk-kgo/config.go",
+      "stored_sha256": "ad6a5069b0fa85fbe36999a9a7db2a7f6c7b197a3471af5847a7f620b79487da",
+      "stored_bytes": 109580,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/go-cache/modules/github.com/twmb/franz-go@v1.22.0/pkg/kgo/client.go",
+      "original_sha256": "6bdbc504a02f3019a1cf74de8411a65c498bbcb371752bd6d80d183bd9bbcac6",
+      "original_bytes": 189698,
+      "stored_path": "source/sdk-kgo/client.go",
+      "stored_sha256": "6bdbc504a02f3019a1cf74de8411a65c498bbcb371752bd6d80d183bd9bbcac6",
+      "stored_bytes": 189698,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/open-cards-20261006/nullbroker-peers-20261008/go-cache/modules/github.com/twmb/franz-go@v1.22.0/pkg/kgo/compression.go",
+      "original_sha256": "0e645f0bd6f4c8783fad8801b0d9af39c97f8136dbbe93b1216a5da306f95ae5",
+      "original_bytes": 23496,
+      "stored_path": "source/sdk-kgo/compression.go",
+      "stored_sha256": "0e645f0bd6f4c8783fad8801b0d9af39c97f8136dbbe93b1216a5da306f95ae5",
+      "stored_bytes": 23496,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/work/franz-compression-20261008/matrix-settings-refusal.json",
+      "original_sha256": "d8597f78d8a191ebedb9a0887bdd261f8b9bb8fa3b56380f093deb1c463f90c8",
+      "original_bytes": 416,
+      "stored_path": "capture/matrix-settings-refusal.json",
+      "stored_sha256": "d8597f78d8a191ebedb9a0887bdd261f8b9bb8fa3b56380f093deb1c463f90c8",
+      "stored_bytes": 416,
+      "encoding": "identity"
+    },
+    {
+      "original_path": "/workspace/partitionline/scripts/run-benchmark-matrix.py",
+      "original_sha256": "dff2d0fcf1c876a6cdfcc2dc8b0219b795090cbd858a0aa056a3a8ec9e115655",
+      "original_bytes": 24935,
+      "stored_path": "source/orchestrator/run-benchmark-matrix.py",
+      "stored_sha256": "dff2d0fcf1c876a6cdfcc2dc8b0219b795090cbd858a0aa056a3a8ec9e115655",
+      "stored_bytes": 24935,
+      "encoding": "identity"
+    }
+  ]
+}

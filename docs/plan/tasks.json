@@ -53427,7 +53427,7 @@
       "title": "Apply the reported compression setting to the franz-go benchmark client",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261008",
       "depends_on": [
         "KL09-65"
@@ -53461,7 +53461,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Compression-option application only. The ten missing shared settings, result adapter and actual comparable campaign remain open."
+      "qualification_limit": "Done for reported compression-option application. Nine tests and six codec subcases pass with the race detector; before failures, exact SDK/source and compiled CLI pins are retained. Ten shared settings, result adaptation and actual comparable campaigns remain open under KL09-68."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",

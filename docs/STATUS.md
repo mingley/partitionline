@@ -54,7 +54,7 @@ These retained results refer to their cited source snapshots. Newer bounded
 UpdateFeatures checks pass on default and all-feature builds. They are source-bound SDK and native-broker
 checks; fault and soak qualification remains separate.
 
-The task registry has 214 completed cards and 128 open cards. The client
+The task registry has 215 completed cards and 128 open cards. The client
 conformance registry has 75 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
@@ -107,3 +107,13 @@ lifecycle handling. The current franz-go driver also lacks ten settings required
 by the comparison preflight; those omissions are reported explicitly.
 [Orchestrator evidence](evidence/perf/matrix-tiers/README.md) retains the prior
 tier-mixing failure and the current checks. KL09-68 remains open.
+
+The Go peer now applies its reported `none` compression setting explicitly.
+Pinned-SDK checks cover all five codecs and retain the original mismatch.
+[Compression evidence](evidence/perf/franz-compression-20261008/README.md)
+records the tested source and limits. The shared configuration remains
+incomplete, so this correction does not qualify a comparable campaign.
+
+All workspace source and documentation changes were published directly to
+`main`. The [workspace archive](evidence/workspace-publication-20261008/README.md)
+also preserves 139,045 original evidence files in verified chunks.

@@ -1,0 +1,34 @@
+=== RUN   TestLoadConfigDefaults
+--- PASS: TestLoadConfigDefaults (0.00s)
+=== RUN   TestLoadConfigRejects
+--- PASS: TestLoadConfigRejects (0.00s)
+=== RUN   TestEffectiveSettingsShape
+--- PASS: TestEffectiveSettingsShape (0.00s)
+=== RUN   TestScenarioMatrixExplicit
+--- PASS: TestScenarioMatrixExplicit (0.00s)
+=== RUN   TestRecordSchemeVectors
+--- PASS: TestRecordSchemeVectors (0.00s)
+=== RUN   TestVerifyRoundtrip
+--- PASS: TestVerifyRoundtrip (0.00s)
+=== RUN   TestVerifyRejects
+--- PASS: TestVerifyRejects (0.00s)
+=== RUN   TestLatencyStatsShape
+--- PASS: TestLatencyStatsShape (0.00s)
+PASS
+ok  	github.com/mingley/partitionline/benchmarks/peers/franz-go	1.013s
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/default
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/none
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/gzip
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/snappy
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/lz4
+=== RUN   TestClientOptsCompressionMatchesEffectiveSettings/zstd
+--- PASS: TestClientOptsCompressionMatchesEffectiveSettings (0.05s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/default (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/none (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/gzip (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/snappy (0.00s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/lz4 (0.05s)
+    --- PASS: TestClientOptsCompressionMatchesEffectiveSettings/zstd (0.00s)
+PASS
+ok  	github.com/mingley/partitionline/benchmarks/peers/franz-go/cmd/peer	1.066s

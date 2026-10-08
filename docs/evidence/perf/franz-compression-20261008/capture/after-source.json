@@ -1,0 +1,10 @@
+{
+  "commit": "f4297cb6e73bfe096a996bf1d80c00dc207efb97",
+  "files": {
+    "benchmarks/peers/franz-go/cmd/peer/main.go": "43c6d33fefb6ceb188d64843025199bd1ec2e48fdcf8c6bafb67539a293d6a74",
+    "benchmarks/peers/franz-go/cmd/peer/main_test.go": "88e5637043c5164a510f60979c88e961b011981540105e2f48c7f2afbe3bfdfc",
+    "benchmarks/peers/franz-go/config.go": "ccd043c31ea5e13b40a9bb18131d3c2a7cac62905ac62ccfc5d42307592b673f",
+    "benchmarks/peers/franz-go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/peers/franz-go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464"
+  }
+}

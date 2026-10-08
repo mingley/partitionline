@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "task_id": "KL09-74",
+  "status": "done",
+  "source_sha": "f4297cb6e73bfe096a996bf1d80c00dc207efb97",
+  "before_source_sha": "acc48d408b70bdeef5d8b537f7648e4ac08d7afd",
+  "toolchain": "Go 1.26.0 linux/amd64",
+  "sdk": "franz-go v1.22.0, kadm v1.19.0, kmsg v1.14.0; exact module hashes in retained build info and go.sum",
+  "binary_sha256": "af57f262ae3713a0b53f013e614fa27008ec015d9cddd7a34a812b396bae5266",
+  "checks": [
+    {
+      "command": "go test -count=1 -run TestClientOptsCompressionMatchesEffectiveSettings -v ./cmd/peer",
+      "phase": "unchanged driver with new regression",
+      "exit": 1,
+      "result": "Default and explicit none fail: actual SDK resolves snappy/none instead of none; other four codec cases pass."
+    },
+    {
+      "command": "go test -race -count=1 -v ./...",
+      "exit": 0,
+      "top_level_tests": 9,
+      "codec_subcases": 6,
+      "result": "All pass; no race reports."
+    },
+    {
+      "command": "go build -trimpath -o franz-peer.elf ./cmd/peer",
+      "exit": 0,
+      "result": "Compiled CLI has matching source commit and vcs.modified=false."
+    },
+    {
+      "command": "go vet ./... (peer module)",
+      "exit": 0
+    },
+    {
+      "command": "go mod verify",
+      "exit": 0,
+      "result": "all modules verified"
+    },
+    {
+      "command": "gofmt -l cmd/peer/main.go cmd/peer/main_test.go",
+      "exit": 0,
+      "result": "No unformatted files."
+    },
+    {
+      "command": "Compiled CLI emit-config followed by actual orchestrator settings preflight",
+      "cli_exit": 0,
+      "preflight": "refused",
+      "missing_settings": 10
+    }
+  ],
+  "artifacts": [
+    "docs/evidence/perf/franz-compression-20261008/README.md",
+    "docs/evidence/perf/franz-compression-20261008/archive-inventory.json",
+    "docs/evidence/perf/franz-compression-20261008/capture/before-tests.log",
+    "docs/evidence/perf/franz-compression-20261008/capture/after-tests.log",
+    "docs/evidence/perf/franz-compression-20261008/capture/build-info.log",
+    "docs/evidence/perf/franz-compression-20261008/capture/matrix-settings-refusal.json"
+  ],
+  "retained_files": 44,
+  "limits": [
+    "Actual pinned SDK configuration checks only; dialing is disabled in the new regression.",
+    "No broker workload, latency/throughput result, comparable campaign or production-readiness claim.",
+    "Ten shared settings and the native result adapter remain unqualified under KL09-68.",
+    "The initial vet command ran outside the Go module and failed; its log is retained beside the successful corrected invocation."
+  ]
+}

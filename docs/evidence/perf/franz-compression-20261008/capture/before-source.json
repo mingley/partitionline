@@ -1,0 +1,10 @@
+{
+  "commit": "acc48d408b70bdeef5d8b537f7648e4ac08d7afd",
+  "files": {
+    "benchmarks/peers/franz-go/cmd/peer/main.go": "2ad32bb310cf3e3f06870445be33e62ed57cd7278d4041409f06af74188d470b",
+    "benchmarks/peers/franz-go/cmd/peer/main_test.go": "2b08544d504d2a9aa5ae7dcb1a750508fdb9b09b66fec2f4095d8c4ac3b9545d",
+    "benchmarks/peers/franz-go/go.mod": "b5793b705706989de71b7203ada4190acaf653756a2bb9cc7cb3079d25edfcdd",
+    "benchmarks/peers/franz-go/go.sum": "f31c9a400c3518f79e08ea6ee1d26ed5cab18f009c80436122243f32cda56464"
+  },
+  "scope": "Unchanged production driver with newly added regression"
+}
