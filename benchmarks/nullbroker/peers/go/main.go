@@ -77,7 +77,7 @@ func run() error {
 		}
 		for _, r := range fetches.Records() {
 			key, value := record(uint64(fetched))
-			if r.Partition != 0 || r.Offset != int64(fetched) || r.Timestamp.UnixMilli() != 0 || len(r.Headers) != 0 || !bytes.Equal(r.Key, key) || !bytes.Equal(r.Value, value) {
+			if r.Partition != 0 || r.Offset != int64(fetched) || r.Timestamp.UnixMilli() != 1_700_000_000_000+int64(fetched/128)*128 || len(r.Headers) != 0 || !bytes.Equal(r.Key, key) || !bytes.Equal(r.Value, value) {
 				return fmt.Errorf("fetch validation %d", fetched)
 			}
 			fetched++

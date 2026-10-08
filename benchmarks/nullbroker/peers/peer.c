@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
             int64_t timestamp = rd_kafka_message_timestamp(m, &timestamp_type);
             rd_kafka_headers_t *headers = NULL;
             rd_kafka_resp_err_t header_error = rd_kafka_message_headers(m, &headers);
-            if (m->err || timestamp != 0 || timestamp_type != RD_KAFKA_TIMESTAMP_CREATE_TIME ||
+            if (m->err || timestamp != INT64_C(1700000000000) + (fetched / 128) * 128 || timestamp_type != RD_KAFKA_TIMESTAMP_CREATE_TIME ||
                 (header_error != RD_KAFKA_RESP_ERR__NOENT && header_error != RD_KAFKA_RESP_ERR_NO_ERROR) ||
                 (headers && rd_kafka_header_cnt(headers) != 0) || m->partition != 0 || m->offset != fetched ||
                 m->key_len != sizeof key || m->len != sizeof value ||

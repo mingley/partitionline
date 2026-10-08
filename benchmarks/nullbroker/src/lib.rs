@@ -1642,6 +1642,21 @@ impl Worker {
     fn handle_frame(&self, frame: &[u8]) -> Result<Option<Vec<u8>>, ()> {
         let (api_key, api_version, correlation_id, header_len) =
             decode_request_header(frame).map_err(|_| ())?;
+        // An unknown ApiVersions version uses the v0 error response so new
+        // clients can negotiate down on this connection (Kafka bootstrap rule).
+        if api_key == API_KEY_API_VERSIONS && api_version > 4 {
+            if self.trace_api_versions {
+                let mut state = self.lock_state().map_err(|_| ())?;
+                *state
+                    .api_versions
+                    .entry((api_key, api_version))
+                    .or_default() += 1;
+            }
+            let mut out = Vec::new();
+            encode_response_header(&mut out, api_key, 0, correlation_id);
+            encode_api_versions_response(&mut out, 0, 35); // UNSUPPORTED_VERSION
+            return Ok(Some(out));
+        }
         // Refuse versions we do not advertise or implement. Never select behavior
         // by client identity; all peers use the same handlers and validation.
         if !advertised_apis()

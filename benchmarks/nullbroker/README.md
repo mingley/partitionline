@@ -13,7 +13,8 @@ cargo +stable build --locked --release --manifest-path benchmarks/nullbroker/Car
 
 The advertised versions are Produce 9–12, Metadata 12–13, Fetch 15–17,
 ListOffsets 7–10, InitProducerId 5, FindCoordinator 1–6, and ApiVersions 0–4.
-Requests outside those ranges close the connection. All clients use the same
+Requests outside those ranges close the connection. Unsupported ApiVersions
+requests receive the standard v0 error response so newer clients can negotiate down. All clients use the same
 handlers and batch validation.
 
 `--trace-api-versions true` records request keys, versions, and counts in the
@@ -22,7 +23,7 @@ payload size, batch size, compression, and fault modes are explicit CLI options.
 
 `peers/` contains functional checks using Java Kafka clients 4.3.1,
 librdkafka 2.15.0, and franz-go 1.22.0. Each check acknowledges 512 records and
-validates every key, payload byte, offset, and partition in the independent seeded
+validates every key, payload byte, timestamp, header count, offset, and partition in the independent seeded
 Fetch stream. The produced payloads match that seed. Successful Fetch validation
 does not establish storage or produced-record readback.
 

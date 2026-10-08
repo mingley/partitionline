@@ -69,7 +69,7 @@ public final class NullBrokerPeer {
             while (fetched < COUNT && System.nanoTime() < deadline) {
                 for (var r : consumer.poll(Duration.ofMillis(100))) {
                     byte[][] expected = record(fetched);
-                    if (r.partition() != 0 || r.offset() != fetched || r.timestamp() != 0 ||
+                    if (r.partition() != 0 || r.offset() != fetched || r.timestamp() != 1_700_000_000_000L + (fetched / 128) * 128L ||
                         r.headers().toArray().length != 0 || !Arrays.equals(r.key(), expected[0]) ||
                         !Arrays.equals(r.value(), expected[1])) throw new IllegalStateException("fetch validation " + fetched);
                     fetched++;

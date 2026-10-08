@@ -1197,3 +1197,40 @@ fn coordinator_classic_and_flexible_versions_share_one_node() {
     broker.shutdown();
     handle.join().unwrap();
 }
+
+#[test]
+fn unsupported_api_versions_negotiate_on_the_same_connection() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let broker = Arc::new(
+        NullBroker::with_listener(&listener, 1, nullbroker::synth::SynthConfig::default()).unwrap(),
+    );
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    let mut body = Vec::new();
+    put_compact_string(&mut body, Some("future-sdk"));
+    put_compact_string(&mut body, Some("1"));
+    put_uvarint(&mut body, 0);
+    let response = rpc.call(18, 5, &body);
+    let mut cur = Cur::new(&response);
+    assert_eq!(cur.i32(), rpc.correlation());
+    assert_eq!(cur.i16(), 35);
+    assert_eq!(cur.i32(), 7); // classic v0 array, no flexible header tags
+    for expected in nullbroker::advertised_apis() {
+        assert_eq!((cur.i16(), cur.i16(), cur.i16()), expected);
+    }
+    assert_eq!(cur.pos, response.len());
+    // The next ordinary request succeeds without redialing.
+    let response = rpc.call(3, 13, &metadata_body("negotiated"));
+    assert_eq!(parse_metadata_topology(&response).1, vec![(0, 0)]);
+    drop(stream);
+    broker.shutdown();
+    handle.join().unwrap();
+}
