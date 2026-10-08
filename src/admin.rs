@@ -5913,24 +5913,20 @@ impl Admin {
         }
     }
 
-    /// Update finalized feature versions (UpdateFeatures api 57).
+    /// Update finalized feature versions using UpdateFeatures v0–v2.
     ///
-    /// Negotiates v0–v2 (flexible from v0). v0 sends `AllowDowngrade`.
-    /// v1+ sends `UpgradeType` and `ValidateOnly` false. v2 omits
-    /// per-feature Results; this method synthesizes success rows from
-    /// the request when the top-level error is `0`. Kafka 4.0
-    /// `validVersions` is `0-2`. v3+ is not spoken. Lands on the
-    /// Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata
-    /// and retries. `timeout_ms` is UpdateFeatures TimeoutMs. The RPC
-    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
-    /// timeout that drives both the RPC deadline and TimeoutMs, use
-    /// [`Self::update_features_timeout`]. See
-    /// [`Self::update_features_with`] for Java
-    /// `UpdateFeaturesOptions.validateOnly`. Optional at [`Self::new`]
-    /// (Kafka 2.7+ / KIP-584); a broker that omits api 57 returns
-    /// [`Error::Unsupported`]. An empty list is Java `IllegalArgumentException`
-    /// (`Feature updates can not be null or empty`). A blank feature name
-    /// is `Provided feature can not be empty`.
+    /// Requests go to the metadata controller. A top-level `NOT_CONTROLLER`
+    /// refreshes metadata and retries; per-feature errors remain in the returned
+    /// results. Successful responses without result rows produce one success
+    /// result for each requested feature.
+    ///
+    /// `timeout_ms` sets the broker timeout, capped by the remaining operation
+    /// budget. [`AdminConfig::request_timeout`] bounds discovery, connections,
+    /// requests, and retries together. [`Self::update_features_timeout`] sets
+    /// both budgets for one call. [`Self::update_features_with`] adds validation.
+    ///
+    /// An empty update list or a blank feature name returns [`Error::Protocol`].
+    /// A broker without UpdateFeatures returns [`Error::Unsupported`].
     pub async fn update_features(
         &mut self,
         updates: &[FeatureUpdate],
@@ -6081,12 +6077,7 @@ impl Admin {
                     Err(e) => return Err(e),
                 };
                 let resp = decode_update_features_response(&mut body.clone(), version)?;
-                if resp.error_code == error::NOT_CONTROLLER
-                    || resp
-                        .results
-                        .iter()
-                        .any(|r| r.error_code == error::NOT_CONTROLLER)
-                {
+                if resp.error_code == error::NOT_CONTROLLER {
                     // NOT_CONTROLLER (41): Metadata, then the new controller.
                     self.cluster.invalidate_controller();
                     let _ = self.conns.remove(&node);
@@ -6097,7 +6088,7 @@ impl Admin {
                 if resp.error_code != 0 {
                     return Err(Error::broker(resp.error_code, "UpdateFeatures"));
                 }
-                if version >= 2 {
+                if version >= 2 || resp.results.is_empty() {
                     return Ok(keys
                         .iter()
                         .map(|k| FeatureUpdateResult {

@@ -193,8 +193,28 @@ async fn public_update_features_controller_and_deadline_history() {
                 .collect::<Vec<_>>();
             names.sort_unstable();
             assert_eq!(names, ["test_feature_1", "test_feature_2"]);
-            assert!(values.iter().all(|value| value.error_code == 0));
-            values[0].error_code
+            if scenario == "feature-error" {
+                assert_eq!(
+                    values
+                        .iter()
+                        .find(|value| value.name == "test_feature_1")
+                        .unwrap()
+                        .error_code,
+                    41
+                );
+                assert_eq!(
+                    values
+                        .iter()
+                        .find(|value| value.name == "test_feature_2")
+                        .unwrap()
+                        .error_code,
+                    0
+                );
+                41
+            } else {
+                assert!(values.iter().all(|value| value.error_code == 0));
+                values[0].error_code
+            }
         }
         Err(Error::Timeout) => 7,
         Err(error) => error.broker_code().unwrap(),
@@ -233,7 +253,8 @@ async fn public_update_features_controller_and_deadline_history() {
     let expected = match scenario.as_str() {
         "deadline" => 7,
         "top-error" => 42,
-        "success" | "retry" => 0,
+        "success" | "empty-success" | "retry" | "legacy" => 0,
+        "feature-error" => 41,
         _ => panic!("undeclared scripted scenario"),
     };
     assert_eq!(
@@ -302,6 +323,21 @@ async fn public_update_features_name_validation_history() {
             "{{\"name_code\":{code},\"rejected_locally\":{rejected}}}"
         ));
     }
+    for (code, updates) in [
+        (-2, Vec::new()),
+        (
+            -3,
+            vec![FeatureUpdate::new("feature", 2), FeatureUpdate::new("", 2)],
+        ),
+    ] {
+        assert!(matches!(
+            admin.update_features_with(&updates, 1000, false).await,
+            Err(Error::Protocol(_))
+        ));
+        rows.push(format!(
+            "{{\"name_code\":{code},\"rejected_locally\":true}}"
+        ));
+    }
     admin.close().await.unwrap();
     tokio::fs::write(output, format!("[{}]", rows.join(",")))
         .await
@@ -331,4 +367,108 @@ async fn v0_public_validation_does_not_dispatch_or_mutate() {
         finalized, None,
         "validation-only changed finalized features"
     );
+}
+
+#[test]
+#[ignore = "requires actual Apache source-case bodies"]
+fn actual_sdk_update_features_source_cases() {
+    use std::collections::HashMap;
+    let directory =
+        std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_SOURCE_CASES").unwrap());
+    let mut count = 0;
+    for entry in std::fs::read_dir(directory).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().and_then(|value| value.to_str()) != Some("bin") {
+            continue;
+        }
+        let name = path.file_name().unwrap().to_str().unwrap();
+        let version = name[1..name.find('-').unwrap()].parse().unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let mut body = &bytes[..];
+        if name.ends_with("request.bin") {
+            let (timeout, updates, validate) =
+                decode_update_features_request(&mut body, version).unwrap();
+            assert_eq!(timeout, 10000);
+            assert!(!validate);
+            assert_eq!(updates.len(), 2);
+            assert_eq!(
+                (
+                    &*updates[0].name,
+                    updates[0].max_version_level,
+                    updates[0].upgrade_type
+                ),
+                ("foo", 1, 2)
+            );
+            assert_eq!(
+                (
+                    &*updates[1].name,
+                    updates[1].max_version_level,
+                    updates[1].upgrade_type
+                ),
+                ("bar", 3, 1)
+            );
+        } else {
+            let response = decode_update_features_response(&mut body, version).unwrap();
+            if name.contains("counts") {
+                assert_eq!(
+                    response.error_counts(),
+                    if version < 2 {
+                        HashMap::from([(42, 1), (-1, 2), (96, 1)])
+                    } else {
+                        HashMap::from([(42, 1)])
+                    }
+                );
+                if version < 2 {
+                    assert_eq!(
+                        response
+                            .results
+                            .iter()
+                            .map(|value| (&*value.name, value.error_code))
+                            .collect::<Vec<_>>(),
+                        [("foo", -1), ("bar", -1), ("baz", 96)]
+                    );
+                }
+            } else if name.contains("factory") {
+                assert_eq!(response.error_counts(), HashMap::from([(-1, 1)]));
+                assert!(response.results.is_empty());
+            } else if name.contains("success") {
+                assert_eq!(response.error_code, 0);
+                assert_eq!(response.results.len(), if version < 2 { 2 } else { 0 });
+                let mut names = response
+                    .results
+                    .iter()
+                    .map(|value| value.name.as_str())
+                    .collect::<Vec<_>>();
+                names.sort_unstable();
+                if version < 2 {
+                    assert_eq!(names, ["feature-1", "feature-2"]);
+                }
+            } else {
+                assert_eq!(
+                    response.error_code,
+                    partitionline::error::INVALID_UPDATE_VERSION
+                );
+                assert!(response.results.is_empty());
+            }
+        }
+        assert!(body.is_empty());
+        count += 1;
+    }
+    assert_eq!(count, 12);
+    for version in 0..=2 {
+        let mut body = BytesMut::from(&b"unchanged"[..]);
+        let before = body.clone();
+        assert!(encode_update_features_request(
+            &mut body,
+            version,
+            1000,
+            &[FeatureUpdateKey::new("feature", 0, false)],
+            false
+        )
+        .is_err());
+        assert_eq!(
+            body, before,
+            "Java rejects deletion without downgrade before serialization"
+        );
+    }
 }

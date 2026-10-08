@@ -61,7 +61,7 @@ public final class ConformanceUpdateFeaturesPeer {
 
     private static ApiVersionsResponseData versions(short maximum) {
         var keys = new ApiVersionsResponseData.ApiVersionCollection();
-        for (short[] range : new short[][]{{18,0,4},{3,0,13},{19,0,7},{20,0,6},{57,1,maximum}}) {
+        for (short[] range : new short[][]{{18,0,4},{3,0,13},{19,0,7},{20,0,6},{57,(short)(maximum == 0 ? 0 : 1),maximum}}) {
             keys.add(new ApiVersionsResponseData.ApiVersion().setApiKey(range[0])
                 .setMinVersion(range[1]).setMaxVersion(range[2]));
         }
@@ -156,8 +156,8 @@ public final class ConformanceUpdateFeaturesPeer {
     }
     private static void server(Path output, short maximum, String scenario) throws Exception {
         Files.createDirectory(output);
-        if (maximum != 1 && maximum != 2) throw new AssertionError("version budget");
-        if (!Set.of("success", "top-error", "retry", "deadline", "empty-success", "feature-error").contains(scenario)) throw new AssertionError("scenario budget");
+        if (maximum < 0 || maximum > 2) throw new AssertionError("version budget");
+        if (!Set.of("success", "top-error", "retry", "deadline", "empty-success", "feature-error", "legacy").contains(scenario)) throw new AssertionError("scenario budget");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
         var executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(8));
         var threads = new ArrayList<Thread>();
@@ -217,7 +217,8 @@ public final class ConformanceUpdateFeaturesPeer {
             } catch (ExecutionException failed) { code = Errors.forException(failed.getCause()).code(); }
             short expected = scenario.equals("deadline") ? Errors.REQUEST_TIMED_OUT.code()
                 : scenario.equals("top-error") ? Errors.INVALID_REQUEST.code()
-                : scenario.equals("feature-error") ? Errors.NOT_CONTROLLER.code() : 0;
+                : scenario.equals("feature-error") ? Errors.NOT_CONTROLLER.code()
+                : scenario.equals("legacy") ? Errors.UNSUPPORTED_VERSION.code() : 0;
             if (code != expected) throw new AssertionError("unexpected public outcome " + code + " expected " + expected);
             String recovery = "null";
             if (scenario.equals("deadline")) {
@@ -249,6 +250,17 @@ public final class ConformanceUpdateFeaturesPeer {
                         new UpdateFeaturesOptions().timeoutMs(1000)).all().get(2, TimeUnit.SECONDS);
                 } catch (IllegalArgumentException invalid) { rejected = true; }
                 rows.add("{\"name_code\":" + (name.isEmpty() ? -1 : (int)name.charAt(0)) + ",\"rejected_locally\":" + rejected + "}");
+            }
+            for (int item = 0; item < 2; item++) {
+                boolean rejected = false;
+                try {
+                    Map<String, FeatureUpdate> updates = item == 0 ? Map.of() : Map.of(
+                        "feature", new FeatureUpdate((short)2, FeatureUpdate.UpgradeType.UPGRADE),
+                        "", new FeatureUpdate((short)2, FeatureUpdate.UpgradeType.UPGRADE));
+                    admin.updateFeatures(updates, new UpdateFeaturesOptions());
+                } catch (IllegalArgumentException invalid) { rejected = true; }
+                if (!rejected) throw new AssertionError("exact source empty/mixed argument case");
+                rows.add("{\"name_code\":" + (-2 - item) + ",\"rejected_locally\":true}");
             }
             Files.writeString(output, "[" + String.join(",", rows) + "]\n");
         } finally { admin.close(Duration.ofSeconds(1)); }
@@ -305,6 +317,55 @@ public final class ConformanceUpdateFeaturesPeer {
         if (count != 10) throw new AssertionError("malformed cohort incomplete");
         System.out.println("{\"actual_sdk_rejected_malformed_bodies\":" + count + "}");
     }
+    private static void sourceCases(Path output) throws Exception {
+        Files.createDirectory(output);
+        if (UpdateFeaturesRequestData.LOWEST_SUPPORTED_VERSION != 0 || UpdateFeaturesRequestData.HIGHEST_SUPPORTED_VERSION != 2) {
+            throw new AssertionError("declared source version range");
+        }
+        for (short version : new short[]{0, 2}) {
+            var features = new UpdateFeaturesRequestData.FeatureUpdateKeyCollection();
+            var foo = new UpdateFeaturesRequestData.FeatureUpdateKey().setFeature("foo").setMaxVersionLevel((short)1);
+            if (version == 0) foo.setAllowDowngrade(true); else foo.setUpgradeType(FeatureUpdate.UpgradeType.SAFE_DOWNGRADE.code());
+            features.add(foo);
+            features.add(new UpdateFeaturesRequestData.FeatureUpdateKey().setFeature("bar").setMaxVersionLevel((short)3));
+            var data = new UpdateFeaturesRequestData().setTimeoutMs(10000).setFeatureUpdates(features);
+            var request = new org.apache.kafka.common.requests.UpdateFeaturesRequest.Builder(data).build(version);
+            var parsed = new org.apache.kafka.common.requests.UpdateFeaturesRequest.Builder(
+                new UpdateFeaturesRequestData(new ByteBufferAccessor(ByteBuffer.wrap(bytes(data, version))), version)).build(version);
+            var updates = new ArrayList<>(parsed.featureUpdates());
+            if (updates.size() != 2 || updates.get(0).upgradeType() != FeatureUpdate.UpgradeType.SAFE_DOWNGRADE
+                    || updates.get(1).upgradeType() != FeatureUpdate.UpgradeType.UPGRADE) throw new AssertionError("source feature projection");
+            Files.write(output.resolve("v" + version + "-source-request.bin"), bytes(data, version));
+            if (version == 2) {
+                var error = request.getErrorResponse(0, Errors.UNKNOWN_SERVER_ERROR.exception());
+                if (!error.errorCounts().equals(Map.of(Errors.UNKNOWN_SERVER_ERROR, 1)) || !error.data().results().isEmpty()) {
+                    throw new AssertionError("source error response");
+                }
+                Files.write(output.resolve("v2-source-factory-response.bin"), bytes(error.data(), version));
+            }
+        }
+        var results = new UpdateFeaturesResponseData.UpdatableFeatureResultCollection();
+        results.add(new UpdateFeaturesResponseData.UpdatableFeatureResult().setFeature("foo").setErrorCode(Errors.UNKNOWN_SERVER_ERROR.code()));
+        results.add(new UpdateFeaturesResponseData.UpdatableFeatureResult().setFeature("bar").setErrorCode(Errors.UNKNOWN_SERVER_ERROR.code()));
+        results.add(new UpdateFeaturesResponseData.UpdatableFeatureResult().setFeature("baz").setErrorCode(Errors.FEATURE_UPDATE_FAILED.code()));
+        var counts = new UpdateFeaturesResponse(new UpdateFeaturesResponseData().setErrorCode(Errors.INVALID_REQUEST.code()).setResults(results));
+        if (!counts.errorCounts().equals(Map.of(Errors.INVALID_REQUEST, 1, Errors.UNKNOWN_SERVER_ERROR, 2, Errors.FEATURE_UPDATE_FAILED, 1))) {
+            throw new AssertionError("exact source errorCounts");
+        }
+        for (short version = 0; version <= 2; version++) {
+            Files.write(output.resolve("v" + version + "-source-counts-response.bin"), bytes(counts.data(), version));
+            for (boolean failed : new boolean[]{false, true}) {
+                ApiError error = failed ? new ApiError(Errors.INVALID_UPDATE_VERSION) : ApiError.NONE;
+                var encoded = bytes(UpdateFeaturesResponse.createWithErrors(error, Set.of("feature-1", "feature-2"), 0).data(), version);
+                var decoded = new UpdateFeaturesResponse(new UpdateFeaturesResponseData(new ByteBufferAccessor(ByteBuffer.wrap(encoded)), version));
+                if (!decoded.topLevelError().equals(error) || decoded.data().results().size() != (failed || version == 2 ? 0 : 2)) {
+                    throw new AssertionError("exact source serialization");
+                }
+                Files.write(output.resolve("v" + version + "-source-" + (failed ? "error" : "success") + "-response.bin"), encoded);
+            }
+        }
+        System.out.println("{\"source_wire_bodies\":12,\"lowest_version\":0,\"highest_version\":2,\"in_memory_error_counts\":{\"42\":1,\"-1\":2,\"96\":1}}\n");
+    }
     public static void main(String[] args) throws Exception {
         switch (args[0]) {
             case "server" -> server(Path.of(args[1]), Short.parseShort(args[2]), args[3]);
@@ -312,6 +373,7 @@ public final class ConformanceUpdateFeaturesPeer {
             case "values" -> values();
             case "client-names" -> names(args[1], Path.of(args[2]));
             case "malformed" -> malformed(Path.of(args[1]));
+            case "source-cases" -> sourceCases(Path.of(args[1]));
             default -> throw new AssertionError("undeclared mode");
         }
     }
