@@ -1,0 +1,21 @@
+...............F..................F..................
+======================================================================
+FAIL: test_real_registry_backlog_passes_but_core_and_full_fail (test_check_protocol_coverage.TestConformanceBacklogModes.test_real_registry_backlog_passes_but_core_and_full_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py", line 766, in test_real_registry_backlog_passes_but_core_and_full_fail
+    self.assertEqual(backlog['conformance_backlog']['independent_cases'], 66)
+AssertionError: 75 != 66
+
+======================================================================
+FAIL: test_current_public_cases_require_retained_independent_artifacts (test_check_protocol_coverage.TestProtocolCoverageChecker.test_current_public_cases_require_retained_independent_artifacts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py", line 574, in test_current_public_cases_require_retained_independent_artifacts
+    self.assertIn(row["disposition"], ("not_run", "unsupported"))
+AssertionError: 'independent_pass' not found in ('not_run', 'unsupported')
+
+----------------------------------------------------------------------
+Ran 53 tests in 9.985s
+
+FAILED (failures=2)

@@ -1,0 +1,32 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "919791",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/tests/conformance/run-update-features.py",
+    "--binary",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-verified-01/all/integration.elf",
+    "--binding",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-verified-01/all/binary-binding.json",
+    "--jars",
+    "/workspace/work/open-cards-20261006/init-v6-peers",
+    "--slf4j",
+    "/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "--brokers",
+    "/workspace/work/open-cards-20261006/codec-brokers",
+    "--output",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/native-all-01/qualification"
+  ],
+  "started": 1791423041.5566015,
+  "parent_waited": true,
+  "pid": 919794,
+  "exit_code": 0,
+  "ended": 1791423074.1379104,
+  "artifacts": {
+    "native-SDK-matrix.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-SDK-matrix.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

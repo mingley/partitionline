@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-ack-v0-same-fields",
+  "api": "ShareAcknowledge",
+  "api_key": 79,
+  "api_version": 0,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "apache/kafka ShareAcknowledgeRequest.json validVersions 0 (Kafka 4.0)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareAcknowledge v0: multi-partition acks including an empty batch list; response pins JSON defaults plus a partition error case.",
+  "request": {
+    "file": "share_ack_v0_same_fields_request.bin",
+    "size_bytes": 105,
+    "sha256": "48d152ab4e89a7d6f3a0fd7e1af77259638c770d02d3f09e92e9d5808132e6e3",
+    "hex": "0d73686172652d61636b2d76300761636b2d6d300000000402303132333435363738393a3b3c3d3e3f040000000002000000000000000a000000000000000c040101010000000000010100000000020200000000000000140000000000000017050100020300000000"
+  },
+  "response": {
+    "file": "share_ack_v0_same_fields_response.bin",
+    "size_bytes": 72,
+    "sha256": "509a97d775d6ec9372fc7d4189973184e19037d1eadc5b9ab49f0fe6c723ae32",
+    "hex": "0000000000000002303132333435363738393a3b3c3d3e3f0300000000000000000000000000000000000000000100060b6e6f74206c656164657200000002000000070000000100"
+  }
+}

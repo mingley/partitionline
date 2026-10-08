@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v10-current-leader",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 10,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v10 flexible wire format with current-leader tagged field present on partition 0 and omitted on partition 1",
+  "request": {
+    "file": "produce_v10_current_leader_request.bin",
+    "size_bytes": 65,
+    "sha256": "dbebbfddbf1f34cd7710b1aa6dc3a4a6481b2dc7938370d6f52b7f780eef41e1",
+    "hex": "1074786e2d70726f647563652d763130ffff00001770021b70726f647563652d7631302d63757272656e742d6c6561646572030000000001000000000101000000"
+  },
+  "response": {
+    "file": "produce_v10_current_leader_response.bin",
+    "size_bytes": 129,
+    "sha256": "37f4ba5bfb6b908a4104ca1c3e8f62c3af888bb244f2411172b715d85622d8d8",
+    "hex": "021b70726f647563652d7631302d63757272656e742d6c65616465720300000000000000000000000001f40000018e23f15ba000000000000000c80100010009000000030000000c00000000010006ffffffffffffffffffffffffffffffffffffffffffffffff011242726f6b6572206e6f74206c656164657200000000009600"
+  }
+}

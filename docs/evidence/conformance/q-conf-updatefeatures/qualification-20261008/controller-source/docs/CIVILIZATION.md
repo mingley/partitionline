@@ -1,0 +1,231 @@
+# Civilization plan for partitionline
+
+**Historical foundation plan.** Current execution is
+[one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md), with status/dependencies in
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) and profile gates in [ROADMAP.md](ROADMAP.md).
+The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) supersedes broad completion
+inferences from this file's capability checklist.
+
+**Goal:** A Kafka client with documented behavior, reliable operation and
+reproducible performance measurements. TLS uses rustls/ring, whose build
+includes native code.
+
+The older WP packages below preserve foundation history; do not pick them
+as new session assignments. Do not lift
+Suite HOLD claims in `STATUS.md` / `benchmark.md` without signed Lab A
+evidence. Do not add librdkafka, OpenSSL, libzstd, or Cyrus SASL as default
+dependencies. `unsafe_code` stays forbidden.
+
+## Why this matters
+
+partitionline provides producer, consumer, group, transaction, Admin and share
+group APIs. The current task registry tracks correctness, compatibility and
+operational gaps. `benchmark.md` records the available produce, fetch and
+latency measurements. Lab A and local VM results have different qualification
+requirements; the local latency samples do not establish a performance win.
+
+## Non-negotiable constraints
+
+1. No librdkafka client dependency or native compression/SASL dependency in
+   default features. Optional zstd and GSSAPI require a compatible backend and
+   an approved dependency decision (`gaps.md`).
+2. `unsafe_code = "forbid"`. No exceptions for “hot path.”
+3. Honesty about numbers. Unsigned this-VM results stay unsigned. Do not
+   claim Suite HOLD lifts without Kernel Integrity / Lab A process.
+4. Prefer Java API shapes and rustdoc that name the matching Java call.
+5. Schema Registry stays out of this crate’s default surface (`gaps.md`); a
+   companion crate is allowed later.
+
+## Historical capability baseline (not qualification)
+
+| Area | State |
+|---|---|
+| Produce / fetch / groups / EOS / admin / share | Implemented surfaces in `gaps.md`; known correctness/evidence gaps are tracked in the current audit and task queue |
+| TLS (rustls), SCRAM, OAUTHBEARER/OIDC | **done** |
+| gzip / snappy / lz4 | **done**; zstd / Kerberos blocked on C |
+| Mock protocol tests | large (`tests/full_surface.rs`, `client_api.rs`); mock e2e in `#80` |
+| Real-broker CI | `broker-smoke` job + `scripts/ci-broker-smoke.sh` (3.9.1 and 4.1.0) |
+| crates.io publish | **0.1.0 published** (`partitionline = "0.1"`; day1 four-file flip + parks on `main`; Suite HOLD still unsigned) |
+| Open GitHub issues | templates added; work is still mostly commit-driven |
+
+---
+
+## Phase map
+
+```
+P0 Foundations     → publishability, versioning, public API freeze discipline
+P1 Trust           → fuzz, real-broker CI, security posture, signed benches process
+P2 Adoption        → docs, migration, examples that teach operators
+P3 Ecosystem       → observability hooks, companion crates, language bridges later
+P4 Protocol debt   → only holes that block real deployments (STATUS named holes stay closed unless justified)
+P5 Stewardship     → release cadence, issue hygiene, agent-safe contribution rules
+```
+
+For new work, complete one task card's acceptance checks and record its
+evidence in the canonical queue. The legacy progress section is not the
+current task-status authority.
+
+---
+
+## Work packages
+
+### WP-0 — Public crate identity
+
+**Goal:** Anyone can depend on partitionline without a git URL.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-0.1 | Decide and document semver policy (0.x until API stability bar in WP-0.3) | `docs/RELEASE.md` exists; README links it |
+| WP-0.2 | Add `CHANGELOG.md` (Keep a Changelog) covering 0.1.0 baseline | File lists current surface in one “Unreleased” or `0.1.0` section |
+| WP-0.3 | Audit `pub` surface: mark experimental APIs; ensure rustdoc on every public item (already denied missing_docs) | Short `docs/api-stability.md`: stable vs evolving modules |
+| WP-0.4 | Prepare crates.io metadata: categories, keywords, exclude huge non-crate paths if needed | `cargo package --allow-dirty` dry-run succeeds; README install shows crates.io once published |
+| WP-0.5 | First crates.io release (human token / owner action may be required) | Version on crates.io; README dependency example updated |
+
+**Agent notes:** Publishing may need owner credentials. If blocked, finish
+0.1–0.4 and leave 0.5 as a checked “owner action” with exact `cargo publish`
+steps.
+
+### WP-1 — Real-broker continuous verification
+
+**Goal:** Protocol correctness is proven against Apache Kafka, not only mocks.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-1.1 | Add CI job: Docker `apache/kafka` (3.9.x or 4.x KRaft) + `cargo test` selected integration tests | Workflow green on PR; skips cleanly if Docker unavailable only on local, not on CI |
+| WP-1.2 | Promote `examples/roundtrip`, `eos`, `group`, `share`, `tls`, `sasl` into scripted smoke under CI where secrets/certs can be generated | One `scripts/ci-broker-smoke.sh` (or equivalent) documented in CONTRIBUTING |
+| WP-1.3 | Matrix at least one Kafka 3.9 and one 4.x broker image | Matrix documented in workflow comments |
+| WP-1.4 | Keep mock suite as default fast path; broker suite labeled / separate job | `cargo test` without Docker still passes locally |
+
+**Agent notes:** Prefer generating TLS/SASL fixtures in CI (`openssl` CLI for
+mock TLS; see `tests/common/mod.rs`). Do not commit live secrets.
+
+### WP-2 — Adversarial protocol trust
+
+**Goal:** Malformed broker bytes cannot panic or silently corrupt offsets.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-2.1 | Fuzz decode paths under `src/protocol/` (cargo-fuzz or libfuzzer targets for Fetch/Produce/Metadata/Group responses) | At least 3 fuzz targets; CI smoke run (short corpus) |
+| WP-2.2 | Property tests for varint / compact / flexible header edge cases | Tests in-tree; no unwrap in production paths (already clippy-denied) |
+| WP-2.3 | Document threat model: trust broker vs trust network; TLS defaults; SCRAM/OIDC notes | `docs/security.md` |
+| WP-2.4 | Dependency audit in CI (`cargo deny` or `cargo audit`) | Workflow fails on known advisories for direct deps |
+
+### WP-3 — Operator documentation
+
+**Goal:** A senior engineer can replace rust-rdkafka / librdkafka for a
+standard service without reading `design.md` wire notes.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-3.1 | `docs/guide.md`: produce, consume, groups, EOS, admin, TLS/SASL, defaults that differ from Java | Linked from README; runnable snippets |
+| WP-3.2 | `docs/migrate-from-rdkafka.md`: config map, API map, intentional differences | Covers acks, linger, auto.offset.reset, idempotence, transactions |
+| WP-3.3 | Cookbook: backpressure (`try_send`/`flush`), rebalance, exactly-once pattern from `examples/eos.rs` | Three short recipes |
+| WP-3.4 | Trim README: keep numbers, point deep protocol to design/gaps | README stays under ~250 lines; links to guide |
+
+### WP-4 — Observability for production
+
+**Goal:** Running systems can see client health without reinventing metrics.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-4.1 | Document `Producer`/`Consumer`/`Admin`/`ShareGroup` metrics snapshots and recommended scrape interval | Section in guide |
+| WP-4.2 | Optional feature `tracing`: span hooks on produce-ack, fetch round, rebalance, txn boundaries | Feature off by default; no behavior change when disabled |
+| WP-4.3 | Example exporting metrics to logs or a simple Prometheus text render (no mandatory prom crate if it bloats) | `examples/metrics` extended or sibling example |
+
+### WP-5 — Performance honesty pipeline
+
+**Goal:** Retain reproducible measurements and state what they support.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-5.1 | Automate Lab A produce bench harness script (topic recreate, HW check, three-run median) | `scripts/lab-a-produce.sh`; **exits non-zero unless HW sum equals acked** each run |
+| WP-5.2 | Keep fetch/latency this-VM results clearly **unsigned** until signed process exists | STATUS.md / benchmark.md labels unchanged unless signed |
+| WP-5.3 | Add latency regression gate: produce-ack p99 threshold on CI broker (relative, not vs C) | CI fails on large regressions vs recorded baseline file |
+
+### WP-6 — Adoption-blocking features only
+
+**Goal:** Close only gaps that stop real migrations. Do not expand STATUS
+named holes (ElectLeaders, DescribeQuorum, Raft voters, DescribeLogDirs v5)
+without a deployment need written here.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-6.1 | Survey: open GitHub Discussions/Issues for “what blocks you from adopting?” after crates.io | Issue templates exist; first survey issue filed |
+| WP-6.2 | Evaluate zstd backends and Kafka frame compatibility | Record feasibility and dependency requirements |
+| WP-6.3 | Companion `partitionline-schema` (optional, separate crate) for Confluent-compatible wire if demand is real | Only after WP-0 publish; stays out of core crate |
+| WP-6.4 | Compression / auth optional features matrix in README | Table of codecs and SASL mechanisms vs C |
+
+### WP-7 — Stewardship and agent execution hygiene
+
+**Goal:** Future agents improve the client without thrashing protocol history.
+
+| ID | Task | Acceptance |
+|---|---|---|
+| WP-7.1 | Issue / PR templates: bug, protocol map, perf claim, docs | `.github/` templates |
+| WP-7.2 | `CONTRIBUTING.md`: point to this plan, gaps.md status meanings, bench honesty | Updated |
+| WP-7.3 | Release cadence: cut crate releases on meaningful user-facing batches, not every protocol throttle map | Stated in RELEASE.md |
+| WP-7.4 | When mapping Java helpers, keep commit message style that names Java API and version range (existing convention) | No process change; document it |
+
+---
+
+## Priority order for the next agents
+
+**Installable is met** (crates.io `partitionline` `0.1.0`, day1 four-file crates.io
+pins, post-cut parks on `origin/main`). Historical note: parks stayed off main
+until after that cut (**expected pre-Installable**; tip⊆parks was the pre-cut
+gate). Do **not** re-cut `0.1.0`. Do **not** tip→main docs thrash. Never lift
+Suite HOLD without signed Lab A.
+
+1. **Keep tip ≥ `main`** — after parks land, absorb `origin/main` onto the
+   civilization tip before new tip docs/scripts work (`git merge --ff-only
+   origin/main` on tip, or land via this honesty branch). `check-merge-ready`
+   fails closed when tip lags main.
+2. **Post-Installable re-entry** — Trusted Publishing UI (owner) + parks probe +
+   full bars anytime:
+   `bash scripts/owner-post-installable-handoff.sh`
+   (`LAND_PARKS=1` only if `check-parks-on-main` goes PARTIAL after a tip move /
+   parks refresh; day1 four-file surface preserved via `preserve-day1-docs`).
+3. **Tip Verifiable honesty** — unsigned live-broker evidence via
+   `bash scripts/ci-tip-verifiable-broker.sh` (soft-skips/`PARTIAL` must not
+   greenwash; soft latency miss is `PARTIAL`, not `ok`). Suite HOLD stays until
+   signed Lab A.
+4. **WP-5 / WP-6** as evidence and adopter demand dictate (signed Suite HOLD
+   external; schema companion after core publish).
+5. **WP-7** in parallel whenever touching `.github` / CONTRIBUTING. Future cuts
+   need `CARGO_REGISTRY_TOKEN` (or Trusted Publishing) — missing token is no
+   longer an Installable blocker while `0.1.0` remains live.
+
+## Progress
+
+| Package | Status | Notes |
+|---|---|---|
+| WP-0 Public crate identity | **Installable met** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` + packed-crate consumer + rustdoc/`ci-docs` smoke green (**zero** unresolved intra-doc links; crate `#![deny(rustdoc::broken_intra_doc_links)]`); docs.rs metadata; release workflow supports tag push and `workflow_dispatch` (OIDC Trusted Publishing preferred, `CARGO_REGISTRY_TOKEN` fallback for first cut) (YAML Release-notes step + job `if` + complementary `ghost-noop` so branch pushes do not empty-fail `release`; `scripts/check-workflows.sh` in branch-lite/publish-ready); `owner-publish` / `day1-after-publish` / `check-installable` ready; `scripts/check-merge-ready.sh` (merge-tree conflict probe + owner-cut-release next steps); `scripts/owner-cut-release.sh` one-shot cut on main; Actions hygiene via `scripts/check-actions-hygiene.sh` (RC-release zombies + stale tip CI); Installable probes via `scripts/lib/crates-io.sh` (API + sparse index; User-Agent required — CDN 403 without it). Share-assignment + KIP-848 join fix merged here for one path to `main`. **0.5 done — crates.io `0.1.0` published 2026-09-05; day1 + parks on main. Historical cut needed `CARGO_REGISTRY_TOKEN` scope `publish-new` (publish-update alone cannot create a crate). Token now only for future cuts / Actions** (one-shot after token: `scripts/owner-finish-installable.sh` (includes `verify-crates-io-consumer` adopter compile proof) — FF-merge + local publish bypasses starved Actions; if token is Actions-only: `first-publish.yml` workflow_dispatch `confirm=publish`) (crate live on crates.io — no longer 404). Packed + crates.io consumer mains share `scripts/lib/adopter-consumer-main.sh`. **Local civilization-check** (2026-09-04) including broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER + OIDC + mTLS + local `ci-branch-lite` mirror. **`main` Actions Verifiable green** through Installable preflight: run `33850540606` on `6431785` (Kafka 3.9.1 + 4.1.0 broker-smoke + latency-gate). `scripts/check-installable-preflight.sh` → **`ALREADY_INSTALLABLE`** (post-cut; historical pre-cut gate was `READY_EXCEPT_TOKEN`). Tip may stay ahead of `main` on docs/scripts while the token is missing — `owner-sync-main` refuses docs-only tip→main thrash (`ALLOW_DOCS_THRASH=1` override); `owner-finish-installable` FFs once at cut. Tip still has stale **queued** runs from before tip auto-CI was disabled (agents 403 on cancel) — owner: `scripts/owner-cancel-stuck-runs.sh` / `scripts/owner-unblock.sh`. Tip Verifiable proxy: `scripts/ci-branch-lite.sh` (now includes `ci-tip-verifiable-broker` live broker/auth/integrity when a broker can be ensured; soft-skips honestly otherwise; **`ok` only on full pass — mid-chain soft-skips print `PARTIAL`; capable envs auto-`REQUIRE_BROKER`/`REQUIRE_AUTH` unless `TIP_VERIFIABLE_SOFT=1`; soft-latency miss quiet-rechecks by default (`TIP_VERIFIABLE_QUIET_RETRIES`)**) (no auto CI on `dev/**` push). Full matrix on PR/`main`/`workflow_dispatch`. `scripts/check-cut-path.sh` (incl. `PRE_PUBLISH=1` bars); tip `ci-branch-lite` also runs `cargo publish --dry-run` + Trusted Publishing shape + crate-metadata + Installable preflight + merge-ready + `DRY_RUN=1` `owner-dispatch-first-publish` (proves `first-publish.yml` stays workflow_dispatch-visible on main) + `DRY_RUN=1` `day1-after-publish` + `check-actions-hygiene` + `DRY_RUN=1` `owner-enable-trusted-publishing` + `scripts/check-trusted-publishing-ready.sh` / `scripts/owner-enable-trusted-publishing.sh` rehearse preflight/tip-delta/parks/OIDC workflow shape before cut ; `owner-finish-installable` chains the Trusted Publishing helper after Installable (live tip moves with docs/scripts; soft-latency quiet retry on tip; keeps docs/scripts-only vs main; tracking [#86](https://github.com/mingley/partitionline/issues/86) — token needs **publish-new**, cut via `owner-finish-installable`). `scripts/check-registry-token.sh` probes publish-new auth via structured empty-tarball PUT (not `/api/v1/me`, not empty body — those false-fail or false-accept); wired into preflight/cut-path/finish/owner-status/bars. **Native Verifiable recheck (2026-09-04, historical tip `86412be`):** broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈126–203µs (under-load miss ~0.9–1.1ms) — unsigned; not a Suite HOLD lift. **Native Verifiable recheck (2026-09-04, tip `929ef57`):** native Kafka 4.1 broker-smoke (kip848+share) green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency gate quiet p99≈711µs (pass vs 750µs relative limit) after an under-agent-load miss at ≈867µs — still **unsigned**, still not a Suite HOLD lift. **Native auth recheck (2026-09-04, tip `929ef57`):** `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green — unsigned; not a Suite HOLD lift. **Native Verifiable recheck (2026-09-04, tip `97d69d6`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency gate quiet p99≈207µs (pass vs 750µs) after under-agent-load miss ≈1049µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift. **Native Verifiable recheck (2026-09-04, tip `d296897`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency gate quiet p99≈220µs (pass vs 750µs) after under-agent-load miss ≈837µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift. **Native Verifiable recheck (2026-09-04, tip `3a1b00a`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈147–161µs (pass vs 750µs) after under-agent-load miss ≈1007µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift. `ci-broker-smoke` now auto-starts native Kafka when Docker overlay fails in nested VMs. **Post-cut parks (landed on `main`; refresh after tip moves — not a re-cut):** (1) `dev/verifiable-auth-integrity-fuzz-b686` — Actions `auth-smoke` (`REQUIRE_AUTH=1`) + `integrity-smoke` (`REQUIRE_INTEGRITY=1`) + ConsumerGroupHeartbeat fuzz; (2) `dev/scram-crypto-bumps-b686` — SCRAM crypto + flate2 bumps (covers Dependabot flate2/hmac/pbkdf2/sha2); (3) `dev/lz4-flex-bump-b686` — `lz4_flex` 0.11→0.14 (covers Dependabot #87; lib+integration tests green); (4) `dev/actions-checkout-bump-b686` — `actions/checkout` → v7 (covers Dependabot #92). Parks refresh after each tip move; last stack green via check-post-cut-parks-stack (tip is ancestor of all four; Verifiable⊆SCRAM⊆lz4⊆checkout chained); `check-post-cut-parks-stack` **gates tip-is-ancestor + park chain** + stacked DRY_RUN merge + `cargo test --lib` + parked `publish-new` (tip first-publish must match main; may already document publish-new); `scripts/refresh-post-cut-parks.sh` refreshes tip→Verifiable→SCRAM→lz4→checkout (do not merge tip into each park in parallel); `check-cut-path` rehearses refresh DRY_RUN; real land also runs post-land `cargo test --lib`; land after crates.io `0.1.0` via `owner-finish-installable` (`MERGE_POST_CUT_PARKS=1` / `MERGE_PARKED_VERIFIABLE=1` default) / `bash scripts/owner-land-post-cut-parks.sh` so tip stays docs/scripts-only for one-shot cut. |
+| WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.1.0`; Docker 4.x enables share coordinator + upgrades `share.version=1`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos/kip848/share** (`REQUIRE_SHARE=1` / `REQUIRE_KIP848=1` on 4.x). **Rechecked 2026-09-04** (native Kafka 4.1 via `ci-native-kafka`; `SKIP_DOCKER=1` broker-smoke with kip848+share ok; auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed ok; later same-day recheck of broker+auth+integrity+latency gates still green, including a further same-day native pass with latency p99≈75–77µs; **still later same-day** `REQUIRE_AUTH=1` auth-smoke full green again + native broker-smoke kip848/share green + latency p99≈663–865µs / 742µs under agent load, still under relative slack). **Actions Verifiable green** same day: run `33848465892` on `7051625` — latency-gate + broker-smoke Kafka **3.9.1** + **4.1.0** all success (3.9 optional kip848 soft-skips truncated `Protocol` bodies; 4.x still requires kip848/share). **KIP-848 join** sends empty `TopicPartitions` array (null rejected on Kafka 4.x); live `examples/kip848` + decode hardening for truncated error bodies. Wired into `ci-civilization-check.sh`. **Soft-skip honesty (2026-09-04):** optional kip848/share soft-skip only on Unsupported*/truncated-Protocol signals (panics/asserts/connection failures still fail); civilization-check treats unexpected auth/integrity failures as FAIL (only explicit `skipping` paths remain SKIP). |
+| WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer (Fetch/Produce/Metadata/records + **Group** Join/Sync/Heartbeat/OffsetCommit + **ShareFetch**). Mock TLS via `openssl` CLI (no `rcgen`/`time`); `RUSTSEC-2026-0009` ignore cleared. Auth smoke: SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER + OIDC + mTLS (`REQUIRE_AUTH=1` recheck 2026-09-04 still green, fail-closed bare-TLS + bare-SSL-vs-mTLS). Tip `ci-branch-lite` **runs** `fuzz_decode_smoke` (group/share/txn) while Actions starved. |
+| WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
+| WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
+| WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **HW + consumed == seeded**; combined `scripts/lab-a-integrity.sh` + `ci-integrity-smoke.sh` in civilization-check (unsigned). 2026-09-04 native recheck: integrity COUNT=2000 HW==acked+consumed==seeded; latency gate p99≈71–86µs (earlier ≈69µs) vs 500µs baseline (STATUS); later same-day under agent load ≈663–865µs / 742µs still under relative slack — unsigned only. Gate honesty: loud fail on down broker; integrity soft latency miss no longer hard-exits unless `REQUIRE_INTEGRITY=1`. Tip `67072a5` native recheck: integrity COUNT=2000; latency quiet p99≈150µs (under-load ≈380µs) — unsigned. Not a Suite HOLD lift. Signed Suite HOLD still external. |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (**unblocked** by crates.io `0.1.0`; companion stays out of core until survey demand). Packed-crate downstream consumer gate in civilization/publish-ready. Prefer registry pin `partitionline = "0.1"`; git **`v0.1.0-rc.6`** is historical (pin gate still allows docs/scripts tip drift). Zstd stays **non-default** per `docs/zstd-spike.md` (opt-in C only if #85 demands; no default `ruzstd` claim). |
+| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`; `scripts/audit-civilization-bars.sh` (six-bar evidence audit). Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
+
+## Success criteria (civilization bar)
+
+The repo is “useful for civilization” when all of the following are true:
+
+1. **Installable:** crates.io release; MSRV CI green.
+2. **Verifiable:** mock tests + real Kafka broker CI + fuzz smoke.
+3. **Operable:** guide + rdkafka migration doc + metrics/tracing path.
+4. **Honest:** benchmarks labeled; no false Suite HOLD lifts.
+5. **Independent:** still no C Kafka/compression/SASL in default features.
+6. **Stewarded:** changelog, release policy, issue templates, this plan updated.
+
+Until then, treat every PR as moving one checkbox above — not as protocol
+tourism.
+
+## References
+
+- `README.md` — user surface and numbers
+- `docs/gaps.md` — capability inventory vs librdkafka
+- `docs/design.md` — wire and client behavior
+- `docs/benchmark.md` / `docs/STATUS.md` — performance claims and HOLD
+- `CONTRIBUTING.md` — fmt / clippy / test / no-C rule

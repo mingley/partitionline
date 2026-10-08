@@ -1,0 +1,1 @@
+Fix UpdateFeatures operation budget, Java name validation and nonnullable wire fields

@@ -1,0 +1,7 @@
+{
+  "api": "RemoveRaftVoter", "api_key": 81, "version": 0,
+  "apache_version": "4.1.0", "upstream_commit": "13f70256db3c994c590e5d262a7cc50b9e973204",
+  "jar_origin": "apache/kafka:4.1.0 distribution", "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+  "generator": "tests/conformance/java/RemoveRaftVoterFixtures.java",
+  "request_sha256": "22b394da44117c5a5574b55a0221b319a9ce044ba24572c37a5aac5e331febe2", "response_sha256": "5f819e08a1e93a0f013ebe799f6be0cae366b6f5cdbc8e0541d5dae27b3f36cd"
+}

@@ -1,0 +1,5 @@
+{
+  "source_commit": "0cf6c13fd19ac2488603349f3c824e2ceab22c67",
+  "binary_sha256": "aa133b365e2a6e102d42eacadc24e32d558946357bb87f16c502ee5dd07f2e8a",
+  "qualification": "Three genuine SDKs reject ten nonnullable field mutations each; before-fix Rust accepts the bodies and each test exits 101."
+}

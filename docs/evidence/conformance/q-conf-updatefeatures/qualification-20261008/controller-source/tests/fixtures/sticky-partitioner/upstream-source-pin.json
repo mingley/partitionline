@@ -1,0 +1,41 @@
+{
+  "captured_at": "2026-10-03T12:07:09.477359+00:00",
+  "sources": [
+    {
+      "upstream_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/producer/internals/BuiltInPartitioner.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/producer/internals/BuiltInPartitioner.java",
+      "retained_file": "BuiltInPartitioner.java",
+      "bytes": 17173,
+      "sha256": "7f9af016cad8b414be9da32abe151877ffba2fbbac8981ce57e884ab8c1b6d1a",
+      "status": "fetched"
+    },
+    {
+      "upstream_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_path": "clients/src/test/java/org/apache/kafka/clients/producer/internals/BuiltInPartitionerTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/test/java/org/apache/kafka/clients/producer/internals/BuiltInPartitionerTest.java",
+      "retained_file": "BuiltInPartitionerTest.java",
+      "bytes": 10061,
+      "sha256": "2153752e226a3d4e5cd290bb979be85f5425565a24ccf1c5053c9bc97e4b7eb6",
+      "status": "fetched"
+    },
+    {
+      "upstream_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/producer/internals/RecordAccumulator.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/producer/internals/RecordAccumulator.java",
+      "retained_file": "RecordAccumulator.java",
+      "bytes": 63071,
+      "sha256": "18dad54c2a6f58b868c2e3b21b2d021bee02fb001fa8d1fc0c98059bd1086a7c",
+      "status": "fetched"
+    },
+    {
+      "upstream_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_path": "clients/src/main/java/org/apache/kafka/clients/producer/ProducerConfig.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/producer/ProducerConfig.java",
+      "retained_file": "ProducerConfig.java",
+      "bytes": 53518,
+      "sha256": "464068167673e9c37f65083d55e72c0f58ddcffd66fa9f10a0ec5cfb2172c8b0",
+      "status": "fetched"
+    }
+  ]
+}

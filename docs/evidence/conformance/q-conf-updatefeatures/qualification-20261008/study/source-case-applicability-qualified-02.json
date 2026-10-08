@@ -1,0 +1,902 @@
+{
+  "task": "KL01-28",
+  "initial_registered_case_ids": [
+    "current-public-api-057-v0-4-1-2",
+    "current-public-api-057-v1-4-1-2",
+    "current-public-api-057-v2-4-1-2",
+    "current-public-api-057-v0-4-2-1",
+    "current-public-api-057-v1-4-2-1",
+    "current-public-api-057-v2-4-2-1",
+    "current-public-api-057-v0-4-3-1",
+    "current-public-api-057-v1-4-3-1",
+    "current-public-api-057-v2-4-3-1"
+  ],
+  "source_methods": 36,
+  "parameter_invocations": 48,
+  "declared_added_wire_bodies_per_SDK": 12,
+  "SDKs": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "additional_finite_cases": [
+    "absolute 250 ms deadline with NOT_CONTROLLER then delayed success",
+    "post-timeout recovery on the same Admin instance",
+    "empty v1 success results",
+    "per-feature NOT_CONTROLLER without retry",
+    "ten nonnullable compact-field mutations per SDK",
+    "seven feature-name character cases and exact empty/mixed source arguments"
+  ],
+  "historical_peer_applicability": "The nine starting API57 cells name only 4.1.2, 4.2.1, and 4.3.1. Existing global 3.9.1/4.1.0 rows are preserved and are not promoted by this card.",
+  "legacy_projection": "Current actual Java public Admin fails with UNSUPPORTED_VERSION=35 before API57 dispatch when only v0 is advertised. Rust intentionally supports the v0 AllowDowngrade representation. Its public request and response are independently parsed/constructed by each actual SDK. No Java public v0 success is claimed.",
+  "rows": [
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "source_sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "source_line": 38,
+      "method": "testGetErrorResponse",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-factory-response.bin",
+      "applicability": "Factory projection: UNKNOWN_SERVER_ERROR, zero feature results, one error count. Original request literals are preserved; the source factory discards their feature fields.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "source_sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "source_line": 64,
+      "method": "testUpdateFeaturesV0",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0-source-request.bin",
+      "applicability": "Exact foo=1/SAFE_DOWNGRADE and bar=3/UPGRADE after v0 AllowDowngrade decoding.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "source_sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "source_line": 93,
+      "method": "testUpdateFeaturesV1",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-request.bin",
+      "applicability": "Despite its method name the source uses HIGHEST_SUPPORTED_VERSION=2; each actual SDK confirms lowest=0/highest=2.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesRequestTest.java",
+      "source_sha256": "61a833bcaf030095dd639adc64f24e4aa73d9278e2c7aa1ff1a6f5bb99d032fc",
+      "source_line": 124,
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "parameter": null,
+      "actual_lane": "run-update-features.py: ConformanceUpdateFeatures.publicValues",
+      "applicability": "The actual SDK rejects its obsolete AllowDowngrade field on v1/v2. Rust allow_downgrade is a semantic compatibility field derived from UpgradeType, not the SDK obsolete raw wire field. v0 boolean and v1/v2 UpgradeType representations are independently decoded.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 35,
+      "method": "testErrorCounts",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1-source-counts-response.bin",
+      "applicability": "Exact 42:1, -1:2, 96:1 from foo/bar/baz; v2 wire omits Results and retains only top-level 42:1. The SDK source assertion is also run on the original in-memory data before serialization.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 0,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 1,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 2,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8765,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8765,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8773,
+      "method": "testUpdateFeaturesTopLevelError",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: top-error v1/v2",
+      "applicability": "Both callers return INVALID_REQUEST=42 for the two source feature updates. Future exceptions versus typed Rust error are projected to the original broker error code.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8780,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8780,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8814,
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -2",
+      "applicability": "Exact empty update map/list is rejected locally by both public callers without an API57 dispatch.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8824,
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -3",
+      "applicability": "Exact mixed feature=2 and empty-name=2 map/list is rejected locally by both public callers without an API57 dispatch; seven additional character cases also execute.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.1.2",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.1.2/KafkaAdminClientTest.java",
+      "source_sha256": "18e636947797944892d3040bd3ee65f7bc4192d8a20a940e6a4e1f9c1cdb3327",
+      "source_line": 8836,
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "parameter": null,
+      "actual_lane": "ConformanceUpdateFeatures.publicValues and actual_sdk_update_features_source_cases",
+      "applicability": "Actual SDK FeatureUpdate(0,UPGRADE) rejects construction; Rust value construction is infallible, and encoding rejects before changing any bytes on all three versions. This API-layer projection is explicit.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 38,
+      "method": "testGetErrorResponse",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-factory-response.bin",
+      "applicability": "Factory projection: UNKNOWN_SERVER_ERROR, zero feature results, one error count. Original request literals are preserved; the source factory discards their feature fields.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 64,
+      "method": "testUpdateFeaturesV0",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0-source-request.bin",
+      "applicability": "Exact foo=1/SAFE_DOWNGRADE and bar=3/UPGRADE after v0 AllowDowngrade decoding.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 93,
+      "method": "testUpdateFeaturesV1",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-request.bin",
+      "applicability": "Despite its method name the source uses HIGHEST_SUPPORTED_VERSION=2; each actual SDK confirms lowest=0/highest=2.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 124,
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "parameter": null,
+      "actual_lane": "run-update-features.py: ConformanceUpdateFeatures.publicValues",
+      "applicability": "The actual SDK rejects its obsolete AllowDowngrade field on v1/v2. Rust allow_downgrade is a semantic compatibility field derived from UpgradeType, not the SDK obsolete raw wire field. v0 boolean and v1/v2 UpgradeType representations are independently decoded.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 35,
+      "method": "testErrorCounts",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1-source-counts-response.bin",
+      "applicability": "Exact 42:1, -1:2, 96:1 from foo/bar/baz; v2 wire omits Results and retains only top-level 42:1. The SDK source assertion is also run on the original in-memory data before serialization.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 0,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 1,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 2,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8795,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8795,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8803,
+      "method": "testUpdateFeaturesTopLevelError",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: top-error v1/v2",
+      "applicability": "Both callers return INVALID_REQUEST=42 for the two source feature updates. Future exceptions versus typed Rust error are projected to the original broker error code.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8810,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8810,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8844,
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -2",
+      "applicability": "Exact empty update map/list is rejected locally by both public callers without an API57 dispatch.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8854,
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -3",
+      "applicability": "Exact mixed feature=2 and empty-name=2 map/list is rejected locally by both public callers without an API57 dispatch; seven additional character cases also execute.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.2.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.2.1/KafkaAdminClientTest.java",
+      "source_sha256": "132db82bafa5a828142b082be63c33cf6f66e07618285eaef2d780dde02f4fdc",
+      "source_line": 8866,
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "parameter": null,
+      "actual_lane": "ConformanceUpdateFeatures.publicValues and actual_sdk_update_features_source_cases",
+      "applicability": "Actual SDK FeatureUpdate(0,UPGRADE) rejects construction; Rust value construction is infallible, and encoding rejects before changing any bytes on all three versions. This API-layer projection is explicit.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 38,
+      "method": "testGetErrorResponse",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-factory-response.bin",
+      "applicability": "Factory projection: UNKNOWN_SERVER_ERROR, zero feature results, one error count. Original request literals are preserved; the source factory discards their feature fields.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 64,
+      "method": "testUpdateFeaturesV0",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0-source-request.bin",
+      "applicability": "Exact foo=1/SAFE_DOWNGRADE and bar=3/UPGRADE after v0 AllowDowngrade decoding.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 93,
+      "method": "testUpdateFeaturesV1",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v2-source-request.bin",
+      "applicability": "Despite its method name the source uses HIGHEST_SUPPORTED_VERSION=2; each actual SDK confirms lowest=0/highest=2.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesRequestTest.java",
+      "source_sha256": "5dc433f29069e4c50a8b9f69698de5f5cf6accd42cd0259f2ded7714d1de5478",
+      "source_line": 124,
+      "method": "testUpdateFeaturesV1OldBoolean",
+      "parameter": null,
+      "actual_lane": "run-update-features.py: ConformanceUpdateFeatures.publicValues",
+      "applicability": "The actual SDK rejects its obsolete AllowDowngrade field on v1/v2. Rust allow_downgrade is a semantic compatibility field derived from UpgradeType, not the SDK obsolete raw wire field. v0 boolean and v1/v2 UpgradeType representations are independently decoded.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 35,
+      "method": "testErrorCounts",
+      "parameter": null,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1-source-counts-response.bin",
+      "applicability": "Exact 42:1, -1:2, 96:1 from foo/bar/baz; v2 wire omits Results and retains only top-level 42:1. The SDK source assertion is also run on the original in-memory data before serialization.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 0,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 1,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/UpdateFeaturesResponseTest.java",
+      "source_sha256": "8fa3648faa42929bfe87b8b402a7f9ffd97b8750e6f53dd44f65b46b3bd62c8e",
+      "source_line": 68,
+      "method": "testSerialization",
+      "parameter": 2,
+      "actual_lane": "actual_sdk_update_features_source_cases: v0/v1/v2-source-success/error-response.bin",
+      "applicability": "Actual API57 SDK valid-version range is 0..2; NONE retains two feature names only on v0/v1; INVALID_UPDATE_VERSION=95 retains no rows.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8946,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8946,
+      "method": "testUpdateFeaturesDuringSuccess",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: success and empty-success",
+      "applicability": "Both physical versions use source features test_feature_1=2/UPGRADE and test_feature_2=3/SAFE_DOWNGRADE; v2 success rows are synthesized. The original Java source version parameter does not configure its helper; physical peer versions are explicitly capped here.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8954,
+      "method": "testUpdateFeaturesTopLevelError",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: top-error v1/v2",
+      "applicability": "Both callers return INVALID_REQUEST=42 for the two source feature updates. Future exceptions versus typed Rust error are projected to the original broker error code.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8961,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 1,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8961,
+      "method": "testUpdateFeaturesHandleNotControllerException",
+      "parameter": 2,
+      "actual_lane": "qualify-controller-03.py: retry v1/v2",
+      "applicability": "Both callers issue API57 to physical controller 0, refresh metadata, and issue API57 to controller 1 with the exact two source updates.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 8995,
+      "method": "testUpdateFeaturesShouldFailRequestForEmptyUpdates",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -2",
+      "applicability": "Exact empty update map/list is rejected locally by both public callers without an API57 dispatch.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 9004,
+      "method": "testUpdateFeaturesShouldFailRequestForInvalidFeatureName",
+      "parameter": null,
+      "actual_lane": "qualify-controller-03.py: names row -3",
+      "applicability": "Exact mixed feature=2 and empty-name=2 map/list is rejected locally by both public callers without an API57 dispatch; seven additional character cases also execute.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    },
+    {
+      "tag": "4.3.1",
+      "file": "/workspace/work/open-cards-20261006/update-features-20261007/upstream/4.3.1/KafkaAdminClientTest.java",
+      "source_sha256": "9d114d534d68f626ed234ba85315cd7a64f98c612d1f0f1d31386e34a090e920",
+      "source_line": 9015,
+      "method": "testUpdateFeaturesShouldFailRequestInClientWhenDowngradeFlagIsNotSetDuringDeletion",
+      "parameter": null,
+      "actual_lane": "ConformanceUpdateFeatures.publicValues and actual_sdk_update_features_source_cases",
+      "applicability": "Actual SDK FeatureUpdate(0,UPGRADE) rejects construction; Rust value construction is infallible, and encoding rejects before changing any bytes on all three versions. This API-layer projection is explicit.",
+      "qualification": "independently_passed_declared_projection_default_and_all",
+      "runtime_receipts": [
+        "qualify-controller-default-03/qualification.json",
+        "qualify-controller-all-01/qualification.json",
+        "compile-verified-01/qualification.json",
+        "native-default-01/qualification/summary.json",
+        "native-all-01/qualification/summary.json"
+      ]
+    }
+  ],
+  "qualification_source": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+  "controller_compilation_source": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+  "source_identity": "core-and-caller-source-identity-01.json",
+  "scope": "Finite source-family applicability; no broader Kafka test suite or production qualification."
+}

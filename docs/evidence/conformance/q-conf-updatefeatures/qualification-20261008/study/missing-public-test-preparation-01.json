@@ -1,0 +1,4 @@
+{
+  "failure": "Fixed source sparse checkout omitted full_surface.rs. No public test ran in compile-fixed-02.",
+  "correction": "Add committed full_surface.rs to checkout and create new source binding of all 1450 populated files."
+}

@@ -1,0 +1,166 @@
+[
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.14.rcgu.o",
+    "bytes": 3134544,
+    "sha256": "b2790c998715b05036f3d1fc43c6402ef93b7e535cb9f165ca0ba1e1c4ad442d",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.13.rcgu.o",
+    "bytes": 3515096,
+    "sha256": "cbeffbb9595bb2f3b0fe5d0f4c963ccbd3a55d7fcc7e3a4844e6edeef953dcde",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.6nnisp09al94nn5ue3jffquxz.rcgu.o",
+    "bytes": 2528,
+    "sha256": "5ff536ffb46211d568e7812552a51d0f2bdc43e6fe3e3b6225640c583146d865",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.11.rcgu.o",
+    "bytes": 3293672,
+    "sha256": "bef8575cc9b30ec19a05b6f645cf5c552be5587c38c355acb237081efada77f0",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.03.rcgu.o",
+    "bytes": 3545824,
+    "sha256": "6d72014b2108dcadfff93e9d026db2486c3edda638023038d3e0f3b007880867",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.04.rcgu.o",
+    "bytes": 3283120,
+    "sha256": "34391d627c47e7d22bb2416472a5f7d2fc1bc24e07b647021ea72dfb4b9a6695",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.08.rcgu.o",
+    "bytes": 4009768,
+    "sha256": "2bebcc6ecc7e5bc7cc64480e0dac47627ee238d20933d659e1a4466e77cd1974",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.06.rcgu.o",
+    "bytes": 2901032,
+    "sha256": "ac1bb19044ec9f0ea4991d3ed192e673a5c9a046d87ee356dfaa64b3b0c0505b",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.09.rcgu.o",
+    "bytes": 1872208,
+    "sha256": "766f670e2005edfde8d350fdcabbda31ceb0f68f0236b42d504a31df5a510af1",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.05.rcgu.o",
+    "bytes": 2777536,
+    "sha256": "04ccb41f99f9c7551a792ecc9bf4698c51fa73d6fc13b42112d897f575756840",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.00.rcgu.o",
+    "bytes": 5452632,
+    "sha256": "88af4ccf479d2691ca4d88c89e646434a7256312d8decddcae95ab6a42fd8aeb",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.15.rcgu.o",
+    "bytes": 3121936,
+    "sha256": "8fc50d47e7f5c79f895ab1d5ad01d8cc9193a05c687bbe69f705a699488fa5d0",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.01.rcgu.o",
+    "bytes": 3267496,
+    "sha256": "86fa743ef5eea5ad3d151fce531735dcfaec519fdf7616c064b6557555f5daf0",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.tmpb9a48d5",
+    "bytes": 31433000,
+    "sha256": "eef7d5282ac29351f1dbb05f8dd34c57a1aaca5f469c3804e2ca7c4a00f6133d",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.10.rcgu.o",
+    "bytes": 3020424,
+    "sha256": "6fd72de5b28d9d3bac851ce154d13e02183f31c296152f2f382bcbc157c86357",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.12.rcgu.o",
+    "bytes": 6218744,
+    "sha256": "b3b1e5bc7beb739ee63ab42fcecc0adc7d95d8801d1c22567e827e08f1c682f7",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.07.rcgu.o",
+    "bytes": 1772304,
+    "sha256": "2261af210b6147bd681bf40cf8a2e414e02480dae303157499ecdedbc530efd8",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8.partitionline.27817cfe1cc95d4e-cgu.02.rcgu.o",
+    "bytes": 3234696,
+    "sha256": "90b1010e55438cf2fa3aaa78682f5d1b572e10c5e4419921965bf6a8220af76c",
+    "reason": "Unexecuted failed-link temporary/object; original compiler/process failure log retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/native-produce-runtime",
+    "bytes": 14078312,
+    "sha256": "71d158505cec567ab4285cadd8e3380956b767e93dade5d6fb893c13efc97bd2",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/native-produce-runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/deps/native_produce_runtime-f7fa2c46498988d0",
+    "bytes": 14078312,
+    "sha256": "71d158505cec567ab4285cadd8e3380956b767e93dade5d6fb893c13efc97bd2",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/native-produce-runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/native-latency-runtime",
+    "bytes": 16589080,
+    "sha256": "01a6108ca41f1845e6d931e3cd760fef7176a68a51e692d300823a606e6af779",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/native-latency-runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/deps/native_latency_runtime-fef51a46ed6b9822",
+    "bytes": 16589080,
+    "sha256": "01a6108ca41f1845e6d931e3cd760fef7176a68a51e692d300823a606e6af779",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/native-latency-runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/nb-serve",
+    "bytes": 1322320,
+    "sha256": "9894f7150e833fd1102baa1d6cf67ddac55bc4954b62c9435cb9e752be3b98a1",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/nb-serve",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/deps/nb_serve-22e089350ed2c270",
+    "bytes": 1322320,
+    "sha256": "9894f7150e833fd1102baa1d6cf67ddac55bc4954b62c9435cb9e752be3b98a1",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/nb-serve",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/runtime",
+    "bytes": 17826520,
+    "sha256": "9280e4f935599d62a71f506dd24b93d61630381ae50ca30d6289bbc97ffc6843",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  },
+  {
+    "path": "/workspace/work/target-null-result-schema/debug/deps/runtime-6b5b390a489308f4",
+    "bytes": 17826520,
+    "sha256": "9280e4f935599d62a71f506dd24b93d61630381ae50ca30d6289bbc97ffc6843",
+    "retained_identical": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/runtime",
+    "reason": "Inactive generated executable duplicate; qualified immutable copy retained"
+  }
+]

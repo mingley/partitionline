@@ -1,0 +1,1 @@
+Preserve UpdateFeatures feature errors and synthesize empty success responses

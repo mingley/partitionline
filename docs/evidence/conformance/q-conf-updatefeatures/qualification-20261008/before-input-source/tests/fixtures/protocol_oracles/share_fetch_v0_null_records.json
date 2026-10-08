@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-fetch-v0-null-records",
+  "api": "ShareFetch",
+  "api_key": 78,
+  "api_version": 0,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "apache/kafka ShareFetchResponse.json nullableVersions 0+ (Kafka 4.0)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareFetch v0: Records compact null is legal (nullableVersions 0+) and decodes as empty; final-epoch empty-topics request.",
+  "request": {
+    "file": "share_fetch_v0_null_records_request.bin",
+    "size_bytes": 34,
+    "sha256": "e849ec119db928f1b67c27cb595b2d6b5feb5b7cdc9e9e425a22330b6bcd1be1",
+    "hex": "0e73686172652d76302d6e756c6c01ffffffff00000000000000017fffffff010100"
+  },
+  "response": {
+    "file": "share_fetch_v0_null_records_response.bin",
+    "size_bytes": 50,
+    "sha256": "17096b84caf648ee89f1981c05ce10e52815f76b7fc509f829233b2c7ccaa2b9",
+    "hex": "0000000000000002202122232425262728292a2b2c2d2e2f0200000000000000000000000000000000000000000100000100"
+  }
+}

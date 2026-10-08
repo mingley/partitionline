@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-qualified-9eb1bb/benchmarks/runtime/tools/parent-bound-exec.py",
+    "898082",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-final-default-01/4.2.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "ConformanceUpdateFeaturesPeer",
+    "client",
+    "127.0.0.1:33231",
+    "retry",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/qualify-controller-default-03/4.2.1-v1-retry/java.json"
+  ],
+  "started": 1791422408.3448787,
+  "parent_waited": true,
+  "pid": 901579,
+  "exit_code": 0,
+  "ended": 1791422409.2221723,
+  "artifacts": {
+    "Java-public.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Java-public.stderr": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  }
+}

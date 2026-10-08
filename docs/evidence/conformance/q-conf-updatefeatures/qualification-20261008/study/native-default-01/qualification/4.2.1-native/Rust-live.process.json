@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "915869",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-verified-01/default/integration.elf",
+    "native_public_update_features_history",
+    "--ignored",
+    "--exact",
+    "--nocapture"
+  ],
+  "started": 1791422977.8941755,
+  "parent_waited": true,
+  "pid": 918524,
+  "exit_code": 0,
+  "ended": 1791422977.97671,
+  "artifacts": {
+    "Rust-live.stdout": "c3f2442e2e0783b84ea606b59dc6b1459f0b0ad99bee04be583bc4cac9140de6",
+    "Rust-live.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "task": "KL01-28",
+  "source": "Working integration after independently retained source qualification; no new Rust compilation claimed.",
+  "registry_tests": {
+    "first_attempt": "53 tests, 2 stale expectations failed; original log retained",
+    "corrected_attempt": "53 tests passed"
+  },
+  "backlog_gate_exit_code": 0,
+  "task_DAG_acyclic": true,
+  "task_counts": {
+    "done": 213,
+    "in_progress": 10,
+    "pending": 119
+  },
+  "required_cases": 182,
+  "independent_cases": 75,
+  "unqualified_cases": 107,
+  "core_and_full_complete": false,
+  "case_denominators_preserved": true,
+  "archived_file_SHA_checks_passed": true
+}

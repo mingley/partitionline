@@ -1,0 +1,1 @@
+Registry closure checks passed: 53 tests, the backlog gate, and the 342-card dependency graph. The first two stale registry-test expectations are retained. The nine API57 cells were qualified; the required-case denominator remains 182. Core and full gates remain incomplete. The existing KL10-06 dependency override is unchanged.

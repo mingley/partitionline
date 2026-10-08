@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "scope": "reference controls only; actual SDK proof pending",
+  "cases": [
+    {
+      "name": "schema-tv-minus128",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-minus128.request.bin",
+          "sha256": "7c320af983fd63046eb0e3c7654da2b897b8795755970f8da474be574f5cb44c",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-minus128.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": -128
+    },
+    {
+      "name": "schema-tv-minus1",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-minus1.request.bin",
+          "sha256": "76ed4450e477abd6fae8c565ced2c053a8434fb6002e865e3cb60168ddf36ed8",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-minus1.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": -1
+    },
+    {
+      "name": "schema-tv-0",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-0.request.bin",
+          "sha256": "38e1b4293d82cc6ed71ce86ec246edd7fc176573e2609b2d86a0045304900c51",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-0.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": 0
+    },
+    {
+      "name": "schema-tv-1",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-1.request.bin",
+          "sha256": "d6a94f339a6755142d8dd3b43dff67ef6d9e3e328df10713a3f5b79fdf7cece0",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-1.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": 1
+    },
+    {
+      "name": "schema-tv-2",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-2.request.bin",
+          "sha256": "0b4053c98a8f2a022d2f7e3aaeca9baa110405c424534541c3bbdbbd9fa00b40",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-2.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": 2
+    },
+    {
+      "name": "schema-tv-127",
+      "api_key": 27,
+      "api_version": 2,
+      "provenance": "handwritten exact official schema control; no actual Apache execution inferred",
+      "files": [
+        {
+          "file": "schema-tv-127.request.bin",
+          "sha256": "23eb4cd5caef15f336b4aa2048d008441c872846c6ce844916f57a033fb94ecc",
+          "bytes": 56
+        },
+        {
+          "file": "schema-tv-127.response.bin",
+          "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+          "bytes": 28
+        }
+      ],
+      "transaction_version": 127
+    }
+  ]
+}

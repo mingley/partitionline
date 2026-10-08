@@ -1,0 +1,1 @@
+Check two-feature UpdateFeatures success and controller migration histories

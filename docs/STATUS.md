@@ -22,10 +22,12 @@ and retries, with checks against all three current SDKs and native brokers. Admi
 capability checks use actual Apache SDK frames and public Java calls. Their
 scripted peers do not implement broker transaction or share state.
 
-UpdateFeatures v0 now rejects validation-only requests before encoding or dispatch.
-The finite wire corpus and seven native public cases match each of the three
-current Apache SDKs on default and all-feature builds. Controller migration and
-retry-deadline qualification for that API remain open.
+UpdateFeatures v0 rejects validation-only requests before encoding or dispatch.
+Default and all-feature checks cover the three current SDKs, native public
+callers, controller migration, operation deadlines and recovery, argument
+validation, malformed fields and per-feature errors. The source mapping records
+48 parameter invocations. Java public v0 is unsupported; Rust v0 wire support
+uses an independent SDK parser. See the [qualification record](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
 
 Current gaps include prepared transaction initialization. Fault recovery, session reauthentication and
 mixed-version behavior need further implementation or independent checks.
@@ -49,11 +51,11 @@ Earlier full-suite checks with Rust 1.99.0 passed 2,090 default-feature tests an
 2,102 all-feature tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
 tracing, zstd and combined-feature builds each compiled 24 documentation examples.
 These retained results refer to their cited source snapshots. Newer bounded
-UpdateFeatures checks pass on default and all-feature builds. They are local
-checks, not hosted CI results or replacements for the fault and soak tests.
+UpdateFeatures checks pass on default and all-feature builds. They are source-bound SDK and native-broker
+checks; fault and soak qualification remains separate.
 
-The task registry has 212 completed cards and 130 open cards. The client
-conformance registry has 66 independently qualified cases out of 182 required
+The task registry has 213 completed cards and 129 open cards. The client
+conformance registry has 75 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
 

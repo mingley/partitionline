@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "914465",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/Cargo.toml",
+    "--test",
+    "update_features_conformance",
+    "--",
+    "--nocapture"
+  ],
+  "started": 1791422785.0984466,
+  "parent_waited": true,
+  "pid": 914490,
+  "exit_code": 0,
+  "ended": 1791422798.38548,
+  "artifacts": {
+    "default-direct.stdout": "c5d5b54c49d542269285eef87aefb8dafbd5fdcd13582b38ed6e1c73d67856eb",
+    "default-direct.stderr": "6931dca2e410be89ceb05bd483065223488ca5baca229b9944c977ebb3e48e1f"
+  }
+}

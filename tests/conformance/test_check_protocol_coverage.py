@@ -570,6 +570,27 @@ class TestProtocolCoverageChecker(unittest.TestCase):
                     self.assertEqual({r["mode"] for r in release}, {"full", "empty", "null-empty", "error", "reroute", "disconnect", "mixed", "downgrade"})
                     self.assertEqual({r["driver"] for r in release}, {"java", "rust"})
                     self.assertTrue(all(r["actual_describe_frames"] > 0 and r["actual_GROUP_lookups"] > 0 for r in release))
+            elif row["id"].startswith("current-public-api-057-"):
+                self.assertEqual(row["disposition"], "independent_pass")
+                self.assertEqual(row["api_key"], 57)
+                self.assertEqual(row["original_registered_result"]["disposition"], "not_run")
+                self.assertEqual(row["original_registered_result"]["source_pin"], row["immutable_source_pin"])
+                for artifact in row["artifacts"]:
+                    self.assertTrue((REPO_ROOT / artifact).is_file())
+                qualification = json.loads((REPO_ROOT / row["evidence"]).read_text())
+                self.assertEqual(qualification["verification_source"], row["execution_source_commit"])
+                self.assertEqual(qualification["source_parameter_invocations"], 48)
+                self.assertEqual(qualification["controller_peer_cases"], 84)
+                for artifact in row["artifacts"][2:4]:
+                    result = json.loads((REPO_ROOT / artifact).read_text())
+                    self.assertEqual(result["source_commit"], row["controller_compilation_commit"])
+                    self.assertEqual((result["peer_cases"], result["ports_rebound"]), (42, 84))
+                    scenario = "legacy" if row["api_version"] == 0 else "success"
+                    cell = next(value for value in result["results"] if value["SDK"] == row["peer_pin"]
+                                and value["version"] == row["api_version"] and value["scenario"] == scenario)
+                    self.assertTrue(cell["owned_peer_closed"])
+                    self.assertEqual(cell["rust"]["error_code"], 0)
+                    self.assertEqual(cell["java"]["error_code"], 35 if row["api_version"] == 0 else 0)
             else:
                 self.assertIn(row["disposition"], ("not_run", "unsupported"))
                 self.assertNotIn("artifacts", row)
@@ -763,8 +784,8 @@ class TestConformanceBacklogModes(unittest.TestCase):
         self.assertEqual(backlog['summary']['exit_code'], 0)
         self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
         self.assertEqual(backlog['conformance_backlog']['required_cases'], 182)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 66)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 116)
+        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 75)
+        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 107)
         for mode in ('core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)

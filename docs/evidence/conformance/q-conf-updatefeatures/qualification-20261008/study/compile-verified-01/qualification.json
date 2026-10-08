@@ -1,0 +1,14 @@
+{
+  "source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+  "profiles": [
+    "default",
+    "all"
+  ],
+  "direct_safety_tests": 4,
+  "selected_existing_tests": 24,
+  "source_case_bodies": 72,
+  "malformed_rejections": 60,
+  "strict_clippy_passed": true,
+  "format_passed": true,
+  "product_and_existing_runtime_lanes_byte_identical_to_controller_source": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09"
+}

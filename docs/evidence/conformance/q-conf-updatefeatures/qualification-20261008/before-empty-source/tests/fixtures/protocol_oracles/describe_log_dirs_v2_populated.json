@@ -1,0 +1,7 @@
+{
+  "api": "DescribeLogDirs", "api_key": 35, "version": 2,
+  "apache_version": "4.3.1", "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+  "jar_origin": "apache/kafka:4.3.1 distribution", "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+  "generator": "tests/conformance/java/DescribeLogDirsFixtures.java",
+  "request_sha256": "2762fe436f0bf5fbae7bb70e6262756d3dbe9169c95d4214900f47af21822ccc", "response_sha256": "ecabf20bfca419172ab22b76dc488399db5b0a7f7faf6b804848a87ef16b81f3"
+}

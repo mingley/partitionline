@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/workspace/work/open-cards-20261006/update-features-retries-20261008/before-probes-publication-03.json.index",
+    "bytes": 18385538,
+    "sha256": "95242aa95c4aa2ff86d2cdaac6150d88644776070911fbb291d7defee6ea9576",
+    "reason": "Inactive alternate publication index; main index and all evidence retained"
+  },
+  {
+    "path": "/workspace/work/open-cards-20261006/update-features-retries-20261008/peer-source-publication-02.json.index",
+    "bytes": 18385538,
+    "sha256": "f7bbd9c672b6fe2b17a547002f589b71611d435ab57f9641b730184f59726946",
+    "reason": "Inactive alternate publication index; main index and all evidence retained"
+  },
+  {
+    "path": "/workspace/work/open-cards-20261006/update-features-retries-20261008/source-publication-01.json.index",
+    "bytes": 18385538,
+    "sha256": "8ba9e4d461b6526c488b4cfc33a32d2e760653987a909efd2a903a30db239511",
+    "reason": "Inactive alternate publication index; main index and all evidence retained"
+  },
+  {
+    "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/closure-publication-01.json.index",
+    "bytes": 18385418,
+    "sha256": "93b068d9c033d6ceed988d44c95f6353b4e3ab5e4e763dfb529b97f1ecfc5337",
+    "reason": "Inactive alternate publication index; main index and all evidence retained"
+  }
+]

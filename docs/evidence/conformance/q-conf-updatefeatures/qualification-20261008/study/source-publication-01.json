@@ -1,0 +1,13 @@
+{
+  "commit": "e2a75be1d9056bb32bb43ecf0ef62c1e01cc7a7e",
+  "parent": "8d950672aa48b1227878f75412e65f4adacd2312",
+  "branch": "codex/finish-open-cards-20261007",
+  "working_head": "8a50e8d18df40787d86eb714ff363b9d1e41ce43",
+  "working_index_unchanged": true,
+  "files_sha256": {
+    "tests/update_features_conformance.rs": "cf7e4ed09b750189019cac3cbeb7c52c121cf0c4aa055c77cb2876d092210601",
+    "tests/conformance/java/ConformanceUpdateFeaturesPeer.java": "25e885db29c0809ea5cb3f7c4331eafae687c413fa8a66377e78ea10de50c78f",
+    "docs/plan/tasks.json": "36278ebbc29dac21fbbe873242f80075e6a06e299bcd069096c86374a9639435"
+  },
+  "scope": "Review branch only; no merge or release"
+}

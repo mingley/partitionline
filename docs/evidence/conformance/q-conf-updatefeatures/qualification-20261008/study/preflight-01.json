@@ -1,0 +1,40 @@
+{
+  "task": "KL01-28",
+  "status": "uncompiled_preparation",
+  "sdk_tags": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "versions": [
+    1,
+    2
+  ],
+  "public_cases": [
+    "success",
+    "top-error",
+    "retry",
+    "deadline"
+  ],
+  "peer": "Two disposable physical TCP listeners; request parsing and response building use the actual pinned Apache SDK. This is a protocol peer, not a Kafka quorum or state-machine implementation.",
+  "deadline_case": {
+    "first_reply_not_controller_delay_ms": 110,
+    "second_reply_success_delay_ms": 200,
+    "caller_total_timeout_ms": 250,
+    "retry_backoff_ms": 10
+  },
+  "limits": {
+    "peer_seconds": 45,
+    "shutdown_seconds": 5,
+    "frame_bytes": 65536,
+    "frames": 96,
+    "connections": 24,
+    "handler_threads": 4,
+    "queued_handlers": 8,
+    "feature_updates_per_caller": 3
+  },
+  "java_sha256": "25e885db29c0809ea5cb3f7c4331eafae687c413fa8a66377e78ea10de50c78f",
+  "rust_probe_sha256": "cf7e4ed09b750189019cac3cbeb7c52c121cf0c4aa055c77cb2876d092210601",
+  "source_candidate": "update_features_inner passes a fresh timeout to each roundtrip; no overall timeout envelope covers metadata and reconnect.",
+  "qualification": false
+}

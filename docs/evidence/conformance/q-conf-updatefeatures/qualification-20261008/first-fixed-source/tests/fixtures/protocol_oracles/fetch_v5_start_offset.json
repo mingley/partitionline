@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v5-start-offset",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 5,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v5 classic wire format with follower replica fetch and logStartOffset gate present on wire",
+  "request": {
+    "file": "fetch_v5_start_offset_request.bin",
+    "size_bytes": 72,
+    "sha256": "cdee16f0322fccfd7a66b02d48370c440b7f1bc208854bf976bb1f93a84f64a2",
+    "hex": "00000002000003e80000000100a000000000000001001566657463682d76352d73746172742d6f666673657400000001000000000000000000000096000000000000006400100000"
+  },
+  "response": {
+    "file": "fetch_v5_start_offset_response.bin",
+    "size_bytes": 73,
+    "sha256": "3633194bb80a195b5e38dfc6951cbde45338c39ead0a4cf695c0e3d8db49d734",
+    "hex": "0000002300000001001566657463682d76352d73746172742d6f66667365740000000100000000000000000000000000fa00000000000000f000000000000000640000000000000000"
+  }
+}

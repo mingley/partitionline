@@ -1,0 +1,11 @@
+   Compiling once_cell v1.21.4
+   Compiling syn v2.0.119
+   Compiling zstd-rs v0.1.0
+   Compiling rustls v0.23.45
+   Compiling tracing-core v0.1.36
+   Compiling tokio-rustls v0.26.5
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/update-features-qualified-9eb1bb)
+    Finished `test` profile [unoptimized] target(s) in 17.86s
+     Running tests/update_features_conformance.rs (work/target-update-features/debug/deps/update_features_conformance-9efd04a0358118fe)

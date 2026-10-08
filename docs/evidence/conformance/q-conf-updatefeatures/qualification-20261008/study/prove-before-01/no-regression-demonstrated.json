@@ -1,0 +1,8 @@
+{
+  "qualification": false,
+  "java_error_code": 7,
+  "rust_error_code": 7,
+  "rust_elapsed_us": 270940,
+  "actual_rust_update_requests": 1,
+  "reason": "Controlled peer buffering/startup prevented the second request. Actual results are preserved; this attempt neither demonstrates a fresh-budget failure nor qualifies controller retry behavior."
+}

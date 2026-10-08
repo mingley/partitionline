@@ -1,0 +1,11 @@
+
+running 1 test
+test public_update_features_controller_and_deadline_history ... FAILED
+
+failures:
+
+failures:
+    public_update_features_controller_and_deadline_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+

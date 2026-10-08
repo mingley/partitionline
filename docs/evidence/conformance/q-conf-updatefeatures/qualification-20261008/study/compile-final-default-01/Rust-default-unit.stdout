@@ -1,0 +1,16 @@
+
+running 11 tests
+test admin::tests::update_features_client_checks_match_java ... ok
+test protocol::admin::tests::update_features_not_controller_is_at_byte_four ... ok
+test protocol::admin::tests::update_features_constructor_matches_java ... ok
+test protocol::admin::tests::update_features_create_with_errors_is_leftover_empty ... ok
+test protocol::admin::tests::update_features_request_get_feature_matches_java ... ok
+test protocol::admin::tests::update_features_v0_matches_kafka_protocol_0_18 ... ok
+test protocol::admin::tests::update_features_response_throttle_time_ms_matches_java ... ok
+test protocol::admin::tests::update_features_response_error_counts_matches_java ... ok
+test protocol::admin::tests::update_features_v0_roundtrip_is_leftover_empty ... ok
+test protocol::admin::tests::update_features_v2_compact_layout_matches_independent_encode ... ok
+test protocol::header::tests::update_features_v0_to_v2_are_flexible ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1109 filtered out; finished in 0.00s
+

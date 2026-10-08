@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-fixed-ec264d/benchmarks/runtime/tools/parent-bound-exec.py",
+    "894413",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/update-features-fixed-ec264d/Cargo.toml",
+    "--lib",
+    "update_features",
+    "--",
+    "--nocapture"
+  ],
+  "started": 1791421435.0750997,
+  "parent_waited": true,
+  "pid": 894469,
+  "exit_code": 0,
+  "ended": 1791421454.7027996,
+  "artifacts": {
+    "Rust-default-unit.stdout": "a46b16c50bf621145e81121d6f0f697caad752e781b5f0c66cfb178b8a38d8f6",
+    "Rust-default-unit.stderr": "1669020e5eadfdd9d120b2d15c8d5ac9c6f8b44773c98288ddaf9a9638fab97a"
+  }
+}

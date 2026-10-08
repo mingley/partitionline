@@ -1,0 +1,4 @@
+{
+  "error": "New no-checkout worktree had not populated its index; no compile or SDK invocation ran.",
+  "corrective_action": "Read HEAD into only the fresh detached worktree using read-tree -mu HEAD, then retry in a fresh output directory."
+}

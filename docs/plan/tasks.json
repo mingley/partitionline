@@ -52358,7 +52358,7 @@
       "title": "Qualify public UpdateFeatures version/option/error behavior",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261007",
       "depends_on": [
         "KL01-03"
@@ -52386,7 +52386,7 @@
       ],
       "evidence": [
         "docs/plan/evidence/KL01-28.json",
-        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007/README.md"
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md"
       ],
       "write_set": [
         "tests/conformance/java/ConformanceUpdateFeatures.java",
@@ -52408,7 +52408,8 @@
       "root_integration_only": [
         "tests/conformance/cases.json",
         "tests/conformance/features.json",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "tests/conformance/test_check_protocol_coverage.py"
       ],
       "proposal_source": "docs/evidence/conformance/case-gap-reconciliation-03/unified-bounded-proposals.json",
       "proposal_key": "Q-CONF-UpdateFeatures",
@@ -52424,8 +52425,10 @@
         "current-public-api-057-v2-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "Finite API57 wire and public native cohorts pass. Source-case/controller migration/retry-deadline applicability remains open; initial registered cases are not promoted.",
-      "preparation_scope": "Finite API57 upstream inventory and uncompiled Java generator. Defer Rust edits and SDK compilation until KL09-62 timing ends. Candidate v0 validate-only rejection will receive actual independent tests before qualification."
+      "qualification_limit": "Declared nine API57 cells and 48 source invocations only. Current Java public v0 returns UnsupportedVersion before dispatch; Rust v0 wire behavior is independently parsed by each genuine SDK. No historical 3.9.1/4.1.0 promotion, exhaustive fault/security corpus, benchmark result, production readiness or ranking.",
+      "preparation_scope": "Completed finite independent SDK/source/controller/native qualification; all original preparations and failures retained.",
+      "original_preparation_scope": "Finite API57 upstream inventory and uncompiled Java generator. Defer Rust edits and SDK compilation until KL09-62 timing ends. Candidate v0 validate-only rejection will receive actual independent tests before qualification.",
+      "completion_source": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0"
     },
     {
       "id": "KL01-29",

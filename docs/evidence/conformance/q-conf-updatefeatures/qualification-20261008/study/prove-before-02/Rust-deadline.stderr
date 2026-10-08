@@ -1,0 +1,6 @@
+
+thread 'public_update_features_controller_and_deadline_history' (893006) panicked at tests/update_features_conformance.rs:209:5:
+assertion `left == right` failed: actual public outcome Ok([FeatureUpdateResult { name: "test_feature_1", error_code: 0, error_message: None }]), elapsed 326.467497ms
+  left: 0
+ right: 7
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

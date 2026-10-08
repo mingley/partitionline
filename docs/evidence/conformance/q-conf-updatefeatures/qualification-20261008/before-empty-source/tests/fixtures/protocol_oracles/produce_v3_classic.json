@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v3-classic",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 3,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v3 classic wire format with null transactional_id, null records, partition error and throttle placement",
+  "request": {
+    "file": "produce_v3_classic_request.bin",
+    "size_bytes": 52,
+    "sha256": "97f5f847288f9c0e9a36b9e0b575ef701aefdedca30a3c3966ebdc59b44fdc93",
+    "hex": "ffffffff0000138800000001001270726f647563652d76332d636c61737369630000000200000000ffffffff00000001ffffffff"
+  },
+  "response": {
+    "file": "produce_v3_classic_response.bin",
+    "size_bytes": 76,
+    "sha256": "0dd8b372cab3b9522b037f2137a3d367dfc2730c894f020bbcbb7e7db3b9e69a",
+    "hex": "00000001001270726f647563652d76332d636c61737369630000000200000000000000000000000000640000018e23f14c00000000010003ffffffffffffffffffffffffffffffff00000019"
+  }
+}

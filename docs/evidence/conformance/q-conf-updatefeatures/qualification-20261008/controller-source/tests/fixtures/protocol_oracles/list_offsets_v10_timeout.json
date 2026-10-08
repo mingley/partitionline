@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v10-timeout",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 10,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v10 flexible wire format with non-default timeoutMs (1500 ms, KIP-1075)",
+  "request": {
+    "file": "list_offsets_v10_timeout_request.bin",
+    "size_bytes": 50,
+    "sha256": "51d0b7057943fa1acb5bc2a764ef35d71c01aa0373f895e7ed9852acdc1c2ede",
+    "hex": "ffffffff0102146f6666736574732d7631302d74696d656f757402000000000000000fffffffffffffffff0000000005dc00"
+  },
+  "response": {
+    "file": "list_offsets_v10_timeout_response.bin",
+    "size_bytes": 55,
+    "sha256": "bdc83f4525052c6b730f55a123e021aea007bea59558fc133bad93d5f1fcd80f",
+    "hex": "0000003202146f6666736574732d7631302d74696d656f7574020000000000000000018e23f14c0000000000000000640000000f000000"
+  }
+}

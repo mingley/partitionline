@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-07",
+  "updated": "2026-10-08",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "plan_source": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
   "description": "Versioned conformance case registry mapping advertised Kafka APIs, versions, broker qualification cells, and behavioral regressions to immutable source pins and honest dispositions.",
@@ -2973,16 +2973,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Current Java public Admin cannot serialize UpgradeType on v0 and returns UnsupportedVersion=35 before dispatch; Rust public v0 uses AllowDowngrade and is independently parsed by each actual SDK. No Java public v0 success is asserted.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v0-4-1-2",
+        "api_family": "UpdateFeatures",
+        "api_version": 0,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.1.2",
+        "peer_pin": "4.1.2",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.1.2-v0-legacy/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -2990,16 +3022,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 1,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v1-4-1-2",
+        "api_family": "UpdateFeatures",
+        "api_version": 1,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.1.2",
+        "peer_pin": "4.1.2",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.1.2-v1-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3007,16 +3071,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 2,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v2-4-1-2",
+        "api_family": "UpdateFeatures",
+        "api_version": 2,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.1.2",
+        "peer_pin": "4.1.2",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.1.2-v2-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3024,16 +3120,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Current Java public Admin cannot serialize UpgradeType on v0 and returns UnsupportedVersion=35 before dispatch; Rust public v0 uses AllowDowngrade and is independently parsed by each actual SDK. No Java public v0 success is asserted.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v0-4-2-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 0,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.2.1",
+        "peer_pin": "4.2.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.2.1-v0-legacy/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3041,16 +3169,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 1,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v1-4-2-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 1,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.2.1",
+        "peer_pin": "4.2.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.2.1-v1-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3058,16 +3218,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 2,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v2-4-2-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 2,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.2.1",
+        "peer_pin": "4.2.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.2.1-v2-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3075,16 +3267,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 0,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Current Java public Admin cannot serialize UpgradeType on v0 and returns UnsupportedVersion=35 before dispatch; Rust public v0 uses AllowDowngrade and is independently parsed by each actual SDK. No Java public v0 success is asserted.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v0-4-3-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 0,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.3.1",
+        "peer_pin": "4.3.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.3.1-v0-legacy/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3092,16 +3316,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 1,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v1-4-3-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 1,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.3.1",
+        "peer_pin": "4.3.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.3.1-v1-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {
@@ -3109,16 +3365,48 @@
       "api_family": "UpdateFeatures",
       "api_version": 2,
       "profile": "admin",
-      "adapter": "none",
+      "adapter": "apache-java",
       "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+      "reason": "Default/all builds pass authentic pinned SDK builders/parsers and public physical controller cases with source-bound native histories. Exact source-family applicability, retained failures, operation deadlines, per-feature errors, empty success rows and argument checks are recorded in the qualification archive. Both actual public callers match on this physical wire version, including top-level controller migration, absolute operation timeout/recovery, and successful result projection.",
       "backlog_tasks": [
         "KL01-28"
+      ],
+      "original_registered_result": {
+        "id": "current-public-api-057-v2-4-3-1",
+        "api_family": "UpdateFeatures",
+        "api_version": 2,
+        "profile": "admin",
+        "adapter": "none",
+        "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "immutable_source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+        "peer_version_pin": "4.3.1",
+        "peer_pin": "4.3.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
+        "backlog_tasks": [
+          "KL01-28"
+        ]
+      },
+      "api_key": 57,
+      "execution_source_commit": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+      "controller_compilation_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+      "execution_peer_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+      "qualification_scope": "Finite API57 public controller/native and SDK wire/source-case cohort; explicit v0 public Java unsupported projection",
+      "artifacts": [
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/applicability.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-all-01/qualification.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/qualify-controller-default-03/4.3.1-v2-success/server.process.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-default-01/qualification/summary.json",
+        "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/study/native-all-01/qualification/summary.json"
       ]
     },
     {

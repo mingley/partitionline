@@ -1,0 +1,6 @@
+{
+  "library": "/usr/lib/x86_64-linux-gnu/libsnappy.so.1.2.2",
+  "sha256": "ec0adbc41eb69633a846e676b11aa16cdcf460f84906bc362424b71f8a4b37f3",
+  "source": "Debian libsnappy1v5 1.2.2-1",
+  "decoded_record_section_bytes": 659097
+}

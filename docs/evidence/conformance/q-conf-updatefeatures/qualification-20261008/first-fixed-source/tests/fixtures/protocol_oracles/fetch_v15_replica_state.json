@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v15-replica-state",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 15,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v15 flexible wire format with replica-field transition omitting untagged replicaId and using replicaState tagged field 1",
+  "request": {
+    "file": "fetch_v15_replica_state_request.bin",
+    "size_bytes": 103,
+    "sha256": "a6e1b48c0c530d8d9ae2b74c9a1ce47ad426ddfe051b811202db18a3141d211e",
+    "hex": "000003e80000000100a00000000000019000000004029999888877776666555544443333222202000000000000000f00000000000001f40000000e00000000000001c2001000000000010d7261636b2d7265706c69636101010d00000005000000000000303900"
+  },
+  "response": {
+    "file": "fetch_v15_replica_state_response.bin",
+    "size_bytes": 78,
+    "sha256": "4e699337c7007144bea2c48967d096d4dbccdcdb4e840c2b29005a401d672724",
+    "hex": "0000005a0000000001900299998888777766665555444433332222020000000000000000000000000226000000000000021c00000000000001c201ffffffff01010109000000010000000f000000"
+  }
+}

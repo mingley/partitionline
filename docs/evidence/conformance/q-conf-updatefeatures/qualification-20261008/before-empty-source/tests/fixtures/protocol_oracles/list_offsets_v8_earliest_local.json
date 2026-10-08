@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v8-earliest-local",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 8,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v8 flexible wire format with EARLIEST_LOCAL_TIMESTAMP (-4, KIP-405) query and response",
+  "request": {
+    "file": "list_offsets_v8_earliest_local_request.bin",
+    "size_bytes": 43,
+    "sha256": "07c584a82342bac6dddbc9d62b1c79ceda5b141f15dad7e46eb50d3ef926155f",
+    "hex": "ffffffff0002116f6666736574732d76382d6c6f63616c020000000000000016fffffffffffffffc000000"
+  },
+  "response": {
+    "file": "list_offsets_v8_earliest_local_response.bin",
+    "size_bytes": 52,
+    "sha256": "797b4079a53df99ab300decc99165b96fb8b400e31fee0b3cdc1bb07ae2e8bc4",
+    "hex": "0000005f02116f6666736574732d76382d6c6f63616c02000000000000ffffffffffffffff000000000000032000000016000000"
+  }
+}

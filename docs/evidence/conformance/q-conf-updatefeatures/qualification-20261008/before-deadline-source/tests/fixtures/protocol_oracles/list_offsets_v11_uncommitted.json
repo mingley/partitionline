@@ -1,0 +1,7 @@
+{
+  "api": "ListOffsets", "api_key": 2, "version": 11,
+  "apache_version": "4.3.1", "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+  "jar_origin": "apache/kafka:4.3.1 distribution", "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+  "generator": "tests/conformance/java/ListOffsetsV11Fixtures.java",
+  "request_sha256": "c8dde8e360586b64eda4908e7c41861e5f9b4291c72b99c5993af1ea16653cac", "response_sha256": "e02b71f601d3692debbbe9eac39389a256bd813501f8ebc0fed972803dab206c"
+}

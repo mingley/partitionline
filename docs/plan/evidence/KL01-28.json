@@ -1,33 +1,112 @@
 {
   "task": "KL01-28",
-  "status": "in_progress",
-  "source_before_fix": "68c114794442085582c53c7cd93c11cb4c6a5f84",
-  "qualified_source": "06d3f769eebd54d8156e97d721b51b8c2e7647f8",
-  "toolchain": "stable Rust 1.99.0",
-  "actual_before_fix_failed_tests": 2,
-  "actual_after_fix_passed_tests_per_build": 2,
-  "qualified_builds": [
-    "default",
-    "all-features"
-  ],
-  "sdk_tags": [
+  "status": "done",
+  "verification_source": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+  "controller_compilation_source": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+  "core_source_identity": "core-and-caller-source-identity-01.json",
+  "Rust": "stable 1.99.0",
+  "SDKs": [
     "4.1.2",
     "4.2.1",
     "4.3.1"
   ],
-  "fixture_bodies_per_sdk": 101,
-  "independent_reverse_parses": 606,
-  "native_public_cases_both_callers": 84,
-  "owned_native_brokers_joined": 6,
-  "ports_rebound": 12,
-  "qualification_limit": "Finite API57 wire and public native cohorts pass. Source-case/controller migration/retry-deadline applicability remains open; initial registered cases are not promoted.",
-  "remaining": [
-    "Map every source test and parameter invocation to a qualified case or explicit applicability reason.",
-    "Independently qualify NOT_CONTROLLER retry/controller migration and absolute timeout behavior.",
-    "Check public error-count and invalid value/deletion behavior against exact SDK source."
+  "source_methods": 36,
+  "source_parameter_invocations": 48,
+  "initial_registered_case_ids": [
+    "current-public-api-057-v0-4-1-2",
+    "current-public-api-057-v1-4-1-2",
+    "current-public-api-057-v2-4-1-2",
+    "current-public-api-057-v0-4-2-1",
+    "current-public-api-057-v1-4-2-1",
+    "current-public-api-057-v2-4-2-1",
+    "current-public-api-057-v0-4-3-1",
+    "current-public-api-057-v1-4-3-1",
+    "current-public-api-057-v2-4-3-1"
   ],
-  "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007",
-  "manifest_sha256": "93a5de161f28fd514ac1a17baa66ed8eaa6a380dcbf63f3d3cbfdb3a884914ed",
-  "initial_registered_cases_disposition_preserved": true,
-  "conformance_denominators_unchanged": true
+  "controller_peer_cases": 84,
+  "controller_public_operation_invocations": 384,
+  "controller_ports_rebound": 168,
+  "native_brokers_joined": 6,
+  "native_ports_rebound": 12,
+  "independent_reverse_bodies": 606,
+  "native_public_cases": 84,
+  "final_source_case_bodies": 72,
+  "final_malformed_rejections": 60,
+  "direct_safety_tests": 4,
+  "selected_existing_tests": 24,
+  "strict_clippy_default_and_all": true,
+  "format": true,
+  "fixes": [
+    "v0 validation-only rejected before encoding (original partial archive)",
+    "Single operation deadline includes metadata, connection setup, request/retry; each wire timeout is capped by remaining budget.",
+    "Blank feature names follow Java ASCII/control trim, retaining Unicode NBSP/en quad.",
+    "Nonnullable request/response arrays and feature names reject null markers.",
+    "Top-level success without result rows synthesizes all requested results, including v1.",
+    "Only top-level NOT_CONTROLLER retries; per-feature errors are preserved."
+  ],
+  "actual_failures_retained": [
+    "prove-before-02: Java timeout, old Rust success after 326467 us with a fresh 250 ms second wire timeout.",
+    "prove-names-before-01: four actual public name mismatches.",
+    "prove-malformed-before-01: each of three SDKs rejects ten bodies; old Rust accepts all ten, tests exit 101.",
+    "qualify-controller-default-01: genuine successful empty v1 response, Java success, old Rust zero results.",
+    "prove-feature-error-before-01: Java per-feature code41, old Rust retries to success."
+  ],
+  "qualification_limit": "Declared nine API57 cells and 48 source invocations only. Current Java public v0 returns UnsupportedVersion before dispatch; Rust v0 wire behavior is independently parsed by each genuine SDK. No historical 3.9.1/4.1.0 promotion, exhaustive fault/security corpus, benchmark result, production readiness or ranking.",
+  "initial_partial_archive_preserved": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007",
+  "date": "2026-10-08",
+  "disposition": "qualified_declared_API57_source_and_current_peer_cohort",
+  "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008",
+  "qualified_case_ids": [
+    "current-public-api-057-v0-4-1-2",
+    "current-public-api-057-v1-4-1-2",
+    "current-public-api-057-v2-4-1-2",
+    "current-public-api-057-v0-4-2-1",
+    "current-public-api-057-v1-4-2-1",
+    "current-public-api-057-v2-4-2-1",
+    "current-public-api-057-v0-4-3-1",
+    "current-public-api-057-v1-4-3-1",
+    "current-public-api-057-v2-4-3-1"
+  ],
+  "manifest_sha256": "718e4d89d2f98ca50b818984017aa205ef3d83ad30faec983d029d8595360655",
+  "archive_stored_and_decoded_verified": true,
+  "archive_checksums_passed": true,
+  "original_partial_receipt": {
+    "task": "KL01-28",
+    "status": "in_progress",
+    "source_before_fix": "68c114794442085582c53c7cd93c11cb4c6a5f84",
+    "qualified_source": "06d3f769eebd54d8156e97d721b51b8c2e7647f8",
+    "toolchain": "stable Rust 1.99.0",
+    "actual_before_fix_failed_tests": 2,
+    "actual_after_fix_passed_tests_per_build": 2,
+    "qualified_builds": [
+      "default",
+      "all-features"
+    ],
+    "sdk_tags": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "fixture_bodies_per_sdk": 101,
+    "independent_reverse_parses": 606,
+    "native_public_cases_both_callers": 84,
+    "owned_native_brokers_joined": 6,
+    "ports_rebound": 12,
+    "qualification_limit": "Finite API57 wire and public native cohorts pass. Source-case/controller migration/retry-deadline applicability remains open; initial registered cases are not promoted.",
+    "remaining": [
+      "Map every source test and parameter invocation to a qualified case or explicit applicability reason.",
+      "Independently qualify NOT_CONTROLLER retry/controller migration and absolute timeout behavior.",
+      "Check public error-count and invalid value/deletion behavior against exact SDK source."
+    ],
+    "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007",
+    "manifest_sha256": "93a5de161f28fd514ac1a17baa66ed8eaa6a380dcbf63f3d3cbfdb3a884914ed",
+    "initial_registered_cases_disposition_preserved": true,
+    "conformance_denominators_unchanged": true
+  },
+  "original_case_sources_and_dispositions_preserved": true,
+  "denominators_unchanged": true,
+  "registry_validation": "docs/evidence/conformance/q-conf-updatefeatures/registry-20261008",
+  "public_error_projection": "Rust Error::Broker carries the original code and an operation context (src/error.rs), whereas Java exposes exception classes/messages. Public comparisons use broker error codes; nullable wire ErrorMessage fields are independently checked in the full SDK body/reverse cohort.",
+  "production_ready": false,
+  "performance_claims_valid": false
 }

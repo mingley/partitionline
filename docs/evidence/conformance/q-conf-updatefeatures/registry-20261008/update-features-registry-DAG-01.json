@@ -1,0 +1,15 @@
+{
+  "tasks": 342,
+  "status_counts": {
+    "done": 213,
+    "in_progress": 10,
+    "pending": 119
+  },
+  "DAG_acyclic": true,
+  "preserved_done_to_pending_override": [
+    [
+      "KL10-06",
+      "KL10-02"
+    ]
+  ]
+}

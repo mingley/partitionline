@@ -1,0 +1,12 @@
+{
+  "qualified_runtime_source": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+  "verification_source": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+  "all_1450_source_inputs_identical_except": "tests/update_features_conformance.rs",
+  "change": "Only source-case fixture I/O changed from synchronous std reads to Tokio reads; its field/count assertions are unchanged.",
+  "all_existing_caller_and_wire_lanes_byte_identical": true,
+  "existing_test_prefix_sha256": "e54e0e9db77499547c28dd276f9dc16b1ac0d84d02b5a34dee619d970c273f37",
+  "product_sources": {
+    "src/admin.rs": "aa8afd9592561357735aeaa4d666d75829a32f63e379f2697799b7087cee0493",
+    "src/protocol/admin.rs": "7cac5e5a7d7bf007225b5be33e00a60baa53e572eadfa73dba4b994091f4d53d"
+  }
+}

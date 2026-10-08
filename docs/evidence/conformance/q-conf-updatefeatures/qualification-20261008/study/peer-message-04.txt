@@ -1,0 +1,1 @@
+Correct canonical SDK response preparation for malformed UpdateFeatures probes

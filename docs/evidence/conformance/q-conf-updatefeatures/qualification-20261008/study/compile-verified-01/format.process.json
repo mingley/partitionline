@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "914465",
+    "rustfmt",
+    "+stable",
+    "--edition",
+    "2021",
+    "--check",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/src/admin.rs",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/src/protocol/admin.rs",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/tests/full_surface.rs",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/tests/update_features_conformance.rs"
+  ],
+  "started": 1791422909.3404086,
+  "parent_waited": true,
+  "pid": 915791,
+  "exit_code": 0,
+  "ended": 1791422909.9665897,
+  "artifacts": {
+    "format.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "format.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

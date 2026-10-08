@@ -1,0 +1,33 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "914465",
+    "cargo",
+    "+stable",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/Cargo.toml",
+    "--all-features",
+    "--lib",
+    "--test",
+    "full_surface",
+    "--test",
+    "update_features_conformance",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "started": 1791422892.954819,
+  "parent_waited": true,
+  "pid": 915700,
+  "exit_code": 0,
+  "ended": 1791422909.0856645,
+  "artifacts": {
+    "all-strict-clippy.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "all-strict-clippy.stderr": "bc2e33ff618277084f5d5cde5f3f4101fb04aa9bcd5f76ae543084e5cdc8b195"
+  }
+}

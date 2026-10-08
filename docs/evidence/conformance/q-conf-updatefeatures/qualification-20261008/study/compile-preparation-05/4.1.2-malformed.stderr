@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: response array offset
+	at ConformanceUpdateFeaturesPeer.malformed(ConformanceUpdateFeaturesPeer.java:274)
+	at ConformanceUpdateFeaturesPeer.main(ConformanceUpdateFeaturesPeer.java:301)

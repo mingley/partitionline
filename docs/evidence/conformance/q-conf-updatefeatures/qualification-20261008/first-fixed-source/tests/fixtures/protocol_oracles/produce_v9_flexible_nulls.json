@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v9-flexible-nulls",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 9,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v9 flexible wire format boundary with null transactional_id, null records, and partition errors",
+  "request": {
+    "file": "produce_v9_flexible_nulls_request.bin",
+    "size_bytes": 49,
+    "sha256": "60fcc3531f5e216cd4a52f56eacc439aa1854a8210fc208d996f48d0cab599fb",
+    "hex": "00000100000fa0021a70726f647563652d76392d666c657869626c652d6e756c6c73030000000000000000000100000000"
+  },
+  "response": {
+    "file": "produce_v9_flexible_nulls_response.bin",
+    "size_bytes": 132,
+    "sha256": "08f077ea0a118724cefb3fdbbd0eea7531a05c451f6bbce5539e17364af41bd9",
+    "hex": "021a70726f647563652d76392d666c657869626c652d6e756c6c730300000000000000000000000001900000018e23f157b80000000000000096010000000000010003ffffffffffffffffffffffffffffffffffffffffffffffff02000000000e496e76616c6964206261746368000e556e6b6e6f776e20746f70696300000000006300"
+  }
+}

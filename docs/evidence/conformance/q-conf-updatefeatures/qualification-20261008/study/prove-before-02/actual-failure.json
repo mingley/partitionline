@@ -1,0 +1,13 @@
+{
+  "source_commit": "e2a75be1d9056bb32bb43ecf0ef62c1e01cc7a7e",
+  "SDK": "4.1.2",
+  "java": {
+    "error_code": 7
+  },
+  "rust": {
+    "error_code": 0,
+    "elapsed_us": 326467
+  },
+  "qualification": "Actual before-fix original deadline failure: public Rust returned success after the total caller budget; actual Java timed out.",
+  "binary_sha256": "b0163cd6abb79ae387dc272b29c1108553b69b9ee3581d73c210a71c93034db5"
+}

@@ -311,7 +311,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::consumer::Consumer::assign",
     "evidence": "tests/full_surface.rs:test_consumer_manual_assign",
-    "notes": "Metadata0–13 routing with explicit automatic-creation policy at0; missing UUID/epoch fields retain sentinels. Selected legacy socket and current SDK checks are in tests/legacy_discovery_v0.rs.",
+    "notes": "Metadata0\u201313 routing with explicit automatic-creation policy at0; missing UUID/epoch fields retain sentinels. Selected legacy socket and current SDK checks are in tests/legacy_discovery_v0.rs.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -324,7 +324,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::consumer::Consumer::assign_topic",
     "evidence": "tests/client_api.rs:test_assign_topic",
-    "notes": "Discovers partitions with Metadata0–13 and assigns them. Named0 requests require allow_auto_topic_creation=true.",
+    "notes": "Discovers partitions with Metadata0\u201313 and assigns them. Named0 requests require allow_auto_topic_creation=true.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -428,7 +428,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::consumer::Consumer::fetch",
     "evidence": "src/consumer.rs",
-    "notes": "Fetch truncation recovery negotiates OffsetForLeaderEpoch0–4 and sends the actual leader RPC; codec alone is not the runtime operation.",
+    "notes": "Fetch truncation recovery negotiates OffsetForLeaderEpoch0\u20134 and sends the actual leader RPC; codec alone is not the runtime operation.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1074,7 +1074,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::protocol::records::{ZstdLevel,CompressScratch};ProducerConfig::zstd_level (feature zstd)",
     "evidence": "docs/evidence/codecs/codec-matrix/summary.json",
-    "notes": "Optional bounded encoder, explicit levels1–19/default3, standard frames with content size/checksum, no dictionaries. Independent Java checks all19 levels and boundaries; Java/C read128 live Rust records on Kafka4.3.1.  Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
+    "notes": "Optional bounded encoder, explicit levels1\u201319/default3, standard frames with content size/checksum, no dictionaries. Independent Java checks all19 levels and boundaries; Java/C read128 live Rust records on Kafka4.3.1.  Finite Java/C/Rust live codec matrix passes on Kafka3.9.1/4.1.0/4.1.2/4.2.1/4.3.1; correctness only, RF1 plaintext. Raw Snappy and signed field boundaries have independent fixture checks.",
     "conformance_case_ids": [
       "codec-zstd-explicit-level-encode-independent-java-c",
       "codec-live-3-9-1",
@@ -1341,7 +1341,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::list_topics",
     "evidence": "tests/full_surface.rs:test_list_topics",
-    "notes": "Metadata0–13 all-topic queries and internal-topic filtering. V0 has no internal flag or controller/UUID identity; named Admin queries requiring creation-disabled policy refuse0.",
+    "notes": "Metadata0\u201313 all-topic queries and internal-topic filtering. V0 has no internal flag or controller/UUID identity; named Admin queries requiring creation-disabled policy refuse0.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1614,7 +1614,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::alter_partition_reassignments",
     "evidence": "docs/evidence/client/reassignment-options-v1/summary.json",
-    "notes": "API45 versions0–1. Additive options default to allowing replication-factor changes. Explicit false requires1 and fails before a0 mutation. Controller negotiation, redirects, cancellation and lost acknowledgements preserve the policy under one deadline. Finite bounds:10,000 partitions,100,000 replica IDs,16MiB received response body. Actual3SDK and fresh3-broker reference behavior; broader qualification remains in the plan.",
+    "notes": "API45 versions0\u20131. Additive options default to allowing replication-factor changes. Explicit false requires1 and fails before a0 mutation. Controller negotiation, redirects, cancellation and lost acknowledgements preserve the policy under one deadline. Finite bounds:10,000 partitions,100,000 replica IDs,16MiB received response body. Actual3SDK and fresh3-broker reference behavior; broader qualification remains in the plan.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
@@ -1734,12 +1734,22 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::update_features",
-    "evidence": "src/admin.rs:Admin::update_features",
-    "notes": "UpdateFeatures api 57 v0-v2 for cluster feature upgrade/downgrade.",
+    "evidence": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261008/qualification.json",
+    "notes": "UpdateFeatures v0-v2: source-bound SDK wire/public controller and native histories on three current peers, default/all builds. Java public v0 is unsupported; Rust legacy wire support is independently parsed. Finite source/field/error/deadline cohort only.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],
-    "conformance_case_ids": []
+    "conformance_case_ids": [
+      "current-public-api-057-v0-4-1-2",
+      "current-public-api-057-v1-4-1-2",
+      "current-public-api-057-v2-4-1-2",
+      "current-public-api-057-v0-4-2-1",
+      "current-public-api-057-v1-4-2-1",
+      "current-public-api-057-v2-4-2-1",
+      "current-public-api-057-v0-4-3-1",
+      "current-public-api-057-v1-4-3-1",
+      "current-public-api-057-v2-4-3-1"
+    ]
   },
   {
     "id": "full_admin.describe_producers",
@@ -1819,7 +1829,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::list_transactions",
     "evidence": "src/admin.rs:Admin::list_transactions",
-    "notes": "API66 v0–v2, all-broker complete/partial results, duration and transaction-ID pattern filters. Local SDK/component qualification is retained; broad independent profile qualification remains KL01-14.",
+    "notes": "API66 v0\u2013v2, all-broker complete/partial results, duration and transaction-ID pattern filters. Local SDK/component qualification is retained; broad independent profile qualification remains KL01-14.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v17-max-3-9-1",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 17,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v17 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with partition replicaDirectoryId tagged field 0",
+  "request": {
+    "file": "fetch_v17_max_3_9_1_request.bin",
+    "size_bytes": 102,
+    "sha256": "a97c90436254f7dcde53786e615a549ff3b9f003a5b6242de027cb346dbb70b1",
+    "hex": "000004b00000000100a0000000000002580000000502facefeedcafebeef010203040506070802000000000000001400000000000003e800000013000000000000038400100000010010aaaabbbb0000111122223333444455550001097261636b2d76313700"
+  },
+  "response": {
+    "file": "fetch_v17_max_3_9_1_response.bin",
+    "size_bytes": 132,
+    "sha256": "b4907adc106387afdcdc7f2d1df1fda12c260155d8405668c55f7033408213e6",
+    "hex": "0000007800000000025802facefeedcafebeef010203040506070802000000000000000000000000044c0000000000000442000000000000038401ffffffff0102000d0000001300000000000003e30001090000000300000014000001002502000000031462726f6b6572332e6b61666b612e6c6f63616c00002385077261636b2d6300"
+  }
+}

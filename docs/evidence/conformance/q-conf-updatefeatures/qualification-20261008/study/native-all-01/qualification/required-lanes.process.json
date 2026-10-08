@@ -1,0 +1,19 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "919794",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-verified-01/all/integration.elf",
+    "--list"
+  ],
+  "started": 1791423041.8101933,
+  "parent_waited": true,
+  "pid": 919795,
+  "exit_code": 0,
+  "ended": 1791423041.8322248,
+  "artifacts": {
+    "required-lanes.stdout": "23b3286f3d564da340e0f21a4d4bf895124a26556d42782541980922c360b8de",
+    "required-lanes.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

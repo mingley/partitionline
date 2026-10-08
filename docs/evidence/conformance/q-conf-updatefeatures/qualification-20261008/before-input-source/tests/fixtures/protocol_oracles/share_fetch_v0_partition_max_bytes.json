@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-fetch-v0-partition-max-bytes",
+  "api": "ShareFetch",
+  "api_key": 78,
+  "api_version": 0,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "apache/kafka ShareFetchRequest.json validVersions 0 (Kafka 4.0)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareFetch v0: per-partition PartitionMaxBytes, ForgottenTopicsData with duplicate partition indexes kept, ack batches covering ACCEPT, GAP, RELEASE and REJECT; response pins JSON defaults (throttle 0, null messages, empty endpoints/leaders) plus a partition error case.",
+  "request": {
+    "file": "share_fetch_v0_partition_max_bytes_request.bin",
+    "size_bytes": 177,
+    "sha256": "b371cb43450d4879b52906a8b2768e232d587086079e622d8e55f087dac6dc7c",
+    "hex": "1073686172652d76302d64656c7461730c6d656d6265722d76302d3100000001000001f4000000017fffffff02000102030405060708090a0b0c0d0e0f030000000000100000020000000000000064000000000000006604010101000000000001000000000300000000000000320000000000000035050100020300000000000000003c000000000000003c020100000002000102030405060708090a0b0c0d0e0f040000000200000002000000030000"
+  },
+  "response": {
+    "file": "share_fetch_v0_partition_max_bytes_response.bin",
+    "size_bytes": 104,
+    "sha256": "03e3dd34f79ffdfe356ab0825ed2d5b21b2261a89ff96e7c08193ab749d3ceb6",
+    "hex": "0000000000000002000102030405060708090a0b0c0d0e0f0300000000000000000000000000000000000000010200000000000000640000000000000066000100000000000100030e756e6b6e6f776e20746f706963000000000000000000000000010100000100"
+  }
+}

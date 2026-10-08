@@ -1,0 +1,1 @@
+[{"socket_closed":true,"node":0},{"caller":"update-features-java","api":57,"version":1,"node":0,"attempt":1,"timeout_ms":250,"validate_only":false,"response_code":0},{"caller":"update-features-rust","api":57,"version":1,"node":0,"attempt":1,"timeout_ms":1996,"validate_only":false,"response_code":0}]

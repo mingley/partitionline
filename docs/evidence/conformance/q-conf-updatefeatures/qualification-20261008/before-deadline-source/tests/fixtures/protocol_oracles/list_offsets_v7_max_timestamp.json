@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v7-max-timestamp",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 7,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v7 flexible wire format with MAX_TIMESTAMP (-3, KIP-734) query and response",
+  "request": {
+    "file": "list_offsets_v7_max_timestamp_request.bin",
+    "size_bytes": 41,
+    "sha256": "f8ea636e6e913a7e4c48f1d73bb45ee7ea62c8be91447ba8532f632c8c5d09d4",
+    "hex": "ffffffff00020f6f6666736574732d76372d6d6178020000000000000014fffffffffffffffd000000"
+  },
+  "response": {
+    "file": "list_offsets_v7_max_timestamp_response.bin",
+    "size_bytes": 50,
+    "sha256": "dc015a98e49c544361ae8c73be373ed47bb86b8f81ce24f820e1f979b6ac051c",
+    "hex": "0000005a020f6f6666736574732d76372d6d6178020000000000000000018e23f1637000000000000002bc00000014000000"
+  }
+}

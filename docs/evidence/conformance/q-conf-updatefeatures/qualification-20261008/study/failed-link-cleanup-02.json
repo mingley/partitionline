@@ -1,0 +1,110 @@
+[
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.10.rcgu.o",
+    "bytes": 3716200,
+    "sha256": "acc71fff0b01ce6e477c3fd9c84ead64d6eaf477215a03d559b1bfca099b18ad",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.12.rcgu.o",
+    "bytes": 2827440,
+    "sha256": "1e9ac515e943ab909f47f1d7ce42aa1709f308a53c69e92d4e36e4fd286cac97",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.14.rcgu.o",
+    "bytes": 3449256,
+    "sha256": "e16c7f9fb138e728526a508b44226ccb0c7dca3b445a0b9b5cb57fb6d97a1bd5",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.tmp31a8238",
+    "bytes": 44279360,
+    "sha256": "9276691f80d2f1bfd00bbc98d0b1d4794e86b7d2dcb6a499b1c14fd684615141",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.09.rcgu.o",
+    "bytes": 3936160,
+    "sha256": "d4d76d628b2b3376c7e1e40c0115c9c7b71b5ea1025eba527f1631c6f23d4f8c",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.03.rcgu.o",
+    "bytes": 3287560,
+    "sha256": "bd0fab6d9e1c2f65f97e0c7b10f54103bf153ea471260de4a1d471fd9cf51ff2",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.11.rcgu.o",
+    "bytes": 3107800,
+    "sha256": "561e04fc8e23347065ce7de765812eb33e5943122e9a24e650cfa3072f351a83",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.04.rcgu.o",
+    "bytes": 2588696,
+    "sha256": "e986b90c213732e52a568c47c286047cf0d3e5aee4abebf31331b3134a8b2d35",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.13.rcgu.o",
+    "bytes": 3783912,
+    "sha256": "53932f54c1465a3d4f740614c6ce04ad396c98ff5dfb49a36995901b23ea8053",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.00.rcgu.o",
+    "bytes": 8002736,
+    "sha256": "e0192c601d783bb8b24617b51d8c27e4fc723d351ad6489fedf05ad560f9abc7",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.4f7w1y2y5nf9w2qlmzlxwy3x9.rcgu.o",
+    "bytes": 2528,
+    "sha256": "fd4f4843d5f225fb614b173ba3b34b66909ef9e7ae42f7a3a70f6cb2c2c19c35",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.06.rcgu.o",
+    "bytes": 2742496,
+    "sha256": "c2c998bfa6a2df09697bd6f71ecbb84927032a1ea33da382f84c12dde8367599",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.15.rcgu.o",
+    "bytes": 3060736,
+    "sha256": "cca7a536455b6075e139c88d7329b3766ce21baf088ab0d4b131bb98523e4e2b",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.07.rcgu.o",
+    "bytes": 3113832,
+    "sha256": "54d5a5983d262d5d8106ed727a71ad030dac254d4e2a83ebb0a4ddcca5a4a373",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.01.rcgu.o",
+    "bytes": 6884536,
+    "sha256": "833ac3f9af33bd200ce9683e56aa0d7cb594f9d2ca2dc796e6e1c099af9c7193",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.02.rcgu.o",
+    "bytes": 4445456,
+    "sha256": "c21b8fb8254ec68a549f18af70dabc637becbfefab299eca00d30675abafec45",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.08.rcgu.o",
+    "bytes": 1831552,
+    "sha256": "073d96f6fb6be57e42f82a5f1cbf93f3201f2f621312db8e12ff26119a4abede",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  },
+  {
+    "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9.full_surface.3a9f5d921fd12f36-cgu.05.rcgu.o",
+    "bytes": 2101344,
+    "sha256": "36e4917a65be22f87f4473dad706b9bed337777bea52a74ebe5fcfcb38e70c6c",
+    "reason": "Unexecuted failed-link temporary/object; compiler and process failure logs retained"
+  }
+]

@@ -1,0 +1,56 @@
+{
+  "task": "KL01-28",
+  "status": "qualified_pending_registry_closure",
+  "verification_source": "2be86c09ba171dcef41e5dd50a24d2aef7aaf3c0",
+  "controller_compilation_source": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+  "core_source_identity": "core-and-caller-source-identity-01.json",
+  "Rust": "stable 1.99.0",
+  "SDKs": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "source_methods": 36,
+  "source_parameter_invocations": 48,
+  "initial_registered_case_ids": [
+    "current-public-api-057-v0-4-1-2",
+    "current-public-api-057-v1-4-1-2",
+    "current-public-api-057-v2-4-1-2",
+    "current-public-api-057-v0-4-2-1",
+    "current-public-api-057-v1-4-2-1",
+    "current-public-api-057-v2-4-2-1",
+    "current-public-api-057-v0-4-3-1",
+    "current-public-api-057-v1-4-3-1",
+    "current-public-api-057-v2-4-3-1"
+  ],
+  "controller_peer_cases": 84,
+  "controller_public_operation_invocations": 384,
+  "controller_ports_rebound": 168,
+  "native_brokers_joined": 6,
+  "native_ports_rebound": 12,
+  "independent_reverse_bodies": 606,
+  "native_public_cases": 84,
+  "final_source_case_bodies": 72,
+  "final_malformed_rejections": 60,
+  "direct_safety_tests": 4,
+  "selected_existing_tests": 24,
+  "strict_clippy_default_and_all": true,
+  "format": true,
+  "fixes": [
+    "v0 validation-only rejected before encoding (original partial archive)",
+    "Single operation deadline includes metadata, connection setup, request/retry; each wire timeout is capped by remaining budget.",
+    "Blank feature names follow Java ASCII/control trim, retaining Unicode NBSP/en quad.",
+    "Nonnullable request/response arrays and feature names reject null markers.",
+    "Top-level success without result rows synthesizes all requested results, including v1.",
+    "Only top-level NOT_CONTROLLER retries; per-feature errors are preserved."
+  ],
+  "actual_failures_retained": [
+    "prove-before-02: Java timeout, old Rust success after 326467 us with a fresh 250 ms second wire timeout.",
+    "prove-names-before-01: four actual public name mismatches.",
+    "prove-malformed-before-01: each of three SDKs rejects ten bodies; old Rust accepts all ten, tests exit 101.",
+    "qualify-controller-default-01: genuine successful empty v1 response, Java success, old Rust zero results.",
+    "prove-feature-error-before-01: Java per-feature code41, old Rust retries to success."
+  ],
+  "qualification_limit": "Declared nine API57 cells and 48 source invocations only. Current Java public v0 returns UnsupportedVersion before dispatch; Rust v0 wire behavior is independently parsed by each genuine SDK. No historical 3.9.1/4.1.0 promotion, exhaustive fault/security corpus, benchmark result, production readiness or ranking.",
+  "initial_partial_archive_preserved": "docs/evidence/conformance/q-conf-updatefeatures/qualification-20261007"
+}

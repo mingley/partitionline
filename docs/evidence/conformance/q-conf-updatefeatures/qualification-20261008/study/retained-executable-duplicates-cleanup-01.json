@@ -1,0 +1,51 @@
+[
+  {
+    "path": "/workspace/work/target/debug/deps/legacy_discovery_v0-6a6c0b084a9f5a54",
+    "bytes": 20474376,
+    "sha256": "80b69bc232ee0121bee65c16a2ef6f4abf81522ec3e51ef0cb23217e75d7ed38",
+    "retained_identical": "/workspace/work/open-cards-20261006/legacy-discovery-v0/runtime/binary-default-fault-07",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target/debug/deps/allocate_producer_ids_raw_conformance-9343f71302f927c7",
+    "bytes": 10999872,
+    "sha256": "d68fd685937b1a7e6fe0fa871d93dc77fe9765b8c941fcc67a69b0735e58fd17",
+    "retained_identical": "/workspace/work/open-cards-20261006/allocate-producer-ids-raw/binary-default-final",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target/debug/deps/allocate_producer_ids_raw_conformance-ab2b7c31f203509f",
+    "bytes": 11040160,
+    "sha256": "efb22f2656946a4f35c7f8cecb8037b567a91571950d347c38696102bb4f759a",
+    "retained_identical": "/workspace/work/open-cards-20261006/allocate-producer-ids-raw/binary-all-final",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target/debug/deps/describe_quorum_conformance-cf9a6ea68c82862f",
+    "bytes": 3800584,
+    "sha256": "f62e4a3380638e89abf92eef2f041bf44961a63d807a50320f0498b64eaf1ab3",
+    "retained_identical": "/workspace/work/open-cards-20261006/describe-quorum/old-regression-02.elf",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target/debug/deps/legacy_discovery_v0-8f0145bed4442afd",
+    "bytes": 21399432,
+    "sha256": "4931288e7e04c8e97a0895d27f142c423e66dc2b03d9636398738f7527e2d543",
+    "retained_identical": "/workspace/work/open-cards-20261006/legacy-discovery-v0/runtime/binary-all-qualified2",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target-quorum/debug/deps/describe_quorum_conformance-88ab580e8593b49b",
+    "bytes": 11441416,
+    "sha256": "66d8f7ceaeb5c12378158445c44162a28feebf5cc457cb09a102fac827c1cd48",
+    "retained_identical": "/workspace/work/open-cards-20261006/describe-quorum/binary-all-final-03",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  },
+  {
+    "path": "/workspace/work/target-quorum/debug/deps/describe_quorum_conformance-cf9a6ea68c82862f",
+    "bytes": 11399472,
+    "sha256": "49cfd97110ff522ae450ab52203b030361d2f6ae5267dcde425945d9541fd9cb",
+    "retained_identical": "/workspace/work/open-cards-20261006/describe-quorum/binary-default-final-03",
+    "reason": "Inactive generated target duplicate; exact retained executable independently byte-hashed before removal"
+  }
+]

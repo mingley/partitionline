@@ -1,0 +1,14 @@
+[
+  {
+    "path": "/workspace/work/open-cards-20261006/update-features-retries-20261008/peer-publication-04.json.index",
+    "bytes": 18385538,
+    "sha256": "176c77d54c6bedfeeedfa3009eff63d68c090c55be89b16ccaf4fbc699928ee6",
+    "reason": "Inactive alternate publication index"
+  },
+  {
+    "path": "/workspace/work/open-cards-20261006/update-features-retries-20261008/fix-publication-05.json.index",
+    "bytes": 18385538,
+    "sha256": "c25c722a59613c6398eb58c1cfca3207fb97fe8acfb3e7882a497c780b0c2ee9",
+    "reason": "Inactive alternate publication index"
+  }
+]

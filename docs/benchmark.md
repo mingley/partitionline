@@ -564,7 +564,7 @@ experiment from Lab A, which used `rdkafka_performance` 2.15.0.
 | Date | 2026-08-28 |
 | Host | Linux 6.12.94+ x86_64, 4 vCPU Intel Xeon, 15 GiB RAM |
 | Broker | Apache Kafka **3.9.1** KRaft (`kafka_2.13-3.9.1`, not Docker) on `127.0.0.1:9092` |
-| This crate | `cargo +1.85 run --release --example bench_fetch` (`lto = thin`, rustc 1.85.1) |
+| This crate | Historical `bench_fetch` build: thin LTO, rustc 1.85.1 |
 | Other client | rust-rdkafka **0.39.0** `BaseConsumer::assign` + `poll` (one record per poll) |
 | Integrity | **unsigned** |
 
@@ -614,13 +614,16 @@ Fetch v11 `RackId` is a non-nullable STRING (Apache JSON / kafka-protocol
 3.9.1 rejects a null `rackId`. No new admin API. ElectLeaders /
 DescribeLogDirs v5 / DescribeQuorum / raft voters stay closed.
 
-#### Reproduce
+#### Run again
+
+These commands use the latest stable Rust. Record the toolchain with the new
+results; the historical measurements above used rustc 1.85.1.
 
 partitionline:
 
 ```
 COUNT=8000000 MAX_WAIT_MS=100 MAX_BYTES=16777216 MIN_BYTES=1 KAFKA_TOPIC=plbench \
-  cargo +1.85 run --release --example bench_fetch
+  cargo +stable run --release --example bench_fetch
 ```
 
 rust-rdkafka 0.39.0 (standalone crate, **not** a dependency of this
@@ -683,7 +686,7 @@ Percentile is nearest-rank on the sorted sample vector: index
 | Date | 2026-08-28 |
 | Host | Linux 6.12.94+ x86_64, 4 vCPU Intel Xeon, 15 GiB RAM |
 | Broker | Apache Kafka **3.9.1** KRaft (`kafka_2.13-3.9.1`, not Docker) on `127.0.0.1:9092` |
-| This crate | `cargo +1.85 run --release --example bench_latency` (`lto = thin`, rustc 1.85.1) |
+| This crate | Historical `bench_latency` build: thin LTO, rustc 1.85.1 |
 | Other client | rust-rdkafka **0.39.0** (`rdkafka-sys` 4.10.0+2.12.1, `cmake-build` + `tokio`, bundled librdkafka **2.12.1**) standalone `FutureProducer` |
 | Integrity | **unsigned** |
 
@@ -745,14 +748,17 @@ Fetch-request (partitionline only; not vs rdkafka):
 No new admin API. ElectLeaders / DescribeLogDirs v5 / DescribeQuorum /
 raft voters stay closed.
 
-#### Reproduce
+#### Run again
+
+These commands use the latest stable Rust. Record the toolchain with the new
+results; the historical measurements above used rustc 1.85.1.
 
 partitionline:
 
 ```
 COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
   MAX_WAIT_MS=100 MAX_BYTES=4096 MIN_BYTES=1 MODE=both KAFKA_TOPIC=pllat \
-  cargo +1.85 run --release --example bench_latency
+  cargo +stable run --release --example bench_latency
 ```
 
 rust-rdkafka 0.39.0 (standalone crate, **not** a dependency of this

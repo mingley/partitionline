@@ -1,0 +1,66 @@
+{
+  "source_commit": "0cf6c13fd19ac2488603349f3c824e2ceab22c67",
+  "SDK": "4.1.2",
+  "java": [
+    {
+      "name_code": -1,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 32,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 0,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 31,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 160,
+      "rejected_locally": false
+    },
+    {
+      "name_code": 8192,
+      "rejected_locally": false
+    },
+    {
+      "name_code": 102,
+      "rejected_locally": false
+    }
+  ],
+  "rust": [
+    {
+      "name_code": -1,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 32,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 0,
+      "rejected_locally": false
+    },
+    {
+      "name_code": 31,
+      "rejected_locally": false
+    },
+    {
+      "name_code": 160,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 8192,
+      "rejected_locally": true
+    },
+    {
+      "name_code": 102,
+      "rejected_locally": false
+    }
+  ],
+  "qualification": "Actual before-fix public argument mismatch for NUL, unit separator, NBSP and en quad.",
+  "binary_sha256": "aa133b365e2a6e102d42eacadc24e32d558946357bb87f16c502ee5dd07f2e8a"
+}

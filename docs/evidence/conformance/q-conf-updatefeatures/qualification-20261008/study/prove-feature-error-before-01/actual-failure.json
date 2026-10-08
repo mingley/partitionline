@@ -1,0 +1,15 @@
+{
+  "source_commit": "268c46267ff06b39cd7e7d921500686f3d6308d8",
+  "SDK": "4.1.2",
+  "java": {
+    "error_code": 41,
+    "recovery_code": null
+  },
+  "rust": {
+    "error_code": 0,
+    "elapsed_us": 15206,
+    "recovery_code": null
+  },
+  "qualification": "Actual per-feature NOT_CONTROLLER difference: Java reports feature error, Rust retries and hides the error as success.",
+  "binary_sha256": "dfd851f15092003476e773c7c0613a8d4f799847e8eacb0c67fde44ac6c1a732"
+}

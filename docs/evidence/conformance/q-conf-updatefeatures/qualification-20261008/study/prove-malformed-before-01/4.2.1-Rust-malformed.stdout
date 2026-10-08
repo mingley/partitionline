@@ -1,0 +1,11 @@
+
+running 1 test
+test actual_sdk_update_features_malformed_bodies ... FAILED
+
+failures:
+
+failures:
+    actual_sdk_update_features_malformed_bodies
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+

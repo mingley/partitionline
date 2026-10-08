@@ -1,0 +1,1043 @@
+{
+  "source_commit": "9eb1bbba82bc997d314deadfd4bd48fa76ea4a09",
+  "binary_sha256": "9fe6754eeee38eb44e0a6c6874febdb4121dc917c136bca945b05483821a5c90",
+  "peer_cases": 42,
+  "malformed_rejections": 30,
+  "ports_rebound": 84,
+  "source_case_bodies": 36,
+  "legacy_public_projection_cases": 3,
+  "results": [
+    {
+      "SDK": "4.1.2",
+      "version": 0,
+      "scenario": "legacy",
+      "java": {
+        "error_code": 35,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 83100,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1937,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 2075,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 1751,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 14988,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 251433,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 1,
+      "scenario": "feature-error",
+      "java": {
+        "error_code": 41,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 41,
+        "elapsed_us": 1957,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 4266,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1945,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 1641,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 15183,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 251125,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.1.2",
+      "version": 2,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 0,
+      "scenario": "legacy",
+      "java": {
+        "error_code": 35,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 69899,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 2963,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 3283,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 2375,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 16796,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 252261,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 1,
+      "scenario": "feature-error",
+      "java": {
+        "error_code": 41,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 41,
+        "elapsed_us": 1522,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1489,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 4275,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 2994,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 14601,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 250898,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.2.1",
+      "version": 2,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 0,
+      "scenario": "legacy",
+      "java": {
+        "error_code": 35,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 76694,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1918,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1468,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 4137,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 14622,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 251522,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 1,
+      "scenario": "feature-error",
+      "java": {
+        "error_code": 41,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 41,
+        "elapsed_us": 2381,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 1644,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "empty-success",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 6332,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "top-error",
+      "java": {
+        "error_code": 42,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 42,
+        "elapsed_us": 2614,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "retry",
+      "java": {
+        "error_code": 0,
+        "recovery_code": null
+      },
+      "rust": {
+        "error_code": 0,
+        "elapsed_us": 14685,
+        "recovery_code": null
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "deadline",
+      "java": {
+        "error_code": 7,
+        "recovery_code": 0
+      },
+      "rust": {
+        "error_code": 7,
+        "elapsed_us": 251402,
+        "recovery_code": 0
+      },
+      "owned_peer_closed": true
+    },
+    {
+      "SDK": "4.3.1",
+      "version": 2,
+      "scenario": "names",
+      "java": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "rust": [
+        {
+          "name_code": -1,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 32,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 0,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 31,
+          "rejected_locally": true
+        },
+        {
+          "name_code": 160,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 8192,
+          "rejected_locally": false
+        },
+        {
+          "name_code": 102,
+          "rejected_locally": false
+        },
+        {
+          "name_code": -2,
+          "rejected_locally": true
+        },
+        {
+          "name_code": -3,
+          "rejected_locally": true
+        }
+      ],
+      "owned_peer_closed": true
+    }
+  ]
+}

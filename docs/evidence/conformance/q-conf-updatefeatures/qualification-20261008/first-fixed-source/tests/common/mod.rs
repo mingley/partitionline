@@ -1,0 +1,9017 @@
+//! Mock Kafka broker for integration tests.
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    reason = "mock broker is test-only; wire helpers use unwrap on trusted fixtures"
+)]
+#![expect(
+    unreachable_pub,
+    unused_results,
+    reason = "mod common is private to each integration test binary; mock detaches accept loops"
+)]
+#![expect(
+    dead_code,
+    reason = "mock helpers are shared across multiple integration tests"
+)]
+#![expect(
+    clippy::let_underscore_must_use,
+    reason = "mock discards frame length prefixes"
+)]
+
+use bytes::{BufMut, BytesMut};
+use parking_lot::Mutex;
+use partitionline::error;
+use partitionline::group::assign_range_subscribed;
+use partitionline::protocol::acl::{
+    decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
+    encode_create_acls_response, encode_delete_acls_filter_results, encode_describe_acls_response,
+    AclBinding, AclBindingFilter, AclCreationResult, DeleteAclsResponse, DeletedAclsFilterResult,
+};
+use partitionline::protocol::admin::{
+    decode_add_raft_voter_request, encode_add_raft_voter_response, AddRaftVoterRequest,
+    AddRaftVoterResponse,
+};
+use partitionline::protocol::admin::{
+    decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
+    decode_alter_configs_resources_request, decode_alter_partition_reassignments_request,
+    decode_alter_replica_log_dirs_request, decode_alter_share_group_offsets_request,
+    decode_alter_user_scram_credentials_request, decode_assign_replicas_to_dirs_request,
+    decode_consumer_group_describe_request, decode_create_delegation_token_request,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_groups_request,
+    decode_delete_records_topics_request, decode_delete_share_group_offsets_request,
+    decode_delete_topics_states_request, decode_describe_client_quotas_request,
+    decode_describe_cluster_request, decode_describe_configs_request,
+    decode_describe_delegation_token_request, decode_describe_groups_request,
+    decode_describe_log_dirs_request, decode_describe_producers_topics_request,
+    decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
+    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
+    decode_elect_leaders_request, decode_expire_delegation_token_request,
+    decode_get_telemetry_subscriptions_request, decode_incremental_alter_configs_resources_request,
+    decode_list_config_resources_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_push_telemetry_request, decode_renew_delegation_token_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_resource_results,
+    encode_alter_partition_reassignments_response, encode_alter_replica_log_dirs_response,
+    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
+    encode_assign_replicas_to_dirs_response, encode_consumer_group_describe_response,
+    encode_create_delegation_token_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_groups_response,
+    encode_delete_records_topics_response, encode_delete_share_group_offsets_response,
+    encode_delete_topics_response, encode_describe_client_quotas_response,
+    encode_describe_cluster_response, encode_describe_configs_response,
+    encode_describe_delegation_token_response, encode_describe_groups_response,
+    encode_describe_log_dirs_response, encode_describe_producers_response,
+    encode_describe_share_group_offsets_response, encode_describe_topic_partitions_response,
+    encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
+    encode_elect_leaders_response, encode_expire_delegation_token_response,
+    encode_get_telemetry_subscriptions_response, encode_incremental_alter_configs_resource_results,
+    encode_list_config_resources_response, encode_list_groups_response,
+    encode_list_partition_reassignments_response, encode_list_transactions_response,
+    encode_push_telemetry_response, encode_renew_delegation_token_response,
+    encode_share_group_describe_response, encode_unregister_broker_response,
+    encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
+    AlterConfigsResourceResult, AlterPartitionReassignmentsResponse, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterUserScramCredentialsResult, AlteredShareGroupOffsets,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
+    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
+    ConfigEntry, CreateDelegationTokenRequest, CreateDelegationTokenResponse, CreatedTopicConfig,
+    DeletableGroupResult, DeleteRecordsRequest, DeleteTopicState, DeletedRecordsPartition,
+    DeletedRecordsTopic, DeletedShareGroupOffsets, DescribeClientQuotasResponse,
+    DescribeClusterBroker, DescribeConfigsResult, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
+    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment, PushTelemetryResponse,
+    ReassignmentPartitionResult, ReassignmentTopicResult, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
+    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+};
+use partitionline::protocol::admin::{
+    decode_describe_quorum_request, encode_describe_quorum_response, DescribeQuorumListener,
+    DescribeQuorumNode, DescribeQuorumPartition, DescribeQuorumReplicaState, DescribeQuorumRequest,
+    DescribeQuorumResponse, DescribeQuorumResult,
+};
+use partitionline::protocol::admin::{
+    decode_remove_raft_voter_request, encode_remove_raft_voter_response, RemoveRaftVoterRequest,
+    RemoveRaftVoterResponse,
+};
+use partitionline::protocol::admin::{
+    ElectLeadersPartitionResult, ElectLeadersRequest, ElectLeadersResponse, ElectLeadersResult,
+    ElectLeadersTopic,
+};
+use partitionline::protocol::api::{
+    decode_metadata_request_topics, decode_produce_request, decode_produce_request_with_topic_ids,
+    encode_api_versions_response, encode_metadata_response, encode_produce_response_with_endpoints,
+    encode_produce_response_with_throttle, encode_produce_response_with_topic_ids, ApiVersion,
+    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
+    NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
+};
+use partitionline::protocol::api_keys::{
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
+    ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
+    ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS,
+    CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
+    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
+    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
+    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    WRITE_TXN_MARKERS,
+};
+use partitionline::protocol::api_keys::{
+    ADD_RAFT_VOTER, DESCRIBE_QUORUM, ELECT_LEADERS, REMOVE_RAFT_VOTER,
+};
+use partitionline::protocol::cgheartbeat::{
+    decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
+    ConsumerGroupHeartbeatResponse, TopicPartitions,
+};
+use partitionline::protocol::epoch::{
+    decode_offset_for_leader_epoch_topics_request, encode_offset_for_leader_epoch_topics_response,
+    EpochEndOffset, OffsetForLeaderTopicResult,
+};
+use partitionline::protocol::fetch::{
+    decode_fetch_request, encode_fetch_response_with_endpoints,
+    encode_fetch_response_with_throttle, FetchMetadata, FetchTopic, FetchedPartition, FetchedTopic,
+    ForgottenTopic,
+};
+use partitionline::protocol::group::{
+    decode_find_coordinator_request_keys, decode_heartbeat_request,
+    decode_join_group_request_protocols, decode_leave_group_request_version,
+    decode_offset_commit_request, decode_offset_delete_request, decode_offset_fetch_groups_request,
+    decode_sync_group_request, encode_find_coordinator_response_coordinators,
+    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response_version,
+    encode_offset_commit_response, encode_offset_delete_response,
+    encode_offset_fetch_groups_response, encode_offset_fetch_response, encode_sync_group_response,
+    CoordinatorResult, FetchedOffset, FetchedOffsetTopic, JoinGroupRequest, JoinMember,
+    LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult, OffsetFetchGroupResult,
+    OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
+};
+use partitionline::protocol::header::{decode_request_header, encode_response_header};
+use partitionline::protocol::idem::encode_init_producer_id_response;
+use partitionline::protocol::oauth;
+use partitionline::protocol::offsets::{
+    decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
+    ListOffsetsResponsePartition, ListOffsetsTopicResponse, EARLIEST_LOCAL_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
+};
+use partitionline::protocol::records::{Record, RecordBatch};
+use partitionline::protocol::sasl::{
+    decode_sasl_authenticate_request, decode_sasl_handshake_request,
+    encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
+};
+use partitionline::protocol::scram;
+use partitionline::protocol::share::{
+    decode_share_acknowledge_request_with_renew, decode_share_fetch_request_with_options,
+    decode_share_group_heartbeat_request, encode_share_acknowledge_response,
+    encode_share_acknowledge_topics_response_with_lock_timeout, encode_share_fetch_error,
+    encode_share_fetch_response_with_acquisition_lock_timeout,
+    encode_share_group_heartbeat_response, AcknowledgementBatch, AcquiredRange,
+    ShareAcknowledgeResponsePartition, ShareAcknowledgeResponseTopic, ShareFetchedPartition,
+    ShareFetchedTopic, ShareGroupHeartbeatResponse, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
+    ACK_RELEASE, ACK_RENEW,
+};
+use partitionline::protocol::txn::{
+    decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
+    decode_end_txn_request, decode_txn_offset_commit_request, decode_write_txn_markers_request,
+    encode_add_offsets_to_txn_response, encode_add_partitions_to_txn_response,
+    encode_end_txn_response, encode_txn_offset_commit_response, encode_write_txn_markers_response,
+    WritableTxnMarker,
+};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::net::TcpListener;
+use tokio::sync::{watch, Notify};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LastPushTelemetry {
+    pub client_instance_id: [u8; 16],
+    pub subscription_id: i32,
+    pub terminating: bool,
+    pub compression_type: i8,
+    pub metrics: Vec<u8>,
+}
+
+/// Client-side mTLS fixture: the server CA to trust plus one valid and one
+/// rogue client identity (KL06-05).
+pub struct TlsClientFixture {
+    pub server_ca: Vec<u8>,
+    pub client_cert: Vec<u8>,
+    pub client_key: Vec<u8>,
+    pub rogue_cert: Vec<u8>,
+    pub rogue_key: Vec<u8>,
+}
+
+#[derive(Clone)]
+pub struct Mock {
+    pub addr: String,
+    state: Arc<Mutex<State>>,
+}
+
+#[derive(Clone)]
+struct CreatedTopic {
+    num_partitions: i32,
+    configs: HashMap<String, Option<String>>,
+    is_internal: bool,
+}
+
+#[derive(Clone)]
+struct CommittedOffset {
+    offset: i64,
+    leader_epoch: i32,
+    metadata: String,
+}
+
+/// Topic filter from ListPartitionReassignments: name + partition indexes.
+type ListReassignmentTopicFilter = Vec<(String, Vec<i32>)>;
+
+type AppendedBatchKey = (i64, i16, String, i32, i32);
+type AppendedBatchVal = (i64, i32);
+type FetchSessionRequest = (
+    i32,
+    i16,
+    usize,
+    FetchMetadata,
+    Vec<FetchTopic>,
+    Vec<ForgottenTopic>,
+);
+
+type MockShareRecordKey = (String, String, i32, i64);
+
+struct MockShareLock {
+    owner: String,
+    node: i32,
+    expires_ms: u64,
+}
+
+struct State {
+    /// Current TLS acceptor for TLS mocks; swapped by rotation (KL06-05).
+    tls_acceptor: Option<Arc<Mutex<tokio_rustls::TlsAcceptor>>>,
+    /// Server (cert_pem, key_pem) for rebuilding mTLS configs on rotation.
+    tls_server_identity_pem: Option<(Vec<u8>, Vec<u8>)>,
+    /// Required client CA PEM when the mock enforces mTLS.
+    tls_client_ca_pem: Option<Vec<u8>>,
+    log: HashMap<(String, i32), Vec<Record>>,
+    next_offset: HashMap<(String, i32), i64>,
+    /// Keyed by `(group_id, topic, partition)`.
+    committed: HashMap<(String, String, i32), CommittedOffset>,
+    member_seq: u32,
+    sasl_user: Option<(String, String)>,
+    scram_user: Option<(scram::ScramAlg, String, String)>,
+    oauth_principal: Option<String>,
+    /// Override SaslAuthenticate failure messages (broker-echo tests, KL06-07).
+    sasl_authenticate_error_message: Option<String>,
+    next_pid: i64,
+    last_producer_id: Option<i64>,
+    last_produce_producer_epoch: Option<i16>,
+    last_produce_version: Option<i16>,
+    produce_topic_id_names: HashMap<[u8; 16], String>,
+    produce_sent_topic_ids: Vec<(String, [u8; 16])>,
+    produce_recreate_once: Option<(String, [u8; 16])>,
+    produce_response_id: Option<[u8; 16]>,
+    produce_response_delay: Option<Duration>,
+    expected_seq: HashMap<(i64, i16, String, i32), i32>,
+    last_produce_base_sequence: Option<i32>,
+    produce_sequences: Vec<(i64, i16, i32, i32)>,
+    produce_drop_response: Option<bool>,
+    produce_drop_response_left: Option<u32>,
+    produce_drop_response_after_appends: Option<u32>,
+    produce_drop_response_node: Option<i32>,
+    appended_batches: HashMap<AppendedBatchKey, AppendedBatchVal>,
+    produce_error: Option<i16>,
+    produce_error_left: Option<u32>,
+    produce_delay: Option<std::time::Duration>,
+    produce_delay_left: Option<u32>,
+    metadata_delay: Option<std::time::Duration>,
+    add_partitions_error: Option<i16>,
+    add_partitions_error_left: Option<u32>,
+    log_start: HashMap<(String, i32), i64>,
+    created_topics: HashMap<String, CreatedTopic>,
+    topic_id_overrides: HashMap<String, [u8; 16]>,
+    metadata_calls: u32,
+    last_metadata_allow_auto: Option<bool>,
+    last_metadata_version: Option<i16>,
+    last_api_versions_version: Option<i16>,
+    api_versions_versions: Vec<i16>,
+    api_versions_delay: Option<Duration>,
+    /// Last Metadata topic filter: `None` = never recorded;
+    /// `Some(None)` = all topics; `Some(Some(names))` = named.
+    last_metadata_topics: Option<Option<Vec<String>>>,
+    /// Count of null-Name + nonzero TopicId entries on the last Metadata
+    /// request (`None` = never recorded).
+    last_metadata_topic_ids: Option<usize>,
+    last_metadata_include_topic_authorized: Option<bool>,
+    brokers: Vec<Broker>,
+    /// Broker ids omitted from Metadata (still reachable via NodeEndpoints).
+    hidden_brokers: HashSet<i32>,
+    /// Override advertised ApiVersions max per api key.
+    api_max: HashMap<i16, i16>,
+    api_min: HashMap<i16, i16>,
+    /// Override advertised ApiVersions max per node and api key.
+    node_api_max: HashMap<(i32, i16), i16>,
+    /// Last Produce version received per node.
+    last_produce_version_by_node: HashMap<i32, i16>,
+    /// Last Fetch version received per node (KL03-22).
+    last_fetch_version_by_node: HashMap<i32, i16>,
+    /// Api keys omitted from ApiVersions (cannot be advertised via
+    /// [`Mock::set_api_max`], which clamps to the key's min version).
+    hidden_apis: HashSet<i16>,
+    partition_leaders: HashMap<(String, i32), i32>,
+    partition_epochs: HashMap<(String, i32), i32>,
+    last_epoch_req: Option<(String, i32, i32)>,
+    last_epoch_node: Option<i32>,
+    last_epoch_version: Option<i16>,
+    last_epoch_n: Option<usize>,
+    epoch_calls: u32,
+    epoch_not_leader: u32,
+    last_list_offsets: Option<(String, i32, i32)>,
+    last_list_offsets_node: Option<i32>,
+    last_list_offsets_n: Option<usize>,
+    last_list_offsets_isolation: Option<i8>,
+    last_list_offsets_timeout: Option<i32>,
+    list_offsets_calls: u32,
+    list_offsets_not_leader: u32,
+    last_list_offsets_version: Option<i16>,
+    list_offsets_queries: Vec<(i32, i16, String, i32, i64)>,
+    list_offsets_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
+    last_delete_records_node: Option<i32>,
+    last_delete_records_version: Option<i16>,
+    last_delete_records_timeout: Option<i32>,
+    last_delete_records_partitions: usize,
+    delete_records_calls: u32,
+    delete_records_not_leader: u32,
+    last_describe_cluster_version: Option<i16>,
+    last_describe_cluster_endpoint_type: Option<i8>,
+    last_describe_cluster_include_fenced: Option<bool>,
+    last_describe_producers_node: Option<i32>,
+    last_describe_producers_topics: Option<usize>,
+    describe_producers_not_leader: u32,
+    last_write_txn_markers_node: Option<i32>,
+    write_txn_markers_not_leader: u32,
+    last_write_txn_markers: Option<WritableTxnMarker>,
+    last_write_txn_markers_version: Option<i16>,
+    controller_node: i32,
+    last_create_topics_node: Option<i32>,
+    last_create_topics_version: Option<i16>,
+    last_create_topics_timeout: Option<i32>,
+    last_create_topics_replica_assignments: Option<Vec<(i32, Vec<i32>)>>,
+    last_create_topics_num_partitions: Option<i32>,
+    last_create_topics_replication_factor: Option<i16>,
+    last_create_topics_names: Option<Vec<String>>,
+    create_topics_quota_once: HashSet<String>,
+    create_topics_quota_hits: u32,
+    create_topics_not_controller: u32,
+    last_delete_topics_node: Option<i32>,
+    last_delete_topics_version: Option<i16>,
+    last_delete_topics_timeout: Option<i32>,
+    last_delete_topics_ids: Option<usize>,
+    last_delete_topics_names: Option<Vec<String>>,
+    delete_topics_quota_once: HashSet<String>,
+    delete_topics_quota_hits: u32,
+    delete_topics_not_controller: u32,
+    last_describe_configs_version: Option<i16>,
+    last_describe_configs_documentation: Option<bool>,
+    last_create_partitions_node: Option<i32>,
+    last_create_partitions_version: Option<i16>,
+    last_create_partitions_timeout: Option<i32>,
+    last_create_partitions_null_assignments: Option<bool>,
+    last_create_partitions_replica_assignments: Option<Vec<Vec<i32>>>,
+    last_create_partitions_names: Option<Vec<String>>,
+    create_partitions_quota_once: HashSet<String>,
+    create_partitions_quota_hits: u32,
+    create_partitions_not_controller: u32,
+    last_incremental_alter_configs_node: Option<i32>,
+    last_incremental_alter_configs_version: Option<i16>,
+    last_incremental_alter_configs_n: Option<usize>,
+    incremental_alter_configs_not_controller: u32,
+    last_alter_configs_version: Option<i16>,
+    last_alter_configs_n: Option<usize>,
+    last_create_acls_node: Option<i32>,
+    last_create_acls_version: Option<i16>,
+    create_acls_not_controller: u32,
+    last_describe_acls_version: Option<i16>,
+    last_describe_acls_filter: Option<AclBindingFilter>,
+    last_delete_acls_version: Option<i16>,
+    last_delete_acls_n: Option<usize>,
+    last_alter_reassignments_node: Option<i32>,
+    last_alter_reassignments_timeout: Option<i32>,
+    alter_reassignments_not_controller: u32,
+    last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
+    reassignments: HashMap<(String, i32), Vec<i32>>,
+    last_list_reassignments_node: Option<i32>,
+    last_list_reassignments_timeout: Option<i32>,
+    last_list_reassignments_topics: Option<Option<ListReassignmentTopicFilter>>,
+    list_reassignments_not_controller: u32,
+    last_update_features_node: Option<i32>,
+    last_update_features_version: Option<i16>,
+    last_update_features_timeout: Option<i32>,
+    last_update_features_validate_only: Option<bool>,
+    last_update_features_upgrade_type: Option<i8>,
+    update_features_not_controller: u32,
+    last_feature_update: Option<(String, i16, bool)>,
+    features: HashMap<String, i16>,
+    transaction_version: Option<i16>,
+    last_alter_user_scram_node: Option<i32>,
+    alter_user_scram_not_controller: u32,
+    last_describe_user_scram_node: Option<i32>,
+    last_describe_user_scram_users: Option<Option<Vec<String>>>,
+    describe_user_scram_not_controller: u32,
+    elect_leaders_requests: Vec<(i32, i16, ElectLeadersRequest)>,
+    elect_leaders_responses: VecDeque<ElectLeadersResponse>,
+    elect_leaders_delay: Option<Duration>,
+    elect_leaders_drop: u32,
+    describe_quorum_requests: Vec<(i32, i16, DescribeQuorumRequest)>,
+    describe_quorum_responses: VecDeque<DescribeQuorumResponse>,
+    describe_quorum_delay: Option<Duration>,
+    describe_quorum_drop: u32,
+    add_raft_voter_requests: Vec<(i32, i16, AddRaftVoterRequest)>,
+    add_raft_voter_responses: VecDeque<AddRaftVoterResponse>,
+    add_raft_voter_delay: Option<Duration>,
+    add_raft_voter_drop: u32,
+    add_raft_voter_trailing: bool,
+    remove_raft_voter_requests: Vec<(i32, i16, RemoveRaftVoterRequest)>,
+    remove_raft_voter_responses: VecDeque<RemoveRaftVoterResponse>,
+    remove_raft_voter_delay: Option<Duration>,
+    remove_raft_voter_drop: u32,
+    remove_raft_voter_trailing: bool,
+    last_unregister_broker_node: Option<i32>,
+    unregister_broker_not_controller: u32,
+    last_unregistered_broker_id: Option<i32>,
+    // Fixture broker ids only. Not a live KRaft unregistration.
+    unregistered_brokers: HashSet<i32>,
+    last_scram_upsert: Option<(String, i8, i32)>,
+    last_scram_delete: Option<(String, i8)>,
+    scram_users: HashMap<(String, i8), i32>,
+    last_describe_client_quotas_node: Option<i32>,
+    last_describe_client_quotas_version: Option<i16>,
+    last_describe_client_quotas: Option<(Vec<ClientQuotaFilterComponent>, bool)>,
+    last_alter_client_quotas_node: Option<i32>,
+    last_alter_client_quotas_version: Option<i16>,
+    alter_client_quotas_not_controller: u32,
+    last_quota_upsert: Option<(String, Option<String>, String, f64)>,
+    last_quota_delete: Option<(String, Option<String>, String)>,
+    // Fixture entity/ops only. Not a real cluster quota store.
+    quota_fixtures: HashMap<(String, Option<String>, String), f64>,
+    last_allocate_producer_ids_node: Option<i32>,
+    allocate_producer_ids_not_controller: u32,
+    // Fixture broker id/epoch + sequential blocks. Not a real PID allocator.
+    last_allocate_producer_ids: Option<(i32, i64, i64, i32)>,
+    next_producer_id_block_start: i64,
+    last_describe_transactions_node: Option<i32>,
+    last_describe_transactions_n: usize,
+    describe_transactions_calls: u32,
+    describe_transactions_not_coordinator: u32,
+    last_list_transactions_node: Option<i32>,
+    last_list_transactions_version: Option<i16>,
+    last_list_transactions_duration: Option<i64>,
+    list_transactions_not_coordinator: u32,
+    // Fixture transactional ids only. Not a live txn coordinator store.
+    txn_fixtures: HashMap<String, TransactionState>,
+    last_offset_delete_node: Option<i32>,
+    offset_delete_not_coordinator: u32,
+    last_consumer_group_describe_node: Option<i32>,
+    last_consumer_group_describe_version: Option<i16>,
+    last_consumer_group_describe_n: usize,
+    consumer_group_describe_calls: u32,
+    consumer_group_describe_not_coordinator: u32,
+    consumer_group_describe_errors: HashMap<String, i16>,
+    last_describe_groups_node: Option<i32>,
+    last_describe_groups_version: Option<i16>,
+    last_describe_groups_include: Option<bool>,
+    last_describe_groups_n: usize,
+    describe_groups_calls: u32,
+    describe_groups_not_coordinator: u32,
+    last_leave_group_node: Option<i32>,
+    last_leave_group_members: Option<Vec<LeaveGroupMember>>,
+    last_leave_group_version: Option<i16>,
+    last_sasl_handshake_version: Option<i16>,
+    last_sasl_handshake_correlation: Option<i32>,
+    last_sasl_authenticate_version: Option<i16>,
+    last_sasl_authenticate_correlation: Option<i32>,
+    last_list_groups_node: Option<i32>,
+    last_list_groups: Option<(Vec<String>, Vec<String>)>,
+    last_list_groups_version: Option<i16>,
+    last_delete_groups_node: Option<i32>,
+    last_delete_groups_version: Option<i16>,
+    last_delete_groups_n: usize,
+    delete_groups_calls: u32,
+    delete_groups_not_coordinator: u32,
+    last_share_group_describe_node: Option<i32>,
+    last_share_group_describe_version: Option<i16>,
+    last_share_group_describe_n: usize,
+    share_group_describe_calls: u32,
+    share_group_describe_not_coordinator: u32,
+    last_describe_share_group_offsets_node: Option<i32>,
+    last_describe_share_group_offsets_n: usize,
+    describe_share_group_offsets_calls: u32,
+    describe_share_group_offsets_not_coordinator: u32,
+    last_alter_share_group_offsets_node: Option<i32>,
+    alter_share_group_offsets_not_coordinator: u32,
+    last_delete_share_group_offsets_node: Option<i32>,
+    delete_share_group_offsets_not_coordinator: u32,
+    last_describe_topic_partitions_node: Option<i32>,
+    last_describe_topic_partitions: Option<(Vec<String>, i32, Option<TopicPartitionCursor>)>,
+    last_list_config_resources_node: Option<i32>,
+    last_list_config_resources_version: Option<i16>,
+    last_list_config_resources: Option<Vec<i8>>,
+    last_get_telemetry_subscriptions_node: Option<i32>,
+    last_get_telemetry_subscriptions: Option<[u8; 16]>,
+    last_push_telemetry_node: Option<i32>,
+    last_push_telemetry: Option<LastPushTelemetry>,
+    last_assign_replicas_to_dirs_node: Option<i32>,
+    assign_replicas_to_dirs_not_controller: u32,
+    last_assign_replicas_to_dirs: Option<AssignReplicasToDirsRequest>,
+    last_alter_replica_log_dirs_node: Option<i32>,
+    last_alter_replica_log_dirs_version: Option<i16>,
+    last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
+    last_describe_log_dirs_node: Option<i32>,
+    last_describe_log_dirs_version: Option<i16>,
+    describe_log_dirs_nodes: Vec<i32>,
+    last_describe_log_dirs: Option<DescribeLogDirsRequest>,
+    describe_log_dirs_cordoned_nodes: HashSet<i32>,
+    describe_log_dirs_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
+    last_create_delegation_token_node: Option<i32>,
+    last_create_delegation_token_version: Option<i16>,
+    last_create_delegation_token: Option<CreateDelegationTokenRequest>,
+    last_renew_delegation_token_node: Option<i32>,
+    last_renew_delegation_token_version: Option<i16>,
+    last_renew_delegation_token: Option<RenewDelegationTokenRequest>,
+    last_expire_delegation_token_node: Option<i32>,
+    last_expire_delegation_token_version: Option<i16>,
+    last_expire_delegation_token: Option<ExpireDelegationTokenRequest>,
+    last_describe_delegation_token_node: Option<i32>,
+    last_describe_delegation_token_version: Option<i16>,
+    last_describe_delegation_token: Option<DescribeDelegationTokenRequest>,
+    accepted_produce: Vec<i32>,
+    produce_requests: Vec<i32>,
+    produce_throttles: HashMap<i32, VecDeque<i32>>,
+    /// Per-partition batches observed on Produce: (topic, partition, records, encoded bytes).
+    produce_batches: Vec<(String, i32, i32, i32)>,
+    accepted_fetch: Vec<i32>,
+    fetch_throttles: HashMap<i32, VecDeque<i32>>,
+    fetch_delays: HashMap<i32, VecDeque<std::time::Duration>>,
+    fetch_session_nodes: HashSet<i32>,
+    fetch_session_maps: HashMap<(i32, i32), (i32, Vec<FetchTopic>)>,
+    next_fetch_session: i32,
+    fetch_session_requests: Vec<FetchSessionRequest>,
+    fetch_session_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
+    groups: HashMap<String, GroupReg>,
+    assign_notify: Arc<Notify>,
+    last_fetch_isolation: i8,
+    last_fetch_rack: String,
+    last_fetch_max_bytes: i32,
+    last_fetch_partition_max_bytes: i32,
+    last_fetch_version: Option<i16>,
+    last_fetched_epoch: Option<i32>,
+    next_diverging: HashMap<(String, i32), (i32, i64)>,
+    last_group_instance_id: Option<String>,
+    last_group_rack: Option<String>,
+    in_txn: bool,
+    txn_pending: Vec<(String, i32, i64)>,
+    txn_aborted: HashSet<(String, i32, i64)>,
+    log_producer: HashMap<(String, i32, i64), i64>,
+    last_produce_txn_id: Option<String>,
+    acls: Vec<AclBinding>,
+    join_group_calls: u32,
+    cg_heartbeat_calls: u32,
+    cg_heartbeat_interval_ms: i32,
+    sync_group_calls: u32,
+    share_heartbeat_calls: u32,
+    share_heartbeat_interval_ms: i32,
+    share_fetch_calls: u32,
+    share_ack_calls: u32,
+    share_accepted: HashSet<MockShareRecordKey>,
+    share_acquired: HashMap<MockShareRecordKey, MockShareLock>,
+    share_deliveries: HashMap<MockShareRecordKey, i16>,
+    share_epochs: HashMap<(String, String, i32), i32>,
+    share_clock_ms: u64,
+    share_lock_timeout_ms: i32,
+    share_ack_faults: HashMap<(String, i32), VecDeque<i16>>,
+    share_session_faults: HashMap<i32, VecDeque<i16>>,
+    share_ack_session_faults: HashMap<i32, VecDeque<i16>>,
+    share_top_faults: HashMap<(i16, i32), VecDeque<i16>>,
+    share_ack_history: Vec<(i32, i32)>,
+    share_reply_delays: HashMap<i16, VecDeque<std::time::Duration>>,
+    share_fetch_raw_once: Option<Vec<u8>>,
+    share_ack_attempts: Vec<(String, i32, i64, i64)>,
+    share_fetch_versions_by_node: HashMap<i32, i16>,
+    share_fetch_history: Vec<(i32, i32)>,
+    last_share_acquire_mode: i8,
+    last_share_renew_ack: bool,
+    last_share_fetch_epoch: Option<i32>,
+    last_share_fetch_version: Option<i16>,
+    last_share_ack_epoch: Option<i32>,
+    last_share_ack_version: Option<i16>,
+    last_share_ack_partitions: usize,
+    last_share_fetch_node: Option<i32>,
+    last_share_ack_node: Option<i32>,
+    share_fetch_not_leader: u32,
+    offset_commit_calls: u32,
+    offset_fetch_calls: u32,
+    last_offset_commit_partitions: usize,
+    last_offset_fetch_partitions: usize,
+    last_offset_fetch_version: Option<i16>,
+    last_offset_fetch_require_stable: Option<bool>,
+    last_offset_fetch_null_topics: Option<bool>,
+    last_offset_fetch_group_count: usize,
+    last_offset_commit_node: Option<i32>,
+    last_offset_commit_version: Option<i16>,
+    last_offset_commit_member: Option<String>,
+    last_offset_commit_generation: Option<i32>,
+    last_heartbeat_version: Option<i16>,
+    last_sync_group_version: Option<i16>,
+    last_join_group_version: Option<i16>,
+    last_join_group_reason: Option<String>,
+    last_join_protocols_n: Option<usize>,
+    last_consumer_group_heartbeat_version: Option<i16>,
+    last_consumer_group_heartbeat_join_member_id: Option<String>,
+    cg_heartbeat_error_code: i16,
+    cg_heartbeat_error_left: u32,
+    cg_heartbeat_rotate_member_id: Option<String>,
+    cg_heartbeat_drop_left: u32,
+    cg_heartbeat_corrupt_left: u32,
+    cg_heartbeat_acks: Vec<(String, i32, Option<Vec<i32>>)>,
+    last_share_group_heartbeat_version: Option<i16>,
+    offset_commit_not_coordinator: u32,
+    offset_commit_error: Option<i16>,
+    offset_commit_load_left: u32,
+    offset_commit_load_in_progress: u32,
+    add_partitions_to_txn_calls: u32,
+    last_add_partitions_to_txn: usize,
+    last_add_partitions_to_txn_version: Option<i16>,
+    last_add_partitions_producer_epoch: Option<i16>,
+    txn_offset_commit_calls: u32,
+    last_txn_offset_commit_partitions: usize,
+    last_txn_offset_commit_version: Option<i16>,
+    last_txn_offset_generation: Option<i32>,
+    last_txn_offset_member_id: Option<String>,
+    last_txn_offset_epochs: Vec<i32>,
+    drop_gen: watch::Sender<u32>,
+    drop_node_gen: HashMap<i32, watch::Sender<u32>>,
+    refuse_conns: u32,
+    accepts: u32,
+    coord_node: i32,
+    txn_coord_node: i32,
+    find_coordinator_key_types: Vec<i8>,
+    last_find_coordinator_version: Option<i16>,
+    last_find_coordinator_key_count: usize,
+    find_coordinator_calls: u32,
+    find_coordinator_faults: VecDeque<i16>,
+    last_init_producer_id_node: Option<i32>,
+    last_init_producer_id_timeout: Option<i32>,
+    last_init_producer_id_version: Option<i16>,
+    last_init_producer_id_producer_id: Option<i64>,
+    last_init_producer_id_producer_epoch: Option<i16>,
+    init_producer_id_nodes: Vec<i32>,
+    init_producer_id_not_coordinator: u32,
+    init_producer_id_faults: VecDeque<i16>,
+    init_producer_id_delay: Option<Duration>,
+    last_init_producer_id_flags: Option<(bool, bool)>,
+    init_producer_id_ongoing: Option<(i64, i16)>,
+    stale_txn_finds: u32,
+    last_add_partitions_node: Option<i32>,
+    last_add_offsets_node: Option<i32>,
+    last_add_offsets_to_txn_version: Option<i16>,
+    add_offsets_error: Option<i16>,
+    add_offsets_error_left: Option<u32>,
+    last_end_txn_node: Option<i32>,
+    last_end_txn_version: Option<i16>,
+    last_end_txn_committed: Option<bool>,
+    /// `EndTxn` RPCs the broker processed (success, forced error, or applied
+    /// but response dropped). Request-loss drops never reach the broker and
+    /// are not counted.
+    end_txn_calls: u32,
+    end_txn_error: Option<i16>,
+    end_txn_error_left: Option<u32>,
+    /// Response-loss drops: apply `EndTxn`, then close without replying.
+    end_txn_drop_response: u32,
+    /// Request-loss drops: never process `EndTxn`, close without replying.
+    end_txn_drop_request: u32,
+    txn_offset_commit_error: Option<i16>,
+    txn_offset_commit_error_left: Option<u32>,
+    /// Current `(producer_id, epoch)` floor per `transactional.id`. A second
+    /// producer for the same id gets the same pid with a bumped epoch and
+    /// fences the first (KL03-10).
+    txn_identities: HashMap<String, (i64, i16)>,
+    /// `TxnOffsetCommit` entries staged in the open transaction, keyed by
+    /// `(group_id, topic, partition)`. Applied to `committed` on `EndTxn`
+    /// commit, discarded on abort (KL03-10).
+    txn_pending_offsets: Vec<((String, String, i32), CommittedOffset)>,
+    last_txn_offset_commit_node: Option<i32>,
+    hb_by_node: HashMap<i32, u32>,
+    kip848_groups: HashMap<String, Kip848Reg>,
+}
+
+#[derive(Default)]
+struct Kip848Reg {
+    members: BTreeMap<String, Kip848Member>,
+}
+
+struct Kip848Member {
+    topics: Vec<String>,
+    epoch: i32,
+    partitions: Vec<(String, i32)>,
+    pending: bool,
+}
+
+struct GroupReg {
+    members: BTreeMap<String, Vec<u8>>,
+    instances: HashMap<String, String>,
+    generation: i32,
+    joined: HashSet<String>,
+    assignments: HashMap<String, Vec<u8>>,
+    hb_total: u32,
+}
+
+fn new_state(
+    sasl_user: Option<(String, String)>,
+    scram_user: Option<(scram::ScramAlg, String, String)>,
+    oauth_principal: Option<String>,
+) -> State {
+    let mut created_topics = HashMap::new();
+    created_topics.insert(
+        "t".into(),
+        CreatedTopic {
+            num_partitions: 1,
+            configs: HashMap::new(),
+            is_internal: false,
+        },
+    );
+    State {
+        log: HashMap::new(),
+        next_offset: HashMap::new(),
+        committed: HashMap::new(),
+        member_seq: 0,
+        sasl_user,
+        scram_user,
+        oauth_principal,
+        sasl_authenticate_error_message: None,
+        next_pid: 1000,
+        last_producer_id: None,
+        last_produce_producer_epoch: None,
+        last_produce_version: None,
+        produce_topic_id_names: HashMap::new(),
+        produce_sent_topic_ids: Vec::new(),
+        produce_recreate_once: None,
+        produce_response_id: None,
+        produce_response_delay: None,
+        expected_seq: HashMap::new(),
+        last_produce_base_sequence: None,
+        produce_sequences: Vec::new(),
+        produce_drop_response: None,
+        produce_drop_response_left: None,
+        produce_drop_response_after_appends: None,
+        produce_drop_response_node: None,
+        appended_batches: HashMap::new(),
+        produce_error: None,
+        produce_error_left: None,
+        produce_delay: None,
+        produce_delay_left: None,
+        metadata_delay: None,
+        add_partitions_error: None,
+        add_partitions_error_left: None,
+        log_start: HashMap::new(),
+        created_topics,
+        topic_id_overrides: HashMap::new(),
+        metadata_calls: 0,
+        last_metadata_allow_auto: None,
+        last_metadata_version: None,
+        last_api_versions_version: None,
+        api_versions_versions: Vec::new(),
+        api_versions_delay: None,
+        last_metadata_topics: None,
+        last_metadata_topic_ids: None,
+        last_metadata_include_topic_authorized: None,
+        brokers: Vec::new(),
+        hidden_brokers: HashSet::new(),
+        api_max: HashMap::new(),
+        api_min: HashMap::new(),
+        node_api_max: HashMap::new(),
+        last_produce_version_by_node: HashMap::new(),
+        last_fetch_version_by_node: HashMap::new(),
+        hidden_apis: HashSet::new(),
+        partition_leaders: HashMap::new(),
+        partition_epochs: HashMap::new(),
+        last_epoch_req: None,
+        last_epoch_node: None,
+        last_epoch_version: None,
+        last_epoch_n: None,
+        epoch_calls: 0,
+        epoch_not_leader: 0,
+        last_list_offsets: None,
+        last_list_offsets_node: None,
+        last_list_offsets_n: None,
+        last_list_offsets_isolation: None,
+        last_list_offsets_timeout: None,
+        list_offsets_calls: 0,
+        list_offsets_not_leader: 0,
+        last_list_offsets_version: None,
+        list_offsets_queries: Vec::new(),
+        list_offsets_raw_responses: HashMap::new(),
+        last_delete_records_node: None,
+        last_delete_records_version: None,
+        last_delete_records_timeout: None,
+        last_delete_records_partitions: 0,
+        delete_records_calls: 0,
+        delete_records_not_leader: 0,
+        last_describe_cluster_version: None,
+        last_describe_cluster_endpoint_type: None,
+        last_describe_cluster_include_fenced: None,
+        last_describe_producers_node: None,
+        last_describe_producers_topics: None,
+        describe_producers_not_leader: 0,
+        last_write_txn_markers_node: None,
+        write_txn_markers_not_leader: 0,
+        last_write_txn_markers: None,
+        last_write_txn_markers_version: None,
+        controller_node: 1,
+        last_create_topics_node: None,
+        last_create_topics_version: None,
+        last_create_topics_timeout: None,
+        last_create_topics_replica_assignments: None,
+        last_create_topics_num_partitions: None,
+        last_create_topics_replication_factor: None,
+        last_create_topics_names: None,
+        create_topics_quota_once: HashSet::new(),
+        create_topics_quota_hits: 0,
+        create_topics_not_controller: 0,
+        last_delete_topics_node: None,
+        last_delete_topics_version: None,
+        last_delete_topics_timeout: None,
+        last_delete_topics_ids: None,
+        last_delete_topics_names: None,
+        delete_topics_quota_once: HashSet::new(),
+        delete_topics_quota_hits: 0,
+        delete_topics_not_controller: 0,
+        last_describe_configs_version: None,
+        last_describe_configs_documentation: None,
+        last_create_partitions_node: None,
+        last_create_partitions_version: None,
+        last_create_partitions_timeout: None,
+        last_create_partitions_null_assignments: None,
+        last_create_partitions_replica_assignments: None,
+        last_create_partitions_names: None,
+        create_partitions_quota_once: HashSet::new(),
+        create_partitions_quota_hits: 0,
+        create_partitions_not_controller: 0,
+        last_incremental_alter_configs_node: None,
+        last_incremental_alter_configs_version: None,
+        last_incremental_alter_configs_n: None,
+        incremental_alter_configs_not_controller: 0,
+        last_alter_configs_version: None,
+        last_alter_configs_n: None,
+        last_create_acls_node: None,
+        last_create_acls_version: None,
+        create_acls_not_controller: 0,
+        last_describe_acls_version: None,
+        last_describe_acls_filter: None,
+        last_delete_acls_version: None,
+        last_delete_acls_n: None,
+        last_alter_reassignments_node: None,
+        last_alter_reassignments_timeout: None,
+        alter_reassignments_not_controller: 0,
+        last_reassignment: None,
+        reassignments: HashMap::new(),
+        last_list_reassignments_node: None,
+        last_list_reassignments_timeout: None,
+        last_list_reassignments_topics: None,
+        list_reassignments_not_controller: 0,
+        last_update_features_node: None,
+        last_update_features_version: None,
+        last_update_features_timeout: None,
+        last_update_features_validate_only: None,
+        last_update_features_upgrade_type: None,
+        update_features_not_controller: 0,
+        last_feature_update: None,
+        features: HashMap::new(),
+        transaction_version: Some(2),
+        last_alter_user_scram_node: None,
+        alter_user_scram_not_controller: 0,
+        last_describe_user_scram_node: None,
+        last_describe_user_scram_users: None,
+        describe_user_scram_not_controller: 0,
+        elect_leaders_requests: Vec::new(),
+        elect_leaders_responses: VecDeque::new(),
+        elect_leaders_delay: None,
+        elect_leaders_drop: 0,
+        describe_quorum_requests: Vec::new(),
+        describe_quorum_responses: VecDeque::new(),
+        describe_quorum_delay: None,
+        describe_quorum_drop: 0,
+        add_raft_voter_requests: Vec::new(),
+        add_raft_voter_responses: VecDeque::new(),
+        add_raft_voter_delay: None,
+        add_raft_voter_drop: 0,
+        add_raft_voter_trailing: false,
+        remove_raft_voter_requests: Vec::new(),
+        remove_raft_voter_responses: VecDeque::new(),
+        remove_raft_voter_delay: None,
+        remove_raft_voter_drop: 0,
+        remove_raft_voter_trailing: false,
+        last_unregister_broker_node: None,
+        unregister_broker_not_controller: 0,
+        last_unregistered_broker_id: None,
+        unregistered_brokers: HashSet::new(),
+        last_scram_upsert: None,
+        last_scram_delete: None,
+        scram_users: HashMap::new(),
+        last_describe_client_quotas_node: None,
+        last_describe_client_quotas_version: None,
+        last_describe_client_quotas: None,
+        last_alter_client_quotas_node: None,
+        last_alter_client_quotas_version: None,
+        alter_client_quotas_not_controller: 0,
+        last_quota_upsert: None,
+        last_quota_delete: None,
+        quota_fixtures: HashMap::new(),
+        last_allocate_producer_ids_node: None,
+        allocate_producer_ids_not_controller: 0,
+        last_allocate_producer_ids: None,
+        next_producer_id_block_start: 1000,
+        last_describe_transactions_node: None,
+        last_describe_transactions_n: 0,
+        describe_transactions_calls: 0,
+        describe_transactions_not_coordinator: 0,
+        last_list_transactions_node: None,
+        last_list_transactions_version: None,
+        last_list_transactions_duration: None,
+        list_transactions_not_coordinator: 0,
+        txn_fixtures: HashMap::new(),
+        last_offset_delete_node: None,
+        offset_delete_not_coordinator: 0,
+        last_consumer_group_describe_node: None,
+        last_consumer_group_describe_version: None,
+        last_consumer_group_describe_n: 0,
+        consumer_group_describe_calls: 0,
+        consumer_group_describe_not_coordinator: 0,
+        consumer_group_describe_errors: HashMap::new(),
+        last_describe_groups_node: None,
+        last_describe_groups_version: None,
+        last_describe_groups_include: None,
+        last_describe_groups_n: 0,
+        describe_groups_calls: 0,
+        describe_groups_not_coordinator: 0,
+        last_leave_group_node: None,
+        last_leave_group_members: None,
+        last_leave_group_version: None,
+        last_sasl_handshake_version: None,
+        last_sasl_handshake_correlation: None,
+        last_sasl_authenticate_version: None,
+        last_sasl_authenticate_correlation: None,
+        last_list_groups_node: None,
+        last_list_groups: None,
+        last_list_groups_version: None,
+        last_delete_groups_node: None,
+        last_delete_groups_version: None,
+        last_delete_groups_n: 0,
+        delete_groups_calls: 0,
+        delete_groups_not_coordinator: 0,
+        last_share_group_describe_node: None,
+        last_share_group_describe_version: None,
+        last_share_group_describe_n: 0,
+        share_group_describe_calls: 0,
+        share_group_describe_not_coordinator: 0,
+        last_describe_share_group_offsets_node: None,
+        last_describe_share_group_offsets_n: 0,
+        describe_share_group_offsets_calls: 0,
+        describe_share_group_offsets_not_coordinator: 0,
+        last_alter_share_group_offsets_node: None,
+        alter_share_group_offsets_not_coordinator: 0,
+        last_delete_share_group_offsets_node: None,
+        delete_share_group_offsets_not_coordinator: 0,
+        last_describe_topic_partitions_node: None,
+        last_describe_topic_partitions: None,
+        last_list_config_resources_node: None,
+        last_list_config_resources_version: None,
+        last_list_config_resources: None,
+        last_get_telemetry_subscriptions_node: None,
+        last_get_telemetry_subscriptions: None,
+        last_push_telemetry_node: None,
+        last_push_telemetry: None,
+        last_assign_replicas_to_dirs_node: None,
+        assign_replicas_to_dirs_not_controller: 0,
+        last_assign_replicas_to_dirs: None,
+        last_alter_replica_log_dirs_node: None,
+        last_alter_replica_log_dirs_version: None,
+        last_alter_replica_log_dirs: None,
+        last_describe_log_dirs_node: None,
+        last_describe_log_dirs_version: None,
+        describe_log_dirs_nodes: Vec::new(),
+        last_describe_log_dirs: None,
+        describe_log_dirs_cordoned_nodes: HashSet::new(),
+        describe_log_dirs_raw_responses: HashMap::new(),
+        last_create_delegation_token_node: None,
+        last_create_delegation_token_version: None,
+        last_create_delegation_token: None,
+        last_renew_delegation_token_node: None,
+        last_renew_delegation_token_version: None,
+        last_renew_delegation_token: None,
+        last_expire_delegation_token_node: None,
+        last_expire_delegation_token_version: None,
+        last_expire_delegation_token: None,
+        last_describe_delegation_token_node: None,
+        last_describe_delegation_token_version: None,
+        last_describe_delegation_token: None,
+        accepted_produce: Vec::new(),
+        produce_requests: Vec::new(),
+        produce_throttles: HashMap::new(),
+        produce_batches: Vec::new(),
+        accepted_fetch: Vec::new(),
+        fetch_throttles: HashMap::new(),
+        fetch_delays: HashMap::new(),
+        fetch_session_nodes: HashSet::new(),
+        fetch_session_maps: HashMap::new(),
+        next_fetch_session: 10_000,
+        fetch_session_requests: Vec::new(),
+        fetch_session_raw_responses: HashMap::new(),
+        groups: HashMap::new(),
+        assign_notify: Arc::new(Notify::new()),
+        last_fetch_isolation: 0,
+        last_fetch_rack: String::new(),
+        last_fetch_max_bytes: 0,
+        last_fetch_partition_max_bytes: 0,
+        last_fetch_version: None,
+        last_fetched_epoch: None,
+        next_diverging: HashMap::new(),
+        last_group_instance_id: None,
+        last_group_rack: None,
+        in_txn: false,
+        txn_pending: Vec::new(),
+        txn_aborted: HashSet::new(),
+        log_producer: HashMap::new(),
+        last_produce_txn_id: None,
+        acls: Vec::new(),
+        join_group_calls: 0,
+        cg_heartbeat_calls: 0,
+        // Previously hardcoded to 5000 while the client ignored it and used the
+        // 150 ms config interval. Now that the client honors this field, keep
+        // the default at the old effective cadence so existing 2s waits still
+        // observe a heartbeat. Tests that need another interval set it explicitly.
+        cg_heartbeat_interval_ms: 150,
+        sync_group_calls: 0,
+        share_heartbeat_calls: 0,
+        share_heartbeat_interval_ms: 150,
+        share_fetch_calls: 0,
+        share_ack_calls: 0,
+        share_accepted: HashSet::new(),
+        share_acquired: HashMap::new(),
+        share_deliveries: HashMap::new(),
+        share_epochs: HashMap::new(),
+        share_clock_ms: 0,
+        share_lock_timeout_ms: 15_000,
+        share_ack_faults: HashMap::new(),
+        share_session_faults: HashMap::new(),
+        share_ack_session_faults: HashMap::new(),
+        share_top_faults: HashMap::new(),
+        share_ack_history: Vec::new(),
+        share_reply_delays: HashMap::new(),
+        share_fetch_raw_once: None,
+        share_ack_attempts: Vec::new(),
+        share_fetch_versions_by_node: HashMap::new(),
+        share_fetch_history: Vec::new(),
+        last_share_acquire_mode: 0,
+        last_share_renew_ack: false,
+        last_share_fetch_epoch: None,
+        last_share_fetch_version: None,
+        last_share_ack_epoch: None,
+        last_share_ack_version: None,
+        last_share_ack_partitions: 0,
+        last_share_fetch_node: None,
+        last_share_ack_node: None,
+        share_fetch_not_leader: 0,
+        offset_commit_calls: 0,
+        offset_fetch_calls: 0,
+        last_offset_commit_partitions: 0,
+        last_offset_fetch_partitions: 0,
+        last_offset_fetch_version: None,
+        last_offset_fetch_require_stable: None,
+        last_offset_fetch_null_topics: None,
+        last_offset_fetch_group_count: 0,
+        last_offset_commit_node: None,
+        last_offset_commit_version: None,
+        last_offset_commit_member: None,
+        last_offset_commit_generation: None,
+        last_heartbeat_version: None,
+        last_sync_group_version: None,
+        last_join_group_version: None,
+        last_join_group_reason: None,
+        last_join_protocols_n: None,
+        last_consumer_group_heartbeat_version: None,
+        last_consumer_group_heartbeat_join_member_id: None,
+        cg_heartbeat_error_code: 0,
+        cg_heartbeat_error_left: 0,
+        cg_heartbeat_rotate_member_id: None,
+        cg_heartbeat_drop_left: 0,
+        cg_heartbeat_corrupt_left: 0,
+        cg_heartbeat_acks: Vec::new(),
+        last_share_group_heartbeat_version: None,
+        offset_commit_not_coordinator: 0,
+        offset_commit_error: None,
+        offset_commit_load_left: 0,
+        offset_commit_load_in_progress: 0,
+        add_partitions_to_txn_calls: 0,
+        last_add_partitions_to_txn: 0,
+        last_add_partitions_to_txn_version: None,
+        last_add_partitions_producer_epoch: None,
+        txn_offset_commit_calls: 0,
+        last_txn_offset_commit_partitions: 0,
+        last_txn_offset_commit_version: None,
+        last_txn_offset_generation: None,
+        last_txn_offset_member_id: None,
+        last_txn_offset_epochs: Vec::new(),
+        drop_gen: watch::channel(0).0,
+        drop_node_gen: HashMap::new(),
+        refuse_conns: 0,
+        accepts: 0,
+        coord_node: 1,
+        txn_coord_node: 1,
+        find_coordinator_key_types: Vec::new(),
+        last_find_coordinator_version: None,
+        last_find_coordinator_key_count: 0,
+        find_coordinator_calls: 0,
+        find_coordinator_faults: VecDeque::new(),
+        last_init_producer_id_node: None,
+        last_init_producer_id_timeout: None,
+        last_init_producer_id_version: None,
+        last_init_producer_id_producer_id: None,
+        last_init_producer_id_producer_epoch: None,
+        init_producer_id_nodes: Vec::new(),
+        init_producer_id_not_coordinator: 0,
+        init_producer_id_faults: VecDeque::new(),
+        init_producer_id_delay: None,
+        last_init_producer_id_flags: None,
+        init_producer_id_ongoing: None,
+        stale_txn_finds: 0,
+        last_add_partitions_node: None,
+        last_add_offsets_node: None,
+        last_add_offsets_to_txn_version: None,
+        add_offsets_error: None,
+        add_offsets_error_left: None,
+        last_end_txn_node: None,
+        last_end_txn_version: None,
+        last_end_txn_committed: None,
+        end_txn_calls: 0,
+        end_txn_error: None,
+        end_txn_error_left: None,
+        end_txn_drop_response: 0,
+        end_txn_drop_request: 0,
+        txn_offset_commit_error: None,
+        txn_offset_commit_error_left: None,
+        txn_identities: HashMap::new(),
+        txn_pending_offsets: Vec::new(),
+        last_txn_offset_commit_node: None,
+        hb_by_node: HashMap::new(),
+        kip848_groups: HashMap::new(),
+        tls_acceptor: None,
+        tls_server_identity_pem: None,
+        tls_client_ca_pem: None,
+    }
+}
+
+fn mock_topic_id(name: &str) -> [u8; 16] {
+    let mut id = [0u8; 16];
+    let bytes = name.as_bytes();
+    let n = bytes.len().min(16);
+    if let Some(dst) = id.get_mut(..n) {
+        if let Some(src) = bytes.get(..n) {
+            dst.copy_from_slice(src);
+        }
+    }
+    id
+}
+
+fn topic_id_for(state: &State, name: &str) -> [u8; 16] {
+    state
+        .topic_id_overrides
+        .get(name)
+        .copied()
+        .unwrap_or_else(|| mock_topic_id(name))
+}
+
+fn kip848_topic_partitions(parts: &[(String, i32)]) -> Vec<TopicPartitions> {
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in parts {
+        match by_topic.iter_mut().find(|(t, _)| t == topic) {
+            Some((_, ps)) => ps.push(*part),
+            None => by_topic.push((topic.clone(), vec![*part])),
+        }
+    }
+    by_topic
+        .into_iter()
+        .map(|(topic, partitions)| TopicPartitions {
+            topic_id: mock_topic_id(&topic),
+            partitions,
+        })
+        .collect()
+}
+
+fn kip848_recompute(st: &mut State, group_id: &str) {
+    let Some(g) = st.kip848_groups.get(group_id) else {
+        return;
+    };
+    if g.members.is_empty() {
+        return;
+    }
+    let mut topic_names = Vec::new();
+    for m in g.members.values() {
+        for t in &m.topics {
+            if !topic_names.iter().any(|x| x == t) {
+                topic_names.push(t.clone());
+            }
+        }
+    }
+    if topic_names.is_empty() {
+        topic_names.push("t".into());
+    }
+    let member_subs: Vec<(String, Vec<String>)> = g
+        .members
+        .iter()
+        .map(|(id, m)| {
+            let topics = if m.topics.is_empty() {
+                topic_names.clone()
+            } else {
+                m.topics.clone()
+            };
+            (id.clone(), topics)
+        })
+        .collect();
+    let mut topic_parts = Vec::with_capacity(topic_names.len());
+    for topic in &topic_names {
+        let npart = st
+            .created_topics
+            .get(topic)
+            .map(|s| s.num_partitions)
+            .unwrap_or(1);
+        topic_parts.push((topic.clone(), (0..npart).collect()));
+    }
+    let assigned = assign_range_subscribed(&member_subs, &topic_parts);
+    let Some(g) = st.kip848_groups.get_mut(group_id) else {
+        return;
+    };
+    for (id, m) in &mut g.members {
+        let new_parts = assigned.get(id).cloned().unwrap_or_default();
+        if new_parts != m.partitions {
+            m.partitions = new_parts;
+            m.epoch = m.epoch.saturating_add(1).max(1);
+            m.pending = true;
+        }
+    }
+}
+
+fn metadata_for(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    include_topic_authorized: bool,
+) -> MetadataResponse {
+    let (brokers, replica_nodes, default_leader, controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    MetadataResponse {
+        throttle_time_ms: 0,
+        brokers,
+        cluster_id: Some("mock".into()),
+        controller_id,
+        topics: st
+            .created_topics
+            .iter()
+            .map(|(name, spec)| {
+                metadata_topic_for(
+                    st,
+                    name,
+                    spec,
+                    include_topic_authorized,
+                    &replica_nodes,
+                    default_leader,
+                )
+            })
+            .collect(),
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        error_code: 0,
+    }
+}
+
+fn metadata_for_ids(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    include_topic_authorized: bool,
+    topics: &[MetadataRequestTopic],
+) -> MetadataResponse {
+    let (brokers, replica_nodes, default_leader, controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    let topics = topics
+        .iter()
+        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+        .map(|t| {
+            st.created_topics
+                .iter()
+                .find(|(name, _)| mock_topic_id(name) == t.topic_id)
+                .map(|(name, spec)| {
+                    metadata_topic_for(
+                        st,
+                        name,
+                        spec,
+                        include_topic_authorized,
+                        &replica_nodes,
+                        default_leader,
+                    )
+                })
+                .unwrap_or_else(|| TopicMetadata {
+                    error_code: error::UNKNOWN_TOPIC_ID,
+                    name: None,
+                    topic_id: t.topic_id,
+                    is_internal: false,
+                    partitions: Vec::new(),
+                    topic_authorized_operations: i32::MIN,
+                })
+        })
+        .collect();
+    MetadataResponse {
+        throttle_time_ms: 0,
+        brokers,
+        cluster_id: Some("mock".into()),
+        controller_id,
+        topics,
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        error_code: 0,
+    }
+}
+
+fn metadata_cluster(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+) -> (Vec<Broker>, Vec<i32>, i32, i32) {
+    let brokers = if st.brokers.is_empty() {
+        vec![Broker {
+            node_id: 1,
+            host: fallback_host.to_string(),
+            port: fallback_port,
+            rack: None,
+        }]
+    } else {
+        st.brokers
+            .iter()
+            .filter(|b| !st.hidden_brokers.contains(&b.node_id))
+            .cloned()
+            .collect()
+    };
+    let replica_nodes: Vec<i32> = brokers.iter().map(|b| b.node_id).collect();
+    let default_leader = brokers.first().map(|b| b.node_id).unwrap_or(1);
+    let controller_id = if st.controller_node >= 0 {
+        st.controller_node
+    } else {
+        default_leader
+    };
+    (brokers, replica_nodes, default_leader, controller_id)
+}
+
+fn metadata_topic_for(
+    st: &State,
+    name: &str,
+    spec: &CreatedTopic,
+    include_topic_authorized: bool,
+    replica_nodes: &[i32],
+    default_leader: i32,
+) -> TopicMetadata {
+    TopicMetadata {
+        error_code: 0,
+        name: Some(name.to_string()),
+        topic_id: topic_id_for(st, name),
+        is_internal: spec.is_internal,
+        partitions: (0..spec.num_partitions)
+            .map(|i| {
+                let leader_id = st
+                    .partition_leaders
+                    .get(&(name.to_string(), i))
+                    .copied()
+                    .unwrap_or(default_leader);
+                PartitionMetadata {
+                    error_code: 0,
+                    partition_index: i,
+                    leader_id,
+                    leader_epoch: st
+                        .partition_epochs
+                        .get(&(name.to_string(), i))
+                        .copied()
+                        .unwrap_or(0),
+                    replica_nodes: replica_nodes.to_vec(),
+                    isr_nodes: replica_nodes.to_vec(),
+                    offline_replicas: Vec::new(),
+                }
+            })
+            .collect(),
+        topic_authorized_operations: if include_topic_authorized {
+            4
+        } else {
+            i32::MIN
+        },
+    }
+}
+
+fn apply_incremental_list_op(
+    current: Option<&Option<String>>,
+    op: i8,
+    value: Option<String>,
+) -> Option<String> {
+    let mut parts: Vec<String> = match current {
+        Some(Some(s)) => s
+            .split(',')
+            .filter(|p| !p.is_empty())
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    };
+    let op_value = value.unwrap_or_default();
+    if op == ALTER_CONFIG_APPEND {
+        for part in op_value.split(',') {
+            if !part.is_empty() && !parts.iter().any(|existing| existing == part) {
+                parts.push(part.to_string());
+            }
+        }
+    } else {
+        for part in op_value.split(',') {
+            if part.is_empty() {
+                continue;
+            }
+            if let Some(idx) = parts.iter().position(|existing| existing == part) {
+                let _removed = parts.remove(idx);
+            }
+        }
+    }
+    Some(parts.join(","))
+}
+
+fn describe_topic_partitions_for(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    names: &[String],
+) -> DescribeTopicPartitionsResponse {
+    let (_brokers, replica_nodes, default_leader, _controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    let topics = names
+        .iter()
+        .map(|name| match st.created_topics.get(name) {
+            Some(spec) => {
+                let md = metadata_topic_for(st, name, spec, true, &replica_nodes, default_leader);
+                DescribedTopicPartitions {
+                    error_code: 0,
+                    name: Some(name.clone()),
+                    topic_id: md.topic_id,
+                    is_internal: md.is_internal,
+                    partitions: md
+                        .partitions
+                        .iter()
+                        .map(|p| DescribedTopicPartition {
+                            error_code: p.error_code,
+                            partition_index: p.partition_index,
+                            leader_id: p.leader_id,
+                            leader_epoch: p.leader_epoch,
+                            replica_nodes: p.replica_nodes.clone(),
+                            isr_nodes: p.isr_nodes.clone(),
+                            eligible_leader_replicas: None,
+                            last_known_elr: None,
+                            offline_replicas: p.offline_replicas.clone(),
+                        })
+                        .collect(),
+                    topic_authorized_operations: 4,
+                }
+            }
+            None => DescribedTopicPartitions {
+                error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+                name: Some(name.clone()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: i32::MIN,
+            },
+        })
+        .collect();
+    DescribeTopicPartitionsResponse::new(topics)
+}
+
+fn offset_for_leader_epoch_partition_result(
+    st: &mut State,
+    node_id: i32,
+    topic: &str,
+    partition: i32,
+    current: i32,
+    leader_epoch: i32,
+) -> EpochEndOffset {
+    st.last_epoch_req = Some((topic.to_string(), partition, leader_epoch));
+    let key = (topic.to_string(), partition);
+    let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+    let epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+    let end = *st.next_offset.get(&key).unwrap_or(&0);
+    let error_code = if leader != node_id {
+        st.epoch_not_leader = st.epoch_not_leader.saturating_add(1);
+        error::NOT_LEADER_OR_FOLLOWER
+    } else if current != -1 && current < epoch {
+        error::FENCED_LEADER_EPOCH
+    } else if current != -1 && current > epoch {
+        error::UNKNOWN_LEADER_EPOCH
+    } else {
+        st.last_epoch_node = Some(node_id);
+        0
+    };
+    EpochEndOffset::new(error_code, partition, epoch, end)
+}
+
+fn list_offsets_partition_result(
+    st: &mut State,
+    node_id: i32,
+    topic: &str,
+    partition: i32,
+    current_epoch: i32,
+    timestamp: i64,
+) -> (bool, ListOffsetsResponsePartition) {
+    st.last_list_offsets = Some((topic.to_string(), partition, current_epoch));
+    let key = (topic.to_string(), partition);
+    let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+    if leader != node_id {
+        st.list_offsets_not_leader = st.list_offsets_not_leader.saturating_add(1);
+        return (
+            false,
+            ListOffsetsResponsePartition::new(
+                partition,
+                ListOffsetsPartition {
+                    error_code: error::NOT_LEADER_OR_FOLLOWER,
+                    timestamp,
+                    offset: ListOffsetsPartition::UNKNOWN_OFFSET,
+                    leader_epoch: ListOffsetsPartition::UNKNOWN_EPOCH,
+                },
+            ),
+        );
+    }
+    let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+    let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
+        error::FENCED_LEADER_EPOCH
+    } else if current_epoch != -1 && current_epoch > broker_epoch {
+        error::UNKNOWN_LEADER_EPOCH
+    } else {
+        0
+    };
+    let log_start = *st.log_start.get(&key).unwrap_or(&0);
+    let hw = *st.next_offset.get(&key).unwrap_or(&0);
+    let (resp_ts, offset) = if error_code != 0 {
+        (
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+        )
+    } else if timestamp == EARLIEST_TIMESTAMP || timestamp == EARLIEST_LOCAL_TIMESTAMP {
+        (timestamp, log_start)
+    } else if timestamp == LATEST_TIMESTAMP {
+        (timestamp, hw)
+    } else if timestamp == MAX_TIMESTAMP {
+        st.log
+            .get(&key)
+            .and_then(|recs| recs.iter().max_by_key(|r| (r.timestamp, r.offset)))
+            .map(|r| (r.timestamp, r.offset))
+            .unwrap_or((
+                ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                ListOffsetsPartition::UNKNOWN_OFFSET,
+            ))
+    } else if timestamp == LATEST_TIERED_TIMESTAMP {
+        (
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+        )
+    } else {
+        st.log
+            .get(&key)
+            .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
+            .map(|r| (r.timestamp, r.offset))
+            .unwrap_or((
+                ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                ListOffsetsPartition::UNKNOWN_OFFSET,
+            ))
+    };
+    (
+        true,
+        ListOffsetsResponsePartition::new(
+            partition,
+            ListOffsetsPartition {
+                error_code,
+                timestamp: resp_ts,
+                offset,
+                leader_epoch: if error_code == 0 {
+                    broker_epoch
+                } else {
+                    ListOffsetsPartition::UNKNOWN_EPOCH
+                },
+            },
+        ),
+    )
+}
+
+fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
+    tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = listener.accept().await else {
+                break;
+            };
+            if take_refuse(&state) {
+                continue;
+            }
+            note_accept(&state);
+            stream.set_nodelay(true).ok();
+            let st = state.clone();
+            tokio::spawn(handle_conn(stream, node_id, st));
+        }
+    });
+}
+
+fn take_refuse(state: &Mutex<State>) -> bool {
+    let mut st = state.lock();
+    if st.refuse_conns > 0 {
+        st.refuse_conns -= 1;
+        true
+    } else {
+        false
+    }
+}
+
+fn note_accept(state: &Mutex<State>) {
+    let mut st = state.lock();
+    st.accepts = st.accepts.saturating_add(1);
+}
+
+fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
+    st.brokers
+        .iter()
+        .find(|b| b.node_id == node_id)
+        .map(|b| (b.host.clone(), b.port))
+        .unwrap_or_else(|| ("127.0.0.1".into(), 0))
+}
+
+/// CurrentLeader id/epoch when this node is not the partition leader.
+fn kip951_current_leader(
+    st: &State,
+    topic: &str,
+    partition: i32,
+    leader: i32,
+    serving_node: i32,
+) -> (i32, i32) {
+    if leader == serving_node {
+        return (-1, -1);
+    }
+    let epoch = st
+        .partition_epochs
+        .get(&(topic.to_string(), partition))
+        .copied()
+        .unwrap_or(0);
+    (leader, epoch)
+}
+
+fn node_endpoints_for(st: &State, leader_ids: impl IntoIterator<Item = i32>) -> Vec<NodeEndpoint> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for id in leader_ids {
+        if id < 0 || !seen.insert(id) {
+            continue;
+        }
+        if let Some(b) = st.brokers.iter().find(|b| b.node_id == id) {
+            out.push(NodeEndpoint {
+                node_id: b.node_id,
+                host: b.host.clone(),
+                port: b.port,
+                rack: b.rack.clone(),
+            });
+        }
+    }
+    out
+}
+
+impl Mock {
+    pub async fn start() -> Self {
+        Self::start_with_sasl(None).await
+    }
+
+    pub async fn start_with_sasl(creds: Option<(String, String)>) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let port = addr.port() as i32;
+        let mut st = new_state(creds, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_two_node() -> Self {
+        let l1 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let l2 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let a1 = l1.local_addr().unwrap();
+        let a2 = l2.local_addr().unwrap();
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![
+            Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: a1.port() as i32,
+                rack: Some("r1".into()),
+            },
+            Broker {
+                node_id: 2,
+                host: "127.0.0.1".into(),
+                port: a2.port() as i32,
+                rack: Some("r2".into()),
+            },
+        ];
+        st.partition_leaders.insert(("t".into(), 0), 2);
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(l1, 1, state.clone());
+        spawn_plain(l2, 2, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", a1.port()),
+            state,
+        }
+    }
+
+    pub async fn start_with_scram(creds: (String, String)) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let port = addr.port() as i32;
+        let mut st = new_state(
+            None,
+            Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
+            None,
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_with_scram_sha512(creds: (String, String)) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let port = addr.port() as i32;
+        let mut st = new_state(
+            None,
+            Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
+            None,
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_with_oauthbearer(principal: String) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let port = addr.port() as i32;
+        let mut st = new_state(None, None, Some(principal));
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    /// Serve Kafka-over-TLS with `server`, sharing the acceptor so rotation
+    /// swaps the identity new connections see (KL06-05). `server_pem` keeps
+    /// the (cert,key) PEMs for rebuilding mTLS configs on rotation.
+    async fn serve_tls_state(
+        server: rustls::ServerConfig,
+        server_pem: Option<(Vec<u8>, Vec<u8>)>,
+        client_ca_pem: Option<Vec<u8>>,
+    ) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let port = addr.port() as i32;
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let acceptor = Arc::new(Mutex::new(tokio_rustls::TlsAcceptor::from(Arc::new(
+            server,
+        ))));
+        st.tls_acceptor = Some(acceptor.clone());
+        st.tls_server_identity_pem = server_pem;
+        st.tls_client_ca_pem = client_ca_pem;
+        let state = Arc::new(Mutex::new(st));
+        let st = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((tcp, _)) = listener.accept().await else {
+                    break;
+                };
+                if take_refuse(&st) {
+                    continue;
+                }
+                note_accept(&st);
+                tcp.set_nodelay(true).ok();
+                let st = st.clone();
+                let acceptor = acceptor.lock().clone();
+                tokio::spawn(async move {
+                    let Ok(stream) = acceptor.accept(tcp).await else {
+                        return;
+                    };
+                    handle_conn(stream, 1, st).await;
+                });
+            }
+        });
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_tls() -> (Self, partitionline::TlsConfig) {
+        partitionline::net::install_crypto_provider();
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let server = tls_server_config_no_client_auth(&cert_pem, &key_pem);
+        let mock = Self::serve_tls_state(server, Some((cert_pem.clone(), key_pem)), None).await;
+        let tls = partitionline::TlsConfig {
+            ca_pem: Some(cert_pem),
+            client_cert_pem: None,
+            client_key_pem: None,
+            server_name: Some("localhost".into()),
+        };
+        (mock, tls)
+    }
+
+    /// TLS mock serving an expired leaf; clients must trust the returned CA
+    /// (which is still valid, so only the leaf's dates fail) (KL06-05).
+    pub async fn start_tls_expired() -> (Self, Vec<u8>) {
+        partitionline::net::install_crypto_provider();
+        let (server, ca_pem) = tls_expired_server_identity();
+        let mock = Self::serve_tls_state(server, None, None).await;
+        (mock, ca_pem)
+    }
+
+    /// mTLS mock requiring client certificates chained to a fresh client CA
+    /// (KL06-05).
+    pub async fn start_tls_mtls() -> (Self, TlsClientFixture) {
+        partitionline::net::install_crypto_provider();
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let (client_ca_cert, client_ca_key) = tls_ca_identity("client-ca");
+        let (client_cert, client_key) = tls_leaf_via_ca(
+            &client_ca_cert,
+            &client_ca_key,
+            "client",
+            None,
+            "clientAuth",
+        );
+        let (rogue_ca_cert, rogue_ca_key) = tls_ca_identity("rogue-ca");
+        let (rogue_cert, rogue_key) =
+            tls_leaf_via_ca(&rogue_ca_cert, &rogue_ca_key, "rogue", None, "clientAuth");
+        let server = tls_server_config_mtls(&cert_pem, &key_pem, &client_ca_cert);
+        let mock = Self::serve_tls_state(
+            server,
+            Some((cert_pem.clone(), key_pem)),
+            Some(client_ca_cert),
+        )
+        .await;
+        (
+            mock,
+            TlsClientFixture {
+                server_ca: cert_pem,
+                client_cert,
+                client_key,
+                rogue_cert,
+                rogue_key,
+            },
+        )
+    }
+
+    /// Replace the server identity with a fresh self-signed cert, preserving
+    /// the mTLS client-CA requirement when one is configured. Returns the new
+    /// CA PEM clients must trust. Established connections are unaffected;
+    /// only new handshakes see the replacement (KL06-05).
+    pub fn rotate_tls_server(&self) -> Vec<u8> {
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let st = self.state.lock();
+        let server = match &st.tls_client_ca_pem {
+            Some(client_ca) => tls_server_config_mtls(&cert_pem, &key_pem, client_ca),
+            None => tls_server_config_no_client_auth(&cert_pem, &key_pem),
+        };
+        let slot = st.tls_acceptor.clone().expect("tls mock");
+        *slot.lock() = tokio_rustls::TlsAcceptor::from(Arc::new(server));
+        drop(st);
+        let mut st = self.state.lock();
+        st.tls_server_identity_pem = Some((cert_pem.clone(), key_pem));
+        cert_pem
+    }
+
+    /// Replace the required client CA, keeping the server identity. Returns
+    /// a fresh client identity chained to the new CA; previously issued
+    /// identities are rejected on new handshakes while established
+    /// connections are unaffected (KL06-05).
+    pub fn rotate_tls_client_ca(&self) -> (Vec<u8>, Vec<u8>) {
+        let (client_ca_cert, client_ca_key) = tls_ca_identity("client-ca-rotated");
+        let (client_cert, client_key) = tls_leaf_via_ca(
+            &client_ca_cert,
+            &client_ca_key,
+            "client",
+            None,
+            "clientAuth",
+        );
+        let st = self.state.lock();
+        let (cert_pem, key_pem) = st
+            .tls_server_identity_pem
+            .clone()
+            .expect("tls server identity");
+        let server = tls_server_config_mtls(&cert_pem, &key_pem, &client_ca_cert);
+        let slot = st.tls_acceptor.clone().expect("tls mock");
+        *slot.lock() = tokio_rustls::TlsAcceptor::from(Arc::new(server));
+        drop(st);
+        let mut st = self.state.lock();
+        st.tls_client_ca_pem = Some(client_ca_cert);
+        (client_cert, client_key)
+    }
+
+    pub fn last_producer_id(&self) -> Option<i64> {
+        self.state.lock().last_producer_id
+    }
+
+    pub fn last_produce_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_produce_producer_epoch
+    }
+
+    pub fn produce_sent_topic_ids(&self) -> Vec<(String, [u8; 16])> {
+        self.state.lock().produce_sent_topic_ids.clone()
+    }
+    pub fn set_topic_id(&self, topic: &str, id: [u8; 16]) {
+        self.state
+            .lock()
+            .topic_id_overrides
+            .insert(topic.to_string(), id);
+    }
+    pub fn recreate_topic_on_next_produce(&self, topic: &str, id: [u8; 16]) {
+        self.state.lock().produce_recreate_once = Some((topic.to_string(), id));
+    }
+    pub fn set_produce_response_id(&self, id: [u8; 16]) {
+        self.state.lock().produce_response_id = Some(id);
+    }
+    pub fn set_produce_response_delay(&self, delay: Duration) {
+        self.state.lock().produce_response_delay = Some(delay);
+    }
+    pub fn last_produce_version(&self) -> Option<i16> {
+        self.state.lock().last_produce_version
+    }
+
+    pub fn set_log_start(&self, topic: &str, partition: i32, offset: i64) {
+        self.state
+            .lock()
+            .log_start
+            .insert((topic.to_string(), partition), offset);
+    }
+
+    pub fn log_len(&self, topic: &str, partition: i32) -> usize {
+        self.state
+            .lock()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|v| v.len())
+            .unwrap_or(0)
+    }
+
+    pub fn metadata_calls(&self) -> u32 {
+        self.state.lock().metadata_calls
+    }
+
+    pub fn last_metadata_allow_auto(&self) -> Option<bool> {
+        self.state.lock().last_metadata_allow_auto
+    }
+
+    pub fn last_metadata_version(&self) -> Option<i16> {
+        self.state.lock().last_metadata_version
+    }
+
+    pub fn last_api_versions_version(&self) -> Option<i16> {
+        self.state.lock().last_api_versions_version
+    }
+
+    pub fn api_versions_versions(&self) -> Vec<i16> {
+        self.state.lock().api_versions_versions.clone()
+    }
+
+    pub fn set_api_versions_delay(&self, delay: Duration) {
+        self.state.lock().api_versions_delay = Some(delay);
+    }
+
+    pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
+        self.state.lock().last_metadata_topics.clone()
+    }
+
+    pub fn last_metadata_topic_ids(&self) -> Option<usize> {
+        self.state.lock().last_metadata_topic_ids
+    }
+
+    pub fn last_metadata_include_topic_authorized(&self) -> Option<bool> {
+        self.state.lock().last_metadata_include_topic_authorized
+    }
+
+    pub fn set_topic_internal(&self, name: &str, is_internal: bool) {
+        if let Some(topic) = self.state.lock().created_topics.get_mut(name) {
+            topic.is_internal = is_internal;
+        }
+    }
+
+    pub fn topic_is_internal(&self, name: &str) -> Option<bool> {
+        self.state
+            .lock()
+            .created_topics
+            .get(name)
+            .map(|topic| topic.is_internal)
+    }
+
+    pub fn set_produce_error(&self, code: i16) {
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = None;
+    }
+
+    pub fn set_produce_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = Some(n);
+    }
+
+    pub fn set_add_partitions_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.add_partitions_error = Some(code);
+        st.add_partitions_error_left = Some(n);
+    }
+
+    pub fn set_produce_delay(&self, delay: std::time::Duration) {
+        let mut st = self.state.lock();
+        st.produce_delay = Some(delay);
+        st.produce_delay_left = None;
+    }
+
+    pub fn set_produce_drop_response_times(&self, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(n);
+        st.produce_drop_response_after_appends = None;
+        st.produce_drop_response_node = None;
+    }
+
+    pub fn set_produce_drop_response_times_for_node(&self, node: i32, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(n);
+        st.produce_drop_response_after_appends = None;
+        st.produce_drop_response_node = Some(node);
+    }
+
+    pub fn set_produce_drop_response_after_n_appends(&self, appends: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(1);
+        st.produce_drop_response_after_appends = Some(appends);
+        st.produce_drop_response_node = None;
+    }
+
+    pub fn last_produce_base_sequence(&self) -> Option<i32> {
+        self.state.lock().last_produce_base_sequence
+    }
+
+    pub fn produce_sequences(&self) -> Vec<(i64, i16, i32, i32)> {
+        self.state.lock().produce_sequences.clone()
+    }
+
+    pub fn set_topic_partitions(&self, topic: &str, count: i32) {
+        let mut st = self.state.lock();
+        st.created_topics
+            .entry(topic.to_string())
+            .or_insert_with(|| CreatedTopic {
+                num_partitions: count,
+                configs: HashMap::new(),
+                is_internal: false,
+            })
+            .num_partitions = count;
+    }
+
+    pub fn set_produce_delay_times(&self, delay: std::time::Duration, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_delay = Some(delay);
+        st.produce_delay_left = Some(n);
+    }
+
+    pub fn set_metadata_delay(&self, delay: std::time::Duration) {
+        let mut st = self.state.lock();
+        st.metadata_delay = Some(delay);
+    }
+
+    pub fn produce_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_produce.clone()
+    }
+
+    pub fn produce_request_nodes(&self) -> Vec<i32> {
+        self.state.lock().produce_requests.clone()
+    }
+
+    pub fn set_produce_throttles(&self, node: i32, values: impl IntoIterator<Item = i32>) {
+        self.state
+            .lock()
+            .produce_throttles
+            .insert(node, values.into_iter().collect());
+    }
+
+    /// Per-partition Produce batches: (topic, partition, record count, encoded bytes).
+    pub fn produce_batches(&self) -> Vec<(String, i32, i32, i32)> {
+        self.state.lock().produce_batches.clone()
+    }
+
+    pub fn advance_share_clock(&self, millis: u64) {
+        let mut state = self.state.lock();
+        state.share_clock_ms = state.share_clock_ms.saturating_add(millis);
+        expire_share_locks(&mut state);
+    }
+
+    pub fn set_share_lock_timeout(&self, millis: i32) {
+        self.state.lock().share_lock_timeout_ms = millis;
+    }
+
+    pub fn fail_share_ack_once(&self, topic: &str, partition: i32, code: i16) {
+        self.state
+            .lock()
+            .share_ack_faults
+            .entry((topic.into(), partition))
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn fail_share_session_once(&self, node: i32, code: i16) {
+        self.state
+            .lock()
+            .share_session_faults
+            .entry(node)
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn fail_share_top_once(&self, api: i16, node: i32, code: i16) {
+        self.state
+            .lock()
+            .share_top_faults
+            .entry((api, node))
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn delay_share_reply_once(&self, api: i16, delay: std::time::Duration) {
+        self.state
+            .lock()
+            .share_reply_delays
+            .entry(api)
+            .or_default()
+            .push_back(delay);
+    }
+
+    pub fn share_ack_history(&self) -> Vec<(i32, i32)> {
+        self.state.lock().share_ack_history.clone()
+    }
+
+    pub fn fail_share_ack_session_once(&self, node: i32, code: i16) {
+        self.state
+            .lock()
+            .share_ack_session_faults
+            .entry(node)
+            .or_default()
+            .push_back(code);
+    }
+
+    pub fn inject_share_fetch_response_once(&self, bytes: &[u8]) {
+        self.state.lock().share_fetch_raw_once = Some(bytes.to_vec());
+    }
+
+    pub fn share_ack_attempts(&self) -> Vec<(String, i32, i64, i64)> {
+        self.state.lock().share_ack_attempts.clone()
+    }
+
+    pub fn share_fetch_history(&self) -> Vec<(i32, i32)> {
+        self.state.lock().share_fetch_history.clone()
+    }
+
+    pub fn share_fetch_version_on(&self, node: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .share_fetch_versions_by_node
+            .get(&node)
+            .copied()
+    }
+
+    pub fn last_share_acquire_mode(&self) -> i8 {
+        self.state.lock().last_share_acquire_mode
+    }
+
+    pub fn last_share_renew_ack(&self) -> bool {
+        self.state.lock().last_share_renew_ack
+    }
+
+    pub fn share_accepted(&self, group: &str, topic: &str, partition: i32, offset: i64) -> bool {
+        self.state
+            .lock()
+            .share_accepted
+            .contains(&(group.into(), topic.into(), partition, offset))
+    }
+
+    pub fn set_partition_leader(&self, topic: &str, partition: i32, node_id: i32) {
+        let mut st = self.state.lock();
+        let previous = share_partition_leader(&st, topic, partition);
+        st.partition_leaders
+            .insert((topic.to_string(), partition), node_id);
+        if previous != node_id {
+            st.share_acquired
+                .retain(|(_, t, p, _), _| t != topic || *p != partition);
+        }
+        let slot = st
+            .partition_epochs
+            .entry((topic.to_string(), partition))
+            .or_insert(0);
+        *slot += 1;
+    }
+
+    pub fn hide_broker_from_metadata(&self, node_id: i32) {
+        let _ = self.state.lock().hidden_brokers.insert(node_id);
+    }
+
+    pub fn set_transaction_version(&self, level: Option<i16>) {
+        self.state.lock().transaction_version = level;
+    }
+
+    pub fn set_api_max(&self, api_key: i16, max: i16) {
+        let _ = self.state.lock().api_max.insert(api_key, max);
+    }
+
+    pub fn set_api_range(&self, api_key: i16, min: i16, max: i16) {
+        let mut state = self.state.lock();
+        state.api_min.insert(api_key, min);
+        state.api_max.insert(api_key, max);
+    }
+
+    pub fn set_node_api_max(&self, node_id: i32, api_key: i16, max: i16) {
+        let _ = self
+            .state
+            .lock()
+            .node_api_max
+            .insert((node_id, api_key), max);
+    }
+
+    pub fn last_produce_version_for_node(&self, node_id: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .last_produce_version_by_node
+            .get(&node_id)
+            .copied()
+    }
+
+    pub fn broker_addr(&self, node_id: i32) -> Option<String> {
+        let st = self.state.lock();
+        st.brokers
+            .iter()
+            .find(|b| b.node_id == node_id)
+            .map(|b| format!("{}:{}", b.host, b.port))
+    }
+
+    pub fn hide_api(&self, api_key: i16) {
+        let _ = self.state.lock().hidden_apis.insert(api_key);
+    }
+
+    pub fn api_hidden(&self, api_key: i16) -> bool {
+        self.state.lock().hidden_apis.contains(&api_key)
+    }
+
+    pub fn set_fetch_throttles(&self, node: i32, values: impl IntoIterator<Item = i32>) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_throttles
+            .insert(node, values.into_iter().collect());
+    }
+
+    pub fn enable_fetch_sessions(&self, nodes: impl IntoIterator<Item = i32>) {
+        self.state.lock().fetch_session_nodes.extend(nodes);
+    }
+
+    pub fn fetch_session_requests(&self) -> Vec<FetchSessionRequest> {
+        self.state.lock().fetch_session_requests.clone()
+    }
+
+    pub fn set_fetch_session_raw_responses(
+        &self,
+        node: i32,
+        bodies: impl IntoIterator<Item = Vec<u8>>,
+    ) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_session_raw_responses
+            .insert(node, bodies.into_iter().collect());
+    }
+
+    pub fn fetch_session_id(&self, node: i32) -> Option<i32> {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .keys()
+            .filter_map(|(n, id)| (*n == node).then_some(*id))
+            .max()
+    }
+
+    pub fn reset_fetch_sessions(&self, node: i32) {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .retain(|(n, _), _| *n != node);
+    }
+
+    pub fn remembered_fetch_partitions(&self, node: i32) -> usize {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .iter()
+            .filter(|((n, _), _)| *n == node)
+            .map(|(_, (_, topics))| topics.iter().map(|t| t.partitions.len()).sum::<usize>())
+            .sum()
+    }
+
+    pub fn topic_id(&self, topic: &str) -> [u8; 16] {
+        topic_id_for(&self.state.lock(), topic)
+    }
+
+    pub fn recreate_topic_id(&self, topic: &str, id: [u8; 16]) {
+        let mut state = self.state.lock();
+        let _ = state.topic_id_overrides.insert(topic.into(), id);
+        state.log.retain(|(name, _), _| name != topic);
+        state.next_offset.retain(|(name, _), _| name != topic);
+    }
+
+    pub fn set_fetch_delay_once(&self, node: i32, delay: std::time::Duration) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_delays
+            .insert(node, VecDeque::from([delay]));
+    }
+
+    pub fn fetch_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_fetch.clone()
+    }
+
+    pub fn last_fetch_isolation(&self) -> i8 {
+        self.state.lock().last_fetch_isolation
+    }
+
+    pub fn last_fetch_rack(&self) -> String {
+        self.state.lock().last_fetch_rack.clone()
+    }
+
+    pub fn last_fetch_max_bytes(&self) -> i32 {
+        self.state.lock().last_fetch_max_bytes
+    }
+
+    pub fn last_fetch_partition_max_bytes(&self) -> i32 {
+        self.state.lock().last_fetch_partition_max_bytes
+    }
+
+    pub fn last_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_fetch_version
+    }
+
+    /// Last Fetch version received on `node_id`, if any (KL03-22).
+    pub fn last_fetch_version_for_node(&self, node_id: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .last_fetch_version_by_node
+            .get(&node_id)
+            .copied()
+    }
+
+    pub fn last_fetched_epoch(&self) -> Option<i32> {
+        self.state.lock().last_fetched_epoch
+    }
+
+    pub fn set_next_diverging_epoch(
+        &self,
+        topic: &str,
+        partition: i32,
+        epoch: i32,
+        end_offset: i64,
+    ) {
+        let _prev = self
+            .state
+            .lock()
+            .next_diverging
+            .insert((topic.to_string(), partition), (epoch, end_offset));
+    }
+
+    pub fn last_group_instance_id(&self) -> Option<String> {
+        self.state.lock().last_group_instance_id.clone()
+    }
+
+    pub fn last_group_rack(&self) -> Option<String> {
+        self.state.lock().last_group_rack.clone()
+    }
+
+    pub fn last_produce_txn_id(&self) -> Option<String> {
+        self.state.lock().last_produce_txn_id.clone()
+    }
+
+    pub fn bump_leader_epoch(&self, topic: &str, partition: i32) -> i32 {
+        let mut st = self.state.lock();
+        let slot = st
+            .partition_epochs
+            .entry((topic.to_string(), partition))
+            .or_insert(0);
+        *slot += 1;
+        *slot
+    }
+
+    pub fn last_offset_for_leader_epoch(&self) -> Option<(String, i32, i32)> {
+        self.state.lock().last_epoch_req.clone()
+    }
+
+    pub fn last_offset_for_leader_epoch_node(&self) -> Option<i32> {
+        self.state.lock().last_epoch_node
+    }
+
+    pub fn last_offset_for_leader_epoch_version(&self) -> Option<i16> {
+        self.state.lock().last_epoch_version
+    }
+
+    pub fn last_offset_for_leader_epoch_n(&self) -> Option<usize> {
+        self.state.lock().last_epoch_n
+    }
+
+    pub fn offset_for_leader_epoch_calls(&self) -> u32 {
+        self.state.lock().epoch_calls
+    }
+
+    pub fn offset_for_leader_epoch_not_leader(&self) -> u32 {
+        self.state.lock().epoch_not_leader
+    }
+
+    pub fn last_list_offsets(&self) -> Option<(String, i32, i32)> {
+        self.state.lock().last_list_offsets.clone()
+    }
+
+    pub fn last_list_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_list_offsets_node
+    }
+
+    pub fn last_list_offsets_n(&self) -> Option<usize> {
+        self.state.lock().last_list_offsets_n
+    }
+
+    pub fn last_list_offsets_isolation(&self) -> Option<i8> {
+        self.state.lock().last_list_offsets_isolation
+    }
+
+    pub fn last_list_offsets_timeout(&self) -> Option<i32> {
+        self.state.lock().last_list_offsets_timeout
+    }
+
+    pub fn list_offsets_calls(&self) -> u32 {
+        self.state.lock().list_offsets_calls
+    }
+
+    pub fn list_offsets_not_leader(&self) -> u32 {
+        self.state.lock().list_offsets_not_leader
+    }
+
+    pub fn list_offsets_queries(&self) -> Vec<(i32, i16, String, i32, i64)> {
+        self.state.lock().list_offsets_queries.clone()
+    }
+
+    pub fn queue_list_offsets_raw_response(&self, node: i32, response: Vec<u8>) {
+        self.state
+            .lock()
+            .list_offsets_raw_responses
+            .entry(node)
+            .or_default()
+            .push_back(response);
+    }
+
+    pub fn last_list_offsets_version(&self) -> Option<i16> {
+        self.state.lock().last_list_offsets_version
+    }
+
+    pub fn last_delete_records_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_records_node
+    }
+
+    pub fn last_delete_records_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_records_version
+    }
+
+    pub fn last_delete_records_timeout(&self) -> Option<i32> {
+        self.state.lock().last_delete_records_timeout
+    }
+
+    pub fn last_delete_records_partitions(&self) -> usize {
+        self.state.lock().last_delete_records_partitions
+    }
+
+    pub fn delete_records_calls(&self) -> u32 {
+        self.state.lock().delete_records_calls
+    }
+
+    pub fn delete_records_not_leader(&self) -> u32 {
+        self.state.lock().delete_records_not_leader
+    }
+
+    pub fn last_describe_cluster_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_cluster_version
+    }
+
+    pub fn last_describe_cluster_endpoint_type(&self) -> Option<i8> {
+        self.state.lock().last_describe_cluster_endpoint_type
+    }
+
+    pub fn last_describe_cluster_include_fenced(&self) -> Option<bool> {
+        self.state.lock().last_describe_cluster_include_fenced
+    }
+
+    pub fn last_describe_producers_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_producers_node
+    }
+
+    pub fn last_describe_producers_topics(&self) -> Option<usize> {
+        self.state.lock().last_describe_producers_topics
+    }
+
+    pub fn describe_producers_not_leader(&self) -> u32 {
+        self.state.lock().describe_producers_not_leader
+    }
+
+    pub fn last_write_txn_markers_node(&self) -> Option<i32> {
+        self.state.lock().last_write_txn_markers_node
+    }
+
+    pub fn write_txn_markers_not_leader(&self) -> u32 {
+        self.state.lock().write_txn_markers_not_leader
+    }
+
+    pub fn last_write_txn_markers(&self) -> Option<WritableTxnMarker> {
+        self.state.lock().last_write_txn_markers.clone()
+    }
+
+    pub fn last_write_txn_markers_version(&self) -> Option<i16> {
+        self.state.lock().last_write_txn_markers_version
+    }
+
+    pub fn set_controller(&self, node_id: i32) {
+        self.state.lock().controller_node = node_id;
+    }
+
+    pub fn last_create_topics_node(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_node
+    }
+
+    pub fn last_create_topics_version(&self) -> Option<i16> {
+        self.state.lock().last_create_topics_version
+    }
+
+    pub fn last_create_topics_timeout(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_timeout
+    }
+
+    pub fn last_create_topics_replica_assignments(&self) -> Option<Vec<(i32, Vec<i32>)>> {
+        self.state
+            .lock()
+            .last_create_topics_replica_assignments
+            .clone()
+    }
+
+    pub fn last_create_topics_num_partitions(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_num_partitions
+    }
+
+    pub fn last_create_topics_replication_factor(&self) -> Option<i16> {
+        self.state.lock().last_create_topics_replication_factor
+    }
+
+    pub fn last_create_topics_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_create_topics_names.clone()
+    }
+
+    pub fn create_topics_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .create_topics_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn create_topics_quota_hits(&self) -> u32 {
+        self.state.lock().create_topics_quota_hits
+    }
+
+    pub fn create_topics_not_controller(&self) -> u32 {
+        self.state.lock().create_topics_not_controller
+    }
+
+    pub fn last_delete_topics_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_topics_node
+    }
+
+    pub fn last_delete_topics_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_topics_version
+    }
+
+    pub fn last_delete_topics_timeout(&self) -> Option<i32> {
+        self.state.lock().last_delete_topics_timeout
+    }
+
+    pub fn last_delete_topics_ids(&self) -> Option<usize> {
+        self.state.lock().last_delete_topics_ids
+    }
+
+    pub fn last_delete_topics_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_delete_topics_names.clone()
+    }
+
+    pub fn delete_topics_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .delete_topics_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn delete_topics_quota_hits(&self) -> u32 {
+        self.state.lock().delete_topics_quota_hits
+    }
+
+    pub fn delete_topics_not_controller(&self) -> u32 {
+        self.state.lock().delete_topics_not_controller
+    }
+
+    pub fn last_describe_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_configs_version
+    }
+
+    pub fn last_describe_configs_documentation(&self) -> Option<bool> {
+        self.state.lock().last_describe_configs_documentation
+    }
+
+    pub fn last_create_partitions_node(&self) -> Option<i32> {
+        self.state.lock().last_create_partitions_node
+    }
+
+    pub fn last_create_partitions_version(&self) -> Option<i16> {
+        self.state.lock().last_create_partitions_version
+    }
+
+    pub fn last_create_partitions_timeout(&self) -> Option<i32> {
+        self.state.lock().last_create_partitions_timeout
+    }
+
+    pub fn last_create_partitions_null_assignments(&self) -> Option<bool> {
+        self.state.lock().last_create_partitions_null_assignments
+    }
+
+    pub fn last_create_partitions_replica_assignments(&self) -> Option<Vec<Vec<i32>>> {
+        self.state
+            .lock()
+            .last_create_partitions_replica_assignments
+            .clone()
+    }
+
+    pub fn last_create_partitions_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_create_partitions_names.clone()
+    }
+
+    pub fn create_partitions_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .create_partitions_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn create_partitions_quota_hits(&self) -> u32 {
+        self.state.lock().create_partitions_quota_hits
+    }
+
+    pub fn create_partitions_not_controller(&self) -> u32 {
+        self.state.lock().create_partitions_not_controller
+    }
+
+    pub fn last_incremental_alter_configs_node(&self) -> Option<i32> {
+        self.state.lock().last_incremental_alter_configs_node
+    }
+
+    pub fn last_incremental_alter_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_incremental_alter_configs_version
+    }
+
+    pub fn last_incremental_alter_configs_n(&self) -> Option<usize> {
+        self.state.lock().last_incremental_alter_configs_n
+    }
+
+    pub fn incremental_alter_configs_not_controller(&self) -> u32 {
+        self.state.lock().incremental_alter_configs_not_controller
+    }
+
+    pub fn last_alter_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_configs_version
+    }
+
+    pub fn last_alter_configs_n(&self) -> Option<usize> {
+        self.state.lock().last_alter_configs_n
+    }
+
+    pub fn last_create_acls_node(&self) -> Option<i32> {
+        self.state.lock().last_create_acls_node
+    }
+
+    pub fn last_create_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_create_acls_version
+    }
+
+    pub fn create_acls_not_controller(&self) -> u32 {
+        self.state.lock().create_acls_not_controller
+    }
+
+    pub fn last_describe_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_acls_version
+    }
+
+    pub fn last_describe_acls_filter(&self) -> Option<AclBindingFilter> {
+        self.state.lock().last_describe_acls_filter.clone()
+    }
+
+    pub fn last_delete_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_acls_version
+    }
+
+    pub fn last_delete_acls_n(&self) -> Option<usize> {
+        self.state.lock().last_delete_acls_n
+    }
+
+    pub fn last_alter_reassignments_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_reassignments_node
+    }
+
+    pub fn last_alter_reassignments_timeout(&self) -> Option<i32> {
+        self.state.lock().last_alter_reassignments_timeout
+    }
+
+    pub fn alter_reassignments_not_controller(&self) -> u32 {
+        self.state.lock().alter_reassignments_not_controller
+    }
+
+    pub fn last_reassignment(&self) -> Option<(String, i32, Option<Vec<i32>>)> {
+        self.state.lock().last_reassignment.clone()
+    }
+
+    pub fn last_list_reassignments_node(&self) -> Option<i32> {
+        self.state.lock().last_list_reassignments_node
+    }
+
+    pub fn last_list_reassignments_timeout(&self) -> Option<i32> {
+        self.state.lock().last_list_reassignments_timeout
+    }
+
+    pub fn last_list_reassignments_topics(&self) -> Option<Option<ListReassignmentTopicFilter>> {
+        self.state.lock().last_list_reassignments_topics.clone()
+    }
+
+    pub fn list_reassignments_not_controller(&self) -> u32 {
+        self.state.lock().list_reassignments_not_controller
+    }
+
+    pub fn last_update_features_node(&self) -> Option<i32> {
+        self.state.lock().last_update_features_node
+    }
+
+    pub fn last_update_features_version(&self) -> Option<i16> {
+        self.state.lock().last_update_features_version
+    }
+
+    pub fn last_update_features_timeout(&self) -> Option<i32> {
+        self.state.lock().last_update_features_timeout
+    }
+
+    pub fn last_update_features_validate_only(&self) -> Option<bool> {
+        self.state.lock().last_update_features_validate_only
+    }
+
+    pub fn last_update_features_upgrade_type(&self) -> Option<i8> {
+        self.state.lock().last_update_features_upgrade_type
+    }
+
+    pub fn update_features_not_controller(&self) -> u32 {
+        self.state.lock().update_features_not_controller
+    }
+
+    pub fn last_feature_update(&self) -> Option<(String, i16, bool)> {
+        self.state.lock().last_feature_update.clone()
+    }
+
+    pub fn feature_level(&self, name: &str) -> Option<i16> {
+        self.state.lock().features.get(name).copied()
+    }
+
+    pub fn last_alter_user_scram_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_user_scram_node
+    }
+
+    pub fn alter_user_scram_not_controller(&self) -> u32 {
+        self.state.lock().alter_user_scram_not_controller
+    }
+
+    pub fn last_describe_user_scram_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_user_scram_node
+    }
+
+    pub fn last_describe_user_scram_users(&self) -> Option<Option<Vec<String>>> {
+        self.state.lock().last_describe_user_scram_users.clone()
+    }
+
+    pub fn describe_user_scram_not_controller(&self) -> u32 {
+        self.state.lock().describe_user_scram_not_controller
+    }
+
+    pub fn describe_quorum_requests(&self) -> Vec<(i32, i16, DescribeQuorumRequest)> {
+        self.state.lock().describe_quorum_requests.clone()
+    }
+    pub fn add_raft_voter_requests(&self) -> Vec<(i32, i16, AddRaftVoterRequest)> {
+        self.state.lock().add_raft_voter_requests.clone()
+    }
+    pub fn queue_add_raft_voter_response(&self, response: AddRaftVoterResponse) {
+        self.state
+            .lock()
+            .add_raft_voter_responses
+            .push_back(response);
+    }
+    pub fn set_add_raft_voter_delay(&self, delay: Duration) {
+        self.state.lock().add_raft_voter_delay = Some(delay);
+    }
+    pub fn drop_add_raft_voter_responses(&self, count: u32) {
+        self.state.lock().add_raft_voter_drop = count;
+    }
+    pub fn set_add_raft_voter_trailing(&self) {
+        self.state.lock().add_raft_voter_trailing = true;
+    }
+    pub fn remove_raft_voter_requests(&self) -> Vec<(i32, i16, RemoveRaftVoterRequest)> {
+        self.state.lock().remove_raft_voter_requests.clone()
+    }
+    pub fn queue_remove_raft_voter_response(&self, response: RemoveRaftVoterResponse) {
+        self.state
+            .lock()
+            .remove_raft_voter_responses
+            .push_back(response);
+    }
+    pub fn set_remove_raft_voter_delay(&self, delay: Duration) {
+        self.state.lock().remove_raft_voter_delay = Some(delay);
+    }
+    pub fn drop_remove_raft_voter_responses(&self, count: u32) {
+        self.state.lock().remove_raft_voter_drop = count;
+    }
+    pub fn set_remove_raft_voter_trailing(&self) {
+        self.state.lock().remove_raft_voter_trailing = true;
+    }
+    pub fn queue_describe_quorum_response(&self, response: DescribeQuorumResponse) {
+        self.state
+            .lock()
+            .describe_quorum_responses
+            .push_back(response);
+    }
+    pub fn set_describe_quorum_delay(&self, delay: Duration) {
+        self.state.lock().describe_quorum_delay = Some(delay);
+    }
+    pub fn drop_describe_quorum_responses(&self, count: u32) {
+        self.state.lock().describe_quorum_drop = count;
+    }
+
+    pub fn elect_leaders_requests(&self) -> Vec<(i32, i16, ElectLeadersRequest)> {
+        self.state.lock().elect_leaders_requests.clone()
+    }
+    pub fn queue_elect_leaders_response(&self, response: ElectLeadersResponse) {
+        self.state
+            .lock()
+            .elect_leaders_responses
+            .push_back(response);
+    }
+    pub fn set_elect_leaders_delay(&self, delay: Duration) {
+        self.state.lock().elect_leaders_delay = Some(delay);
+    }
+    pub fn drop_elect_leaders_responses(&self, count: u32) {
+        self.state.lock().elect_leaders_drop = count;
+    }
+
+    pub fn last_unregister_broker_node(&self) -> Option<i32> {
+        self.state.lock().last_unregister_broker_node
+    }
+
+    pub fn unregister_broker_not_controller(&self) -> u32 {
+        self.state.lock().unregister_broker_not_controller
+    }
+
+    pub fn last_unregistered_broker_id(&self) -> Option<i32> {
+        self.state.lock().last_unregistered_broker_id
+    }
+
+    pub fn has_unregistered_broker(&self, broker_id: i32) -> bool {
+        self.state.lock().unregistered_brokers.contains(&broker_id)
+    }
+
+    /// Fixture user/mechanism/iterations only. Not a credential store.
+    pub fn set_scram_fixture(&self, name: &str, mechanism: i8, iterations: i32) {
+        let mut st = self.state.lock();
+        let _ = st
+            .scram_users
+            .insert((name.to_string(), mechanism), iterations);
+    }
+
+    pub fn last_scram_upsert(&self) -> Option<(String, i8, i32)> {
+        self.state.lock().last_scram_upsert.clone()
+    }
+
+    pub fn last_scram_delete(&self) -> Option<(String, i8)> {
+        self.state.lock().last_scram_delete.clone()
+    }
+
+    pub fn has_scram_credential(&self, name: &str, mechanism: i8) -> bool {
+        self.state
+            .lock()
+            .scram_users
+            .contains_key(&(name.to_string(), mechanism))
+    }
+
+    pub fn last_describe_client_quotas_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_client_quotas_node
+    }
+
+    pub fn last_describe_client_quotas_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_client_quotas_version
+    }
+
+    pub fn last_describe_client_quotas(&self) -> Option<(Vec<ClientQuotaFilterComponent>, bool)> {
+        self.state.lock().last_describe_client_quotas.clone()
+    }
+
+    pub fn last_alter_client_quotas_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_client_quotas_node
+    }
+
+    pub fn last_alter_client_quotas_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_client_quotas_version
+    }
+
+    pub fn alter_client_quotas_not_controller(&self) -> u32 {
+        self.state.lock().alter_client_quotas_not_controller
+    }
+
+    pub fn last_quota_upsert(&self) -> Option<(String, Option<String>, String, f64)> {
+        self.state.lock().last_quota_upsert.clone()
+    }
+
+    pub fn last_quota_delete(&self) -> Option<(String, Option<String>, String)> {
+        self.state.lock().last_quota_delete.clone()
+    }
+
+    pub fn last_allocate_producer_ids_node(&self) -> Option<i32> {
+        self.state.lock().last_allocate_producer_ids_node
+    }
+
+    pub fn allocate_producer_ids_not_controller(&self) -> u32 {
+        self.state.lock().allocate_producer_ids_not_controller
+    }
+
+    pub fn last_allocate_producer_ids(&self) -> Option<(i32, i64, i64, i32)> {
+        self.state.lock().last_allocate_producer_ids
+    }
+
+    pub fn last_describe_transactions_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_transactions_node
+    }
+
+    pub fn last_describe_transactions_n(&self) -> usize {
+        self.state.lock().last_describe_transactions_n
+    }
+
+    pub fn describe_transactions_calls(&self) -> u32 {
+        self.state.lock().describe_transactions_calls
+    }
+
+    pub fn describe_transactions_not_coordinator(&self) -> u32 {
+        self.state.lock().describe_transactions_not_coordinator
+    }
+
+    pub fn last_list_transactions_node(&self) -> Option<i32> {
+        self.state.lock().last_list_transactions_node
+    }
+
+    pub fn last_list_transactions_version(&self) -> Option<i16> {
+        self.state.lock().last_list_transactions_version
+    }
+
+    pub fn last_list_transactions_duration(&self) -> Option<i64> {
+        self.state.lock().last_list_transactions_duration
+    }
+
+    pub fn list_transactions_not_coordinator(&self) -> u32 {
+        self.state.lock().list_transactions_not_coordinator
+    }
+
+    pub fn set_txn_fixture(&self, state: TransactionState) {
+        let mut st = self.state.lock();
+        let _ = st
+            .txn_fixtures
+            .insert(state.transactional_id.clone(), state);
+    }
+
+    pub fn has_quota_fixture(&self, entity_type: &str, name: Option<&str>, key: &str) -> bool {
+        self.state.lock().quota_fixtures.contains_key(&(
+            entity_type.to_string(),
+            name.map(str::to_string),
+            key.to_string(),
+        ))
+    }
+
+    pub fn scram_iterations(&self, name: &str, mechanism: i8) -> Option<i32> {
+        self.state
+            .lock()
+            .scram_users
+            .get(&(name.to_string(), mechanism))
+            .copied()
+    }
+
+    pub fn last_offset_delete_node(&self) -> Option<i32> {
+        self.state.lock().last_offset_delete_node
+    }
+
+    pub fn offset_delete_not_coordinator(&self) -> u32 {
+        self.state.lock().offset_delete_not_coordinator
+    }
+
+    pub fn last_consumer_group_describe_node(&self) -> Option<i32> {
+        self.state.lock().last_consumer_group_describe_node
+    }
+
+    pub fn last_consumer_group_describe_version(&self) -> Option<i16> {
+        self.state.lock().last_consumer_group_describe_version
+    }
+
+    pub fn last_consumer_group_describe_n(&self) -> usize {
+        self.state.lock().last_consumer_group_describe_n
+    }
+
+    pub fn consumer_group_describe_calls(&self) -> u32 {
+        self.state.lock().consumer_group_describe_calls
+    }
+
+    pub fn consumer_group_describe_not_coordinator(&self) -> u32 {
+        self.state.lock().consumer_group_describe_not_coordinator
+    }
+
+    pub fn set_consumer_group_describe_error(&self, group_id: &str, code: i16) {
+        let _prev = self
+            .state
+            .lock()
+            .consumer_group_describe_errors
+            .insert(group_id.to_string(), code);
+    }
+
+    pub fn last_describe_groups_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_groups_node
+    }
+
+    pub fn last_describe_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_groups_version
+    }
+
+    pub fn last_describe_groups_include(&self) -> Option<bool> {
+        self.state.lock().last_describe_groups_include
+    }
+
+    pub fn last_describe_groups_n(&self) -> usize {
+        self.state.lock().last_describe_groups_n
+    }
+
+    pub fn describe_groups_calls(&self) -> u32 {
+        self.state.lock().describe_groups_calls
+    }
+
+    pub fn describe_groups_not_coordinator(&self) -> u32 {
+        self.state.lock().describe_groups_not_coordinator
+    }
+
+    pub fn last_leave_group_node(&self) -> Option<i32> {
+        self.state.lock().last_leave_group_node
+    }
+
+    pub fn last_leave_group_members(&self) -> Option<Vec<LeaveGroupMember>> {
+        self.state.lock().last_leave_group_members.clone()
+    }
+
+    pub fn last_leave_group_version(&self) -> Option<i16> {
+        self.state.lock().last_leave_group_version
+    }
+
+    pub fn last_sasl_handshake_version(&self) -> Option<i16> {
+        self.state.lock().last_sasl_handshake_version
+    }
+
+    pub fn last_sasl_handshake_correlation(&self) -> Option<i32> {
+        self.state.lock().last_sasl_handshake_correlation
+    }
+
+    pub fn last_sasl_authenticate_version(&self) -> Option<i16> {
+        self.state.lock().last_sasl_authenticate_version
+    }
+
+    /// Replace SaslAuthenticate failure messages with `msg`, simulating a
+    /// broker that echoes request material back (KL06-07).
+    pub fn set_sasl_authenticate_error_message(&self, msg: &str) {
+        self.state.lock().sasl_authenticate_error_message = Some(msg.to_string());
+    }
+
+    pub fn last_sasl_authenticate_correlation(&self) -> Option<i32> {
+        self.state.lock().last_sasl_authenticate_correlation
+    }
+
+    pub fn last_list_groups_node(&self) -> Option<i32> {
+        self.state.lock().last_list_groups_node
+    }
+
+    pub fn last_list_groups(&self) -> Option<(Vec<String>, Vec<String>)> {
+        self.state.lock().last_list_groups.clone()
+    }
+
+    pub fn last_list_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_list_groups_version
+    }
+
+    pub fn last_delete_groups_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_groups_node
+    }
+
+    pub fn last_delete_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_groups_version
+    }
+
+    pub fn last_delete_groups_n(&self) -> usize {
+        self.state.lock().last_delete_groups_n
+    }
+
+    pub fn delete_groups_calls(&self) -> u32 {
+        self.state.lock().delete_groups_calls
+    }
+
+    pub fn delete_groups_not_coordinator(&self) -> u32 {
+        self.state.lock().delete_groups_not_coordinator
+    }
+
+    pub fn last_share_group_describe_node(&self) -> Option<i32> {
+        self.state.lock().last_share_group_describe_node
+    }
+
+    pub fn last_share_group_describe_version(&self) -> Option<i16> {
+        self.state.lock().last_share_group_describe_version
+    }
+
+    pub fn last_share_group_describe_n(&self) -> usize {
+        self.state.lock().last_share_group_describe_n
+    }
+
+    pub fn share_group_describe_calls(&self) -> u32 {
+        self.state.lock().share_group_describe_calls
+    }
+
+    pub fn share_group_describe_not_coordinator(&self) -> u32 {
+        self.state.lock().share_group_describe_not_coordinator
+    }
+
+    pub fn last_describe_share_group_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_share_group_offsets_node
+    }
+
+    pub fn last_describe_share_group_offsets_n(&self) -> usize {
+        self.state.lock().last_describe_share_group_offsets_n
+    }
+
+    pub fn describe_share_group_offsets_calls(&self) -> u32 {
+        self.state.lock().describe_share_group_offsets_calls
+    }
+
+    pub fn describe_share_group_offsets_not_coordinator(&self) -> u32 {
+        self.state
+            .lock()
+            .describe_share_group_offsets_not_coordinator
+    }
+
+    pub fn last_alter_share_group_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_share_group_offsets_node
+    }
+
+    pub fn alter_share_group_offsets_not_coordinator(&self) -> u32 {
+        self.state.lock().alter_share_group_offsets_not_coordinator
+    }
+
+    pub fn last_delete_share_group_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_share_group_offsets_node
+    }
+
+    pub fn delete_share_group_offsets_not_coordinator(&self) -> u32 {
+        self.state.lock().delete_share_group_offsets_not_coordinator
+    }
+
+    pub fn last_describe_topic_partitions_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_topic_partitions_node
+    }
+
+    pub fn last_describe_topic_partitions(
+        &self,
+    ) -> Option<(Vec<String>, i32, Option<TopicPartitionCursor>)> {
+        self.state.lock().last_describe_topic_partitions.clone()
+    }
+
+    pub fn last_list_config_resources_node(&self) -> Option<i32> {
+        self.state.lock().last_list_config_resources_node
+    }
+
+    pub fn last_list_config_resources_version(&self) -> Option<i16> {
+        self.state.lock().last_list_config_resources_version
+    }
+
+    pub fn last_list_config_resources(&self) -> Option<Vec<i8>> {
+        self.state.lock().last_list_config_resources.clone()
+    }
+
+    pub fn last_get_telemetry_subscriptions_node(&self) -> Option<i32> {
+        self.state.lock().last_get_telemetry_subscriptions_node
+    }
+
+    pub fn last_get_telemetry_subscriptions(&self) -> Option<[u8; 16]> {
+        self.state.lock().last_get_telemetry_subscriptions
+    }
+
+    pub fn last_push_telemetry_node(&self) -> Option<i32> {
+        self.state.lock().last_push_telemetry_node
+    }
+
+    pub fn last_push_telemetry(&self) -> Option<LastPushTelemetry> {
+        self.state.lock().last_push_telemetry.clone()
+    }
+
+    pub fn last_assign_replicas_to_dirs_node(&self) -> Option<i32> {
+        self.state.lock().last_assign_replicas_to_dirs_node
+    }
+
+    pub fn assign_replicas_to_dirs_not_controller(&self) -> u32 {
+        self.state.lock().assign_replicas_to_dirs_not_controller
+    }
+
+    pub fn last_assign_replicas_to_dirs(&self) -> Option<AssignReplicasToDirsRequest> {
+        self.state.lock().last_assign_replicas_to_dirs.clone()
+    }
+
+    pub fn last_alter_replica_log_dirs_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_replica_log_dirs_node
+    }
+
+    pub fn last_alter_replica_log_dirs_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_replica_log_dirs_version
+    }
+
+    pub fn last_alter_replica_log_dirs(&self) -> Option<AlterReplicaLogDirsRequest> {
+        self.state.lock().last_alter_replica_log_dirs.clone()
+    }
+
+    pub fn last_describe_log_dirs_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_log_dirs_node
+    }
+
+    pub fn last_describe_log_dirs_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_log_dirs_version
+    }
+
+    pub fn describe_log_dirs_nodes(&self) -> Vec<i32> {
+        self.state.lock().describe_log_dirs_nodes.clone()
+    }
+
+    pub fn last_describe_log_dirs(&self) -> Option<DescribeLogDirsRequest> {
+        self.state.lock().last_describe_log_dirs.clone()
+    }
+
+    pub fn set_describe_log_dirs_cordoned(&self, node: i32) {
+        let _ = self
+            .state
+            .lock()
+            .describe_log_dirs_cordoned_nodes
+            .insert(node);
+    }
+
+    pub fn queue_describe_log_dirs_raw_response(&self, node: i32, response: Vec<u8>) {
+        self.state
+            .lock()
+            .describe_log_dirs_raw_responses
+            .entry(node)
+            .or_default()
+            .push_back(response);
+    }
+
+    pub fn last_create_delegation_token_node(&self) -> Option<i32> {
+        self.state.lock().last_create_delegation_token_node
+    }
+
+    pub fn last_create_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_create_delegation_token_version
+    }
+
+    pub fn last_create_delegation_token(&self) -> Option<CreateDelegationTokenRequest> {
+        self.state.lock().last_create_delegation_token.clone()
+    }
+
+    pub fn last_renew_delegation_token_node(&self) -> Option<i32> {
+        self.state.lock().last_renew_delegation_token_node
+    }
+
+    pub fn last_renew_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_renew_delegation_token_version
+    }
+
+    pub fn last_renew_delegation_token(&self) -> Option<RenewDelegationTokenRequest> {
+        self.state.lock().last_renew_delegation_token.clone()
+    }
+
+    pub fn last_expire_delegation_token_node(&self) -> Option<i32> {
+        self.state.lock().last_expire_delegation_token_node
+    }
+
+    pub fn last_expire_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_expire_delegation_token_version
+    }
+
+    pub fn last_expire_delegation_token(&self) -> Option<ExpireDelegationTokenRequest> {
+        self.state.lock().last_expire_delegation_token.clone()
+    }
+
+    pub fn last_describe_delegation_token_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_delegation_token_node
+    }
+
+    pub fn last_describe_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_delegation_token_version
+    }
+
+    pub fn last_describe_delegation_token(&self) -> Option<DescribeDelegationTokenRequest> {
+        self.state.lock().last_describe_delegation_token.clone()
+    }
+
+    pub fn join_group_calls(&self) -> u32 {
+        self.state.lock().join_group_calls
+    }
+
+    pub fn cg_heartbeat_calls(&self) -> u32 {
+        self.state.lock().cg_heartbeat_calls
+    }
+
+    pub fn set_cg_heartbeat_interval_ms(&self, ms: i32) {
+        self.state.lock().cg_heartbeat_interval_ms = ms;
+    }
+
+    pub fn cg_heartbeat_interval_ms(&self) -> i32 {
+        self.state.lock().cg_heartbeat_interval_ms
+    }
+
+    /// Fail the next `n` ConsumerGroupHeartbeat responses with `code` (KL03-15).
+    pub fn set_cg_heartbeat_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.cg_heartbeat_error_code = code;
+        st.cg_heartbeat_error_left = n;
+    }
+
+    /// Return `new_id` as the member id on the next steady-state heartbeat,
+    /// renaming the registry entry so later heartbeats use it (KL03-15).
+    pub fn rotate_cg_heartbeat_member_id(&self, new_id: &str) {
+        self.state.lock().cg_heartbeat_rotate_member_id = Some(new_id.to_string());
+    }
+
+    /// Drop the next `n` ConsumerGroupHeartbeat responses without replying,
+    /// closing the connection like a lost response (KL03-15).
+    pub fn set_cg_heartbeat_drop_times(&self, n: u32) {
+        self.state.lock().cg_heartbeat_drop_left = n;
+    }
+
+    /// Answer the next `n` ConsumerGroupHeartbeat requests with a
+    /// framing-valid but undecodable payload (KL03-15).
+    pub fn set_cg_heartbeat_corrupt_times(&self, n: u32) {
+        self.state.lock().cg_heartbeat_corrupt_left = n;
+    }
+
+    /// `(member_id, member_epoch, acked partitions)` per heartbeat request.
+    /// `None` partitions means the request carried no `TopicPartitions`
+    /// (no assignment echo). Partition lists are sorted (KL03-15).
+    pub fn cg_heartbeat_acks(&self) -> Vec<(String, i32, Option<Vec<i32>>)> {
+        self.state.lock().cg_heartbeat_acks.clone()
+    }
+
+    /// Force OffsetCommit to fail without persisting the attempted offsets.
+    pub fn set_offset_commit_error(&self, code: i16) {
+        self.state.lock().offset_commit_error = Some(code);
+    }
+
+    /// Member id carried by the last OffsetCommit request (KL03-15).
+    pub fn last_offset_commit_member(&self) -> Option<String> {
+        self.state.lock().last_offset_commit_member.clone()
+    }
+
+    /// Generation/epoch carried by the last OffsetCommit request (KL03-15).
+    pub fn last_offset_commit_generation(&self) -> Option<i32> {
+        self.state.lock().last_offset_commit_generation
+    }
+
+    pub fn sync_group_calls(&self) -> u32 {
+        self.state.lock().sync_group_calls
+    }
+
+    pub fn share_heartbeat_calls(&self) -> u32 {
+        self.state.lock().share_heartbeat_calls
+    }
+
+    pub fn set_share_heartbeat_interval_ms(&self, ms: i32) {
+        self.state.lock().share_heartbeat_interval_ms = ms;
+    }
+
+    pub fn share_heartbeat_interval_ms(&self) -> i32 {
+        self.state.lock().share_heartbeat_interval_ms
+    }
+
+    pub fn share_fetch_calls(&self) -> u32 {
+        self.state.lock().share_fetch_calls
+    }
+
+    pub fn share_ack_calls(&self) -> u32 {
+        self.state.lock().share_ack_calls
+    }
+
+    pub fn last_share_fetch_epoch(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_epoch
+    }
+
+    pub fn last_share_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_share_fetch_version
+    }
+
+    pub fn last_share_ack_epoch(&self) -> Option<i32> {
+        self.state.lock().last_share_ack_epoch
+    }
+
+    pub fn last_share_ack_version(&self) -> Option<i16> {
+        self.state.lock().last_share_ack_version
+    }
+
+    pub fn last_share_ack_partitions(&self) -> usize {
+        self.state.lock().last_share_ack_partitions
+    }
+
+    pub fn last_share_fetch_node(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_node
+    }
+
+    pub fn last_share_ack_node(&self) -> Option<i32> {
+        self.state.lock().last_share_ack_node
+    }
+
+    pub fn share_fetch_not_leader(&self) -> u32 {
+        self.state.lock().share_fetch_not_leader
+    }
+
+    pub fn offset_commit_calls(&self) -> u32 {
+        self.state.lock().offset_commit_calls
+    }
+
+    pub fn offset_fetch_calls(&self) -> u32 {
+        self.state.lock().offset_fetch_calls
+    }
+
+    pub fn last_offset_commit_partitions(&self) -> usize {
+        self.state.lock().last_offset_commit_partitions
+    }
+
+    pub fn last_offset_commit_node(&self) -> Option<i32> {
+        self.state.lock().last_offset_commit_node
+    }
+
+    pub fn last_offset_commit_version(&self) -> Option<i16> {
+        self.state.lock().last_offset_commit_version
+    }
+
+    pub fn last_heartbeat_version(&self) -> Option<i16> {
+        self.state.lock().last_heartbeat_version
+    }
+
+    pub fn last_sync_group_version(&self) -> Option<i16> {
+        self.state.lock().last_sync_group_version
+    }
+
+    pub fn last_join_group_version(&self) -> Option<i16> {
+        self.state.lock().last_join_group_version
+    }
+
+    pub fn last_join_group_reason(&self) -> Option<String> {
+        self.state.lock().last_join_group_reason.clone()
+    }
+
+    pub fn last_join_protocols_n(&self) -> Option<usize> {
+        self.state.lock().last_join_protocols_n
+    }
+
+    pub fn last_consumer_group_heartbeat_version(&self) -> Option<i16> {
+        self.state.lock().last_consumer_group_heartbeat_version
+    }
+
+    pub fn last_consumer_group_heartbeat_join_member_id(&self) -> Option<String> {
+        self.state
+            .lock()
+            .last_consumer_group_heartbeat_join_member_id
+            .clone()
+    }
+
+    pub fn last_share_group_heartbeat_version(&self) -> Option<i16> {
+        self.state.lock().last_share_group_heartbeat_version
+    }
+
+    pub fn offset_commit_not_coordinator(&self) -> u32 {
+        self.state.lock().offset_commit_not_coordinator
+    }
+
+    pub fn offset_commit_load_once(&self) {
+        self.state.lock().offset_commit_load_left = 1;
+    }
+
+    pub fn offset_commit_load_in_progress(&self) -> u32 {
+        self.state.lock().offset_commit_load_in_progress
+    }
+
+    pub fn last_offset_fetch_partitions(&self) -> usize {
+        self.state.lock().last_offset_fetch_partitions
+    }
+
+    pub fn last_offset_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_offset_fetch_version
+    }
+
+    pub fn last_offset_fetch_require_stable(&self) -> Option<bool> {
+        self.state.lock().last_offset_fetch_require_stable
+    }
+
+    pub fn last_offset_fetch_null_topics(&self) -> Option<bool> {
+        self.state.lock().last_offset_fetch_null_topics
+    }
+
+    pub fn last_offset_fetch_group_count(&self) -> usize {
+        self.state.lock().last_offset_fetch_group_count
+    }
+
+    pub fn add_partitions_to_txn_calls(&self) -> u32 {
+        self.state.lock().add_partitions_to_txn_calls
+    }
+
+    pub fn last_add_partitions_to_txn(&self) -> usize {
+        self.state.lock().last_add_partitions_to_txn
+    }
+
+    pub fn last_add_partitions_to_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_add_partitions_to_txn_version
+    }
+
+    pub fn last_add_partitions_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_add_partitions_producer_epoch
+    }
+
+    pub fn txn_offset_commit_calls(&self) -> u32 {
+        self.state.lock().txn_offset_commit_calls
+    }
+
+    pub fn last_txn_offset_commit_partitions(&self) -> usize {
+        self.state.lock().last_txn_offset_commit_partitions
+    }
+
+    pub fn last_txn_offset_commit_version(&self) -> Option<i16> {
+        self.state.lock().last_txn_offset_commit_version
+    }
+
+    pub fn last_txn_offset_generation(&self) -> Option<i32> {
+        self.state.lock().last_txn_offset_generation
+    }
+
+    pub fn last_txn_offset_member_id(&self) -> Option<String> {
+        self.state.lock().last_txn_offset_member_id.clone()
+    }
+
+    pub fn last_txn_offset_epochs(&self) -> Vec<i32> {
+        self.state.lock().last_txn_offset_epochs.clone()
+    }
+
+    pub fn heartbeat_total(&self, group_id: &str) -> u32 {
+        self.state
+            .lock()
+            .groups
+            .get(group_id)
+            .map(|g| g.hb_total)
+            .unwrap_or(0)
+    }
+
+    pub fn drop_connections(&self) {
+        let st = self.state.lock();
+        let n = *st.drop_gen.borrow();
+        let _ = st.drop_gen.send(n.saturating_add(1));
+    }
+
+    pub fn drop_node_connections(&self, node_id: i32) {
+        let mut st = self.state.lock();
+        let sender = st
+            .drop_node_gen
+            .entry(node_id)
+            .or_insert_with(|| watch::channel(0).0);
+        let n = *sender.borrow();
+        let _ = sender.send(n.saturating_add(1));
+    }
+
+    /// Accept then immediately drop the next `n` TCP connections (no Kafka handshake).
+    pub fn refuse_connections(&self, n: u32) {
+        self.state.lock().refuse_conns = n;
+    }
+
+    pub fn accept_count(&self) -> u32 {
+        self.state.lock().accepts
+    }
+
+    pub fn move_coordinator(&self) {
+        let mut st = self.state.lock();
+        if let Some(other) = st
+            .brokers
+            .iter()
+            .map(|b| b.node_id)
+            .find(|id| *id != st.coord_node)
+        {
+            st.coord_node = other;
+        }
+    }
+
+    pub fn set_txn_coordinator(&self, node_id: i32) {
+        self.state.lock().txn_coord_node = node_id;
+    }
+
+    pub fn stale_txn_find_once(&self) {
+        self.state.lock().stale_txn_finds = 1;
+    }
+
+    pub fn move_txn_coordinator(&self) {
+        let mut st = self.state.lock();
+        if let Some(other) = st
+            .brokers
+            .iter()
+            .map(|b| b.node_id)
+            .find(|id| *id != st.txn_coord_node)
+        {
+            st.txn_coord_node = other;
+        }
+    }
+
+    pub fn find_coordinator_key_types(&self) -> Vec<i8> {
+        self.state.lock().find_coordinator_key_types.clone()
+    }
+
+    pub fn last_find_coordinator_version(&self) -> Option<i16> {
+        self.state.lock().last_find_coordinator_version
+    }
+
+    pub fn last_find_coordinator_key_count(&self) -> usize {
+        self.state.lock().last_find_coordinator_key_count
+    }
+
+    pub fn fail_find_coordinator_once(&self, code: i16) {
+        self.state.lock().find_coordinator_faults.push_back(code);
+    }
+
+    pub fn find_coordinator_calls(&self) -> u32 {
+        self.state.lock().find_coordinator_calls
+    }
+
+    pub fn last_init_producer_id_node(&self) -> Option<i32> {
+        self.state.lock().last_init_producer_id_node
+    }
+
+    pub fn last_init_producer_id_timeout(&self) -> Option<i32> {
+        self.state.lock().last_init_producer_id_timeout
+    }
+
+    pub fn last_init_producer_id_version(&self) -> Option<i16> {
+        self.state.lock().last_init_producer_id_version
+    }
+
+    pub fn last_init_producer_id_producer_id(&self) -> Option<i64> {
+        self.state.lock().last_init_producer_id_producer_id
+    }
+
+    pub fn last_init_producer_id_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_init_producer_id_producer_epoch
+    }
+
+    pub fn init_producer_id_nodes(&self) -> Vec<i32> {
+        self.state.lock().init_producer_id_nodes.clone()
+    }
+
+    pub fn init_producer_id_not_coordinator(&self) -> u32 {
+        self.state.lock().init_producer_id_not_coordinator
+    }
+
+    pub fn last_init_producer_id_flags(&self) -> Option<(bool, bool)> {
+        self.state.lock().last_init_producer_id_flags
+    }
+
+    pub fn set_init_producer_id_ongoing(&self, pid: i64, epoch: i16) {
+        self.state.lock().init_producer_id_ongoing = Some((pid, epoch));
+    }
+
+    pub fn fail_init_producer_id_once(&self, code: i16) {
+        self.state.lock().init_producer_id_faults.push_back(code);
+    }
+
+    pub fn set_init_producer_id_delay(&self, delay: Duration) {
+        self.state.lock().init_producer_id_delay = Some(delay);
+    }
+
+    pub fn last_add_partitions_node(&self) -> Option<i32> {
+        self.state.lock().last_add_partitions_node
+    }
+
+    pub fn last_add_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_add_offsets_node
+    }
+
+    pub fn last_add_offsets_to_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_add_offsets_to_txn_version
+    }
+
+    pub fn last_end_txn_node(&self) -> Option<i32> {
+        self.state.lock().last_end_txn_node
+    }
+
+    pub fn last_end_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_end_txn_version
+    }
+
+    pub fn last_txn_offset_commit_node(&self) -> Option<i32> {
+        self.state.lock().last_txn_offset_commit_node
+    }
+
+    /// Fail the next `n` `EndTxn` RPCs with `code` (KL03-10). A failed
+    /// `EndTxn` leaves the transaction open with no side effects.
+    pub fn set_end_txn_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.end_txn_error = Some(code);
+        st.end_txn_error_left = Some(n);
+    }
+
+    /// Drop the next `n` `EndTxn` replies after applying them (response
+    /// loss): the broker commits/aborts but the client times out (KL03-10).
+    pub fn set_end_txn_drop_response_times(&self, n: u32) {
+        self.state.lock().end_txn_drop_response = n;
+    }
+
+    /// Drop the next `n` `EndTxn` RPCs before processing them (request
+    /// loss): the broker never sees them and the client times out (KL03-10).
+    pub fn set_end_txn_drop_request_times(&self, n: u32) {
+        self.state.lock().end_txn_drop_request = n;
+    }
+
+    /// Fail the next `n` `TxnOffsetCommit` RPCs with `code` (KL03-10).
+    pub fn set_txn_offset_commit_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.txn_offset_commit_error = Some(code);
+        st.txn_offset_commit_error_left = Some(n);
+    }
+
+    /// Fail the next `n` `AddOffsetsToTxn` RPCs with `code` (KL03-10).
+    pub fn set_add_offsets_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.add_offsets_error = Some(code);
+        st.add_offsets_error_left = Some(n);
+    }
+
+    /// `EndTxn` RPCs the broker processed (KL03-10).
+    pub fn end_txn_calls(&self) -> u32 {
+        self.state.lock().end_txn_calls
+    }
+
+    /// `committed` flag of the last processed `EndTxn` (KL03-10).
+    pub fn last_end_txn_committed(&self) -> Option<bool> {
+        self.state.lock().last_end_txn_committed
+    }
+
+    /// Committed offset for `(group, topic, partition)`, if any.
+    /// Transactional offsets appear only after `EndTxn` commits (KL03-10).
+    pub fn committed_offset(&self, group: &str, topic: &str, partition: i32) -> Option<i64> {
+        self.state
+            .lock()
+            .committed
+            .get(&(group.to_string(), topic.to_string(), partition))
+            .map(|c| c.offset)
+    }
+
+    /// `TxnOffsetCommit` entries still staged in the open transaction.
+    pub fn txn_pending_offsets_len(&self) -> usize {
+        self.state.lock().txn_pending_offsets.len()
+    }
+
+    /// Records the broker marked aborted (`topic, partition, offset`).
+    pub fn txn_aborted_records(&self) -> Vec<(String, i32, i64)> {
+        self.state.lock().txn_aborted.iter().cloned().collect()
+    }
+
+    pub fn membership_heartbeats_on(&self, node_id: i32) -> u32 {
+        self.state
+            .lock()
+            .hb_by_node
+            .get(&node_id)
+            .copied()
+            .unwrap_or(0)
+    }
+}
+
+pub async fn closed_tcp_addr() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    format!("{addr}")
+}
+
+pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        if pred() {
+            return;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            panic!("{what} not observed in 2s");
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+/// Self-signed server (cert,key) PEMs for localhost/127.0.0.1.
+///
+/// Ephemeral cert via openssl CLI — avoids the rcgen→time
+/// RUSTSEC-2026-0009 advisory that cannot be patched under MSRV 1.85.
+fn tls_self_signed_server_pem() -> (Vec<u8>, Vec<u8>) {
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let key_path = dir.join("key.pem");
+    let cert_path = dir.join("cert.pem");
+    let output = Command::new("openssl")
+        .args([
+            "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-keyout",
+        ])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&cert_path)
+        .args([
+            "-subj",
+            "/CN=localhost",
+            "-addext",
+            "subjectAltName=DNS:localhost,IP:127.0.0.1",
+            // rustls rejects CA:TRUE leaves (CaUsedAsEndEntity).
+            "-addext",
+            "basicConstraints=critical,CA:FALSE",
+            "-addext",
+            "keyUsage=critical,digitalSignature,keyEncipherment",
+            "-addext",
+            "extendedKeyUsage=serverAuth",
+        ])
+        .output()
+        .unwrap_or_else(|e| {
+            panic!(
+                "spawn openssl failed: {e}\n\
+                 mock TLS fixtures require the openssl CLI on PATH (see CONTRIBUTING.md)"
+            )
+        });
+    if !output.status.success() {
+        let _ = std::fs::remove_dir_all(&dir);
+        panic!(
+            "openssl req failed: {}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    // Sync openssl CLI path — read_pem_file uses File+Read (not
+    // std::fs::read) so clippy's async-runtime disallowed_methods stay clean.
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+    let (cert_pem, key_pem) = tls_self_signed_server_pem();
+    let server = tls_server_config_no_client_auth(&cert_pem, &key_pem);
+    (server, cert_pem)
+}
+
+/// Fresh temp dir for openssl fixture material (KL06-05).
+fn tls_temp_dir() -> std::path::PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    let dir = std::env::temp_dir().join(format!(
+        "partitionline-tls-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&dir).expect("tls temp dir");
+    dir
+}
+
+/// Panic with stderr unless the openssl invocation succeeded.
+fn check_openssl(output: std::process::Output, what: &str) {
+    if !output.status.success() {
+        panic!(
+            "openssl {what} failed: {}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+/// Read a PEM file with File+Read (not `std::fs::read`, which clippy's
+/// async-runtime rules forbid).
+fn read_pem_file(path: &std::path::Path) -> Vec<u8> {
+    use std::io::Read;
+    let mut v = Vec::new();
+    std::fs::File::open(path)
+        .expect("open pem")
+        .read_to_end(&mut v)
+        .expect("read pem");
+    v
+}
+
+/// Write bytes with File+Write (not `std::fs::write`, which clippy's
+/// async-runtime rules forbid).
+fn write_pem_file(path: &std::path::Path, bytes: &[u8]) {
+    use std::io::Write;
+    std::fs::File::create(path)
+        .expect("create pem")
+        .write_all(bytes)
+        .expect("write pem");
+}
+
+/// Self-signed CA (CA:TRUE) for minting leaves. Returns
+/// `(ca_cert_pem, ca_key_pem)`.
+fn tls_ca_identity(cn: &str) -> (Vec<u8>, Vec<u8>) {
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let key_path = dir.join("ca.key");
+    let cert_path = dir.join("ca.crt");
+    let output = Command::new("openssl")
+        .args([
+            "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-keyout",
+        ])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&cert_path)
+        .args([
+            "-subj",
+            &format!("/CN={cn}"),
+            "-addext",
+            "basicConstraints=critical,CA:TRUE",
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("spawn openssl failed: {e}"));
+    check_openssl(output, "ca");
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+/// Leaf signed by `ca` via `openssl x509 -req -CA`. `eku` is
+/// `serverAuth` or `clientAuth`; `sans` adds a subjectAltName ext when set.
+/// Returns `(leaf_cert_pem, leaf_key_pem)`.
+fn tls_leaf_via_ca(
+    ca_cert: &[u8],
+    ca_key: &[u8],
+    cn: &str,
+    sans: Option<&str>,
+    eku: &str,
+) -> (Vec<u8>, Vec<u8>) {
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let ca_cert_path = dir.join("ca.crt");
+    let ca_key_path = dir.join("ca.key");
+    write_pem_file(&ca_cert_path, ca_cert);
+    write_pem_file(&ca_key_path, ca_key);
+    let key_path = dir.join("leaf.key");
+    let csr_path = dir.join("leaf.csr");
+    let cert_path = dir.join("leaf.crt");
+    let mut req = Command::new("openssl");
+    req.args(["req", "-newkey", "rsa:2048", "-nodes", "-keyout"])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&csr_path)
+        .args(["-subj", &format!("/CN={cn}")]);
+    if let Some(sans) = sans {
+        req.args(["-addext", &format!("subjectAltName={sans}")]);
+    }
+    check_openssl(
+        req.output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "req",
+    );
+    let mut ext =
+        String::from("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature");
+    if eku == "serverAuth" {
+        ext.push_str(",keyEncipherment");
+    }
+    ext.push_str(&format!("\nextendedKeyUsage={eku}\n"));
+    if let Some(sans) = sans {
+        ext.push_str(&format!("subjectAltName={sans}\n"));
+    }
+    let ext_path = dir.join("ext.cnf");
+    write_pem_file(&ext_path, ext.as_bytes());
+    let output = Command::new("openssl")
+        .args(["x509", "-req", "-in"])
+        .arg(&csr_path)
+        .arg("-CA")
+        .arg(&ca_cert_path)
+        .arg("-CAkey")
+        .arg(&ca_key_path)
+        .args(["-CAcreateserial", "-days", "30", "-out"])
+        .arg(&cert_path)
+        .arg("-extfile")
+        .arg(&ext_path)
+        .output()
+        .unwrap_or_else(|e| panic!("spawn openssl failed: {e}"));
+    check_openssl(output, "x509 -req");
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+/// Server identity whose leaf expired 2021-01-01, with the still-valid CA
+/// PEM the client must trust. `openssl ca` is the only CLI path that signs
+/// explicit validity dates (`req -x509` rejects non-positive `-days`).
+fn tls_expired_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let (ca_cert, ca_key) = tls_ca_identity("expired-ca");
+    write_pem_file(&dir.join("ca.crt"), &ca_cert);
+    write_pem_file(&dir.join("ca.key"), &ca_key);
+    let key_path = dir.join("leaf.key");
+    let csr_path = dir.join("leaf.csr");
+    let cert_path = dir.join("leaf.crt");
+    check_openssl(
+        Command::new("openssl")
+            .args(["req", "-newkey", "rsa:2048", "-nodes", "-keyout"])
+            .arg(&key_path)
+            .arg("-out")
+            .arg(&csr_path)
+            .args(["-subj", "/CN=localhost"])
+            .output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "req",
+    );
+    let cnf = "[ ca ]\ndefault_ca = test\n[ test ]\ndatabase = ./index.txt\nnew_certs_dir = .\ncertificate = ./ca.crt\nprivate_key = ./ca.key\nserial = ./serial\ndefault_md = sha256\ndefault_days = 1\npolicy = policy_any\nx509_extensions = leaf_ext\n[ policy_any ]\ncommonName = supplied\n[ req ]\ndistinguished_name = dn\n[ dn ]\n[ leaf_ext ]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1\n";
+    write_pem_file(&dir.join("cnf"), cnf.as_bytes());
+    write_pem_file(&dir.join("serial"), "01".as_bytes());
+    write_pem_file(&dir.join("index.txt"), "".as_bytes());
+    check_openssl(
+        Command::new("openssl")
+            .current_dir(&dir)
+            .args([
+                "ca",
+                "-batch",
+                "-config",
+                "cnf",
+                "-startdate",
+                "20200101000000Z",
+                "-enddate",
+                "20210101000000Z",
+                "-in",
+                "leaf.csr",
+                "-out",
+                "leaf.crt",
+            ])
+            .output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "ca",
+    );
+    let leaf_pem = read_pem_file(&cert_path);
+    let key_pem = read_pem_file(&key_path);
+    let _ = std::fs::remove_dir_all(&dir);
+    let cert_der = CertificateDer::from_pem_slice(&leaf_pem).expect("parse leaf pem");
+    let key_der = PrivateKeyDer::from_pem_slice(&key_pem).expect("parse key pem");
+    let server = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config");
+    (server, ca_cert)
+}
+
+/// Server config serving `cert_pem`/`key_pem` without client auth.
+fn tls_server_config_no_client_auth(cert_pem: &[u8], key_pem: &[u8]) -> rustls::ServerConfig {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    let cert_der = CertificateDer::from_pem_slice(cert_pem).expect("parse cert pem");
+    let key_der = PrivateKeyDer::from_pem_slice(key_pem).expect("parse key pem");
+    rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config")
+}
+
+/// Server config serving `cert_pem`/`key_pem` while requiring a client
+/// certificate chained to `client_ca_pem`.
+fn tls_server_config_mtls(
+    cert_pem: &[u8],
+    key_pem: &[u8],
+    client_ca_pem: &[u8],
+) -> rustls::ServerConfig {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    use std::sync::Arc;
+    let cert_der = CertificateDer::from_pem_slice(cert_pem).expect("parse cert pem");
+    let key_der = PrivateKeyDer::from_pem_slice(key_pem).expect("parse key pem");
+    let mut roots = rustls::RootCertStore::empty();
+    for cert in CertificateDer::pem_slice_iter(client_ca_pem)
+        .collect::<Result<Vec<_>, _>>()
+        .expect("parse client ca")
+    {
+        roots.add(cert).expect("add client ca");
+    }
+    let verifier = rustls::server::WebPkiClientVerifier::builder(Arc::new(roots))
+        .build()
+        .expect("client verifier");
+    rustls::ServerConfig::builder()
+        .with_client_cert_verifier(verifier)
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config")
+}
+
+async fn read_frame<S: AsyncRead + Unpin>(
+    stream: &mut S,
+    buf: &mut BytesMut,
+) -> std::io::Result<BytesMut> {
+    loop {
+        if buf.len() >= 4 {
+            let size = i32::from_be_bytes(buf[0..4].try_into().unwrap());
+            let total = 4 + size as usize;
+            if buf.len() >= total {
+                let mut frame = buf.split_to(total);
+                let _ = frame.split_to(4);
+                return Ok(frame);
+            }
+        }
+        let n = stream.read_buf(buf).await?;
+        if n == 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "eof",
+            ));
+        }
+    }
+}
+
+async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, payload: &[u8]) -> std::io::Result<()> {
+    let mut out = BytesMut::with_capacity(4 + payload.len());
+    out.put_i32(payload.len() as i32);
+    out.extend_from_slice(payload);
+    stream.write_all(&out).await
+}
+
+fn topic_name_for_id(st: &State, id: [u8; 16]) -> String {
+    if id == [0u8; 16] {
+        return "t".into();
+    }
+    st.created_topics
+        .keys()
+        .find(|name| topic_id_for(st, name) == id)
+        .cloned()
+        .unwrap_or_else(|| "t".into())
+}
+
+fn delete_topic_result(st: &mut State, version: i16, t: DeleteTopicState) -> TopicResult {
+    if let Some(name) = t.name.filter(|n| !n.is_empty()) {
+        let error_code = if st.created_topics.remove(&name).is_some() {
+            0
+        } else {
+            error::UNKNOWN_TOPIC_OR_PARTITION
+        };
+        let topic_id = if version >= 6 && error_code == 0 {
+            mock_topic_id(&name)
+        } else {
+            [0; 16]
+        };
+        return TopicResult {
+            name,
+            error_code,
+            error_message: None,
+            topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        };
+    }
+    if t.topic_id == [0u8; 16] {
+        return TopicResult {
+            name: String::new(),
+            error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+            error_message: None,
+            topic_id: t.topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        };
+    }
+    let found = st
+        .created_topics
+        .keys()
+        .find(|name| mock_topic_id(name) == t.topic_id)
+        .cloned();
+    match found {
+        Some(name) => {
+            let _ = st.created_topics.remove(&name);
+            TopicResult {
+                name,
+                error_code: 0,
+                error_message: None,
+                topic_id: t.topic_id,
+                num_partitions: -1,
+                replication_factor: -1,
+                configs: Vec::new(),
+            }
+        }
+        None => TopicResult {
+            name: String::new(),
+            error_code: error::UNKNOWN_TOPIC_ID,
+            error_message: Some("Unknown topic id.".into()),
+            topic_id: t.topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        },
+    }
+}
+
+fn expire_share_locks(st: &mut State) {
+    let now = st.share_clock_ms;
+    st.share_acquired.retain(|_, lock| lock.expires_ms > now);
+}
+
+fn apply_share_acks(
+    st: &mut State,
+    group_id: &str,
+    member_id: &str,
+    topic: &str,
+    partition: i32,
+    batches: &[AcknowledgementBatch],
+) -> i16 {
+    expire_share_locks(st);
+    // A partition's invalid acknowledgements do not roll back successful
+    // neighbours. Validate this partition before applying its own changes.
+    let mut changes = Vec::new();
+    for b in batches {
+        st.share_ack_attempts
+            .push((topic.into(), partition, b.first_offset, b.last_offset));
+        if b.first_offset < 0 || b.last_offset < b.first_offset || b.types.is_empty() {
+            return error::INVALID_REQUEST;
+        }
+        let mut off = b.first_offset;
+        loop {
+            let ty = if b.types.len() == 1 {
+                b.types[0]
+            } else {
+                let i = usize::try_from(off.saturating_sub(b.first_offset)).unwrap_or(usize::MAX);
+                match b.types.get(i).copied() {
+                    Some(t) => t,
+                    None => return error::INVALID_REQUEST,
+                }
+            };
+            if ty != 0 {
+                let key = (group_id.to_string(), topic.to_string(), partition, off);
+                if !matches!(ty, ACK_ACCEPT | ACK_RELEASE | ACK_REJECT | ACK_RENEW) {
+                    return error::INVALID_REQUEST;
+                }
+                if st
+                    .share_acquired
+                    .get(&key)
+                    .is_none_or(|lock| lock.owner != member_id)
+                {
+                    return error::INVALID_RECORD_STATE;
+                }
+                changes.push((key, ty));
+            }
+            if off == b.last_offset {
+                break;
+            }
+            off += 1;
+        }
+    }
+    for (key, ty) in changes {
+        if ty == ACK_RENEW {
+            let expiry = st
+                .share_clock_ms
+                .saturating_add(u64::try_from(st.share_lock_timeout_ms).unwrap_or(0));
+            if let Some(lock) = st.share_acquired.get_mut(&key) {
+                lock.expires_ms = expiry;
+            }
+        } else {
+            let _ = st.share_acquired.remove(&key);
+            if ty == ACK_ACCEPT || ty == ACK_REJECT {
+                let _ = st.share_accepted.insert(key);
+            }
+        }
+    }
+    0
+}
+
+/// KIP-932 share session epoch. Returns 0 or a broker error.
+fn share_partition_leader(st: &State, topic: &str, partition: i32) -> i32 {
+    st.partition_leaders
+        .get(&(topic.to_string(), partition))
+        .copied()
+        .or_else(|| st.brokers.first().map(|b| b.node_id))
+        .unwrap_or(1)
+}
+
+fn share_wrong_leader(st: &State, node_id: i32, tps: &[(String, i32)]) -> bool {
+    tps.iter()
+        .any(|(topic, p)| share_partition_leader(st, topic, *p) != node_id)
+}
+
+fn share_session_step(
+    st: &mut State,
+    group_id: &str,
+    member_id: &str,
+    node: i32,
+    epoch: i32,
+) -> i16 {
+    let key = (group_id.to_string(), member_id.to_string(), node);
+    match epoch {
+        0 => {
+            let _ = st.share_epochs.insert(key, 1);
+            0
+        }
+        -1 => {
+            if st.share_epochs.remove(&key).is_some() {
+                st.share_acquired.retain(|(group, _, _, _), lock| {
+                    group != group_id || lock.owner != member_id || lock.node != node
+                });
+                0
+            } else {
+                error::SHARE_SESSION_NOT_FOUND
+            }
+        }
+        e if e > 0 => match st.share_epochs.get(&key).copied() {
+            Some(expected) if expected == e => {
+                let next = if e == i32::MAX { 1 } else { e + 1 };
+                let _ = st.share_epochs.insert(key, next);
+                0
+            }
+            Some(_) => error::INVALID_SHARE_SESSION_EPOCH,
+            None => error::SHARE_SESSION_NOT_FOUND,
+        },
+        _ => error::INVALID_SHARE_SESSION_EPOCH,
+    }
+}
+
+fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatch> {
+    taken
+        .into_iter()
+        .map(|r| {
+            let off = r.offset;
+            let mut batch = RecordBatch::from_records(vec![r]);
+            batch.base_offset = off;
+            batch.partition_leader_epoch = leader_epoch;
+            batch
+        })
+        .collect()
+}
+
+fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
+    let keys = [
+        (PRODUCE, 3, 12),
+        (FETCH, 4, 17),
+        (LIST_OFFSETS, 0, 10),
+        (METADATA, 1, 13),
+        (OFFSET_COMMIT, 2, 9),
+        (OFFSET_FETCH, 1, 9),
+        (FIND_COORDINATOR, 0, 6),
+        (JOIN_GROUP, 0, 9),
+        (HEARTBEAT, 0, 4),
+        (SYNC_GROUP, 0, 5),
+        (LEAVE_GROUP, 0, 5),
+        (CONSUMER_GROUP_HEARTBEAT, 0, 1),
+        (CONSUMER_GROUP_DESCRIBE, 0, 1),
+        (DESCRIBE_GROUPS, 0, 6),
+        (LIST_GROUPS, 0, 5),
+        (DELETE_GROUPS, 0, 2),
+        (SHARE_GROUP_DESCRIBE, 0, 1),
+        (DESCRIBE_SHARE_GROUP_OFFSETS, 0, 0),
+        (ALTER_SHARE_GROUP_OFFSETS, 0, 0),
+        (DELETE_SHARE_GROUP_OFFSETS, 0, 0),
+        (DESCRIBE_TOPIC_PARTITIONS, 0, 0),
+        (LIST_CONFIG_RESOURCES, 0, 1),
+        (GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
+        (PUSH_TELEMETRY, 0, 0),
+        (ASSIGN_REPLICAS_TO_DIRS, 0, 0),
+        (ALTER_REPLICA_LOG_DIRS, 1, 2),
+        (DESCRIBE_LOG_DIRS, 1, 4),
+        (CREATE_DELEGATION_TOKEN, 1, 3),
+        (RENEW_DELEGATION_TOKEN, 1, 2),
+        (EXPIRE_DELEGATION_TOKEN, 1, 2),
+        (DESCRIBE_DELEGATION_TOKEN, 1, 3),
+        (SHARE_GROUP_HEARTBEAT, 0, 1),
+        (SHARE_FETCH, 0, 1),
+        (SHARE_ACKNOWLEDGE, 0, 1),
+        (SASL_HANDSHAKE, 0, 1),
+        (API_VERSIONS, 0, 4),
+        (CREATE_TOPICS, 0, 7),
+        (DELETE_TOPICS, 0, 6),
+        (CREATE_PARTITIONS, 0, 3),
+        (DELETE_RECORDS, 0, 2),
+        (ALTER_CONFIGS, 0, 2),
+        (DESCRIBE_CLUSTER, 0, 2),
+        (DESCRIBE_PRODUCERS, 0, 0),
+        (DESCRIBE_ACLS, 0, 3),
+        (CREATE_ACLS, 0, 3),
+        (DELETE_ACLS, 0, 3),
+        (INCREMENTAL_ALTER_CONFIGS, 0, 1),
+        (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
+        (LIST_PARTITION_REASSIGNMENTS, 0, 0),
+        (UPDATE_FEATURES, 0, 2),
+        (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
+        (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
+        (UNREGISTER_BROKER, 0, 0),
+        (ELECT_LEADERS, 0, 2),
+        (DESCRIBE_QUORUM, 0, 2),
+        (ADD_RAFT_VOTER, 0, 0),
+        (REMOVE_RAFT_VOTER, 0, 0),
+        (DESCRIBE_CLIENT_QUOTAS, 0, 1),
+        (ALTER_CLIENT_QUOTAS, 0, 1),
+        (ALLOCATE_PRODUCER_IDS, 0, 0),
+        (DESCRIBE_TRANSACTIONS, 0, 0),
+        (LIST_TRANSACTIONS, 0, 1),
+        (INIT_PRODUCER_ID, 0, 5),
+        (ADD_PARTITIONS_TO_TXN, 0, 3),
+        (ADD_OFFSETS_TO_TXN, 0, 4),
+        (END_TXN, 0, 5),
+        (WRITE_TXN_MARKERS, 0, 1),
+        (TXN_OFFSET_COMMIT, 0, 5),
+        (OFFSET_DELETE, 0, 0),
+        (OFFSET_FOR_LEADER_EPOCH, 0, 4),
+        (DESCRIBE_CONFIGS, 0, 4),
+        (SASL_AUTHENTICATE, 0, 2),
+    ];
+    ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys
+            .into_iter()
+            .filter(|(api_key, _, _)| !st.hidden_apis.contains(api_key))
+            .map(|(api_key, min_version, max_version)| ApiVersion {
+                api_key,
+                min_version: st.api_min.get(&api_key).copied().unwrap_or(min_version),
+                max_version: st
+                    .node_api_max
+                    .get(&(node_id, api_key))
+                    .copied()
+                    .or_else(|| st.api_max.get(&api_key).copied())
+                    .unwrap_or(max_version)
+                    .max(min_version),
+            })
+            .collect(),
+        throttle_time_ms: 0,
+        supported_features: vec![
+            SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            },
+            SupportedFeatureKey {
+                name: "kraft.version".into(),
+                min_version: 0,
+                max_version: 1,
+            },
+        ],
+        finalized_features_epoch: Some(1),
+        finalized_features: {
+            let mut features = vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }];
+            if let Some(level) = st.transaction_version {
+                features.push(FinalizedFeatureKey {
+                    name: "transaction.version".into(),
+                    min_version_level: level,
+                    max_version_level: level,
+                });
+            }
+            features
+        },
+        zk_migration_ready: false,
+    }
+}
+
+fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
+    const NC: i16 = 16;
+    match api_key {
+        HEARTBEAT => encode_heartbeat_response(body, api_version, NC).unwrap(),
+        LEAVE_GROUP => encode_leave_group_response_version(body, api_version, NC, &[]).unwrap(),
+        JOIN_GROUP => encode_join_group_response(
+            body,
+            api_version,
+            NC,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+        .unwrap(),
+        SYNC_GROUP => encode_sync_group_response(body, api_version, NC, &[]).unwrap(),
+        OFFSET_COMMIT => encode_offset_commit_response(
+            body,
+            api_version,
+            &[OffsetTopic {
+                topic: "t".into(),
+                partitions: vec![OffsetPartition::new(0, -1)],
+            }],
+            NC,
+        )
+        .unwrap(),
+        OFFSET_FETCH => encode_offset_fetch_response(
+            body,
+            api_version,
+            "g",
+            &[FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::new(0, FetchedOffset::INVALID_OFFSET, NC)],
+            }],
+            NC,
+        )
+        .unwrap(),
+        CONSUMER_GROUP_HEARTBEAT => encode_consumer_group_heartbeat_response(
+            body,
+            api_version,
+            &ConsumerGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: NC,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap(),
+        SHARE_GROUP_HEARTBEAT => encode_share_group_heartbeat_response(
+            body,
+            api_version,
+            &ShareGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: NC,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap(),
+        SHARE_ACKNOWLEDGE => encode_share_acknowledge_response(body, api_version, NC).unwrap(),
+        SHARE_FETCH => encode_share_fetch_error(body, api_version, NC).unwrap(),
+        OFFSET_DELETE => encode_offset_delete_response(body, NC, &[]).unwrap(),
+        _ => {}
+    }
+}
+
+async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
+    mut stream: S,
+    node_id: i32,
+    state: Arc<Mutex<State>>,
+) {
+    let mut buf = BytesMut::new();
+    let mut drop_rx = state.lock().drop_gen.subscribe();
+    let mut node_drop_rx = {
+        let mut st = state.lock();
+        st.drop_node_gen
+            .entry(node_id)
+            .or_insert_with(|| watch::channel(0).0)
+            .subscribe()
+    };
+    let mut authed = {
+        let st = state.lock();
+        st.sasl_user.is_none() && st.scram_user.is_none() && st.oauth_principal.is_none()
+    };
+    let mut scram_step: Option<(scram::ScramAlg, String, String, String)> = None;
+    loop {
+        let mut frame = tokio::select! {
+            _ = drop_rx.changed() => break,
+            _ = node_drop_rx.changed() => break,
+            frame = read_frame(&mut stream, &mut buf) => match frame {
+                Ok(f) => f,
+                Err(_) => break,
+            },
+        };
+        let header = match decode_request_header(&mut frame) {
+            Ok(h) => h,
+            Err(_) => break,
+        };
+        if !authed
+            && !matches!(
+                header.api_key,
+                API_VERSIONS | SASL_HANDSHAKE | SASL_AUTHENTICATE
+            )
+        {
+            break;
+        }
+        let mut body = BytesMut::new();
+        encode_response_header(
+            &mut body,
+            header.api_key,
+            header.api_version,
+            header.correlation_id,
+        )
+        .unwrap();
+        let coord_mismatch = matches!(
+            header.api_key,
+            JOIN_GROUP
+                | SYNC_GROUP
+                | HEARTBEAT
+                | LEAVE_GROUP
+                | OFFSET_COMMIT
+                | OFFSET_FETCH
+                | OFFSET_DELETE
+                | CONSUMER_GROUP_HEARTBEAT
+                | SHARE_GROUP_HEARTBEAT
+        ) && {
+            let st = state.lock();
+            st.coord_node != node_id
+        };
+        if coord_mismatch {
+            {
+                let mut st = state.lock();
+                if header.api_key == OFFSET_COMMIT {
+                    st.offset_commit_not_coordinator =
+                        st.offset_commit_not_coordinator.saturating_add(1);
+                }
+                if header.api_key == OFFSET_DELETE {
+                    st.offset_delete_not_coordinator =
+                        st.offset_delete_not_coordinator.saturating_add(1);
+                }
+                if header.api_key == SHARE_GROUP_HEARTBEAT {
+                    st.last_share_group_heartbeat_version = Some(header.api_version);
+                }
+            }
+            encode_not_coordinator(header.api_key, header.api_version, &mut body);
+            if write_frame(&mut stream, &body).await.is_err() {
+                break;
+            }
+            continue;
+        }
+        match header.api_key {
+            API_VERSIONS => {
+                let delay = state.lock().api_versions_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.last_api_versions_version = Some(header.api_version);
+                st.api_versions_versions.push(header.api_version);
+                let advertised = versions(&st, node_id);
+                let (av_min, av_max) = advertised
+                    .api_version(API_VERSIONS)
+                    .map(|k| (k.min_version, k.max_version))
+                    .unwrap_or((0, 4));
+                if header.api_version > av_max {
+                    // KIP-511: unsupported ApiVersions is a v0 body listing
+                    // only the ApiVersions key range.
+                    encode_api_versions_response(
+                        &mut body,
+                        0,
+                        &ApiVersionsResponse {
+                            error_code: error::UNSUPPORTED_VERSION,
+                            api_keys: vec![ApiVersion {
+                                api_key: API_VERSIONS,
+                                min_version: av_min,
+                                max_version: av_max,
+                            }],
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    encode_api_versions_response(&mut body, header.api_version, &advertised)
+                        .unwrap();
+                }
+            }
+            METADATA => {
+                let metadata_delay = {
+                    let st = state.lock();
+                    st.metadata_delay
+                };
+                if let Some(delay) = metadata_delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.metadata_calls = st.metadata_calls.saturating_add(1);
+                let (topics, allow, include_topic, ..) =
+                    decode_metadata_request_topics(&mut frame.clone(), header.api_version).unwrap();
+                st.last_metadata_allow_auto = Some(allow);
+                st.last_metadata_version = Some(header.api_version);
+                let id_based = topics.as_ref().map_or(0, |ts| {
+                    ts.iter()
+                        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+                        .count()
+                });
+                st.last_metadata_topic_ids = Some(id_based);
+                st.last_metadata_topics = Some(
+                    topics
+                        .as_ref()
+                        .map(|ts| ts.iter().filter_map(|t| t.name.clone()).collect()),
+                );
+                st.last_metadata_include_topic_authorized = Some(include_topic);
+                let (host, port) = broker_host_port(&st, node_id);
+                let mut md = if id_based > 0 {
+                    metadata_for_ids(
+                        &st,
+                        &host,
+                        port,
+                        include_topic,
+                        topics.as_deref().unwrap_or(&[]),
+                    )
+                } else {
+                    metadata_for(&st, &host, port, include_topic)
+                };
+                // Metadata v1+ distinguishes an empty selection from all topics.
+                if header.api_version >= 1 && topics.as_ref().is_some_and(Vec::is_empty) {
+                    md.topics.clear();
+                }
+                if header.api_version >= 10 {
+                    for topic in &md.topics {
+                        if let Some(name) = &topic.name {
+                            if topic.topic_id != [0; 16] {
+                                st.produce_topic_id_names
+                                    .insert(topic.topic_id, name.clone());
+                            }
+                        }
+                    }
+                }
+                encode_metadata_response(&mut body, header.api_version, &md).unwrap();
+            }
+            CREATE_TOPICS => {
+                let version = header.api_version;
+                let req = decode_create_topics_request(&mut frame, version).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                st.last_create_topics_version = Some(version);
+                st.last_create_topics_timeout = Some(req.timeout_ms);
+                st.last_create_topics_names =
+                    Some(req.topics.iter().map(|t| t.name.clone()).collect());
+                if let Some(t) = req.topics.first() {
+                    st.last_create_topics_replica_assignments = Some(
+                        t.assignments
+                            .iter()
+                            .map(|a| (a.partition_index, a.broker_ids.clone()))
+                            .collect(),
+                    );
+                    st.last_create_topics_num_partitions = Some(t.num_partitions);
+                    st.last_create_topics_replication_factor = Some(t.replication_factor);
+                }
+                if st.controller_node != node_id {
+                    st.create_topics_not_controller =
+                        st.create_topics_not_controller.saturating_add(1);
+                    for t in req.topics {
+                        results.push(TopicResult::new(
+                            t.name,
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ));
+                    }
+                } else {
+                    st.last_create_topics_node = Some(node_id);
+                    for t in req.topics {
+                        if st.create_topics_quota_once.remove(&t.name) {
+                            st.create_topics_quota_hits =
+                                st.create_topics_quota_hits.saturating_add(1);
+                            results.push(TopicResult::new(
+                                t.name,
+                                error::THROTTLING_QUOTA_EXCEEDED,
+                                Some("Throttling quota exceeded".into()),
+                            ));
+                            continue;
+                        }
+                        if st.created_topics.contains_key(&t.name) {
+                            results.push(TopicResult::new(
+                                t.name,
+                                36,
+                                Some("Topic already exists.".into()),
+                            ));
+                            continue;
+                        }
+                        let npart = if !t.assignments.is_empty() {
+                            t.assignments.len() as i32
+                        } else if t.num_partitions == -1 {
+                            1
+                        } else {
+                            t.num_partitions
+                        };
+                        let rf = if t.assignments.is_empty() && t.replication_factor == -1 {
+                            1
+                        } else {
+                            t.replication_factor
+                        };
+                        let mut error_code = 0i16;
+                        if npart < 1 {
+                            error_code = 37;
+                        } else if t.assignments.is_empty() && rf < 1 {
+                            error_code = 38;
+                        }
+                        let resp_configs: Vec<CreatedTopicConfig> = t
+                            .configs
+                            .iter()
+                            .map(|c| CreatedTopicConfig {
+                                name: c.name.clone(),
+                                value: c.value.clone(),
+                                read_only: false,
+                                config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                                is_sensitive: false,
+                            })
+                            .collect();
+                        if error_code == 0 && !req.validate_only {
+                            let mut configs = HashMap::new();
+                            for c in t.configs {
+                                configs.insert(c.name, c.value);
+                            }
+                            st.created_topics.insert(
+                                t.name.clone(),
+                                CreatedTopic {
+                                    num_partitions: npart,
+                                    configs,
+                                    is_internal: false,
+                                },
+                            );
+                        }
+                        let topic_id = if version >= 7 && error_code == 0 {
+                            mock_topic_id(&t.name)
+                        } else {
+                            [0; 16]
+                        };
+                        results.push(TopicResult {
+                            name: t.name,
+                            error_code,
+                            error_message: None,
+                            topic_id,
+                            num_partitions: if error_code == 0 { npart } else { -1 },
+                            replication_factor: if error_code == 0 { rf } else { -1 },
+                            configs: if error_code == 0 {
+                                resp_configs
+                            } else {
+                                Vec::new()
+                            },
+                        });
+                    }
+                }
+                encode_create_topics_response(&mut body, version, &results).unwrap();
+            }
+            DELETE_TOPICS => {
+                let version = header.api_version;
+                let (topics, timeout_ms) =
+                    decode_delete_topics_states_request(&mut frame, version).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                st.last_delete_topics_version = Some(version);
+                st.last_delete_topics_timeout = Some(timeout_ms);
+                st.last_delete_topics_names =
+                    Some(topics.iter().filter_map(|t| t.name.clone()).collect());
+                st.last_delete_topics_ids = Some(
+                    topics
+                        .iter()
+                        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+                        .count(),
+                );
+                if st.controller_node != node_id {
+                    st.delete_topics_not_controller =
+                        st.delete_topics_not_controller.saturating_add(1);
+                    for t in topics {
+                        results.push(TopicResult {
+                            name: t.name.unwrap_or_default(),
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            topic_id: t.topic_id,
+                            num_partitions: -1,
+                            replication_factor: -1,
+                            configs: Vec::new(),
+                        });
+                    }
+                } else {
+                    st.last_delete_topics_node = Some(node_id);
+                    for t in topics {
+                        let quota_key =
+                            t.name
+                                .as_ref()
+                                .filter(|n| !n.is_empty())
+                                .cloned()
+                                .or_else(|| {
+                                    if t.topic_id == [0u8; 16] {
+                                        None
+                                    } else {
+                                        st.created_topics
+                                            .keys()
+                                            .find(|n| mock_topic_id(n) == t.topic_id)
+                                            .cloned()
+                                    }
+                                });
+                        if let Some(name) = quota_key {
+                            if st.delete_topics_quota_once.remove(&name) {
+                                st.delete_topics_quota_hits =
+                                    st.delete_topics_quota_hits.saturating_add(1);
+                                results.push(TopicResult {
+                                    name: t.name.clone().unwrap_or(name),
+                                    error_code: error::THROTTLING_QUOTA_EXCEEDED,
+                                    error_message: Some("Throttling quota exceeded".into()),
+                                    topic_id: t.topic_id,
+                                    num_partitions: -1,
+                                    replication_factor: -1,
+                                    configs: Vec::new(),
+                                });
+                                continue;
+                            }
+                        }
+                        results.push(delete_topic_result(&mut st, version, t));
+                    }
+                }
+                encode_delete_topics_response(&mut body, version, &results).unwrap();
+            }
+            DESCRIBE_CONFIGS => {
+                let version = header.api_version;
+                let (resources, _syn, include_documentation) =
+                    decode_describe_configs_request(&mut frame, version).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                st.last_describe_configs_version = Some(version);
+                st.last_describe_configs_documentation = Some(include_documentation);
+                let config_type = if version >= 3 {
+                    CONFIG_TYPE_STRING
+                } else {
+                    CONFIG_TYPE_UNKNOWN
+                };
+                for r in resources {
+                    if r.resource_type == RESOURCE_TOPIC {
+                        match st.created_topics.get(&r.name) {
+                            None => results.push(DescribeConfigsResult {
+                                error_code: 3,
+                                error_message: Some("Unknown topic.".into()),
+                                resource_type: r.resource_type,
+                                name: r.name,
+                                entries: Vec::new(),
+                            }),
+                            Some(spec) => {
+                                let mut entries = Vec::new();
+                                let mut seen = std::collections::HashSet::new();
+                                let mut push = |name: &str, value: Option<String>, source: i8| {
+                                    if let Some(keys) = &r.keys {
+                                        if !keys.iter().any(|k| k == name) {
+                                            return;
+                                        }
+                                    }
+                                    if seen.insert(name.to_string()) {
+                                        entries.push(ConfigEntry {
+                                            name: name.to_string(),
+                                            value,
+                                            read_only: false,
+                                            source,
+                                            is_sensitive: false,
+                                            synonyms: Vec::new(),
+                                            config_type,
+                                            documentation: if version >= 3 && include_documentation
+                                            {
+                                                Some(format!("{name} docs"))
+                                            } else {
+                                                None
+                                            },
+                                        });
+                                    }
+                                };
+                                push(
+                                    "cleanup.policy",
+                                    spec.configs
+                                        .get("cleanup.policy")
+                                        .cloned()
+                                        .flatten()
+                                        .or_else(|| Some("delete".into())),
+                                    if spec.configs.contains_key("cleanup.policy") {
+                                        CONFIG_SOURCE_DYNAMIC_TOPIC
+                                    } else {
+                                        CONFIG_SOURCE_DEFAULT
+                                    },
+                                );
+                                for (k, v) in &spec.configs {
+                                    if k == "cleanup.policy" {
+                                        continue;
+                                    }
+                                    push(k, v.clone(), CONFIG_SOURCE_DYNAMIC_TOPIC);
+                                }
+                                results.push(DescribeConfigsResult {
+                                    error_code: 0,
+                                    error_message: None,
+                                    resource_type: r.resource_type,
+                                    name: r.name,
+                                    entries,
+                                });
+                            }
+                        }
+                    } else if r.resource_type == RESOURCE_BROKER {
+                        results.push(DescribeConfigsResult {
+                            error_code: 0,
+                            error_message: None,
+                            resource_type: r.resource_type,
+                            name: r.name,
+                            entries: vec![ConfigEntry {
+                                name: "log.retention.hours".into(),
+                                value: Some("168".into()),
+                                read_only: true,
+                                source: CONFIG_SOURCE_DEFAULT,
+                                is_sensitive: false,
+                                synonyms: Vec::new(),
+                                config_type,
+                                documentation: if version >= 3 && include_documentation {
+                                    Some("log.retention.hours docs".into())
+                                } else {
+                                    None
+                                },
+                            }],
+                        });
+                    } else {
+                        results.push(DescribeConfigsResult {
+                            error_code: 3,
+                            error_message: Some("Unknown resource.".into()),
+                            resource_type: r.resource_type,
+                            name: r.name,
+                            entries: Vec::new(),
+                        });
+                    }
+                }
+                encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
+            }
+            CREATE_PARTITIONS => {
+                let version = header.api_version;
+                let (topics, timeout_ms, validate_only) =
+                    decode_create_partitions_request(&mut frame, version).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                st.last_create_partitions_version = Some(version);
+                st.last_create_partitions_timeout = Some(timeout_ms);
+                st.last_create_partitions_names =
+                    Some(topics.iter().map(|t| t.name.clone()).collect());
+                if let Some(t) = topics.first() {
+                    st.last_create_partitions_null_assignments = Some(t.assignments.is_none());
+                    st.last_create_partitions_replica_assignments = t.assignments.clone();
+                }
+                if st.controller_node != node_id {
+                    st.create_partitions_not_controller =
+                        st.create_partitions_not_controller.saturating_add(1);
+                    for t in topics {
+                        results.push(TopicResult::new(
+                            t.name,
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ));
+                    }
+                } else {
+                    st.last_create_partitions_node = Some(node_id);
+                    for t in topics {
+                        if st.create_partitions_quota_once.remove(&t.name) {
+                            st.create_partitions_quota_hits =
+                                st.create_partitions_quota_hits.saturating_add(1);
+                            results.push(TopicResult::new(
+                                t.name,
+                                error::THROTTLING_QUOTA_EXCEEDED,
+                                Some("Throttling quota exceeded".into()),
+                            ));
+                            continue;
+                        }
+                        match st.created_topics.get_mut(&t.name) {
+                            None => results.push(TopicResult::new(
+                                t.name,
+                                3,
+                                Some("Unknown topic.".into()),
+                            )),
+                            Some(spec) => {
+                                let mut err = 0i16;
+                                if t.count < spec.num_partitions {
+                                    err = 37;
+                                } else if !validate_only {
+                                    spec.num_partitions = t.count;
+                                }
+                                results.push(TopicResult::new(t.name, err, None));
+                            }
+                        }
+                    }
+                }
+                encode_create_partitions_response(&mut body, version, &results).unwrap();
+            }
+            INCREMENTAL_ALTER_CONFIGS => {
+                let version = header.api_version;
+                let (resources, validate_only) =
+                    decode_incremental_alter_configs_resources_request(&mut frame, version)
+                        .unwrap();
+                let mut st = state.lock();
+                st.last_incremental_alter_configs_version = Some(version);
+                st.last_incremental_alter_configs_n = Some(resources.len());
+                if st.controller_node != node_id {
+                    st.incremental_alter_configs_not_controller = st
+                        .incremental_alter_configs_not_controller
+                        .saturating_add(1);
+                    let results: Vec<AlterConfigsResourceResult> = resources
+                        .into_iter()
+                        .map(|r| AlterConfigsResourceResult {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            resource_type: r.resource_type,
+                            name: r.name,
+                        })
+                        .collect();
+                    encode_incremental_alter_configs_resource_results(&mut body, version, &results)
+                        .unwrap();
+                } else {
+                    st.last_incremental_alter_configs_node = Some(node_id);
+                    let mut results = Vec::with_capacity(resources.len());
+                    for r in resources {
+                        let mut err = 0i16;
+                        if r.resource_type != RESOURCE_TOPIC {
+                            err = 3;
+                        } else if let Some(spec) = st.created_topics.get_mut(&r.name) {
+                            if !validate_only {
+                                for c in r.configs {
+                                    if c.op == ALTER_CONFIG_DELETE {
+                                        spec.configs.remove(&c.name);
+                                    } else if c.op == ALTER_CONFIG_SET {
+                                        spec.configs.insert(c.name, c.value);
+                                    } else if c.op == ALTER_CONFIG_APPEND
+                                        || c.op == ALTER_CONFIG_SUBTRACT
+                                    {
+                                        let next = apply_incremental_list_op(
+                                            spec.configs.get(&c.name),
+                                            c.op,
+                                            c.value,
+                                        );
+                                        spec.configs.insert(c.name, next);
+                                    }
+                                }
+                            }
+                        } else {
+                            err = 3;
+                        }
+                        results.push(AlterConfigsResourceResult {
+                            error_code: err,
+                            error_message: None,
+                            resource_type: r.resource_type,
+                            name: r.name,
+                        });
+                    }
+                    encode_incremental_alter_configs_resource_results(&mut body, version, &results)
+                        .unwrap();
+                }
+            }
+            ALTER_CONFIGS => {
+                let version = header.api_version;
+                let (resources, validate_only) =
+                    decode_alter_configs_resources_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_alter_configs_version = Some(version);
+                st.last_alter_configs_n = Some(resources.len());
+                let mut results = Vec::with_capacity(resources.len());
+                for r in resources {
+                    let mut err = 0i16;
+                    if r.resource_type != RESOURCE_TOPIC {
+                        err = 3;
+                    } else if let Some(spec) = st.created_topics.get_mut(&r.name) {
+                        if !validate_only {
+                            for c in r.configs {
+                                if let Some(val) = c.value {
+                                    spec.configs.insert(c.name, Some(val));
+                                } else {
+                                    spec.configs.remove(&c.name);
+                                }
+                            }
+                        }
+                    } else {
+                        err = 3;
+                    }
+                    results.push(AlterConfigsResourceResult {
+                        error_code: err,
+                        error_message: None,
+                        resource_type: r.resource_type,
+                        name: r.name,
+                    });
+                }
+                encode_alter_configs_resource_results(&mut body, version, &results).unwrap();
+            }
+            DELETE_RECORDS => {
+                let version = header.api_version;
+                let (topics, timeout_ms) =
+                    decode_delete_records_topics_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_delete_records_version = Some(version);
+                st.last_delete_records_timeout = Some(timeout_ms);
+                st.delete_records_calls = st.delete_records_calls.saturating_add(1);
+                let mut nparts = 0usize;
+                let mut out = Vec::new();
+                let mut any_leader = false;
+                for t in topics {
+                    let mut parts = Vec::new();
+                    for p in t.partitions {
+                        nparts = nparts.saturating_add(1);
+                        let key = (t.topic.clone(), p.partition);
+                        let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                        if leader != node_id {
+                            st.delete_records_not_leader =
+                                st.delete_records_not_leader.saturating_add(1);
+                            parts.push(DeletedRecordsPartition {
+                                partition: p.partition,
+                                low_watermark: DeletedRecordsPartition::INVALID_LOW_WATERMARK,
+                                error_code: error::NOT_LEADER_OR_FOLLOWER,
+                            });
+                            continue;
+                        }
+                        let (low, err) = if st.created_topics.contains_key(&t.topic) {
+                            let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                            let start = *st.log_start.get(&key).unwrap_or(&0);
+                            let offset = if p.offset == DeleteRecordsRequest::HIGH_WATERMARK {
+                                hw
+                            } else {
+                                p.offset
+                            };
+                            let low = offset.clamp(start, hw);
+                            st.log_start.insert(key.clone(), low);
+                            if let Some(recs) = st.log.get_mut(&key) {
+                                recs.retain(|r| r.offset >= low);
+                            }
+                            any_leader = true;
+                            (low, 0i16)
+                        } else {
+                            (DeletedRecordsPartition::INVALID_LOW_WATERMARK, 3i16)
+                        };
+                        parts.push(DeletedRecordsPartition {
+                            partition: p.partition,
+                            low_watermark: low,
+                            error_code: err,
+                        });
+                    }
+                    out.push(DeletedRecordsTopic {
+                        topic: t.topic,
+                        partitions: parts,
+                    });
+                }
+                st.last_delete_records_partitions = nparts;
+                if any_leader {
+                    st.last_delete_records_node = Some(node_id);
+                }
+                encode_delete_records_topics_response(&mut body, version, &out).unwrap();
+            }
+            DESCRIBE_PRODUCERS => {
+                let topics = decode_describe_producers_topics_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_describe_producers_topics = Some(topics.len());
+                st.last_describe_producers_node = Some(node_id);
+                let mut out = Vec::with_capacity(topics.len());
+                for t in topics {
+                    let mut parts = Vec::with_capacity(t.partition_indexes.len());
+                    for partition in t.partition_indexes {
+                        let key = (t.name.clone(), partition);
+                        let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                        if leader != node_id {
+                            st.describe_producers_not_leader =
+                                st.describe_producers_not_leader.saturating_add(1);
+                            parts.push(DescribeProducersPartition::new(
+                                partition,
+                                error::NOT_LEADER_OR_FOLLOWER,
+                                None,
+                                vec![],
+                            ));
+                        } else {
+                            parts.push(DescribeProducersPartition::new(
+                                partition,
+                                0,
+                                None,
+                                vec![ActiveProducer::new(1000, 1, 7, 1_700_000_000_000, 0, -1)],
+                            ));
+                        }
+                    }
+                    out.push(DescribeProducersTopic::new(t.name, parts));
+                }
+                encode_describe_producers_response(&mut body, &DescribeProducersResponse::new(out))
+                    .unwrap();
+            }
+            DESCRIBE_CLUSTER => {
+                let version = header.api_version;
+                let (_include, endpoint, fenced) =
+                    decode_describe_cluster_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_cluster_version = Some(version);
+                st.last_describe_cluster_endpoint_type = Some(endpoint);
+                st.last_describe_cluster_include_fenced = Some(fenced);
+                let brokers = if st.brokers.is_empty() {
+                    vec![Broker {
+                        node_id,
+                        host: "127.0.0.1".into(),
+                        port: 0,
+                        rack: None,
+                    }]
+                } else {
+                    st.brokers.clone()
+                };
+                let controller_id = brokers.first().map(|b| b.node_id).unwrap_or(node_id);
+                encode_describe_cluster_response(
+                    &mut body,
+                    version,
+                    &ClusterDescription::new(
+                        0,
+                        None,
+                        Some("mock".into()),
+                        controller_id,
+                        endpoint,
+                        AUTHORIZED_OPERATIONS_OMITTED,
+                        brokers
+                            .into_iter()
+                            .map(DescribeClusterBroker::from)
+                            .collect(),
+                    ),
+                )
+                .unwrap();
+            }
+            CREATE_ACLS => {
+                let version = header.api_version;
+                let acls = decode_create_acls_request(&mut frame, version).unwrap();
+                let n = acls.len();
+                let mut st = state.lock();
+                st.last_create_acls_version = Some(version);
+                if st.controller_node != node_id {
+                    st.create_acls_not_controller = st.create_acls_not_controller.saturating_add(1);
+                    encode_create_acls_response(
+                        &mut body,
+                        version,
+                        &AclCreationResult::error_results(n, error::NOT_CONTROLLER),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_create_acls_node = Some(node_id);
+                    st.acls.extend(acls);
+                    encode_create_acls_response(
+                        &mut body,
+                        version,
+                        &AclCreationResult::error_results(n, 0),
+                    )
+                    .unwrap();
+                }
+            }
+            ALTER_PARTITION_REASSIGNMENTS => {
+                let (timeout_ms, topics) =
+                    decode_alter_partition_reassignments_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_alter_reassignments_timeout = Some(timeout_ms);
+                if st.controller_node != node_id {
+                    st.alter_reassignments_not_controller =
+                        st.alter_reassignments_not_controller.saturating_add(1);
+                    encode_alter_partition_reassignments_response(
+                        &mut body,
+                        &AlterPartitionReassignmentsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_alter_reassignments_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for t in topics {
+                        let mut parts = Vec::new();
+                        for p in t.partitions {
+                            let err = if st.created_topics.contains_key(&t.name) {
+                                st.last_reassignment =
+                                    Some((t.name.clone(), p.partition_index, p.replicas.clone()));
+                                match p.replicas {
+                                    Some(replicas) => {
+                                        let _ = st
+                                            .reassignments
+                                            .insert((t.name.clone(), p.partition_index), replicas);
+                                    }
+                                    None => {
+                                        let _ = st
+                                            .reassignments
+                                            .remove(&(t.name.clone(), p.partition_index));
+                                    }
+                                }
+                                0
+                            } else {
+                                3
+                            };
+                            parts.push(ReassignmentPartitionResult {
+                                partition_index: p.partition_index,
+                                error_code: err,
+                                error_message: None,
+                            });
+                        }
+                        results.push(ReassignmentTopicResult {
+                            name: t.name,
+                            partitions: parts,
+                        });
+                    }
+                    encode_alter_partition_reassignments_response(
+                        &mut body,
+                        &AlterPartitionReassignmentsResponse::new(0, None, results),
+                    )
+                    .unwrap();
+                }
+            }
+            LIST_PARTITION_REASSIGNMENTS => {
+                let (timeout_ms, topics) =
+                    decode_list_partition_reassignments_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_list_reassignments_timeout = Some(timeout_ms);
+                st.last_list_reassignments_topics = Some(topics.as_ref().map(|ts| {
+                    ts.iter()
+                        .map(|t| (t.name.clone(), t.partition_indexes.clone()))
+                        .collect()
+                }));
+                if st.controller_node != node_id {
+                    st.list_reassignments_not_controller =
+                        st.list_reassignments_not_controller.saturating_add(1);
+                    // 41 only. Do not invent a replica list on the wrong node.
+                    encode_list_partition_reassignments_response(
+                        &mut body,
+                        &ListPartitionReassignmentsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_list_reassignments_node = Some(node_id);
+                    let mut by_topic: BTreeMap<String, Vec<OngoingPartitionReassignment>> =
+                        BTreeMap::new();
+                    for ((name, partition), replicas) in &st.reassignments {
+                        let wanted = match &topics {
+                            None => true,
+                            Some(filter) => filter.iter().any(|t| {
+                                t.name == *name
+                                    && (t.partition_indexes.is_empty()
+                                        || t.partition_indexes.contains(partition))
+                            }),
+                        };
+                        if wanted {
+                            by_topic.entry(name.clone()).or_default().push(
+                                OngoingPartitionReassignment {
+                                    partition_index: *partition,
+                                    replicas: replicas.clone(),
+                                    adding_replicas: Vec::new(),
+                                    removing_replicas: Vec::new(),
+                                },
+                            );
+                        }
+                    }
+                    let listed: Vec<OngoingTopicReassignment> = by_topic
+                        .into_iter()
+                        .map(|(name, partitions)| OngoingTopicReassignment { name, partitions })
+                        .collect();
+                    encode_list_partition_reassignments_response(
+                        &mut body,
+                        &ListPartitionReassignmentsResponse::new(0, None, listed),
+                    )
+                    .unwrap();
+                }
+            }
+            UPDATE_FEATURES => {
+                let version = header.api_version;
+                let (timeout_ms, updates, validate_only) =
+                    decode_update_features_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_update_features_version = Some(version);
+                st.last_update_features_timeout = Some(timeout_ms);
+                st.last_update_features_validate_only = Some(validate_only);
+                if st.controller_node != node_id {
+                    st.update_features_not_controller =
+                        st.update_features_not_controller.saturating_add(1);
+                    // 41 only. Do not apply the feature mutation on the wrong node.
+                    encode_update_features_response(
+                        &mut body,
+                        version,
+                        &UpdateFeaturesResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_update_features_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for u in updates {
+                        st.last_feature_update =
+                            Some((u.name.clone(), u.max_version_level, u.allow_downgrade));
+                        st.last_update_features_upgrade_type = Some(u.upgrade_type);
+                        if !validate_only {
+                            let _ = st.features.insert(u.name.clone(), u.max_version_level);
+                        }
+                        results.push(UpdatableFeatureResult {
+                            name: u.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    encode_update_features_response(
+                        &mut body,
+                        version,
+                        &UpdateFeaturesResponse::new(0, None, results),
+                    )
+                    .unwrap();
+                }
+            }
+            ALTER_USER_SCRAM_CREDENTIALS => {
+                let (deletions, upsertions) =
+                    decode_alter_user_scram_credentials_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.alter_user_scram_not_controller =
+                        st.alter_user_scram_not_controller.saturating_add(1);
+                    // 41 only. Do not apply the SCRAM mutation on the wrong node.
+                    let mut results = Vec::new();
+                    for d in deletions {
+                        results.push(AlterUserScramCredentialsResult {
+                            user: d.name,
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                    for u in upsertions {
+                        results.push(AlterUserScramCredentialsResult {
+                            user: u.name,
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                    encode_alter_user_scram_credentials_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_alter_user_scram_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for d in deletions {
+                        let _removed = st.scram_users.remove(&(d.name.clone(), d.mechanism));
+                        st.last_scram_delete = Some((d.name.clone(), d.mechanism));
+                        results.push(AlterUserScramCredentialsResult {
+                            user: d.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    for u in upsertions {
+                        // Store name/mechanism/iterations only. Dummy salt
+                        // bytes are not kept and are not logged.
+                        let _prev = st
+                            .scram_users
+                            .insert((u.name.clone(), u.mechanism), u.iterations);
+                        st.last_scram_upsert = Some((u.name.clone(), u.mechanism, u.iterations));
+                        results.push(AlterUserScramCredentialsResult {
+                            user: u.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    encode_alter_user_scram_credentials_response(&mut body, &results).unwrap();
+                }
+            }
+            DESCRIBE_USER_SCRAM_CREDENTIALS => {
+                let users = decode_describe_user_scram_credentials_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.describe_user_scram_not_controller =
+                        st.describe_user_scram_not_controller.saturating_add(1);
+                    // 41 only. Do not disclose fixture credential metadata
+                    // on the wrong node.
+                    encode_describe_user_scram_credentials_response(
+                        &mut body,
+                        &DescribeUserScramCredentialsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_describe_user_scram_node = Some(node_id);
+                    st.last_describe_user_scram_users = Some(users.clone());
+                    // Fixture users only. Name/mechanism/iterations; no
+                    // salt, no password, nothing logged.
+                    let mut by_user: std::collections::BTreeMap<String, Vec<ScramCredentialInfo>> =
+                        std::collections::BTreeMap::new();
+                    for ((name, mechanism), iterations) in &st.scram_users {
+                        by_user
+                            .entry(name.clone())
+                            .or_default()
+                            .push(ScramCredentialInfo {
+                                mechanism: *mechanism,
+                                iterations: *iterations,
+                            });
+                    }
+                    let names: Vec<String> = match users {
+                        None => by_user.keys().cloned().collect(),
+                        Some(v) if v.is_empty() => by_user.keys().cloned().collect(),
+                        Some(v) => v,
+                    };
+                    let results = names
+                        .into_iter()
+                        .map(|user| {
+                            let credential_infos = by_user.remove(&user).unwrap_or_default();
+                            DescribeUserScramCredentialsResult {
+                                user,
+                                error_code: 0,
+                                error_message: None,
+                                credential_infos,
+                            }
+                        })
+                        .collect();
+                    encode_describe_user_scram_credentials_response(
+                        &mut body,
+                        &DescribeUserScramCredentialsResponse::new(0, None, results),
+                    )
+                    .unwrap();
+                }
+            }
+            ADD_RAFT_VOTER => {
+                let request =
+                    decode_add_raft_voter_request(&mut frame, header.api_version).unwrap();
+                let (response, delay, drop_response, trailing) = {
+                    let mut st = state.lock();
+                    st.add_raft_voter_requests
+                        .push((node_id, header.api_version, request));
+                    let drop_response = st.add_raft_voter_drop > 0;
+                    if drop_response {
+                        st.add_raft_voter_drop -= 1;
+                    }
+                    (
+                        st.add_raft_voter_responses
+                            .pop_front()
+                            .unwrap_or(AddRaftVoterResponse {
+                                throttle_time_ms: 0,
+                                error_code: 0,
+                                error_message: None,
+                            }),
+                        st.add_raft_voter_delay,
+                        drop_response,
+                        st.add_raft_voter_trailing,
+                    )
+                };
+                if drop_response {
+                    break;
+                }
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                encode_add_raft_voter_response(&mut body, header.api_version, &response).unwrap();
+                if trailing {
+                    body.extend_from_slice(&[255]);
+                }
+            }
+            REMOVE_RAFT_VOTER => {
+                let request =
+                    decode_remove_raft_voter_request(&mut frame, header.api_version).unwrap();
+                let (response, delay, drop_response, trailing) = {
+                    let mut st = state.lock();
+                    st.remove_raft_voter_requests
+                        .push((node_id, header.api_version, request));
+                    let drop_response = st.remove_raft_voter_drop > 0;
+                    if drop_response {
+                        st.remove_raft_voter_drop -= 1;
+                    }
+                    (
+                        st.remove_raft_voter_responses.pop_front().unwrap_or(
+                            RemoveRaftVoterResponse {
+                                throttle_time_ms: 0,
+                                error_code: 0,
+                                error_message: None,
+                            },
+                        ),
+                        st.remove_raft_voter_delay,
+                        drop_response,
+                        st.remove_raft_voter_trailing,
+                    )
+                };
+                if drop_response {
+                    break;
+                }
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                encode_remove_raft_voter_response(&mut body, header.api_version, &response)
+                    .unwrap();
+                if trailing {
+                    body.extend_from_slice(&[255]);
+                }
+            }
+            DESCRIBE_QUORUM => {
+                let request =
+                    decode_describe_quorum_request(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().describe_quorum_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.describe_quorum_requests
+                    .push((node_id, header.api_version, request));
+                if st.describe_quorum_drop > 0 {
+                    st.describe_quorum_drop -= 1;
+                    break;
+                }
+                // Broker bootstrap forwards inspection to the current controller.
+                let mut response = st.describe_quorum_responses.pop_front().unwrap_or_else(|| {
+                    DescribeQuorumResponse::new(
+                        0,
+                        None,
+                        vec![DescribeQuorumResult {
+                            topic: "__cluster_metadata".into(),
+                            partitions: vec![DescribeQuorumPartition {
+                                partition_index: 0,
+                                error_code: 0,
+                                error_message: None,
+                                leader_id: st.controller_node,
+                                leader_epoch: 9,
+                                high_watermark: 123,
+                                current_voters: vec![DescribeQuorumReplicaState {
+                                    replica_id: st.controller_node,
+                                    replica_directory_id: [7; 16],
+                                    log_end_offset: 125,
+                                    last_fetch_timestamp: 1000,
+                                    last_caught_up_timestamp: -1,
+                                }],
+                                observers: vec![DescribeQuorumReplicaState {
+                                    replica_id: 42,
+                                    replica_directory_id: [8; 16],
+                                    log_end_offset: 120,
+                                    last_fetch_timestamp: 900,
+                                    last_caught_up_timestamp: 850,
+                                }],
+                            }],
+                        }],
+                        vec![DescribeQuorumNode {
+                            node_id: st.controller_node,
+                            listeners: vec![DescribeQuorumListener {
+                                name: "CONTROLLER".into(),
+                                host: "localhost".into(),
+                                port: 9093,
+                            }],
+                        }],
+                    )
+                });
+                // The peer constructs fields available on the requested version,
+                // as a broker does before invoking the strict SDK-like serializer.
+                if header.api_version < 2 {
+                    response.nodes.clear();
+                    for topic in &mut response.topics {
+                        for partition in &mut topic.partitions {
+                            for replica in partition
+                                .current_voters
+                                .iter_mut()
+                                .chain(&mut partition.observers)
+                            {
+                                replica.replica_directory_id = [0; 16];
+                            }
+                        }
+                    }
+                }
+                encode_describe_quorum_response(&mut body, header.api_version, &response).unwrap();
+            }
+            ELECT_LEADERS => {
+                let request = decode_elect_leaders_request(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().elect_leaders_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.elect_leaders_requests
+                    .push((node_id, header.api_version, request.clone()));
+                if st.elect_leaders_drop > 0 {
+                    st.elect_leaders_drop -= 1;
+                    break;
+                }
+                let code = if node_id == st.controller_node {
+                    0
+                } else {
+                    error::NOT_CONTROLLER
+                };
+                let topics = request.topics.unwrap_or_else(|| {
+                    st.created_topics
+                        .iter()
+                        .map(|(name, spec)| {
+                            ElectLeadersTopic::new(name.clone(), (0..spec.num_partitions).collect())
+                        })
+                        .collect()
+                });
+                let response = if code == 0 {
+                    st.elect_leaders_responses.pop_front()
+                } else {
+                    None
+                }
+                .unwrap_or_else(|| {
+                    ElectLeadersResponse::new(
+                        0,
+                        if header.api_version >= 1 { code } else { 0 },
+                        topics
+                            .into_iter()
+                            .map(|topic| ElectLeadersResult {
+                                topic: topic.topic,
+                                partitions: topic
+                                    .partitions
+                                    .into_iter()
+                                    .map(|partition_id| ElectLeadersPartitionResult {
+                                        partition_id,
+                                        error_code: code,
+                                        error_message: None,
+                                    })
+                                    .collect(),
+                            })
+                            .collect(),
+                    )
+                });
+                encode_elect_leaders_response(&mut body, header.api_version, &response).unwrap();
+            }
+            UNREGISTER_BROKER => {
+                let broker_id = decode_unregister_broker_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.unregister_broker_not_controller =
+                        st.unregister_broker_not_controller.saturating_add(1);
+                    // 41 only. Do not pretend the broker was unregistered
+                    // on the wrong node.
+                    encode_unregister_broker_response(
+                        &mut body,
+                        &UnregisterBrokerResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_unregister_broker_node = Some(node_id);
+                    st.last_unregistered_broker_id = Some(broker_id);
+                    let _ = st.unregistered_brokers.insert(broker_id);
+                    encode_unregister_broker_response(
+                        &mut body,
+                        &UnregisterBrokerResponse::new(0, None),
+                    )
+                    .unwrap();
+                }
+            }
+            DESCRIBE_CLIENT_QUOTAS => {
+                let version = header.api_version;
+                let (components, strict) =
+                    decode_describe_client_quotas_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture describe only;
+                // not a quota store and not a controller hop.
+                st.last_describe_client_quotas_node = Some(node_id);
+                st.last_describe_client_quotas_version = Some(version);
+                st.last_describe_client_quotas = Some((components, strict));
+                encode_describe_client_quotas_response(
+                    &mut body,
+                    version,
+                    &DescribeClientQuotasResponse::new(
+                        0,
+                        None,
+                        Some(vec![ClientQuotaEntry::new(
+                            vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                            vec![ClientQuotaValue::new("producer_byte_rate", 1024.0)],
+                        )]),
+                    ),
+                )
+                .unwrap();
+            }
+            ALTER_CLIENT_QUOTAS => {
+                let version = header.api_version;
+                let (entries, _validate_only) =
+                    decode_alter_client_quotas_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_alter_client_quotas_version = Some(version);
+                if st.controller_node != node_id {
+                    st.alter_client_quotas_not_controller =
+                        st.alter_client_quotas_not_controller.saturating_add(1);
+                    // 41 only. Do not apply the quota mutation on the wrong node.
+                    let mut results = Vec::new();
+                    for e in entries {
+                        results.push(ClientQuotaAlterationResult {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            entity: e.entity,
+                        });
+                    }
+                    encode_alter_client_quotas_response(&mut body, version, &results).unwrap();
+                } else {
+                    st.last_alter_client_quotas_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for e in entries {
+                        // Fixture entity/ops only. Not a real cluster quota store.
+                        for op in &e.ops {
+                            let ent = e.entity.first().cloned();
+                            let (entity_type, name) = match ent {
+                                Some(ent) => (ent.entity_type, ent.name),
+                                None => (String::new(), None),
+                            };
+                            let key = (entity_type.clone(), name.clone(), op.key.clone());
+                            if op.remove {
+                                let _removed = st.quota_fixtures.remove(&key);
+                                st.last_quota_delete = Some(key);
+                            } else {
+                                let _prev = st.quota_fixtures.insert(key.clone(), op.value);
+                                st.last_quota_upsert =
+                                    Some((entity_type, name, op.key.clone(), op.value));
+                            }
+                        }
+                        results.push(ClientQuotaAlterationResult {
+                            error_code: 0,
+                            error_message: None,
+                            entity: e.entity,
+                        });
+                    }
+                    encode_alter_client_quotas_response(&mut body, version, &results).unwrap();
+                }
+            }
+            ALLOCATE_PRODUCER_IDS => {
+                let (broker_id, broker_epoch) =
+                    decode_allocate_producer_ids_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.allocate_producer_ids_not_controller =
+                        st.allocate_producer_ids_not_controller.saturating_add(1);
+                    // 41 only. Do not hand out a PID block on the wrong node.
+                    encode_allocate_producer_ids_response(
+                        &mut body,
+                        &AllocateProducerIdsResponse::new(error::NOT_CONTROLLER, 0, 0),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_allocate_producer_ids_node = Some(node_id);
+                    let start = st.next_producer_id_block_start;
+                    let len: i32 = 1000;
+                    st.next_producer_id_block_start = start.saturating_add(i64::from(len));
+                    st.last_allocate_producer_ids = Some((broker_id, broker_epoch, start, len));
+                    encode_allocate_producer_ids_response(
+                        &mut body,
+                        &AllocateProducerIdsResponse::new(0, start, len),
+                    )
+                    .unwrap();
+                }
+            }
+            DESCRIBE_TRANSACTIONS => {
+                let ids = decode_describe_transactions_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_describe_transactions_n = ids.len();
+                st.describe_transactions_calls = st.describe_transactions_calls.saturating_add(1);
+                if st.txn_coord_node != node_id {
+                    st.describe_transactions_not_coordinator =
+                        st.describe_transactions_not_coordinator.saturating_add(1);
+                    // 16 only. Do not disclose fixture txn state on the wrong node.
+                    let results: Vec<TransactionState> = ids
+                        .into_iter()
+                        .map(|transactional_id| TransactionState {
+                            error_code: error::NOT_COORDINATOR,
+                            transactional_id,
+                            transaction_state: String::new(),
+                            transaction_timeout_ms: 0,
+                            transaction_start_time_ms: 0,
+                            producer_id: 0,
+                            producer_epoch: 0,
+                            topics: Vec::new(),
+                        })
+                        .collect();
+                    encode_describe_transactions_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_describe_transactions_node = Some(node_id);
+                    // Fixture transactional ids only.
+                    const TRANSACTIONAL_ID_NOT_FOUND: i16 = 152;
+                    let results: Vec<TransactionState> = ids
+                        .into_iter()
+                        .map(|transactional_id| {
+                            st.txn_fixtures.get(&transactional_id).cloned().unwrap_or(
+                                TransactionState {
+                                    error_code: TRANSACTIONAL_ID_NOT_FOUND,
+                                    transactional_id,
+                                    transaction_state: String::new(),
+                                    transaction_timeout_ms: 0,
+                                    transaction_start_time_ms: 0,
+                                    producer_id: 0,
+                                    producer_epoch: 0,
+                                    topics: Vec::new(),
+                                },
+                            )
+                        })
+                        .collect();
+                    encode_describe_transactions_response(&mut body, &results).unwrap();
+                }
+            }
+            LIST_TRANSACTIONS => {
+                let version = header.api_version;
+                let (_states, _pids, duration_ms) =
+                    decode_list_transactions_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_list_transactions_version = Some(version);
+                st.last_list_transactions_duration = Some(duration_ms);
+                // Each broker answers this all-brokers query. Only the current
+                // owner has these fixtures; other brokers succeed with no rows.
+                let transaction_states: Vec<TransactionListing> = if st.txn_coord_node == node_id {
+                    st.last_list_transactions_node = Some(node_id);
+                    st.txn_fixtures
+                        .values()
+                        .map(|s| TransactionListing {
+                            transactional_id: s.transactional_id.clone(),
+                            producer_id: s.producer_id,
+                            transaction_state: s.transaction_state.clone(),
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                encode_list_transactions_response(
+                    &mut body,
+                    version,
+                    &ListTransactionsResponse::new(0, Vec::new(), transaction_states),
+                )
+                .unwrap();
+            }
+            DESCRIBE_ACLS => {
+                let version = header.api_version;
+                let filter = decode_describe_acls_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_acls_version = Some(version);
+                st.last_describe_acls_filter = Some(filter.clone());
+                let acls: Vec<AclBinding> = st
+                    .acls
+                    .iter()
+                    .filter(|a| filter.matches(a))
+                    .cloned()
+                    .collect();
+                encode_describe_acls_response(&mut body, version, &acls).unwrap();
+            }
+            DELETE_ACLS => {
+                let version = header.api_version;
+                let filters = decode_delete_acls_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_delete_acls_version = Some(version);
+                st.last_delete_acls_n = Some(filters.len());
+                let original = st.acls.clone();
+                let results: Vec<DeletedAclsFilterResult> = filters
+                    .iter()
+                    .map(|f| DeletedAclsFilterResult {
+                        error_code: 0,
+                        error_message: None,
+                        matching: original
+                            .iter()
+                            .filter(|a| f.matches(a))
+                            .map(|a| DeleteAclsResponse::matching_acl(a, &error::ApiError::NONE))
+                            .collect(),
+                    })
+                    .collect();
+                st.acls.retain(|a| !filters.iter().any(|f| f.matches(a)));
+                encode_delete_acls_filter_results(&mut body, version, &results).unwrap();
+            }
+            LIST_OFFSETS => {
+                let (iso, topics, timeout_ms, ..) =
+                    decode_list_offsets_topics_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.last_list_offsets_isolation = Some(iso);
+                st.last_list_offsets_timeout = timeout_ms;
+                st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
+                st.last_list_offsets_version = Some(header.api_version);
+                for topic in &topics {
+                    for partition in &topic.partitions {
+                        st.list_offsets_queries.push((
+                            node_id,
+                            header.api_version,
+                            topic.name.clone(),
+                            partition.partition,
+                            partition.timestamp,
+                        ));
+                    }
+                }
+                let raw = st
+                    .list_offsets_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(raw) = raw {
+                    body.extend_from_slice(&raw);
+                } else {
+                    let mut n = 0usize;
+                    let mut any_leader = false;
+                    let mut resp_topics = Vec::with_capacity(topics.len());
+                    for t in &topics {
+                        let mut parts = Vec::with_capacity(t.partitions.len());
+                        for p in &t.partitions {
+                            n = n.saturating_add(1);
+                            let (on_leader, part) = list_offsets_partition_result(
+                                &mut st,
+                                node_id,
+                                &t.name,
+                                p.partition,
+                                p.current_leader_epoch,
+                                p.timestamp,
+                            );
+                            any_leader = any_leader || on_leader;
+                            parts.push(part);
+                        }
+                        resp_topics.push(ListOffsetsTopicResponse::new(t.name.clone(), parts));
+                    }
+                    st.last_list_offsets_n = Some(n);
+                    if any_leader {
+                        st.last_list_offsets_node = Some(node_id);
+                    }
+                    encode_list_offsets_topics_response(
+                        &mut body,
+                        header.api_version,
+                        &resp_topics,
+                    )
+                    .unwrap();
+                }
+            }
+            INIT_PRODUCER_ID => {
+                let response_body_start = body.len();
+                let decoded = partitionline::protocol::idem::decode_init_producer_id_request_data(
+                    &mut frame,
+                    header.api_version,
+                )
+                .unwrap();
+                let flags = (decoded.enable_2pc, decoded.keep_prepared_txn);
+                let (tid, txn_timeout, producer_id, producer_epoch) = (
+                    decoded.transactional_id,
+                    decoded.transaction_timeout_ms,
+                    decoded.producer_id,
+                    decoded.producer_epoch,
+                );
+                let delay = state.lock().init_producer_id_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.last_init_producer_id_timeout = Some(txn_timeout);
+                st.last_init_producer_id_flags = Some(flags);
+                st.last_init_producer_id_version = Some(header.api_version);
+                st.last_init_producer_id_producer_id = Some(producer_id);
+                st.last_init_producer_id_producer_epoch = Some(producer_epoch);
+                st.init_producer_id_nodes.push(node_id);
+                if let Some(error) = st.init_producer_id_faults.pop_front() {
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        error,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else if tid.is_some() && st.txn_coord_node != node_id {
+                    st.init_producer_id_not_coordinator =
+                        st.init_producer_id_not_coordinator.saturating_add(1);
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        16,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else if producer_id >= 0 && producer_epoch >= 0 {
+                    st.last_init_producer_id_node = Some(node_id);
+                    let next_epoch = producer_epoch.saturating_add(1);
+                    if let Some(t) = tid.as_ref() {
+                        st.txn_identities
+                            .insert(t.clone(), (producer_id, next_epoch));
+                    }
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        0,
+                        producer_id,
+                        next_epoch,
+                    )
+                    .unwrap();
+                } else {
+                    st.last_init_producer_id_node = Some(node_id);
+                    // A second producer for the same transactional.id fences
+                    // the first: same pid, bumped epoch (real-broker
+                    // behavior, KL03-10). Fresh ids and non-transactional
+                    // inits rotate the pid as before.
+                    let (pid, epoch) = match tid.as_ref() {
+                        Some(t) => match st.txn_identities.get(t).copied() {
+                            Some((p, e)) => (p, e.saturating_add(1)),
+                            None => {
+                                let p = st.next_pid;
+                                st.next_pid += 1;
+                                (p, 0)
+                            }
+                        },
+                        None => {
+                            let p = st.next_pid;
+                            st.next_pid += 1;
+                            (p, 0)
+                        }
+                    };
+                    if let Some(t) = tid.as_ref() {
+                        st.txn_identities.insert(t.clone(), (pid, epoch));
+                    }
+                    encode_init_producer_id_response(&mut body, header.api_version, 0, pid, epoch)
+                        .unwrap();
+                }
+                if header.api_version >= 6 {
+                    if let Some((pid, epoch)) = st.init_producer_id_ongoing {
+                        let mut response =
+                            partitionline::protocol::idem::decode_init_producer_id_response_data(
+                                &mut &body[response_body_start..],
+                                header.api_version,
+                            )
+                            .unwrap();
+                        response.ongoing_txn_producer_id = pid;
+                        response.ongoing_txn_producer_epoch = epoch;
+                        body.truncate(response_body_start);
+                        partitionline::protocol::idem::encode_init_producer_id_response_data(
+                            &mut body,
+                            header.api_version,
+                            &response,
+                        )
+                        .unwrap();
+                    }
+                }
+            }
+            ADD_PARTITIONS_TO_TXN => {
+                let (_tid, _pid, epoch, topics) =
+                    decode_add_partitions_to_txn_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                let forced = match (st.add_partitions_error, st.add_partitions_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.add_partitions_error = None;
+                        st.add_partitions_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.add_partitions_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.add_partitions_error = None;
+                            st.add_partitions_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
+                if st.txn_coord_node != node_id {
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        16,
+                    )
+                    .unwrap();
+                } else if let Some(err) = forced {
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        err,
+                    )
+                    .unwrap();
+                } else {
+                    let n = topics.iter().map(|t| t.partitions.len()).sum();
+                    st.in_txn = true;
+                    st.add_partitions_to_txn_calls =
+                        st.add_partitions_to_txn_calls.saturating_add(1);
+                    st.last_add_partitions_to_txn = n;
+                    st.last_add_partitions_to_txn_version = Some(header.api_version);
+                    st.last_add_partitions_producer_epoch = Some(epoch);
+                    st.last_add_partitions_node = Some(node_id);
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        0,
+                    )
+                    .unwrap();
+                }
+            }
+            ADD_OFFSETS_TO_TXN => {
+                let _ = decode_add_offsets_to_txn_request(&mut frame, header.api_version);
+                let mut st = state.lock();
+                let forced = match (st.add_offsets_error, st.add_offsets_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.add_offsets_error = None;
+                        st.add_offsets_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.add_offsets_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.add_offsets_error = None;
+                            st.add_offsets_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
+                if st.txn_coord_node != node_id {
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, 16).unwrap();
+                } else if let Some(err) = forced {
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, err).unwrap();
+                } else {
+                    st.last_add_offsets_node = Some(node_id);
+                    st.last_add_offsets_to_txn_version = Some(header.api_version);
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, 0).unwrap();
+                }
+            }
+            END_TXN => {
+                // Request-loss: the broker never sees this RPC (KL03-10).
+                // `break` closes the connection, like produce drops.
+                let drop_request = {
+                    let mut st = state.lock();
+                    if st.end_txn_drop_request > 0 {
+                        st.end_txn_drop_request -= 1;
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if drop_request {
+                    break;
+                }
+                let (_tid, pid, epoch, committed) =
+                    decode_end_txn_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                let forced = match (st.end_txn_error, st.end_txn_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.end_txn_error = None;
+                        st.end_txn_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.end_txn_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.end_txn_error = None;
+                            st.end_txn_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
+                st.end_txn_calls = st.end_txn_calls.saturating_add(1);
+                st.last_end_txn_committed = Some(committed);
+                if st.txn_coord_node != node_id {
+                    encode_end_txn_response(
+                        &mut body,
+                        header.api_version,
+                        16,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else if let Some(err) = forced {
+                    // A failed EndTxn leaves the transaction open: no
+                    // commit/abort side effects, no identity bump. The error
+                    // response carries the JSON-default identity (Java
+                    // `EndTxnRequest.getErrorResponse`).
+                    encode_end_txn_response(
+                        &mut body,
+                        header.api_version,
+                        err,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else {
+                    if !committed {
+                        let pending = std::mem::take(&mut st.txn_pending);
+                        for rec in pending {
+                            st.txn_aborted.insert(rec);
+                        }
+                        st.txn_pending_offsets.clear();
+                    } else {
+                        st.txn_pending.clear();
+                        for (k, v) in std::mem::take(&mut st.txn_pending_offsets) {
+                            st.committed.insert(k, v);
+                        }
+                    }
+                    st.in_txn = false;
+                    st.last_end_txn_node = Some(node_id);
+                    st.last_end_txn_version = Some(header.api_version);
+                    let (out_pid, out_epoch) = if header.api_version >= 5 {
+                        (pid, epoch.saturating_add(1))
+                    } else {
+                        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH)
+                    };
+                    encode_end_txn_response(&mut body, header.api_version, 0, out_pid, out_epoch)
+                        .unwrap();
+                }
+                // Response-loss: EndTxn applied, but the reply never arrives
+                // (KL03-10). `break` closes the connection.
+                let drop_response = if st.end_txn_drop_response > 0 {
+                    st.end_txn_drop_response -= 1;
+                    true
+                } else {
+                    false
+                };
+                drop(st);
+                if drop_response {
+                    break;
+                }
+            }
+            WRITE_TXN_MARKERS => {
+                let version = header.api_version;
+                let markers = decode_write_txn_markers_request(&mut frame, version).unwrap();
+                let marker = markers.into_iter().next();
+                let mut st = state.lock();
+                st.last_write_txn_markers_version = Some(version);
+                let (topic, partition) = marker
+                    .as_ref()
+                    .and_then(|m| {
+                        m.topics.first().and_then(|t| {
+                            t.partitions.first().copied().map(|p| (t.name.clone(), p))
+                        })
+                    })
+                    .unwrap_or_else(|| ("t".into(), 0));
+                let key = (topic.clone(), partition);
+                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                if leader != node_id {
+                    st.write_txn_markers_not_leader =
+                        st.write_txn_markers_not_leader.saturating_add(1);
+                    let resp = marker
+                        .as_ref()
+                        .map(|m| m.result(error::NOT_LEADER_OR_FOLLOWER))
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    encode_write_txn_markers_response(&mut body, version, &resp).unwrap();
+                } else {
+                    st.last_write_txn_markers_node = Some(node_id);
+                    st.last_write_txn_markers = marker.clone();
+                    let resp = marker
+                        .as_ref()
+                        .map(|m| m.result(0))
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    encode_write_txn_markers_response(&mut body, version, &resp).unwrap();
+                }
+            }
+            TXN_OFFSET_COMMIT => {
+                let (_tid, gid, member, topics, ..) =
+                    decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                let forced = match (st.txn_offset_commit_error, st.txn_offset_commit_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.txn_offset_commit_error = None;
+                        st.txn_offset_commit_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.txn_offset_commit_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.txn_offset_commit_error = None;
+                            st.txn_offset_commit_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
+                if st.coord_node != node_id {
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, 16)
+                        .unwrap();
+                } else if let Some(err) = forced {
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, err)
+                        .unwrap();
+                } else {
+                    st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
+                    let mut nparts = 0usize;
+                    let mut epochs = Vec::new();
+                    for t in &topics {
+                        for p in &t.partitions {
+                            nparts = nparts.saturating_add(1);
+                            epochs.push(p.leader_epoch);
+                            // Staged, not committed: EndTxn commit applies
+                            // these, EndTxn abort discards them (KL03-10).
+                            st.txn_pending_offsets.push((
+                                (gid.clone(), t.topic.clone(), p.partition),
+                                CommittedOffset {
+                                    offset: p.offset,
+                                    leader_epoch: p.leader_epoch,
+                                    metadata: p.metadata.clone(),
+                                },
+                            ));
+                        }
+                    }
+                    st.last_txn_offset_commit_partitions = nparts;
+                    st.last_txn_offset_epochs = epochs;
+                    st.last_txn_offset_commit_node = Some(node_id);
+                    st.last_txn_offset_commit_version = Some(header.api_version);
+                    st.last_txn_offset_generation = Some(member.generation_id);
+                    st.last_txn_offset_member_id = Some(member.member_id);
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, 0)
+                        .unwrap();
+                }
+            }
+            PRODUCE => {
+                {
+                    let mut st = state.lock();
+                    st.produce_requests.push(node_id);
+                }
+                let produce_delay = {
+                    let mut st = state.lock();
+                    match (st.produce_delay, st.produce_delay_left) {
+                        (Some(_), Some(0)) => {
+                            st.produce_delay = None;
+                            st.produce_delay_left = None;
+                            None
+                        }
+                        (Some(d), Some(n)) => {
+                            st.produce_delay_left = Some(n.saturating_sub(1));
+                            Some(d)
+                        }
+                        (Some(d), None) => Some(d),
+                        _ => None,
+                    }
+                };
+                if let Some(delay) = produce_delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let max_supported = {
+                    let st = state.lock();
+                    st.node_api_max
+                        .get(&(node_id, PRODUCE))
+                        .copied()
+                        .or_else(|| st.api_max.get(&PRODUCE).copied())
+                        .unwrap_or(12)
+                };
+                let (mut decoded, raw_ids) = if header.api_version >= 13 {
+                    let (tid, acks, timeout, topics, ids) =
+                        decode_produce_request_with_topic_ids(&mut frame).unwrap();
+                    ((tid, acks, timeout, topics), ids)
+                } else {
+                    (
+                        decode_produce_request(&mut frame, header.api_version).unwrap(),
+                        Vec::new(),
+                    )
+                };
+                let mut sent_ids = Vec::new();
+                if header.api_version >= 13 {
+                    let mut st = state.lock();
+                    for (topic, id) in decoded.3.iter_mut().zip(raw_ids) {
+                        topic.topic = st
+                            .produce_topic_id_names
+                            .get(&id)
+                            .cloned()
+                            .unwrap_or_else(|| format!("unknown-{id:?}"));
+                        sent_ids.push((topic.topic.clone(), id));
+                        st.produce_sent_topic_ids.push((topic.topic.clone(), id));
+                    }
+                    if let Some((name, id)) = st.produce_recreate_once.take() {
+                        st.topic_id_overrides.insert(name, id);
+                    }
+                }
+                if header.api_version > max_supported {
+                    let mut parts = Vec::new();
+                    {
+                        let mut st = state.lock();
+                        st.last_produce_version = Some(header.api_version);
+                        st.last_produce_version_by_node
+                            .insert(node_id, header.api_version);
+                    }
+                    for topic in decoded.3 {
+                        for p in topic.partitions {
+                            parts.push(ProducePartitionResponse {
+                                topic: topic.topic.clone(),
+                                partition: p.index,
+                                error_code: error::UNSUPPORTED_VERSION,
+                                base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                log_start_offset: 0,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                record_errors: Vec::new(),
+                                error_message: Some(format!(
+                                    "broker {node_id} does not support Produce version {}",
+                                    header.api_version
+                                )),
+                            });
+                        }
+                    }
+                    if header.api_version == 13 {
+                        encode_produce_response_with_topic_ids(
+                            &mut body,
+                            &parts,
+                            &[],
+                            0,
+                            &sent_ids,
+                        )
+                        .unwrap();
+                    } else {
+                        encode_produce_response_with_endpoints(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            &[],
+                        )
+                        .unwrap();
+                    }
+                    write_frame(&mut stream, &body).await.ok();
+                    continue;
+                }
+                let txn_id = decoded.0;
+                let mut parts = Vec::new();
+                let (should_drop_resp, response_delay) = {
+                    let mut st = state.lock();
+                    st.last_produce_version = Some(header.api_version);
+                    st.last_produce_version_by_node
+                        .insert(node_id, header.api_version);
+                    if header.api_version >= 12 && txn_id.is_some() {
+                        // Produce v12 transaction V2: the partition leader
+                        // also performs AddPartitionsToTxn.
+                        st.in_txn = true;
+                    }
+                    let forced = match (st.produce_error, st.produce_error_left) {
+                        (Some(_), Some(0)) => {
+                            st.produce_error = None;
+                            st.produce_error_left = None;
+                            None
+                        }
+                        (Some(c), Some(left)) => {
+                            st.produce_error_left = Some(left.saturating_sub(1));
+                            if left <= 1 {
+                                st.produce_error = None;
+                                st.produce_error_left = None;
+                            }
+                            Some(c)
+                        }
+                        (Some(c), None) => Some(c),
+                        (None, _) => None,
+                    };
+                    for topic in decoded.3 {
+                        for p in topic.partitions {
+                            st.last_producer_id = Some(p.records.producer_id);
+                            st.last_produce_producer_epoch = Some(p.records.producer_epoch);
+                            let key = (topic.topic.clone(), p.index);
+                            let nrec = p.records.records.len() as i32;
+                            // KL09-14: observe encoded batch sizes for bound tests.
+                            let batch_bytes = p.records.size_in_bytes().unwrap();
+                            st.produce_batches.push((
+                                topic.topic.clone(),
+                                p.index,
+                                nrec,
+                                batch_bytes,
+                            ));
+                            let leader = st
+                                .partition_leaders
+                                .get(&(topic.topic.clone(), p.index))
+                                .copied()
+                                .unwrap_or(node_id);
+                            // Fencing: this transactional.id moved to a newer
+                            // (pid, epoch), so this stale identity is fenced
+                            // (KL03-10). Broker-authoritative state wins over the
+                            // forced-error knob.
+                            let fenced = txn_id.as_ref().is_some_and(|t| {
+                                st.txn_identities.get(t).is_some_and(|(fpid, fepoch)| {
+                                    p.records.producer_id == *fpid
+                                        && p.records.producer_epoch < *fepoch
+                                })
+                            });
+                            let stale_id = header.api_version >= 13
+                                && sent_ids
+                                    .iter()
+                                    .find(|(name, _)| name == &topic.topic)
+                                    .is_none_or(|(_, sent)| {
+                                        *sent == [0; 16] || *sent != topic_id_for(&st, &topic.topic)
+                                    });
+                            let mut error_code = if stale_id {
+                                error::UNKNOWN_TOPIC_ID
+                            } else if leader != node_id {
+                                6
+                            } else if st.in_txn && txn_id.is_none() {
+                                error::INVALID_TXN_STATE
+                            } else if fenced {
+                                error::PRODUCER_FENCED
+                            } else {
+                                forced.unwrap_or(0)
+                            };
+                            if error_code == 0 {
+                                let pid = p.records.producer_id;
+                                let epoch = p.records.producer_epoch;
+                                let seq = p.records.base_sequence;
+                                st.last_produce_base_sequence = Some(seq);
+                                st.produce_sequences.push((pid, epoch, seq, nrec));
+                                let mut is_duplicate = false;
+                                let mut dup_base_offset = 0i64;
+                                if pid >= 0 && seq >= 0 {
+                                    let skey = (pid, epoch, topic.topic.clone(), p.index);
+                                    let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
+                                    let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
+                                    if let Some(&(prev_offset, prev_count)) =
+                                        st.appended_batches.get(&bkey)
+                                    {
+                                        if prev_count == nrec {
+                                            is_duplicate = true;
+                                            dup_base_offset = prev_offset;
+                                        } else {
+                                            error_code = 45;
+                                        }
+                                    } else if seq != expected {
+                                        error_code = 45;
+                                    } else {
+                                        st.expected_seq.insert(skey, expected + nrec);
+                                    }
+                                }
+                                let start = *st.next_offset.get(&key).unwrap_or(&0);
+                                if error_code == 0 {
+                                    st.accepted_produce.push(node_id);
+                                    st.last_produce_txn_id = txn_id.clone();
+                                    let base_offset = if is_duplicate {
+                                        dup_base_offset
+                                    } else {
+                                        let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
+                                        if pid >= 0 && seq >= 0 {
+                                            st.appended_batches.insert(bkey, (start, nrec));
+                                        }
+                                        let mut n = 0i64;
+                                        for mut rec in p.records.records {
+                                            rec.offset = start + n;
+                                            st.log_producer.insert(
+                                                (topic.topic.clone(), p.index, rec.offset),
+                                                pid,
+                                            );
+                                            st.log.entry(key.clone()).or_default().push(rec);
+                                            n += 1;
+                                        }
+                                        st.next_offset.insert(key, start + n);
+                                        if st.in_txn {
+                                            for o in 0..n {
+                                                st.txn_pending.push((
+                                                    topic.topic.clone(),
+                                                    p.index,
+                                                    start + o,
+                                                ));
+                                            }
+                                        }
+                                        start
+                                    };
+                                    parts.push(ProducePartitionResponse {
+                                        topic: topic.topic.clone(),
+                                        partition: p.index,
+                                        error_code: 0,
+                                        base_offset,
+                                        log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                        log_start_offset: 0,
+                                        current_leader_id: -1,
+                                        current_leader_epoch: -1,
+                                        record_errors: Vec::new(),
+                                        error_message: None,
+                                    });
+                                } else {
+                                    let (current_leader_id, current_leader_epoch) =
+                                        kip951_current_leader(
+                                            &st,
+                                            &topic.topic,
+                                            p.index,
+                                            leader,
+                                            node_id,
+                                        );
+                                    parts.push(ProducePartitionResponse {
+                                        topic: topic.topic.clone(),
+                                        partition: p.index,
+                                        error_code,
+                                        base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                        log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                        log_start_offset: 0,
+                                        current_leader_id,
+                                        current_leader_epoch,
+                                        record_errors: Vec::new(),
+                                        error_message: None,
+                                    });
+                                }
+                            } else {
+                                let (current_leader_id, current_leader_epoch) =
+                                    kip951_current_leader(
+                                        &st,
+                                        &topic.topic,
+                                        p.index,
+                                        leader,
+                                        node_id,
+                                    );
+                                parts.push(ProducePartitionResponse {
+                                    topic: topic.topic.clone(),
+                                    partition: p.index,
+                                    error_code,
+                                    base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                    log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                    log_start_offset: 0,
+                                    current_leader_id,
+                                    current_leader_epoch,
+                                    record_errors: Vec::new(),
+                                    error_message: None,
+                                });
+                            }
+                        }
+                    }
+                    let endpoints =
+                        node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
+                    let throttle = st
+                        .produce_throttles
+                        .get_mut(&node_id)
+                        .and_then(VecDeque::pop_front);
+                    if header.api_version >= 13 {
+                        let identities = if let Some(id) = st.produce_response_id {
+                            sent_ids
+                                .iter()
+                                .map(|(name, _)| (name.clone(), id))
+                                .collect::<Vec<_>>()
+                        } else {
+                            sent_ids.clone()
+                        };
+                        encode_produce_response_with_topic_ids(
+                            &mut body,
+                            &parts,
+                            &endpoints,
+                            throttle.unwrap_or(0),
+                            &identities,
+                        )
+                        .unwrap();
+                    } else if let Some(throttle) = throttle {
+                        // Quota fixtures use healthy leaders. Keep the original
+                        // endpoint encoder for the leader-movement fault fixtures.
+                        assert!(endpoints.is_empty());
+                        encode_produce_response_with_throttle(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            throttle,
+                        )
+                        .unwrap();
+                    } else {
+                        encode_produce_response_with_endpoints(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            &endpoints,
+                        )
+                        .unwrap();
+                    }
+                    let should_drop_resp = {
+                        let node_match = match st.produce_drop_response_node {
+                            Some(target) => target == node_id,
+                            None => true,
+                        };
+                        if node_match {
+                            if let Some(c) = st.produce_drop_response_after_appends {
+                                if c <= 1 {
+                                    st.produce_drop_response_after_appends = None;
+                                    true
+                                } else {
+                                    st.produce_drop_response_after_appends = Some(c - 1);
+                                    false
+                                }
+                            } else {
+                                match (st.produce_drop_response, st.produce_drop_response_left) {
+                                    (Some(true), Some(0)) => {
+                                        st.produce_drop_response = None;
+                                        st.produce_drop_response_left = None;
+                                        false
+                                    }
+                                    (Some(true), Some(left)) => {
+                                        st.produce_drop_response_left =
+                                            Some(left.saturating_sub(1));
+                                        if left <= 1 {
+                                            st.produce_drop_response = None;
+                                            st.produce_drop_response_left = None;
+                                        }
+                                        true
+                                    }
+                                    (Some(true), None) => {
+                                        st.produce_drop_response = None;
+                                        true
+                                    }
+                                    _ => false,
+                                }
+                            }
+                        } else {
+                            false
+                        }
+                    };
+                    (should_drop_resp, st.produce_response_delay)
+                };
+                if let Some(delay) = response_delay {
+                    tokio::time::sleep(delay).await;
+                }
+                if should_drop_resp {
+                    break;
+                }
+            }
+            FETCH => {
+                let response_header_len = body.len();
+                let delay = state
+                    .lock()
+                    .fetch_delays
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let request_bytes = frame.len();
+                let (iso, max_bytes, mut req, rack, session, forgotten, ..) =
+                    decode_fetch_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                let session_enabled = st.fetch_session_nodes.contains(&node_id);
+                let mut session_id = 0;
+                let mut session_error = 0;
+                if session_enabled {
+                    st.fetch_session_requests.push((
+                        node_id,
+                        header.api_version,
+                        request_bytes,
+                        session,
+                        req.clone(),
+                        forgotten.clone(),
+                    ));
+                    if header.api_version >= 7 {
+                        for topic in &mut req {
+                            if topic.topic.is_empty() {
+                                topic.topic = topic_name_for_id(&st, topic.topic_id);
+                            }
+                        }
+                        if session.epoch() == 0 {
+                            let _ = st
+                                .fetch_session_maps
+                                .remove(&(node_id, session.session_id()));
+                            st.next_fetch_session += 1;
+                            session_id = st.next_fetch_session;
+                            let _ = st
+                                .fetch_session_maps
+                                .insert((node_id, session_id), (1, req.clone()));
+                        } else if session.epoch() > 0 {
+                            let key = (node_id, session.session_id());
+                            if let Some((epoch, mut cached)) = st.fetch_session_maps.remove(&key) {
+                                session_id = session.session_id();
+                                if epoch != session.epoch() {
+                                    session_error = error::INVALID_FETCH_SESSION_EPOCH;
+                                    req.clear();
+                                } else {
+                                    for forgotten in &forgotten {
+                                        let name = if forgotten.topic.is_empty() {
+                                            topic_name_for_id(&st, forgotten.topic_id)
+                                        } else {
+                                            forgotten.topic.clone()
+                                        };
+                                        for topic in &mut cached {
+                                            if topic.topic == name
+                                                && (header.api_version < 13
+                                                    || topic.topic_id == forgotten.topic_id)
+                                            {
+                                                topic.partitions.retain(|p| {
+                                                    !forgotten.partitions.contains(&p.partition)
+                                                });
+                                            }
+                                        }
+                                    }
+                                    cached.retain(|t| !t.partitions.is_empty());
+                                    for topic in req {
+                                        if let Some(old) = cached.iter_mut().find(|old| {
+                                            old.topic == topic.topic
+                                                && old.topic_id == topic.topic_id
+                                        }) {
+                                            for partition in topic.partitions {
+                                                if let Some(old) =
+                                                    old.partitions.iter_mut().find(|old| {
+                                                        old.partition == partition.partition
+                                                    })
+                                                {
+                                                    *old = partition;
+                                                } else {
+                                                    old.partitions.push(partition);
+                                                }
+                                            }
+                                        } else {
+                                            cached.push(topic);
+                                        }
+                                    }
+                                    req = cached.clone();
+                                }
+                                let _ = st
+                                    .fetch_session_maps
+                                    .insert(key, (FetchMetadata::next_epoch(epoch), cached));
+                            } else {
+                                session_error = error::FETCH_SESSION_ID_NOT_FOUND;
+                                req.clear();
+                            }
+                        } else if session.epoch() == FetchMetadata::FINAL_EPOCH {
+                            let _ = st
+                                .fetch_session_maps
+                                .remove(&(node_id, session.session_id()));
+                        }
+                    }
+                }
+                st.last_fetch_isolation = iso;
+                st.last_fetch_rack = rack.clone();
+                st.last_fetch_max_bytes = max_bytes;
+                st.last_fetch_version = Some(header.api_version);
+                st.last_fetch_version_by_node
+                    .insert(node_id, header.api_version);
+                st.last_fetched_epoch = req
+                    .first()
+                    .and_then(|t| t.partitions.first())
+                    .map(|p| p.last_fetched_epoch);
+                st.last_fetch_partition_max_bytes = req
+                    .first()
+                    .and_then(|t| t.partitions.first())
+                    .map(|p| p.partition_max_bytes)
+                    .unwrap_or(0);
+                let mut topics = Vec::new();
+                for t in req {
+                    let topic = if t.topic.is_empty() {
+                        topic_name_for_id(&st, t.topic_id)
+                    } else {
+                        t.topic.clone()
+                    };
+                    let topic_id = if header.api_version >= 13 {
+                        if t.topic_id == [0u8; 16] {
+                            mock_topic_id(&topic)
+                        } else {
+                            t.topic_id
+                        }
+                    } else {
+                        [0u8; 16]
+                    };
+                    let mut parts = Vec::new();
+                    for p in t.partitions {
+                        let leader = st
+                            .partition_leaders
+                            .get(&(topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(node_id);
+                        if let Some((epoch, end_offset)) =
+                            st.next_diverging.remove(&(topic.clone(), p.partition))
+                        {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: 0,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                diverging_epoch: epoch,
+                                diverging_end_offset: end_offset,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        if leader != node_id && rack.is_empty() {
+                            let (current_leader_id, current_leader_epoch) =
+                                kip951_current_leader(&st, &topic, p.partition, leader, node_id);
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: 6,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                                current_leader_id,
+                                current_leader_epoch,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        if leader == node_id && !rack.is_empty() {
+                            let follower = st.brokers.iter().find(|b| {
+                                b.rack.as_deref() == Some(rack.as_str()) && b.node_id != leader
+                            });
+                            if let Some(f) = follower {
+                                parts.push(FetchedPartition {
+                                    partition: p.partition,
+                                    error_code: 0,
+                                    high_watermark: 0,
+                                    last_stable_offset: 0,
+                                    log_start_offset: 0,
+                                    aborted_transactions: Vec::new(),
+                                    preferred_read_replica: f.node_id,
+                                    current_leader_id: -1,
+                                    current_leader_epoch: -1,
+                                    diverging_epoch: -1,
+                                    diverging_end_offset: -1,
+                                    snapshot_end_offset: -1,
+                                    snapshot_epoch: -1,
+                                    records: Vec::new(),
+                                });
+                                continue;
+                            }
+                        }
+                        let current_epoch = st
+                            .partition_epochs
+                            .get(&(topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(0);
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch < current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::FENCED_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch > current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::UNKNOWN_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        st.accepted_fetch.push(node_id);
+                        let key = (topic.clone(), p.partition);
+                        let recs = st
+                            .log
+                            .get(&key)
+                            .map(|v| {
+                                v.iter()
+                                    .filter(|r| r.offset >= p.fetch_offset)
+                                    .cloned()
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default();
+                        let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                        let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                        let lso = if iso == 1 {
+                            st.txn_pending
+                                .iter()
+                                .filter(|(tn, pn, _)| tn == &topic && *pn == p.partition)
+                                .map(|(_, _, o)| *o)
+                                .min()
+                                .unwrap_or(hw)
+                        } else {
+                            hw
+                        };
+                        let mut aborted_transactions = Vec::new();
+                        if iso == 1 {
+                            let mut first_off: HashMap<i64, i64> = HashMap::new();
+                            for (tn, pn, off) in &st.txn_aborted {
+                                if tn == &topic && *pn == p.partition {
+                                    if let Some(pid) =
+                                        st.log_producer.get(&(tn.clone(), *pn, *off)).copied()
+                                    {
+                                        let e = first_off.entry(pid).or_insert(*off);
+                                        if *off < *e {
+                                            *e = *off;
+                                        }
+                                    }
+                                }
+                            }
+                            aborted_transactions = first_off.into_iter().collect();
+                        }
+                        let error_code = if p.fetch_offset < log_start { 1 } else { 0 };
+                        let batches = if error_code != 0 || recs.is_empty() {
+                            Vec::new()
+                        } else {
+                            let first = recs[0].offset;
+                            let pid = st
+                                .log_producer
+                                .get(&(topic.clone(), p.partition, first))
+                                .copied()
+                                .unwrap_or(-1);
+                            let mut batch = RecordBatch::from_records(recs);
+                            batch.base_offset = first;
+                            batch.producer_id = pid;
+                            batch.partition_leader_epoch = st
+                                .partition_epochs
+                                .get(&(topic.clone(), p.partition))
+                                .copied()
+                                .unwrap_or(0);
+                            vec![batch]
+                        };
+                        parts.push(FetchedPartition {
+                            partition: p.partition,
+                            error_code,
+                            high_watermark: hw,
+                            last_stable_offset: lso,
+                            log_start_offset: log_start,
+                            aborted_transactions,
+                            preferred_read_replica: FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                            current_leader_id: -1,
+                            current_leader_epoch: -1,
+                            diverging_epoch: -1,
+                            diverging_end_offset: -1,
+                            snapshot_end_offset: -1,
+                            snapshot_epoch: -1,
+                            records: batches,
+                        });
+                    }
+                    topics.push(FetchedTopic {
+                        topic,
+                        topic_id,
+                        partitions: parts,
+                    });
+                }
+                let endpoints = node_endpoints_for(
+                    &st,
+                    topics
+                        .iter()
+                        .flat_map(|t| t.partitions.iter().map(|p| p.current_leader_id)),
+                );
+                let throttle = st
+                    .fetch_throttles
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if session_enabled {
+                    encode_fetch_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        session_error,
+                        session_id,
+                        &endpoints,
+                    )
+                    .unwrap();
+                    if let Some(throttle) = throttle {
+                        body[response_header_len..response_header_len + 4]
+                            .copy_from_slice(&throttle.to_be_bytes());
+                    }
+                } else if let Some(throttle) = throttle {
+                    assert!(
+                        endpoints.is_empty(),
+                        "quota fixture requires healthy leaders"
+                    );
+                    encode_fetch_response_with_throttle(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        throttle,
+                    )
+                    .unwrap();
+                } else {
+                    encode_fetch_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        0,
+                        0,
+                        &endpoints,
+                    )
+                    .unwrap();
+                }
+                if let Some(raw) = st
+                    .fetch_session_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front)
+                {
+                    body.truncate(response_header_len);
+                    body.extend_from_slice(&raw);
+                }
+            }
+            OFFSET_FOR_LEADER_EPOCH => {
+                let (topics, ..) =
+                    decode_offset_for_leader_epoch_topics_request(&mut frame, header.api_version)
+                        .unwrap();
+                let mut st = state.lock();
+                st.epoch_calls = st.epoch_calls.saturating_add(1);
+                st.last_epoch_n = Some(topics.iter().map(|t| t.partitions.len()).sum());
+                st.last_epoch_version = Some(header.api_version);
+                let mut results = Vec::with_capacity(topics.len());
+                for t in topics {
+                    let mut partitions = Vec::with_capacity(t.partitions.len());
+                    for p in t.partitions {
+                        partitions.push(offset_for_leader_epoch_partition_result(
+                            &mut st,
+                            node_id,
+                            &t.topic,
+                            p.partition,
+                            p.current_leader_epoch,
+                            p.leader_epoch,
+                        ));
+                    }
+                    results.push(OffsetForLeaderTopicResult::new(t.topic, partitions));
+                }
+                encode_offset_for_leader_epoch_topics_response(
+                    &mut body,
+                    header.api_version,
+                    &results,
+                )
+                .unwrap();
+            }
+            SASL_HANDSHAKE => {
+                let version = header.api_version;
+                let (scram, oauth) = {
+                    let mut st = state.lock();
+                    st.last_sasl_handshake_version = Some(version);
+                    st.last_sasl_handshake_correlation = Some(header.correlation_id);
+                    (st.scram_user.clone(), st.oauth_principal.clone())
+                };
+                let _mech = decode_sasl_handshake_request(&mut frame, version).unwrap_or_default();
+                if let Some((alg, _, _)) = scram {
+                    encode_sasl_handshake_response(&mut body, version, 0, &[alg.name()]).unwrap();
+                } else if oauth.is_some() {
+                    encode_sasl_handshake_response(&mut body, version, 0, &["OAUTHBEARER"])
+                        .unwrap();
+                } else {
+                    encode_sasl_handshake_response(&mut body, version, 0, &["PLAIN"]).unwrap();
+                }
+            }
+            SASL_AUTHENTICATE => {
+                let version = header.api_version;
+                let (scram_user, oauth_principal, sasl_user, msg_override) = {
+                    let mut st = state.lock();
+                    st.last_sasl_authenticate_version = Some(version);
+                    st.last_sasl_authenticate_correlation = Some(header.correlation_id);
+                    (
+                        st.scram_user.clone(),
+                        st.oauth_principal.clone(),
+                        st.sasl_user.clone(),
+                        st.sasl_authenticate_error_message.clone(),
+                    )
+                };
+                let bytes = decode_sasl_authenticate_request(&mut frame, version).unwrap();
+                if let Some((alg, _, pass)) = scram_user {
+                    match scram_step.take() {
+                        None => {
+                            let first = String::from_utf8_lossy(&bytes);
+                            match scram::server_first(
+                                &first,
+                                "SrvNonceMock0001",
+                                b"saltsalt16bytes!",
+                                4096,
+                            ) {
+                                Ok((sf, bare)) => {
+                                    scram_step = Some((alg, pass, bare, sf.clone()));
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        version,
+                                        0,
+                                        None,
+                                        sf.as_bytes(),
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                                Err(_) => {
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        version,
+                                        58,
+                                        msg_override
+                                            .clone()
+                                            .or(Some("bad scram first".into()))
+                                            .as_deref(),
+                                        &[],
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                            }
+                        }
+                        Some((alg, pass, bare, sf)) => {
+                            let cf = String::from_utf8_lossy(&bytes);
+                            match scram::server_final(alg, &pass, &bare, &sf, &cf) {
+                                Ok(fin) => {
+                                    authed = true;
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        version,
+                                        0,
+                                        None,
+                                        fin.as_bytes(),
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                                Err(_) => {
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        version,
+                                        58,
+                                        msg_override
+                                            .clone()
+                                            .or(Some("bad scram proof".into()))
+                                            .as_deref(),
+                                        &[],
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                            }
+                        }
+                    }
+                } else if let Some(expected) = oauth_principal {
+                    let ok = oauth::token_from_initial(&bytes)
+                        .and_then(|t| oauth::principal_from_jwt(&t))
+                        .map(|p| p == expected)
+                        .unwrap_or(false);
+                    authed = ok;
+                    let oauth_err: Option<String> =
+                        msg_override.clone().or(Some("bad oauth token".into()));
+                    encode_sasl_authenticate_response(
+                        &mut body,
+                        version,
+                        if ok { 0 } else { 58 },
+                        if ok { None } else { oauth_err.as_deref() },
+                        &[],
+                        0,
+                    )
+                    .unwrap();
+                } else {
+                    let parsed = parse_plain_auth_bytes(&bytes);
+                    let ok = match (parsed, sasl_user) {
+                        (Some(got), Some(exp)) => got == exp,
+                        _ => false,
+                    };
+                    authed = ok;
+                    let plain_err: Option<String> =
+                        msg_override.clone().or(Some("bad credentials".into()));
+                    encode_sasl_authenticate_response(
+                        &mut body,
+                        version,
+                        if ok { 0 } else { 58 },
+                        if ok { None } else { plain_err.as_deref() },
+                        &[],
+                        0,
+                    )
+                    .unwrap();
+                }
+            }
+            FIND_COORDINATOR => {
+                let (keys, key_type) =
+                    decode_find_coordinator_request_keys(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.find_coordinator_key_types.push(key_type);
+                st.last_find_coordinator_version = Some(header.api_version);
+                st.last_find_coordinator_key_count = keys.len();
+                st.find_coordinator_calls = st.find_coordinator_calls.saturating_add(1);
+                let coord = if key_type == COORDINATOR_TRANSACTION {
+                    if st.stale_txn_finds > 0 {
+                        st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
+                        st.brokers
+                            .iter()
+                            .map(|b| b.node_id)
+                            .find(|id| *id != st.txn_coord_node)
+                            .unwrap_or(st.txn_coord_node)
+                    } else {
+                        st.txn_coord_node
+                    }
+                } else {
+                    st.coord_node
+                };
+                let (host, port) = broker_host_port(&st, coord);
+                let injected = st.find_coordinator_faults.pop_front().unwrap_or(0);
+                let out: Vec<CoordinatorResult> = keys
+                    .into_iter()
+                    .map(|key| CoordinatorResult {
+                        key,
+                        node_id: coord,
+                        host: host.clone(),
+                        port,
+                        error_code: injected,
+                        error_message: None,
+                    })
+                    .collect();
+                encode_find_coordinator_response_coordinators(&mut body, header.api_version, &out)
+                    .unwrap();
+            }
+            SHARE_GROUP_HEARTBEAT => {
+                let version = header.api_version;
+                let req = decode_share_group_heartbeat_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_share_group_heartbeat_version = Some(version);
+                st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
+                let n = st.hb_by_node.entry(node_id).or_insert(0);
+                *n = n.saturating_add(1);
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Equal => {
+                        let names = match &req.subscribed_topic_names {
+                            Some(n) if n.is_empty() => Vec::new(),
+                            Some(n) => n.clone(),
+                            None => vec!["t".into()],
+                        };
+                        let assignment = names
+                            .iter()
+                            .map(|name| {
+                                let npart = st
+                                    .created_topics
+                                    .get(name)
+                                    .map(|s| s.num_partitions)
+                                    .unwrap_or(1);
+                                ShareTopicPartitions {
+                                    topic_id: mock_topic_id(name),
+                                    partitions: (0..npart).collect(),
+                                }
+                            })
+                            .collect();
+                        (req.member_id, 1, Some(assignment))
+                    }
+                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
+                };
+                let hb_interval = st.share_heartbeat_interval_ms;
+                encode_share_group_heartbeat_response(
+                    &mut body,
+                    version,
+                    &ShareGroupHeartbeatResponse {
+                        throttle_time_ms: 0,
+                        error_code: 0,
+                        error_message: None,
+                        member_id: Some(member_id),
+                        member_epoch: epoch,
+                        heartbeat_interval_ms: hb_interval,
+                        assignment,
+                    },
+                )
+                .unwrap();
+            }
+            SHARE_FETCH => {
+                let version = header.api_version;
+                let (group_id, member_id, epoch, max_records, topics, _, _, _, _, _, options) =
+                    decode_share_fetch_request_with_options(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_share_fetch_version = Some(version);
+                st.last_share_acquire_mode = options.acquire_mode;
+                st.share_fetch_versions_by_node.insert(node_id, version);
+                let tps: Vec<(String, i32)> = topics
+                    .iter()
+                    .flat_map(|t| {
+                        let name = topic_name_for_id(&st, t.topic_id);
+                        t.partitions
+                            .iter()
+                            .map(move |p| (name.clone(), p.partition))
+                    })
+                    .collect();
+                st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
+                st.last_share_fetch_epoch = Some(epoch);
+                st.share_fetch_history.push((node_id, epoch));
+                let injected_error = st
+                    .share_session_faults
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(code) = injected_error {
+                    encode_share_fetch_error(&mut body, version, code).unwrap();
+                } else if !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
+                    st.share_fetch_not_leader = st.share_fetch_not_leader.saturating_add(1);
+                    encode_share_fetch_error(&mut body, version, error::NOT_LEADER_OR_FOLLOWER)
+                        .unwrap();
+                } else {
+                    st.last_share_fetch_node = Some(node_id);
+                    let sess = share_session_step(&mut st, &group_id, &member_id, node_id, epoch);
+                    if sess != 0 {
+                        encode_share_fetch_error(&mut body, version, sess).unwrap();
+                    } else if let Some(code) = st
+                        .share_top_faults
+                        .get_mut(&(SHARE_FETCH, node_id))
+                        .and_then(VecDeque::pop_front)
+                    {
+                        encode_share_fetch_error(&mut body, version, code).unwrap();
+                    } else if let Some(raw) = st.share_fetch_raw_once.take() {
+                        body.extend_from_slice(&raw);
+                    } else {
+                        expire_share_locks(&mut st);
+                        let cap = if version >= 1 {
+                            usize::try_from(max_records.max(0)).unwrap_or(0)
+                        } else {
+                            16
+                        };
+                        let mut remaining = cap;
+                        let mut fetched = Vec::new();
+                        for t in topics {
+                            let name = topic_name_for_id(&st, t.topic_id);
+                            let mut parts = Vec::new();
+                            for p in t.partitions {
+                                let acknowledge_error_code = apply_share_acks(
+                                    &mut st,
+                                    &group_id,
+                                    &member_id,
+                                    &name,
+                                    p.partition,
+                                    &p.acknowledgements,
+                                );
+                                let recs = st
+                                    .log
+                                    .get(&(name.clone(), p.partition))
+                                    .cloned()
+                                    .unwrap_or_default();
+                                let mut acquired = Vec::new();
+                                let mut taken = Vec::new();
+                                for r in recs {
+                                    if remaining == 0 {
+                                        break;
+                                    }
+                                    let key =
+                                        (group_id.clone(), name.clone(), p.partition, r.offset);
+                                    if st.share_accepted.contains(&key)
+                                        || st.share_acquired.contains_key(&key)
+                                    {
+                                        continue;
+                                    }
+                                    let count = st.share_deliveries.entry(key.clone()).or_insert(0);
+                                    *count = count.saturating_add(1);
+                                    let delivery_count = *count;
+                                    let expiry = st.share_clock_ms.saturating_add(
+                                        u64::try_from(st.share_lock_timeout_ms).unwrap_or(0),
+                                    );
+                                    st.share_acquired.insert(
+                                        key,
+                                        MockShareLock {
+                                            owner: member_id.clone(),
+                                            node: node_id,
+                                            expires_ms: expiry,
+                                        },
+                                    );
+                                    acquired.push(AcquiredRange {
+                                        first_offset: r.offset,
+                                        last_offset: r.offset,
+                                        delivery_count,
+                                    });
+                                    taken.push(r);
+                                    remaining -= 1;
+                                }
+                                let leader_epoch = st
+                                    .partition_epochs
+                                    .get(&(name.clone(), p.partition))
+                                    .copied()
+                                    .unwrap_or(0);
+                                parts.push(ShareFetchedPartition {
+                                    partition: p.partition,
+                                    error_code: 0,
+                                    error_message: None,
+                                    acknowledge_error_code,
+                                    acknowledge_error_message: None,
+                                    current_leader_id: node_id,
+                                    current_leader_epoch: leader_epoch,
+                                    records: share_record_batches(taken, leader_epoch),
+                                    acquired,
+                                });
+                            }
+                            fetched.push(ShareFetchedTopic {
+                                topic_id: t.topic_id,
+                                partitions: parts,
+                            });
+                        }
+                        encode_share_fetch_response_with_acquisition_lock_timeout(
+                            &mut body,
+                            version,
+                            &fetched,
+                            st.share_lock_timeout_ms,
+                        )
+                        .unwrap();
+                    }
+                }
+            }
+            SHARE_ACKNOWLEDGE => {
+                let version = header.api_version;
+                let (group_id, member_id, epoch, acks, is_renew_ack) =
+                    decode_share_acknowledge_request_with_renew(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_share_ack_version = Some(version);
+                st.last_share_renew_ack = is_renew_ack;
+                st.share_ack_calls = st.share_ack_calls.saturating_add(1);
+                st.last_share_ack_epoch = Some(epoch);
+                st.share_ack_history.push((node_id, epoch));
+                st.last_share_ack_partitions = acks.len();
+                st.last_share_ack_node = Some(node_id);
+                let injected = st
+                    .share_ack_session_faults
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                let sess = injected.unwrap_or_else(|| {
+                    share_session_step(&mut st, &group_id, &member_id, node_id, epoch)
+                });
+                if sess != 0 {
+                    encode_share_acknowledge_response(&mut body, version, sess).unwrap();
+                } else if let Some(code) = st
+                    .share_top_faults
+                    .get_mut(&(SHARE_ACKNOWLEDGE, node_id))
+                    .and_then(VecDeque::pop_front)
+                {
+                    encode_share_acknowledge_response(&mut body, version, code).unwrap();
+                } else {
+                    let mut response_topics: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
+                    for (tid, partition, batches) in acks {
+                        let name = topic_name_for_id(&st, tid);
+                        let injected = st
+                            .share_ack_faults
+                            .get_mut(&(name.clone(), partition))
+                            .and_then(VecDeque::pop_front);
+                        let code = if let Some(code) = injected {
+                            for batch in &batches {
+                                st.share_ack_attempts.push((
+                                    name.clone(),
+                                    partition,
+                                    batch.first_offset,
+                                    batch.last_offset,
+                                ));
+                            }
+                            code
+                        } else if share_partition_leader(&st, &name, partition) != node_id {
+                            error::NOT_LEADER_OR_FOLLOWER
+                        } else {
+                            apply_share_acks(
+                                &mut st, &group_id, &member_id, &name, partition, &batches,
+                            )
+                        };
+                        let mut part =
+                            ShareAcknowledgeResponsePartition::partition_response(partition, code);
+                        part.current_leader_id = share_partition_leader(&st, &name, partition);
+                        part.current_leader_epoch = st
+                            .partition_epochs
+                            .get(&(name, partition))
+                            .copied()
+                            .unwrap_or(0);
+                        match response_topics
+                            .iter_mut()
+                            .find(|topic| topic.topic_id == tid)
+                        {
+                            Some(topic) => topic.partitions.push(part),
+                            None => response_topics.push(ShareAcknowledgeResponseTopic {
+                                topic_id: tid,
+                                partitions: vec![part],
+                            }),
+                        }
+                    }
+                    encode_share_acknowledge_topics_response_with_lock_timeout(
+                        &mut body,
+                        version,
+                        0,
+                        &response_topics,
+                        &[],
+                        0,
+                        None,
+                        st.share_lock_timeout_ms,
+                    )
+                    .unwrap();
+                }
+            }
+            CONSUMER_GROUP_HEARTBEAT => {
+                let req = decode_consumer_group_heartbeat_request(&mut frame, header.api_version)
+                    .unwrap();
+                let corrupted = {
+                    let mut st = state.lock();
+                    st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                    st.last_consumer_group_heartbeat_version = Some(header.api_version);
+                    st.last_group_instance_id = req.instance_id.clone();
+                    st.last_group_rack = req.rack_id.clone();
+                    let n = st.hb_by_node.entry(node_id).or_insert(0);
+                    *n = n.saturating_add(1);
+                    let acked = req.topic_partitions.as_ref().map(|tps| {
+                        let mut v: Vec<i32> = tps
+                            .iter()
+                            .flat_map(|tp| tp.partitions.iter().copied())
+                            .collect();
+                        v.sort();
+                        v
+                    });
+                    st.cg_heartbeat_acks
+                        .push((req.member_id.clone(), req.member_epoch, acked));
+                    if st.cg_heartbeat_drop_left > 0 {
+                        st.cg_heartbeat_drop_left = st.cg_heartbeat_drop_left.saturating_sub(1);
+                        break;
+                    }
+                    if st.cg_heartbeat_corrupt_left > 0 {
+                        st.cg_heartbeat_corrupt_left =
+                            st.cg_heartbeat_corrupt_left.saturating_sub(1);
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if corrupted {
+                    body.extend_from_slice(&[0xFF, 0xFF, 0xFF]);
+                    if write_frame(&mut stream, &body).await.is_err() {
+                        break;
+                    }
+                    continue;
+                }
+                let mut st = state.lock();
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => {
+                        let empty = if let Some(g) = st.kip848_groups.get_mut(&req.group_id) {
+                            let _ = g.members.remove(&req.member_id);
+                            g.members.is_empty()
+                        } else {
+                            false
+                        };
+                        if empty {
+                            let _ = st.kip848_groups.remove(&req.group_id);
+                        } else {
+                            kip848_recompute(&mut st, &req.group_id);
+                        }
+                        (req.member_id, -1, None)
+                    }
+                    std::cmp::Ordering::Equal => {
+                        st.last_consumer_group_heartbeat_join_member_id =
+                            Some(req.member_id.clone());
+                        let id = if req.member_id.is_empty() {
+                            st.member_seq += 1;
+                            format!("k-{}", st.member_seq)
+                        } else {
+                            req.member_id.clone()
+                        };
+                        let topic_names = match &req.subscribed_topic_names {
+                            Some(n) if n.is_empty() => Vec::new(),
+                            Some(n) => n.clone(),
+                            None => vec!["t".into()],
+                        };
+                        let g = st.kip848_groups.entry(req.group_id.clone()).or_default();
+                        let _ = g.members.insert(
+                            id.clone(),
+                            Kip848Member {
+                                topics: topic_names,
+                                epoch: 0,
+                                partitions: Vec::new(),
+                                pending: false,
+                            },
+                        );
+                        kip848_recompute(&mut st, &req.group_id);
+                        let (epoch, partitions) = st
+                            .kip848_groups
+                            .get_mut(&req.group_id)
+                            .and_then(|g| g.members.get_mut(&id))
+                            .map(|m| {
+                                m.pending = false;
+                                (m.epoch, m.partitions.clone())
+                            })
+                            .unwrap_or((1, Vec::new()));
+                        (id, epoch, Some(kip848_topic_partitions(&partitions)))
+                    }
+                    std::cmp::Ordering::Greater => {
+                        if let Some(new_id) = st.cg_heartbeat_rotate_member_id.take() {
+                            if let Some(g) = st.kip848_groups.get_mut(&req.group_id) {
+                                if let Some(m) = g.members.remove(&req.member_id) {
+                                    g.members.insert(new_id.clone(), m);
+                                }
+                            }
+                            let epoch = st
+                                .kip848_groups
+                                .get(&req.group_id)
+                                .and_then(|g| g.members.get(&new_id))
+                                .map(|m| m.epoch)
+                                .unwrap_or(req.member_epoch);
+                            (new_id, epoch, None)
+                        } else {
+                            let found = st
+                                .kip848_groups
+                                .get_mut(&req.group_id)
+                                .and_then(|g| g.members.get_mut(&req.member_id));
+                            match found {
+                                Some(m) if m.pending || req.member_epoch < m.epoch => {
+                                    m.pending = false;
+                                    (
+                                        req.member_id,
+                                        m.epoch,
+                                        Some(kip848_topic_partitions(&m.partitions)),
+                                    )
+                                }
+                                Some(m) => (req.member_id, m.epoch, None),
+                                None => (req.member_id, req.member_epoch, None),
+                            }
+                        }
+                    }
+                };
+                let hb_interval = st.cg_heartbeat_interval_ms;
+                let err = if st.cg_heartbeat_error_left > 0 {
+                    st.cg_heartbeat_error_left = st.cg_heartbeat_error_left.saturating_sub(1);
+                    st.cg_heartbeat_error_code
+                } else {
+                    0
+                };
+                encode_consumer_group_heartbeat_response(
+                    &mut body,
+                    header.api_version,
+                    &ConsumerGroupHeartbeatResponse {
+                        throttle_time_ms: 0,
+                        error_code: err,
+                        error_message: None,
+                        member_id: Some(member_id),
+                        member_epoch: epoch,
+                        heartbeat_interval_ms: hb_interval,
+                        assignment: if err == 0 { assignment } else { None },
+                    },
+                )
+                .unwrap();
+            }
+            JOIN_GROUP => {
+                let (gid, member_id, instance, protocols, reason, ..) =
+                    decode_join_group_request_protocols(&mut frame, header.api_version).unwrap();
+                let protocol_name = protocols
+                    .first()
+                    .map(|p| p.name.as_str())
+                    .unwrap_or("range");
+                let metadata = protocols
+                    .first()
+                    .map(|p| p.metadata.clone())
+                    .unwrap_or_default();
+                let mut st = state.lock();
+                st.join_group_calls = st.join_group_calls.saturating_add(1);
+                st.last_join_group_version = Some(header.api_version);
+                st.last_join_group_reason = reason;
+                st.last_join_protocols_n = Some(protocols.len());
+                st.last_group_instance_id = instance.clone();
+                let assigned = if member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID {
+                    st.member_seq += 1;
+                    format!("m-{}", st.member_seq)
+                } else {
+                    member_id.clone()
+                };
+                if JoinGroupRequest::requires_known_member_id_for(
+                    &member_id,
+                    instance.as_deref(),
+                    header.api_version,
+                ) {
+                    encode_join_group_response(
+                        &mut body,
+                        header.api_version,
+                        error::MEMBER_ID_REQUIRED,
+                        JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                        protocol_name,
+                        JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                        &assigned,
+                        &[],
+                    )
+                    .unwrap();
+                } else {
+                    let notify = st.assign_notify.clone();
+                    let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
+                        members: BTreeMap::new(),
+                        instances: HashMap::new(),
+                        generation: 0,
+                        joined: HashSet::new(),
+                        assignments: HashMap::new(),
+                        hb_total: 0,
+                    });
+                    let mut bumped = false;
+                    if !g.members.contains_key(&assigned) || g.joined.contains(&assigned) {
+                        g.generation += 1;
+                        g.joined.clear();
+                        g.assignments.clear();
+                        bumped = true;
+                    }
+                    g.members.insert(assigned.clone(), metadata.clone());
+                    g.joined.insert(assigned.clone());
+                    if let Some(instance) = instance {
+                        let _ = g.instances.insert(assigned.clone(), instance);
+                    }
+                    let leader = g.members.keys().next().cloned().unwrap_or_default();
+                    let members: Vec<JoinMember> = g
+                        .members
+                        .iter()
+                        .map(|(id, md)| JoinMember {
+                            member_id: id.clone(),
+                            group_instance_id: None,
+                            metadata: md.clone(),
+                        })
+                        .collect();
+                    let gen = g.generation;
+                    drop(st);
+                    if bumped {
+                        notify.notify_waiters();
+                    }
+                    encode_join_group_response(
+                        &mut body,
+                        header.api_version,
+                        0,
+                        gen,
+                        protocol_name,
+                        &leader,
+                        &assigned,
+                        &members,
+                    )
+                    .unwrap();
+                }
+            }
+            SYNC_GROUP => {
+                {
+                    let mut st = state.lock();
+                    st.sync_group_calls = st.sync_group_calls.saturating_add(1);
+                    st.last_sync_group_version = Some(header.api_version);
+                }
+                let (gid, member_id, assignments, ..) =
+                    decode_sync_group_request(&mut frame, header.api_version).unwrap();
+                let notify = state.lock().assign_notify.clone();
+                if !assignments.is_empty() {
+                    let mut st = state.lock();
+                    if let Some(g) = st.groups.get_mut(&gid) {
+                        g.assignments.clear();
+                        for (id, bytes) in assignments {
+                            g.assignments.insert(id, bytes);
+                        }
+                    }
+                    notify.notify_waiters();
+                }
+                let mut asg = Vec::new();
+                for _ in 0..40 {
+                    {
+                        let st = state.lock();
+                        if let Some(g) = st.groups.get(&gid) {
+                            if let Some(b) = g.assignments.get(&member_id) {
+                                asg = b.clone();
+                                break;
+                            }
+                        }
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                }
+                encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
+            }
+            HEARTBEAT => {
+                let (gid, _gen, member_id, ..) =
+                    decode_heartbeat_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.last_heartbeat_version = Some(header.api_version);
+                let mut err = 0i16;
+                if let Some(g) = st.groups.get_mut(&gid) {
+                    g.hb_total += 1;
+                    if g.members.contains_key(&member_id) && !g.joined.contains(&member_id) {
+                        err = 27;
+                    }
+                }
+                let n = st.hb_by_node.entry(node_id).or_insert(0);
+                *n = n.saturating_add(1);
+                encode_heartbeat_response(&mut body, header.api_version, err).unwrap();
+            }
+            LEAVE_GROUP => {
+                let version = header.api_version;
+                let (gid, members) =
+                    decode_leave_group_request_version(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_leave_group_version = Some(version);
+                st.last_leave_group_node = Some(node_id);
+                st.last_leave_group_members = Some(members.clone());
+                let results: Vec<LeaveGroupMemberResult> = members
+                    .into_iter()
+                    .map(|m| {
+                        if let Some(g) = st.groups.get_mut(&gid) {
+                            if !m.member_id.is_empty() {
+                                g.members.remove(&m.member_id);
+                                g.joined.remove(&m.member_id);
+                                let _ = g.instances.remove(&m.member_id);
+                            } else if let Some(ref iid) = m.group_instance_id {
+                                let ids: Vec<String> = g
+                                    .instances
+                                    .iter()
+                                    .filter(|(_, v)| *v == iid)
+                                    .map(|(k, _)| k.clone())
+                                    .collect();
+                                for id in ids {
+                                    g.members.remove(&id);
+                                    g.joined.remove(&id);
+                                    let _ = g.instances.remove(&id);
+                                }
+                            }
+                            g.generation += 1;
+                            g.joined.clear();
+                            g.assignments.clear();
+                        }
+                        LeaveGroupMemberResult {
+                            member_id: m.member_id,
+                            group_instance_id: m.group_instance_id,
+                            error_code: 0,
+                        }
+                    })
+                    .collect();
+                st.assign_notify.notify_waiters();
+                encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
+            }
+            OFFSET_COMMIT => {
+                let (gid, member, topics, _retention, _inst, generation) =
+                    decode_offset_commit_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
+                st.last_offset_commit_version = Some(header.api_version);
+                st.last_offset_commit_member = Some(member);
+                st.last_offset_commit_generation = Some(generation);
+                if let Some(code) = st.offset_commit_error {
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, code)
+                        .unwrap();
+                } else if st.offset_commit_load_left > 0 {
+                    st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
+                    st.offset_commit_load_in_progress =
+                        st.offset_commit_load_in_progress.saturating_add(1);
+                    encode_offset_commit_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        error::COORDINATOR_LOAD_IN_PROGRESS,
+                    )
+                    .unwrap();
+                } else {
+                    let mut nparts = 0usize;
+                    for t in &topics {
+                        nparts = nparts.saturating_add(t.partitions.len());
+                        for p in &t.partitions {
+                            st.committed.insert(
+                                (gid.clone(), t.topic.clone(), p.partition),
+                                CommittedOffset {
+                                    offset: p.offset,
+                                    leader_epoch: p.leader_epoch,
+                                    metadata: p.metadata.clone(),
+                                },
+                            );
+                        }
+                    }
+                    st.last_offset_commit_partitions = nparts;
+                    st.last_offset_commit_node = Some(node_id);
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, 0)
+                        .unwrap();
+                }
+            }
+            OFFSET_FETCH => {
+                let (groups, stable) =
+                    decode_offset_fetch_groups_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.offset_fetch_calls = st.offset_fetch_calls.saturating_add(1);
+                st.last_offset_fetch_version = Some(header.api_version);
+                st.last_offset_fetch_require_stable = Some(stable);
+                st.last_offset_fetch_group_count = groups.len();
+                st.last_offset_fetch_null_topics =
+                    Some(groups.first().is_some_and(|g| g.topics.is_none()));
+                let mut nparts = 0usize;
+                let mut results = Vec::with_capacity(groups.len());
+                for g in groups {
+                    let out = match g.topics {
+                        None => {
+                            let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+                            for ((gid, topic, part), c) in &st.committed {
+                                if gid != &g.group_id {
+                                    continue;
+                                }
+                                by_topic
+                                    .entry(topic.clone())
+                                    .or_default()
+                                    .push(FetchedOffset {
+                                        partition: *part,
+                                        offset: c.offset,
+                                        leader_epoch: c.leader_epoch,
+                                        metadata: c.metadata.clone(),
+                                        error_code: 0,
+                                    });
+                            }
+                            let mut out = Vec::new();
+                            for (topic, partitions) in by_topic {
+                                nparts = nparts.saturating_add(partitions.len());
+                                out.push(FetchedOffsetTopic { topic, partitions });
+                            }
+                            out
+                        }
+                        Some(topics) => {
+                            let mut out = Vec::with_capacity(topics.len());
+                            for t in topics {
+                                nparts = nparts.saturating_add(t.partitions.len());
+                                let mut parts = Vec::with_capacity(t.partitions.len());
+                                for p in t.partitions {
+                                    let (off, epoch, meta) = st
+                                        .committed
+                                        .get(&(g.group_id.clone(), t.topic.clone(), p))
+                                        .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
+                                        .unwrap_or((
+                                            FetchedOffset::INVALID_OFFSET,
+                                            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                                            FetchedOffset::NO_METADATA.to_string(),
+                                        ));
+                                    parts.push(FetchedOffset {
+                                        partition: p,
+                                        offset: off,
+                                        leader_epoch: epoch,
+                                        metadata: meta,
+                                        error_code: 0,
+                                    });
+                                }
+                                out.push(FetchedOffsetTopic {
+                                    topic: t.topic,
+                                    partitions: parts,
+                                });
+                            }
+                            out
+                        }
+                    };
+                    results.push(OffsetFetchGroupResult {
+                        group_id: g.group_id,
+                        topics: out,
+                        error_code: 0,
+                    });
+                }
+                st.last_offset_fetch_partitions = nparts;
+                encode_offset_fetch_groups_response(&mut body, header.api_version, &results)
+                    .unwrap();
+            }
+            OFFSET_DELETE => {
+                let (gid, topics) = decode_offset_delete_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let mut results = Vec::new();
+                for t in topics {
+                    for p in t.partitions {
+                        let _removed = st.committed.remove(&(gid.clone(), t.topic.clone(), p));
+                        results.push(OffsetDeleteResult {
+                            topic: t.topic.clone(),
+                            partition: p,
+                            error_code: 0,
+                        });
+                    }
+                }
+                st.last_offset_delete_node = Some(node_id);
+                encode_offset_delete_response(&mut body, 0, &results).unwrap();
+            }
+            CONSUMER_GROUP_DESCRIBE => {
+                let version = header.api_version;
+                let (ids, _include) =
+                    decode_consumer_group_describe_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_consumer_group_describe_version = Some(version);
+                st.last_consumer_group_describe_n = ids.len();
+                st.consumer_group_describe_calls =
+                    st.consumer_group_describe_calls.saturating_add(1);
+                if st.coord_node != node_id {
+                    st.consumer_group_describe_not_coordinator =
+                        st.consumer_group_describe_not_coordinator.saturating_add(1);
+                    // Per-group 16 only. Do not invent a member store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedConsumerGroup> = ids
+                        .into_iter()
+                        .map(|group_id| {
+                            DescribedConsumerGroup::new(group_id, error::NOT_COORDINATOR)
+                        })
+                        .collect();
+                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
+                } else {
+                    st.last_consumer_group_describe_node = Some(node_id);
+                    let results: Vec<DescribedConsumerGroup> = ids
+                        .into_iter()
+                        .map(|group_id| {
+                            let code = st
+                                .consumer_group_describe_errors
+                                .get(&group_id)
+                                .copied()
+                                .unwrap_or(0);
+                            let mut g = DescribedConsumerGroup::new(group_id, code);
+                            if code == 0 {
+                                g.group_state = "Stable".into();
+                                g.group_epoch = 1;
+                                g.assignment_epoch = 1;
+                                g.assignor_name = "uniform".into();
+                            }
+                            g
+                        })
+                        .collect();
+                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
+                }
+            }
+            DESCRIBE_GROUPS => {
+                let version = header.api_version;
+                let (ids, include) = decode_describe_groups_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_groups_version = Some(version);
+                st.last_describe_groups_include = Some(include);
+                st.last_describe_groups_n = ids.len();
+                st.describe_groups_calls = st.describe_groups_calls.saturating_add(1);
+                if st.coord_node != node_id {
+                    st.describe_groups_not_coordinator =
+                        st.describe_groups_not_coordinator.saturating_add(1);
+                    // Per-group 16 only. Do not invent a member store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedGroup> = ids
+                        .into_iter()
+                        .map(|group_id| DescribedGroup::new(group_id, error::NOT_COORDINATOR))
+                        .collect();
+                    encode_describe_groups_response(&mut body, version, &results).unwrap();
+                } else {
+                    st.last_describe_groups_node = Some(node_id);
+                    let results: Vec<DescribedGroup> = ids
+                        .into_iter()
+                        .map(|group_id| {
+                            let mut g = DescribedGroup::new(group_id.clone(), 0);
+                            g.group_state = "Stable".into();
+                            g.protocol_type = "consumer".into();
+                            if let Some(reg) = st.groups.get(&group_id) {
+                                g.members = reg
+                                    .members
+                                    .keys()
+                                    .map(|id| {
+                                        let mut m = DescribedGroupMember::new(id, "", "");
+                                        m.group_instance_id = reg.instances.get(id).cloned();
+                                        m
+                                    })
+                                    .collect();
+                            }
+                            g
+                        })
+                        .collect();
+                    encode_describe_groups_response(&mut body, version, &results).unwrap();
+                }
+            }
+            LIST_GROUPS => {
+                let version = header.api_version;
+                let (states, types) = decode_list_groups_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture list only; not a
+                // group store, not a coordinator hop, not a 41/6 path.
+                // Official listed errors do not include NOT_COORDINATOR
+                // (16), so the wrong node does not return 16.
+                st.last_list_groups_node = Some(node_id);
+                st.last_list_groups_version = Some(version);
+                st.last_list_groups = Some((states, types));
+                encode_list_groups_response(
+                    &mut body,
+                    version,
+                    &ListGroupsResponse {
+                        error_code: 0,
+                        groups: vec![ListedGroup {
+                            group_id: "g".into(),
+                            protocol_type: "consumer".into(),
+                            group_state: "Stable".into(),
+                            group_type: "classic".into(),
+                        }],
+                    },
+                )
+                .unwrap();
+            }
+            DELETE_GROUPS => {
+                let version = header.api_version;
+                let ids = decode_delete_groups_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_delete_groups_version = Some(version);
+                st.last_delete_groups_n = ids.len();
+                st.delete_groups_calls = st.delete_groups_calls.saturating_add(1);
+                if st.coord_node != node_id {
+                    st.delete_groups_not_coordinator =
+                        st.delete_groups_not_coordinator.saturating_add(1);
+                    // Per-group 16 only. Do not invent a group store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DeletableGroupResult> = ids
+                        .into_iter()
+                        .map(|group_id| DeletableGroupResult::new(group_id, error::NOT_COORDINATOR))
+                        .collect();
+                    encode_delete_groups_response(&mut body, version, &results).unwrap();
+                } else {
+                    st.last_delete_groups_node = Some(node_id);
+                    let results: Vec<DeletableGroupResult> = ids
+                        .into_iter()
+                        .map(|group_id| DeletableGroupResult::new(group_id, 0))
+                        .collect();
+                    encode_delete_groups_response(&mut body, version, &results).unwrap();
+                }
+            }
+            SHARE_GROUP_DESCRIBE => {
+                let version = header.api_version;
+                let (ids, _include) =
+                    decode_share_group_describe_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_share_group_describe_version = Some(version);
+                st.last_share_group_describe_n = ids.len();
+                st.share_group_describe_calls = st.share_group_describe_calls.saturating_add(1);
+                if st.coord_node != node_id {
+                    st.share_group_describe_not_coordinator =
+                        st.share_group_describe_not_coordinator.saturating_add(1);
+                    // Per-group 16 only. Do not invent a member store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedShareGroup> = ids
+                        .into_iter()
+                        .map(|group_id| DescribedShareGroup::new(group_id, error::NOT_COORDINATOR))
+                        .collect();
+                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
+                } else {
+                    st.last_share_group_describe_node = Some(node_id);
+                    let results: Vec<DescribedShareGroup> = ids
+                        .into_iter()
+                        .map(|group_id| {
+                            let mut g = DescribedShareGroup::new(group_id, 0);
+                            g.group_state = "Stable".into();
+                            g.group_epoch = 1;
+                            g.assignment_epoch = 1;
+                            g.assignor_name = "uniform".into();
+                            g
+                        })
+                        .collect();
+                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
+                }
+            }
+            DESCRIBE_SHARE_GROUP_OFFSETS => {
+                let groups = decode_describe_share_group_offsets_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_describe_share_group_offsets_n = groups.len();
+                st.describe_share_group_offsets_calls =
+                    st.describe_share_group_offsets_calls.saturating_add(1);
+                if st.coord_node != node_id {
+                    st.describe_share_group_offsets_not_coordinator = st
+                        .describe_share_group_offsets_not_coordinator
+                        .saturating_add(1);
+                    // Per-group 16 only. Do not invent an offset store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedShareGroupOffsets> = groups
+                        .into_iter()
+                        .map(|g| {
+                            DescribedShareGroupOffsets::new(g.group_id, error::NOT_COORDINATOR)
+                        })
+                        .collect();
+                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_describe_share_group_offsets_node = Some(node_id);
+                    let results: Vec<DescribedShareGroupOffsets> = groups
+                        .into_iter()
+                        .map(|g| DescribedShareGroupOffsets::new(g.group_id, 0))
+                        .collect();
+                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
+                }
+            }
+            ALTER_SHARE_GROUP_OFFSETS => {
+                let (_group_id, _topics) =
+                    decode_alter_share_group_offsets_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.coord_node != node_id {
+                    st.alter_share_group_offsets_not_coordinator = st
+                        .alter_share_group_offsets_not_coordinator
+                        .saturating_add(1);
+                    // Top-level 16 only. Do not invent an offset store,
+                    // a 41 path, or a 6 path.
+                    encode_alter_share_group_offsets_response(
+                        &mut body,
+                        &AlteredShareGroupOffsets::new(error::NOT_COORDINATOR),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_alter_share_group_offsets_node = Some(node_id);
+                    encode_alter_share_group_offsets_response(
+                        &mut body,
+                        &AlteredShareGroupOffsets::new(0),
+                    )
+                    .unwrap();
+                }
+            }
+            DELETE_SHARE_GROUP_OFFSETS => {
+                let (_group_id, _topics) =
+                    decode_delete_share_group_offsets_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.coord_node != node_id {
+                    st.delete_share_group_offsets_not_coordinator = st
+                        .delete_share_group_offsets_not_coordinator
+                        .saturating_add(1);
+                    // Top-level 16 only. Do not invent an offset store,
+                    // a 41 path, or a 6 path.
+                    encode_delete_share_group_offsets_response(
+                        &mut body,
+                        &DeletedShareGroupOffsets::new(error::NOT_COORDINATOR),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_delete_share_group_offsets_node = Some(node_id);
+                    encode_delete_share_group_offsets_response(
+                        &mut body,
+                        &DeletedShareGroupOffsets::new(0),
+                    )
+                    .unwrap();
+                }
+            }
+            DESCRIBE_TOPIC_PARTITIONS => {
+                let (topics, limit, cursor) =
+                    decode_describe_topic_partitions_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Official JSON lists no
+                // error codes; official handler does not use
+                // NOT_COORDINATOR (16), so the wrong node does not
+                // return 16.
+                st.last_describe_topic_partitions_node = Some(node_id);
+                st.last_describe_topic_partitions = Some((topics.clone(), limit, cursor));
+                let (host, port) = broker_host_port(&st, node_id);
+                encode_describe_topic_partitions_response(
+                    &mut body,
+                    &describe_topic_partitions_for(&st, &host, port, &topics),
+                )
+                .unwrap();
+            }
+            LIST_CONFIG_RESOURCES => {
+                let version = header.api_version;
+                let types = decode_list_config_resources_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture resource only;
+                // not a config store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16),
+                // so the wrong node does not return 16.
+                st.last_list_config_resources_node = Some(node_id);
+                st.last_list_config_resources_version = Some(version);
+                st.last_list_config_resources = Some(types);
+                encode_list_config_resources_response(
+                    &mut body,
+                    version,
+                    &ListConfigResourcesResponse::new(
+                        0,
+                        vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
+                    ),
+                )
+                .unwrap();
+            }
+            GET_TELEMETRY_SUBSCRIPTIONS => {
+                let client_instance_id =
+                    decode_get_telemetry_subscriptions_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture subscription
+                // only; not a telemetry store, not a coordinator hop,
+                // not a 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16),
+                // so the wrong node does not return 16.
+                st.last_get_telemetry_subscriptions_node = Some(node_id);
+                st.last_get_telemetry_subscriptions = Some(client_instance_id);
+                let assigned = if client_instance_id == [0; 16] {
+                    [0x11; 16]
+                } else {
+                    client_instance_id
+                };
+                encode_get_telemetry_subscriptions_response(
+                    &mut body,
+                    &GetTelemetrySubscriptionsResponse::new(
+                        0,
+                        assigned,
+                        1,
+                        vec![1],
+                        1000,
+                        100,
+                        true,
+                        vec!["m".into()],
+                    ),
+                )
+                .unwrap();
+            }
+            PUSH_TELEMETRY => {
+                let req = decode_push_telemetry_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a telemetry store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16),
+                // so the wrong node does not return 16.
+                st.last_push_telemetry_node = Some(node_id);
+                st.last_push_telemetry = Some(LastPushTelemetry {
+                    client_instance_id: req.client_instance_id,
+                    subscription_id: req.subscription_id,
+                    terminating: req.terminating,
+                    compression_type: req.compression_type,
+                    metrics: req.metrics,
+                });
+                encode_push_telemetry_response(&mut body, &PushTelemetryResponse::new(0)).unwrap();
+            }
+            ASSIGN_REPLICAS_TO_DIRS => {
+                let req = decode_assign_replicas_to_dirs_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.assign_replicas_to_dirs_not_controller =
+                        st.assign_replicas_to_dirs_not_controller.saturating_add(1);
+                    // 41 only. Do not invent a replica-dir store on
+                    // the wrong node.
+                    encode_assign_replicas_to_dirs_response(
+                        &mut body,
+                        &AssignReplicasToDirsResponse::new(error::NOT_CONTROLLER, vec![]),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_assign_replicas_to_dirs_node = Some(node_id);
+                    // Echo the request directories with per-partition
+                    // error 0. Fixture ack only; not a replica-dir
+                    // store.
+                    let directories = req
+                        .directories
+                        .iter()
+                        .map(|d| {
+                            AssignReplicasToDirsResponseDirectory::new(
+                                d.id,
+                                d.topics
+                                    .iter()
+                                    .map(|t| {
+                                        AssignReplicasToDirsResponseTopic::new(
+                                            t.topic_id,
+                                            t.partitions
+                                                .iter()
+                                                .map(|p| {
+                                                    AssignReplicasToDirsResponsePartition::new(
+                                                        p.partition_index,
+                                                        0,
+                                                    )
+                                                })
+                                                .collect(),
+                                        )
+                                    })
+                                    .collect(),
+                            )
+                        })
+                        .collect();
+                    st.last_assign_replicas_to_dirs = Some(req);
+                    encode_assign_replicas_to_dirs_response(
+                        &mut body,
+                        &AssignReplicasToDirsResponse::new(0, directories),
+                    )
+                    .unwrap();
+                }
+            }
+            ALTER_REPLICA_LOG_DIRS => {
+                let version = header.api_version;
+                let req = decode_alter_replica_log_dirs_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a log-dir store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16)
+                // or NOT_CONTROLLER (41), so the wrong node does not
+                // return 16 or 41.
+                st.last_alter_replica_log_dirs_node = Some(node_id);
+                st.last_alter_replica_log_dirs_version = Some(version);
+                let results = req
+                    .dirs
+                    .iter()
+                    .flat_map(|d| d.topics.iter())
+                    .map(|t| {
+                        AlterReplicaLogDirsResponseTopic::new(
+                            t.name.clone(),
+                            t.partitions
+                                .iter()
+                                .map(|p| AlterReplicaLogDirsResponsePartition::new(*p, 0))
+                                .collect(),
+                        )
+                    })
+                    .collect();
+                st.last_alter_replica_log_dirs = Some(req);
+                encode_alter_replica_log_dirs_response(
+                    &mut body,
+                    version,
+                    &AlterReplicaLogDirsResponse::new(results),
+                )
+                .unwrap();
+            }
+            DESCRIBE_LOG_DIRS => {
+                let version = header.api_version;
+                let req = decode_describe_log_dirs_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a log-dir store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16)
+                // or NOT_CONTROLLER (41), so the wrong node does not
+                // return 16 or 41.
+                st.last_describe_log_dirs_node = Some(node_id);
+                st.last_describe_log_dirs_version = Some(version);
+                st.describe_log_dirs_nodes.push(node_id);
+                let topics = req
+                    .topics
+                    .as_ref()
+                    .map(|topics| {
+                        topics
+                            .iter()
+                            .map(|t| {
+                                DescribeLogDirsTopic::new(
+                                    t.name.clone(),
+                                    t.partitions
+                                        .iter()
+                                        .map(|p| DescribeLogDirsPartition::new(*p, 0, 0, false))
+                                        .collect(),
+                                )
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                st.last_describe_log_dirs = Some(req);
+                if let Some(response) = st
+                    .describe_log_dirs_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front)
+                {
+                    body.extend_from_slice(&response);
+                } else {
+                    encode_describe_log_dirs_response(
+                        &mut body,
+                        version,
+                        &DescribeLogDirsResponse::new(
+                            0,
+                            vec![DescribeLogDirsResult::new(0, "/d", topics, -1, -1)
+                                .with_cordoned(
+                                    st.describe_log_dirs_cordoned_nodes.contains(&node_id),
+                                )],
+                        ),
+                    )
+                    .unwrap();
+                }
+            }
+            CREATE_DELEGATION_TOKEN => {
+                let version = header.api_version;
+                let req = decode_create_delegation_token_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a token store, not a coordinator hop, not a 41/6
+                // path. Official JSON lists no error codes; official
+                // handler forwards to the controller internally after
+                // local validation. Official Java AdminClient uses
+                // LeastLoadedNodeProvider. NOT_COORDINATOR (16) and
+                // NOT_CONTROLLER (41) are not listed, so the wrong
+                // node does not return 16 or 41.
+                st.last_create_delegation_token_node = Some(node_id);
+                st.last_create_delegation_token_version = Some(version);
+                let owner_type = req.owner_principal_type.clone().unwrap_or_default();
+                let owner_name = req.owner_principal_name.clone().unwrap_or_default();
+                st.last_create_delegation_token = Some(req);
+                encode_create_delegation_token_response(
+                    &mut body,
+                    version,
+                    &CreateDelegationTokenResponse::new(
+                        0,
+                        owner_type,
+                        owner_name,
+                        String::new(),
+                        String::new(),
+                        0,
+                        0,
+                        0,
+                        String::new(),
+                        Vec::new(),
+                    ),
+                )
+                .unwrap();
+            }
+            RENEW_DELEGATION_TOKEN => {
+                let version = header.api_version;
+                let req = decode_renew_delegation_token_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a token store, not a coordinator hop, not a 41/6
+                // path. Official JSON lists no error codes; official
+                // handler forwards to the controller internally after
+                // local validation. Official Java AdminClient uses
+                // LeastLoadedNodeProvider. NOT_COORDINATOR (16) and
+                // NOT_CONTROLLER (41) are not listed, so the wrong
+                // node does not return 16 or 41.
+                st.last_renew_delegation_token_node = Some(node_id);
+                st.last_renew_delegation_token_version = Some(version);
+                st.last_renew_delegation_token = Some(req);
+                encode_renew_delegation_token_response(
+                    &mut body,
+                    version,
+                    &RenewDelegationTokenResponse::new(0, 0),
+                )
+                .unwrap();
+            }
+            EXPIRE_DELEGATION_TOKEN => {
+                let version = header.api_version;
+                let req = decode_expire_delegation_token_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a token store, not a coordinator hop, not a 41/6
+                // path. Official JSON lists no error codes; official
+                // handler forwards to the controller internally after
+                // local validation. Official Java AdminClient uses
+                // LeastLoadedNodeProvider. NOT_COORDINATOR (16) and
+                // NOT_CONTROLLER (41) are not listed, so the wrong
+                // node does not return 16 or 41.
+                st.last_expire_delegation_token_node = Some(node_id);
+                st.last_expire_delegation_token_version = Some(version);
+                st.last_expire_delegation_token = Some(req);
+                encode_expire_delegation_token_response(
+                    &mut body,
+                    version,
+                    &ExpireDelegationTokenResponse::new(0, 0),
+                )
+                .unwrap();
+            }
+            DESCRIBE_DELEGATION_TOKEN => {
+                let version = header.api_version;
+                let req = decode_describe_delegation_token_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a token store, not a coordinator hop, not a 41/6
+                // path. Official JSON lists no error codes; official
+                // handleDescribeTokensRequest answers locally (no
+                // forwardToController). Official Java AdminClient uses
+                // LeastLoadedNodeProvider. NOT_COORDINATOR (16) and
+                // NOT_CONTROLLER (41) are not listed, so the wrong
+                // node does not return 16 or 41. apiKey 41 is not
+                // error code 41.
+                st.last_describe_delegation_token_node = Some(node_id);
+                st.last_describe_delegation_token_version = Some(version);
+                st.last_describe_delegation_token = Some(req);
+                encode_describe_delegation_token_response(
+                    &mut body,
+                    version,
+                    &DescribeDelegationTokenResponse::new(0, vec![]),
+                )
+                .unwrap();
+            }
+            _ => break,
+        }
+        let delay = state
+            .lock()
+            .share_reply_delays
+            .get_mut(&header.api_key)
+            .and_then(VecDeque::pop_front);
+        if let Some(delay) = delay {
+            tokio::time::sleep(delay).await;
+        }
+        if write_frame(&mut stream, &body).await.is_err() {
+            break;
+        }
+    }
+}
+
+/// RFC 6749 token endpoint. Valid Basic credentials get an unsecured JWT for `principal`.
+pub async fn start_oidc_token_endpoint(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                serve_oidc_token(sock, &id, &secret, &principal).await;
+            });
+        }
+    });
+    format!("http://{addr}/oauth/token")
+}
+
+pub async fn start_oidc_token_endpoint_tls(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> (String, partitionline::TlsConfig) {
+    partitionline::net::install_crypto_provider();
+    let (server, ca_pem) = tls_server_identity();
+    let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let acceptor = acceptor.clone();
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                let Ok(stream) = acceptor.accept(sock).await else {
+                    return;
+                };
+                serve_oidc_token(stream, &id, &secret, &principal).await;
+            });
+        }
+    });
+    let tls = partitionline::TlsConfig {
+        ca_pem: Some(ca_pem),
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    (
+        format!("https://127.0.0.1:{}/oauth/token", addr.port()),
+        tls,
+    )
+}
+
+async fn serve_oidc_token<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(
+    mut sock: S,
+    client_id: &str,
+    client_secret: &str,
+    principal: &str,
+) {
+    let mut buf = Vec::new();
+    let mut tmp = [0u8; 2048];
+    loop {
+        let n = match sock.read(&mut tmp).await {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(_) => return,
+        };
+        buf.extend_from_slice(tmp.get(..n).unwrap_or(&[]));
+        if buf.windows(4).any(|w| w == b"\r\n\r\n") || buf.len() > 16 * 1024 {
+            break;
+        }
+    }
+    let req = String::from_utf8_lossy(&buf);
+    let expected = {
+        let raw = format!("{client_id}:{client_secret}");
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, raw.as_bytes())
+    };
+    let auth_ok = req.lines().any(|l| {
+        let line = l.trim_end_matches('\r');
+        let Some((k, v)) = line.split_once(':') else {
+            return false;
+        };
+        k.eq_ignore_ascii_case("authorization") && v.trim() == format!("Basic {expected}")
+    });
+    let ok = auth_ok && req.contains("grant_type=client_credentials");
+    let (status, body) = if ok {
+        let token = oauth::unsecured_jwt_now(principal);
+        (
+            "200 OK",
+            format!("{{\"access_token\":\"{token}\",\"token_type\":\"Bearer\"}}"),
+        )
+    } else {
+        ("401 Unauthorized", "{\"error\":\"invalid_client\"}".into())
+    };
+    let resp = format!(
+        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = sock.write_all(resp.as_bytes()).await;
+}

@@ -1,0 +1,4 @@
+{
+  "observed": "Actual SDK default ErrorMessage is empty, not null; hardcoded empty response offsets were invalid. No completed malformed cohort was claimed.",
+  "change": "Explicitly set nullable top-level ErrorMessage to null before constructing each otherwise canonical response."
+}

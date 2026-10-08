@@ -1,0 +1,35 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-qualified-9eb1bb/benchmarks/runtime/tools/parent-bound-exec.py",
+    "906552",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/compile-final-default-01/4.2.1-classes:/workspace/work/open-cards-20261006/init-v6-peers/kafka-clients-4.2.1.jar:/workspace/work/open-cards-20261006/java-benchmark/retained-build/slf4j-api-1.7.36.jar",
+    "ConformanceUpdateFeaturesPeer",
+    "server",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/qualify-controller-all-01/4.2.1-v0-legacy/peer",
+    "0",
+    "legacy"
+  ],
+  "pid": 909275,
+  "parent_waited": true,
+  "actual_public_outcomes_match": false,
+  "declared_public_projection_passed": true,
+  "applicability": "Actual current Java public Admin cannot serialize its UpgradeType field on v0; Rust intentionally supports the v0 AllowDowngrade representation, independently parsed by this actual SDK peer.",
+  "adopted_children": [],
+  "exit_code": 0,
+  "group_empty": true,
+  "ports": [
+    {
+      "port": 46141,
+      "reusable": true
+    },
+    {
+      "port": 33631,
+      "reusable": true
+    }
+  ]
+}

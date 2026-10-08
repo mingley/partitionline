@@ -1,0 +1,4 @@
+
+thread 'actual_sdk_update_features_malformed_bodies' (893875) panicked at tests/update_features_conformance.rs:242:5:
+accepted SDK-rejected malformed fields: ["v1-response-null-name.bin", "v1-request-null-name.bin", "v2-request-null-array.bin", "v1-response-null-array.bin", "v0-request-null-name.bin", "v0-request-null-array.bin", "v0-response-null-array.bin", "v2-request-null-name.bin", "v0-response-null-name.bin", "v1-request-null-array.bin"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

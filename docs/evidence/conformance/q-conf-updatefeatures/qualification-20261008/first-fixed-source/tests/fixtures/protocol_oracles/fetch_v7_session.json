@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v7-session",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 7,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v7 classic wire format with session metadata, forgotten topics, and aborted transactions list",
+  "request": {
+    "file": "fetch_v7_session_request.bin",
+    "size_bytes": 105,
+    "sha256": "7b71d310b62188b5e258e8507958214f6a95c90adec5f00e024c345f5f233bed",
+    "hex": "ffffffff000013880000000100a00000010000002a0000000300000001001066657463682d76372d73657373696f6e0000000100000000000000000000003200000000000000000010000000000001000c666f72676f7474656e2d7637000000020000000000000001"
+  },
+  "response": {
+    "file": "fetch_v7_session_response.bin",
+    "size_bytes": 106,
+    "sha256": "b076ea803888d71eadad49b08d8a708ba178e395a6b08977ffaeb25027d29c55",
+    "hex": "0000002d00000000002a00000001001066657463682d76372d73657373696f6e000000010000000000000000000000000064000000000000005a0000000000000000000000020000000000003039000000000000000a0000000000010932000000000000002800000000"
+  }
+}

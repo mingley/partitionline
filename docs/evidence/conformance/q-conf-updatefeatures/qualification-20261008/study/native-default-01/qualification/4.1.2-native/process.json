@@ -1,0 +1,32 @@
+{
+  "release": "4.1.2",
+  "cluster_id": "HKY1PH1NT3GnpY7s4Te-NQ",
+  "broker": "127.0.0.1:41155",
+  "controller": "127.0.0.1:35875",
+  "parent_waited": true,
+  "pid": 916803,
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/update-features-verified-2be86c/benchmarks/runtime/tools/parent-bound-exec.py",
+    "915869",
+    "/workspace/work/open-cards-20261006/codec-brokers/kafka_2.13-4.1.2/bin/kafka-server-start.sh",
+    "/workspace/work/open-cards-20261006/update-features-retries-20261008/native-default-01/qualification/4.1.2-native/server.properties"
+  ],
+  "actual_public_cases_per_caller": 7,
+  "actual_public_outcomes_match": true,
+  "finalized_features_unchanged": true,
+  "adopted_children": [],
+  "exit_code": 143,
+  "process_group_empty": true,
+  "ports": [
+    {
+      "port": 41155,
+      "reusable": true
+    },
+    {
+      "port": 35875,
+      "reusable": true
+    }
+  ]
+}
