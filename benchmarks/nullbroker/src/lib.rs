@@ -1610,6 +1610,13 @@ impl Worker {
 impl Worker {
     fn serve_conn(&self, stream: TcpStream) {
         let mut stream = stream;
+        self.serve_stream(&mut stream);
+        // The shutdown tracker holds a cloned descriptor until the run ends.
+        // Shut down the socket here so protocol rejections reach the peer now.
+        let _ = stream.shutdown(std::net::Shutdown::Both);
+    }
+
+    fn serve_stream(&self, stream: &mut TcpStream) {
         let mut len_buf = [0u8; 4];
         loop {
             if stream.read_exact(&mut len_buf).is_err() {

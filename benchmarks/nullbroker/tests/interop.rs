@@ -1232,3 +1232,34 @@ fn unsupported_api_versions_negotiate_on_the_same_connection() {
     broker.shutdown();
     handle.join().unwrap();
 }
+
+#[test]
+fn unadvertised_version_closes_socket_before_broker_shutdown() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let broker = Arc::new(
+        NullBroker::with_listener(&listener, 1, nullbroker::synth::SynthConfig::default()).unwrap(),
+    );
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    stream
+        .write_all(&frame(0, 13, 1, &produce_body(-1, &[])))
+        .unwrap();
+    let mut byte = [0];
+    assert_eq!(stream.read(&mut byte).unwrap(), 0);
+    // A rejected connection has not stopped the listener.
+    let mut second = connect(port);
+    second
+        .write_all(&frame(3, 13, 2, &metadata_body("live")))
+        .unwrap();
+    assert_eq!(
+        parse_metadata_topology(&read_frame(&mut second)).1,
+        vec![(0, 0)]
+    );
+    drop(stream);
+    drop(second);
+    broker.shutdown();
+    handle.join().unwrap();
+}
