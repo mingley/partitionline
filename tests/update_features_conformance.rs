@@ -175,7 +175,10 @@ async fn public_update_features_controller_and_deadline_history() {
     let started = Instant::now();
     let result = admin
         .update_features_with_timeout(
-            &[FeatureUpdate::new("test_feature_1", 2)],
+            &[
+                FeatureUpdate::new("test_feature_1", 2),
+                FeatureUpdate::new("test_feature_2", 3).allow_downgrade(true),
+            ],
             Duration::from_millis(timeout),
             false,
         )
@@ -183,8 +186,14 @@ async fn public_update_features_controller_and_deadline_history() {
     let elapsed = started.elapsed();
     let code = match &result {
         Ok(values) => {
-            assert_eq!(values.len(), 1);
-            assert_eq!(values[0].name, "test_feature_1");
+            assert_eq!(values.len(), 2);
+            let mut names = values
+                .iter()
+                .map(|value| value.name.as_str())
+                .collect::<Vec<_>>();
+            names.sort_unstable();
+            assert_eq!(names, ["test_feature_1", "test_feature_2"]);
+            assert!(values.iter().all(|value| value.error_code == 0));
             values[0].error_code
         }
         Err(Error::Timeout) => 7,
@@ -193,7 +202,10 @@ async fn public_update_features_controller_and_deadline_history() {
     let recovery_code = if scenario == "deadline" {
         let recovered = admin
             .update_features_with_timeout(
-                &[FeatureUpdate::new("test_feature_1", 2)],
+                &[
+                    FeatureUpdate::new("test_feature_1", 2),
+                    FeatureUpdate::new("test_feature_2", 3).allow_downgrade(true),
+                ],
                 Duration::from_secs(2),
                 false,
             )

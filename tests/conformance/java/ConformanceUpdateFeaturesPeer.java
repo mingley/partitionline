@@ -204,7 +204,8 @@ public final class ConformanceUpdateFeaturesPeer {
         short code = 0;
         try {
             admin.listTopics().names().get(3, TimeUnit.SECONDS);
-            var updates = Map.of("test_feature_1", new FeatureUpdate((short)2, FeatureUpdate.UpgradeType.UPGRADE));
+            var updates = Map.of("test_feature_1", new FeatureUpdate((short)2, FeatureUpdate.UpgradeType.UPGRADE),
+                "test_feature_2", new FeatureUpdate((short)3, FeatureUpdate.UpgradeType.SAFE_DOWNGRADE));
             try {
                 admin.updateFeatures(updates, new UpdateFeaturesOptions().timeoutMs(scenario.equals("deadline") ? 250 : 2000)).all().get(3, TimeUnit.SECONDS);
             } catch (ExecutionException failed) { code = Errors.forException(failed.getCause()).code(); }
