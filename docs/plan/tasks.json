@@ -18883,7 +18883,9 @@
       "id": "KL09-68",
       "title": "Register franz-go and client-ceiling cells in the orchestrator",
       "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-root-20261008",
-      "depends_on": ["KL04-08", "KL09-65", "KL09-66"],
+      "depends_on": ["KL04-08", "KL09-65", "KL09-66",
+        "KL09-74"
+      ],
       "files": ["scripts/run-benchmark-matrix.py", "benchmarks/scenarios.json", "benchmarks/tests/"],
       "deliverable": "The KL04-08 orchestrator runs franz-go and the null-broker client-ceiling tier with the same randomization, retention and comparability refusals.",
       "acceptance": ["It refuses to mix client-ceiling results into Kafka-throughput cells.", "franz-go cells get the same equal-semantics and effective-config checks as other peers; failed and skipped cells are preserved."],
@@ -53419,6 +53421,47 @@
         "docs/STATUS.md"
       ],
       "qualification_limit": "Corrected-source format and validation qualification. Existing Kafka v1 stays strict; null v2 is exploratory with explicit unobserved/nonapplicable fields. No library/measurement defaults, previous captures, scenario gates or performance claims changed."
+    },
+    {
+      "id": "KL09-74",
+      "title": "Apply the reported compression setting to the franz-go benchmark client",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-root-20261008",
+      "depends_on": [
+        "KL09-65"
+      ],
+      "files": [
+        "benchmarks/peers/franz-go/cmd/peer/main.go",
+        "new: benchmarks/peers/franz-go/cmd/peer/main_test.go"
+      ],
+      "deliverable": "The benchmark peer applies its reported compression preference to the pinned SDK, including an explicit no-compression option.",
+      "acceptance": [
+        "An actual pinned-SDK regression rejects the unchanged driver when it reports none but retains the SDK default snappy/none preference.",
+        "All five supported compression settings resolve to the requested SDK preference; invalid compression still fails before benchmark work.",
+        "Retain the before failure, tested source, tool/module pins and successful focused checks. Keep the full equal-settings campaign unqualified."
+      ],
+      "validation": [
+        "Run the regression on unchanged source and retain its real failure.",
+        "Run pinned Go 1.26.0 build, vet, race tests and SDK resolved-option checks."
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL09-74.json",
+        "docs/evidence/perf/franz-compression-20261008/README.md"
+      ],
+      "write_set": [
+        "benchmarks/peers/franz-go/cmd/peer/main.go",
+        "benchmarks/peers/franz-go/cmd/peer/main_test.go",
+        "benchmarks/peers/franz-go/README.md",
+        "docs/evidence/perf/franz-compression-20261008/",
+        "docs/plan/evidence/KL09-74.json"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "docs/STATUS.md"
+      ],
+      "qualification_limit": "Compression-option application only. The ten missing shared settings, result adapter and actual comparable campaign remain open."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
