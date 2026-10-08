@@ -52,7 +52,9 @@ fn frame(api_key: i16, api_version: i16, correlation: i32, body: &[u8]) -> Vec<u
     payload.extend_from_slice(&correlation.to_be_bytes());
     payload.extend_from_slice(&7i16.to_be_bytes());
     payload.extend_from_slice(b"interop");
-    put_uvarint(&mut payload, 0);
+    if !(api_key == 10 && api_version < 3) {
+        put_uvarint(&mut payload, 0);
+    }
     payload.extend_from_slice(body);
     let mut out = (payload.len() as u32).to_be_bytes().to_vec();
     out.extend_from_slice(&payload);
@@ -321,9 +323,9 @@ fn handshake_produce_and_rejections() {
         cur.skip_tags();
         ranges.push((key, min, max));
     }
-    assert!(ranges.contains(&(0, 3, 12)), "produce range: {ranges:?}");
-    assert!(ranges.contains(&(3, 1, 13)), "metadata range: {ranges:?}");
-    assert!(ranges.contains(&(22, 0, 5)), "ipid range: {ranges:?}");
+    assert!(ranges.contains(&(0, 9, 12)), "produce range: {ranges:?}");
+    assert!(ranges.contains(&(3, 12, 13)), "metadata range: {ranges:?}");
+    assert!(ranges.contains(&(22, 5, 5)), "ipid range: {ranges:?}");
     assert!(ranges.contains(&(10, 1, 6)), "find-coord range: {ranges:?}");
 
     // Metadata v13 for ["t"]: 2 partitions, leader 0.
@@ -703,6 +705,7 @@ fn artifact_is_labeled_client_ceiling() {
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("ceiling.json");
     let report = nullbroker::RunReport {
+        api_versions: Vec::new(),
         accepted_records: 42,
         accepted_wire_bytes: 4200,
         produce_requests: 7,
@@ -1029,4 +1032,168 @@ fn seeded_faults_are_deterministic() {
     let (clean, clean_count) = fault_run(0x5EED_F001, 0, 10);
     assert!(clean.iter().all(|e| *e == 0), "{clean:?}");
     assert_eq!(clean_count, 0);
+}
+
+#[test]
+fn all_advertised_flexible_versions_accept_validated_records() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let config = nullbroker::Config {
+        partitions: 1,
+        trace_api_versions: true,
+        synth: nullbroker::synth::SynthConfig {
+            records_per_partition: 3,
+            ..nullbroker::synth::SynthConfig::default()
+        },
+        ..nullbroker::Config::default()
+    };
+    let broker =
+        Arc::new(NullBroker::with_bound(&[(0, listener.try_clone().unwrap())], &config).unwrap());
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    for version in 12..=13 {
+        let response = rpc.call(3, version, &metadata_body("versions"));
+        let (_, leaders) = parse_metadata_topology(&response);
+        assert_eq!(leaders, vec![(0, 0)]);
+        // v13 adds exactly its int16 top-level error before the final tags.
+        if version == 12 {
+            assert_eq!(response[response.len() - 1], 0);
+        } else {
+            assert_eq!(&response[response.len() - 3..], &[0, 0, 0]);
+        }
+    }
+    for version in 9..=12 {
+        let batch = build_batch(-1, -1, 0, 1, b'x');
+        let response = rpc.call(
+            0,
+            version,
+            &produce_body(-1, &[("versions", &[(0, &batch)])]),
+        );
+        assert_eq!(
+            parse_produce_response(&response),
+            vec![("versions".to_owned(), 0, 0, i64::from(version - 9))]
+        );
+        let mut corrupt = batch.clone();
+        *corrupt.last_mut().unwrap() ^= 1;
+        let response = rpc.call(
+            0,
+            version,
+            &produce_body(-1, &[("versions", &[(0, &corrupt)])]),
+        );
+        assert_eq!(parse_produce_response(&response)[0].2, 87);
+    }
+    for version in 15..=17 {
+        let response = rpc.call(
+            1,
+            version,
+            &fetch_body(
+                &nullbroker::synth::topic_id("versions"),
+                &[(0, 0, 1_000_000)],
+                1_000_000,
+            ),
+        );
+        let parts = parse_fetch_response(&response);
+        assert_eq!(parts[0].1, 0);
+        assert_eq!(parts[0].2, 3);
+        assert_eq!(count_fetched_records(&parts[0].5).0, 3);
+    }
+    for version in 7..=10 {
+        for (timestamp, expected) in [(-2, 0), (-1, 3)] {
+            let response = rpc.call(2, version, &list_offsets_body("versions", 0, timestamp));
+            let (error, _, offset) = parse_list_offsets_response(&response);
+            assert_eq!((error, offset), (0, expected));
+        }
+    }
+    drop(stream);
+    broker.shutdown();
+    handle.join().unwrap();
+    let report = broker.report();
+    assert_eq!(report.accepted_records, 4);
+    assert_eq!(report.failures.crc, 4);
+    assert_eq!(report.fetched_records, 9);
+    assert_eq!(report.api_versions.len(), 13);
+    assert_eq!(
+        report.api_versions.iter().map(|(_, _, n)| n).sum::<u64>(),
+        21
+    );
+}
+
+#[test]
+fn coordinator_classic_and_flexible_versions_share_one_node() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let broker = Arc::new(
+        NullBroker::with_listener(&listener, 1, nullbroker::synth::SynthConfig::default()).unwrap(),
+    );
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    for version in 1..=6 {
+        let mut body = Vec::new();
+        if version < 3 {
+            body.extend_from_slice(&1i16.to_be_bytes());
+            body.push(b'g');
+        } else if version == 3 {
+            put_compact_string(&mut body, Some("g"));
+        }
+        body.push(0);
+        if version >= 4 {
+            put_uvarint(&mut body, 2);
+            put_compact_string(&mut body, Some("g"));
+        }
+        if version >= 3 {
+            put_uvarint(&mut body, 0);
+        }
+        let response = rpc.call(10, version, &body);
+        let mut cur = Cur::new(&response);
+        assert_eq!(cur.i32(), rpc.correlation());
+        if version >= 3 {
+            cur.skip_tags();
+        }
+        assert_eq!(cur.i32(), 0);
+        if version >= 4 {
+            assert_eq!(cur.uvarint(), 2);
+            assert_eq!(cur.compact_string().as_deref(), Some("g"));
+        } else {
+            assert_eq!(cur.i16(), 0);
+            if version == 3 {
+                assert_eq!(cur.compact_string(), None);
+            } else {
+                assert_eq!(cur.i16(), -1);
+            }
+        }
+        assert_eq!(cur.i32(), 0);
+        if version >= 3 {
+            assert_eq!(cur.compact_string().as_deref(), Some("127.0.0.1"));
+        } else {
+            let len = cur.i16() as usize;
+            assert_eq!(cur.take(len), b"127.0.0.1");
+        }
+        assert_eq!(cur.i32(), i32::from(port));
+        if version >= 4 {
+            assert_eq!(cur.i16(), 0);
+            assert_eq!(cur.compact_string(), None);
+            cur.skip_tags();
+        }
+        if version >= 3 {
+            cur.skip_tags();
+        }
+        assert_eq!(cur.pos, response.len());
+    }
+    drop(stream);
+    broker.shutdown();
+    handle.join().unwrap();
 }

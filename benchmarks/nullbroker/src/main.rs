@@ -8,7 +8,7 @@ use nullbroker::Config;
 fn usage() -> ! {
     eprintln!(
         "usage: nullbroker [--bind ADDR] [--partitions N] [--seconds S] [--artifact PATH]\n\
-         [--fetch-seed S] [--fetch-records N] [--fetch-batch-records N]\n\
+         [--trace-api-versions true|false] [--fetch-seed S] [--fetch-records N] [--fetch-batch-records N]\n\
          [--fetch-payload-bytes N] [--fetch-headers N] [--fetch-codec none|gzip|snappy|lz4]\n\
          [--fetch-abort-every N] [--nodes N] [--dead-nodes N] [--slow-node ID]\n\
          [--slow-delay-ms MS] [--fault-seed S] [--fault-rate-per-million N]\n\
@@ -28,6 +28,9 @@ fn main() {
     while let Some(arg) = args.next() {
         let value = args.next().unwrap_or_else(|| usage());
         match arg.as_str() {
+            "--trace-api-versions" => {
+                config.trace_api_versions = value.parse().unwrap_or_else(|_| usage());
+            }
             "--bind" => config.bind = value,
             "--partitions" => {
                 config.partitions = value.parse().unwrap_or_else(|_| usage());

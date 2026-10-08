@@ -396,13 +396,13 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
 #[must_use]
 pub const fn advertised_apis() -> [(i16, i16, i16); 7] {
     [
-        (API_KEY_PRODUCE, 3, 12),
-        (API_KEY_METADATA, 1, 13),
-        (API_KEY_INIT_PRODUCER_ID, 0, 5),
+        (API_KEY_PRODUCE, 9, 12),
+        (API_KEY_METADATA, 12, 13),
+        (API_KEY_INIT_PRODUCER_ID, 5, 5),
         (API_KEY_API_VERSIONS, 0, 4),
         (API_KEY_FIND_COORDINATOR, 1, 6),
-        (API_KEY_FETCH, 4, 17),
-        (API_KEY_LIST_OFFSETS, 1, 10),
+        (API_KEY_FETCH, 15, 17),
+        (API_KEY_LIST_OFFSETS, 7, 10),
     ]
 }
 
@@ -450,13 +450,13 @@ fn encode_api_versions_response(out: &mut Vec<u8>, version: i16, error_code: i16
     }
 }
 
-/// One topic in a `Metadata` v13 request: `(topic_id, name)`.
+/// One topic in a `Metadata` v12–v13 request: `(topic_id, name)`.
 #[derive(Debug, Clone)]
 struct MetadataRequestTopic {
     name: Option<String>,
 }
 
-/// Decode a `Metadata` v13 request: `(topics_or_null_for_all, allow_auto)`.
+/// Decode a `Metadata` v12–v13 request: `(topics_or_null_for_all, allow_auto)`.
 fn decode_metadata_request(
     body: &[u8],
 ) -> Result<(Option<Vec<MetadataRequestTopic>>, bool), DecodeError> {
@@ -475,15 +475,16 @@ fn decode_metadata_request(
         }
     };
     let allow_auto = cur.get_u8()? != 0;
-    // v13 is outside 8..=10, so no IncludeClusterAuthorizedOperations byte.
+    // v12–v13 are outside 8..=10, so no IncludeClusterAuthorizedOperations byte.
     let _include_topic_authorized = cur.get_u8()?;
     cur.skip_tagged_fields()?;
     Ok((topics, allow_auto))
 }
 
-/// Encode a `Metadata` v13 response: every node, `partitions` per topic.
+/// Encode a `Metadata` v12–v13 response: every node, `partitions` per topic.
 fn encode_metadata_response(
     out: &mut Vec<u8>,
+    version: i16,
     topics: &[MetadataRequestTopic],
     partitions: i32,
     leaders: &[i32],
@@ -537,7 +538,9 @@ fn encode_metadata_response(
         }
         out.put_empty_tagged_fields();
     }
-    out.extend_from_slice(&ERR_NONE.to_be_bytes()); // v13 top-level error_code
+    if version >= 13 {
+        out.extend_from_slice(&ERR_NONE.to_be_bytes()); // v13 top-level error_code
+    }
     out.put_empty_tagged_fields();
 }
 
@@ -552,28 +555,79 @@ fn decode_init_producer_id_request(body: &[u8]) -> Result<(Option<String>, i32),
     Ok((transactional_id, timeout_ms))
 }
 
-/// Decode a `FindCoordinator` v6 request: `(key_type, keys)`.
-fn decode_find_coordinator_request(body: &[u8]) -> Result<(i8, Vec<String>), DecodeError> {
+/// Decode a `FindCoordinator` v1–v6 request: `(key_type, keys)`.
+fn decode_find_coordinator_request(
+    body: &[u8],
+    version: i16,
+) -> Result<(i8, Vec<String>), DecodeError> {
     let mut cur = Cursor::new(body);
-    let key_type = cur.get_u8()? as i8;
-    let n = cur.get_array_len(true)?.unwrap_or(0);
-    let mut keys = Vec::with_capacity(n);
-    for _ in 0..n {
-        keys.push(cur.get_compact_string()?.unwrap_or_default());
+    let (key_type, keys) = if version < 4 {
+        let key = if version == 3 {
+            cur.get_compact_string()?
+                .ok_or(DecodeError::Invalid("null coordinator key"))?
+        } else {
+            let len = cur.get_i16()?;
+            if len < 0 {
+                return Err(DecodeError::Invalid("null coordinator key"));
+            }
+            std::str::from_utf8(cur.take(len as usize)?)
+                .map_err(|_| DecodeError::Invalid("coordinator key UTF-8"))?
+                .to_owned()
+        };
+        (cur.get_u8()? as i8, vec![key])
+    } else {
+        let key_type = cur.get_u8()? as i8;
+        let n = cur
+            .get_array_len(true)?
+            .ok_or(DecodeError::Invalid("null coordinator keys"))?;
+        let mut keys = Vec::with_capacity(n);
+        for _ in 0..n {
+            keys.push(
+                cur.get_compact_string()?
+                    .ok_or(DecodeError::Invalid("null coordinator key"))?,
+            );
+        }
+        (key_type, keys)
+    };
+    if version >= 3 {
+        cur.skip_tagged_fields()?;
     }
-    cur.skip_tagged_fields()?;
+    if !cur.is_empty() {
+        return Err(DecodeError::Invalid("coordinator trailing bytes"));
+    }
     Ok((key_type, keys))
 }
 
-/// Encode a `FindCoordinator` v6 response: every key maps to one node.
+/// Encode a `FindCoordinator` v1–v6 response: every key maps to one node.
 fn encode_find_coordinator_response(
     out: &mut Vec<u8>,
+    version: i16,
     keys: &[String],
     node_id: i32,
     host: &str,
     port: i32,
 ) {
     out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
+    if version < 4 {
+        out.extend_from_slice(&ERR_NONE.to_be_bytes());
+        if version == 3 {
+            out.put_compact_string(None);
+        } else {
+            out.extend_from_slice(&(-1i16).to_be_bytes());
+        }
+        out.extend_from_slice(&node_id.to_be_bytes());
+        if version == 3 {
+            out.put_compact_string(Some(host));
+        } else {
+            out.extend_from_slice(&(host.len() as i16).to_be_bytes());
+            out.extend_from_slice(host.as_bytes());
+        }
+        out.extend_from_slice(&port.to_be_bytes());
+        if version == 3 {
+            out.put_empty_tagged_fields();
+        }
+        return;
+    }
     out.put_compact_array_len(keys.len());
     for key in keys {
         out.put_compact_string(Some(key));
@@ -587,7 +641,7 @@ fn encode_find_coordinator_response(
     out.put_empty_tagged_fields();
 }
 
-/// One partition in a `Fetch` v17 request.
+/// One partition in a `Fetch` v15–v17 request.
 #[derive(Debug, Clone)]
 struct FetchPartitionData {
     partition: i32,
@@ -595,14 +649,14 @@ struct FetchPartitionData {
     partition_max_bytes: i32,
 }
 
-/// One topic in a `Fetch` v17 request (identity is the topic id).
+/// One topic in a `Fetch` v15–v17 request (identity is the topic id).
 #[derive(Debug, Clone)]
 struct FetchTopicData {
     topic_id: [u8; 16],
     partitions: Vec<FetchPartitionData>,
 }
 
-/// Decode a `Fetch` v17 request: `(max_bytes, topics)`.
+/// Decode a `Fetch` v15–v17 request: `(max_bytes, topics)`.
 ///
 /// Session, forgotten topics, rack and tagged fields are parsed and
 /// ignored: every response is full (`session_id` 0). `min_bytes`/`max_wait`
@@ -657,7 +711,7 @@ fn decode_fetch_request(body: &[u8]) -> Result<(i32, Vec<FetchTopicData>), Decod
     Ok((max_bytes, topics))
 }
 
-/// One partition's data in a `Fetch` v17 response.
+/// One partition's data in a `Fetch` v15–v17 response.
 #[derive(Debug, Clone)]
 struct FetchPartitionResult {
     partition: i32,
@@ -667,7 +721,7 @@ struct FetchPartitionResult {
     aborted: Vec<(i64, i64)>,
 }
 
-/// Encode a `Fetch` v17 response: full data, `session_id` 0.
+/// Encode a `Fetch` v15–v17 response: full data, `session_id` 0.
 /// Log start is always 0 and last-stable-offset always equals the high
 /// watermark (everything served is stable; aborts are listed explicitly).
 fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartitionResult>)]) {
@@ -1076,6 +1130,8 @@ fn error_for(failure: ValidationFailure) -> i16 {
 /// Mutable broker state: log end offsets, idempotent sequences, counters.
 #[derive(Debug, Default)]
 struct State {
+    /// Request counts, populated only when explicitly enabled.
+    api_versions: HashMap<(i16, i16), u64>,
     /// Next offset per `(topic, partition)`.
     next_offset: HashMap<(String, i32), i64>,
     /// Expected base sequence per `(producer_id, topic, partition)`.
@@ -1156,6 +1212,8 @@ impl FaultState {
 /// Server configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
+    /// Record request API keys and versions. Disabled for timing runs.
+    pub trace_api_versions: bool,
     /// Address to bind, e.g. `127.0.0.1:19092` (port `0` for ephemeral).
     pub bind: String,
     /// Partitions advertised per topic.
@@ -1186,6 +1244,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            trace_api_versions: false,
             bind: "127.0.0.1:19092".to_owned(),
             partitions: 6,
             serve_for: Duration::from_secs(30),
@@ -1205,6 +1264,8 @@ impl Default for Config {
 /// The served run's outcome, also written to the artifact file.
 #[derive(Debug, Clone)]
 pub struct RunReport {
+    /// Observed `(api_key, version, request_count)` when tracing is enabled.
+    pub api_versions: Vec<(i16, i16, u64)>,
     /// Records accepted.
     pub accepted_records: u64,
     /// Validated batch wire bytes accepted.
@@ -1266,6 +1327,7 @@ impl Default for Modes {
 /// A validating null-broker Produce server.
 #[derive(Debug)]
 pub struct NullBroker {
+    trace_api_versions: bool,
     state: Arc<Mutex<State>>,
     shutdown: Arc<AtomicBool>,
     /// One handle per live connection; shutdown closes them all to unblock
@@ -1378,6 +1440,7 @@ impl NullBroker {
         }
         let leadership = resolve_leadership(&config.leaders, config.partitions, live.max(1));
         Ok(Self {
+            trace_api_versions: config.trace_api_versions,
             state: Arc::new(Mutex::new(State::default())),
             shutdown: Arc::new(AtomicBool::new(false)),
             sockets: Arc::new(Mutex::new(Vec::new())),
@@ -1450,6 +1513,7 @@ impl NullBroker {
                         }
                     }
                     let worker = Worker {
+                        trace_api_versions: self.trace_api_versions,
                         state: Arc::clone(&self.state),
                         node_id,
                         nodes: self.nodes.clone(),
@@ -1488,7 +1552,14 @@ impl NullBroker {
             .map(|((topic, partition), offset)| (topic.clone(), *partition, *offset))
             .collect();
         end_offsets.sort();
+        let mut api_versions: Vec<_> = state
+            .api_versions
+            .iter()
+            .map(|(&(key, version), &count)| (key, version, count))
+            .collect();
+        api_versions.sort_unstable();
         RunReport {
+            api_versions,
             accepted_records: state.accepted_records,
             accepted_wire_bytes: state.accepted_wire_bytes,
             produce_requests: state.produce_requests,
@@ -1509,6 +1580,7 @@ impl NullBroker {
 /// One connection's request loop (blocking I/O; shutdown unblocks reads).
 #[derive(Debug)]
 struct Worker {
+    trace_api_versions: bool,
     state: Arc<Mutex<State>>,
     node_id: i32,
     nodes: Vec<NodeInfo>,
@@ -1570,6 +1642,21 @@ impl Worker {
     fn handle_frame(&self, frame: &[u8]) -> Result<Option<Vec<u8>>, ()> {
         let (api_key, api_version, correlation_id, header_len) =
             decode_request_header(frame).map_err(|_| ())?;
+        // Refuse versions we do not advertise or implement. Never select behavior
+        // by client identity; all peers use the same handlers and validation.
+        if !advertised_apis()
+            .iter()
+            .any(|&(key, min, max)| key == api_key && (min..=max).contains(&api_version))
+        {
+            return Err(());
+        }
+        if self.trace_api_versions {
+            let mut state = self.lock_state().map_err(|_| ())?;
+            *state
+                .api_versions
+                .entry((api_key, api_version))
+                .or_default() += 1;
+        }
         let body = frame.get(header_len..).ok_or(())?;
         let mut out = Vec::new();
         match api_key {
@@ -1579,7 +1666,7 @@ impl Worker {
                 encode_api_versions_response(&mut out, api_version, ERR_NONE);
                 Ok(Some(out))
             }
-            API_KEY_METADATA if api_version == 13 => {
+            API_KEY_METADATA if (12..=13).contains(&api_version) => {
                 let (topics, _allow_auto) = decode_metadata_request(body).map_err(|_| ())?;
                 if let Ok(mut state) = self.state.lock() {
                     state.metadata_requests += 1;
@@ -1600,6 +1687,7 @@ impl Worker {
                 }
                 encode_metadata_response(
                     &mut out,
+                    api_version,
                     topics,
                     self.partitions,
                     &self.leadership,
@@ -1623,8 +1711,9 @@ impl Worker {
                 }
                 Ok(Some(out))
             }
-            API_KEY_FIND_COORDINATOR if api_version == 6 => {
-                let (_key_type, keys) = decode_find_coordinator_request(body).map_err(|_| ())?;
+            API_KEY_FIND_COORDINATOR if (1..=6).contains(&api_version) => {
+                let (_key_type, keys) =
+                    decode_find_coordinator_request(body, api_version).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 let (node_id, host, port) = self
                     .nodes
@@ -1632,10 +1721,10 @@ impl Worker {
                     .find(|n| n.live)
                     .map(|n| (n.id, n.host.as_str(), n.port))
                     .unwrap_or((0, "127.0.0.1", 19092));
-                encode_find_coordinator_response(&mut out, &keys, node_id, host, port);
+                encode_find_coordinator_response(&mut out, api_version, &keys, node_id, host, port);
                 Ok(Some(out))
             }
-            API_KEY_PRODUCE if api_version == 12 => {
+            API_KEY_PRODUCE if (9..=12).contains(&api_version) => {
                 let (transactional_id, acks, topics) =
                     decode_produce_request(body).map_err(|_| ())?;
                 {
@@ -1675,7 +1764,7 @@ impl Worker {
                 encode_produce_response(&mut out, &parts);
                 Ok(Some(out))
             }
-            API_KEY_FETCH if api_version == 17 => {
+            API_KEY_FETCH if (15..=17).contains(&api_version) => {
                 let (max_bytes, topics) = decode_fetch_request(body).map_err(|_| ())?;
                 {
                     let mut state = self.lock_state().map_err(|_| ())?;
@@ -1713,7 +1802,7 @@ impl Worker {
                 encode_fetch_response(&mut out, &served);
                 Ok(Some(out))
             }
-            API_KEY_LIST_OFFSETS if api_version == 10 => {
+            API_KEY_LIST_OFFSETS if (7..=10).contains(&api_version) => {
                 let topics = decode_list_offsets_request(body).map_err(|_| ())?;
                 let rows = self.serve_list_offsets(&topics);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
@@ -1861,7 +1950,7 @@ impl Worker {
         parts
     }
 
-    /// Serve one `Fetch` v17 request from the synthetic log.
+    /// Serve one `Fetch` v15–v17 request from the synthetic log.
     ///
     /// Whole batches while both budgets allow, with a one-batch progress
     /// guarantee per partition below log end (mirroring Kafka, which can
@@ -2082,6 +2171,16 @@ pub fn write_artifact(path: &Path, report: &RunReport) -> io::Result<()> {
         "  \"leader_mismatches\": {},\n",
         report.leader_mismatches
     ));
+    body.push_str("  \"api_versions\": [");
+    for (i, (key, version, count)) in report.api_versions.iter().enumerate() {
+        if i > 0 {
+            body.push(',');
+        }
+        body.push_str(&format!(
+            "{{\"api_key\":{key},\"version\":{version},\"requests\":{count}}}"
+        ));
+    }
+    body.push_str("],\n");
     body.push_str("  \"modes\": {\n");
     body.push_str(&format!("    \"nodes\": {},\n", report.modes.nodes));
     body.push_str(&format!(

@@ -146,13 +146,13 @@ fn xxh_round(acc: u32, input: u32) -> u32 {
 pub fn xxh32(data: &[u8]) -> u32 {
     let len = data.len();
     let mut hash = XXH_P5.wrapping_add(len as u32);
-    let mut chunks = data.chunks_exact(16);
+    let (chunks, mut tail) = data.as_chunks::<16>();
     if len >= 16 {
         let mut v1 = XXH_P1.wrapping_add(XXH_P2);
         let mut v2 = XXH_P2;
         let mut v3 = 0u32;
         let mut v4 = XXH_P1.wrapping_neg();
-        for chunk in &mut chunks {
+        for chunk in chunks {
             let l =
                 |i: usize| u32::from_le_bytes([chunk[i], chunk[i + 1], chunk[i + 2], chunk[i + 3]]);
             v1 = xxh_round(v1, l(0));
@@ -166,7 +166,6 @@ pub fn xxh32(data: &[u8]) -> u32 {
             .wrapping_add(v3.rotate_left(12))
             .wrapping_add(v4.rotate_left(18));
     }
-    let mut tail = chunks.remainder();
     while tail.len() >= 4 {
         let lane = u32::from_le_bytes([tail[0], tail[1], tail[2], tail[3]]);
         hash = hash
@@ -403,7 +402,7 @@ pub fn encode_batch(cfg: &SynthConfig, partition: i32, batch_index: u64) -> Opti
     }
     let remaining = cfg.records_per_partition - base;
     let count = u64::from(cfg.records_per_batch).min(remaining) as u32;
-    let aborted = cfg.abort_every > 0 && (batch_index + 1) % cfg.abort_every == 0;
+    let aborted = cfg.abort_every > 0 && (batch_index + 1).is_multiple_of(cfg.abort_every);
     let mut records = Vec::new();
     encode_records(&mut records, cfg, partition, base, count);
     let payload = match cfg.codec {
