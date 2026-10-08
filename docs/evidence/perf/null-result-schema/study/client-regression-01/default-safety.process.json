@@ -1,0 +1,19 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "888175",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-2.elf",
+    "--nocapture"
+  ],
+  "started": 1791417905.3520179,
+  "parent_waited": true,
+  "pid": 889201,
+  "exit_code": 0,
+  "ended": 1791417905.3738513,
+  "artifacts": {
+    "default-safety.stdout": "fc7d90f4c246ef34d52ede01a83adbff1f9b715e258172abe0c7a9261c519c76",
+    "default-safety.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

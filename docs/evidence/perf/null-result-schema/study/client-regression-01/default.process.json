@@ -1,0 +1,32 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime/tools/parent-bound-exec.py",
+    "888175",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/open-cards-20261006/null-result-source-39bb8f/Cargo.toml",
+    "--lib",
+    "--test",
+    "full_surface",
+    "--test",
+    "update_features_conformance",
+    "update_features",
+    "--",
+    "--nocapture"
+  ],
+  "started": 1791417872.722548,
+  "parent_waited": true,
+  "pid": 888197,
+  "exit_code": 0,
+  "ended": 1791417905.1470191,
+  "artifacts": {
+    "default.stdout": "aed985b65734e900eae1969c05ecfd0ebbb493fdb3ce8841a829479c70b97121",
+    "default.stderr": "904eb3d42cf7e83cc61de1bbf4a6edc5db03f192e8da9421038d782ddbc4b241"
+  }
+}

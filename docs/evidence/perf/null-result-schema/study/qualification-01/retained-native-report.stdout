@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "error_count": 0,
+  "errors": [],
+  "summary": {
+    "scenario_id": "lb-bulk",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 238676.60742802772,
+    "latency_p99_us": 33477833,
+    "total_acknowledged": 8000000,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/build-profiles-20261007/train-nb-01/000-primary-r1-pgo_generate-nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+    "--json"
+  ],
+  "started": 1791417629.6219008,
+  "parent_waited": true,
+  "pid": 888103,
+  "exit_code": 1,
+  "ended": 1791417629.7443647,
+  "artifacts": {
+    "retained-incomplete-null-report.stdout": "dab7ab582f9db323375560ca4664c4916996d4694141d2ac554466e378510321",
+    "retained-incomplete-null-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

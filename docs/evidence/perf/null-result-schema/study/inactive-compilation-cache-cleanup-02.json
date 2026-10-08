@@ -1,0 +1,1205 @@
+{
+  "scope": "Inactive generated rlib/rmeta files only, after runtime tests and strict Clippy. Exact-source executable copies and all source/logs preserved.",
+  "files": [
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnum_conv-effd845b1f3b01a6.rmeta",
+      "sha256": "ee977f9443315e54b476de0acba44c6d616cd89315693e62eaf32b1075868882",
+      "bytes": 158988
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libunicode_ident-1c3ab445d59154f4.rlib",
+      "sha256": "63ec92a5415ea5b81a858a132c896b0da15f100713b0e17d49740db1fb8e2f5f",
+      "bytes": 56710
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libring-15dedc80c6663084.rmeta",
+      "sha256": "09c99f51634f719daac0c00dfa9b9b7032b655061ebfb109885e8e0b3d9e17c8",
+      "bytes": 1985304
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-7d542736dfd22d7a.rmeta",
+      "sha256": "e9bcd20e2600b425cc7d11afb1a0c4e3e6b93026bd1aa0f844491b9c89c01ab1",
+      "bytes": 65541
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libctutils-f7b405e5ec2a008d.rmeta",
+      "sha256": "4ebe90a253c9f875563d5f2304a0a966010ed3e1ea861f7cefcb91598ebeb22b",
+      "bytes": 357270
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-c4b0198afa6fd939.rlib",
+      "sha256": "29306dd1e3fa13d364e551cc34e857e36ed35fbc8f39a9ed19cde61e394ff61b",
+      "bytes": 41580
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcfg_if-d4fd841ce8570c28.rmeta",
+      "sha256": "a94e2ead43e517355f2d7fe50030fc05ca80e8760be7e55b651b66d724b6b05d",
+      "bytes": 5889
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpowerfmt-e1b5218c777d8438.rmeta",
+      "sha256": "c71e14c970453538f141b3070b15285925d93c137568f842ea1f6a47b63e4656",
+      "bytes": 141307
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpartitionline-2b9372dfa4f431c3.rlib",
+      "sha256": "292613c70e381deb0c04e039fcc972dab1b5cacc5c5cf84583212ae028997616",
+      "bytes": 44798312
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libshlex-38c44e2d30f69498.rlib",
+      "sha256": "827eaa878782d0fbdf47db47076800cd8e29d5b6d6e991d61a0b2635845bf441",
+      "bytes": 137984
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libshlex-38c44e2d30f69498.rmeta",
+      "sha256": "68133b03409366677b494f990f2b548ee80dac6f0bebbd53f9d629cee0f8fa12",
+      "bytes": 49768
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblock_api-83140dce300a3ee0.rmeta",
+      "sha256": "8f65bef1c762276d295571bef983f7ef77216ef26a7b9e197b213acd561055dd",
+      "bytes": 293423
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblibc-748524e16875566a.rlib",
+      "sha256": "5090253fcad834dc25a64e6c3c3a11fe441aeb0f1c0ae3d057ab28c82d7c3314",
+      "bytes": 4219876
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhmac-dd74ba049b0df722.rmeta",
+      "sha256": "3bac1e6f87578710a795ffd32460d7566f7b5f061e1e37ea8beffdad7ba235af",
+      "bytes": 68414
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libminiz_oxide-a1803720cfd50657.rmeta",
+      "sha256": "3ee10154600b2ba7e06b8c23a959820aaf19a1a56241ac76a4a1c5063e6cbb9c",
+      "bytes": 363981
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsyn-f73ca732da467fe5.rmeta",
+      "sha256": "fee06a18c284ba4d25fcf5122b863c6d7328c7ad10ca56ae12aa4f48174c678c",
+      "bytes": 2822852
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsocket2-9517be4e971f5290.rlib",
+      "sha256": "4e9c52d1f10a633f67c6561fc8beaed8ecdd6a3ca12bd3ac63485d8a79ffa4f1",
+      "bytes": 984200
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-78bb77340578c9cd.rmeta",
+      "sha256": "ec2d33e4d72ccb4645c3f15e526e3d7e48a7ef8a88747ed82cf44f9d4439b3de",
+      "bytes": 262707
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsubtle-b24e64197ced0dc3.rlib",
+      "sha256": "d3c92098aff657cf86c03777a565be0d6023cc9a034d91deb989c436b31d9188",
+      "bytes": 124454
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnb_serve-7c4f1a4741edf752.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsnap-bc3f56ede6fea636.rmeta",
+      "sha256": "1c3685511041d21aed975369d9509470df66ec8aef6a2e8f31a41e7af0d7f7d9",
+      "bytes": 274714
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblibc-748524e16875566a.rmeta",
+      "sha256": "45b10bde765d70a3c114194d3a2d10e4d3a8df47c97aec539aebddb09e282f7a",
+      "bytes": 4199170
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblock_api-b0fe6ccce4ace0ad.rmeta",
+      "sha256": "5743311e3208a7a59c6bc2fc0f95e9df41687d9312c169bb92f44b2098729c25",
+      "bytes": 388767
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblz4_flex-3f7d272dcedc68aa.rmeta",
+      "sha256": "fa7cd1dcb5fb59ad51474dc3d0f7e5b7f1ef60a88f7f3a629329a58aa6d46fc0",
+      "bytes": 346956
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-8e8faee3f2fd7af6.rmeta",
+      "sha256": "c3e98207b0f5e66d820388dd9a6b756c81b7abcc52112e374392a656737ada5f",
+      "bytes": 87149
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio_rustls-f030de68cb79ce19.rmeta",
+      "sha256": "b5e309f7b4add888761082d4d2cbb5395dfeae169837755e0281db348c934c1a",
+      "bytes": 238474
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio-2ae14cdbaf805615.rmeta",
+      "sha256": "76bf7d90732f16de9f4e88ec0cdd8817bd0b38886bf2358aadab493d85e65c14",
+      "bytes": 8451937
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liberrno-022d6e479dff4eb1.rlib",
+      "sha256": "c972a9b7b2e2f4e2dfbeaa6097a0a3cf4901ed249e03a9bcaefa3dbf2d0e01b1",
+      "bytes": 56894
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls_pki_types-989ef1e78e5c4f54.rmeta",
+      "sha256": "c33fb2759a5a31897a6d4c710dce96893d528275ad06c02151d7c0c68f8835a4",
+      "bytes": 404440
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsignal_hook_registry-e843f89e48ac0186.rmeta",
+      "sha256": "03aa88e33884ea78ba1eb94faceb01f517d9ad1580a8bbc15e0e5d9d347e0f17",
+      "bytes": 79081
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libfind_msvc_tools-1612a9a7a6991e05.rmeta",
+      "sha256": "37a2dcde969305e0cde8c74ba58f2e688c9eb295b59a48ff8df229f862ce563a",
+      "bytes": 52761
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpin_project_lite-60db0d7be62c1ed6.rmeta",
+      "sha256": "1da4af674ac74d9f9dc6cc762bff03b26206359ad1fe522713d4f4dcd2e000cb",
+      "bytes": 94747
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libuntrusted-c4249a76c523c668.rmeta",
+      "sha256": "c32e12201b1a1971bd1b802e2e2fbddc7b0455c7e551c7acf7ef7cd881396503",
+      "bytes": 43149
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libring-15dedc80c6663084.rlib",
+      "sha256": "243e3aa71d0bebd7ec7002d6f626eb6bfef11c6bb1e7b107fa363b5385c83bd8",
+      "bytes": 6953304
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblibc-5e2b968d129ebbda.rmeta",
+      "sha256": "b2d19c51b58a468c05f1f60daa8dc2a81fe8e7fb3817d4faed09ac8a055a624f",
+      "bytes": 3730145
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsmallvec-d2e3b5c9bccb2b7d.rmeta",
+      "sha256": "8c7fcbb7d748210dc86a99a2d015f503b9e2c1ff4252910f0e02715d8a698eeb",
+      "bytes": 261311
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsignal_hook_registry-25838f217092f672.rmeta",
+      "sha256": "7fc3ce9e318d418818203e7e5c6e4f3f3a758ea5c32a17875609c05357c642b9",
+      "bytes": 66379
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libscopeguard-77c39e41890d8ebf.rmeta",
+      "sha256": "9d1b6c690a7d1c68af2fa2bbe1eed54b337ce02aad15aee97f3d5380b9643715",
+      "bytes": 22127
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libctutils-eea8c6f2d5127df6.rmeta",
+      "sha256": "61025121b3e41188ea1efef4ee83aa96bb185c713340a687bf0795b21dcbeccc",
+      "bytes": 263804
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgeneric_array-f485433547861f8f.rmeta",
+      "sha256": "669c320e4396cf1dd177ce3a003cbd4c47e672627ab2e01fcc8eba640e3df956",
+      "bytes": 818102
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-8f82de3e977234e9.rlib",
+      "sha256": "bb427f807d8ea3e660a578f73ae1978e4aef15770d8e6c7e6926a847d69ac47a",
+      "bytes": 889270
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-7b1bc081f76b983b.rmeta",
+      "sha256": "9647f4e9294c104b929707be3c9d51a665a91a49252e1ab26914d029b8122db3",
+      "bytes": 68274
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls_pki_types-25ed56d3a8c84467.rmeta",
+      "sha256": "79c55ffefa0be50e783e51347ae15f3d8ffd39578cebc0df00e4642b7a304168",
+      "bytes": 336340
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhost_measure-69c7e9503cd8da81.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnative_produce_runtime-2b8ff463cd12c85f.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libitoa-728d7899ac7aa759.rlib",
+      "sha256": "7eb79c50507f582c39c4e55978ba24790cd66da6cf83ed4dcd416710bd6d9987",
+      "bytes": 139966
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-ca644647bc9d1c77.rlib",
+      "sha256": "e7edd6f851a9fae3e6c82c09d89efcd28548395b650560fc62027c17f0003ec3",
+      "bytes": 46068
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblock_api-b0fe6ccce4ace0ad.rlib",
+      "sha256": "151659d8827c36fc757cc77f851b6290bada0577ab14a15dd87d51de9870bccb",
+      "bytes": 392580
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-34088be7ca9cd6b8.rmeta",
+      "sha256": "be0d6f8f8bc1b8aecba1b7b01ecae6c0e5e7d90f70ad6450af96f084caabdb6b",
+      "bytes": 315821
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhmac-1935a6e8f373e074.rlib",
+      "sha256": "c53e49647b66613ed7cfe2c4c24a1ca9b8cde96b127faac2b1de5f0d37514b18",
+      "bytes": 98542
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbase64-88a03ba1117f41bd.rlib",
+      "sha256": "f7ff13ced799603c7c031c25f061c7868e65e5ac5a61ac3773a0a5bac59ae317",
+      "bytes": 1016478
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libscopeguard-6da9b19bbe6dc3bc.rmeta",
+      "sha256": "8f840adafd857d25acc8acb8ecf3e20afc88adc53f1efd283294e97ae7c30a05",
+      "bytes": 26099
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsubtle-b24e64197ced0dc3.rmeta",
+      "sha256": "c743274708d16ad9c483f352874b4362af215e428f82de855df961e0a81c6e06",
+      "bytes": 119617
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libitoa-9459b33a6efa00ec.rmeta",
+      "sha256": "7012c84417178cb0b6df3fe8fe09e3edad415c508e7af4094f420a0f05bce4f5",
+      "bytes": 50345
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnum_conv-89f746e93c82cd2f.rlib",
+      "sha256": "cd8cbd9489d55f91b7a002bb9e30bbe6c2b459c700c6a8d705b52a3fa9bda5f6",
+      "bytes": 203934
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libconst_oid-8e3e75693f11d4a0.rlib",
+      "sha256": "cdf65e585c576843b09378cf44023d96aa3088ab4b9424af55d9877f5204de5e",
+      "bytes": 244674
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libring-d0afce3ec40ea685.rmeta",
+      "sha256": "b423999d698be9e13b5776b7083e61a3df4633cec2180a48b1e53bbddcd51d41",
+      "bytes": 1818391
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsocket2-9517be4e971f5290.rmeta",
+      "sha256": "c5429116b1ab0dcbf7b32b24269224f36ec411eb6022b9b822ecd348c541a83e",
+      "bytes": 417660
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnullbroker-8ee3e318531b4318.rmeta",
+      "sha256": "fedfdf68068c83d095b81418e64d8ee50e122bb9d1e23d6e69b086521a9c4c4c",
+      "bytes": 219092
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-fb3cfbcc48460b33.rlib",
+      "sha256": "f37eae9d1d83e61556df84d2799c6810c407bc1e5dbb7d6422a70ac7f5652f33",
+      "bytes": 140000
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls-17323ceab3181119.rlib",
+      "sha256": "af217462b9f15cc092e42de93c487c49cfdc33d4ac4479fd75cdd5f98c1b317d",
+      "bytes": 12849194
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-6b1d0dc2d4d73eab.rmeta",
+      "sha256": "390ddef0c87086e61eb96cfc7e54b03fc892e774616ba2e7a61c5cc689475da7",
+      "bytes": 640630
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-11530964541328f2.rlib",
+      "sha256": "3fde3e307a9c2f862ecbe605ee615e76b1bfcde9d758e1c53d33dc58260ef41a",
+      "bytes": 54678
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-7d542736dfd22d7a.rlib",
+      "sha256": "4056629d10c8ab4b82937cfe3d8de30b7749ad079ffe7a1669fe0682789eda41",
+      "bytes": 134698
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-11446ece8b034db9.rmeta",
+      "sha256": "671236b9fab94bfe9c7e9ae9bb127fb7aa30cbb1c5eb32e900e82b7da7ec0437",
+      "bytes": 457259
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_json-eab4154f346e35bb.rmeta",
+      "sha256": "4c3210dbaf976bdb77ded4dbd0e8be8d872a667b884bb1c3d945243b7bae4304",
+      "bytes": 965160
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libadler2-1e865cc3bcdddac2.rlib",
+      "sha256": "daf4aaeeab5a69f1b10c00e21b3ef74ab0da175b9b23b6d48d91130e45882c58",
+      "bytes": 56726
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki-cb1350ffd08a3253.rmeta",
+      "sha256": "a445cdb2fdf7434684a019e9c8f9671195023a79252eb8c5f1db76ab1e7dc831",
+      "bytes": 495508
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnative_latency_runtime-c14cbc06cba256dd.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_core-671aac8c75a6f3b1.rlib",
+      "sha256": "bb5523408d5521b6482c65055d3b71ea8457b3539f7c13166aac1b76fd15e1d9",
+      "bytes": 5010196
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-fb3cfbcc48460b33.rmeta",
+      "sha256": "dd6edb305c9c22cefc01713aa982c460fd720f4e38dc3081fbe6653be2fe31c1",
+      "bytes": 81333
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcells-cd2664fc64146d33.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libminiz_oxide-f93731e81aa15187.rmeta",
+      "sha256": "0fd565173f965c5935925f2499c1deae88e135101f4049ab821b69cf1add01d8",
+      "bytes": 409368
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libflate2-9c19733b14fb525b.rmeta",
+      "sha256": "693016ded1227f174c08a6d7ed8f5edf11fd9b66c8ba6e24f92d17a961260520",
+      "bytes": 626430
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libitoa-728d7899ac7aa759.rmeta",
+      "sha256": "101fde41b5c7faf4cd955553ed10533cae8010f8dc9669a9ef0fb075b5b5062d",
+      "bytes": 61634
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-114b1d8b88c2a562.rmeta",
+      "sha256": "9607c7b9a621e576a9fa75eab1571ff023a9cec00644a255c928a8c4a1be28b8",
+      "bytes": 39342
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-191cda4f586cec4b.rmeta",
+      "sha256": "eee4cfd16d356c3d76c1871f96542d3366bf64711b230bea89157acd6475f64f",
+      "bytes": 684440
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libderanged-cb06af0cc3d5efa0.rmeta",
+      "sha256": "ff74a1b9a1edb8e3a3c3c1f00a8858a4a40bed50895df3f1ef24ca30d553b3d6",
+      "bytes": 3585757
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbytes-b84befad5dc166a7.rmeta",
+      "sha256": "540aa5819b6f3d29c4489d8d7707576f04e9fbc335a7828e6126ef023111bcca",
+      "bytes": 599190
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmemchr-5d7df9d853a2e978.rmeta",
+      "sha256": "792f6bdcb4ff05b7dcf46d4ee464d7c2517e1fa7e0436880ea8658aea4934378",
+      "bytes": 991135
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-22e1f54a1709a624.rmeta",
+      "sha256": "9cd61e4f6f0f60e262e06482abb23316159236c109c6c5a3cd67ce2191cb0cad",
+      "bytes": 28804
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki_roots-dc71518038f78af3.rmeta",
+      "sha256": "5f863dbd83d5d36cbec716497d6a2d8e23ad9508416a9f39bb6adbd31fbb1573",
+      "bytes": 140348
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime_core-b11261f2d79124a7.rmeta",
+      "sha256": "cb73a6c8c5450757bdfd9ec88a2905953f5a7b83dc92bb17975a0eda37c89991",
+      "bytes": 481677
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki_roots-fcdde6e8a5b59dd2.rlib",
+      "sha256": "fde1101986f6513943d553409819d111bf967c87affa6e3b3aefb6a88beff392",
+      "bytes": 142598
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime_core-b11261f2d79124a7.rlib",
+      "sha256": "e076c33af7854fbfd4da8256ec3c1611a5307b6f5ec073e036831b469852beb9",
+      "bytes": 483912
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio_rustls-f030de68cb79ce19.rlib",
+      "sha256": "f44552a7cd7196cc13e06c8b52097b312b01c277eaf8ce241822c9505a7fb6e9",
+      "bytes": 243012
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnative_produce_runtime-3f51c91cda627102.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-37589ebd4efa2593.rmeta",
+      "sha256": "a12dc38863227e821c686c6d515fbba00231b1cf655964f3e4d234f54b4daedb",
+      "bytes": 638863
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-5d81ec2dd68f87f3.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libderanged-cb06af0cc3d5efa0.rlib",
+      "sha256": "53424231168e980d092ce1fe90a7f9a1f5d5edc726f27c47acef0ea5a938fc76",
+      "bytes": 3587982
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnative_latency_runtime-0514b46bb26f3674.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liberrno-022d6e479dff4eb1.rmeta",
+      "sha256": "8791bdec5a9248103c341cad1b63bb79d08a1901ec280827c9ebce146f3b6ec8",
+      "bytes": 17462
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libuntrusted-c4249a76c523c668.rlib",
+      "sha256": "94be874871dd5e00e03261f3a795e9edb0a9b5207c6aa0762f57500690a888b1",
+      "bytes": 47994
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpbkdf2-21a8a0be40b5594b.rmeta",
+      "sha256": "a1c42ca364eef1abdf673721f339d683ff10dc1f0cd7a80b2578a4e32a6db0af",
+      "bytes": 24258
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32c-51ef0ec97eaac666.rmeta",
+      "sha256": "1a7f6bfb87b3b14c9e3bf9ab88147ed5c76207356bc08041a584878ff726a5d4",
+      "bytes": 108909
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcmov-1220335903608a31.rmeta",
+      "sha256": "aa3cdd11e8a8217ed59b5556e421936a4869d05bbf77878c84bfcbe740b355ca",
+      "bytes": 277747
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libconst_oid-85e3fbc28789990b.rmeta",
+      "sha256": "c40e61b5d16adc1b2644d6cc12d6dcdff0196aad9db790ba3a6bad012c266a20",
+      "bytes": 119448
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpartitionline-2b9372dfa4f431c3.rmeta",
+      "sha256": "42dd71f890f7051ff1c6aaf0fa2ed992ab49e18d5aa6653c2785100c3ee94875",
+      "bytes": 16482179
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmio-a750a55a3f00493a.rlib",
+      "sha256": "a878d46418eb4a1342410524a3450022cb710c3d6f0bbf22f3a2606659cf7e34",
+      "bytes": 1018750
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls-17323ceab3181119.rmeta",
+      "sha256": "5fe91bd7a6127f03328522fc09662c5908878bbe781e33daf3aae67d706ba8c2",
+      "bytes": 4241464
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblz4_flex-3f7d272dcedc68aa.rlib",
+      "sha256": "29c697b1e600c08e0cf7f8c1c717b3932df31023de72d008677c53d6fe38fcda",
+      "bytes": 688112
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtypenum-ae975a31f28ad839.rlib",
+      "sha256": "3ae62058fa2b409d04fa14de4e79b520ab290bfebfe47b48fa5c639a2094b11d",
+      "bytes": 3692686
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsimd_adler32-66dc7741befabab3.rlib",
+      "sha256": "8ff847fae3e88b121f3d7956a0dc7dae39dd97d828f491bba5a1e9d335602a6b",
+      "bytes": 512816
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpowerfmt-38fe6bcd6b5781b1.rmeta",
+      "sha256": "fce03361a528cb383fa71aec38093854a36964efe56f7938c4590f9f908f58d1",
+      "bytes": 105820
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libfcells-d9e884c785d0b851.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgeneric_array-6d6b14e6bc1dc2bb.rmeta",
+      "sha256": "9e9b97baf7958ef95e7be3e0570b718d4508dbce25274afd4016dcb554c80b3b",
+      "bytes": 650467
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsimd_adler32-66dc7741befabab3.rmeta",
+      "sha256": "d2311f2544fd5c64de293ee950685b50bbdb1c444dd394802647ec27d1021fbd",
+      "bytes": 398712
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_core-671aac8c75a6f3b1.rmeta",
+      "sha256": "5267e1ee8ee5ee27b7733edaca6db01cc9e0945d3b876590d1f916cdaeafca4b",
+      "bytes": 4829827
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-47fd1ab5a47bf68e.rmeta",
+      "sha256": "d876565cfa6ac88e8219ab2f360a0e3cad1eef9cbc8ee92a32e83820b0835723",
+      "bytes": 28293
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-66cd52a614979156.rlib",
+      "sha256": "8db7a04f475b38281d64fc5013d6b7d48e238253d5d55803142ac100f81e5ff8",
+      "bytes": 1794590
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libproc_macro2-2bd597a9082108c9.rmeta",
+      "sha256": "e1a602f5a721bd35a877853cc9b395c1009c3615e5e4c54a9afa81f2c7db4eb9",
+      "bytes": 351281
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtwox_hash-204dc1adcf28fc8c.rmeta",
+      "sha256": "5b73c2a18bdb2fc2b1c5cd37d6b02b51f3802f81ab7933901e8631c82ad2d267",
+      "bytes": 41713
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtwox_hash-b70aa58af454f7c2.rmeta",
+      "sha256": "4236f130a44f29e4dd8b58f586def10660190e9fd7ce93ec8d44095ab608ea85",
+      "bytes": 59046
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpowerfmt-e1b5218c777d8438.rlib",
+      "sha256": "a7056ea61783cb894ddf716e030c7d67050fe6faf6da115af7d929e7c3aefb4d",
+      "bytes": 218858
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsimd_adler32-0d80420f20f1c442.rmeta",
+      "sha256": "06bc22b2dd1134ebe81a38be60628ab2d59928bfb8f836a417c63cdee80ebc81",
+      "bytes": 394033
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustc_version-512166224fdf5ea3.rlib",
+      "sha256": "a3029e0a27d7c894bf33f8d6e84c48a3d3ac13e7541af95b6e3d09bf4f1e8127",
+      "bytes": 411798
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki_roots-fcdde6e8a5b59dd2.rmeta",
+      "sha256": "67b8897c52e9d1c12ff3365df80bdeeb5dfcd804d3cd0fb6dd8a1bd61b9dc8e5",
+      "bytes": 140348
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libuntrusted-b8f19b70994fd704.rmeta",
+      "sha256": "7e79031d94ef399262562643ba085e28edfe85c10fd069c1d4d29c957bc0d8e2",
+      "bytes": 30906
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-84636f5ef66ea21c.rmeta",
+      "sha256": "7ee5ef018e7efe437ff2adf9702cdff7c316a11556502557079a51569504824c",
+      "bytes": 174989
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzeroize-c3c139a5607039cb.rmeta",
+      "sha256": "0facc75fcf6e101b2458a43bea3e06cf409272ab872422642975a6b51ddc47c4",
+      "bytes": 429869
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsemver-ab6907c039cf7c76.rmeta",
+      "sha256": "523f9b11fe9a10eaaaaf82ed34f43d14b2442ac69ea629f6dfdcdc984e98d43e",
+      "bytes": 139499
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzlib_rs-2e00b5594317a494.rmeta",
+      "sha256": "cbd38e57d06caada9db2f0afd286b59f331cb069f1fa7b8bf0ba2c6ccf3858b5",
+      "bytes": 835181
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-29b9246791c8707c.rmeta",
+      "sha256": "93c6cc8138b1b14597d7a5ddb05d7de03b206ba1bf8c872af3cfd6bd969803a1",
+      "bytes": 43831
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libderanged-48cad02268a8bf93.rmeta",
+      "sha256": "2a4e070403b929ac105337335807598259e4adf74de2caadd72c69f862ce4687",
+      "bytes": 3106003
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzmij-1471f7e754272b58.rlib",
+      "sha256": "8dc4d78b0bd5990c34a348a51f362c01477d4a1bbde0a1fa66d452a0e3b64ed9",
+      "bytes": 546530
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot-c9b5666032726ac8.rlib",
+      "sha256": "fe9b242610fcaba65eab8ebbdf877b9fae90d4f2668f054b0d7698802c588a54",
+      "bytes": 716028
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzmij-1471f7e754272b58.rmeta",
+      "sha256": "a6a95cb4555340c4fec5e849a86e7c08981fda6ee91b73dcc2aa869e62de61b6",
+      "bytes": 421628
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcmov-ef320363138c97c4.rmeta",
+      "sha256": "52fd1edadcd5d2afc5999257cf40d29ab26261aafd850f29fcac6d88fb493832",
+      "bytes": 182733
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpin_project_lite-60db0d7be62c1ed6.rlib",
+      "sha256": "1a9ddadc5fd639b93fd361f63a6cc4ff03b3e11d419ed64d7680dc131cb6ffac",
+      "bytes": 97014
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmio-79b0ac90c8d794fc.rmeta",
+      "sha256": "067759b6508ba3679ac5c6cf95301ad4757c1769eb06b0d3ba78aaab194a0cab",
+      "bytes": 413417
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-78bb77340578c9cd.rlib",
+      "sha256": "1cc0ba946f703780bb03acd9b8b8daeb344d819199e1bb588fee4df361e4463a",
+      "bytes": 267656
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libproc_macro2-2bd597a9082108c9.rlib",
+      "sha256": "096578cd69863ef41062c08afcf33b04f7a3b53cd622b276545a62186f379319",
+      "bytes": 1256420
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpin_project_lite-ae702d1654ccd272.rmeta",
+      "sha256": "f9772f9ab35e6f07d9417b52a9ec96cd6cd284e7c01994119b5af86cc5ffe683",
+      "bytes": 93590
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime-38a05a8e4c79e82d.rmeta",
+      "sha256": "5c19dfd4df8986766331f94bc8895782b573206912fde326b1db602c09dc8e0e",
+      "bytes": 2837164
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki-a39fd2da7d7425eb.rlib",
+      "sha256": "a6839334cd2e471411d82be2b13b4b30394a96c5154fd60d4d4f1ab45aed8963",
+      "bytes": 2027688
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-2e4e309130d847fe.rmeta",
+      "sha256": "21f21229d41622cfba2e3a560f71f49e2ed0aa1ac65a5327adc7ce52d4068b6b",
+      "bytes": 23507
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls_pki_types-989ef1e78e5c4f54.rlib",
+      "sha256": "8e2ee965102e9059c5ef64e976f0a7c5304d2fc4474adc99abc6781932e7fe79",
+      "bytes": 806110
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhybrid_array-da7b1ff1d0afd3b8.rmeta",
+      "sha256": "e44560c55060b8e7486d3e230974350f4d8c35e1faebb0fa38e945c5f30e3890",
+      "bytes": 1142848
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustls-602af717fb5443ca.rmeta",
+      "sha256": "28c90b8ae236f7593d7db39e31bfd9deb2fced9fb5e2fa2f95efd525e2b1f98b",
+      "bytes": 3695699
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libadler2-e893ce9e22090f13.rmeta",
+      "sha256": "bc5bfe671296bfeafcc56fc9a1647dde78d6d921fe0cfe16af91f1bd02365235",
+      "bytes": 16388
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libctutils-f7b405e5ec2a008d.rlib",
+      "sha256": "c01dce6dda0212b2d5bf093b8cfe14301a3856a86a22d0be3159cb68c976a3fc",
+      "bytes": 363044
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libonce_cell-7d77ec4c8c4efc6c.rlib",
+      "sha256": "07924e805ee45bc00e5fde9fc7950a0e5e2ac3d1093147d8163ce1523414940e",
+      "bytes": 234230
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-9764998f75fb0544.rmeta",
+      "sha256": "59546200e56c98c9c89f09315bcf7f84312ec9e03405b9c040c56c8f747f2d61",
+      "bytes": 117721
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libunicode_ident-1c3ab445d59154f4.rmeta",
+      "sha256": "f01a49ebe06d9251e225b85bea2a76ef2b751e1398a54188c18f9817fd9bc473",
+      "bytes": 34658
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libadler2-1e865cc3bcdddac2.rmeta",
+      "sha256": "fdc4cd21157566c083cfbf3ea01446141aae71b094ce4aef1fafcfa5b796521c",
+      "bytes": 22291
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgeneric_array-f485433547861f8f.rlib",
+      "sha256": "3800fb236f7f6e13f99bcff787169dd8ac2b81f17683b2bf13d6f0a44c2a3bc8",
+      "bytes": 823512
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_json-d5083be55fd2fb34.rlib",
+      "sha256": "d18710302f6dc837a2d5510598ab790bb399d463f8d4c7a0eb35b36e3799d96e",
+      "bytes": 2459684
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/librustc_version-512166224fdf5ea3.rmeta",
+      "sha256": "caaa3da5dacb28e75646117949262eb61c49e1a7ce7e3682d015692fdb684155",
+      "bytes": 65489
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnullbroker-58c0b8a330b2afd1.rmeta",
+      "sha256": "574b481f79d9fc7495e23c96698fb0674d8c60b5c405ee0d8550886dcd18108b",
+      "bytes": 151027
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsemver-ab6907c039cf7c76.rlib",
+      "sha256": "b9989bd118bf027ee356ca326702cce48e70ef7bce4b89a6ff4f283649d5be47",
+      "bytes": 390808
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-06731a4a7a12b6d6.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libminiz_oxide-f93731e81aa15187.rlib",
+      "sha256": "992d5d8aae1c8d5d804291378dd67d3b34f5671356b2253b291d8ce192134fc9",
+      "bytes": 1221352
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-8f82de3e977234e9.rmeta",
+      "sha256": "2d498b0b038f6dc0c7f702f7897326cc1a88d09eeebc1447c588fde4f67b4956",
+      "bytes": 659807
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-208d708924e3acaa.rmeta",
+      "sha256": "d80c02e1799665003cbe05a3f11ff7d9166bbe1fe9954d88b4be0536b66a5c3b",
+      "bytes": 55252
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-47fd1ab5a47bf68e.rlib",
+      "sha256": "62d3ff1dee42bf00597ed0e0ee642a498c70654bc915dbd16f21b5a87f3e6abd",
+      "bytes": 31458
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsnap-1e0b8611f42a9d0d.rmeta",
+      "sha256": "d7cd0cee071935d4c41f165e1774545e21178b592746a94dd997d47bdfcd84bf",
+      "bytes": 214474
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libwebpki-a39fd2da7d7425eb.rmeta",
+      "sha256": "aa5fc2744c6f68dd7bd797b685b7b58d86a05973bd558b994a1e0fceec0405c8",
+      "bytes": 595987
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot_core-6ec4cc5a85fa2f50.rmeta",
+      "sha256": "32b5777cf02fa3aba74d7d7cb6ffdb81448a42ddaae5c8c55fcf7cd3b747ceb9",
+      "bytes": 89148
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsignal_hook_registry-e843f89e48ac0186.rlib",
+      "sha256": "6c6f7f2cf22d8b5c9696583757177d00f81b0326b36c1b0f34e46a2fb98d1fde",
+      "bytes": 303804
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhmac-1935a6e8f373e074.rmeta",
+      "sha256": "a27f74084b9405e093d07edb3fb0e27e4375b5d4efd12844e99facafecf927df",
+      "bytes": 96333
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhybrid_array-5d18b8ad07c77ea3.rmeta",
+      "sha256": "4ae37545f589c4f8ec96b7eaa4edb9c4c393007b55e3961dca03171b0e183e1f",
+      "bytes": 1235476
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio-2ae14cdbaf805615.rlib",
+      "sha256": "37ca302d02ad1c33e56e56330d12d211ddd104a16ad90641847f43d1f5eed152",
+      "bytes": 15329034
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32fast-709727a8845d3ae2.rmeta",
+      "sha256": "374de061152105e976228a6aad4826fa0f9a834ba8468d81654097a401621e6b",
+      "bytes": 52541
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libhybrid_array-5d18b8ad07c77ea3.rlib",
+      "sha256": "e16a5817d2a02ab1bbea1b64c90fef5415de0bac348a756fdac4e03cb8b06d3a",
+      "bytes": 1238714
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnum_conv-89f746e93c82cd2f.rmeta",
+      "sha256": "845d9f2284daa56121e14f0c052e65ac7d54fc5c52c3d33b626c21d86c9a11bf",
+      "bytes": 201707
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libquote-bd68107b2947e119.rmeta",
+      "sha256": "34ec772e3b00d96c8f85e8d6e082a02186a3d37b9a944c821a9f9a8cdcd4133f",
+      "bytes": 275652
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio-8c9171db60b6bea9.rmeta",
+      "sha256": "fa206678f41e0c12c52963e5168e2a53bed2dd5d31b635c0b7bfb4aac0bd4882",
+      "bytes": 7216594
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsmallvec-e04a14284431e9bc.rmeta",
+      "sha256": "5cad51950ea9bff6493ac6e39998936f432bd47425e172861ab6846ed013b5d3",
+      "bytes": 161884
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnb_serve-633648a66c54c690.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbytes-5c7552e459571a76.rlib",
+      "sha256": "18d1d95cbff214ede8f4c2e5237115f79d09d19f9e0166e1089e3c2581af9e6a",
+      "bytes": 1237532
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsmallvec-d2e3b5c9bccb2b7d.rlib",
+      "sha256": "41b0488e41600bb9c78c80b3ae9e6573d933d3745fe81125a1161a0aa2741cf3",
+      "bytes": 276554
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrypto_common-66cd52a614979156.rmeta",
+      "sha256": "d10455a0427c6a6ba8023e85136f05e20142f78ee0644e9913f1932475e0eb66",
+      "bytes": 369357
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-ca644647bc9d1c77.rmeta",
+      "sha256": "dc558748068ff0310438f9139b5ef40dc59732bd7d2921dd0fcfe102960e7065",
+      "bytes": 43831
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcodec-9d636658b1740efb.rlib",
+      "sha256": "3946e13cc42b1646270415ff3b347d312f10b749f9153cbf183a71c9ab1333ff",
+      "bytes": 803840
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libconst_oid-8e3e75693f11d4a0.rmeta",
+      "sha256": "b9a6aecd40deebc4d30303c60cb94628362806568bd735e8bd5510857fa43d01",
+      "bytes": 159249
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot-c9b5666032726ac8.rmeta",
+      "sha256": "41b6b1e609abc76c8c5e92b3ab119e39fdb49176a4df69144e16733641ad6c2a",
+      "bytes": 207162
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-40ae7c11ac8756ff.rmeta",
+      "sha256": "5461ed66130a7d6584b8b9d0f63c451613ca3376260723bc18137cc8e8543ee7",
+      "bytes": 328003
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot-ee0382a8e2dfbffb.rmeta",
+      "sha256": "af1f2ec96dc49856829ab55bd55e8c8e0075d86b15948bf14c8ceae9a11fcfae",
+      "bytes": 157677
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbase64-88a03ba1117f41bd.rmeta",
+      "sha256": "33d5a303833d633c70a78b65d9afb68b9a396a43ee7796e0d8218881cb323244",
+      "bytes": 701312
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libquote-bd68107b2947e119.rlib",
+      "sha256": "4e647d9df0922647f5d9114df9389fab59c3c1813218072a4015dfee8af77fa9",
+      "bytes": 516296
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsubtle-aaf1f990cb8b675c.rmeta",
+      "sha256": "0d95eaba003a41461ec3d34c473874819acc089df3d8410fc5a89f19db5b0634",
+      "bytes": 72475
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtokio_rustls-2a01898460c169b1.rmeta",
+      "sha256": "050a5e7d678f6187e1623ae9d019fb757ec62c0bdbfa34a251358d26797cd3da",
+      "bytes": 130656
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzmij-8513d830f94196ec.rmeta",
+      "sha256": "1a44280bd1ce37b54d6008ef755911f6e29cec48b74e06d92f777afad506e40a",
+      "bytes": 412266
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzlib_rs-2e00b5594317a494.rlib",
+      "sha256": "342a9d93e83b7b3454a7a783e4aab61d877b70b88ee3b0594773d96cafd6d10c",
+      "bytes": 2193380
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpbkdf2-21a8a0be40b5594b.rlib",
+      "sha256": "e4b3b71e9f02b8f6fce0aef4815313deb92697f4dd429c5046cf0f89d7389163",
+      "bytes": 26474
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libonce_cell-37f0bba57512c0f3.rmeta",
+      "sha256": "de357b07902692c5ac2c2ac788ec42192324f9552c741ff459189c924acb0dbe",
+      "bytes": 140997
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libflate2-53632d8f3fdb4aaa.rmeta",
+      "sha256": "b439731bc39d5a5d39da7da0d08bba91ad36885ad03bee21e02884e24bc4de83",
+      "bytes": 445146
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcpufeatures-c4b0198afa6fd939.rmeta",
+      "sha256": "9c7aa89cecceee48779d8826a19d4cfeed7f0746440121404003fac04c0a984b",
+      "bytes": 39342
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbytes-5c7552e459571a76.rmeta",
+      "sha256": "b0873383cef0822560d0ed376152b2b758a8c263687d6d3bec82e12df71c9026",
+      "bytes": 885294
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsyn-f73ca732da467fe5.rlib",
+      "sha256": "39509396ed9e1b5a537cf5914bf5c308e65e14e6e43366b8ceb9d098dbaa3fbc",
+      "bytes": 9286040
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32fast-a848c735fffc2fba.rlib",
+      "sha256": "524cca2a78fd4d3cbe4bbe8c720ba55173631e686f16719938696a96ea45a164",
+      "bytes": 176858
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libversion_check-7174bee4698a996b.rmeta",
+      "sha256": "fb8e18b1e2186e6bdbed1f2358be31052ac2aa071acf55188b62f4cd3481b123",
+      "bytes": 76469
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libfind_msvc_tools-1612a9a7a6991e05.rlib",
+      "sha256": "6dc58c692f5b8763ae1c125e05820ff7824b606ad71343c61842bd08e9f9b315",
+      "bytes": 329060
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzeroize-c3c139a5607039cb.rlib",
+      "sha256": "157db2135f2bcdced29c93708a2c97d7009be03bf8d43b92514c76b97405d657",
+      "bytes": 468274
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcfg_if-c5749788b74aba21.rmeta",
+      "sha256": "df84681a6b55e718b56c03f6aa37ba10f1acaef65c711e6800cee9de63b62b94",
+      "bytes": 5889
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot_core-455dd92195f7a4e4.rmeta",
+      "sha256": "c5ee9614f35113220b1842f6aba332fed9a00f6d48f50da29da069d496a7d7a5",
+      "bytes": 172911
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-8e8faee3f2fd7af6.rlib",
+      "sha256": "86c822b113d082683a8f29897e8dfe732d0938bc87f61c5e1c43a2c24d35a221",
+      "bytes": 90302
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liberrno-39815fdc04585387.rmeta",
+      "sha256": "3b1abe760d6c53097843fe273c4ad43f832f8e53f113d13aada7a9a04f7ec426",
+      "bytes": 15487
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libflate2-9c19733b14fb525b.rlib",
+      "sha256": "7752091ab0f335d62955f47b1c38146918e36123c6ce01e9da8d02d16a84b1d1",
+      "bytes": 820376
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libgetrandom-2ed6141cb01b5f34.rmeta",
+      "sha256": "43e3ec551b94790fc46d0c46ce461aa4023e1d59afb21f19f8b570bdeab8d6ff",
+      "bytes": 60674
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcodec-9d636658b1740efb.rmeta",
+      "sha256": "2fe00c895061cd06745acaea99c1e7606fc8499fb86b18b63ddc9c98b5aa6ae9",
+      "bytes": 51308
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmio-a750a55a3f00493a.rmeta",
+      "sha256": "503ef5e339eed2728f3fad48e336687736a0e33eaeed7281aed9570013cc7649",
+      "bytes": 445206
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpartitionline-335d53578a180396.rmeta",
+      "sha256": "ecd71b65e57082ad2cefe411352aca42b8859e2275d620435e86d082dc2aa281",
+      "bytes": 13461952
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-a185b97c967c09d3.rmeta",
+      "sha256": "746e079564a15e72f80cf8ad7b7116d4694c6b9a9fa710880b9b07772ef2e740",
+      "bytes": 228075
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libdigest-84636f5ef66ea21c.rlib",
+      "sha256": "05f419d4cc0438840a8257dfea7fdc1e8f4d7af75ca6b1fe11e59f4883e4d1b4",
+      "bytes": 179256
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzlib_rs-4411cc3a26ccca66.rmeta",
+      "sha256": "d6fedf1afceb9efd22cee487e91586d6e9446b821741089a28ce5e821facf10c",
+      "bytes": 779215
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libonce_cell-7d77ec4c8c4efc6c.rmeta",
+      "sha256": "3ba6130dd0235f08f56548fde55ab36da17896bfc0ea06e8a0653d1c331fcc21",
+      "bytes": 196863
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcfg_if-c5749788b74aba21.rlib",
+      "sha256": "9b781f8cea13ea9b692adea17d5f19a47a85176110ccef68e6e2cc509a0bba05",
+      "bytes": 8106
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libversion_check-7174bee4698a996b.rlib",
+      "sha256": "63d1abf98fb0720210ce451acf6fb62d292c0e9563a1d49ee82b6490f3b8d498",
+      "bytes": 464524
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcc-e64bfaf24096aa27.rmeta",
+      "sha256": "ffef3c4f9e1a390c2c0e487ba27c43b15b941cdd7746cd4b2a6eff12f4550fbc",
+      "bytes": 477320
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32c-20564f119f46d05e.rmeta",
+      "sha256": "773060e1dce2bae2f9ecd8553ac8ca5bd1a918937884b864c683f09c38ed0923",
+      "bytes": 103131
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtypenum-ae975a31f28ad839.rmeta",
+      "sha256": "3714f4ecf73c93c2dc5ed55aef99dba2e7d1629233026096e6c91c2e69078651",
+      "bytes": 3681582
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmemchr-ba59e7852c067dcd.rlib",
+      "sha256": "bb0fe91dc29105839a2bfb56c5a86d8f16ff408165d2845bcf2f936f17111966",
+      "bytes": 1836952
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcodec-4197b9ab4668a462.rmeta",
+      "sha256": "59b12ba24c77ab094d8b7b080dfddb78c5cffeeb42bcfbb52125cafdc684b563",
+      "bytes": 35445
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libpbkdf2-2ce2f098815e9ef7.rmeta",
+      "sha256": "112f690c75cf001e8673e2d56cf6665f376db3de8247bb2c2b5c953be008ea52",
+      "bytes": 16200
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libe2e-b0ce4a71d607fc10.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libblock_buffer-11530964541328f2.rmeta",
+      "sha256": "fa7da3f7ce83de28ab9c441af6564e25444022607477ef036b0cac4fa04353b8",
+      "bytes": 51522
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-c2b246cf8383f667.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32c-51ef0ec97eaac666.rlib",
+      "sha256": "c80839ea384ab86a20f29bea7b36d2e60ba8815d818308c98f2260efd1cb0538",
+      "bytes": 180946
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtwox_hash-b70aa58af454f7c2.rlib",
+      "sha256": "a8369d16383887860f8b3a6c3e77283ccb516ea63e0e7e92f0c15180f2017eea",
+      "bytes": 76840
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libparking_lot_core-455dd92195f7a4e4.rlib",
+      "sha256": "9c60ee5327fd537d81a3d9440fe72381c2aab9ac19dff773238a7c453eda3d27",
+      "bytes": 289180
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcc-e64bfaf24096aa27.rlib",
+      "sha256": "de023ead4c0e700ff916dc85a392d1c98aa4dc9190206b07fe1cae060147c639",
+      "bytes": 3473704
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime_core-ad026f21c3c8f6a3.rmeta",
+      "sha256": "ee7e45211507a450b047ec13450b70fefe1fbea30011f26d2385f80d11bd3223",
+      "bytes": 422090
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libnullbroker-8ee3e318531b4318.rlib",
+      "sha256": "f71c52f105964611f1f36fd7cc758e69fa87775dec262db81e8ddd82583be490",
+      "bytes": 1951786
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_json-d5083be55fd2fb34.rmeta",
+      "sha256": "c3a6efd9785859c7691d8199251ffefc6d3dde6d1fa16e913b6acb77c4ab7f11",
+      "bytes": 1452739
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime-b798b5758d8f7ca7.rmeta",
+      "sha256": "70d42d53ea787df4ad113aada94244ac8996d30e149dd594ebfe727d3507d10f",
+      "bytes": 4083356
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/liblz4_flex-79b050050b417a0c.rmeta",
+      "sha256": "b9cf99e1ef996decc500312c51928a29994d515954efe4063dc9cd68701f643b",
+      "bytes": 175170
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libmemchr-ba59e7852c067dcd.rmeta",
+      "sha256": "aa61c4c82ed0b45eb0db936d9bf0894622c5259601d2fa7b87b7d13430a98200",
+      "bytes": 1310054
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libserde_core-51a16120a234b8a1.rmeta",
+      "sha256": "16b2d5ef181c1e4bd78743a45bc9890549d7c38ee73957b709674a0123206b2c",
+      "bytes": 2712466
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsnap-bc3f56ede6fea636.rlib",
+      "sha256": "f47277766890e3446d0c8951861b46b9fb5aa81564f080cd18f4feb929f46508",
+      "bytes": 594130
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsocket2-3408693f2defde84.rmeta",
+      "sha256": "b9de52b1b9dffc6b367efc5b94f0141879cfc2cb43564fed01d1edcc2a820f96",
+      "bytes": 395435
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcmov-1220335903608a31.rlib",
+      "sha256": "2ca0c5e81edacc565f32df57ab4da1d834fb978635c5f36d2f9c00574cae004b",
+      "bytes": 279958
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libbase64-b726cfa0c8465ef6.rmeta",
+      "sha256": "fc1af21d0185b2daca8e5949c55f8a668bdff8e0656e3e286424c165864f235c",
+      "bytes": 603997
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libzeroize-37eb1230eb06a0d6.rmeta",
+      "sha256": "1a949f8076efcbc7502f7539ae68766943139e2cd41f3b04af807cb01021f31e",
+      "bytes": 408623
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtypenum-9d335c01eea33eea.rmeta",
+      "sha256": "0bb9f97a337bcd29a64957f3b2322004b725c590510bb8420ce2c2c7c772a387",
+      "bytes": 3424568
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libtime-b798b5758d8f7ca7.rlib",
+      "sha256": "9cd6687aceb85ef09f06846ed1933fb643afafd24bdea25651dcb09522b31bd4",
+      "bytes": 4549594
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libcrc32fast-a848c735fffc2fba.rmeta",
+      "sha256": "b10a8ce79d7142c37e058e36b1dba805b3aca48ac696ea0a36b7ed2f87122975",
+      "bytes": 55317
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libscopeguard-6da9b19bbe6dc3bc.rlib",
+      "sha256": "7e508597251ec1581ea0b0cd9c9b39cab3c1dc1f3a87e2e4accad55b0d860700",
+      "bytes": 28338
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libsha2-191cda4f586cec4b.rlib",
+      "sha256": "36d2e9d9cb7c946a95746f71539c7d5b08b44e6eca0186a269b8f34f4104fe84",
+      "bytes": 1013710
+    },
+    {
+      "path": "/workspace/work/target-null-result-schema/debug/deps/libruntime-11446ece8b034db9.rlib",
+      "sha256": "8b6850d6e383241fbe4c7e6707201191c8aba3fc1afbe17b955bfa04bd4c0582",
+      "bytes": 5854318
+    }
+  ]
+}

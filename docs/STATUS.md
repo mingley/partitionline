@@ -1,6 +1,6 @@
 # Status
 
-This describes the working source as of October 7, 2026. Version 0.1.0 is
+This describes the working source as of October 8, 2026. Version 0.1.0 is
 published on crates.io; the repository contains changes made after that release.
 Current development uses the latest stable Rust. The client and experimental
 broker still have open implementation and qualification work.
@@ -45,13 +45,14 @@ Kafka replication, peer authentication and production qualification remain open.
 
 ## Development checks
 
-Latest-stable Rust 1.99.0 passed 2,090 default-feature tests and 2,102 all-feature
-tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
+Earlier full-suite checks with Rust 1.99.0 passed 2,090 default-feature tests and
+2,102 all-feature tests. Formatting, strict Clippy and rustdoc checks passed. The packaged default,
 tracing, zstd and combined-feature builds each compiled 24 documentation examples.
-These are retained local results for the current uncommitted source, not hosted
-CI results or a replacement for the remaining fault and soak tests.
+These retained results refer to their cited source snapshots. Newer bounded
+UpdateFeatures checks pass on default and all-feature builds. They are local
+checks, not hosted CI results or replacements for the fault and soak tests.
 
-The task registry has 211 completed cards and 131 open cards. The client
+The task registry has 212 completed cards and 130 open cards. The client
 conformance registry has 66 independently qualified cases out of 182 required
 cases. Core and full conformance gates remain incomplete. The [development
 roadmap](ROADMAP.md) links the plans and registries.
@@ -83,3 +84,8 @@ in the [benchmark contract](benchmark-contract.md) are met.
 
 [Earlier status notes](https://github.com/mingley/partitionline/blob/8a50e8d18df40787d86eb714ff363b9d1e41ce43/docs/STATUS.md)
 retain the release and CI history.
+
+The benchmark report now enforces the complete schema. Corrected null-broker
+produce, fetch and connect outputs pass, and retain explicit fields for absent
+durability and warmup. [Format evidence](evidence/perf/null-result-schema/README.md)
+includes native-result checks and twenty rejected changed-result controls.

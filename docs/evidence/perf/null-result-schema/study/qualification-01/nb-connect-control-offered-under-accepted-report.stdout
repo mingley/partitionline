@@ -1,0 +1,17 @@
+{
+  "valid": false,
+  "error_count": 1,
+  "errors": [
+    "Outcome accounting error: accepted (6) + rejected (0) > offered (5)"
+  ],
+  "summary": {
+    "scenario_id": "nb-connect",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 10.05454896123698,
+    "latency_p99_us": 103829.2,
+    "total_acknowledged": 6,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

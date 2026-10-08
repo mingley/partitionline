@@ -1,0 +1,372 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "cell_id": "nb-send-seq",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "drive_mode": "sequential",
+    "flush_us_total": 0,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "measured_duration_seconds": 7.590475284,
+    "offsets_observed": true,
+    "pairing_order": "unreported",
+    "phase": "steady_state",
+    "queue_full_retries": 0,
+    "records_consumed": 0,
+    "records_offered": 1000,
+    "repetition_index": 1,
+    "result_path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+    "steady_state_duration_seconds": null,
+    "timed_out": false,
+    "total_repetitions": null,
+    "validation_failures": 0,
+    "warmup_completed": false,
+    "warmup_duration_seconds": 0,
+    "warmup_records": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [
+        {
+          "end_offset": 167,
+          "offset_delta": 167,
+          "partition": 0,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "offset_delta": 167,
+          "partition": 1,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "offset_delta": 167,
+          "partition": 2,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "offset_delta": 167,
+          "partition": 3,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 166,
+          "offset_delta": 166,
+          "partition": 4,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 166,
+          "offset_delta": 166,
+          "partition": 5,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        }
+      ],
+      "total_offset_delta": 1000
+    },
+    "idempotence_sequence_verified": null,
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+      "duplicate_ids_count": 0,
+      "end_id": 1000,
+      "expected_count": 1000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 1000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 759,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 8142848,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.008156,
+      "user_cpu_seconds": 0.087412
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 26801,
+        "allocations_per_record": 26.801,
+        "total_allocated_bytes": 29015904,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 286077.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 3.7688944275073673,
+      "rss": {
+        "average_rss_bytes": 11352661,
+        "baseline_rss_bytes": 10797056,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 11378688,
+        "process_peak_rss_bytes": 28721152,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.117303,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.168774
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 6581.8272527883255,
+        "unit": "microseconds",
+        "upper": 8592.622747211675
+      },
+      "max": 89166,
+      "mean": 7587.225,
+      "min": 158,
+      "p50": 240.0,
+      "p90": 42746.0,
+      "p95": 42896.15,
+      "p99": 43191.1,
+      "p99_9": 52281.92099999913,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "max_us": 0,
+            "min_us": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 566,
+            "max_us": 255,
+            "min_us": 128,
+            "upper_bound_us": 256
+          },
+          {
+            "count": 250,
+            "max_us": 511,
+            "min_us": 256,
+            "upper_bound_us": 512
+          },
+          {
+            "count": 9,
+            "max_us": 1023,
+            "min_us": 512,
+            "upper_bound_us": 1024
+          },
+          {
+            "count": 2,
+            "max_us": 2047,
+            "min_us": 1024,
+            "upper_bound_us": 2048
+          },
+          {
+            "count": 2,
+            "max_us": 4095,
+            "min_us": 2048,
+            "upper_bound_us": 4096
+          },
+          {
+            "count": 170,
+            "max_us": 65535,
+            "min_us": 32768,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 1,
+            "max_us": 131071,
+            "min_us": 65536,
+            "upper_bound_us": 131072
+          }
+        ]
+      },
+      "sample_count": 1000,
+      "stddev": 16221.15732444436,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 0.01457434700252757,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 131.74405588381336,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 116000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 1000,
+    "acknowledged": 1000,
+    "consumed": 0,
+    "offered": 1000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.broker.json",
+        "sha256": "0276e3a2b0862159ed365ac7575abcd11940e77b358a3b3f1b4fa4bc25d6148e",
+        "size_bytes": 759,
+        "type": "broker-counts"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.latency-us.txt",
+        "sha256": "f8a448f0d10a82f7cee12dfe246ba14fcbd74c6ad6e0ae8f3979ad2457975152",
+        "size_bytes": 4346,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/runtime",
+      "sha256": "9280e4f935599d62a71f506dd24b93d61630381ae50ca30d6289bbc97ffc6843",
+      "size_bytes": 17826520
+    },
+    "broker": {
+      "cluster_id": null,
+      "endpoints": [
+        "127.0.0.1:34141"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null",
+      "node_count": 1,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": 1,
+        "batch_records": null,
+        "batch_size_bytes": 1000000,
+        "compression": "none",
+        "drive_mode": "sequential",
+        "entropy": "random",
+        "fault_rate_per_million": 0,
+        "fault_seed": 1592590337,
+        "flush_every": 0,
+        "headers_each": 0,
+        "idempotence": false,
+        "idle_seconds": 0,
+        "key_bytes": 16,
+        "linger_ms": 0,
+        "linger_override_ms": 0,
+        "max_in_flight": 16,
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 2149012,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 3,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        },
+        "seed": 1592590343,
+        "timeout_secs": 60,
+        "value_bytes": 100
+      },
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.config.json",
+      "sha256": "81e0b2566e49053a9a0b59f31d82bacf041425329ce611bb61da0dc6b36b3b14"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.144,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "e852fb1a1688",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714817752235026,
+      "partition_seed": 14029467333106158848,
+      "payload_seed": 1592590343,
+      "repetition_seed": 1592590343
+    },
+    "source": {
+      "clean": true,
+      "dirty_tree": false,
+      "git_branch": "HEAD",
+      "git_commit": "dda2076d1b33b49c1f97c16c0ad8f079ca79a87f",
+      "repo_url": "https://github.com/mingley/partitionline.git",
+      "tree_hash": "5cbe2a5d0ea1eeb7b30a48bc2f50792ce5b5d26b"
+    },
+    "timestamps": {
+      "duration_seconds": 7.590475284,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-08T00:00:25.380880454Z",
+      "start_time_utc": "2026-10-08T00:00:17.790404679Z"
+    },
+    "toolchains": {
+      "build_tool": "unknown",
+      "compiler": "unknown",
+      "runtime": "tokio 1.53.1"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.028565900000000005,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "error_message": null,
+        "integrity_failure": false,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "timestamp_utc": "2026-10-08T00:00:25.380880454Z"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "acks": 1,
+      "durability": null,
+      "idempotence": false,
+      "isolation": null,
+      "max_in_flight": 16,
+      "security": {
+        "mechanism": "NONE",
+        "protocol": "PLAINTEXT"
+      }
+    },
+    "peer": "partitionline",
+    "profile": "bulk",
+    "scenario_id": "nb-send-seq",
+    "tier": "exploratory"
+  },
+  "schema_version": "2.0.0",
+  "suite_hold": {
+    "policy": "A local fixture does not qualify a scenario or lift Suite HOLD.",
+    "status": "active"
+  }
+}

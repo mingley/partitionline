@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "elect-leaders-v1-election-type",
+  "api": "ElectLeaders",
+  "api_key": 43,
+  "api_version": 1,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-16 standalone ElectLeaders fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-16.json",
+  "description": "ElectLeaders v1 classic with UNCLEAN election type, explicit topic partitions, timeout 5000; response with top-level ErrorCode NONE, throttle 42, one success and one ELECTION_NOT_NEEDED partition result",
+  "request": {
+    "file": "elect_leaders_v1_election_type_request.bin",
+    "size_bytes": 36,
+    "sha256": "d3e240f28f4a3e6286e4c5bfd62a4b73e3a707d46ba2411f7ad20a8c98823a8b",
+    "hex": "0100000001000d656c6563742d746f7069632d3100000002000000000000000200001388"
+  },
+  "response": {
+    "file": "elect_leaders_v1_election_type_response.bin",
+    "size_bytes": 64,
+    "sha256": "5fdc328a59be29a393b02442f2122f28a331009731f9457d3f80365a0d31c1c1",
+    "hex": "0000002a000000000001000d656c6563742d746f7069632d3100000002000000000000ffff0000000200540013656c656374696f6e206e6f74206e6565646564"
+  }
+}

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-01.py", line 20, in <module>
+    owner.execute(helper+command,env,out,label,600);guard()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/open-cards-20261006/null-result-source-39bb8f/scripts/run-benchmark-matrix.py", line 201, in execute
+    if receipt['exit_code']: raise ValueError('command failed; retained ' + label + ' process receipt')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: command failed; retained format process receipt

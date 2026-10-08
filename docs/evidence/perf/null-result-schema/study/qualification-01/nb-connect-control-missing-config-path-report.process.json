@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-missing-config-path.json",
+    "--json"
+  ],
+  "started": 1791417631.9398282,
+  "parent_waited": true,
+  "pid": 888114,
+  "exit_code": 1,
+  "ended": 1791417632.062183,
+  "artifacts": {
+    "nb-connect-control-missing-config-path-report.stdout": "0f3248847ed46dbb663573cc1c7ad19c818eb28a608dfdbf6d0a739513fe8510",
+    "nb-connect-control-missing-config-path-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

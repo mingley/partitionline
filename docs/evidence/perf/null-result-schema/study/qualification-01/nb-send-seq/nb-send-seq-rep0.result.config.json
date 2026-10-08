@@ -1,0 +1,31 @@
+{
+  "acks": 1,
+  "batch_records": null,
+  "batch_size_bytes": 1000000,
+  "compression": "none",
+  "drive_mode": "sequential",
+  "entropy": "random",
+  "fault_rate_per_million": 0,
+  "fault_seed": 1592590337,
+  "flush_every": 0,
+  "headers_each": 0,
+  "idempotence": false,
+  "idle_seconds": 0,
+  "key_bytes": 16,
+  "linger_ms": 0,
+  "linger_override_ms": 0,
+  "max_in_flight": 16,
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "current_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 2149012,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 3,
+    "requested_background_workers": 0,
+    "requested_flavor": "current_thread"
+  },
+  "seed": 1592590343,
+  "timeout_secs": 60,
+  "value_bytes": 100
+}

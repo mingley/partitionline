@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+    "--json"
+  ],
+  "started": 1791417627.6104891,
+  "parent_waited": true,
+  "pid": 888041,
+  "exit_code": 0,
+  "ended": 1791417627.7531323,
+  "artifacts": {
+    "nb-fetch-bulk-report.stdout": "411137c3f794de6291d9afc85f5c833dc145e983afb7873a442e598fda6a7131",
+    "nb-fetch-bulk-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

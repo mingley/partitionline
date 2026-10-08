@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v6-flexible",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 6,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v6 flexible wire format boundary with compact encoding and unknown tagged fields on request, topics, and partitions",
+  "request": {
+    "file": "list_offsets_v6_flexible_request.bin",
+    "size_bytes": 55,
+    "sha256": "3a16d5bf69255e8f97ad15c21ca82a690daa8a4bc01e5bc46e77b169725b4948",
+    "hex": "ffffffff0102106f6666736574732d76362d666c657802000000000000000f0000018e23f15f88016402010201c801010301ac0202aabb"
+  },
+  "response": {
+    "file": "list_offsets_v6_flexible_response.bin",
+    "size_bytes": 64,
+    "sha256": "a05a0c2225b682b4c3d1c4676c6324a647ab065036a985f2a65e39a0ccd1bac3",
+    "hex": "0000005002106f6666736574732d76362d666c6578020000000000000000018e23f15f8800000000000002580000000f019003015501f403016601d804027788"
+  }
+}

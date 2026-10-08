@@ -1,0 +1,22 @@
+{
+  "acks": 1,
+  "batch_size_bytes": 1000000,
+  "cases": "1/6/64 partitions x live-first/dead-first bootstrap",
+  "connect_stalled_first": false,
+  "dead_host": "127.0.0.1:1 (refused-fast unreachable stand-in)",
+  "idempotence": false,
+  "linger_ms": 5,
+  "max_in_flight": 16,
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "current_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 2260089,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 4,
+    "requested_background_workers": 0,
+    "requested_flavor": "current_thread"
+  },
+  "stalled_connect_timeout_ms": 200,
+  "stalled_host": "loopback listen(1), two held unaccepted connections; verified pending TCP connect before census"
+}

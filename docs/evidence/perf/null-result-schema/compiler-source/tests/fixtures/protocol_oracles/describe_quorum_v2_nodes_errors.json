@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "describe-quorum-v2-nodes-errors",
+  "api": "DescribeQuorum",
+  "api_key": 55,
+  "api_version": 2,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-18 standalone DescribeQuorum fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-18.json",
+  "description": "DescribeQuorum v2 adds KIP-853 top-level and partition ErrorMessage (null and 'unknown topic'), ReplicaDirectoryId UUIDs, and Nodes with controller/broker listeners (uint16 ports); p1 carries UNKNOWN_TOPIC_OR_PARTITION",
+  "request": {
+    "file": "describe_quorum_v2_nodes_errors_request.bin",
+    "size_bytes": 33,
+    "sha256": "908d13b15e032435bec8b63c4122cd405c9f1216c2d7f01bfded4f936e58dbe9",
+    "hex": "02135f5f636c75737465725f6d6574616461746103000000000000000001000000"
+  },
+  "response": {
+    "file": "describe_quorum_v2_nodes_errors_response.bin",
+    "size_bytes": 336,
+    "sha256": "93614254eff4efd5c4b8bca32b4542a5a776b1475a1fb4c219dbc3ca83b09d80",
+    "hex": "00000002135f5f636c75737465725f6d657461646174610300000000000000000000010000000c00000000000003840300000001111111111111111111111111111111110000000000000384ffffffffffffffff0000018bcfe56fd000000000022222222222222222222222222222222200000000000003830000018bcfe570340000018bcfe5700200020000000333333333333333333333333333333333000000000000037a0000018bcfe570340000018bcfe56fd000000000000100030e756e6b6e6f776e20746f706963ffffffff00000000ffffffffffffffff010100000300000001030b434f4e54524f4c4c455215636f6e74726f6c6c65722d312e6578616d706c652385000742524f4b45521162726f6b65722d312e6578616d706c652384000000000002020b434f4e54524f4c4c455215636f6e74726f6c6c65722d322e6578616d706c652385000000"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-missing-config-path.json",
+    "--json"
+  ],
+  "started": 1791417629.8303988,
+  "parent_waited": true,
+  "pid": 888104,
+  "exit_code": 1,
+  "ended": 1791417629.95298,
+  "artifacts": {
+    "nb-send-seq-control-missing-config-path-report.stdout": "d0c6d7a809c02898c792931eba0967473ef4954e5a31a3aa1c44116c2fac8e8e",
+    "nb-send-seq-control-missing-config-path-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

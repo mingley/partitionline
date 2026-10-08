@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-false-phase.json",
+    "--json"
+  ],
+  "started": 1791417633.4742327,
+  "parent_waited": true,
+  "pid": 888121,
+  "exit_code": 1,
+  "ended": 1791417633.5969286,
+  "artifacts": {
+    "retained-native-control-false-phase-report.stdout": "144f45edf6c27e70951274c994be483061ffa2fb5324f95f7caa549de4c6abac",
+    "retained-native-control-false-phase-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

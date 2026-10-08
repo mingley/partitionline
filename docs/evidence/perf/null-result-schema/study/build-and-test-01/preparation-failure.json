@@ -1,0 +1,5 @@
+{
+  "compilation_started": false,
+  "tests_executed": 0,
+  "cause": "Sparse checkout omitted the referenced shared stalled-dial fixture; no formatting or Rust compilation result was qualified."
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-wrong-broker-mode.json",
+    "--json"
+  ],
+  "started": 1791417631.0922956,
+  "parent_waited": true,
+  "pid": 888110,
+  "exit_code": 1,
+  "ended": 1791417631.214828,
+  "artifacts": {
+    "nb-fetch-bulk-control-wrong-broker-mode-report.stdout": "1ad9d3020f84f42a4fef43e0706391a970bd2097329e7a08ac6bdb0fa2ad5907",
+    "nb-fetch-bulk-control-wrong-broker-mode-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "allocs_per_round": 135452.0,
+    "cell_id": "nb-fetch-bulk",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "cpu_ns_per_round": 196177000.0,
+    "drive_mode": "fetch-verify",
+    "empty_rounds": 0,
+    "fetch_requests": 1,
+    "fetch_rounds": 1,
+    "fetched_records": 135000,
+    "flush_us_total": 0,
+    "latency_note": "per-record delivery-latency bound: the enclosing fetch() call's duration, shared by every record in the batch; empty rounds carry no latency",
+    "measured_duration_seconds": 0.417783759,
+    "mismatched": 0,
+    "offsets_observed": false,
+    "pairing_order": "unreported",
+    "per_partition_delivered": [
+      {
+        "partition": 0,
+        "records": 20000
+      }
+    ],
+    "phase": "bounded_fixture",
+    "queue_full_retries": 0,
+    "records_consumed": 20000,
+    "records_offered": 20000,
+    "repetition_index": 1,
+    "result_path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+    "steady_state_duration_seconds": null,
+    "timed_out": false,
+    "total_repetitions": null,
+    "validation_failures": 0,
+    "warmup_completed": false,
+    "warmup_duration_seconds": 0,
+    "warmup_records": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [],
+      "total_offset_delta": 0
+    },
+    "idempotence_sequence_verified": null,
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "client fixture ID and payload verification",
+      "duplicate_ids_count": 0,
+      "end_id": 20000,
+      "expected_count": 20000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 20000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 635,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 36839424,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.012133,
+      "user_cpu_seconds": 0.173114
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 135452,
+        "allocations_per_record": 6.7726,
+        "total_allocated_bytes": 107717199,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 9808.85,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 46.95658837231152,
+      "rss": {
+        "average_rss_bytes": 25268711,
+        "baseline_rss_bytes": 10522624,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 61431808,
+        "process_peak_rss_bytes": 69816320,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.023714,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.172463
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 363273.0,
+        "unit": "microseconds",
+        "upper": 363273.0
+      },
+      "max": 363273,
+      "mean": 363273.0,
+      "min": 363273,
+      "p50": 363273.0,
+      "p90": 363273.0,
+      "p95": 363273.0,
+      "p99": 363273.0,
+      "p99_9": 363273.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "max_us": 0,
+            "min_us": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 20000,
+            "max_us": 524287,
+            "min_us": 262144,
+            "upper_bound_us": 524288
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 0.0,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 5.295860277954223,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 47871.655058759716,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 20000,
+    "acknowledged": 0,
+    "consumed": 20000,
+    "offered": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.broker.json",
+        "sha256": "ceea9b8523465915448cb4dd39591f1c9f969aae15f21c0523b9b0fb8c8f6fd7",
+        "size_bytes": 635,
+        "type": "broker-counts"
+      },
+      {
+        "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.latency-us.txt",
+        "sha256": "d88cccd8806c368e6a92fa8b4d89311a0328e54d1f8e1ba572d883871de7854a",
+        "size_bytes": 140000,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/build-and-test-02/bin/runtime",
+      "sha256": "9280e4f935599d62a71f506dd24b93d61630381ae50ca30d6289bbc97ffc6843",
+      "size_bytes": 17826520
+    },
+    "broker": {
+      "cluster_id": null,
+      "endpoints": [
+        "127.0.0.1:43479"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null",
+      "node_count": 1,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": null,
+        "app_delay_per_batch_ms": 0,
+        "batch_size_bytes": null,
+        "buffer_memory": null,
+        "idempotence": null,
+        "isolation": "read_uncommitted",
+        "linger_ms": null,
+        "max_bytes": null,
+        "max_in_flight": null,
+        "max_partition_fetch_bytes": null,
+        "max_poll_records": null,
+        "nodes": 1,
+        "paused_partitions": [],
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 5007,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 0,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        },
+        "seed": 4269539329,
+        "seek_offset": null,
+        "slow_delay_ms": 0,
+        "slow_node": null,
+        "synth": {
+          "abort_every": 0,
+          "codec": 0,
+          "payload_bytes": 100,
+          "records_per_batch": 500,
+          "records_per_partition": 100000,
+          "seed": 4269539329
+        },
+        "target_records": 20000,
+        "timeout_secs": 120
+      },
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.config.json",
+      "sha256": "dd33c35c8d989ed36f31c36f6621113cf536c7b096f1071b6d749f43aed140d5"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.144,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "e852fb1a1688",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714819355442196,
+      "partition_seed": 14029467335781010694,
+      "payload_seed": 4269539329,
+      "repetition_seed": 4269539329
+    },
+    "source": {
+      "clean": true,
+      "dirty_tree": false,
+      "git_branch": "HEAD",
+      "git_commit": "dda2076d1b33b49c1f97c16c0ad8f079ca79a87f",
+      "repo_url": "https://github.com/mingley/partitionline.git",
+      "tree_hash": "5cbe2a5d0ea1eeb7b30a48bc2f50792ce5b5d26b"
+    },
+    "timestamps": {
+      "duration_seconds": 0.417783759,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-08T00:00:26.852174034Z",
+      "start_time_utc": "2026-10-08T00:00:26.434389765Z"
+    },
+    "toolchains": {
+      "build_tool": "unknown",
+      "compiler": "unknown",
+      "runtime": "tokio 1.53.1"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.028637549999999994,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "error_message": null,
+        "integrity_failure": false,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "timestamp_utc": "2026-10-08T00:00:26.852174034Z"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "acks": null,
+      "durability": null,
+      "idempotence": null,
+      "isolation": "read_uncommitted",
+      "security": {
+        "mechanism": "NONE",
+        "protocol": "PLAINTEXT"
+      }
+    },
+    "peer": "partitionline",
+    "profile": "fetch",
+    "scenario_id": "nb-fetch-bulk",
+    "tier": "exploratory"
+  },
+  "schema_version": "2.0.0",
+  "suite_hold": {
+    "policy": "A local fixture does not qualify a scenario or lift Suite HOLD.",
+    "status": "active"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "apache_jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "java_source_sha256": "6d8d8c2670b7f26dc9854a8cd60344d240aeaa5d339e8d1181cfbce63d71d974",
+  "generator_sha256": "877878ea41817a904ed18769bf427864cfb214340f5073b56775f5110a89f2a7",
+  "files": [
+    {
+      "path": "java-gzip.batch",
+      "sha256": "041c19c108c85255ee7506628910d31725df546c5a18306d5286707177e1a54f",
+      "size_bytes": 460013
+    },
+    {
+      "path": "java-lz4.batch",
+      "sha256": "921315ed44684c564ec5cf90190a57eb8db6e34f3b31ddc61a9fc909766c1d71",
+      "size_bytes": 460253
+    },
+    {
+      "path": "java-none.batch",
+      "sha256": "3e3636642eacb5c0da0127c4788bf4ce391a895cf4c21d9d3c7e5dfa7fa004e9",
+      "size_bytes": 659158
+    },
+    {
+      "path": "java-signed-boundary.batch",
+      "sha256": "5ec28b5042a140e3089a8750e3fa91e4431f4c950b2cbca7a4b2908a79aebc84",
+      "size_bytes": 659158
+    },
+    {
+      "path": "java-snappy.batch",
+      "sha256": "4119250ada2f9b8cd5d13379fd1944c080b5fe921b36e287f45cb0bfb88d90d6",
+      "size_bytes": 468699
+    },
+    {
+      "path": "java-zstd.batch",
+      "sha256": "a3ee869ef9aee5949330e8fe55856b4bb99f2207dc59a39f8a4ce115d41df10e",
+      "size_bytes": 131661
+    },
+    {
+      "path": "native-raw-snappy.batch",
+      "sha256": "92b759452c9ca4d12d15eac06185869c5d3a691de51545d6a59f42a32114b5f6",
+      "size_bytes": 468513
+    },
+    {
+      "path": "native-snappy-pin.json",
+      "sha256": "303eaf4ac4bfaab377b2b674c0b546ce252dc5c3295d39ab394a3b7cffa56d04",
+      "size_bytes": 229
+    }
+  ]
+}

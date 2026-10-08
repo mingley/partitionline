@@ -1,0 +1,42 @@
+{
+  "task": "KL09-73",
+  "status": "done",
+  "compiler_source_commit": "39bb8fa3c6531113c109acc682f24b00c83f104c",
+  "controller_source_commit": "dda2076d1b33b49c1f97c16c0ad8f079ca79a87f",
+  "toolchain": "stable Rust 1.99.0",
+  "runtime": "Tokio 1.53.1",
+  "runtime_tests_passed": 26,
+  "formatting_passed": true,
+  "strict_clippy_passed": true,
+  "python_benchmark_tests_passed": 42,
+  "producer_settings_tests_passed": 4,
+  "producer_settings_binary": "/workspace/work/open-cards-20261006/local-baseline-20261007/native-01/bin/bench_produce",
+  "producer_settings_binary_sha256": "a999e7f098785eebfcbca8771db96230501df0203ddc3cb1651898d1198f24f8",
+  "producer_settings_qualification": "Existing retained executable; validates unchanged benchmark settings against the relocated strict Kafka schema. It is not a new compiler result.",
+  "selected_update_features_tests_per_build": 16,
+  "safety_regression_tests_per_build": 2,
+  "client_builds": [
+    "default",
+    "all-features"
+  ],
+  "actual_null_jobs": [
+    "nb-send-seq",
+    "nb-fetch-bulk",
+    "nb-connect"
+  ],
+  "actual_null_offered": [
+    1000,
+    20000,
+    6
+  ],
+  "actual_native_original_schema_and_report_pass": true,
+  "actual_incomplete_null_original_schema_and_report_rejected": true,
+  "changed_result_controls": 20,
+  "schema_rejected_controls": 12,
+  "semantic_or_finite_number_report_controls": 8,
+  "all_changed_controls_report_rejected": true,
+  "old_capture_bytes_and_successful_cli_receipts_preserved": "docs/evidence/perf/build-profiles",
+  "evidence": "docs/evidence/perf/null-result-schema",
+  "archive_manifest_sha256": "7b2fbe90729d816c4808c91c91802a3d4fc566a0df2911acfda4344f02414ff5",
+  "qualification_limit": "Corrected-source format and validation qualification. Existing Kafka v1 stays strict; null v2 is exploratory with explicit unobserved/nonapplicable fields. No library/measurement defaults, previous captures, scenario gates or performance claims changed."
+}

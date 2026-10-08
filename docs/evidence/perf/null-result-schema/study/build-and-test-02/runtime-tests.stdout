@@ -1,0 +1,97 @@
+
+running 3 tests
+test executor::tests::explicit_workers_and_runtime_observations_match ... ok
+test executor::tests::inconsistent_unbounded_and_missing_workers_are_rejected ... ok
+test executor::tests::quiescence_rejects_a_live_task_and_accepts_completed_cancellation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 7 tests
+test cell_modes_and_idempotence ... ok
+test eight_cells_exact_ids_and_counts ... ok
+test gen_one_regenerates_exactly ... ok
+test generation_is_deterministic ... ok
+test headers_are_ten_by_sixteen ... ok
+test ids_and_partitions_round_robin ... ok
+test mixed_topics_split_evenly ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+
+running 7 tests
+test capped_paused_cell_prefills_real_client_held_backlog ... cell=nb-fetch-capped-paused rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-capped-paused-885809-1791417342767456296/nb-fetch-capped-paused-rep0.result.json
+ok
+test committed_aborts_cell_verifies_exact_offset_history ... cell=nb-fetch-committed-aborts rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-committed-aborts-885809-1791417343822933165/nb-fetch-committed-aborts-rep0.result.json
+ok
+test connect_matrix_reports_six_cases ... cell=nb-connect rep=0 failed=false artifact=/tmp/runtime-e2e-nb-connect-885809-1791417344936761796/nb-connect-rep0.result.json
+ok
+test connect_matrix_verifies_stalled_tcp_cases ... cell=nb-connect rep=0 failed=false artifact=/tmp/runtime-e2e-nb-connect-885809-1791417346242713189/nb-connect-rep0.result.json
+ok
+test explicit_runtime_flavors_preserve_delivery_and_quiesce_between_repetitions ... cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417348651548017/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417348651548017/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417350669820648/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417350669820648/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417352828874253/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417352828874253/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417354831202716/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417354831202716/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417357061886583/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417357061886583/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417359092169342/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417359092169342/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417361357071051/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417361357071051/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417363539923723/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417363539923723/nb-fetch-bulk-rep1.result.json
+cell=nb-produce-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417365931208481/nb-produce-bulk-rep0.result.json
+cell=nb-produce-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-produce-bulk-885809-1791417365931208481/nb-produce-bulk-rep1.result.json
+cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417367906467200/nb-fetch-bulk-rep0.result.json
+cell=nb-fetch-bulk rep=1 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417367906467200/nb-fetch-bulk-rep1.result.json
+ok
+test fetch_bulk_verifies_every_record ... cell=nb-fetch-bulk rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-bulk-885809-1791417370212496106/nb-fetch-bulk-rep0.result.json
+ok
+test smallest_cell_runs_and_emits_artifact ... cell=nb-send-seq rep=0 failed=false artifact=/tmp/runtime-e2e-nb-send-seq-885809-1791417371368811158/nb-send-seq-rep0.result.json
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.05s
+
+
+running 4 tests
+test fetch_cells_exact_ids_and_shapes ... ok
+test retry_cell_shape ... ok
+test verifier_accepts_genuine_records ... ok
+test verifier_rejects_corruption ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test broker_artifact_parses_and_rejects_gaps ... ok
+test broker_counts_merge_for_multi_broker_cells ... ok
+test cpu_and_rss_observe_something ... ok
+test host_probe_returns_machine_facts ... ok
+test rss_sampler_summarizes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

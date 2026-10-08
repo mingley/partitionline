@@ -1,0 +1,53 @@
+{
+  "scope": "Only inactive generated targets that have byte-verified retained executable copies, and inactive alternate publication indexes. Actual executables remain retained and will be archived.",
+  "files": [
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/partitionline-af37b16a5d920fc8",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-0.elf",
+      "sha256": "f45c79c95a4de0e68e9e86e2503231e294e4c8ec4d0474c51547e4f885729a7a",
+      "bytes": 31425120
+    },
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/full_surface-0307b86adab9acf9",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-1.elf",
+      "sha256": "de1b9c4c9da142743edb69aa0dee9a5a772cd54d89a0de4c695fca066e9af41e",
+      "bytes": 44262104
+    },
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/update_features_conformance-eb77ddc21d197077",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-2.elf",
+      "sha256": "137fe80054568307ef2a89cd4d4c2b61a03effa14182d9de1a588c567dd3b8d7",
+      "bytes": 16823200
+    },
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/partitionline-6545e29e41bdbc0f",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-0.elf",
+      "sha256": "aa58873fd5a9f7c2cf29fd65ca57efd7ac419877dce5b9158b669153f9b1dd4b",
+      "bytes": 32232728
+    },
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/full_surface-9a9b658b28a2271a",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-1.elf",
+      "sha256": "98cbc6175400c08bcb1875a358885a3aa74a305fc0cc54badbef5728db268b3f",
+      "bytes": 45237184
+    },
+    {
+      "path": "/workspace/work/target-update-features/debug/deps/update_features_conformance-9efd04a0358118fe",
+      "retained": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-2.elf",
+      "sha256": "7c28b72197bb1cca171818a8c9287d36ab7cc23fb2432ba3e6ee072f76d34442",
+      "bytes": 17630032
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/driver-publication-01.json.index",
+      "sha256": "bfd8117d93f2c0415fcf98daf74bc1b4bf2a1685ccd722788282cff48e323e45",
+      "bytes": 18083412,
+      "scope": "Inactive generated publication index; excluded from immutable archives"
+    },
+    {
+      "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/source-publication-01.json.index",
+      "sha256": "851add94223678867607bf80d6208686bfd19129637080beb9cfa64d75e712ae",
+      "bytes": 18083300,
+      "scope": "Inactive generated publication index; excluded from immutable archives"
+    }
+  ]
+}

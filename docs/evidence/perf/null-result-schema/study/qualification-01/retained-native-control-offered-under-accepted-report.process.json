@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-offered-under-accepted.json",
+    "--json"
+  ],
+  "started": 1791417633.6930683,
+  "parent_waited": true,
+  "pid": 888122,
+  "exit_code": 1,
+  "ended": 1791417633.8357024,
+  "artifacts": {
+    "retained-native-control-offered-under-accepted-report.stdout": "3224834ea0892813056583bf6077c62601d6a6ef050d213b83f6cca5d2ac70ce",
+    "retained-native-control-offered-under-accepted-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

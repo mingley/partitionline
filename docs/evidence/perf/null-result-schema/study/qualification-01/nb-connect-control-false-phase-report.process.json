@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-false-phase.json",
+    "--json"
+  ],
+  "started": 1791417632.3579605,
+  "parent_waited": true,
+  "pid": 888116,
+  "exit_code": 1,
+  "ended": 1791417632.480234,
+  "artifacts": {
+    "nb-connect-control-false-phase-report.stdout": "107f37236f5e9167b88960c1eb067749b61ee4dfcb123f3d342bc2e9e405191a",
+    "nb-connect-control-false-phase-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

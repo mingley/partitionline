@@ -1,0 +1,211 @@
+EEEEEEEEEEE
+======================================================================
+ERROR: test_bad_command_line_cannot_open_a_connection (test_bench_produce_settings.ProducerBenchmarkSettings.test_bad_command_line_cannot_open_a_connection)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 67, in test_bad_command_line_cannot_open_a_connection
+    process = subprocess.run([str(BINARY), '--unknown-knob'], cwd=ROOT,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_report_contains_schema_required_effective_knobs (test_bench_produce_settings.ProducerBenchmarkSettings.test_report_contains_schema_required_effective_knobs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 27, in test_report_contains_schema_required_effective_knobs
+    process = self.invoke({'BATCH_SIZE': '8192', 'BATCH_RECORDS': '7', 'WARMUP': '17',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_seeded_is_default_and_legacy_bytes_are_explicit (test_bench_produce_settings.ProducerBenchmarkSettings.test_seeded_is_default_and_legacy_bytes_are_explicit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 57, in test_seeded_is_default_and_legacy_bytes_are_explicit
+    default = self.invoke({})
+              ^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'BATCH_RECODS': '7'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'BENCH_UNKNOWN': '1'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'WARMUP_RECORDS': '7'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'BATCH_SIZE': '8192', 'BATCH_BYTES': '4096'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'RECORD_SEED': '1', 'SEED': '2'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'IDEMPOTENT': '1', 'ACKS': '-1', 'MAX_IN_FLIGHT': '6'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'BATCH_BYTES': '2097152'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+======================================================================
+ERROR: test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network (test_bench_produce_settings.ProducerBenchmarkSettings.test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network) (knobs={'COUNT': '0'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 51, in test_unknown_knobs_alias_conflicts_and_clamping_fail_before_network
+    process = self.invoke(knobs | {'KAFKA_BOOTSTRAP': f'127.0.0.1:{listener.getsockname()[1]}'}, config=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/tests/ci/test_bench_produce_settings.py", line 23, in invoke
+    return subprocess.run([str(BINARY)] + (['--print-config'] if config else []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/partitionline/target/release/examples/bench_produce'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.009s
+
+FAILED (errors=11)

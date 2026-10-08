@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/benchmarks/runtime/tools/parent-bound-exec.py",
+    "887940",
+    "python3",
+    "-B",
+    "/workspace/work/open-cards-20261006/null-result-driver-dda207/scripts/benchmark-report.py",
+    "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-wrong-broker-mode.json",
+    "--json"
+  ],
+  "started": 1791417633.2574484,
+  "parent_waited": true,
+  "pid": 888120,
+  "exit_code": 1,
+  "ended": 1791417633.3801858,
+  "artifacts": {
+    "retained-native-control-wrong-broker-mode-report.stdout": "16012a14e809977d3f401fe0cd05fd5fd95cea2a066ff9c4975beec71cb9ee85",
+    "retained-native-control-wrong-broker-mode-report.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

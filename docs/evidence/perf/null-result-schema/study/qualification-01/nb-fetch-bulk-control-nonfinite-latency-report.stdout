@@ -1,0 +1,17 @@
+{
+  "valid": false,
+  "error_count": 1,
+  "errors": [
+    "Result contains a non-finite number"
+  ],
+  "summary": {
+    "scenario_id": null,
+    "peer": null,
+    "suite_hold": null,
+    "throughput_rps": 0.0,
+    "latency_p99_us": 0.0,
+    "total_acknowledged": 0,
+    "integrity_verified": false,
+    "has_retained_integrity_failure": false
+  }
+}

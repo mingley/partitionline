@@ -1,0 +1,7 @@
+error: couldn't find file `/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime/src/../../../tests/common/stalled_dial.rs`
+ --> /workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime/src/stalled_dial.rs:4:1
+  |
+4 | mod fixture;
+  | ^^^^^^^^^^^^
+
+Error writing files: failed to resolve mod `fixture`: /workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime/src/../../../tests/common/stalled_dial.rs does not exist

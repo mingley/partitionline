@@ -1,0 +1,18 @@
+{
+  "valid": false,
+  "error_count": 2,
+  "errors": [
+    "Schema provenance.broker.mode: 'null' was expected",
+    "Missing required broker provenance: 'cluster_id'"
+  ],
+  "summary": {
+    "scenario_id": "nb-send-seq",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 131.74405588381336,
+    "latency_p99_us": 43191.1,
+    "total_acknowledged": 1000,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

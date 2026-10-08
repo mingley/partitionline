@@ -1,0 +1,33 @@
+
+running 11 tests
+test protocol::admin::tests::update_features_constructor_matches_java ... ok
+test admin::tests::update_features_client_checks_match_java ... ok
+test protocol::admin::tests::update_features_not_controller_is_at_byte_four ... ok
+test protocol::admin::tests::update_features_response_throttle_time_ms_matches_java ... ok
+test protocol::admin::tests::update_features_create_with_errors_is_leftover_empty ... ok
+test protocol::admin::tests::update_features_v0_matches_kafka_protocol_0_18 ... ok
+test protocol::admin::tests::update_features_request_get_feature_matches_java ... ok
+test protocol::admin::tests::update_features_response_error_counts_matches_java ... ok
+test protocol::admin::tests::update_features_v2_compact_layout_matches_independent_encode ... ok
+test protocol::admin::tests::update_features_v0_roundtrip_is_leftover_empty ... ok
+test protocol::header::tests::update_features_v0_to_v2_are_flexible ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1109 filtered out; finished in 0.00s
+
+
+running 5 tests
+test update_features_negotiates_v1_when_broker_caps ... ok
+test admin_update_features_timeout ... ok
+test update_features_negotiates_v0_when_broker_caps ... ok
+test update_features_with_sends_validate_only_and_upgrade_type ... ok
+test update_features_follows_controller ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 325 filtered out; finished in 0.11s
+
+
+running 2 tests
+test actual_sdk_update_features_bodies ... ignored, requires guarded Apache SDK fixtures and independent reverse parsing
+test native_public_update_features_history ... ignored, requires an owned Apache Kafka broker and independent public Admin caller
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

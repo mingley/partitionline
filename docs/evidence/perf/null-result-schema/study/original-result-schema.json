@@ -1,0 +1,1159 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Partitionline Benchmark Result and Provenance Schema",
+  "description": "Fail-closed machine-readable benchmark result and provenance format shared across partitionline, librdkafka, kafka-clients, and peer drivers under the equal-semantics contract.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract_version",
+    "suite_hold",
+    "scenario",
+    "provenance",
+    "execution",
+    "outcomes",
+    "measurements",
+    "integrity",
+    "repetition_history"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "contract_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "suite_hold": {
+      "type": "object",
+      "required": ["status", "policy"],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["active"],
+          "description": "Suite HOLD must remain active. A result file does not lift Suite HOLD."
+        },
+        "policy": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "profile",
+        "tier",
+        "peer",
+        "cell_disposition",
+        "equal_semantics"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "type": "string"
+        },
+        "profile": {
+          "type": "string",
+          "enum": [
+            "low-latency",
+            "bulk",
+            "fetch",
+            "transactional",
+            "group/share",
+            "secure"
+          ]
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["required", "exploratory"]
+        },
+        "peer": {
+          "type": "string",
+          "enum": [
+            "partitionline",
+            "librdkafka",
+            "kafka-clients",
+            "peer-adapter"
+          ]
+        },
+        "cell_disposition": {
+          "type": "string",
+          "enum": [
+            "executed",
+            "failed",
+            "not_run",
+            "unsupported",
+            "historical"
+          ],
+          "description": "A single result file is not a pass of a scenario cell. 'passed' is prohibited."
+        },
+        "equal_semantics": {
+          "type": "object",
+          "required": [
+            "durability",
+            "acks",
+            "idempotence",
+            "isolation",
+            "security"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "durability": {
+              "type": "object",
+              "required": ["replication_factor", "min_insync_replicas"],
+              "additionalProperties": true,
+              "properties": {
+                "replication_factor": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "min_insync_replicas": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "acks": {
+              "type": ["integer", "string"]
+            },
+            "idempotence": {
+              "type": "boolean"
+            },
+            "isolation": {
+              "type": "string",
+              "enum": ["read_uncommitted", "read_committed"]
+            },
+            "security": {
+              "type": "object",
+              "required": ["protocol", "mechanism"],
+              "additionalProperties": true,
+              "properties": {
+                "protocol": {
+                  "type": "string",
+                  "enum": [
+                    "PLAINTEXT",
+                    "SSL",
+                    "SASL_PLAINTEXT",
+                    "SASL_SSL"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "enum": [
+                    "NONE",
+                    "PLAIN",
+                    "SCRAM-SHA-256",
+                    "SCRAM-SHA-512",
+                    "OAUTHBEARER"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source",
+        "binary",
+        "config",
+        "toolchains",
+        "broker",
+        "host",
+        "topology",
+        "timestamps",
+        "seeds",
+        "artifacts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "object",
+          "required": [
+            "git_commit",
+            "git_branch",
+            "repo_url",
+            "clean",
+            "tree_hash"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{7,40}$"
+            },
+            "git_branch": {
+              "type": "string"
+            },
+            "repo_url": {
+              "type": "string"
+            },
+            "clean": {
+              "type": "boolean"
+            },
+            "tree_hash": {
+              "type": "string"
+            }
+          }
+        },
+        "binary": {
+          "type": "object",
+          "required": ["name", "path", "sha256"],
+          "additionalProperties": true,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$"
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "required": ["path", "sha256", "effective_settings"],
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$"
+            },
+            "effective_settings": {
+              "type": "object",
+              "required": [
+                "acks",
+                "linger_ms",
+                "batch_size_bytes",
+                "max_in_flight",
+                "idempotence"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "acks": {
+                  "type": ["integer", "string"]
+                },
+                "linger_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "batch_size_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_in_flight": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "idempotence": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "toolchains": {
+          "type": "object",
+          "required": ["compiler", "runtime", "build_tool"],
+          "additionalProperties": true,
+          "properties": {
+            "compiler": {
+              "type": "string"
+            },
+            "runtime": {
+              "type": "string"
+            },
+            "build_tool": {
+              "type": "string"
+            }
+          }
+        },
+        "broker": {
+          "type": "object",
+          "required": [
+            "image",
+            "version",
+            "mode",
+            "cluster_id",
+            "node_count",
+            "endpoints"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "image": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string",
+              "enum": ["kraft", "zookeeper"]
+            },
+            "broker_commit": {
+              "type": ["string", "null"]
+            },
+            "cluster_id": {
+              "type": "string"
+            },
+            "node_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "endpoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        "host": {
+          "type": "object",
+          "required": [
+            "hostname",
+            "os",
+            "os_family",
+            "kernel_version",
+            "arch",
+            "cpu",
+            "memory"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "hostname": {
+              "type": "string"
+            },
+            "os": {
+              "type": "string"
+            },
+            "os_family": {
+              "type": "string"
+            },
+            "kernel_version": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string",
+              "enum": ["x86_64", "arm64", "aarch64"]
+            },
+            "cpu": {
+              "type": "object",
+              "required": [
+                "model",
+                "physical_cores",
+                "logical_cores",
+                "frequency_mhz"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "model": {
+                  "type": "string"
+                },
+                "physical_cores": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "logical_cores": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "frequency_mhz": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "memory": {
+              "type": "object",
+              "required": ["total_bytes", "unit"],
+              "additionalProperties": true,
+              "properties": {
+                "total_bytes": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["bytes"]
+                }
+              }
+            }
+          }
+        },
+        "topology": {
+          "type": "object",
+          "required": [
+            "environment",
+            "rtt_ms",
+            "rtt_unit",
+            "client_nodes",
+            "broker_nodes",
+            "network_interface"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "environment": {
+              "type": "string",
+              "enum": [
+                "loopback",
+                "controlled_lan",
+                "cloud_vm",
+                "bare_metal"
+              ]
+            },
+            "rtt_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "rtt_unit": {
+              "type": "string",
+              "enum": ["milliseconds"]
+            },
+            "client_nodes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "broker_nodes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "network_interface": {
+              "type": "string"
+            }
+          }
+        },
+        "timestamps": {
+          "type": "object",
+          "required": [
+            "start_time_utc",
+            "end_time_utc",
+            "duration_seconds",
+            "duration_unit"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "start_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "end_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "duration_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "duration_unit": {
+              "type": "string",
+              "enum": ["seconds"]
+            }
+          }
+        },
+        "seeds": {
+          "type": "object",
+          "required": [
+            "payload_seed",
+            "key_seed",
+            "partition_seed",
+            "repetition_seed"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "payload_seed": {
+              "type": ["string", "integer"]
+            },
+            "key_seed": {
+              "type": ["string", "integer"]
+            },
+            "partition_seed": {
+              "type": ["string", "integer"]
+            },
+            "repetition_seed": {
+              "type": ["string", "integer"]
+            }
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "type", "sha256", "size_bytes"],
+            "additionalProperties": true,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{64}$"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "phase",
+        "warmup_completed",
+        "warmup_records",
+        "warmup_duration_seconds",
+        "steady_state_duration_seconds",
+        "repetition_index",
+        "total_repetitions",
+        "pairing_order",
+        "coordinated_omission_avoidance"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": ["steady_state", "warmup_only", "full_campaign"]
+        },
+        "warmup_completed": {
+          "type": "boolean"
+        },
+        "warmup_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warmup_duration_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "steady_state_duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "repetition_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_repetitions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pairing_order": {
+          "type": "string"
+        },
+        "coordinated_omission_avoidance": {
+          "type": "object",
+          "required": ["enabled", "schedule_type"],
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "schedule_type": {
+              "type": "string",
+              "enum": [
+                "open_loop_poisson",
+                "open_loop_fixed_rate",
+                "closed_loop"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "description": "Exhaustive accounting of all record outcomes. All 7 categories must be recorded separately.",
+      "required": [
+        "offered",
+        "accepted",
+        "acknowledged",
+        "consumed",
+        "rejected",
+        "timed_out",
+        "unknown"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "offered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total records offered to client producer/consumer."
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records accepted into local memory buffer/queue (enqueue). Not an acknowledgment."
+        },
+        "acknowledged": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records acknowledged by Kafka broker in a response. Must match high-watermark delta."
+        },
+        "consumed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records verified and consumed by consumer."
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records rejected locally (buffer full) or by broker (non-retriable error)."
+        },
+        "timed_out": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records that timed out before receiving broker acknowledgment."
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Records in ambiguous/unresolved terminal state."
+        }
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "required": [
+        "throughput",
+        "latency",
+        "client_resources",
+        "broker_resources",
+        "errors"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "throughput": {
+          "type": "object",
+          "required": [
+            "records_per_second",
+            "records_per_second_unit",
+            "megabytes_per_second",
+            "megabytes_per_second_unit",
+            "total_bytes_transferred",
+            "total_bytes_unit"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "records_per_second": {
+              "type": "number",
+              "minimum": 0
+            },
+            "records_per_second_unit": {
+              "type": "string",
+              "enum": ["records/s"]
+            },
+            "megabytes_per_second": {
+              "type": "number",
+              "minimum": 0
+            },
+            "megabytes_per_second_unit": {
+              "type": "string",
+              "enum": ["MB/s"]
+            },
+            "total_bytes_transferred": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total_bytes_unit": {
+              "type": "string",
+              "enum": ["bytes"]
+            }
+          }
+        },
+        "latency": {
+          "type": "object",
+          "required": [
+            "sample_count",
+            "unit",
+            "p50",
+            "p90",
+            "p95",
+            "p99",
+            "p99_9",
+            "min",
+            "max",
+            "mean",
+            "stddev",
+            "confidence_interval_95",
+            "raw_histogram"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["microseconds"]
+            },
+            "p50": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p90": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p95": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p99": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p99_9": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0
+            },
+            "mean": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stddev": {
+              "type": "number",
+              "minimum": 0
+            },
+            "confidence_interval_95": {
+              "type": "object",
+              "required": ["lower", "upper", "unit"],
+              "additionalProperties": true,
+              "properties": {
+                "lower": {
+                  "type": "number"
+                },
+                "upper": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["microseconds"]
+                }
+              }
+            },
+            "raw_histogram": {
+              "type": "object",
+              "required": ["bucket_unit", "buckets"],
+              "additionalProperties": true,
+              "properties": {
+                "bucket_unit": {
+                  "type": "string",
+                  "enum": ["microseconds"]
+                },
+                "buckets": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["min_us", "max_us", "count"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "min_us": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "max_us": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "client_resources": {
+          "type": "object",
+          "required": [
+            "cpu_utilization_pct",
+            "cpu_unit",
+            "user_cpu_seconds",
+            "system_cpu_seconds",
+            "cpu_seconds_unit",
+            "allocations",
+            "rss",
+            "threads_count"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "cpu_utilization_pct": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cpu_unit": {
+              "type": "string",
+              "enum": ["percent"]
+            },
+            "user_cpu_seconds": {
+              "type": "number",
+              "minimum": 0
+            },
+            "system_cpu_seconds": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cpu_seconds_unit": {
+              "type": "string",
+              "enum": ["seconds"]
+            },
+            "allocations": {
+              "type": "object",
+              "required": [
+                "total_allocated_bytes",
+                "allocation_count",
+                "unit"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "total_allocated_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "allocation_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["bytes"]
+                }
+              }
+            },
+            "rss": {
+              "type": "object",
+              "required": ["peak_rss_bytes", "average_rss_bytes", "unit"],
+              "additionalProperties": true,
+              "properties": {
+                "peak_rss_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "average_rss_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["bytes"]
+                }
+              }
+            },
+            "threads_count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "broker_resources": {
+          "type": "object",
+          "required": [
+            "cpu_utilization_pct",
+            "cpu_unit",
+            "peak_rss_bytes",
+            "rss_unit",
+            "disk_write_bytes",
+            "disk_write_unit"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "cpu_utilization_pct": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cpu_unit": {
+              "type": "string",
+              "enum": ["percent"]
+            },
+            "peak_rss_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rss_unit": {
+              "type": "string",
+              "enum": ["bytes"]
+            },
+            "disk_write_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "disk_write_unit": {
+              "type": "string",
+              "enum": ["bytes"]
+            }
+          }
+        },
+        "consumer_lag": {
+          "type": "object",
+          "required": ["records_lag", "lag_unit", "partition_lags"],
+          "additionalProperties": true,
+          "properties": {
+            "records_lag": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lag_unit": {
+              "type": "string",
+              "enum": ["records"]
+            },
+            "partition_lags": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["partition", "lag"],
+                "additionalProperties": true,
+                "properties": {
+                  "partition": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "lag": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "name", "count", "fatal", "phase"],
+            "additionalProperties": true,
+            "properties": {
+              "code": {
+                "type": ["string", "integer"]
+              },
+              "name": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fatal": {
+                "type": "boolean"
+              },
+              "phase": {
+                "type": "string",
+                "enum": ["warmup", "steady_state", "teardown"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "verified",
+        "record_ids",
+        "high_watermark_audit",
+        "idempotence_sequence_verified",
+        "integrity_failure"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "verified": {
+          "type": "boolean"
+        },
+        "record_ids": {
+          "type": "object",
+          "required": [
+            "start_id",
+            "end_id",
+            "expected_count",
+            "verified_count",
+            "missing_ids_count",
+            "duplicate_ids_count",
+            "checksum_algorithm",
+            "payload_checksum_matches"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "start_id": {
+              "type": ["integer", "string"]
+            },
+            "end_id": {
+              "type": ["integer", "string"]
+            },
+            "expected_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verified_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_ids_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "duplicate_ids_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checksum_algorithm": {
+              "type": "string"
+            },
+            "payload_checksum_matches": {
+              "type": "boolean"
+            }
+          }
+        },
+        "high_watermark_audit": {
+          "type": "object",
+          "required": [
+            "partitions",
+            "total_offset_delta",
+            "matches_acknowledged"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "partitions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "partition",
+                  "start_offset",
+                  "end_offset",
+                  "offset_delta"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "partition": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "start_offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end_offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "offset_delta": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "total_offset_delta": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matches_acknowledged": {
+              "type": "boolean"
+            }
+          }
+        },
+        "idempotence_sequence_verified": {
+          "type": "boolean"
+        },
+        "integrity_failure": {
+          "type": "boolean"
+        }
+      }
+    },
+    "repetition_history": {
+      "type": "object",
+      "required": ["total_attempts", "failed_attempts", "attempts"],
+      "additionalProperties": true,
+      "properties": {
+        "total_attempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failed_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "attempt_number",
+              "repetition_index",
+              "status",
+              "integrity_failure",
+              "error_message",
+              "timestamp_utc"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "attempt_number": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "repetition_index": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "passed_measurement",
+                  "failed_broker_error",
+                  "failed_integrity",
+                  "failed_timeout",
+                  "failed_abort"
+                ]
+              },
+              "integrity_failure": {
+                "type": "boolean"
+              },
+              "error_message": {
+                "type": ["string", "null"]
+              },
+              "timestamp_utc": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

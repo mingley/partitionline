@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-07",
+  "updated": "2026-10-08",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -53336,7 +53336,7 @@
       "title": "Emit schema-valid null-broker benchmark results and enforce full-schema checks",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-root-20261007",
       "depends_on": [
         "KL04-02",
@@ -53361,7 +53361,8 @@
         "Run meaningful changed-result controls against the full schema and report CLI, and preserve earlier captured failures."
       ],
       "evidence": [
-        "docs/evidence/perf/build-profiles/study/training-schema-preflight-01.json"
+        "docs/plan/evidence/KL09-73.json",
+        "docs/evidence/perf/null-result-schema/README.md"
       ],
       "write_set": [
         "benchmarks/runtime/src/artifact.rs",
@@ -53380,7 +53381,7 @@
         "docs/plan/tasks.json",
         "docs/STATUS.md"
       ],
-      "qualification_limit": "Observed in KL09-62 before comparison: actual null training results pass the report CLI while missing required fields and failing the full JSON schema. The original results and schema errors remain retained."
+      "qualification_limit": "Corrected-source format and validation qualification. Existing Kafka v1 stays strict; null v2 is exploratory with explicit unobserved/nonapplicable fields. No library/measurement defaults, previous captures, scenario gates or performance claims changed."
     }
   ],
   "toolchain_policy": "Build and validate current work with latest stable Rust only. Historical compiler receipts remain unchanged.",
@@ -53393,7 +53394,8 @@
       "KL09-02",
       "KL09-03",
       "KL03-23",
-      "KL05-45"
+      "KL05-45",
+      "KL09-73"
     ],
     "fixture_changes": [
       "WriteTxnMarkers v0 response uses v0 encoding",

@@ -1,0 +1,44 @@
+{
+  "source_commit": "39bb8fa3c6531113c109acc682f24b00c83f104c",
+  "source_guards_passed": true,
+  "results": [
+    {
+      "profile": "default",
+      "selected_tests_passed": 16,
+      "safety_tests_passed": 2,
+      "binaries": [
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-0.elf",
+          "sha256": "f45c79c95a4de0e68e9e86e2503231e294e4c8ec4d0474c51547e4f885729a7a"
+        },
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-1.elf",
+          "sha256": "de1b9c4c9da142743edb69aa0dee9a5a772cd54d89a0de4c695fca066e9af41e"
+        },
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/default-2.elf",
+          "sha256": "137fe80054568307ef2a89cd4d4c2b61a03effa14182d9de1a588c567dd3b8d7"
+        }
+      ]
+    },
+    {
+      "profile": "all-features",
+      "selected_tests_passed": 16,
+      "safety_tests_passed": 2,
+      "binaries": [
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-0.elf",
+          "sha256": "aa58873fd5a9f7c2cf29fd65ca57efd7ac419877dce5b9158b669153f9b1dd4b"
+        },
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-1.elf",
+          "sha256": "98cbc6175400c08bcb1875a358885a3aa74a305fc0cc54badbef5728db268b3f"
+        },
+        {
+          "path": "/workspace/work/open-cards-20261006/null-result-schema-20261007/client-regression-01/all-features-2.elf",
+          "sha256": "7c28b72197bb1cca171818a8c9287d36ab7cc23fb2432ba3e6ee072f76d34442"
+        }
+      ]
+    }
+  ]
+}

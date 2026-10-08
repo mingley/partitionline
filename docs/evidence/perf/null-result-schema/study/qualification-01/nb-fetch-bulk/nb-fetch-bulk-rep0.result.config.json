@@ -1,0 +1,39 @@
+{
+  "acks": null,
+  "app_delay_per_batch_ms": 0,
+  "batch_size_bytes": null,
+  "buffer_memory": null,
+  "idempotence": null,
+  "isolation": "read_uncommitted",
+  "linger_ms": null,
+  "max_bytes": null,
+  "max_in_flight": null,
+  "max_partition_fetch_bytes": null,
+  "max_poll_records": null,
+  "nodes": 1,
+  "paused_partitions": [],
+  "runtime": {
+    "observed_alive_tasks": 0,
+    "observed_flavor": "current_thread",
+    "observed_scheduler_workers": 1,
+    "post_close_barrier_ns": 5007,
+    "post_close_barrier_outside_measurement": true,
+    "post_close_tasks_before_barrier": 0,
+    "requested_background_workers": 0,
+    "requested_flavor": "current_thread"
+  },
+  "seed": 4269539329,
+  "seek_offset": null,
+  "slow_delay_ms": 0,
+  "slow_node": null,
+  "synth": {
+    "abort_every": 0,
+    "codec": 0,
+    "payload_bytes": 100,
+    "records_per_batch": 500,
+    "records_per_partition": 100000,
+    "seed": 4269539329
+  },
+  "target_records": 20000,
+  "timeout_secs": 120
+}

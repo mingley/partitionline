@@ -1,0 +1,171 @@
+{
+  "compiler_source_commit": "39bb8fa3c6531113c109acc682f24b00c83f104c",
+  "actual_null_results": 3,
+  "original_native_results_validated": 1,
+  "original_incomplete_null_result_rejected": true,
+  "actual_changed_result_controls": 20,
+  "controls": [
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+      "original_sha256": "9c1413bcd0350b9d6430bd7db5d98a24fc4975afb832846e6be8dc489cc1fc41",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-missing-config-path.json",
+      "candidate_sha256": "b199de870ced0bf98c898a0b9932806ebbb852f2fd47c4a98a66e13c122f33b2",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+      "original_sha256": "9c1413bcd0350b9d6430bd7db5d98a24fc4975afb832846e6be8dc489cc1fc41",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-wrong-broker-mode.json",
+      "candidate_sha256": "e93fa9f821da2875af56ad23fa1a4cfae23dc2cdf0147c8da5e3d684b32a8d3e",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+      "original_sha256": "9c1413bcd0350b9d6430bd7db5d98a24fc4975afb832846e6be8dc489cc1fc41",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-false-phase.json",
+      "candidate_sha256": "b2a78f822414dcf094d2fde150172ca74b56ec3ac0055ed78ffa59a0863c8b6e",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+      "original_sha256": "9c1413bcd0350b9d6430bd7db5d98a24fc4975afb832846e6be8dc489cc1fc41",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-offered-under-accepted.json",
+      "candidate_sha256": "996316b0b4dd960ea2bd1fe0cfaa30e44861be00945ca177a4f22a68b05eacbf",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq/nb-send-seq-rep0.result.json",
+      "original_sha256": "9c1413bcd0350b9d6430bd7db5d98a24fc4975afb832846e6be8dc489cc1fc41",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-send-seq-control-nonfinite-latency.json",
+      "candidate_sha256": "0224ca1761179117bdb7f93c37232a8a2410d5b1832d129d52747d407b5f1351",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "original_sha256": "bafcd3f23c84e4d91087544df92376bed0052c250ab1cf4d2b9e2078abcee04a",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-missing-config-path.json",
+      "candidate_sha256": "5aeba2eb317a30abd09c58c10fbdea1bc892e2b9e8d3eab5b944bfd9be4b6b76",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "original_sha256": "bafcd3f23c84e4d91087544df92376bed0052c250ab1cf4d2b9e2078abcee04a",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-wrong-broker-mode.json",
+      "candidate_sha256": "2341d16c748221ce437f7ced4637787e34169ab22d83c255c4b38013cb6c1901",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "original_sha256": "bafcd3f23c84e4d91087544df92376bed0052c250ab1cf4d2b9e2078abcee04a",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-false-phase.json",
+      "candidate_sha256": "35c25fc6d04c583ab2ac8b3ddb86b7930788468ec6aea82ff0c4dc762dad728c",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "original_sha256": "bafcd3f23c84e4d91087544df92376bed0052c250ab1cf4d2b9e2078abcee04a",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-offered-under-accepted.json",
+      "candidate_sha256": "a3417717c798e7c827a3f5cdbb4be5aede221cd7a2fd5789e0b923f02ad3a87c",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk/nb-fetch-bulk-rep0.result.json",
+      "original_sha256": "bafcd3f23c84e4d91087544df92376bed0052c250ab1cf4d2b9e2078abcee04a",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-fetch-bulk-control-nonfinite-latency.json",
+      "candidate_sha256": "ba15c3a0bebf8bd259b00a96d7465fffa42ec256101441dc54735a095363dd3b",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect/nb-connect-rep0.result.json",
+      "original_sha256": "2a2fe6de9953ce824a971472e4bfdfe75452a8f7df27a42944861d49a6c99089",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-missing-config-path.json",
+      "candidate_sha256": "ebd2a073b8841280b119d93684dbb477fa2217707569e678298bea6d762e0d81",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect/nb-connect-rep0.result.json",
+      "original_sha256": "2a2fe6de9953ce824a971472e4bfdfe75452a8f7df27a42944861d49a6c99089",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-wrong-broker-mode.json",
+      "candidate_sha256": "f3a8011b4523b3dc6524c03f2acf4756828134a89c96cb99fd6828539dce254f",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect/nb-connect-rep0.result.json",
+      "original_sha256": "2a2fe6de9953ce824a971472e4bfdfe75452a8f7df27a42944861d49a6c99089",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-false-phase.json",
+      "candidate_sha256": "6ef61c07a882fa318b2e3a7aea7acfc8940754a016e868209b4ec75c73ef13c9",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect/nb-connect-rep0.result.json",
+      "original_sha256": "2a2fe6de9953ce824a971472e4bfdfe75452a8f7df27a42944861d49a6c99089",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-offered-under-accepted.json",
+      "candidate_sha256": "d6d4aec4fb0fb08ed52822c652ea4e6825b082356bca45d2a25ec172837b9837",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect/nb-connect-rep0.result.json",
+      "original_sha256": "2a2fe6de9953ce824a971472e4bfdfe75452a8f7df27a42944861d49a6c99089",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/nb-connect-control-nonfinite-latency.json",
+      "candidate_sha256": "9f8672ded2a275050de6ed19ec9ecebe434f4832337ac7e5643a12d72875d009",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "9832d8901bf34f64ba365a0b4a984c9dfc5a93c82249527c8d625ce4f0ff0909",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-missing-config-path.json",
+      "candidate_sha256": "4e56e842411c737c373754310cec7764ac472e25d12999e2d31c01231764b2f3",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "9832d8901bf34f64ba365a0b4a984c9dfc5a93c82249527c8d625ce4f0ff0909",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-wrong-broker-mode.json",
+      "candidate_sha256": "47904f15231bbff014ec815f55cc7db142743340635b83cd6eca0e569b6a78f7",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "9832d8901bf34f64ba365a0b4a984c9dfc5a93c82249527c8d625ce4f0ff0909",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-false-phase.json",
+      "candidate_sha256": "6d9ca7a3712f0110e3e110e816c7fb38e81f88901317570098f4191550c5d7cd",
+      "schema_rejected": true,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "9832d8901bf34f64ba365a0b4a984c9dfc5a93c82249527c8d625ce4f0ff0909",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-offered-under-accepted.json",
+      "candidate_sha256": "c86010ec7bf9b3325ae913c1aafb1efb938f89b5c94ef72e8c5bc9179600aed4",
+      "schema_rejected": false,
+      "report_rejected": true
+    },
+    {
+      "original": "/workspace/work/open-cards-20261006/build-profiles-20261007/compare-native-01/002-primary-r1-thin_1_portable-lb-bulk-0/lb-bulk.result.json",
+      "original_sha256": "9832d8901bf34f64ba365a0b4a984c9dfc5a93c82249527c8d625ce4f0ff0909",
+      "candidate": "/workspace/work/open-cards-20261006/null-result-schema-20261007/qualification-01/retained-native-control-nonfinite-latency.json",
+      "candidate_sha256": "993f7af7350c557116cba79ffb149c5fc69255fb737dc773a7db0e005cbc053a",
+      "schema_rejected": false,
+      "report_rejected": true
+    }
+  ],
+  "source_guards_passed": true,
+  "scope": "Result-format qualification only. No performance comparison, scenario qualification or ranking."
+}

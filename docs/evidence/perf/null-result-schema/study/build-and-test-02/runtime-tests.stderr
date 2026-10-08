@@ -1,0 +1,90 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling proc-macro2 v1.0.107
+   Compiling cc v1.5.1
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling hybrid-array v0.4.15
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling block-buffer v0.12.1
+   Compiling ctutils v0.4.2
+   Compiling rustls-pki-types v1.15.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling ring v0.17.14
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling semver v1.0.28
+   Compiling syn v3.0.6
+   Compiling rustc_version v0.4.1
+   Compiling digest v0.11.3
+   Compiling errno v0.3.14
+   Compiling crc32fast v1.5.2
+   Compiling parking_lot_core v0.9.12
+   Compiling rustls v0.23.45
+   Compiling signal-hook-registry v1.4.8
+   Compiling crc32c v0.6.8
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling once_cell v1.21.4
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling pin-project-lite v0.2.17
+   Compiling snap v1.1.2
+   Compiling smallvec v1.16.2
+   Compiling subtle v2.6.1
+   Compiling bytes v1.12.1
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling getrandom v0.4.3
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling hmac v0.13.0
+   Compiling serde_json v1.0.151
+   Compiling twox-hash v2.1.4
+   Compiling cpufeatures v0.3.1
+   Compiling zlib-rs v0.6.8
+   Compiling lz4_flex v0.14.0
+   Compiling rustls-webpki v0.103.15
+   Compiling sha2 v0.11.0
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling pbkdf2 v0.13.0
+   Compiling digest v0.10.7
+   Compiling flate2 v1.1.10
+   Compiling parking_lot v0.12.5
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling cpufeatures v0.2.17
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling sha2 v0.10.9
+   Compiling tokio-rustls v0.26.5
+   Compiling partitionline v0.1.0 (/workspace/work/open-cards-20261006/null-result-source-39bb8f)
+   Compiling time-core v0.1.9
+   Compiling powerfmt v0.2.0
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.8
+   Compiling nullbroker v0.1.0 (/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/nullbroker)
+   Compiling time v0.3.55
+   Compiling codec v0.1.0 (/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/codec)
+   Compiling runtime v0.1.0 (/workspace/work/open-cards-20261006/null-result-source-39bb8f/benchmarks/runtime)
+    Finished `test` profile [unoptimized] target(s) in 20.29s
+     Running unittests src/lib.rs (/workspace/work/target-null-result-schema/debug/deps/runtime-4b632c264c3a6707)
+     Running unittests src/bin/native-latency-runtime.rs (/workspace/work/target-null-result-schema/debug/deps/native_latency_runtime-acc0f671de7ae43d)
+     Running unittests src/bin/native-produce-runtime.rs (/workspace/work/target-null-result-schema/debug/deps/native_produce_runtime-280ae6b4ae2aa130)
+     Running unittests src/bin/nb-serve.rs (/workspace/work/target-null-result-schema/debug/deps/nb_serve-780772d17df76ab2)
+     Running unittests src/main.rs (/workspace/work/target-null-result-schema/debug/deps/runtime-29963ef72d1117e0)
+     Running tests/cells.rs (/workspace/work/target-null-result-schema/debug/deps/cells-9c538a430be7b806)
+     Running tests/e2e.rs (/workspace/work/target-null-result-schema/debug/deps/e2e-2fad8411d672df50)
+     Running tests/fcells.rs (/workspace/work/target-null-result-schema/debug/deps/fcells-b4dbe81b5a3f28e9)
+     Running tests/host_measure.rs (/workspace/work/target-null-result-schema/debug/deps/host_measure-e9c90aacba9d0858)
