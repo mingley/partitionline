@@ -190,12 +190,30 @@ async fn public_update_features_controller_and_deadline_history() {
         Err(Error::Timeout) => 7,
         Err(error) => error.broker_code().unwrap(),
     };
+    let recovery_code = if scenario == "deadline" {
+        let recovered = admin
+            .update_features_with_timeout(
+                &[FeatureUpdate::new("test_feature_1", 2)],
+                Duration::from_secs(2),
+                false,
+            )
+            .await;
+        assert!(
+            recovered.is_ok(),
+            "cancelled connection did not recover: {recovered:?}"
+        );
+        assert_eq!(recovered.unwrap()[0].error_code, 0);
+        Some(0)
+    } else {
+        None
+    };
     admin.close().await.unwrap();
     tokio::fs::write(
         output,
         format!(
-            "{{\"error_code\":{code},\"elapsed_us\":{}}}",
-            elapsed.as_micros()
+            "{{\"error_code\":{code},\"elapsed_us\":{},\"recovery_code\":{}}}",
+            elapsed.as_micros(),
+            recovery_code.map_or("null".to_string(), |value| value.to_string())
         ),
     )
     .await

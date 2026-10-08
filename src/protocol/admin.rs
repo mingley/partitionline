@@ -5763,10 +5763,12 @@ pub fn decode_update_features_request<B: Buf>(
 ) -> Result<(i32, Vec<FeatureUpdateKey>, bool)> {
     let _ = update_features_spoken(version)?;
     let timeout_ms = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, true)?
+        .ok_or_else(|| Error::protocol("UpdateFeatures array cannot be null"))?;
     let mut updates = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let name = buf::get_compact_string(buf)?
+            .ok_or_else(|| Error::protocol("UpdateFeatures feature name cannot be null"))?;
         let max_version_level = buf::get_i16(buf)?;
         let (allow_downgrade, upgrade_type) = if version == 0 {
             let allow = buf::get_bool(buf)?;
@@ -5830,10 +5832,12 @@ pub fn decode_update_features_response<B: Buf>(
     let error_message = buf::get_compact_string(buf)?;
     let mut results = Vec::new();
     if version < 2 {
-        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let n = buf::get_array_len(buf, true)?
+            .ok_or_else(|| Error::protocol("UpdateFeatures array cannot be null"))?;
         results.reserve(n);
         for _ in 0..n {
-            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let name = buf::get_compact_string(buf)?
+                .ok_or_else(|| Error::protocol("UpdateFeatures feature name cannot be null"))?;
             let feat_err = buf::get_i16(buf)?;
             let feat_msg = buf::get_compact_string(buf)?;
             buf::skip_tagged_fields(buf)?;

@@ -9185,7 +9185,10 @@ async fn admin_update_features_timeout() {
         .await
         .unwrap();
     assert_eq!(results[0].error_code, 0);
-    assert_eq!(mock.last_update_features_timeout(), Some(1_500));
+    assert!(matches!(
+        mock.last_update_features_timeout(),
+        Some(1..=1_500)
+    ));
     let results = admin
         .update_features_with_timeout(
             &[FeatureUpdate::new("transaction.version", 2)],
@@ -9195,7 +9198,10 @@ async fn admin_update_features_timeout() {
         .await
         .unwrap();
     assert_eq!(results[0].error_code, 0);
-    assert_eq!(mock.last_update_features_timeout(), Some(2_500));
+    assert!(matches!(
+        mock.last_update_features_timeout(),
+        Some(1..=2_500)
+    ));
     assert_eq!(mock.last_update_features_validate_only(), Some(true));
     assert_eq!(
         mock.feature_level("transaction.version"),

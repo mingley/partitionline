@@ -5944,7 +5944,8 @@ impl Admin {
     /// [`Self::update_features`] with a one-shot timeout (Java
     /// `UpdateFeaturesOptions.timeoutMs`).
     ///
-    /// `timeout` is the RPC deadline and UpdateFeatures TimeoutMs.
+    /// `timeout` bounds the whole operation, including controller discovery and retries.
+    /// Each request sends the smaller of the requested TimeoutMs and remaining budget.
     pub async fn update_features_timeout(
         &mut self,
         updates: &[FeatureUpdate],
@@ -5958,7 +5959,7 @@ impl Admin {
     /// UpdateFeatures with validate-only (Java `updateFeatures` plus
     /// `UpdateFeaturesOptions.validateOnly`).
     ///
-    /// v1+ sends `ValidateOnly`. v0 omits the field even when set.
+    /// v1+ sends `ValidateOnly`. v0 rejects validation-only requests before encoding.
     /// `timeout_ms` is UpdateFeatures TimeoutMs. The RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
     /// drives both, use [`Self::update_features_with_timeout`].
@@ -5976,7 +5977,8 @@ impl Admin {
     /// [`Self::update_features_with`] with a one-shot timeout (Java
     /// `UpdateFeaturesOptions.timeoutMs` plus `validateOnly`).
     ///
-    /// `timeout` is the RPC deadline and UpdateFeatures TimeoutMs.
+    /// `timeout` bounds the whole operation, including controller discovery and retries.
+    /// Each request sends the smaller of the requested TimeoutMs and remaining budget.
     pub async fn update_features_with_timeout(
         &mut self,
         updates: &[FeatureUpdate],
@@ -5994,7 +5996,10 @@ impl Admin {
             return Err(Error::protocol("Feature updates can not be null or empty."));
         }
         for u in updates {
-            if u.name.trim().is_empty() {
+            if u.name
+                .trim_matches(|character| character <= '\u{0020}')
+                .is_empty()
+            {
                 return Err(Error::protocol("Provided feature can not be empty."));
             }
         }
@@ -6009,94 +6014,112 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<FeatureUpdateResult>> {
         Self::reject_java_feature_updates(updates)?;
-        let keys: Vec<FeatureUpdateKey> = updates
-            .iter()
-            .map(|u| FeatureUpdateKey {
-                name: u.name.clone(),
-                max_version_level: u.max_version_level,
-                allow_downgrade: u.allow_downgrade,
-                upgrade_type: u.upgrade_type,
-            })
-            .collect();
-        let version = self.update_features_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
-        })?;
-        let deadline = Instant::now() + timeout;
-        let mut attempt = 0u32;
-        loop {
-            if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
-            }
-            let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing update_features conn"))?;
-                conn.roundtrip(
-                    UPDATE_FEATURES,
-                    version,
-                    |buf| {
-                        encode_update_features_request(
-                            buf,
-                            version,
-                            timeout_ms,
-                            &keys,
-                            validate_only,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("UpdateFeatures deadline overflow"))?;
+        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
+            let keys: Vec<FeatureUpdateKey> = updates
+                .iter()
+                .map(|u| FeatureUpdateKey {
+                    name: u.name.clone(),
+                    max_version_level: u.max_version_level,
+                    allow_downgrade: u.allow_downgrade,
+                    upgrade_type: u.upgrade_type,
+                })
+                .collect();
+            let version = self.update_features_version.ok_or_else(|| {
+                Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
+            })?;
+            let mut attempt = 0u32;
+            loop {
+                if self.cluster.controller().is_err() {
+                    self.refresh_metadata(None).await?;
+                }
+                let node = self.cluster.controller()?;
+                self.connect_node(node).await?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let wire_timeout_ms = timeout_ms.min(
+                    i32::try_from(remaining.as_millis())
+                        .unwrap_or(i32::MAX)
+                        .max(1),
+                );
+                let body = {
+                    let conn = self
+                        .conns
+                        .get_mut(&node)
+                        .ok_or_else(|| Error::protocol("missing update_features conn"))?;
+                    conn.roundtrip(
+                        UPDATE_FEATURES,
+                        version,
+                        |buf| {
+                            encode_update_features_request(
+                                buf,
+                                version,
+                                wire_timeout_ms,
+                                &keys,
+                                validate_only,
+                            )
+                        },
+                        remaining,
+                    )
+                    .await
+                };
+                let body = match body {
+                    Ok(b) => b,
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        self.cluster.invalidate_controller();
+                        self.wait_retry(&mut attempt, deadline).await?;
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                };
+                let resp = decode_update_features_response(&mut body.clone(), version)?;
+                if resp.error_code == error::NOT_CONTROLLER
+                    || resp
+                        .results
+                        .iter()
+                        .any(|r| r.error_code == error::NOT_CONTROLLER)
+                {
+                    // NOT_CONTROLLER (41): Metadata, then the new controller.
                     self.cluster.invalidate_controller();
+                    let _ = self.conns.remove(&node);
                     self.wait_retry(&mut attempt, deadline).await?;
+                    self.refresh_metadata(None).await?;
                     continue;
                 }
-                Err(e) => return Err(e),
-            };
-            let resp = decode_update_features_response(&mut body.clone(), version)?;
-            if resp.error_code == error::NOT_CONTROLLER
-                || resp
+                if resp.error_code != 0 {
+                    return Err(Error::broker(resp.error_code, "UpdateFeatures"));
+                }
+                if version >= 2 {
+                    return Ok(keys
+                        .iter()
+                        .map(|k| FeatureUpdateResult {
+                            name: k.name.clone(),
+                            error_code: 0,
+                            error_message: None,
+                        })
+                        .collect());
+                }
+                return Ok(resp
                     .results
-                    .iter()
-                    .any(|r| r.error_code == error::NOT_CONTROLLER)
-            {
-                // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
-                continue;
-            }
-            if resp.error_code != 0 {
-                return Err(Error::broker(resp.error_code, "UpdateFeatures"));
-            }
-            if version >= 2 {
-                return Ok(keys
-                    .iter()
-                    .map(|k| FeatureUpdateResult {
-                        name: k.name.clone(),
-                        error_code: 0,
-                        error_message: None,
+                    .into_iter()
+                    .map(|r| FeatureUpdateResult {
+                        name: r.name,
+                        error_code: r.error_code,
+                        error_message: r.error_message,
                     })
                     .collect());
             }
-            return Ok(resp
-                .results
-                .into_iter()
-                .map(|r| FeatureUpdateResult {
-                    name: r.name,
-                    error_code: r.error_code,
-                    error_message: r.error_message,
-                })
-                .collect());
-        }
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     /// Supported and finalized features (Java `describeFeatures`).

@@ -211,7 +211,12 @@ public final class ConformanceUpdateFeaturesPeer {
             short expected = scenario.equals("deadline") ? Errors.REQUEST_TIMED_OUT.code()
                 : scenario.equals("top-error") ? Errors.INVALID_REQUEST.code() : 0;
             if (code != expected) throw new AssertionError("unexpected public outcome " + code + " expected " + expected);
-            Files.writeString(output, "{\"error_code\":" + code + "}\n");
+            String recovery = "null";
+            if (scenario.equals("deadline")) {
+                admin.updateFeatures(updates, new UpdateFeaturesOptions().timeoutMs(2000)).all().get(3, TimeUnit.SECONDS);
+                recovery = "0";
+            }
+            Files.writeString(output, "{\"error_code\":" + code + ",\"recovery_code\":" + recovery + "}\n");
         } finally { admin.close(Duration.ofSeconds(1)); }
     }
     private static void values() {
