@@ -1,0 +1,11 @@
+test_corrupted_chunk_refused_before_restoration (test_workspace_evidence.PublicationArchive.test_corrupted_chunk_refused_before_restoration) ... ok
+test_deduplicated_content_and_prefix_restore (test_workspace_evidence.PublicationArchive.test_deduplicated_content_and_prefix_restore) ... ok
+test_destination_symlink_escape_refused (test_workspace_evidence.PublicationArchive.test_destination_symlink_escape_refused) ... ok
+test_existing_file_never_overwritten (test_workspace_evidence.PublicationArchive.test_existing_file_never_overwritten) ... ok
+test_path_traversal_refused (test_workspace_evidence.PublicationArchive.test_path_traversal_refused) ... ok
+test_unexpected_tar_member_refused (test_workspace_evidence.PublicationArchive.test_unexpected_tar_member_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.012s
+
+OK

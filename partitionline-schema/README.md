@@ -1,14 +1,13 @@
 # partitionline-schema
 
-Scaffold companion for Confluent-compatible **wire framing** used with
+Schema Registry client and Confluent-compatible wire framing for
 [`partitionline`](https://crates.io/crates/partitionline).
 
-**Not published** (`publish = false`). Workspace-excluded from the core
-`partitionline` crate package. No librdkafka or OpenSSL; the default registry
-feature uses Rustls with Ring, whose build uses a C compiler. Disabling default
-features leaves dependency-free wire framing.
+Use the latest stable Rust. This separate crate is not published (`publish = false`). The default `registry`
+feature enables HTTP(S) lookups with rustls and Ring; building Ring requires a
+C compiler. Disable default features to use wire framing without dependencies.
 
-## Now
+## Features
 
 - `encode` / `decode`: magic byte `0` + big-endian schema id + payload
 - `protobuf`: bounded Confluent message-index framing (including the special
@@ -23,6 +22,13 @@ features leaves dependency-free wire framing.
 - `registry::RegistryClient` (default feature `registry`): bounded
   read-only Schema Registry lookups (by id, by subject/version, plus
   reference resolution). No registration or mutation APIs.
+
+The generic header has seven Java-generated valid vectors and seven error
+vectors. Tests read those frames and Java checks actual Rust output, including
+empty payloads, unsigned schema-ID boundaries, byte order, truncation and bad
+magic. Decode borrows the payload; encode returns a caller-owned vector. This
+checks the five-byte header contract. Protobuf indexes and codec validation
+have separate tests, and the companion remains unpublished.
 
 ## Cache limits and freshness
 
@@ -118,6 +124,15 @@ UTF-8 and int32 boundaries, plus incompatible and missing-default failures.
 The checked-in Rust codec handles only those fixture schemas; these tests do
 not qualify a production built-in serializer, live registry or Kafka broker.
 
+The [selected-codec tests](tests/avro_selected_codec_conformance.rs) also use
+Apache Avro Rust 0.22.0 against Java Avro 1.12.1. They compare actual frames and
+resolved values in both directions for a bounded profile of records, primitives,
+nullable unions and explicit references. The test bridge rejects truncated strings
+that the pinned Rust backend can otherwise convert to null. Schema/decode limits,
+reproduction commands and retained failures are in the
+[conformance evidence](../docs/evidence/conformance/avro-selected-codec/README.md).
+This codec is a test dependency; applications still choose their serializer.
+
 ## Opt-in JSON Schema adapter
 
 Enable `features = ["json-schema"]` for profile
@@ -158,7 +173,18 @@ codec recognizes only those fixture schemas. This is evidence for the adapter
 contract and framing, not production built-in validation, live registry/broker
 interop or ecosystem-profile qualification.
 
-## Later (demand-gated libraries)
+The [selected-codec tests](tests/json_schema_selected_codec_conformance.rs) use
+Rust jsonschema 0.33.0 with HTTP/file resolution disabled and an independent
+Python jsonschema 4.26.0 peer. Both validate actual adapter values and frames
+against explicit offline writer and reader schemas. The finite profile covers
+null, signed 32-bit integers, nullable record fields and exact URI references;
+missing resources, cycles, unsupported keywords and numeric spellings outside
+the profile fail explicitly. Defaults leave absent fields absent. Limits and
+reproduction commands are in the
+[conformance evidence](../docs/evidence/conformance/json-schema-selected-codec/README.md).
+The validator is a test dependency; applications still supply their codec.
+
+## Planned serializers
 
 Built-in Avro / Protobuf / JSON serialization libraries — see
 [`docs/schema-companion.md`](../docs/schema-companion.md) and survey

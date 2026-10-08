@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scope": "Preservation of existing workspace evidence; no new qualification or performance claim",
+  "source_review_commit": "a18bd45dcddcbee7969af9e1c140ee3996d6ffc4",
+  "files": 139045,
+  "objects": 37138,
+  "original_bytes": 5336475733,
+  "stored_chunk_bytes": 1654560072,
+  "manifest_sha256": "4796b6ffadab9a71f780c12cf52793784db2f3f275a3d8f6287056dc5d9b9a55",
+  "chunk_limit_bytes": 33554432
+}

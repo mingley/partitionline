@@ -1,0 +1,17 @@
+{
+  "task_counts": {
+    "done": 214,
+    "in_progress": 11,
+    "pending": 117
+  },
+  "dependency_graph": "acyclic",
+  "dependency_nodes": 342,
+  "codec_fixture_checksums_verified": 8,
+  "rust_toolchain": "stable 1.99.0",
+  "schema_tests_passed": 12,
+  "benchmark_tests_passed": 51,
+  "registry_tests_passed": 53,
+  "restoration_tests_passed": 6,
+  "credential_pattern_candidate_files": 0,
+  "scope": "Focused publication checks; production and performance qualification remain open"
+}
