@@ -426,6 +426,11 @@ fn decode_api_versions_request(body: &[u8], version: i16) -> Result<(String, Str
 fn encode_api_versions_response(out: &mut Vec<u8>, version: i16, error_code: i16) {
     out.extend_from_slice(&error_code.to_be_bytes());
     let apis = advertised_apis();
+    let apis: &[(i16, i16, i16)] = if error_code == ERR_UNSUPPORTED_VERSION {
+        &[(API_KEY_API_VERSIONS, 0, 4)] // KIP-511 negotiation hint
+    } else {
+        &apis
+    };
     if version >= 3 {
         out.put_compact_array_len(apis.len());
         for (key, min, max) in apis {
@@ -1654,7 +1659,7 @@ impl Worker {
             }
             let mut out = Vec::new();
             encode_response_header(&mut out, api_key, 0, correlation_id);
-            encode_api_versions_response(&mut out, 0, 35); // UNSUPPORTED_VERSION
+            encode_api_versions_response(&mut out, 0, ERR_UNSUPPORTED_VERSION);
             return Ok(Some(out));
         }
         // Refuse versions we do not advertise or implement. Never select behavior

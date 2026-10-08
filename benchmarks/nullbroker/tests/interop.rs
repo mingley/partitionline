@@ -1222,10 +1222,8 @@ fn unsupported_api_versions_negotiate_on_the_same_connection() {
     let mut cur = Cur::new(&response);
     assert_eq!(cur.i32(), rpc.correlation());
     assert_eq!(cur.i16(), 35);
-    assert_eq!(cur.i32(), 7); // classic v0 array, no flexible header tags
-    for expected in nullbroker::advertised_apis() {
-        assert_eq!((cur.i16(), cur.i16(), cur.i16()), expected);
-    }
+    assert_eq!(cur.i32(), 1); // classic v0 array, no flexible header tags
+    assert_eq!((cur.i16(), cur.i16(), cur.i16()), (18, 0, 4));
     assert_eq!(cur.pos, response.len());
     // The next ordinary request succeeds without redialing.
     let response = rpc.call(3, 13, &metadata_body("negotiated"));
