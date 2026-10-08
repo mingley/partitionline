@@ -81,6 +81,7 @@ public final class ConformanceUpdateFeaturesPeer {
         try (socket; var input = new DataInputStream(socket.getInputStream());
              var sink = new DataOutputStream(socket.getOutputStream())) {
             socket.setSoTimeout(3000);
+            socket.setTcpNoDelay(true);
             while (RUNNING.get()) {
                 int length;
                 try { length = input.readInt(); } catch (EOFException ended) { break; }
@@ -201,6 +202,7 @@ public final class ConformanceUpdateFeaturesPeer {
         var admin = Admin.create(properties);
         short code = 0;
         try {
+            admin.listTopics().names().get(3, TimeUnit.SECONDS);
             var updates = Map.of("test_feature_1", new FeatureUpdate((short)2, FeatureUpdate.UpgradeType.UPGRADE));
             try {
                 admin.updateFeatures(updates, new UpdateFeaturesOptions().timeoutMs(scenario.equals("deadline") ? 250 : 2000)).all().get(3, TimeUnit.SECONDS);
