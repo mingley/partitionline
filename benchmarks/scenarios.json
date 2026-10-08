@@ -31,7 +31,13 @@
         "client": "Go client",
         "pin": "franz-go v1.22.0, kadm v1.19.0, go1.26.0 (go.mod/go.sum)",
         "driver_card": "KL09-65",
-        "standing": "driver checked in (benchmarks/peers/franz-go)"
+        "standing": "driver checked in (benchmarks/peers/franz-go)",
+        "orchestrator": {
+          "command": "compiled cmd/peer binary; emit-config preflight",
+          "status": "not_qualified",
+          "reason": "The current driver omits ten settings required for matched comparisons. The orchestrator refuses those cells before provisioning.",
+          "evidence": "docs/evidence/perf/matrix-tiers/README.md"
+        }
       },
       {
         "id": "rust-rdkafka",
@@ -1739,7 +1745,7 @@
     }
   ],
   "client_ceiling": {
-    "description": "Exploratory null-broker tier measuring client-side CPU headroom versus a peer on one host. Never feeds any claim wording; quoting a ceiling number as Kafka throughput is prohibited. Evidence lives in KL09 evidence JSONs, not result-schema filings.",
+    "description": "Exploratory null-broker measurements of client CPU and throughput. Schema 2 records fixture limits. These results cannot support Kafka-throughput or fastest-client claims.",
     "tier": "exploratory",
     "feeds_claims": false,
     "broker": "null (in-process loopback harness, KL09-06..10, KL09-66/67)",
@@ -1896,7 +1902,14 @@
         "disposition": "not_run",
         "description": "Construction-to-first-ack at 1/6/64 partitions with and without an unreachable bootstrap host; open sockets (KL09-10)."
       }
-    ]
+    ],
+    "orchestrator": {
+      "target_kind": "null-broker",
+      "result_kind": "client-ceiling",
+      "status": "not_qualified",
+      "reason": "Owned fixture lifecycle and adapters are pending. The orchestrator currently refuses this tier before launching processes.",
+      "evidence": "docs/evidence/perf/matrix-tiers/README.md"
+    }
   },
   "codec_conformance": {
     "task": "KL05-05",

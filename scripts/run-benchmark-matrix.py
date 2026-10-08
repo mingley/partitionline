@@ -94,11 +94,24 @@ def validate(manifest):
         for pin in peer['inputs']:
             if not Path(pin['path']).is_absolute() or not re.fullmatch('[0-9a-f]{64}', pin['sha256']):
                 raise ValueError('input needs absolute path and SHA256')
+    broker_kind = manifest['broker'].get('kind', 'kafka')
+    if broker_kind not in ('kafka', 'null-broker'):
+        raise ValueError('broker kind must be kafka or null-broker')
     cells = manifest.get('cells', [])
     if not 1 <= len(cells) <= 32 or len({c.get('id') for c in cells}) != len(cells):
         raise ValueError('unique cells required, maximum32')
     for cell in cells:
         if not name(cell['id']) or not isinstance(cell.get('env'), dict): raise ValueError('invalid cell')
+        target_kind = cell.get('target_kind', broker_kind)
+        result_kind = cell.get('result_kind', 'client-ceiling' if target_kind == 'null-broker' else 'kafka-throughput')
+        if target_kind != broker_kind:
+            raise ValueError('cell target kind differs from the inspected broker kind')
+        if result_kind != ('client-ceiling' if broker_kind == 'null-broker' else 'kafka-throughput'):
+            raise ValueError('client-ceiling and Kafka-throughput results need separate manifests')
+        if broker_kind == 'kafka' and cell['id'].startswith(('nb-', 'ceiling-exp-null-')):
+            raise ValueError('null-broker cells cannot be registered as Kafka-throughput cells')
+        if broker_kind == 'null-broker':
+            raise ValueError('client-ceiling adapters are not qualified for this orchestrator yet')
         if set(cell['env']) - SAFE_ENV or any(not isinstance(v, str) or len(v) > 1024 for v in cell['env'].values()):
             raise ValueError('cell environment must use declared nonsecret settings')
         if int(cell['env'].get('WARMUP', '0')) < 1: raise ValueError('explicit positive warmup required')
@@ -245,7 +258,8 @@ def prepare(manifest, output, manifest_path):
 
 
 def settings(config):
-    if any(k not in config for k in MATCH): raise ValueError('peer lacks a required comparable setting')
+    missing = [k for k in MATCH if k not in config]
+    if missing: raise ValueError('peer lacks required comparable settings: ' + ', '.join(missing))
     return {k:config[k] for k in MATCH}
 
 
@@ -303,7 +317,10 @@ def run(manifest, plan, output, retry_failed):
             event(output,dict(row=index,attempt=number,state='created',topic=topic))
             execute(expand(peer['command'],values),env,directory,'peer',manifest['timeout_seconds'])
             check_pins(manifest)
-            data=read(result);schema.validate(data);valid,errors,_=validator.validate(data)
+            data=read(result)
+            if data.get('client_ceiling') is not None or data.get('provenance', {}).get('broker', {}).get('mode') == 'null':
+                raise ValueError('client-ceiling result cannot enter a Kafka-throughput cell')
+            schema.validate(data);valid,errors,_=validator.validate(data)
             if not valid:raise ValueError('result rejected: '+ '; '.join(errors[:5]))
             if data['scenario']['scenario_id']!=cell['id'] or data['scenario']['equal_semantics']!=cell['equal_semantics']:raise ValueError('durability/security differs from declared cell')
             if data['provenance']['broker']['cluster_id']!=manifest['broker']['cluster_id']:raise ValueError('result broker identity differs')

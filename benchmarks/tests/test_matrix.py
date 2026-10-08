@@ -74,6 +74,34 @@ class MatrixProcessTests(unittest.TestCase):
   r=self.run_cli('cleanup');self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(len(self.log.read_text().splitlines()),8)
   r=self.run_cli('cleanup');self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(len(self.log.read_text().splitlines()),8)
   r=self.run_cli('cleanup');self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(len(self.log.read_text().splitlines()),8)
+ def test_client_ceiling_target_cannot_use_a_kafka_manifest(self):
+  self.manifest['cells'][0].update(id='nb-produce-bulk',target_kind='null-broker',result_kind='client-ceiling');self.save()
+  r=self.run_cli();self.assertEqual(r.returncode,2,r.stderr);self.assertIn('target kind differs',r.stderr);self.assertFalse(self.log.exists());self.assertFalse(self.output.exists())
+ def test_ceiling_result_kind_cannot_use_a_kafka_manifest(self):
+  self.manifest['cells'][0]['result_kind']='client-ceiling';self.save();r=self.run_cli()
+  self.assertEqual(r.returncode,2);self.assertIn('separate manifests',r.stderr);self.assertFalse(self.log.exists())
+ def test_ceiling_cell_name_cannot_be_registered_as_kafka_throughput(self):
+  self.manifest['cells'][0]['id']='ceiling-exp-null-fetch';self.save();r=self.run_cli()
+  self.assertEqual(r.returncode,2);self.assertIn('null-broker cells',r.stderr);self.assertFalse(self.log.exists())
+ def test_unqualified_ceiling_adapter_is_refused_before_processes(self):
+  self.manifest['broker']['kind']='null-broker';self.manifest['cells'][0].update(id='nb-produce-bulk',target_kind='null-broker',result_kind='client-ceiling');self.save();r=self.run_cli()
+  self.assertEqual(r.returncode,2);self.assertIn('not qualified',r.stderr);self.assertFalse(self.log.exists());self.assertFalse(self.output.exists())
+ def test_franz_go_missing_settings_are_named_without_guessing_defaults(self):
+  cfg=json.loads(self.cfg.read_text());del cfg['queue_max_messages']
+  with self.assertRaisesRegex(ValueError,'queue_max_messages'):matrix.settings(cfg)
+ def test_ceiling_shaped_output_is_retained_and_refused_in_kafka_cell(self):
+  r=json.loads(self.data.read_text());r['client_ceiling']={'classification':'client-ceiling'};self.data.write_text(json.dumps(r))
+  for peer in self.manifest['peers']:peer['inputs'][2]['sha256']=sha(self.data)
+  self.manifest['repetitions']=1;self.save();r=self.run_cli();self.assertEqual(r.returncode,1,r.stderr)
+  outcomes=[e for e in matrix.events(self.output) if e['state']=='failed']
+  self.assertEqual(len(outcomes),2);self.assertTrue(all('cannot enter' in e['reason'] for e in outcomes))
+  self.assertEqual(len(list((self.output/'attempts').glob('*/result.json'))),2)
+ def test_franz_go_crash_keeps_the_failed_process_receipt(self):
+  self.manifest['peers'][1]['id']='franz-go';self.save();self.test_unsupported_and_crash_are_retained()
+ def test_franz_go_timeout_still_reaps_the_adapter_children(self):
+  self.manifest['peers'][1]['id']='franz-go';self.save();self.test_timeout_kills_and_reaps_grandchild()
+ def test_franz_go_resume_keeps_original_attempts(self):
+  self.manifest['peers'][1]['id']='franz-go';self.save();self.test_interrupted_attempt_resumes_in_new_directory()
  def test_actual_config_mismatch_prevents_second_arm_provisioning(self):
   self.manifest['repetitions']=1;self.manifest['peers'][1]['emit_config'][-1]='mismatch';self.save();r=self.run_cli();self.assertEqual(r.returncode,1,r.stderr)
   summary=json.loads((self.output/'summary.json').read_text());self.assertEqual((summary['executed'],summary['failed']),(1,1));self.assertEqual(len(self.log.read_text().splitlines()),1)
