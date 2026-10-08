@@ -52396,7 +52396,10 @@
         "docs/evidence/conformance/q-conf-updatefeatures/",
         "src/protocol/admin.rs",
         "tests/conformance/run-update-features.py",
-        "docs/plan/evidence/KL01-28.json"
+        "docs/plan/evidence/KL01-28.json",
+        "src/admin.rs",
+        "tests/full_surface.rs",
+        "tests/conformance/java/ConformanceUpdateFeaturesPeer.java"
       ],
       "read_only_held": [
         "src/protocol/records.rs",

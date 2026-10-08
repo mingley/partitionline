@@ -156,6 +156,63 @@ async fn native_public_update_features_history() {
 }
 
 #[tokio::test]
+#[ignore = "requires the guarded Apache SDK TCP controller peer"]
+async fn public_update_features_controller_and_deadline_history() {
+    use std::time::{Duration, Instant};
+    let address = std::env::var("UPDATE_FEATURES_BROKER").unwrap();
+    let scenario = std::env::var("UPDATE_FEATURES_SCENARIO").unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_OUTPUT").unwrap());
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([address])
+            .client_id("update-features-rust")
+            .request_timeout(Duration::from_secs(2))
+            .retry_backoff(Duration::from_millis(10))
+            .retry_backoff_max(Duration::from_millis(10)),
+    )
+    .await
+    .unwrap();
+    let timeout = if scenario == "deadline" { 250 } else { 2000 };
+    let started = Instant::now();
+    let result = admin
+        .update_features_with_timeout(
+            &[FeatureUpdate::new("test_feature_1", 2)],
+            Duration::from_millis(timeout),
+            false,
+        )
+        .await;
+    let elapsed = started.elapsed();
+    let code = match &result {
+        Ok(values) => {
+            assert_eq!(values.len(), 1);
+            assert_eq!(values[0].name, "test_feature_1");
+            values[0].error_code
+        }
+        Err(Error::Timeout) => 7,
+        Err(error) => error.broker_code().unwrap(),
+    };
+    admin.close().await.unwrap();
+    tokio::fs::write(
+        output,
+        format!(
+            "{{\"error_code\":{code},\"elapsed_us\":{}}}",
+            elapsed.as_micros()
+        ),
+    )
+    .await
+    .unwrap();
+    let expected = match scenario.as_str() {
+        "deadline" => 7,
+        "top-error" => 42,
+        "success" | "retry" => 0,
+        _ => panic!("undeclared scripted scenario"),
+    };
+    assert_eq!(
+        code, expected,
+        "actual public outcome {result:?}, elapsed {elapsed:?}"
+    );
+}
+
+#[tokio::test]
 async fn v0_public_validation_does_not_dispatch_or_mutate() {
     let mock = common::Mock::start().await;
     mock.set_api_max(UPDATE_FEATURES, 0);
