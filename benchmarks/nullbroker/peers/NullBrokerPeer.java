@@ -48,7 +48,7 @@ public final class NullBrokerPeer {
             List<Future<RecordMetadata>> deliveries = new ArrayList<>();
             for (int i = 0; i < COUNT; i++) {
                 byte[][] r = record(i);
-                deliveries.add(producer.send(new ProducerRecord<>("nullbroker-peer", 0, 0L, r[0], r[1])));
+                deliveries.add(producer.send(new ProducerRecord<>("nullbroker-peer", 0, r[0], r[1])));
             }
             for (int i = 0; i < COUNT; i++) {
                 var m = deliveries.get(i).get();

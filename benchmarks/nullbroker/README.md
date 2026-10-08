@@ -24,7 +24,7 @@ payload size, batch size, compression, and fault modes are explicit CLI options.
 `peers/` contains functional checks using Java Kafka clients 4.3.1,
 librdkafka 2.15.0, and franz-go 1.22.0. Each check acknowledges 512 records and
 validates every key, payload byte, timestamp, header count, offset, and partition in the independent seeded
-Fetch stream. The produced payloads match that seed. Successful Fetch validation
+Fetch stream. The produced payloads match that seed; Produce timestamps use each SDK's current-time default. Fetch timestamps follow the synthetic batch clock. Successful Fetch validation
 does not establish storage or produced-record readback.
 
 `peers/run.py` runs one compiled peer, joins the peer and broker, checks their

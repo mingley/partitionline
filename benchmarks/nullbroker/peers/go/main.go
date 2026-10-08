@@ -50,7 +50,7 @@ func run() error {
 	records := make([]*kgo.Record, count)
 	for i := range records {
 		key, value := record(uint64(i))
-		records[i] = &kgo.Record{Topic: "nullbroker-peer", Partition: 0, Timestamp: time.UnixMilli(0), Key: key, Value: value}
+		records[i] = &kgo.Record{Topic: "nullbroker-peer", Partition: 0, Key: key, Value: value}
 	}
 	if err := p.ProduceSync(ctx, records...).FirstErr(); err != nil {
 		p.Close()

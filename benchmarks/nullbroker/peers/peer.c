@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         rd_kafka_resp_err_t e = rd_kafka_producev(p,
             RD_KAFKA_V_TOPIC("nullbroker-peer"), RD_KAFKA_V_PARTITION(0),
             RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(value, sizeof value),
-            RD_KAFKA_V_KEY(key, sizeof key), RD_KAFKA_V_TIMESTAMP((int64_t)0), RD_KAFKA_V_END);
+            RD_KAFKA_V_KEY(key, sizeof key), RD_KAFKA_V_END);
         if (e) { failures++; fprintf(stderr, "produce: %s\n", rd_kafka_err2str(e)); break; }
     }
     if (rd_kafka_flush(p, 5000)) failures++;
