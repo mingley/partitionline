@@ -213,6 +213,72 @@ async fn public_update_features_controller_and_deadline_history() {
 }
 
 #[tokio::test]
+#[ignore = "requires independently rejected Apache SDK malformed messages"]
+async fn actual_sdk_update_features_malformed_bodies() {
+    let directory =
+        std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_MALFORMED").unwrap());
+    let mut files = tokio::fs::read_dir(directory).await.unwrap();
+    let mut accepted = Vec::new();
+    let mut count = 0;
+    while let Some(item) = files.next_entry().await.unwrap() {
+        let path = item.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("bin") {
+            continue;
+        }
+        let name = path.file_name().unwrap().to_str().unwrap();
+        let version = name[1..name.find('-').unwrap()].parse().unwrap();
+        let body = tokio::fs::read(&path).await.unwrap();
+        let rejected = if name.contains("request") {
+            decode_update_features_request(&mut &body[..], version).is_err()
+        } else {
+            decode_update_features_response(&mut &body[..], version).is_err()
+        };
+        if !rejected {
+            accepted.push(name.to_owned());
+        }
+        count += 1;
+    }
+    assert_eq!(count, 10);
+    assert!(
+        accepted.is_empty(),
+        "accepted SDK-rejected malformed fields: {accepted:?}"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires independent Apache public argument checks and a physical TCP peer"]
+async fn public_update_features_name_validation_history() {
+    use std::time::Duration;
+    let address = std::env::var("UPDATE_FEATURES_BROKER").unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_OUTPUT").unwrap());
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([address])
+            .client_id("update-features-rust")
+            .request_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    let mut rows = Vec::new();
+    for name in ["", " ", "\0", "\u{1f}", "\u{a0}", "\u{2000}", "feature"] {
+        let result = admin
+            .update_features_with(&[FeatureUpdate::new(name, 1)], 1000, false)
+            .await;
+        let rejected = matches!(result, Err(Error::Protocol(_)));
+        if !rejected {
+            assert!(result.is_ok(), "unexpected name outcome: {result:?}");
+        }
+        let code = name.chars().next().map_or(-1, |character| character as i32);
+        rows.push(format!(
+            "{{\"name_code\":{code},\"rejected_locally\":{rejected}}}"
+        ));
+    }
+    admin.close().await.unwrap();
+    tokio::fs::write(output, format!("[{}]", rows.join(",")))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
 async fn v0_public_validation_does_not_dispatch_or_mutate() {
     let mock = common::Mock::start().await;
     mock.set_api_max(UPDATE_FEATURES, 0);

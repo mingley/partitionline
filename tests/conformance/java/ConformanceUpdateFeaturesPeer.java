@@ -31,6 +31,7 @@ import org.apache.kafka.common.message.MetadataRequestData;
 import org.apache.kafka.common.message.MetadataResponseData;
 import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.message.UpdateFeaturesRequestData;
+import org.apache.kafka.common.message.UpdateFeaturesResponseData;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.protocol.ByteBufferAccessor;
 import org.apache.kafka.common.protocol.Errors;
@@ -218,11 +219,86 @@ public final class ConformanceUpdateFeaturesPeer {
             System.out.println("{\"name_code\":" + (name.isEmpty() ? -1 : (int)name.charAt(0)) + ",\"blank\":" + Utils.isBlank(name) + "}");
         }
     }
+    private static void names(String bootstrap, Path output) throws Exception {
+        var properties = new Properties();
+        properties.put("bootstrap.servers", bootstrap);
+        properties.put("client.id", "update-features-java");
+        properties.put("request.timeout.ms", "1000");
+        properties.put("default.api.timeout.ms", "2000");
+        var admin = Admin.create(properties);
+        var rows = new ArrayList<String>();
+        try {
+            admin.listTopics().names().get(3, TimeUnit.SECONDS);
+            for (String name : new String[]{"", " ", "\u0000", "\u001f", "\u00a0", "\u2000", "feature"}) {
+                boolean rejected = false;
+                try {
+                    admin.updateFeatures(Map.of(name, new FeatureUpdate((short)1, FeatureUpdate.UpgradeType.UPGRADE)),
+                        new UpdateFeaturesOptions().timeoutMs(1000)).all().get(2, TimeUnit.SECONDS);
+                } catch (IllegalArgumentException invalid) { rejected = true; }
+                rows.add("{\"name_code\":" + (name.isEmpty() ? -1 : (int)name.charAt(0)) + ",\"rejected_locally\":" + rejected + "}");
+            }
+            Files.writeString(output, "[" + String.join(",", rows) + "]\n");
+        } finally { admin.close(Duration.ofSeconds(1)); }
+    }
+    private static byte[] removeByte(byte[] input, int offset) {
+        byte[] output = new byte[input.length - 1];
+        System.arraycopy(input, 0, output, 0, offset);
+        System.arraycopy(input, offset + 1, output, offset, input.length - offset - 1);
+        return output;
+    }
+    private static void malformed(Path output) throws Exception {
+        Files.createDirectory(output);
+        int count = 0;
+        for (short version = 0; version <= 2; version++) {
+            var empty = bytes(new UpdateFeaturesRequestData(), version);
+            if (empty[4] != 1) throw new AssertionError("empty array offset");
+            empty[4] = 0;
+            var features = new UpdateFeaturesRequestData.FeatureUpdateKeyCollection();
+            var feature = new UpdateFeaturesRequestData.FeatureUpdateKey().setFeature("f").setMaxVersionLevel((short)1);
+            if (version > 0) feature.setUpgradeType((byte)1);
+            features.add(feature);
+            var named = bytes(new UpdateFeaturesRequestData().setFeatureUpdates(features), version);
+            if (named[5] != 2 || named[6] != 'f') throw new AssertionError("request name offset");
+            named[5] = 0;
+            named = removeByte(named, 6);
+            for (var entry : Map.of("null-array", empty, "null-name", named).entrySet()) {
+                boolean rejected = false;
+                try { new UpdateFeaturesRequestData(new ByteBufferAccessor(ByteBuffer.wrap(entry.getValue())), version); }
+                catch (RuntimeException expected) { rejected = true; }
+                if (!rejected) throw new AssertionError("SDK accepted malformed request");
+                Files.write(output.resolve("v" + version + "-request-" + entry.getKey() + ".bin"), entry.getValue());
+                count++;
+            }
+            if (version < 2) {
+                var response = bytes(new UpdateFeaturesResponseData(), version);
+                if (response[6] != 0 || response[7] != 1) throw new AssertionError("response array offset");
+                response[7] = 0;
+                var results = new UpdateFeaturesResponseData.UpdatableFeatureResultCollection();
+                results.add(new UpdateFeaturesResponseData.UpdatableFeatureResult().setFeature("f"));
+                var namedResponse = bytes(new UpdateFeaturesResponseData().setResults(results), version);
+                if (namedResponse[8] != 2 || namedResponse[9] != 'f') throw new AssertionError("response name offset");
+                namedResponse[8] = 0;
+                namedResponse = removeByte(namedResponse, 9);
+                for (var entry : Map.of("null-array", response, "null-name", namedResponse).entrySet()) {
+                    boolean rejected = false;
+                    try { new UpdateFeaturesResponseData(new ByteBufferAccessor(ByteBuffer.wrap(entry.getValue())), version); }
+                    catch (RuntimeException expected) { rejected = true; }
+                    if (!rejected) throw new AssertionError("SDK accepted malformed response");
+                    Files.write(output.resolve("v" + version + "-response-" + entry.getKey() + ".bin"), entry.getValue());
+                    count++;
+                }
+            }
+        }
+        if (count != 10) throw new AssertionError("malformed cohort incomplete");
+        System.out.println("{\"actual_sdk_rejected_malformed_bodies\":" + count + "}");
+    }
     public static void main(String[] args) throws Exception {
         switch (args[0]) {
             case "server" -> server(Path.of(args[1]), Short.parseShort(args[2]), args[3]);
             case "client" -> client(args[1], args[2], Path.of(args[3]));
             case "values" -> values();
+            case "client-names" -> names(args[1], Path.of(args[2]));
+            case "malformed" -> malformed(Path.of(args[1]));
             default -> throw new AssertionError("undeclared mode");
         }
     }
