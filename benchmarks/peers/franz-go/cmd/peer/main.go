@@ -113,6 +113,8 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	}
 	opts = append(opts, kgo.MaxBufferedRecords(int(bufRecords)))
 	switch cfg.Compression {
+	case "none":
+		opts = append(opts, kgo.ProducerBatchCompression(kgo.NoCompression()))
 	case "gzip":
 		opts = append(opts, kgo.ProducerBatchCompression(kgo.GzipCompression()))
 	case "snappy":

@@ -2,7 +2,7 @@
 
 Pinned [franz-go](https://github.com/twmb/franz-go) producer/consumer peer
 for the equal-semantics contract
-([docs/benchmark-contract.md](../../docs/benchmark-contract.md)).
+([docs/benchmark-contract.md](../../../docs/benchmark-contract.md)).
 Results file under result-schema `peer: "peer-adapter"` with the concrete
 peer in provenance, until a driver card promotes franz-go to a named
 schema peer, if ever.
@@ -65,6 +65,11 @@ Same names as the partitionline bench examples where they overlap:
 | `SASL_MECHANISM` | unset | PLAIN\|SCRAM-SHA-256\|SCRAM-SHA-512 (+ USERNAME/PASSWORD) |
 | `RESULT_PATH` | franzgo-result.json | result document output |
 | `SCENARIO_ID` / `PROFILE` | peer-roundtrip-plain-6p / bulk | result labeling |
+
+Compression is applied explicitly. `COMPRESSION=none` disables producer
+compression; it does not use franz-go's default `snappy, none` preference.
+The matrix still rejects this peer's incomplete shared configuration. That
+adapter qualification and a comparable Kafka campaign remain open.
 
 ## Record IDs and delivery definitions
 
