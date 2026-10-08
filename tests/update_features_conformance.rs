@@ -369,21 +369,22 @@ async fn v0_public_validation_does_not_dispatch_or_mutate() {
     );
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "requires actual Apache source-case bodies"]
-fn actual_sdk_update_features_source_cases() {
+async fn actual_sdk_update_features_source_cases() {
     use std::collections::HashMap;
     let directory =
         std::path::PathBuf::from(std::env::var_os("UPDATE_FEATURES_SOURCE_CASES").unwrap());
     let mut count = 0;
-    for entry in std::fs::read_dir(directory).unwrap() {
-        let path = entry.unwrap().path();
+    let mut files = tokio::fs::read_dir(directory).await.unwrap();
+    while let Some(entry) = files.next_entry().await.unwrap() {
+        let path = entry.path();
         if path.extension().and_then(|value| value.to_str()) != Some("bin") {
             continue;
         }
         let name = path.file_name().unwrap().to_str().unwrap();
         let version = name[1..name.find('-').unwrap()].parse().unwrap();
-        let bytes = std::fs::read(&path).unwrap();
+        let bytes = tokio::fs::read(&path).await.unwrap();
         let mut body = &bytes[..];
         if name.ends_with("request.bin") {
             let (timeout, updates, validate) =
