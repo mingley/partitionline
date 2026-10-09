@@ -46,7 +46,7 @@ jobs:
       - id: proof
         name: Retain complete or failed focused proof with original Unix modes
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: client-capabilities-${{ github.sha }}-${{ matrix.rust }}-${{ matrix.features }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |

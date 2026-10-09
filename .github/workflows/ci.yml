@@ -81,7 +81,7 @@ jobs:
       - run: bash scripts/ci-docs.sh
       - name: Upload strict documentation diagnostics
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: docs-gate-${{ github.sha }}
           path: target/docs-gate
@@ -310,7 +310,7 @@ jobs:
         run: bash scripts/ci-macos-arm64.sh report
       - name: Retain platform versions, full test logs and package reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('macos-arm64-{0}-failed-{1}', matrix.rust, github.sha) }}
           path: target/macos-arm64/${{ matrix.rust }}/
@@ -389,7 +389,7 @@ jobs:
         run: bash scripts/ci-windows.sh report
       - name: Retain native versions, full logs and package reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('windows-{0}-failed-{1}', matrix.rust, github.sha) }}
           path: target/windows/${{ matrix.rust }}/
@@ -420,7 +420,7 @@ jobs:
         run: bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
       - name: Retain all scenario outputs and substituted commands
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: release-rehearsal-${{ github.sha }}
           path: target/release-rehearsal/
@@ -452,7 +452,7 @@ jobs:
         run: bash scripts/ci-alloc-budget.sh
       - name: Retain compiler identity and complete allocation failure
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: alloc-budget-${{ github.sha }}
           path: artifacts/alloc-budget/
@@ -582,7 +582,7 @@ jobs:
         run: bash scripts/ci-fetch-session-recovery.sh
       - name: Retain identity, all startup attempts and complete histories
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: broker-current-${{ matrix.version }}-${{ github.sha }}-rust${{ steps.qualified.outputs.rust }}-scenarios${{ steps.qualified.outputs.scenarios }}-records${{ steps.qualified.outputs.records }}-${{ steps.qualified.outputs.features }}-${{ steps.qualified.outputs.digest }}
           path: |
@@ -686,7 +686,7 @@ jobs:
           mkdir -p target/conformance
           bash scripts/ci-protocol-oracles.sh --report target/conformance/fixture-report.json
       - name: Upload conformance fixture artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: conformance-fixture-artifacts
@@ -714,7 +714,7 @@ jobs:
           slug="$(echo "${{ matrix.kafka_image }}" | tr '/:' '-')"
           bash scripts/ci-protocol-oracles.sh --live --report "target/conformance/live-report-${slug}.json"
       - name: Upload conformance live artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: conformance-live-artifacts
