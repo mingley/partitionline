@@ -1,0 +1,29 @@
+{
+  "task": "KL11-39",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "persistent-acl-authorizer",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib security::acl::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "acl_tests_passed": 1,
+    "acl_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "With no binding, describe, alter, and other operations are denied.",
+    "A prefixed User:* allow permits a matching read and does not permit a different operation.",
+    "A literal deny beats that allow. A superuser is allowed before ACL evaluation, including cluster and transactional-id operations.",
+    "Reopen restores the deny and the superuser allow."
+  ],
+  "limits": [
+    "This is not the CreateAcls, DeleteAcls, or DescribeAcls RPC.",
+    "The listener, produce, and fetch paths do not consult this authorizer yet.",
+    "The journal format is the local PLACL001 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

@@ -34,5 +34,4 @@ pub mod transport;
 #[cfg(feature = "codecs")]
 pub mod codecs;
 
-#[cfg(any(feature = "tls", feature = "sasl"))]
 pub mod security;

@@ -1,5 +1,9 @@
-//! Optional transport and authentication security primitives.
+//! Transport authentication and authorization primitives.
+//!
+//! [`acl`] is the persistent authorizer. The SASL, OIDC, and TLS modules stay
+//! behind their features.
 
+pub mod acl;
 #[cfg(feature = "sasl")]
 pub mod credentials;
 #[cfg(feature = "oidc")]
