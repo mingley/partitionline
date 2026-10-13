@@ -2457,3 +2457,62 @@ fn incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_fin
     assert!(group.node(3)?.begin_dynamic_snapshot(offer, 18).is_err());
     Ok(())
 }
+
+#[test]
+fn unadvertised_prevote_does_not_repair_quorum_loss_or_cross_a_partition() -> Result {
+    let mut group = DynamicGroup::new(3, voter(4)?)?;
+    group.elect(10)?;
+    assert_eq!(group.node(0)?.state().election.role, Role::Leader);
+    assert!(group.node(0)?.poll(10 + DYNAMIC_QUORUM_TIMEOUT_MS + 1)?);
+    assert_ne!(group.node(0)?.state().election.role, Role::Leader);
+    let after_loss = group.node(0)?.state();
+    let voters = group.node(0)?.voters()?.clone();
+    let epoch = i32::try_from(after_loss.election.persistent.term).unwrap_or(1);
+    let vote = protocol::VoteBody {
+        version: 2,
+        cluster_id: Some("membership-test".into()),
+        voter_id: 1,
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        replica_epoch: epoch,
+        replica_id: 2,
+        replica_directory: Some([3u8; 16]),
+        voter_directory: Some([2u8; 16]),
+        last_offset_epoch: 0,
+        last_offset: 0,
+        pre_vote: true,
+    };
+    let disposition =
+        group
+            .node(0)?
+            .inspect_unadvertised(52, 2, &protocol::encode_vote_body(&vote)?)?;
+    assert!(matches!(
+        disposition,
+        protocol::VoteDisposition::PreVoteGranted | protocol::VoteDisposition::Refused(_)
+    ));
+    let after_inspect = group.node(0)?.state();
+    assert_ne!(after_inspect.election.role, Role::Leader);
+    assert_eq!(
+        after_inspect.election.persistent,
+        after_loss.election.persistent
+    );
+    assert_eq!(after_inspect.wal_durable_ops, after_loss.wal_durable_ops);
+    assert_eq!(group.node(0)?.voters()?, &voters);
+    assert_ne!(group.node(2)?.state().election.role, Role::Leader);
+    let mut outsider = vote;
+    outsider.replica_id = 9;
+    outsider.replica_directory = Some([9u8; 16]);
+    assert!(matches!(
+        group
+            .node(0)?
+            .inspect_unadvertised(52, 2, &protocol::encode_vote_body(&outsider)?),
+        Err(replication::Error::Membership(
+            partitionline_broker::raft::membership::Error::VoterNotFound
+        ))
+    ));
+    assert_eq!(
+        group.node(0)?.state().election.persistent,
+        after_loss.election.persistent
+    );
+    Ok(())
+}
