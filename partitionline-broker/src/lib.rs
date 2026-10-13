@@ -19,6 +19,7 @@ pub mod metadata_quorum;
 pub mod partition;
 pub mod produce;
 pub mod protocol;
+pub mod quotas;
 pub mod raft;
 pub mod records;
 pub mod recovery;

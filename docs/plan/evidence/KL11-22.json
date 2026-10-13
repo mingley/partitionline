@@ -1,0 +1,28 @@
+{
+  "task": "KL11-22",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "in-memory-quotas",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib quotas::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "quota_tests_passed": 2,
+    "quota_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A client that exhausts its produce bucket cannot spend another client's tokens.",
+    "A request past the maximum throttle is refused without being accepted. A delay within the maximum is accepted and still owns its byte permit.",
+    "Disconnect releases only connection permits. Lowering rates does not drop work that was already accepted.",
+    "Replication uses its own bucket."
+  ],
+  "limits": [
+    "This is an in-memory window, not a Kafka throttle response and not durable quota administration.",
+    "Request percentage quotas and per-user credential quotas are not implemented.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
