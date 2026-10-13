@@ -1,0 +1,33 @@
+{
+  "parent_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "runtime_sha256": "bac765108182c9d307faa555707c83f7a061bab0cba31151b236e8f1421c9c68",
+  "cells": {
+    "nb-fetch-bulk": {
+      "rounds": 1,
+      "fetched_records": 135000,
+      "consumed_records": 20000,
+      "cpu_ns_per_round": 59498000,
+      "allocation_count": 135451
+    },
+    "nb-fetch-capped-paused": {
+      "rounds": 2000,
+      "fetched_records": 120000,
+      "consumed_records": 2000,
+      "cpu_ns_per_poll": 26036.5,
+      "allocation_count": 126548
+    }
+  },
+  "acct_bench": {
+    "records": 135000,
+    "payload_bytes": 100,
+    "runs": [
+      {"current_ns": 2134910, "fused_ns": 1953875, "saved_ns": 181035},
+      {"current_ns": 2371645, "fused_ns": 2014331, "saved_ns": 357314}
+    ],
+    "saved_pct_of_bulk_round": [0.304, 0.600],
+    "capped_2000_polls_current_ns": 74894,
+    "capped_accounting_pct_of_cell_cpu": 0.144,
+    "positions_scan_6_partitions_ns": 532,
+    "note": "Group position scans are not invoked by these Consumer::fetch cells."
+  }
+}

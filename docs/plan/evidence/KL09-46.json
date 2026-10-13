@@ -1,0 +1,49 @@
+{
+  "id": "KL09-46",
+  "status": "done",
+  "disposition": "rejected-no-gain",
+  "outcome_branch": "early rejection at performance-leadership.md section 6 step 2: the redundant accounting pass and the group position scan are each below 1% of the named cells; remaining implementation criteria do not apply",
+  "source_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "baseline_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "candidate_sha": null,
+  "hypothesis": "fetch_records sums fetched bytes and then walks the same records again for per-topic metrics, and group poll rebuilds delivered positions by scanning assignment against the pending queues. Fusing the walks and caching positions was expected to cut CPU on nb-fetch-bulk and nb-fetch-capped-paused.",
+  "finding": "Both named cells use Consumer::fetch, so positions() and record_delivered_positions are not on the measured path. One bulk round returns 135000 records and costs 59.498 ms of client CPU. A release-optimized replica of the two-pass accounting versus one fused pass saved 181 µs and 357 µs (0.30% and 0.60% of that round). The two-pass block itself is 2.13–2.37 ms because the bytes still have to be counted once. Capped-paused accounting across 2000 one-record polls was 75 µs, 0.14% of 52.073 ms of poll CPU. A six-partition position clone scan was 0.5 µs. Fusing does not change the per-round topic-metric HashMap, so bulk allocations stay 135451. No production code was changed.",
+  "cells": ["nb-fetch-bulk", "nb-fetch-capped-paused"],
+  "host": "Intel Xeon family 6 model 207, 4 cores, Linux 6.12.94+ x86_64, frequency unpinned (harness 2400 MHz), rustc 1.99.0 (b940084d7 2026-09-28), release profile",
+  "commands": [
+    "cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve (exit 0)",
+    "NB_SERVE=benchmarks/runtime/target/release/nb-serve benchmarks/runtime/target/release/runtime --cell nb-fetch-bulk --out /tmp/kl09-46-head/bulk --repetitions 1 (exit 0)",
+    "NB_SERVE=benchmarks/runtime/target/release/nb-serve benchmarks/runtime/target/release/runtime --cell nb-fetch-capped-paused --out /tmp/kl09-46-head/capped --repetitions 1 (exit 0)",
+    "rustc -C opt-level=3 --extern bytes=... /tmp/acct_bench.rs && /tmp/acct_bench (exit 0, two runs)",
+    "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-46/nb-fetch-bulk-rep0.result.json --quiet --json (exit 0, valid, 0 errors)",
+    "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-46/nb-fetch-capped-paused-rep0.result.json --quiet --json (exit 0, valid, 0 errors)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "redundant fetched-byte pass, ns saved versus one fused pass, as a percent of nb-fetch-bulk client CPU",
+      "baseline_median": 59498000,
+      "candidate_median": null,
+      "saved_ns": [181035, 357314],
+      "delta_pct": [-0.304, -0.600],
+      "repetitions": 1,
+      "note": "Cell repetitions are one parent run per cell. The accounting delta is two opt-level=3 microbench runs over 135000 records, not an interleaved candidate."
+    },
+    "allocations": {"unit": "per bulk round", "baseline": 135451, "candidate": 135451},
+    "guardrails": "not applicable; no candidate binary",
+    "net_production_lines": 0,
+    "correctness": "no production diff; remaining suites do not apply on this rejection branch"
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL09-46/README.md",
+    "docs/evidence/perf/KL09-46/attribution.json",
+    "docs/evidence/perf/KL09-46/acct_bench.rs",
+    "docs/evidence/perf/KL09-46/nb-fetch-bulk-rep0.result.json",
+    "docs/evidence/perf/KL09-46/nb-fetch-capped-paused-rep0.result.json"
+  ],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput comparison. Suite HOLD remains active.",
+    "One repetition per cell. The acceptance comparison was not run because the targeted redundant work is below 1%.",
+    "The microbench replicates fetched_bytes and the topic HashMap; it is not the in-process consumer. It walks 135000 records, matching the bulk fetch size.",
+    "No card lists KL09-46 in requires_accepted."
+  ]
+}
