@@ -1,0 +1,32 @@
+{
+  "task": "KL11-46",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "mixed-version-feature-rollback",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "python3 scripts/broker-upgrade-campaign.py",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test upgrade_campaign -- -D warnings"
+  ],
+  "results": {
+    "proven_feature": "metadata.version",
+    "proven_level": 3,
+    "downgrade_rejected": true,
+    "unsupported_version_rejected": true,
+    "rollback_level": 3,
+    "log_dir": "data-a",
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Version 0 sets metadata.version to 2 and version 1 raises it to 3.",
+    "A downgrade to 1 is rejected and the level stays 3.",
+    "Version 2 is rejected and does not change the level or the log directory.",
+    "Reopen restores level 3 and the log directory."
+  ],
+  "limits": [
+    "Source, rustc, cluster id, and feature config are pinned by scripts/broker-upgrade-campaign.py into docs/evidence/broker/upgrade/campaign.json.",
+    "This is one local admin journal, not a multi-broker rolling upgrade or a mixed-version network.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
