@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "durable-coordinator",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "eb9e5f3c1c9fafbe31d6f8a4d463d355afb37557",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::coordinator::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
