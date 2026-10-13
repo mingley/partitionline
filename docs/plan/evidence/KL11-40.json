@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "delegation-token-lifecycle",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "e9f2db4f3c82c9194e5a4223ce29ccd15dc749a8",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib security::tokens::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
