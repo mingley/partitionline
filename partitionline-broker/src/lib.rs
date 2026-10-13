@@ -13,6 +13,7 @@ pub mod configs;
 pub mod controller;
 pub mod fetch;
 pub mod high_watermark;
+pub mod idempotence;
 pub mod journal;
 pub mod metadata;
 pub mod metadata_quorum;

@@ -1,0 +1,29 @@
+{
+  "task": "KL11-23",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "durable-idempotence",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib idempotence::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "idempotence_tests_passed": 2,
+    "idempotence_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A retry of a sequence still in the duplicate window returns the original base offset and does not advance the log.",
+    "A gap is OUT_OF_ORDER_SEQUENCE_NUMBER and writes nothing.",
+    "An older epoch is INVALID_PRODUCER_EPOCH and writes nothing. Epoch i16::MAX cannot be bumped.",
+    "Reopen still answers the lost acknowledgement with the original offset."
+  ],
+  "limits": [
+    "This is not the InitProducerId or Produce RPC.",
+    "The duplicate window is five batches. Transactional producer state stays on KL11-24.",
+    "The journal format is the local PLIDEM01 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
