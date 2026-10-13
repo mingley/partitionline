@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "typed-durable-placement",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "0d60903f549b3288c2ac0e749a08659abbcb8173",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib controller::partitions",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
