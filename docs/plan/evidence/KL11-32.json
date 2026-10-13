@@ -1,0 +1,29 @@
+{
+  "task": "KL11-32",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "share-and-streams-membership",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "group_tests_passed": 8,
+    "group_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Share heartbeat versions 0 and 1 join at epoch 0 and leave at epoch -1. Version 2 is refused. Describe reports the group epoch, assignment epoch, and negotiated version.",
+    "Share partitions stay uniquely owned. A member epoch older than the issued epoch is fenced. Reopen restores the epochs and the remaining member.",
+    "Streams heartbeat version 0 assigns active tasks without overlap and gives a second member standby copies of the other member's tasks. Version 1 is refused.",
+    "A different streams topology epoch stores nothing. A static rejoin at epoch -2 replaces the previous member id. Reopen restores the assignment epoch."
+  ],
+  "limits": [
+    "This is not the ShareGroupHeartbeat, ShareGroupDescribe, StreamsGroupHeartbeat, or StreamsGroupDescribe RPC.",
+    "Streams heartbeat is the Kafka 4.1.2 version 0 profile. Share heartbeat versions 0 and 1 share the membership fields and are not pinned to Apache response bytes.",
+    "The journals are the local PLSHR001 and PLSTR001 snapshots.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
