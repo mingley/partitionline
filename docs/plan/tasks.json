@@ -10210,13 +10210,14 @@
     {
       "id": "KL07-08",
       "title": "Expose bounded operational diagnostics",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL02-01", "KL05-08", "KL05-09", "KL06-07"],
       "files": ["src/metrics.rs", "examples/metrics.rs", "docs/guide.md"],
       "deliverable": "A focused diagnostics surface/runbook for queue age/bytes, retries, throttle, reconnect, lag and group/transaction outcomes.",
       "acceptance": ["Add only counters with a clear failure diagnosis and bounded label/cardinality policy.", "Keep exporter integrations optional and existing rolling-window percentiles distinct from benchmark histograms.", "Measure disabled/enabled tracing/metrics overhead against the proposed 2% budget; redact credentials and payloads."],
       "validation": ["cargo test --locked --lib metrics", "cargo test --locked --test credential_redact --features tracing", "Run one matched telemetry-on/off benchmark cell and a fault diagnosis exercise."],
-      "evidence": []
+      "write_set": ["src/metrics.rs", "src/consumer.rs", "src/group.rs", "src/lib.rs", "examples/metrics.rs", "docs/guide.md", "benchmarks/runtime/Cargo.toml", "benchmarks/runtime/Cargo.lock", "docs/plan/tasks.json", "docs/plan/evidence/KL07-08.json", "docs/evidence/client/KL07-08/"],
+      "evidence": ["docs/plan/evidence/KL07-08.json"]
     },
     {
       "id": "KL07-09",

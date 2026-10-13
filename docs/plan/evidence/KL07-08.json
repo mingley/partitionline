@@ -1,0 +1,22 @@
+{
+  "id": "KL07-08",
+  "status": "done",
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --lib metrics (13 passed, exit 0)",
+    "cargo test --locked --offline --test credential_redact --features tracing (29 passed, exit 0)",
+    "cargo clippy --locked --offline --lib -- -D warnings (exit 0)",
+    "Five interleaved nb-fetch-bulk runs, tracing feature off then on, no subscriber (all exit 0)"
+  ],
+  "results": "Reconnect and group-outcome counters plus static diagnose_* lines. Prometheus text stays an example. Five-pair tracing on/off CPU paired mean -3.0%, 95% CI [-14.9, 8.8], allocations identical at 135451. The CI does not prove the 2% budget; tracing remains off by default.",
+  "artifacts": [
+    "docs/evidence/client/KL07-08/README.md",
+    "docs/evidence/client/KL07-08/tracing-bulk-rows.json",
+    "docs/plan/evidence/KL07-08.json"
+  ],
+  "limits": [
+    "No in-flight queue-age counter. Producer.rs is held by in-progress KL06-11 and KL05-10.",
+    "Transaction commit and abort still surface as Result and produce_errors. No new producer counter.",
+    "Tracing measurement compiled the feature in without a subscriber. The CPU interval is too wide to confirm a 2% bound."
+  ]
+}

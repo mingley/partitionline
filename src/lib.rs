@@ -3247,8 +3247,8 @@ pub use group::{
 };
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
-    AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, Quota, ShareMetrics,
-    TopicFetchMetrics, TopicProduceMetrics,
+    diagnose_fetch, diagnose_group, diagnose_produce, AdminMetrics, ConsumerMetrics, GroupOutcomes,
+    LatencyStats, ProducerMetrics, Quota, ShareMetrics, TopicFetchMetrics, TopicProduceMetrics,
 };
 pub use net::TlsConfig;
 pub use offsets::{OffsetClient, OffsetOptions};

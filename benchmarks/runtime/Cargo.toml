@@ -6,6 +6,9 @@ rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 description = "Runtime measurements against null and native Kafka brokers. Standalone benchmark crate."
 
+[features]
+tracing = ["partitionline/tracing"]
+
 [dependencies]
 partitionline = { version = "0.1.0", path = "../.." }
 nullbroker = { version = "0.1.0", path = "../nullbroker" }

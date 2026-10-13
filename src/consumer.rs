@@ -1541,6 +1541,7 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_reconnects: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1900,6 +1901,7 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_reconnects: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2524,15 +2526,13 @@ impl Consumer {
                     return Ok(());
                 }
                 Err(e) if e.is_retriable() => {
-                    let _fails =
-                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    self.note_reconnect_failure(node);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
                 }
                 Err(e) => {
-                    let _fails =
-                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    self.note_reconnect_failure(node);
                     return Err(e);
                 }
             }
@@ -2568,6 +2568,11 @@ impl Consumer {
         )
         .await?;
         Ok(conn)
+    }
+
+    fn note_reconnect_failure(&mut self, node: i32) {
+        let _fails = crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+        let _ = self.m_reconnects.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Wait [`ConsumerConfig::reconnect_backoff`] unless a wakeup arrives.
@@ -2862,6 +2867,7 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            reconnects: self.m_reconnects.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             throttle: self.throttle_metrics.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),

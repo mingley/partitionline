@@ -496,6 +496,17 @@ reports the same requested-time counters as the producer. This also covers the
 Fetch calls behind consumer-group polling; Admin and heartbeat/group quotas remain
 separate policies.
 
+`Consumer::metrics().reconnects` counts failed leader connects. Queue bytes are
+`Producer::metrics().bytes_buffered`. In-flight produce retries are
+`Producer::retries_in_flight`. Completed queue-to-ack time is `ack_latency`;
+there is no separate in-flight age counter. `ConsumerGroup::outcomes` counts
+rejoins after the initial join and OffsetCommit successes and failures.
+`diagnose_produce`, `diagnose_fetch`, and `diagnose_group` return static
+sentences only: no topic names, group ids, keys, values, or credentials.
+Topic rows stay one per active topic. Prometheus text in `examples/metrics.rs`
+is an optional example, not a core exporter. Lag is `current_lag` (one
+ListOffsets call per partition you ask about), not a scraped label.
+
 ## Recipes
 
 ### Backpressure

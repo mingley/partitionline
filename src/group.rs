@@ -3,7 +3,7 @@ mod offsets;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -517,6 +517,9 @@ pub struct ConsumerGroup {
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
+    m_rebalances: AtomicU64,
+    m_commits_ok: AtomicU64,
+    m_commits_failed: AtomicU64,
     /// Next [`poll`](Self::poll) must rejoin (Java `enforceRebalance`).
     rebalance_needed: bool,
     /// JoinGroup v8+ Reason for the next rejoin (KIP-800).
@@ -687,6 +690,9 @@ impl ConsumerGroup {
             last_delivered_topic_ids: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
+            m_rebalances: AtomicU64::new(0),
+            m_commits_ok: AtomicU64::new(0),
+            m_commits_failed: AtomicU64::new(0),
             rebalance_needed: false,
             rebalance_reason: None,
             pending_async_commits: Vec::new(),
@@ -841,6 +847,9 @@ impl ConsumerGroup {
             last_delivered_topic_ids: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
+            m_rebalances: AtomicU64::new(0),
+            m_commits_ok: AtomicU64::new(0),
+            m_commits_failed: AtomicU64::new(0),
             rebalance_needed: false,
             rebalance_reason: None,
             pending_async_commits: Vec::new(),
@@ -1268,6 +1277,25 @@ impl ConsumerGroup {
         self.consumer.metrics()
     }
 
+    /// Rebalance and offset-commit counts since join. No group or member labels.
+    #[must_use]
+    pub fn outcomes(&self) -> crate::metrics::GroupOutcomes {
+        crate::metrics::GroupOutcomes {
+            rebalances: self.m_rebalances.load(Ordering::Relaxed),
+            commits_succeeded: self.m_commits_ok.load(Ordering::Relaxed),
+            commits_failed: self.m_commits_failed.load(Ordering::Relaxed),
+        }
+    }
+
+    fn note_commit(&self, ok: bool) {
+        let counter = if ok {
+            &self.m_commits_ok
+        } else {
+            &self.m_commits_failed
+        };
+        let _ = counter.fetch_add(1, Ordering::Relaxed);
+    }
+
     /// Java `clientInstanceId` (KIP-714). Delegates to [`crate::Consumer::client_instance_id`].
     ///
     /// Returns [`crate::Uuid`] (Java `Uuid`).
@@ -1570,11 +1598,23 @@ impl ConsumerGroup {
         if topics.is_empty() {
             return Ok(());
         }
-        if self.coord.offset_commit_version == 10 {
-            return self
-                .commit_offsets_v10(&offsets, timeout.saturating_sub(started.elapsed()), None)
-                .await;
-        }
+        let result = if self.coord.offset_commit_version == 10 {
+            self.commit_offsets_v10(&offsets, timeout.saturating_sub(started.elapsed()), None)
+                .await
+        } else {
+            self.commit_classic(&offsets, &topics, timeout.saturating_sub(started.elapsed()))
+                .await
+        };
+        self.note_commit(result.is_ok());
+        result
+    }
+
+    async fn commit_classic(
+        &mut self,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        topics: &[OffsetTopic],
+        timeout: Duration,
+    ) -> Result<()> {
         let version = spoken_offset_commit(self.coord.offset_commit_version)?;
         let body = coord_roundtrip(
             &mut self.coord,
@@ -1592,7 +1632,7 @@ impl ConsumerGroup {
                     &self.member_id,
                     self.cfg.group_instance_id.as_deref(),
                     DEFAULT_RETENTION_TIME,
-                    &topics,
+                    topics,
                 )
             },
             timeout,
@@ -1602,7 +1642,7 @@ impl ConsumerGroup {
         if err != 0 {
             return Err(Error::broker(err, "OffsetCommit"));
         }
-        self.cfg.interceptors.on_commit(&offsets);
+        self.cfg.interceptors.on_commit(offsets);
         Ok(())
     }
 
@@ -1673,8 +1713,11 @@ impl ConsumerGroup {
         for (offsets, callback, ids) in pending {
             let metadata_ids = self.consumer.topic_name_ids();
             let send = if self.coord.offset_commit_version == 10 {
-                self.commit_offsets_v10(&offsets, self.cfg.request_timeout, Some(&ids))
-                    .await
+                let sent = self
+                    .commit_offsets_v10(&offsets, self.cfg.request_timeout, Some(&ids))
+                    .await;
+                self.note_commit(sent.is_ok());
+                sent
             } else if offsets.iter().any(|(tp, _)| {
                 ids.get(&(tp.topic.clone(), tp.partition)).copied()
                     != self
@@ -1683,6 +1726,7 @@ impl ConsumerGroup {
                         .or_else(|| metadata_ids.get(&tp.topic).copied())
                         .filter(|id| *id != [0; 16])
             }) {
+                self.note_commit(false);
                 Err(Error::protocol(
                     "queued offset identity differs from the current assignment",
                 ))
@@ -1994,9 +2038,13 @@ impl ConsumerGroup {
 
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self), fields(protocol = %self.protocol)))]
     async fn rejoin(&mut self) -> Result<()> {
+        let rejoining = !self.member_id.is_empty();
         for _ in 0..8 {
             let revoked = self.rejoin_once().await?;
             if self.protocol != "cooperative-sticky" || revoked.is_empty() {
+                if rejoining {
+                    let _ = self.m_rebalances.fetch_add(1, Ordering::Relaxed);
+                }
                 return Ok(());
             }
         }

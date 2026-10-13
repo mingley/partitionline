@@ -464,8 +464,76 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Fetch v8+ client quota observations, aggregated across brokers.
     pub throttle: ThrottleStats,
+    /// Failed leader connects. One count per attempt, not per broker.
+    pub reconnects: u64,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+}
+
+/// Group membership and offset-commit outcomes since join.
+///
+/// Counts only. No group id, member id, or offset labels.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct GroupOutcomes {
+    /// Rejoins after the initial join.
+    pub rebalances: u64,
+    /// OffsetCommit RPCs that succeeded.
+    pub commits_succeeded: u64,
+    /// OffsetCommit RPCs that failed.
+    pub commits_failed: u64,
+}
+
+/// Static produce findings. Strings never include record bytes or credentials.
+#[must_use]
+pub fn diagnose_produce(metrics: &ProducerMetrics, retries_in_flight: u64) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    if metrics.throttle.responses > 0 {
+        out.push("throttled: broker quota is delaying produce; do not open extra connections");
+    }
+    if metrics.bytes_buffered > 0 && metrics.records_acked < metrics.records_queued {
+        out.push("queued: records are buffered awaiting acknowledgement");
+    }
+    if retries_in_flight > 0 {
+        out.push("retries: produce attempts are in flight after a failure");
+    }
+    if metrics.produce_errors > 0 {
+        out.push(
+            "produce failures: inspect Error; transaction commit and abort use this path, not record payloads",
+        );
+    }
+    out
+}
+
+/// Static fetch findings. Strings never include keys, values, or credentials.
+#[must_use]
+pub fn diagnose_fetch(metrics: &ConsumerMetrics) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    if metrics.throttle.responses > 0 {
+        out.push("throttled: broker quota is delaying fetch");
+    }
+    if metrics.reconnects > 0 {
+        out.push("reconnects: a leader connection failed; refresh metadata if the leader moved");
+    }
+    if metrics.fetch_errors > 0 && metrics.records_fetched == 0 {
+        out.push("blocked: fetch is failing and no records have been delivered");
+    } else if metrics.fetch_rounds > 0 && metrics.records_fetched == 0 && metrics.fetch_errors == 0
+    {
+        out.push("idle: fetches succeeded with no records; check assignment, pause, and lag");
+    }
+    out
+}
+
+/// Static group findings. Strings never include group or member ids.
+#[must_use]
+pub fn diagnose_group(outcomes: &GroupOutcomes) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    if outcomes.commits_failed > 0 {
+        out.push("commits failing: offsets were not stored; do not assume the group advanced");
+    }
+    if outcomes.rebalances > 0 {
+        out.push("rebalance: membership changed; paused partitions stay paused");
+    }
+    out
 }
 
 /// Fetch counters for one topic.
@@ -724,7 +792,9 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().reconnects, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
+        assert_eq!(GroupOutcomes::default().rebalances, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);
@@ -737,6 +807,54 @@ mod tests {
         assert_eq!(AdminMetrics::default().connections, 0);
         assert_eq!(AdminMetrics::default().request_latency.count, 0);
         assert_eq!(LatencyStats::default().mean_nanos(), None);
+    }
+
+    #[test]
+    fn diagnosis_names_throttle_reconnect_block_and_commit_failure() {
+        let throttled = ProducerMetrics {
+            throttle: ThrottleStats {
+                responses: 2,
+                requested_millis: 400,
+                ..ThrottleStats::default()
+            },
+            bytes_buffered: 100,
+            records_queued: 2,
+            records_acked: 0,
+            ..ProducerMetrics::default()
+        };
+        let produce = diagnose_produce(&throttled, 1);
+        assert!(produce.iter().any(|line| line.starts_with("throttled:")));
+        assert!(produce.iter().any(|line| line.starts_with("queued:")));
+        assert!(produce.iter().any(|line| line.starts_with("retries:")));
+        let blocked = ConsumerMetrics {
+            fetch_errors: 3,
+            reconnects: 1,
+            records_fetched: 0,
+            ..ConsumerMetrics::default()
+        };
+        let fetch = diagnose_fetch(&blocked);
+        assert!(fetch.iter().any(|line| line.starts_with("reconnects:")));
+        assert!(fetch.iter().any(|line| line.starts_with("blocked:")));
+        let idle = ConsumerMetrics {
+            fetch_rounds: 4,
+            ..ConsumerMetrics::default()
+        };
+        assert!(diagnose_fetch(&idle)
+            .iter()
+            .any(|line| line.starts_with("idle:")));
+        let group = diagnose_group(&GroupOutcomes {
+            commits_failed: 1,
+            rebalances: 1,
+            ..GroupOutcomes::default()
+        });
+        assert!(group
+            .iter()
+            .any(|line| line.starts_with("commits failing:")));
+        assert!(group.iter().any(|line| line.starts_with("rebalance:")));
+        let secret = "password-secret-value";
+        let rendered = format!("{produce:?}{fetch:?}{group:?}");
+        assert!(!rendered.contains(secret));
+        assert!(!rendered.contains("orders"));
     }
 
     #[test]

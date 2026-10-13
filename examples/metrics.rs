@@ -3,7 +3,9 @@
 //! Broker on `KAFKA_BOOTSTRAP`. Topic `KAFKA_TOPIC` (default `partitionline`).
 //! Set `FORMAT=prom` for a minimal Prometheus exposition (no prom crate).
 
-use partitionline::{Consumer, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{
+    diagnose_fetch, diagnose_produce, Consumer, ProduceRecord, Producer, ProducerConfig,
+};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -19,6 +21,9 @@ async fn main() -> partitionline::Result<()> {
         .send(ProduceRecord::to(topic.clone()).value(&b"hello"[..]))
         .await?;
     let pm = producer.metrics();
+    for line in diagnose_produce(&pm, producer.retries_in_flight() as u64) {
+        println!("diagnose {line}");
+    }
 
     if format == "prom" {
         println!("# HELP partitionline_produce_records_acked Produce records acked");
@@ -51,6 +56,9 @@ async fn main() -> partitionline::Result<()> {
     consumer.assign(&topic, 0, 0).await?;
     let recs = consumer.fetch().await?;
     let cm = consumer.metrics();
+    for line in diagnose_fetch(&cm) {
+        println!("diagnose {line}");
+    }
     if format == "prom" {
         println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
         println!("# TYPE partitionline_fetch_rounds counter");
