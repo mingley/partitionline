@@ -2,7 +2,7 @@
   "id": "KL09-48",
   "status": "done",
   "disposition": "accepted",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "83f3e68fea9652f06c3a42348c8821c8e79ed5b1",
   "baseline_sha": "9006407d",
   "hypothesis": "next_offsets cloned and hashed a TopicPartition string for every record. Keying the scan by a borrowed topic and partition id removes that per-record clone.",
   "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04, rustc 1.99.0, cargo test --release",
