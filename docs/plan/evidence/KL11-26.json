@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "transactional-offset-commit",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "66f79bf9a6a9ecf7847f549c770e4e8593be5065",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::offsets::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
