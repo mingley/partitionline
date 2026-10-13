@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "high-watermark-acks",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "4c07c4d20fad210dd60fccc880f767f8238045f9",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib high_watermark",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
