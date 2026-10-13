@@ -1,0 +1,29 @@
+{
+  "task": "KL11-31",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "modern-consumer-range-assignor",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::consumer::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "consumer_group_tests_passed": 1,
+    "consumer_group_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Heartbeat versions 0 and 1 are accepted. The group version is the minimum across members. Version 2 and a non-range assignor are refused.",
+    "The range assignor gives each partition to one member. A leave moves those partitions to the remaining member without an overlap.",
+    "A member epoch older than the issued epoch is fenced. A skipped epoch is stale. The next heartbeat must present the epoch returned with the new assignment.",
+    "Reopen restores the assignment. An older coordinator epoch cannot heartbeat. A static instance replacement removes the previous member id."
+  ],
+  "limits": [
+    "This is not the ConsumerGroupHeartbeat or ConsumerGroupDescribe RPC and it is not pinned to Apache response bytes.",
+    "The only server assignor is range. Uniform and sticky assignors are refused.",
+    "The journal format is the local PLCNS001 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

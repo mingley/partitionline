@@ -1,0 +1,956 @@
+//! KIP-848 style consumer-group heartbeat and server-side range assignment.
+//!
+//! The broker owns the assignment. Heartbeat versions 0 and 1 are accepted, and
+//! the group negotiates the minimum. A member epoch moves forward only when
+//! that member is shown a new assignment. A stale or skipped epoch is fenced.
+//! Leaving a member, or replacing a static instance, keeps each partition owned
+//! by one member. The journal restores the same epochs after a coordinator
+//! restart; an older coordinator epoch cannot mutate the group.
+//!
+//! This is not the ConsumerGroupHeartbeat or ConsumerGroupDescribe RPC, and it
+//! is not pinned to Apache response bytes.
+
+use crate::journal::{self, Journal};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+const RECORD_MAGIC: &[u8; 8] = b"PLCNS001";
+
+/// Kafka `NOT_COORDINATOR`.
+pub const NOT_COORDINATOR: i16 = 16;
+/// Kafka `UNKNOWN_MEMBER_ID`.
+pub const UNKNOWN_MEMBER_ID: i16 = 25;
+/// Kafka `FENCED_MEMBER_EPOCH`.
+pub const FENCED_MEMBER_EPOCH: i16 = 110;
+/// Kafka `UNSUPPORTED_ASSIGNOR`.
+pub const UNSUPPORTED_ASSIGNOR: i16 = 112;
+/// Kafka `STALE_MEMBER_EPOCH`.
+pub const STALE_MEMBER_EPOCH: i16 = 113;
+
+/// One consumer heartbeat.
+#[derive(Debug, Clone, Copy)]
+pub struct Heartbeat<'a> {
+    /// Coordinator epoch that must match the restored leader.
+    pub coordinator_epoch: i64,
+    /// Group id.
+    pub group: &'a str,
+    /// Empty to join. `member_epoch` of `-1` leaves.
+    pub member_id: &'a str,
+    /// Last epoch returned to this member.
+    pub member_epoch: i32,
+    /// Static instance id, if any.
+    pub instance_id: Option<&'a str>,
+    /// Heartbeat version, 0 or 1.
+    pub version: i16,
+    /// Server assignor. Only `range` is implemented.
+    pub assignor: &'a str,
+    /// Subscribed topics.
+    pub topics: &'a [&'a str],
+}
+
+/// Assignment returned by a heartbeat.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Assigned {
+    /// Member id, allocated on join.
+    pub member_id: String,
+    /// Epoch the next heartbeat must present.
+    pub member_epoch: i32,
+    /// Group epoch.
+    pub group_epoch: i32,
+    /// Minimum heartbeat version of the current members.
+    pub version: i16,
+    /// Owned partitions by topic.
+    pub assignment: BTreeMap<String, Vec<i32>>,
+}
+
+/// A member visible to describe.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemberView {
+    /// Member id.
+    pub member_id: String,
+    /// Current epoch.
+    pub member_epoch: i32,
+    /// Owned partitions by topic.
+    pub assignment: BTreeMap<String, Vec<i32>>,
+}
+
+/// Group metadata visible to describe.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GroupView {
+    /// Group epoch.
+    pub epoch: i32,
+    /// Negotiated heartbeat version.
+    pub version: i16,
+    /// Members and their target assignments.
+    pub members: Vec<MemberView>,
+}
+
+/// Why a modern-group operation was refused.
+#[derive(Debug)]
+pub enum Error {
+    /// The coordinator epoch does not match this process.
+    NotCoordinator,
+    /// The member id is not in the group.
+    UnknownMember,
+    /// The member epoch is older than the epoch last issued.
+    Fenced,
+    /// The member epoch skipped ahead of the issued epoch.
+    Stale,
+    /// The assignor is not the server range assignor.
+    UnsupportedAssignor,
+    /// The group, topic, version, or epoch is not usable.
+    InvalidRequest,
+    /// A failed append left this coordinator unable to confirm further writes.
+    Poisoned,
+    /// The limits cannot store the groups.
+    InvalidLimits,
+    /// The journal rejected the record or could not be recovered.
+    Storage(journal::Error),
+}
+
+impl Error {
+    /// Kafka code for a member-visible refusal. Storage failures have none.
+    pub fn code(&self) -> Option<i16> {
+        match self {
+            Self::NotCoordinator => Some(NOT_COORDINATOR),
+            Self::UnknownMember => Some(UNKNOWN_MEMBER_ID),
+            Self::Fenced => Some(FENCED_MEMBER_EPOCH),
+            Self::Stale => Some(STALE_MEMBER_EPOCH),
+            Self::UnsupportedAssignor => Some(UNSUPPORTED_ASSIGNOR),
+            Self::InvalidRequest | Self::Poisoned | Self::InvalidLimits | Self::Storage(_) => None,
+        }
+    }
+}
+
+impl From<journal::Error> for Error {
+    fn from(error: journal::Error) -> Self {
+        Self::Storage(error)
+    }
+}
+
+/// Group bounds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Limits {
+    max_members: usize,
+    max_topics: usize,
+    journal: journal::Limits,
+}
+
+impl Limits {
+    /// Configure positive member and topic caps.
+    pub fn new(
+        max_members: usize,
+        max_topics: usize,
+        journal: journal::Limits,
+    ) -> Result<Self, Error> {
+        if !(1..=10_000).contains(&max_members)
+            || !(1..=10_000).contains(&max_topics)
+            || journal.max_entry_bytes() < 1024
+            || journal.max_index_entries() < max_members
+        {
+            return Err(Error::InvalidLimits);
+        }
+        Ok(Self {
+            max_members,
+            max_topics,
+            journal,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Member {
+    epoch: i32,
+    acked: bool,
+    instance: Option<String>,
+    version: i16,
+    topics: BTreeSet<String>,
+    assignment: BTreeMap<String, Vec<i32>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Group {
+    epoch: i32,
+    version: i16,
+    members: BTreeMap<String, Member>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct State {
+    coordinator_epoch: i64,
+    next_member: u64,
+    topics: BTreeMap<String, i32>,
+    groups: BTreeMap<String, Group>,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            coordinator_epoch: 0,
+            next_member: 1,
+            topics: BTreeMap::new(),
+            groups: BTreeMap::new(),
+        }
+    }
+}
+
+/// Durable modern consumer-group coordinator.
+pub struct Groups {
+    limits: Limits,
+    state: State,
+    journal: Journal,
+    stored: usize,
+    poisoned: bool,
+}
+
+impl Groups {
+    /// Open or recover the coordinator.
+    pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
+        let (journal, _) = Journal::open(path, 0, limits.journal)?;
+        let mut groups = Self {
+            limits,
+            state: State::new(),
+            journal,
+            stored: 0,
+            poisoned: false,
+        };
+        let mut cursor = groups.journal.base_offset();
+        loop {
+            let batch =
+                groups
+                    .journal
+                    .fetch(cursor, 32, groups.limits.journal.max_fetch_bytes())?;
+            if batch.is_empty() {
+                break;
+            }
+            for entry in batch {
+                if entry.record_count != 1 {
+                    return Err(Error::InvalidRequest);
+                }
+                groups.state = decode(&entry.payload)?;
+                groups.stored = groups.stored.saturating_add(1);
+                cursor = entry
+                    .first_offset
+                    .checked_add(1)
+                    .ok_or(Error::InvalidRequest)?;
+            }
+        }
+        Ok(groups)
+    }
+
+    /// Declare a topic's partition count. Existing subscriptions are reassigned.
+    pub fn set_topic(&mut self, topic: &str, partitions: i32) -> Result<(), Error> {
+        self.ready()?;
+        if !valid_name(topic) || !(1..=1024).contains(&partitions) {
+            return Err(Error::InvalidRequest);
+        }
+        if !self.state.topics.contains_key(topic)
+            && self.state.topics.len() >= self.limits.max_topics
+        {
+            return Err(Error::InvalidLimits);
+        }
+        let mut next = self.state.clone();
+        next.topics.insert(topic.to_owned(), partitions);
+        recompute_all(&mut next);
+        self.commit(next)
+    }
+
+    /// Move the coordinator epoch forward. Older epochs cannot heartbeat.
+    pub fn advance(&mut self, epoch: i64) -> Result<(), Error> {
+        self.ready()?;
+        if epoch <= self.state.coordinator_epoch {
+            return Err(Error::InvalidRequest);
+        }
+        let mut next = self.state.clone();
+        next.coordinator_epoch = epoch;
+        self.commit(next)
+    }
+
+    /// Join, refresh, or leave. The returned epoch is required on the next call.
+    pub fn heartbeat(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
+        self.ready()?;
+        if request.coordinator_epoch != self.state.coordinator_epoch {
+            return Err(Error::NotCoordinator);
+        }
+        if request.version != 0 && request.version != 1 {
+            return Err(Error::InvalidRequest);
+        }
+        if request.assignor != "range" {
+            return Err(Error::UnsupportedAssignor);
+        }
+        if !valid_name(request.group) {
+            return Err(Error::InvalidRequest);
+        }
+        if request.member_epoch == -1 {
+            return self.leave(request);
+        }
+        if request.member_id.is_empty() {
+            return self.join(request);
+        }
+        self.refresh(request)
+    }
+
+    /// Current membership and target assignment.
+    pub fn describe(&self, group: &str) -> Option<GroupView> {
+        let group = self.state.groups.get(group)?;
+        let mut members = Vec::new();
+        for (member_id, member) in &group.members {
+            members.push(MemberView {
+                member_id: member_id.clone(),
+                member_epoch: member.epoch,
+                assignment: member.assignment.clone(),
+            });
+        }
+        Some(GroupView {
+            epoch: group.epoch,
+            version: group.version,
+            members,
+        })
+    }
+
+    fn join(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
+        if request.member_epoch != 0 {
+            return Err(Error::InvalidRequest);
+        }
+        let topics = topic_set(request.topics, &self.state.topics)?;
+        let instance = instance_of(request.instance_id)?;
+        let mut next = self.state.clone();
+        let member_number = next.next_member;
+        next.next_member = next.next_member.saturating_add(1);
+        let topic_counts = next.topics.clone();
+        let group = next
+            .groups
+            .entry(request.group.to_owned())
+            .or_insert(Group {
+                epoch: -1,
+                version: request.version,
+                members: BTreeMap::new(),
+            });
+        if let Some(instance) = &instance {
+            let previous = group
+                .members
+                .iter()
+                .find(|(_, member)| member.instance.as_ref() == Some(instance))
+                .map(|(id, _)| id.clone());
+            if let Some(previous) = previous {
+                group.members.remove(&previous);
+            }
+        }
+        if group.members.len() >= self.limits.max_members {
+            return Err(Error::InvalidLimits);
+        }
+        let member_id = format!("m-{member_number}");
+        group.members.insert(
+            member_id.clone(),
+            Member {
+                epoch: 0,
+                acked: true,
+                instance,
+                version: request.version,
+                topics,
+                assignment: BTreeMap::new(),
+            },
+        );
+        group.epoch = group.epoch.saturating_add(1);
+        finish_group_with(group, &topic_counts);
+        let assigned = assigned_from(group, &member_id)?;
+        self.commit(next)?;
+        Ok(assigned)
+    }
+
+    fn refresh(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
+        let topics = topic_set(request.topics, &self.state.topics)?;
+        let instance = instance_of(request.instance_id)?;
+        let mut next = self.state.clone();
+        let topic_counts = next.topics.clone();
+        let Some(group) = next.groups.get_mut(request.group) else {
+            return Err(Error::UnknownMember);
+        };
+        let Some(member) = group.members.get_mut(request.member_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if request.member_epoch < member.epoch {
+            return Err(Error::Fenced);
+        }
+        if request.member_epoch > member.epoch {
+            return Err(Error::Stale);
+        }
+        let changed = member.topics != topics
+            || member.version != request.version
+            || member.instance != instance;
+        member.topics = topics;
+        member.version = request.version;
+        member.instance = instance;
+        if changed {
+            group.epoch = group.epoch.saturating_add(1);
+        }
+        finish_group_with(group, &topic_counts);
+        let member = group
+            .members
+            .get_mut(request.member_id)
+            .ok_or(Error::UnknownMember)?;
+        if !member.acked {
+            member.epoch = member.epoch.saturating_add(1);
+            member.acked = true;
+        }
+        let assigned = assigned_from(group, request.member_id)?;
+        self.commit(next)?;
+        Ok(assigned)
+    }
+
+    fn leave(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
+        if request.member_id.is_empty() {
+            return Err(Error::UnknownMember);
+        }
+        let mut next = self.state.clone();
+        let topic_counts = next.topics.clone();
+        let Some(group) = next.groups.get_mut(request.group) else {
+            return Err(Error::UnknownMember);
+        };
+        if group.members.remove(request.member_id).is_none() {
+            return Err(Error::UnknownMember);
+        }
+        group.epoch = group.epoch.saturating_add(1);
+        finish_group_with(group, &topic_counts);
+        let epoch = group.epoch;
+        let version = group.version;
+        self.commit(next)?;
+        Ok(Assigned {
+            member_id: request.member_id.to_owned(),
+            member_epoch: -1,
+            group_epoch: epoch,
+            version,
+            assignment: BTreeMap::new(),
+        })
+    }
+
+    fn commit(&mut self, state: State) -> Result<(), Error> {
+        let payload = encode(&state)?;
+        if payload.len() > self.limits.journal.max_entry_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        self.persist(&payload)?;
+        self.state = state;
+        Ok(())
+    }
+
+    fn ready(&self) -> Result<(), Error> {
+        if self.poisoned || self.journal.is_poisoned() {
+            Err(Error::Poisoned)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
+        if self.stored >= self.limits.max_members.saturating_mul(8) {
+            return Err(Error::InvalidLimits);
+        }
+        match self.journal.append(1, payload) {
+            Ok(_) => {
+                self.stored = self.stored.saturating_add(1);
+                Ok(())
+            }
+            Err(error) => {
+                self.poisoned = true;
+                Err(error.into())
+            }
+        }
+    }
+}
+
+fn recompute_all(state: &mut State) {
+    let topics = state.topics.clone();
+    for group in state.groups.values_mut() {
+        apply_topics(group, &topics);
+    }
+}
+
+fn apply_topics(group: &mut Group, topics: &BTreeMap<String, i32>) {
+    let previous: BTreeMap<String, BTreeMap<String, Vec<i32>>> = group
+        .members
+        .iter()
+        .map(|(id, member)| (id.clone(), member.assignment.clone()))
+        .collect();
+    for member in group.members.values_mut() {
+        member.assignment.clear();
+    }
+    let names: BTreeSet<String> = group
+        .members
+        .values()
+        .flat_map(|member| member.topics.iter().cloned())
+        .collect();
+    for topic in names {
+        let Some(count) = topics.get(&topic).copied() else {
+            continue;
+        };
+        let subscribers: Vec<String> = group
+            .members
+            .iter()
+            .filter(|(_, member)| member.topics.contains(&topic))
+            .map(|(id, _)| id.clone())
+            .collect();
+        assign_topic(group, &topic, count, &subscribers);
+    }
+    for (id, member) in &mut group.members {
+        if previous.get(id) != Some(&member.assignment) {
+            member.acked = false;
+        }
+    }
+}
+
+fn assign_topic(group: &mut Group, topic: &str, count: i32, subscribers: &[String]) {
+    if subscribers.is_empty() || count <= 0 {
+        return;
+    }
+    let count = usize::try_from(count).unwrap_or(0);
+    let base = count / subscribers.len();
+    let extra = count % subscribers.len();
+    let mut next = 0i32;
+    for (index, member_id) in subscribers.iter().enumerate() {
+        let share = base + usize::from(index < extra);
+        let mut owned = Vec::new();
+        for _ in 0..share {
+            owned.push(next);
+            next = next.saturating_add(1);
+        }
+        if let Some(member) = group.members.get_mut(member_id) {
+            member.assignment.insert(topic.to_owned(), owned);
+        }
+    }
+}
+
+fn finish_group_with(group: &mut Group, topics: &BTreeMap<String, i32>) {
+    apply_topics(group, topics);
+    group.version = group
+        .members
+        .values()
+        .map(|member| member.version)
+        .min()
+        .unwrap_or(0);
+}
+
+fn topic_set(topics: &[&str], known: &BTreeMap<String, i32>) -> Result<BTreeSet<String>, Error> {
+    let mut set = BTreeSet::new();
+    for topic in topics {
+        if !valid_name(topic) || !known.contains_key(*topic) || !set.insert((*topic).to_owned()) {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    Ok(set)
+}
+
+fn instance_of(instance: Option<&str>) -> Result<Option<String>, Error> {
+    match instance {
+        None => Ok(None),
+        Some(value) if valid_name(value) => Ok(Some(value.to_owned())),
+        Some(_) => Err(Error::InvalidRequest),
+    }
+}
+
+fn valid_name(text: &str) -> bool {
+    !text.is_empty() && text.len() <= 249 && !text.chars().any(char::is_control)
+}
+
+fn assigned_from(group: &Group, member_id: &str) -> Result<Assigned, Error> {
+    let member = group.members.get(member_id).ok_or(Error::UnknownMember)?;
+    Ok(Assigned {
+        member_id: member_id.to_owned(),
+        member_epoch: member.epoch,
+        group_epoch: group.epoch,
+        version: group.version,
+        assignment: member.assignment.clone(),
+    })
+}
+
+fn encode(state: &State) -> Result<Vec<u8>, Error> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(RECORD_MAGIC);
+    bytes.extend_from_slice(&state.coordinator_epoch.to_be_bytes());
+    bytes.extend_from_slice(&state.next_member.to_be_bytes());
+    put_u32(
+        &mut bytes,
+        u32::try_from(state.topics.len()).map_err(|_| Error::InvalidRequest)?,
+    )?;
+    for (topic, partitions) in &state.topics {
+        put_str(&mut bytes, topic)?;
+        bytes.extend_from_slice(&partitions.to_be_bytes());
+    }
+    put_u32(
+        &mut bytes,
+        u32::try_from(state.groups.len()).map_err(|_| Error::InvalidRequest)?,
+    )?;
+    for (name, group) in &state.groups {
+        put_str(&mut bytes, name)?;
+        bytes.extend_from_slice(&group.epoch.to_be_bytes());
+        bytes.extend_from_slice(&group.version.to_be_bytes());
+        put_u32(
+            &mut bytes,
+            u32::try_from(group.members.len()).map_err(|_| Error::InvalidRequest)?,
+        )?;
+        for (member_id, member) in &group.members {
+            put_str(&mut bytes, member_id)?;
+            bytes.extend_from_slice(&member.epoch.to_be_bytes());
+            bytes.push(u8::from(member.acked));
+            bytes.extend_from_slice(&member.version.to_be_bytes());
+            match &member.instance {
+                Some(instance) => {
+                    bytes.push(1);
+                    put_str(&mut bytes, instance)?;
+                }
+                None => bytes.push(0),
+            }
+            put_u32(
+                &mut bytes,
+                u32::try_from(member.topics.len()).map_err(|_| Error::InvalidRequest)?,
+            )?;
+            for topic in &member.topics {
+                put_str(&mut bytes, topic)?;
+            }
+            put_u32(
+                &mut bytes,
+                u32::try_from(member.assignment.len()).map_err(|_| Error::InvalidRequest)?,
+            )?;
+            for (topic, partitions) in &member.assignment {
+                put_str(&mut bytes, topic)?;
+                put_u32(
+                    &mut bytes,
+                    u32::try_from(partitions.len()).map_err(|_| Error::InvalidRequest)?,
+                )?;
+                for partition in partitions {
+                    bytes.extend_from_slice(&partition.to_be_bytes());
+                }
+            }
+        }
+    }
+    Ok(bytes)
+}
+
+fn decode(mut bytes: &[u8]) -> Result<State, Error> {
+    if bytes.len() < RECORD_MAGIC.len() || &bytes[..RECORD_MAGIC.len()] != RECORD_MAGIC {
+        return Err(Error::InvalidRequest);
+    }
+    bytes = &bytes[RECORD_MAGIC.len()..];
+    let mut state = State {
+        coordinator_epoch: take_i64(&mut bytes)?,
+        next_member: take_u64(&mut bytes)?,
+        topics: BTreeMap::new(),
+        groups: BTreeMap::new(),
+    };
+    let topic_count = take_u32(&mut bytes)?;
+    for _ in 0..topic_count {
+        let topic = take_str(&mut bytes)?;
+        state.topics.insert(topic, take_i32(&mut bytes)?);
+    }
+    let group_count = take_u32(&mut bytes)?;
+    for _ in 0..group_count {
+        let name = take_str(&mut bytes)?;
+        let epoch = take_i32(&mut bytes)?;
+        let version = take_i16(&mut bytes)?;
+        let member_count = take_u32(&mut bytes)?;
+        let mut members = BTreeMap::new();
+        for _ in 0..member_count {
+            let member_id = take_str(&mut bytes)?;
+            let member_epoch = take_i32(&mut bytes)?;
+            let acked = take_u8(&mut bytes)? == 1;
+            let member_version = take_i16(&mut bytes)?;
+            let instance = if take_u8(&mut bytes)? == 1 {
+                Some(take_str(&mut bytes)?)
+            } else {
+                None
+            };
+            let topic_count = take_u32(&mut bytes)?;
+            let mut topics = BTreeSet::new();
+            for _ in 0..topic_count {
+                topics.insert(take_str(&mut bytes)?);
+            }
+            let assignment_count = take_u32(&mut bytes)?;
+            let mut assignment = BTreeMap::new();
+            for _ in 0..assignment_count {
+                let topic = take_str(&mut bytes)?;
+                let partition_count = take_u32(&mut bytes)?;
+                let mut partitions = Vec::new();
+                for _ in 0..partition_count {
+                    partitions.push(take_i32(&mut bytes)?);
+                }
+                assignment.insert(topic, partitions);
+            }
+            members.insert(
+                member_id,
+                Member {
+                    epoch: member_epoch,
+                    acked,
+                    instance,
+                    version: member_version,
+                    topics,
+                    assignment,
+                },
+            );
+        }
+        state.groups.insert(
+            name,
+            Group {
+                epoch,
+                version,
+                members,
+            },
+        );
+    }
+    if !bytes.is_empty() {
+        return Err(Error::InvalidRequest);
+    }
+    Ok(state)
+}
+
+fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
+    let len = u16::try_from(value.len()).map_err(|_| Error::InvalidRequest)?;
+    bytes.extend_from_slice(&len.to_be_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+fn put_u32(bytes: &mut Vec<u8>, value: u32) -> Result<(), Error> {
+    bytes.extend_from_slice(&value.to_be_bytes());
+    Ok(())
+}
+
+fn take<'a>(input: &mut &'a [u8], len: usize) -> Result<&'a [u8], Error> {
+    if input.len() < len {
+        return Err(Error::InvalidRequest);
+    }
+    let (head, tail) = input.split_at(len);
+    *input = tail;
+    Ok(head)
+}
+
+fn take_str(input: &mut &[u8]) -> Result<String, Error> {
+    let len = usize::from(u16::from_be_bytes(
+        take(input, 2)?
+            .try_into()
+            .map_err(|_| Error::InvalidRequest)?,
+    ));
+    let bytes = take(input, len)?;
+    String::from_utf8(bytes.to_vec()).map_err(|_| Error::InvalidRequest)
+}
+
+fn take_i64(input: &mut &[u8]) -> Result<i64, Error> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(i64::from_be_bytes(value))
+}
+
+fn take_u64(input: &mut &[u8]) -> Result<u64, Error> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(u64::from_be_bytes(value))
+}
+
+fn take_i32(input: &mut &[u8]) -> Result<i32, Error> {
+    let mut value = [0u8; 4];
+    value.copy_from_slice(take(input, 4)?);
+    Ok(i32::from_be_bytes(value))
+}
+
+fn take_u32(input: &mut &[u8]) -> Result<u32, Error> {
+    let mut value = [0u8; 4];
+    value.copy_from_slice(take(input, 4)?);
+    Ok(u32::from_be_bytes(value))
+}
+
+fn take_i16(input: &mut &[u8]) -> Result<i16, Error> {
+    let mut value = [0u8; 2];
+    value.copy_from_slice(take(input, 2)?);
+    Ok(i16::from_be_bytes(value))
+}
+
+fn take_u8(input: &mut &[u8]) -> Result<u8, Error> {
+    Ok(take(input, 1)?[0])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeSet as Set;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn limits() -> Limits {
+        let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        Limits::new(16, 8, journal).unwrap_or_else(|_| panic!("group limits"))
+    }
+
+    fn open(name: &str) -> (Groups, std::path::PathBuf) {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-cns-{name}-{nanos}"));
+        let groups = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        (groups, path)
+    }
+
+    fn beat<'a>(
+        group: &'a str,
+        member: &'a str,
+        epoch: i32,
+        version: i16,
+        topics: &'a [&'a str],
+    ) -> Heartbeat<'a> {
+        Heartbeat {
+            coordinator_epoch: 0,
+            group,
+            member_id: member,
+            member_epoch: epoch,
+            instance_id: None,
+            version,
+            assignor: "range",
+            topics,
+        }
+    }
+
+    fn owners(view: &GroupView) -> Set<(String, i32)> {
+        let mut owned = Set::new();
+        for member in &view.members {
+            for (topic, partitions) in &member.assignment {
+                for partition in partitions {
+                    assert!(
+                        owned.insert((topic.clone(), *partition)),
+                        "overlapping owner"
+                    );
+                }
+            }
+        }
+        owned
+    }
+
+    #[test]
+    fn range_assignment_fences_epochs_and_survives_coordinator_failover() {
+        let (mut groups, path) = open("modern");
+        groups
+            .set_topic("orders", 4)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let alice = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            alice.assignment.get("orders").map(Vec::as_slice),
+            Some(&[0, 1, 2, 3][..])
+        );
+        let bob = groups
+            .heartbeat(beat("orders-g", "", 0, 0, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(bob.version, 0);
+        assert_eq!(
+            bob.assignment.get("orders").map(Vec::as_slice),
+            Some(&[2, 3][..])
+        );
+        let alice = groups
+            .heartbeat(beat(
+                "orders-g",
+                &alice.member_id,
+                alice.member_epoch,
+                1,
+                &["orders"],
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(alice.member_epoch, 1);
+        assert_eq!(
+            alice.assignment.get("orders").map(Vec::as_slice),
+            Some(&[0, 1][..])
+        );
+        assert!(matches!(
+            groups.heartbeat(beat("orders-g", &alice.member_id, 0, 1, &["orders"])),
+            Err(Error::Fenced)
+        ));
+        assert!(matches!(
+            groups.heartbeat(beat("orders-g", &alice.member_id, 9, 1, &["orders"])),
+            Err(Error::Stale)
+        ));
+        let mut bad_version = beat("orders-g", "", 0, 2, &["orders"]);
+        bad_version.version = 2;
+        assert!(matches!(
+            groups.heartbeat(bad_version),
+            Err(Error::InvalidRequest)
+        ));
+        let mut bad_assignor = beat("orders-g", "", 0, 1, &["orders"]);
+        bad_assignor.assignor = "sticky";
+        assert!(matches!(
+            groups.heartbeat(bad_assignor),
+            Err(Error::UnsupportedAssignor)
+        ));
+        groups
+            .heartbeat(Heartbeat {
+                member_epoch: -1,
+                member_id: &bob.member_id,
+                ..beat("orders-g", &bob.member_id, -1, 0, &["orders"])
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let view = groups
+            .describe("orders-g")
+            .unwrap_or_else(|| panic!("group"));
+        assert_eq!(view.version, 1);
+        assert_eq!(owners(&view).len(), 4);
+        assert!(view
+            .members
+            .iter()
+            .all(|member| member.member_id != bob.member_id));
+        drop(groups);
+        let mut groups = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        let restored = groups
+            .describe("orders-g")
+            .unwrap_or_else(|| panic!("restored"));
+        assert_eq!(owners(&restored), owners(&view));
+        groups
+            .advance(1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.heartbeat(beat(
+                "orders-g",
+                &alice.member_id,
+                alice.member_epoch,
+                1,
+                &["orders"]
+            )),
+            Err(Error::NotCoordinator)
+        ));
+        let mut current = beat(
+            "orders-g",
+            &alice.member_id,
+            alice.member_epoch,
+            1,
+            &["orders"],
+        );
+        current.coordinator_epoch = 1;
+        let refreshed = groups
+            .heartbeat(current)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            refreshed.assignment.get("orders").map(Vec::as_slice),
+            Some(&[0, 1, 2, 3][..])
+        );
+        let mut static_join = beat("orders-g", "", 0, 1, &["orders"]);
+        static_join.coordinator_epoch = 1;
+        static_join.instance_id = Some("i-1");
+        let first = groups
+            .heartbeat(static_join)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut replaced = static_join;
+        replaced.member_id = "";
+        let second = groups
+            .heartbeat(replaced)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_ne!(first.member_id, second.member_id);
+        let view = groups
+            .describe("orders-g")
+            .unwrap_or_else(|| panic!("group"));
+        assert_eq!(
+            view.members
+                .iter()
+                .filter(|member| member.member_id == first.member_id)
+                .count(),
+            0
+        );
+        assert!(owners(&view).len() <= 4);
+        assert_eq!(owners(&view).len(), 4);
+    }
+}
