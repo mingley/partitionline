@@ -935,6 +935,51 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&fetch)?)?,
         VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
     );
+    let committed = dynamic.state().committed_end;
+    let response = protocol::FetchSnapshotResponseBody {
+        version: 1,
+        throttle_ms: 0,
+        error_code: 0,
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        partition_error: 0,
+        end_offset: 4,
+        epoch: 1,
+        leader: Some(protocol::SnapshotLeader {
+            leader_id: 2,
+            leader_epoch: 1,
+        }),
+        size: 4,
+        position: 0,
+        records: Some(b"snap".to_vec()),
+        endpoints: vec![protocol::VoteNodeEndpoint {
+            node_id: 2,
+            host: "localhost".into(),
+            port: 9093,
+        }],
+    };
+    let response_bytes = protocol::encode_fetch_snapshot_response(&response)?;
+    assert_eq!(
+        protocol::decode_fetch_snapshot_response(&response_bytes, 1)?
+            .records
+            .as_deref(),
+        Some(b"snap".as_slice())
+    );
+    assert_eq!(
+        dynamic.inspect_fetch_snapshot_response(1, &response_bytes)?,
+        VoteDisposition::NotAdvertised
+    );
+    assert_eq!(dynamic.state().committed_end, committed);
+    let mut stale_response = response;
+    stale_response.endpoints[0].node_id = 9;
+    assert_eq!(
+        dynamic.inspect_fetch_snapshot_response(
+            1,
+            &protocol::encode_fetch_snapshot_response(&stale_response)?
+        )?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    assert_eq!(dynamic.state().committed_end, committed);
     assert!(matches!(
         dynamic.inspect_unadvertised(52, 2, &{
             let mut unknown = protocol::decode_vote_body(&vote_bytes, 2)?;

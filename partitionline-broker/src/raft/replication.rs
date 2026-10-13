@@ -2453,6 +2453,30 @@ impl Node {
             &decoded,
         ))
     }
+    /// Inspect one FetchSnapshot response without installing its bytes.
+    ///
+    /// A known leader with one matching endpoint is `NotAdvertised`. The
+    /// committed end and snapshot store are left untouched.
+    pub fn inspect_fetch_snapshot_response(
+        &self,
+        version: i16,
+        body: &[u8],
+    ) -> Result<protocol::VoteDisposition, Error> {
+        if self.log.dynamic.is_none() {
+            return Err(Error::Controller(protocol::Error::UnsupportedVersion));
+        }
+        let decoded =
+            protocol::decode_fetch_snapshot_response(body, version).map_err(Error::Controller)?;
+        if let Some(leader) = decoded.leader {
+            if leader.leader_id >= 0 {
+                let _ = self.known_voter(leader.leader_id)?;
+            }
+        }
+        Ok(protocol::decide_fetch_snapshot_response(
+            &self.controller.state().persistent,
+            &decoded,
+        ))
+    }
     /// Trigger a due actual election and return its existing Vote0 request payload.
     pub fn campaign(&mut self, now_ms: u64, correlation: i32) -> Result<Option<Vec<u8>>, Error> {
         self.clock(now_ms)?;

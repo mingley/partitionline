@@ -2824,6 +2824,234 @@ fn read_cluster_tag(reader: &mut Reader<'_>) -> Result<Option<String>, Error> {
     Ok(cluster)
 }
 
+const MAX_SNAPSHOT_BYTES: usize = 1024 * 1024;
+
+/// Leader named by a FetchSnapshot response partition tag.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SnapshotLeader {
+    /// Leader id, or `-1` when unknown.
+    pub leader_id: i32,
+    /// Leader epoch.
+    pub leader_epoch: i32,
+}
+
+/// One FetchSnapshot response body for versions 0 and 1.
+///
+/// Version 1 carries leader endpoints. Neither version is advertised, and the
+/// unaligned bytes are not installed as a local snapshot.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchSnapshotResponseBody {
+    /// FetchSnapshot version, 0 or 1.
+    pub version: i16,
+    /// Throttle time in milliseconds.
+    pub throttle_ms: i32,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Partition error code.
+    pub partition_error: i16,
+    /// Snapshot end offset.
+    pub end_offset: i64,
+    /// Snapshot epoch.
+    pub epoch: i32,
+    /// Current leader from partition tag 0, when present.
+    pub leader: Option<SnapshotLeader>,
+    /// Total snapshot size.
+    pub size: i64,
+    /// Starting byte position.
+    pub position: i64,
+    /// Unaligned snapshot bytes. `None` is the null records field.
+    pub records: Option<Vec<u8>>,
+    /// Leader endpoints. Empty on version 0.
+    pub endpoints: Vec<VoteNodeEndpoint>,
+}
+
+/// Encode a flexible FetchSnapshot response body.
+pub fn encode_fetch_snapshot_response(body: &FetchSnapshotResponseBody) -> Result<Vec<u8>, Error> {
+    if !(0..=1).contains(&body.version) || body.endpoints.len() > MAX_ARRAY {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version == 0 && !body.endpoints.is_empty() {
+        return Err(Error::InvalidConfig);
+    }
+    if body
+        .records
+        .as_ref()
+        .is_some_and(|bytes| bytes.len() > MAX_SNAPSHOT_BYTES)
+    {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + body.records.as_ref().map_or(0, Vec::len) + 80)?;
+    out.extend_from_slice(&body.throttle_ms.to_be_bytes());
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    write_count(&mut out, 1, true)?;
+    string(&mut out, &body.topic, true)?;
+    write_count(&mut out, 1, true)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.partition_error.to_be_bytes());
+    out.extend_from_slice(&body.end_offset.to_be_bytes());
+    out.extend_from_slice(&body.epoch.to_be_bytes());
+    out.push(0);
+    out.extend_from_slice(&body.size.to_be_bytes());
+    out.extend_from_slice(&body.position.to_be_bytes());
+    write_compact_bytes(&mut out, body.records.as_deref())?;
+    match body.leader {
+        Some(leader) => {
+            let mut payload = Vec::new();
+            payload.extend_from_slice(&leader.leader_id.to_be_bytes());
+            payload.extend_from_slice(&leader.leader_epoch.to_be_bytes());
+            payload.push(0);
+            varint(&mut out, 1);
+            varint(&mut out, 0);
+            varint(
+                &mut out,
+                u32::try_from(payload.len()).map_err(|_| Error::InvalidConfig)?,
+            );
+            out.extend_from_slice(&payload);
+        }
+        None => out.push(0),
+    }
+    out.push(0);
+    if body.version == 0 {
+        out.push(0);
+    } else {
+        write_tagged_endpoints(&mut out, &body.endpoints)?;
+    }
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_fetch_snapshot_response`].
+pub fn decode_fetch_snapshot_response(
+    bytes: &[u8],
+    version: i16,
+) -> Result<FetchSnapshotResponseBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let throttle_ms = reader.i32()?;
+    let error_code = reader.i16()?;
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let partition_error = reader.i16()?;
+    let end_offset = reader.i64()?;
+    let epoch = reader.i32()?;
+    reader.tags()?;
+    let size = reader.i64()?;
+    let position = reader.i64()?;
+    let records = read_compact_bytes(&mut reader)?;
+    let leader = read_snapshot_leader(&mut reader)?;
+    reader.tags()?;
+    let endpoints = if version == 0 {
+        reader.tags()?;
+        Vec::new()
+    } else {
+        read_vote_endpoints(&mut reader)?
+    };
+    reader.finish()?;
+    Ok(FetchSnapshotResponseBody {
+        version,
+        throttle_ms,
+        error_code,
+        topic,
+        partition,
+        partition_error,
+        end_offset,
+        epoch,
+        leader,
+        size,
+        position,
+        records,
+        endpoints,
+    })
+}
+
+/// Accept a FetchSnapshot response without installing its bytes.
+///
+/// Version 1 requires one endpoint naming the tagged leader. The caller must
+/// not treat `NotAdvertised` as permission to publish a snapshot.
+pub fn decide_fetch_snapshot_response(
+    persistent: &election::PersistentState,
+    body: &FetchSnapshotResponseBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if !(0..=1).contains(&body.version) {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    let leader_id = body.leader.map(|leader| leader.leader_id).unwrap_or(-1);
+    if body.version == 0 || leader_id < 0 {
+        return if body.endpoints.is_empty() {
+            VoteDisposition::NotAdvertised
+        } else {
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        };
+    }
+    match body.endpoints.as_slice() {
+        [endpoint] if endpoint.node_id == leader_id && !endpoint.host.is_empty() => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn write_compact_bytes(out: &mut Vec<u8>, bytes: Option<&[u8]>) -> Result<(), Error> {
+    let Some(bytes) = bytes else {
+        out.push(0);
+        return Ok(());
+    };
+    if bytes.len() > MAX_SNAPSHOT_BYTES {
+        return Err(Error::InvalidConfig);
+    }
+    varint(
+        out,
+        u32::try_from(bytes.len()).map_err(|_| Error::InvalidConfig)? + 1,
+    );
+    out.extend_from_slice(bytes);
+    Ok(())
+}
+
+fn read_compact_bytes(reader: &mut Reader<'_>) -> Result<Option<Vec<u8>>, Error> {
+    let n = i64::from(reader.varint()?) - 1;
+    if n == -1 {
+        return Ok(None);
+    }
+    if n < 0 || n > i64::try_from(MAX_SNAPSHOT_BYTES).unwrap_or(0) {
+        return Err(Error::InvalidConfig);
+    }
+    let len = usize::try_from(n).map_err(|_| Error::InvalidConfig)?;
+    Ok(Some(reader.take(len)?.to_vec()))
+}
+
+fn read_snapshot_leader(reader: &mut Reader<'_>) -> Result<Option<SnapshotLeader>, Error> {
+    let count = reader.varint()?;
+    if count == 0 {
+        return Ok(None);
+    }
+    if count != 1 || reader.varint()? != 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let length = usize::try_from(reader.varint()?).map_err(|_| Error::InvalidConfig)?;
+    let payload = reader.take(length)?;
+    let mut nested = Reader::new(payload, true, protocol::Limits::default());
+    let leader_id = nested.i32()?;
+    let leader_epoch = nested.i32()?;
+    nested.tags()?;
+    nested.finish()?;
+    Ok(Some(SnapshotLeader {
+        leader_id,
+        leader_epoch,
+    }))
+}
+
 fn write_nullable(out: &mut Vec<u8>, value: Option<&str>, flexible: bool) -> Result<(), Error> {
     match value {
         Some(text) => string(out, text, flexible),
