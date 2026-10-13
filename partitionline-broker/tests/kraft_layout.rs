@@ -1,7 +1,11 @@
 #![allow(clippy::panic)]
 //! Decoder check against bytes packed independently of this crate.
 
-use partitionline_broker::raft::protocol::{self, FetchSnapshotBody, VoteBody};
+use partitionline_broker::raft::protocol::{
+    self, BeginEpochBody, EndEpochBody, FetchSnapshotBody, FetchSnapshotResponseBody, KafkaVoter,
+    KafkaVotersRecord, LeaderEndpoint, PreferredCandidate, SnapshotLeader, UpdateVoterBody,
+    VoteBody, VoteNodeEndpoint,
+};
 
 fn fixture(name: &str) -> Vec<u8> {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -58,4 +62,88 @@ fn fetch_snapshot_v1_includes_the_snapshot_id_tag_suffix() {
     })
     .unwrap_or_else(|error| panic!("{error:?}"));
     assert_eq!(encoded, bytes);
+}
+
+#[test]
+fn begin_end_update_and_voters_record_match_the_independent_layout() {
+    let listener = LeaderEndpoint {
+        name: "CONTROLLER".to_owned(),
+        host: "localhost".to_owned(),
+        port: 9093,
+    };
+    let begin = protocol::encode_begin_body(&BeginEpochBody {
+        version: 1,
+        cluster_id: Some("cluster-1".to_owned()),
+        voter_id: 1,
+        topic: "__cluster_metadata".to_owned(),
+        partition: 0,
+        voter_directory: Some([6u8; 16]),
+        leader_id: 2,
+        leader_epoch: 3,
+        leader_endpoints: vec![listener.clone()],
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(begin, fixture("begin-v1.bin"));
+    let end = protocol::encode_end_body(&EndEpochBody {
+        version: 1,
+        cluster_id: Some("cluster-1".to_owned()),
+        topic: "__cluster_metadata".to_owned(),
+        partition: 0,
+        leader_id: 2,
+        leader_epoch: 3,
+        preferred: vec![PreferredCandidate {
+            id: 1,
+            directory: Some([6u8; 16]),
+        }],
+        leader_endpoints: vec![listener.clone()],
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(end, fixture("end-v1.bin"));
+    let update = protocol::encode_update_voter(&UpdateVoterBody {
+        cluster_id: Some("cluster-1".to_owned()),
+        current_leader_epoch: 3,
+        voter_id: 2,
+        voter_directory: [7u8; 16],
+        listeners: vec![listener.clone()],
+        kraft_min: 0,
+        kraft_max: 1,
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(update, fixture("update-voter.bin"));
+    let record = protocol::encode_voters_record(&KafkaVotersRecord {
+        version: 0,
+        voters: vec![KafkaVoter {
+            id: 2,
+            directory: [7u8; 16],
+            endpoints: vec![listener],
+            kraft_min: 0,
+            kraft_max: 1,
+        }],
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(record, fixture("voters-record.bin"));
+    let response = protocol::encode_fetch_snapshot_response(&FetchSnapshotResponseBody {
+        version: 1,
+        throttle_ms: 0,
+        error_code: 0,
+        topic: "__cluster_metadata".to_owned(),
+        partition: 0,
+        partition_error: 0,
+        end_offset: 4,
+        epoch: 1,
+        leader: Some(SnapshotLeader {
+            leader_id: 2,
+            leader_epoch: 1,
+        }),
+        size: 4,
+        position: 0,
+        records: Some(b"snap".to_vec()),
+        endpoints: vec![VoteNodeEndpoint {
+            node_id: 2,
+            host: "localhost".to_owned(),
+            port: 9093,
+        }],
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(response, fixture("fetch-snapshot-response-v1.bin"));
 }
