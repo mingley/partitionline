@@ -1,0 +1,40 @@
+{
+  "id": "KL09-43",
+  "status": "done",
+  "disposition": "rejected-no-gain",
+  "outcome_branch": "early rejection at performance-leadership.md section 6 step 2: per-round JoinSet spawn is below 1% of nb-fetch-multinode CPU; remaining implementation criteria do not apply",
+  "source_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "baseline_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "candidate_sha": null,
+  "hypothesis": "Each multi-leader fetch spawns one JoinSet task per leader. Replacing that with long-lived fetchers would cut CPU-ns/record on nb-fetch-multinode.",
+  "finding": "One parent run did 1 round, 3 fetch requests, fetched 399000 records, and used 131.929 ms of client CPU (6596 ns/record) and 289865 allocations. A current-thread JoinSet of three immediate tasks measured 1020 ns per round, 0.0008% of that CPU. A 100x allowance for moving the real fetch future is still under 0.1%. Removing three task allocations would be about 0.001% of the round. Wall time was 0.351 s with fast-node records/s 56973; the 50 ms slow leader dominates the non-CPU gap and is outside this card. No production code was changed.",
+  "cells": ["nb-fetch-multinode"],
+  "host": "Intel Xeon family 6 model 207, 4 cores, Linux 6.12.94+ x86_64, frequency unpinned (harness 2400 MHz), rustc 1.99.0 (b940084d7 2026-09-28), release profile, tokio current_thread",
+  "commands": [
+    "NB_SERVE=benchmarks/runtime/target/release/nb-serve benchmarks/runtime/target/release/runtime --cell nb-fetch-multinode --out /tmp/kl09-43/multi --repetitions 1 (exit 0; binary sha256 bac765108182c9d307faa555707c83f7a061bab0cba31151b236e8f1421c9c68 built from 2cd461d2, production fetch path unchanged since)",
+    "cargo run --release --manifest-path /tmp/spawnbench/Cargo.toml (exit 0; joinset_3_ns=1020)",
+    "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-43/nb-fetch-multinode-rep0.result.json --quiet --json (exit 0, valid, 0 errors)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "JoinSet spawn of 3 tasks, ns per round, as a percent of nb-fetch-multinode client CPU",
+      "baseline_cpu_ns": 131929000,
+      "spawn_ns": 1020,
+      "delta_pct": -0.0008,
+      "repetitions": 1
+    },
+    "allocations": {"unit": "per round", "baseline": 289865, "spawn_tasks": 3},
+    "net_production_lines": 0,
+    "correctness": "no production diff; remaining suites do not apply on this rejection branch"
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL09-43/README.md",
+    "docs/evidence/perf/KL09-43/spawnbench.rs",
+    "docs/evidence/perf/KL09-43/nb-fetch-multinode-rep0.result.json"
+  ],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput comparison. Suite HOLD remains active.",
+    "One cell repetition. The spawn probe uses empty tasks, not BrokerConn roundtrips. The 100x allowance is stated so that under-count does not hide a 1% cost.",
+    "KL09-44 lists KL09-43 in depends_on, which is satisfied by status done. No card lists KL09-43 in requires_accepted."
+  ]
+}
