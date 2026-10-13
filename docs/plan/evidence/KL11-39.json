@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "persistent-acl-authorizer",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "f099f539afd5da34628a42a2b4200bdfb190c9b4",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib security::acl::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
