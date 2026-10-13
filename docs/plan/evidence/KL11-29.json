@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "durable-group-offsets",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "caf05bb53a12a27a7f567066a893b3ce501c9171",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::offsets::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
