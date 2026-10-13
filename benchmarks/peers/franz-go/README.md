@@ -58,6 +58,13 @@ Same names as the partitionline bench examples where they overlap:
 | `BATCH_BYTES` | 1048576 | per-partition batch cap |
 | `BATCH_RECORDS` | 32768 | informational (client buffers size to the run) |
 | `MAX_IN_FLIGHT` | 5 | per-broker cap |
+| `QUEUE_MESSAGES` | count+warmup+1024 | applied `MaxBufferedRecords` |
+| `QUEUE_KBYTES` | 0 | `MaxBufferedBytes`; 0 is unlimited |
+| `DELIVERY_TIMEOUT_MS` | 0 | 0 keeps the driver default |
+| `FLUSH_TIMEOUT_MS` | 900000 | bounds `Flush` |
+| `RUN_TIMEOUT_MS` | 900000 | bounds a produce or fetch attempt |
+| `CONSUME_TIMEOUT_MS` | 15000 | idle limit while fetching |
+| `SOCKET_NAGLE_DISABLE` | 1 | `TCP_NODELAY` on every dial |
 | `COMPRESSION` | none | none\|gzip\|snappy\|lz4\|zstd |
 | `ISOLATION` | read_uncommitted | or read_committed |
 | `TLS_CA_PEM`, `TLS_SERVER_NAME` | unset | SSL transport |
