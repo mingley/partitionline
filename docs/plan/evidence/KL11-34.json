@@ -1,0 +1,29 @@
+{
+  "task": "KL11-34",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "share-group-state",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib share_state::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "share_state_tests_passed": 1,
+    "share_state_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Init creates epoch 0. A second init does not reset the partition.",
+    "An invalid batch list stores nothing. A write at the current epoch replaces the batches and advances the epoch. A stale epoch stores nothing.",
+    "Timeout turns an acquired span back to available, keeps its delivery count, and leaves the acknowledged span in place.",
+    "Reopen shows the same delivery count and acknowledgement. Delete stays deleted after reopen."
+  ],
+  "limits": [
+    "Delivery states use persister values 0, 1, 2, and 4. The stale-generation code is Kafka FENCED_LEADER_EPOCH 74.",
+    "This is not the ReadShareGroupState, WriteShareGroupState, InitializeShareGroupState, or DeleteShareGroupState RPC.",
+    "The journal format is the local PLSHS001 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
