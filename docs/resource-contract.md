@@ -38,14 +38,19 @@ counter. `max_poll_records` limits records returned by a fetch call.
 
 A valid first batch may exceed the soft fetch or retention limit so the
 partition can make progress. Batch decoding has a 64 MiB decoded-byte ceiling.
-Further batches are refused when they would exceed the retained payload
-budget. Wire frames, temporary decoding allocations and object overhead need
-separate accounting; a byte gauge does not measure these allocations.
+Further batches stay in a per-partition queue of framed, still-compressed
+batches and are decoded when consumption frees budget. Retained framed bytes
+are capped by the same `buffer_memory` value. One batch that does not fit is
+still kept so the consumer does not fetch it again. A zero `buffer_memory`
+keeps every framed batch. Wire frames, temporary decoding allocations and
+object overhead need separate accounting; a byte gauge does not measure these
+allocations.
 
-Pause retains pending records. Seek, unassign and close discard the applicable
-pending records. Delivered positions and commits do not advance solely because
-a record was prefetched. Applications remain responsible for releasing their
-own returned batches and for their chosen commit policy.
+Pause retains pending records and framed batches. Seek, unassign, leader
+changes and close discard the applicable pending records and framed batches.
+Delivered positions and commits do not advance solely because a record was
+prefetched. Applications remain responsible for releasing their own returned
+batches and for their chosen commit policy.
 
 ## Outcomes and shutdown
 

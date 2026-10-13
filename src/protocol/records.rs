@@ -2623,14 +2623,20 @@ impl EncodedBatch {
         self.attributes & ATTR_CONTROL != 0
     }
 
-    /// Decompress and decode the records, enforcing
-    /// [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
-    pub(crate) fn decode(self) -> Result<RecordBatch> {
+    /// Decode without consuming the framed body. `Bytes` clone bumps a refcount.
+    ///
+    /// Enforces [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
+    pub(crate) fn decode_shared(&self) -> Result<RecordBatch> {
         decode_checked_batch(
             self.base_offset,
-            self.body,
+            self.body.clone(),
             DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
         )
+    }
+
+    /// Offset prefix plus the framed body. Used to cap retained fetch bytes.
+    pub(crate) fn framed_len(&self) -> usize {
+        self.body.len().saturating_add(12)
     }
 }
 

@@ -1339,6 +1339,12 @@ impl<V> PartitionMap<V> {
     }
 }
 
+/// Framed batches from one fetch response that the memory budget did not decode.
+struct HeldFetch {
+    last_stable_offset: i64,
+    batches: VecDeque<EncodedBatch>,
+}
+
 /// A contiguous arrival run. Separate runs of the same partition can straddle
 /// other partitions, so queue grouping alone cannot preserve delivery order.
 struct PendingRun {
@@ -1526,6 +1532,10 @@ pub struct Consumer {
     preferred: PartitionMap<i32>,
     paused: PartitionMap<()>,
     pending: PendingRecords,
+    /// Framed batches already fetched that did not fit in `buffer_memory`.
+    /// Decoded on a later poll instead of being requested again.
+    retained: PartitionMap<HeldFetch>,
+    retained_bytes: usize,
     buffered_bytes: usize,
     aborted: PartitionMap<AbortedIntervals>,
     m_fetch_rounds: AtomicU64,
@@ -1845,6 +1855,8 @@ impl Consumer {
             preferred: PartitionMap::new(),
             paused: PartitionMap::new(),
             pending: PendingRecords::new(),
+            retained: PartitionMap::new(),
+            retained_bytes: 0,
             buffered_bytes: 0,
             aborted: PartitionMap::new(),
             m_fetch_rounds: AtomicU64::new(0),
@@ -2150,6 +2162,8 @@ impl Consumer {
         self.assigned.clear();
         self.assigned_topic_ids.clear();
         self.pending.clear();
+        self.retained.clear();
+        self.retained_bytes = 0;
         self.buffered_bytes = 0;
         self.last_fetched_epochs.clear();
         self.aborted.clear();
@@ -2173,6 +2187,8 @@ impl Consumer {
         self.aborted.clear();
         if starts.is_empty() {
             self.pending.clear();
+            self.retained.clear();
+            self.retained_bytes = 0;
             self.buffered_bytes = 0;
             return Ok(());
         }
@@ -3039,6 +3055,24 @@ impl Consumer {
             if self.woken() {
                 return Err(Error::Wakeup);
             }
+            if let Some(body) = self.detach_unpaused_retained() {
+                let mut fenced = Vec::new();
+                let mut need_offsets = Vec::new();
+                let mut budget_reached = false;
+                let _retry = self.apply_fetch_body(
+                    -1,
+                    body,
+                    &mut out,
+                    &mut out_bytes,
+                    &mut fenced,
+                    &mut need_offsets,
+                    &mut completed,
+                    &mut budget_reached,
+                )?;
+                if budget_reached {
+                    return Ok(self.finish_fetch(out));
+                }
+            }
             let mut topics = Vec::new();
             let mut seen = HashSet::new();
             for (t, p, _) in &self.assigned {
@@ -3061,7 +3095,7 @@ impl Consumer {
                 if self.paused.contains(topic, *part) {
                     continue;
                 }
-                if completed.contains(topic, *part) {
+                if completed.contains(topic, *part) || self.retained.contains(topic, *part) {
                     continue;
                 }
                 let node = if self.cfg.rack.is_some() {
@@ -3628,7 +3662,24 @@ impl Consumer {
         let mut retry = FetchRetry::None;
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
-                break;
+                let name = if !topic.topic.is_empty() {
+                    topic.topic
+                } else if let Some(n) = id_names.get(&topic.topic_id) {
+                    n.clone()
+                } else {
+                    continue;
+                };
+                for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+                    if part.error_code == 0 {
+                        self.retain_held(
+                            &name,
+                            part.partition,
+                            part.last_stable_offset,
+                            part_batches,
+                        );
+                    }
+                }
+                continue;
             }
             let name = if !topic.topic.is_empty() {
                 topic.topic
@@ -3639,7 +3690,15 @@ impl Consumer {
             };
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if *budget_reached {
-                    break;
+                    if part.error_code == 0 {
+                        self.retain_held(
+                            &name,
+                            part.partition,
+                            part.last_stable_offset,
+                            part_batches,
+                        );
+                    }
+                    continue;
                 }
                 if self.cfg.rack.is_some() {
                     if let Some(replica) = part.preferred_read_replica() {
@@ -3776,25 +3835,38 @@ impl Consumer {
                 let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 let mut reached_lso = false;
 
-                for encoded in part_batches {
+                let mut encoded_iter = part_batches.into_iter();
+                while let Some(encoded) = encoded_iter.next() {
                     let is_control = encoded.is_control_batch();
                     let is_first_batch = out.is_empty() && self.pending.is_empty();
                     let budget = self.cfg.buffer_memory;
-                    // Already over budget: this batch would be refused below
-                    // whatever its size, so skip it without decompressing.
+                    // Already over budget: keep the framed batch and decode it
+                    // after the application drains pending records.
                     if budget > 0
                         && !is_first_batch
                         && !is_control
                         && self.buffered_bytes.saturating_add(*out_bytes) > budget
                     {
+                        self.retain_held(
+                            &name,
+                            part.partition,
+                            part.last_stable_offset,
+                            std::iter::once(encoded).chain(encoded_iter),
+                        );
                         *budget_reached = true;
                         break;
                     }
-                    let batch = encoded.decode()?;
+                    let batch = encoded.decode_shared()?;
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
                         let current_total = self.buffered_bytes.saturating_add(*out_bytes);
                         if current_total.saturating_add(batch_bytes) > budget {
+                            self.retain_held(
+                                &name,
+                                part.partition,
+                                part.last_stable_offset,
+                                std::iter::once(encoded).chain(encoded_iter),
+                            );
                             *budget_reached = true;
                             break;
                         }
@@ -4442,6 +4514,7 @@ impl Consumer {
         self.buffered_bytes = self
             .buffered_bytes
             .saturating_sub(self.pending.drop_for(topic, partition));
+        self.drop_retained_for(topic, partition);
         let _state = self.aborted.remove(topic, partition);
     }
 
@@ -4453,6 +4526,132 @@ impl Consumer {
         self.buffered_bytes = self
             .buffered_bytes
             .saturating_sub(self.pending.retain_assigned(&assigned));
+        self.retain_held_assigned(&assigned);
+    }
+
+    fn drop_retained_for(&mut self, topic: &str, partition: i32) {
+        let Some(held) = self.retained.remove(topic, partition) else {
+            return;
+        };
+        for batch in held.batches {
+            self.retained_bytes = self.retained_bytes.saturating_sub(batch.framed_len());
+        }
+    }
+
+    fn retain_held_assigned(&mut self, assigned: &PartitionMap<()>) {
+        let topics = std::mem::take(&mut self.retained.topics);
+        for (topic, partitions) in topics {
+            for (partition, held) in partitions {
+                if assigned.contains(&topic, partition) {
+                    let _previous = self.retained.insert(&topic, partition, held);
+                } else {
+                    for batch in held.batches {
+                        self.retained_bytes =
+                            self.retained_bytes.saturating_sub(batch.framed_len());
+                    }
+                }
+            }
+        }
+    }
+
+    /// Keep framed batches so a later poll can decode them without another fetch.
+    ///
+    /// `buffer_memory == 0` keeps every batch. Otherwise retained framed bytes
+    /// stay within that cap, except one batch may be kept when the partition
+    /// has nothing held yet so that batch is not downloaded again.
+    fn retain_held(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        last_stable_offset: i64,
+        batches: impl IntoIterator<Item = EncodedBatch>,
+    ) {
+        let incoming: Vec<EncodedBatch> = batches.into_iter().collect();
+        if incoming.is_empty() {
+            return;
+        }
+        if self.retained.get(topic, partition).is_none() {
+            let _previous = self.retained.insert(
+                topic,
+                partition,
+                HeldFetch {
+                    last_stable_offset,
+                    batches: VecDeque::new(),
+                },
+            );
+        }
+        let Some(held) = self.retained.get_mut(topic, partition) else {
+            return;
+        };
+        held.last_stable_offset = last_stable_offset;
+        let cap = self.cfg.buffer_memory;
+        for batch in incoming {
+            let size = batch.framed_len();
+            let fits = cap == 0 || self.retained_bytes.saturating_add(size) <= cap;
+            if !fits && !held.batches.is_empty() {
+                break;
+            }
+            self.retained_bytes = self.retained_bytes.saturating_add(size);
+            held.batches.push_back(batch);
+            if !fits {
+                break;
+            }
+        }
+        let empty = held.batches.is_empty();
+        if empty {
+            self.drop_retained_for(topic, partition);
+        }
+    }
+
+    /// Move unpaused held batches into a fetch body. Paused partitions stay held.
+    fn detach_unpaused_retained(&mut self) -> Option<FetchBody> {
+        if self.retained.is_empty() {
+            return None;
+        }
+        let taken = std::mem::replace(&mut self.retained, PartitionMap::new());
+        let mut topics = Vec::new();
+        let mut all_batches = Vec::new();
+        for (topic, partitions) in taken.topics {
+            let mut parts = Vec::new();
+            let mut topic_batches = Vec::new();
+            for (partition, held) in partitions {
+                if self.paused.contains(&topic, partition) {
+                    let _previous = self.retained.insert(&topic, partition, held);
+                    continue;
+                }
+                if held.batches.is_empty() {
+                    continue;
+                }
+                let bytes = held
+                    .batches
+                    .iter()
+                    .map(EncodedBatch::framed_len)
+                    .fold(0usize, usize::saturating_add);
+                self.retained_bytes = self.retained_bytes.saturating_sub(bytes);
+                let mut part =
+                    crate::protocol::fetch::FetchedPartition::partition_response(partition, 0);
+                part.last_stable_offset = held.last_stable_offset;
+                parts.push(part);
+                topic_batches.push(held.batches.into_iter().collect());
+            }
+            if !parts.is_empty() {
+                topics.push(crate::protocol::fetch::FetchedTopic {
+                    topic,
+                    topic_id: [0; 16],
+                    partitions: parts,
+                });
+                all_batches.push(topic_batches);
+            }
+        }
+        if topics.is_empty() {
+            None
+        } else {
+            Some(FetchBody {
+                topics,
+                batches: all_batches,
+                endpoints: Vec::new(),
+            })
+        }
     }
 
     fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
