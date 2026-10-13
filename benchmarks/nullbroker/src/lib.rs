@@ -2696,4 +2696,59 @@ mod tests {
         assert_eq!(cur.get_compact_string().unwrap(), None);
         assert_eq!(cur.get_i32().unwrap(), 6);
     }
+
+    #[test]
+    fn create_topics_v7_round_trips_over_tcp() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let broker = super::NullBroker::with_listener(
+            &listener,
+            6,
+            super::synth::SynthConfig::default(),
+        )
+        .unwrap();
+        let broker = std::sync::Arc::new(broker);
+        let serving = std::sync::Arc::clone(&broker);
+        let accept = listener.try_clone().unwrap();
+        let thread = std::thread::spawn(move || {
+            let _ = serving.serve(0, &accept, std::time::Duration::from_secs(2));
+        });
+        let mut sock = std::net::TcpStream::connect(addr).unwrap();
+        sock.set_read_timeout(Some(std::time::Duration::from_secs(2)))
+            .unwrap();
+        let mut frame = Vec::new();
+        frame.extend_from_slice(&super::API_KEY_CREATE_TOPICS.to_be_bytes());
+        frame.extend_from_slice(&7i16.to_be_bytes());
+        frame.extend_from_slice(&1i32.to_be_bytes());
+        frame.extend_from_slice(&(-1i16).to_be_bytes());
+        frame.put_empty_tagged_fields();
+        frame.put_compact_array_len(1);
+        frame.put_compact_string(Some("orders"));
+        frame.extend_from_slice(&6i32.to_be_bytes());
+        frame.extend_from_slice(&1i16.to_be_bytes());
+        frame.put_compact_array_len(0);
+        frame.put_compact_array_len(0);
+        frame.put_empty_tagged_fields();
+        frame.extend_from_slice(&1000i32.to_be_bytes());
+        frame.push(0);
+        frame.put_empty_tagged_fields();
+        let len = u32::try_from(frame.len()).unwrap();
+        use std::io::{Read, Write};
+        sock.write_all(&len.to_be_bytes()).unwrap();
+        sock.write_all(&frame).unwrap();
+        let mut len_buf = [0u8; 4];
+        sock.read_exact(&mut len_buf).unwrap();
+        let n = u32::from_be_bytes(len_buf) as usize;
+        let mut response = vec![0u8; n];
+        sock.read_exact(&mut response).unwrap();
+        assert_eq!(&response[..4], &1i32.to_be_bytes());
+        let mut cur = super::Cursor::new(&response[5..]);
+        assert_eq!(cur.get_i32().unwrap(), 0);
+        assert_eq!(cur.get_array_len(true).unwrap(), Some(1));
+        assert_eq!(cur.get_compact_string().unwrap().as_deref(), Some("orders"));
+        assert_eq!(cur.take(16).unwrap(), &super::synth::topic_id("orders"));
+        assert_eq!(cur.get_i16().unwrap(), super::ERR_NONE);
+        broker.shutdown();
+        let _ = thread.join();
+    }
 }
