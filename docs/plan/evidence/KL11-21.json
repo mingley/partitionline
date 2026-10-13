@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "typed-dynamic-config",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "30cd926b1fd6555e6c8eedd47b8f3894841effe8",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib configs::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
