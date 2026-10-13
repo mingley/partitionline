@@ -670,6 +670,44 @@ pub fn successor_backoff(maximum_ms: u32, count: usize, rank: Option<usize>) -> 
     }
 }
 
+/// One EndQuorum preferred successor.
+///
+/// `directory` is absent on version 0 and required to match on version 1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PreferredCandidate {
+    /// Candidate replica id.
+    pub id: i32,
+    /// Candidate directory. `None` is the version 0 id-only entry.
+    pub directory: Option<[u8; 16]>,
+}
+
+/// Rank of the local voter in a preferred-candidate list.
+///
+/// A version 1 entry whose directory does not match is not this voter, even
+/// when the id matches. The result is an input to [`successor_backoff`]; it
+/// does not persist a vote or epoch.
+pub fn preferred_rank(
+    candidates: &[PreferredCandidate],
+    local_id: i32,
+    local_directory: [u8; 16],
+) -> Result<Option<usize>, Error> {
+    if candidates.len() > MAX_SUCCESSORS || local_directory == [0; 16] {
+        return Err(Error::InvalidConfig);
+    }
+    for (index, candidate) in candidates.iter().enumerate() {
+        if candidate.id != local_id {
+            continue;
+        }
+        if let Some(directory) = candidate.directory {
+            if directory != local_directory {
+                return Ok(None);
+            }
+        }
+        return Ok(Some(index));
+    }
+    Ok(None)
+}
+
 struct Request<'a> {
     cluster: Option<&'a str>,
     partition_matches: bool,
@@ -1478,5 +1516,49 @@ mod prevote_tests {
             VoteDisposition::NotAdvertised
         );
         assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
+    }
+
+    #[test]
+    fn a_stale_successor_directory_is_not_rank_zero() {
+        let directory = [8u8; 16];
+        let version0 = [
+            PreferredCandidate {
+                id: 4,
+                directory: None,
+            },
+            PreferredCandidate {
+                id: 7,
+                directory: None,
+            },
+        ];
+        assert_eq!(
+            preferred_rank(&version0, 7, directory).unwrap_or_else(|error| panic!("{error:?}")),
+            Some(1)
+        );
+        let stale = [PreferredCandidate {
+            id: 7,
+            directory: Some([1u8; 16]),
+        }];
+        assert_eq!(
+            preferred_rank(&stale, 7, directory).unwrap_or_else(|error| panic!("{error:?}")),
+            None
+        );
+        assert_eq!(
+            successor_backoff(1000, stale.len(), None).unwrap_or_else(|error| panic!("{error:?}")),
+            1000
+        );
+        let matched = [PreferredCandidate {
+            id: 7,
+            directory: Some(directory),
+        }];
+        assert_eq!(
+            preferred_rank(&matched, 7, directory).unwrap_or_else(|error| panic!("{error:?}")),
+            Some(0)
+        );
+        assert_eq!(
+            successor_backoff(1000, matched.len(), Some(0))
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            0
+        );
     }
 }
