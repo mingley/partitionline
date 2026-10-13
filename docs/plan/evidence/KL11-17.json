@@ -1,0 +1,29 @@
+{
+  "task": "KL11-17",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "typed-durable-placement",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib controller::partitions",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "placement_tests_passed": 3,
+    "placement_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A placement starts at leader epoch 0. An in-ISR election bumps the epoch and keeps the ISR.",
+    "Electing a replica outside the ISR is INELIGIBLE_REPLICA unless unclean is set. Unclean election shrinks the ISR to that leader and bumps the epoch.",
+    "Reassignment cannot remove the leader. The ISR shrinks to the replicas that remain.",
+    "A stale controller epoch cannot change placement. Restart replays the controller epoch, leader, ISR, and leader epoch."
+  ],
+  "limits": [
+    "This is not the AlterPartition or AlterPartitionReassignments RPC and it does not move partition bytes.",
+    "Follower fetch, high watermarks, and min ISR acknowledgments stay on KL11-18 and KL11-19.",
+    "The journal format is the local PLPASN01 record, not an Apache metadata log.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
