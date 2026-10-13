@@ -685,20 +685,26 @@ async fn expect_reauth_handshake(
     mechanism: &str,
     enabled: &[&str],
 ) {
-    let (h, b) = read_request_frame(socket).await.unwrap();
+    let (h, b) = read_request_frame(socket)
+        .await
+        .expect("read SaslHandshake during reauth");
     assert_eq!(h.api_key(), SASL_HANDSHAKE);
     assert!(
         is_reserved_correlation_id(h.correlation_id()),
         "reauth handshake must use a reserved SASL correlation ID"
     );
-    let mech = decode_sasl_handshake_request(&mut &b[..], h.api_version()).unwrap();
+    let mech = decode_sasl_handshake_request(&mut &b[..], h.api_version())
+        .expect("decode SaslHandshake mechanism");
     assert_eq!(mech, mechanism);
     let mut resp = BytesMut::new();
-    encode_sasl_handshake_response(&mut resp, h.api_version(), 0, enabled).unwrap();
+    encode_sasl_handshake_response(&mut resp, h.api_version(), 0, enabled)
+        .expect("encode SaslHandshake response");
     socket
-        .write_all(&make_response_frame(h.correlation_id(), &resp).unwrap())
+        .write_all(
+            &make_response_frame(h.correlation_id(), &resp).expect("frame SaslHandshake response"),
+        )
         .await
-        .unwrap();
+        .expect("write SaslHandshake response");
 }
 
 #[tokio::test]
