@@ -1,7 +1,7 @@
 {
   "id": "KL09-44",
   "status": "done",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "0d14c18c8d6e2f3d308a395dccf5f77f1d421e73",
   "baseline_sha": "f52161d9bfe8ee421d833e9115bacde0cf612134",
   "disposition": "accepted",
   "hypothesis": "fetch waits for every leader before returning. On nb-fetch-multinode the slow leader adds 50 ms after the fast leaders have already produced the consumed records. Returning those records after a short collection window raises fast-node records/s.",
