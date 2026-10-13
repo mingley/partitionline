@@ -175,6 +175,37 @@ def fetch_snapshot_response_v1() -> bytes:
     return bytes(out)
 
 
+def describe_quorum_v2() -> bytes:
+    out = bytearray()
+    out += (0).to_bytes(2, "big", signed=True)
+    out += bytes([0])
+    out += bytes([2])
+    out += compact_string("__cluster_metadata")
+    out += bytes([2])
+    out += i32(0)
+    out += (0).to_bytes(2, "big", signed=True)
+    out += bytes([0])
+    out += i32(2)
+    out += i32(3)
+    out += i64(9)
+    out += bytes([2])
+    out += i32(2)
+    out += bytes([8]) * 16
+    out += i64(10)
+    out += i64(1)
+    out += i64(2)
+    out += bytes([0])
+    out += bytes([1])
+    out += bytes([0, 0])
+    out += bytes([2])
+    out += i32(2)
+    out += bytes([2])
+    out += endpoint("plaintext", "127.0.0.1", 9093)
+    out += bytes([0])
+    out += bytes([0])
+    return bytes(out)
+
+
 def main() -> None:
     root = Path(__file__).resolve().parent
     (root / "vote-v0.bin").write_bytes(vote(0))
@@ -185,6 +216,7 @@ def main() -> None:
     (root / "update-voter.bin").write_bytes(update_voter())
     (root / "voters-record.bin").write_bytes(voters_record())
     (root / "fetch-snapshot-response-v1.bin").write_bytes(fetch_snapshot_response_v1())
+    (root / "describe-quorum-v2.bin").write_bytes(describe_quorum_v2())
 
 
 if __name__ == "__main__":

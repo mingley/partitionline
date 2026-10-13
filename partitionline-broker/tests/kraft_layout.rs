@@ -2,9 +2,9 @@
 //! Decoder check against bytes packed independently of this crate.
 
 use partitionline_broker::raft::protocol::{
-    self, BeginEpochBody, EndEpochBody, FetchSnapshotBody, FetchSnapshotResponseBody, KafkaVoter,
-    KafkaVotersRecord, LeaderEndpoint, PreferredCandidate, SnapshotLeader, UpdateVoterBody,
-    VoteBody, VoteNodeEndpoint,
+    self, BeginEpochBody, DescribeQuorumBody, EndEpochBody, FetchSnapshotBody,
+    FetchSnapshotResponseBody, KafkaVoter, KafkaVotersRecord, LeaderEndpoint, PreferredCandidate,
+    QuorumNode, QuorumReplica, SnapshotLeader, UpdateVoterBody, VoteBody, VoteNodeEndpoint,
 };
 
 fn fixture(name: &str) -> Vec<u8> {
@@ -146,4 +146,34 @@ fn begin_end_update_and_voters_record_match_the_independent_layout() {
     })
     .unwrap_or_else(|error| panic!("{error:?}"));
     assert_eq!(response, fixture("fetch-snapshot-response-v1.bin"));
+    let describe = protocol::encode_describe_quorum(&DescribeQuorumBody {
+        version: 2,
+        error_code: 0,
+        error_message: None,
+        topic: "__cluster_metadata".to_owned(),
+        partition: 0,
+        partition_error: 0,
+        partition_error_message: None,
+        leader_id: 2,
+        leader_epoch: 3,
+        high_watermark: 9,
+        voters: vec![QuorumReplica {
+            replica_id: 2,
+            directory: Some([8u8; 16]),
+            log_end_offset: 10,
+            last_fetch_timestamp: 1,
+            last_caught_up_timestamp: 2,
+        }],
+        observers: Vec::new(),
+        nodes: vec![QuorumNode {
+            node_id: 2,
+            listeners: vec![LeaderEndpoint {
+                name: "plaintext".to_owned(),
+                host: "127.0.0.1".to_owned(),
+                port: 9093,
+            }],
+        }],
+    })
+    .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(describe, fixture("describe-quorum-v2.bin"));
 }
