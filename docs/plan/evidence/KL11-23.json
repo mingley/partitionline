@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "durable-idempotence",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "8f6f0d0ae6ed17f0f8a437044d0cfb94760b25b1",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib idempotence::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
