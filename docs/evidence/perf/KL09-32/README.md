@@ -2,7 +2,7 @@
 
 Record encoding now computes each record's body length from varint widths once, then writes those groups. The measured cell is `encode/f03` (500 records, 16-byte keys, 100-byte values, no headers) from `benchmarks/codec`.
 
-Parent commit `48c01f2e88d75322633cd6b3aca30c29f3475b5f`. Five alternating rounds on this host (Intel Xeon, 4 cores, Ubuntu 24.04, rustc 1.99.0), criterion median time per round:
+Candidate commit `a919fddc06da9248bbc52477feab8444d5ee51a3`. Parent commit `48c01f2e88d75322633cd6b3aca30c29f3475b5f`. Five alternating rounds on this host (Intel Xeon, 4 cores, Ubuntu 24.04, rustc 1.99.0), criterion median time per round:
 
 | Round | Parent µs | Candidate µs | Delta |
 |---|---:|---:|---:|

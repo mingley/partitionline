@@ -2,7 +2,7 @@
   "id": "KL09-32",
   "status": "done",
   "disposition": "accepted",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "a919fddc06da9248bbc52477feab8444d5ee51a3",
   "baseline_sha": "48c01f2e88d75322633cd6b3aca30c29f3475b5f",
   "hypothesis": "Record encoding sized every varint and then encoded it again. Computing zigzag widths once per record field and writing those groups in one pass removes that second derivation from the produce encode hot path.",
   "cells": ["micro-encode/f03"],
