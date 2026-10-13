@@ -34859,8 +34859,8 @@
       "title": "Run seeded distributed data-plane and transaction crash histories",
       "priority": "P0",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-20",
         "KL11-25",
@@ -34882,7 +34882,9 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL11-45.json"
+      ]
     },
     {
       "id": "KL11-46",

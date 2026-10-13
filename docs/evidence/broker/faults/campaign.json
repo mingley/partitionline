@@ -1,0 +1,10 @@
+{
+  "faults_per_profile": 1000,
+  "profiles": [
+    {"profile": "data-plane", "faults": 1000, "crashes": 193, "lost_acks": 432, "fences": 195, "partitions": 180, "observer_failures": 0},
+    {"profile": "transaction-markers", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 0, "observer_failures": 0},
+    {"profile": "transactional-offsets", "faults": 1002, "crashes": 334, "lost_acks": 334, "fences": 334, "partitions": 334, "observer_failures": 0}
+  ],
+  "fsync_errors_injected": false,
+  "network_partition": "two-log follower misses leader appends during the partition step"
+}

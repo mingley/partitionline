@@ -1,0 +1,56 @@
+{
+  "task": "KL11-45",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "seeded-journal-fault-campaign",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "PL_FAULT_CAMPAIGN_OUT=docs/evidence/broker/faults/campaign.json cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test fault_campaign -- --nocapture",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test fault_campaign -- -D warnings"
+  ],
+  "results": {
+    "faults_per_profile": 1000,
+    "profiles": [
+      {
+        "profile": "data-plane",
+        "faults": 1000,
+        "crashes": 193,
+        "lost_acks": 432,
+        "fences": 195,
+        "partitions": 180,
+        "observer_failures": 0
+      },
+      {
+        "profile": "transaction-markers",
+        "faults": 1002,
+        "crashes": 334,
+        "lost_acks": 334,
+        "fences": 334,
+        "partitions": 0,
+        "observer_failures": 0
+      },
+      {
+        "profile": "transactional-offsets",
+        "faults": 1002,
+        "crashes": 334,
+        "lost_acks": 334,
+        "fences": 334,
+        "partitions": 334,
+        "observer_failures": 0
+      }
+    ],
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Each profile injects at least 1000 faults. Observer failures are zero.",
+    "A fenced leader epoch and a conflicting marker or stale offset generation leave the committed set unchanged.",
+    "Repeating a marker or high-watermark advance does not duplicate the committed outcome.",
+    "Reopen preserves committed ids. A follower does not observe leader appends that were not replicated."
+  ],
+  "limits": [
+    "Filesystem sync errors were not injected. The journal file descriptor stays writable after open.",
+    "The partition step is two local logs, not a multi-host network partition.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
