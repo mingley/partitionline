@@ -1,0 +1,31 @@
+{
+  "task": "KL11-54",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "local-operator-package",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --bin operator -- -D warnings",
+    "sh scripts/broker-package.sh"
+  ],
+  "results": {
+    "platform": "Linux x86_64",
+    "downgrade_rejected": true,
+    "restored_feature": "metadata.version 3",
+    "restored_log_dir": "data-a",
+    "listens": false,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "The operator binary initializes an admin journal, registers a log directory, and assigns orders-0.",
+    "Version 0 and version 1 raise metadata.version. A downgrade exits non-zero and leaves level 3.",
+    "Backup copies admin.journal. Restore into a new directory prints the same feature level and log directory."
+  ],
+  "limits": [
+    "The binary does not listen, deploy, or copy partition bytes.",
+    "The workflow was run on Linux x86_64 only.",
+    "Caps are 16 replicas, 8 log directory names, and 8 features.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

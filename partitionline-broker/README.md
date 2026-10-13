@@ -20,6 +20,13 @@ Replication, coordinator behavior, compatibility, and operational testing remain
 in progress. See the [broker plan](../docs/plan/broker-implementation.md) and
 [KL11 tasks](../docs/plan/tasks.json) for their status and acceptance criteria.
 
+The operator binary configures an on-disk admin journal. It does not listen or
+deploy a cluster. See [broker operations](../docs/broker-operations.md).
+
+```sh
+sh scripts/broker-package.sh
+```
+
 Build and test from the repository root:
 
 ```sh
