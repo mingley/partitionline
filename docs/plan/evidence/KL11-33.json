@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "share-delivery-locks",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "4c86ddd9b87adaaf5002cdb8b429e3a98bcec161",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib share_delivery::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
