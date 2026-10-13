@@ -33082,8 +33082,8 @@
       "title": "Register brokers and fence stale controller/broker epochs",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-05",
         "KL11-14",
@@ -33102,7 +33102,7 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL11-16.json"]
     },
     {
       "id": "KL11-17",

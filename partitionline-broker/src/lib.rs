@@ -9,6 +9,7 @@
 
 pub mod catalog;
 pub mod compaction;
+pub mod controller;
 pub mod fetch;
 pub mod journal;
 pub mod metadata;

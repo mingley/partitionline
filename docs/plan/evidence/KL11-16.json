@@ -1,0 +1,29 @@
+{
+  "task": "KL11-16",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "typed-durable-session",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib controller::registration",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "registration_tests_passed": 4,
+    "registration_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Registration versions 0-4 admit only the fields that version can express: migration at v1, log directories at v2, previous broker epoch at v3. v4 uses that same field set.",
+    "The first registration receives epoch 0. A live different incarnation without that epoch is duplicate. A matching previous epoch or a fenced session can be replaced, and the old epoch then fails writes and controller mutations.",
+    "A stale heartbeat returns STALE_BROKER_EPOCH and does not refresh the live session. Silence past the session timeout fences the broker.",
+    "Confirmed records survive reopen. A failed journal append poisons the handle."
+  ],
+  "limits": [
+    "This is not the flexible BrokerRegistration or BrokerHeartbeat RPC and it is not wired into the broker listener.",
+    "Heartbeat v2 and the 4.3.1 registration schema hash are not implemented. is_caught_up is always false.",
+    "The journal format is the local PLBREG01 record, not an Apache __cluster_metadata log.",
+    "Not a production qualification, not native KRaft compatibility, and not a fastest-server claim."
+  ]
+}
