@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "bounded-follower-log",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "c901ea7fec3e721e26b579486a59ae624b439010",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib replication::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
