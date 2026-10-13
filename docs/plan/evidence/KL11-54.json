@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "local-operator-package",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "ad246d28ac4f5072d464d4feaef827682d106bb8",
   "commands": [
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --bin operator -- -D warnings",
     "sh scripts/broker-package.sh"

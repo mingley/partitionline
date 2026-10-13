@@ -1,0 +1,10 @@
+{
+  "source_sha": "ad246d28ac4f5072d464d4feaef827682d106bb8",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "platform": "Linux x86_64",
+  "binary": "partitionline-broker/target/debug/operator",
+  "downgrade_rejected": true,
+  "restored_feature": "metadata.version 3",
+  "restored_log_dir": "data-a",
+  "listens": false
+}
