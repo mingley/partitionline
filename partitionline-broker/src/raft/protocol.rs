@@ -1563,6 +1563,306 @@ fn write_tagged_endpoints(out: &mut Vec<u8>, endpoints: &[VoteNodeEndpoint]) -> 
     Ok(())
 }
 
+/// RemoveRaftVoter version 0. The api is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemoveVoterBody {
+    /// Cluster id.
+    pub cluster_id: Option<String>,
+    /// Voter replica id.
+    pub voter_id: i32,
+    /// Voter directory id.
+    pub voter_directory: [u8; 16],
+}
+
+/// AddRaftVoter versions 0 and 1. Neither version is advertised.
+///
+/// Version 1 carries `ack_when_committed`. Version 0 implies `true` and rejects
+/// an explicit false.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddVoterBody {
+    /// AddRaftVoter version, 0 or 1.
+    pub version: i16,
+    /// Cluster id.
+    pub cluster_id: Option<String>,
+    /// Request timeout in milliseconds.
+    pub timeout_ms: i32,
+    /// Voter replica id.
+    pub voter_id: i32,
+    /// Voter directory id.
+    pub voter_directory: [u8; 16],
+    /// Endpoints for the voter.
+    pub listeners: Vec<LeaderEndpoint>,
+    /// When false, a caller would return after a local append. This decoder
+    /// still does not append.
+    pub ack_when_committed: bool,
+}
+
+/// UpdateRaftVoter version 0. The api is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateVoterBody {
+    /// Cluster id.
+    pub cluster_id: Option<String>,
+    /// Leader epoch the caller believes is current.
+    pub current_leader_epoch: i32,
+    /// Voter replica id.
+    pub voter_id: i32,
+    /// Voter directory id.
+    pub voter_directory: [u8; 16],
+    /// Endpoints for the voter.
+    pub listeners: Vec<LeaderEndpoint>,
+    /// Minimum KRaft protocol version the replica supports.
+    pub kraft_min: i16,
+    /// Maximum KRaft protocol version the replica supports.
+    pub kraft_max: i16,
+}
+
+/// Encode a flexible RemoveRaftVoter body.
+pub fn encode_remove_voter(body: &RemoveVoterBody) -> Result<Vec<u8>, Error> {
+    let mut out = allocate(48)?;
+    write_nullable(&mut out, body.cluster_id.as_deref(), true)?;
+    out.extend_from_slice(&body.voter_id.to_be_bytes());
+    out.extend_from_slice(&body.voter_directory);
+    out.push(0);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_remove_voter`].
+pub fn decode_remove_voter(bytes: &[u8]) -> Result<RemoveVoterBody, Error> {
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    let voter_id = reader.i32()?;
+    let voter_directory = reader
+        .take(16)?
+        .try_into()
+        .map_err(|_| Error::InvalidConfig)?;
+    reader.tags()?;
+    reader.finish()?;
+    Ok(RemoveVoterBody {
+        cluster_id,
+        voter_id,
+        voter_directory,
+    })
+}
+
+/// Accept a removal without changing `persistent` or the voter set.
+pub fn decide_remove_voter(
+    persistent: &election::PersistentState,
+    voter_id: i32,
+    expected_directory: [u8; 16],
+    body: &RemoveVoterBody,
+) -> VoteDisposition {
+    directory_change(
+        persistent,
+        voter_id,
+        expected_directory,
+        body.voter_id,
+        body.voter_directory,
+        true,
+    )
+}
+
+/// Encode a flexible AddRaftVoter body for version 0 or 1.
+pub fn encode_add_voter(body: &AddVoterBody) -> Result<Vec<u8>, Error> {
+    if !(0..=1).contains(&body.version) || (body.version == 0 && !body.ack_when_committed) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(64)?;
+    write_nullable(&mut out, body.cluster_id.as_deref(), true)?;
+    out.extend_from_slice(&body.timeout_ms.to_be_bytes());
+    out.extend_from_slice(&body.voter_id.to_be_bytes());
+    out.extend_from_slice(&body.voter_directory);
+    write_listeners(&mut out, &body.listeners)?;
+    if body.version >= 1 {
+        out.push(u8::from(body.ack_when_committed));
+    }
+    out.push(0);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_add_voter`].
+pub fn decode_add_voter(bytes: &[u8], version: i16) -> Result<AddVoterBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    let timeout_ms = reader.i32()?;
+    let voter_id = reader.i32()?;
+    let voter_directory = reader
+        .take(16)?
+        .try_into()
+        .map_err(|_| Error::InvalidConfig)?;
+    let listeners = read_listeners(&mut reader)?;
+    let ack_when_committed = if version >= 1 {
+        let byte = reader.byte()?;
+        if byte > 1 {
+            return Err(Error::InvalidConfig);
+        }
+        byte == 1
+    } else {
+        true
+    };
+    reader.tags()?;
+    reader.finish()?;
+    Ok(AddVoterBody {
+        version,
+        cluster_id,
+        timeout_ms,
+        voter_id,
+        voter_directory,
+        listeners,
+        ack_when_committed,
+    })
+}
+
+/// Accept an add without changing `persistent` or the voter set.
+///
+/// An empty listener list is refused. `ack_when_committed` false is still not
+/// appended.
+pub fn decide_add_voter(
+    persistent: &election::PersistentState,
+    voter_id: i32,
+    expected_directory: [u8; 16],
+    body: &AddVoterBody,
+) -> VoteDisposition {
+    directory_change(
+        persistent,
+        voter_id,
+        expected_directory,
+        body.voter_id,
+        body.voter_directory,
+        !body.listeners.is_empty()
+            && body
+                .listeners
+                .iter()
+                .all(|listener| !listener.host.is_empty()),
+    )
+}
+
+/// Encode a flexible UpdateRaftVoter body.
+pub fn encode_update_voter(body: &UpdateVoterBody) -> Result<Vec<u8>, Error> {
+    if body.kraft_min < 0 || body.kraft_max < body.kraft_min {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(64)?;
+    write_nullable(&mut out, body.cluster_id.as_deref(), true)?;
+    out.extend_from_slice(&body.current_leader_epoch.to_be_bytes());
+    out.extend_from_slice(&body.voter_id.to_be_bytes());
+    out.extend_from_slice(&body.voter_directory);
+    write_listeners(&mut out, &body.listeners)?;
+    out.extend_from_slice(&body.kraft_min.to_be_bytes());
+    out.extend_from_slice(&body.kraft_max.to_be_bytes());
+    out.extend_from_slice(&[0, 0]);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_update_voter`].
+pub fn decode_update_voter(bytes: &[u8]) -> Result<UpdateVoterBody, Error> {
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    let current_leader_epoch = reader.i32()?;
+    let voter_id = reader.i32()?;
+    let voter_directory = reader
+        .take(16)?
+        .try_into()
+        .map_err(|_| Error::InvalidConfig)?;
+    let listeners = read_listeners(&mut reader)?;
+    let kraft_min = reader.i16()?;
+    let kraft_max = reader.i16()?;
+    reader.tags()?;
+    reader.tags()?;
+    reader.finish()?;
+    Ok(UpdateVoterBody {
+        cluster_id,
+        current_leader_epoch,
+        voter_id,
+        voter_directory,
+        listeners,
+        kraft_min,
+        kraft_max,
+    })
+}
+
+/// Accept an update without changing `persistent` or the voter set.
+pub fn decide_update_voter(
+    persistent: &election::PersistentState,
+    voter_id: i32,
+    expected_directory: [u8; 16],
+    body: &UpdateVoterBody,
+) -> VoteDisposition {
+    directory_change(
+        persistent,
+        voter_id,
+        expected_directory,
+        body.voter_id,
+        body.voter_directory,
+        !body.listeners.is_empty()
+            && body
+                .listeners
+                .iter()
+                .all(|listener| !listener.host.is_empty()),
+    )
+}
+
+fn directory_change(
+    persistent: &election::PersistentState,
+    voter_id: i32,
+    expected_directory: [u8; 16],
+    actual_id: i32,
+    actual_directory: [u8; 16],
+    usable: bool,
+) -> VoteDisposition {
+    let _ = persistent;
+    if usable
+        && actual_id == voter_id
+        && actual_directory == expected_directory
+        && actual_directory != [0; 16]
+    {
+        VoteDisposition::NotAdvertised
+    } else {
+        VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+    }
+}
+
+fn write_listeners(out: &mut Vec<u8>, listeners: &[LeaderEndpoint]) -> Result<(), Error> {
+    if listeners.len() > MAX_ARRAY {
+        return Err(Error::InvalidConfig);
+    }
+    write_count(
+        out,
+        u32::try_from(listeners.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for listener in listeners {
+        string(out, &listener.name, true)?;
+        string(out, &listener.host, true)?;
+        out.extend_from_slice(&listener.port.to_be_bytes());
+        out.push(0);
+    }
+    Ok(())
+}
+
+fn read_listeners(reader: &mut Reader<'_>) -> Result<Vec<LeaderEndpoint>, Error> {
+    let n = reader.count()?;
+    let mut listeners = Vec::new();
+    listeners
+        .try_reserve_exact(n)
+        .map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let name = reader.string()?.to_owned();
+        let host = reader.string()?.to_owned();
+        let port = u16::from_be_bytes(
+            reader
+                .take(2)?
+                .try_into()
+                .map_err(|_| Error::InvalidConfig)?,
+        );
+        reader.tags()?;
+        listeners.push(LeaderEndpoint { name, host, port });
+    }
+    Ok(listeners)
+}
+
 /// One replica row in a DescribeQuorum response.
 ///
 /// `directory` is present only on version 2. Fetch and caught-up timestamps
@@ -3111,5 +3411,88 @@ mod prevote_tests {
         assert_eq!(persistent, before);
         assert_eq!(CONTROLLER_API_VERSIONS[2].max_version, 0);
         assert_eq!(CONTROLLER_API_VERSIONS[3].max_version, 0);
+    }
+
+    #[test]
+    fn voter_directory_changes_are_parsed_and_not_applied() {
+        let directory = [6u8; 16];
+        let listener = LeaderEndpoint {
+            name: "plaintext".to_owned(),
+            host: "127.0.0.1".to_owned(),
+            port: 9093,
+        };
+        let remove = RemoveVoterBody {
+            cluster_id: Some("cluster-1".to_owned()),
+            voter_id: 7,
+            voter_directory: directory,
+        };
+        let removed = decode_remove_voter(
+            &encode_remove_voter(&remove).unwrap_or_else(|error| panic!("{error:?}")),
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_remove_voter(&persistent, 7, directory, &removed),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale_remove = removed;
+        stale_remove.voter_directory = [1u8; 16];
+        assert_eq!(
+            decide_remove_voter(&persistent, 7, directory, &stale_remove),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        let add = AddVoterBody {
+            version: 0,
+            cluster_id: Some("cluster-1".to_owned()),
+            timeout_ms: 1000,
+            voter_id: 7,
+            voter_directory: directory,
+            listeners: vec![listener.clone()],
+            ack_when_committed: true,
+        };
+        let classic = encode_add_voter(&add).unwrap_or_else(|error| panic!("{error:?}"));
+        let delayed = AddVoterBody {
+            version: 1,
+            ack_when_committed: false,
+            ..add
+        };
+        let modern = encode_add_voter(&delayed).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(modern.len(), classic.len() + 1);
+        let decoded = decode_add_voter(&modern, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(!decoded.ack_when_committed);
+        assert_eq!(
+            decide_add_voter(&persistent, 7, directory, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let update = UpdateVoterBody {
+            cluster_id: Some("cluster-1".to_owned()),
+            current_leader_epoch: 3,
+            voter_id: 7,
+            voter_directory: directory,
+            listeners: vec![listener],
+            kraft_min: 0,
+            kraft_max: 1,
+        };
+        let updated = decode_update_voter(
+            &encode_update_voter(&update).unwrap_or_else(|error| panic!("{error:?}")),
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(updated.kraft_max, 1);
+        assert_eq!(updated.listeners[0].port, 9093);
+        assert_eq!(
+            decide_update_voter(&persistent, 7, directory, &updated),
+            VoteDisposition::NotAdvertised
+        );
+        let mut bare = updated;
+        bare.listeners.clear();
+        assert_eq!(
+            decide_update_voter(&persistent, 7, directory, &bare),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert!(CONTROLLER_API_VERSIONS
+            .iter()
+            .all(|api| !matches!(api.api_key, 80..=82)));
     }
 }
