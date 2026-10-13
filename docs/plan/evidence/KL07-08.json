@@ -1,7 +1,7 @@
 {
   "id": "KL07-08",
   "status": "done",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "efceac70a2214f09f9785d7d61cd9856cb0b51e6",
   "commands": [
     "cargo test --locked --offline --lib metrics (13 passed, exit 0)",
     "cargo test --locked --offline --test credential_redact --features tracing (29 passed, exit 0)",
