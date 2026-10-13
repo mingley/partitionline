@@ -1214,6 +1214,205 @@ pub fn decide_vote_body(
     }
 }
 
+/// One leader address from VoteResponse versions 1 and 2.
+///
+/// The endpoint is tagged field 0. Those versions are not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VoteNodeEndpoint {
+    /// Broker id named by this endpoint.
+    pub node_id: i32,
+    /// Hostname. Empty is not a usable leader address.
+    pub host: String,
+    /// Port.
+    pub port: u16,
+}
+
+/// One VoteResponse body for versions 0, 1, or 2.
+///
+/// Version 0 matches the existing controller response. Versions 1 and 2 add
+/// leader endpoints and are not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VoteResponseBody {
+    /// Vote response version, 0, 1, or 2.
+    pub version: i16,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Partition error code.
+    pub partition_error: i16,
+    /// Current leader, or `-1` when unknown.
+    pub leader_id: i32,
+    /// Leader epoch.
+    pub leader_epoch: i32,
+    /// Whether the vote was granted.
+    pub vote_granted: bool,
+    /// Leader endpoints. Empty on version 0.
+    pub endpoints: Vec<VoteNodeEndpoint>,
+}
+
+/// Encode a flexible VoteResponse body for version 0, 1, or 2.
+pub fn encode_vote_response(body: &VoteResponseBody) -> Result<Vec<u8>, Error> {
+    if !(0..=2).contains(&body.version) || body.endpoints.len() > MAX_ARRAY {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version == 0 && !body.endpoints.is_empty() {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + 64)?;
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    write_count(&mut out, 1, true)?;
+    string(&mut out, &body.topic, true)?;
+    write_count(&mut out, 1, true)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.partition_error.to_be_bytes());
+    out.extend_from_slice(&body.leader_id.to_be_bytes());
+    out.extend_from_slice(&body.leader_epoch.to_be_bytes());
+    out.push(u8::from(body.vote_granted));
+    out.extend_from_slice(&[0, 0]);
+    if body.endpoints.is_empty() {
+        out.push(0);
+        return Ok(out);
+    }
+    let mut payload = Vec::new();
+    write_count(
+        &mut payload,
+        u32::try_from(body.endpoints.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for endpoint in &body.endpoints {
+        payload.extend_from_slice(&endpoint.node_id.to_be_bytes());
+        string(&mut payload, &endpoint.host, true)?;
+        payload.extend_from_slice(&endpoint.port.to_be_bytes());
+        payload.push(0);
+    }
+    varint(&mut out, 1);
+    varint(&mut out, 0);
+    varint(
+        &mut out,
+        u32::try_from(payload.len()).map_err(|_| Error::InvalidConfig)?,
+    );
+    out.extend_from_slice(&payload);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_vote_response`].
+pub fn decode_vote_response(bytes: &[u8], version: i16) -> Result<VoteResponseBody, Error> {
+    if !(0..=2).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let error_code = reader.i16()?;
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let partition_error = reader.i16()?;
+    let leader_id = reader.i32()?;
+    let leader_epoch = reader.i32()?;
+    let granted = reader.byte()?;
+    if granted > 1 {
+        return Err(Error::InvalidConfig);
+    }
+    reader.tags()?;
+    reader.tags()?;
+    let endpoints = if version == 0 {
+        reader.tags()?;
+        Vec::new()
+    } else {
+        read_vote_endpoints(&mut reader)?
+    };
+    reader.finish()?;
+    Ok(VoteResponseBody {
+        version,
+        error_code,
+        topic,
+        partition,
+        partition_error,
+        leader_id,
+        leader_epoch,
+        vote_granted: granted == 1,
+        endpoints,
+    })
+}
+
+/// Accept a VoteResponse without changing `persistent`.
+///
+/// Version 0 stays on the existing handler. A version 1 or 2 body is not
+/// applied: a single non-empty endpoint naming `leader_id` is only
+/// `NotAdvertised`, and any other endpoint list is refused.
+pub fn decide_vote_response(
+    persistent: &election::PersistentState,
+    body: &VoteResponseBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.version == 0 {
+        return if body.endpoints.is_empty() {
+            VoteDisposition::DurableV0
+        } else {
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        };
+    }
+    if !(1..=2).contains(&body.version) {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    if body.leader_id < 0 {
+        return if body.endpoints.is_empty() {
+            VoteDisposition::NotAdvertised
+        } else {
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        };
+    }
+    match body.endpoints.as_slice() {
+        [endpoint] if endpoint.node_id == body.leader_id && !endpoint.host.is_empty() => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn read_vote_endpoints(reader: &mut Reader<'_>) -> Result<Vec<VoteNodeEndpoint>, Error> {
+    let count = reader.varint()?;
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    if count != 1 || reader.varint()? != 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let length = usize::try_from(reader.varint()?).map_err(|_| Error::InvalidConfig)?;
+    let payload = reader.take(length)?;
+    let mut nested = Reader::new(payload, true, protocol::Limits::default());
+    let n = nested.count()?;
+    let mut endpoints = Vec::new();
+    endpoints
+        .try_reserve_exact(n)
+        .map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let node_id = nested.i32()?;
+        let host = nested.string()?.to_owned();
+        let port = u16::from_be_bytes(
+            nested
+                .take(2)?
+                .try_into()
+                .map_err(|_| Error::InvalidConfig)?,
+        );
+        nested.tags()?;
+        endpoints.push(VoteNodeEndpoint {
+            node_id,
+            host,
+            port,
+        });
+    }
+    nested.finish()?;
+    Ok(endpoints)
+}
+
 /// One leader endpoint from BeginQuorumEpoch version 1.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeaderEndpoint {
@@ -2267,6 +2466,74 @@ mod prevote_tests {
                 59
             ),
             None
+        );
+    }
+
+    #[test]
+    fn vote_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied() {
+        let config = Config::new(1, vec![1, 2], "cluster-1".to_owned())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let election = election::State {
+            persistent: state(4),
+            role: election::Role::Follower,
+            leader: Some(4),
+            deadline_ms: 0,
+            granted_votes: 0,
+            poisoned: false,
+        };
+        let framed = response(52, 9, 0, Some((0, true)), &config, election)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let classic = VoteResponseBody {
+            version: 0,
+            error_code: 0,
+            topic: config.topic.clone(),
+            partition: config.partition,
+            partition_error: 0,
+            leader_id: 4,
+            leader_epoch: wire_epoch(4).unwrap_or_else(|error| panic!("{error:?}")),
+            vote_granted: true,
+            endpoints: Vec::new(),
+        };
+        let encoded = encode_vote_response(&classic).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(&framed[5..], encoded.as_slice());
+        let modern = VoteResponseBody {
+            version: 1,
+            endpoints: vec![VoteNodeEndpoint {
+                node_id: 4,
+                host: "127.0.0.1".to_owned(),
+                port: 9093,
+            }],
+            ..classic
+        };
+        let bytes = encode_vote_response(&modern).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_vote_response(&bytes, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(decoded.endpoints.len(), 1);
+        assert_eq!(decoded.endpoints[0].port, 9093);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_vote_response(&persistent, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale = decoded;
+        stale.endpoints[0].node_id = 9;
+        assert_eq!(
+            decide_vote_response(&persistent, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[1].api_key, 52);
+        assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
+        assert_eq!(
+            negotiate(
+                &[ApiVersion {
+                    api_key: 52,
+                    min_version: 0,
+                    max_version: 2
+                }],
+                52
+            ),
+            Some(0)
         );
     }
 }
