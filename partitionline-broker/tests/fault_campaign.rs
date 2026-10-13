@@ -54,8 +54,10 @@ fn recovery_profile() -> Report {
         seed = seed.wrapping_add(1);
         let leader_path = path("rcv-l", seed);
         let follower_path = path("rcv-f", seed);
-        let mut leader = EpochLog::open(&leader_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
-        let mut follower = EpochLog::open(&follower_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut leader =
+            EpochLog::open(&leader_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut follower =
+            EpochLog::open(&follower_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         let mut epoch = 1i32;
         let mut next_id = 1u64;
         for step in 0..4 {
@@ -102,11 +104,20 @@ fn recovery_profile() -> Report {
                     .unwrap_or_else(|error| panic!("{error:?}"));
                 next_id = next_id.saturating_add(1);
                 let follower_ids = follower.committed_ids();
-                if follower_ids.iter().any(|id| leader.records().iter().find(|record| record.id == *id).is_none())
-                {
+                if follower_ids.iter().any(|id| {
+                    leader
+                        .records()
+                        .iter()
+                        .find(|record| record.id == *id)
+                        .is_none()
+                }) {
                     report.observer_failures = report.observer_failures.saturating_add(1);
                 }
-                if follower.records().iter().any(|record| record.offset == hidden) {
+                if follower
+                    .records()
+                    .iter()
+                    .any(|record| record.offset == hidden)
+                {
                     report.observer_failures = report.observer_failures.saturating_add(1);
                 }
                 report.partitions = report.partitions.saturating_add(1);
@@ -118,7 +129,8 @@ fn recovery_profile() -> Report {
                     report.observer_failures = report.observer_failures.saturating_add(1);
                 }
                 drop(leader);
-                leader = EpochLog::open(&leader_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+                leader = EpochLog::open(&leader_path, limits)
+                    .unwrap_or_else(|error| panic!("{error:?}"));
                 if leader.committed_ids() != committed || leader.high_watermark() != watermark {
                     report.observer_failures = report.observer_failures.saturating_add(1);
                 }
@@ -146,7 +158,8 @@ fn marker_profile() -> Report {
     while report.faults < FAULTS_PER_PROFILE {
         seed = seed.wrapping_add(1);
         let log_path = path("mark", seed);
-        let mut log = MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut log =
+            MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         let id = mix(&mut seed);
         log.append_data(4, 0, id)
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -172,7 +185,8 @@ fn marker_profile() -> Report {
         report.fences = report.fences.saturating_add(1);
         report.faults = report.faults.saturating_add(1);
         drop(log);
-        let restored = MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let restored =
+            MarkerLog::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         if restored.read_committed(0) != visible {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
@@ -204,7 +218,8 @@ fn offset_profile() -> Report {
     while report.faults < FAULTS_PER_PROFILE {
         seed = seed.wrapping_add(1);
         let log_path = path("off", seed);
-        let mut log = TxnOffsets::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut log =
+            TxnOffsets::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         let id = mix(&mut seed);
         log.append_data(4, 0, id)
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -255,7 +270,8 @@ fn offset_profile() -> Report {
         report.fences = report.fences.saturating_add(1);
         report.faults = report.faults.saturating_add(1);
         drop(log);
-        let restored = TxnOffsets::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let restored =
+            TxnOffsets::open(&log_path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         if restored.visible_data() != visible {
             report.observer_failures = report.observer_failures.saturating_add(1);
         }
@@ -294,7 +310,8 @@ fn write_report(reports: &[Report]) {
     let out = std::env::var("PL_FAULT_CAMPAIGN_OUT").unwrap_or_default();
     if !out.is_empty() {
         let mut file = std::fs::File::create(&out).unwrap_or_else(|error| panic!("{error:?}"));
-        std::io::Write::write_all(&mut file, body.as_bytes()).unwrap_or_else(|error| panic!("{error:?}"));
+        std::io::Write::write_all(&mut file, body.as_bytes())
+            .unwrap_or_else(|error| panic!("{error:?}"));
     }
     println!("{body}");
 }
