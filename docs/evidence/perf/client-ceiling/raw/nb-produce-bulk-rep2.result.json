@@ -1,0 +1,348 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "cell_id": "nb-produce-bulk",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "drive_mode": "pipelined",
+    "flush_us_total": 182131,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "measured_duration_seconds": 0.252918471,
+    "offsets_observed": false,
+    "pairing_order": "unreported",
+    "phase": "bounded_fixture",
+    "queue_full_retries": 29,
+    "records_consumed": 0,
+    "records_offered": 20000,
+    "repetition_index": 1,
+    "result_path": "/tmp/nb-ceiling-one/nb-produce-bulk-rep0.result.json",
+    "steady_state_duration_seconds": null,
+    "timed_out": false,
+    "total_repetitions": null,
+    "validation_failures": 0,
+    "warmup_completed": false,
+    "warmup_duration_seconds": 0,
+    "warmup_records": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [
+        {
+          "end_offset": 3334,
+          "offset_delta": 3334,
+          "partition": 0,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        },
+        {
+          "end_offset": 3334,
+          "offset_delta": 3334,
+          "partition": 1,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        },
+        {
+          "end_offset": 3333,
+          "offset_delta": 3333,
+          "partition": 2,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        },
+        {
+          "end_offset": 3333,
+          "offset_delta": 3333,
+          "partition": 3,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        },
+        {
+          "end_offset": 3333,
+          "offset_delta": 3333,
+          "partition": 4,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        },
+        {
+          "end_offset": 3333,
+          "offset_delta": 3333,
+          "partition": 5,
+          "start_offset": 0,
+          "topic": "nb-bulk"
+        }
+      ],
+      "total_offset_delta": 20000
+    },
+    "idempotence_sequence_verified": null,
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+      "duplicate_ids_count": 0,
+      "end_id": 20000,
+      "expected_count": 20000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 20000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 793,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 4542464,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.008118,
+      "user_cpu_seconds": 0.004059
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 21389,
+        "allocations_per_record": 1.06945,
+        "total_allocated_bytes": 45349162,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 1363.25,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 10.780153735786266,
+      "rss": {
+        "average_rss_bytes": 14939914,
+        "baseline_rss_bytes": 11132928,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 28024832,
+        "process_peak_rss_bytes": 33357824,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.008868,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.018397
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 59431.01968278044,
+        "unit": "microseconds",
+        "upper": 59520.509317219556
+      },
+      "max": 208720,
+      "mean": 59475.7645,
+      "min": 54409,
+      "p50": 59476.0,
+      "p90": 63333.100000000006,
+      "p95": 63824.05,
+      "p99": 64221.009999999995,
+      "p99_9": 64315.0,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "max_us": 0,
+            "min_us": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 19995,
+            "max_us": 65535,
+            "min_us": 32768,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 2,
+            "max_us": 131071,
+            "min_us": 65536,
+            "upper_bound_us": 131072
+          },
+          {
+            "count": 3,
+            "max_us": 262143,
+            "min_us": 131072,
+            "upper_bound_us": 262144
+          }
+        ]
+      },
+      "sample_count": 20000,
+      "stddev": 3228.506497846916,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 8.747974813047561,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 79076.8658410876,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 2320000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 20000,
+    "acknowledged": 20000,
+    "consumed": 0,
+    "offered": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "/tmp/nb-ceiling-one/nb-produce-bulk-rep0.broker.json",
+        "sha256": "f1a16be3efa114439f7a59fbdbe801e115c5bb1d8dc00697d7be1a3516a5d743",
+        "size_bytes": 793,
+        "type": "broker-counts"
+      },
+      {
+        "path": "/tmp/nb-ceiling-one/nb-produce-bulk-rep0.latency-us.txt",
+        "sha256": "ec43e820d8410cd4a37d1204ac5bf1ffb1969d297cf3af4aee674dafdef2b329",
+        "size_bytes": 120005,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "/workspace/benchmarks/runtime/target/release/runtime",
+      "sha256": "598f8c37a0fd03a4ee96bf27728ae2f54af43f5afa9fede1a98b136521822891",
+      "size_bytes": 7447032
+    },
+    "broker": {
+      "cluster_id": null,
+      "endpoints": [
+        "127.0.0.1:36315"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null",
+      "node_count": 1,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": 1,
+        "batch_records": null,
+        "batch_size_bytes": 1000000,
+        "compression": "none",
+        "drive_mode": "pipelined",
+        "entropy": "random",
+        "fault_rate_per_million": 0,
+        "fault_seed": 1592590337,
+        "flush_every": 0,
+        "headers_each": 0,
+        "idempotence": false,
+        "idle_seconds": 0,
+        "key_bytes": 16,
+        "linger_ms": 5,
+        "linger_override_ms": null,
+        "max_in_flight": 16,
+        "runtime": {
+          "observed_alive_tasks": 0,
+          "observed_flavor": "current_thread",
+          "observed_scheduler_workers": 1,
+          "post_close_barrier_ns": 2102319,
+          "post_close_barrier_outside_measurement": true,
+          "post_close_tasks_before_barrier": 3,
+          "requested_background_workers": 0,
+          "requested_flavor": "current_thread"
+        },
+        "seed": 1592590337,
+        "timeout_secs": 60,
+        "value_bytes": 100
+      },
+      "path": "/tmp/nb-ceiling-one/nb-produce-bulk-rep0.result.config.json",
+      "sha256": "a0c9e5ccdb0039b98398c5c309e3c6c381809566c8379da7e7fd081c887b3041"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2400.0,
+        "logical_cores": 4,
+        "model": "Intel(R) Xeon(R) Processor",
+        "physical_cores": 4
+      },
+      "hostname": "cursor",
+      "kernel_version": "6.12.94+ #1 SMP PREEMPT_DYNAMIC Mon Oct 12 16:05:39 UTC 2026",
+      "memory": {
+        "total_bytes": 16780713984,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.12.94+",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714817752235028,
+      "partition_seed": 14029467333106158854,
+      "payload_seed": 1592590337,
+      "repetition_seed": 1592590337
+    },
+    "source": {
+      "clean": false,
+      "dirty_tree": true,
+      "git_branch": "main",
+      "git_commit": "185c2c24277ac9f5f9ede64ec9b58954cbf16871",
+      "repo_url": "https://x-access-token:ghs_1210556_eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRobmQiLCJjdHgiOiI5ZE83ZG5tX3IxSTROckRLZktlYWtmcVM0aWgzVnp4NTdFNmVaSDFqdldScWU5QWJsUmhPRHJSWjQ3VkREUUEiLCJleHAiOjE3OTE5MzYxMDIsImlhdCI6MTc5MTkzMjUwMiwiaXNzIjoiZ2l0aHViIiwianRpIjoiNjBhMWUxMWItYWJiOS00MGNiLWE2NWMtY2NjN2UxNDJmYzBkIiwidmVyIjozfQ.7rtjbJ6bmj42irtqQduyOlenjAgpOJu_t10ddGzlHIxWqQsclaoCb5z-H7xVVqwhDLZnpaEsKlZuRqCwSxcCjw@github.com/mingley/partitionline",
+      "tree_hash": "0b26d0294cf0b4de84b9a10a08bdde5753ae54e4"
+    },
+    "timestamps": {
+      "duration_seconds": 0.252918471,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-13T23:30:04.275361488Z",
+      "start_time_utc": "2026-10-13T23:30:04.022443008Z"
+    },
+    "toolchains": {
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "tokio 1.53.1"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.0125532,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "error_message": null,
+        "integrity_failure": false,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "timestamp_utc": "2026-10-13T23:30:04.275361488Z"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "acks": 1,
+      "durability": null,
+      "idempotence": false,
+      "isolation": null,
+      "max_in_flight": 16,
+      "security": {
+        "mechanism": "NONE",
+        "protocol": "PLAINTEXT"
+      }
+    },
+    "peer": "partitionline",
+    "profile": "bulk",
+    "scenario_id": "nb-produce-bulk",
+    "tier": "exploratory"
+  },
+  "schema_version": "2.0.0",
+  "suite_hold": {
+    "policy": "A local fixture does not qualify a scenario or lift Suite HOLD.",
+    "status": "active"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "peer": "partitionline",
+  "peers_not_run": [
+    "java",
+    "librdkafka",
+    "franz-go"
+  ],
+  "interleaved_repetitions": 5,
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "host": "Linux x86_64, 4 cores, frequency unpinned",
+  "note": "Single-peer null-broker ceiling. Not Kafka throughput and not a fastest-client result. Other peers were not executed, so KL09-67 stays open.",
+  "cells": {
+    "nb-fetch-bulk": {
+      "repetitions": 5,
+      "validation_failures": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "records_per_second": [
+        107733.35,
+        116073.12,
+        117654.19,
+        109193.62,
+        117570.7
+      ],
+      "records_per_second_min": 107733.35,
+      "records_per_second_median": 116073.12,
+      "records_per_second_max": 117654.19
+    },
+    "nb-produce-bulk": {
+      "repetitions": 5,
+      "validation_failures": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "records_per_second": [
+        76109.49,
+        78132.64,
+        79076.87,
+        76464.47,
+        77284.97
+      ],
+      "records_per_second_min": 76109.49,
+      "records_per_second_median": 77284.97,
+      "records_per_second_max": 79076.87
+    },
+    "nb-produce-idem": {
+      "repetitions": 5,
+      "validation_failures": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "records_per_second": [
+        74329.93,
+        79003.17,
+        77774.62,
+        76638.88,
+        77682.03
+      ],
+      "records_per_second_min": 74329.93,
+      "records_per_second_median": 77682.03,
+      "records_per_second_max": 79003.17
+    }
+  }
+}
