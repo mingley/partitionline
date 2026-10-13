@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "marker-read-committed",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "f899c0d3121727965e014bc379b7c0e422535d8b",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::markers::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
