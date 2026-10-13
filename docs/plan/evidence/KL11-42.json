@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "checksummed-tiered-segments",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "bd259eeb4db6409f8bf428cb0197d783511bfd0d",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib tiered::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
