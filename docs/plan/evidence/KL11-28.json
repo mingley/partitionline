@@ -1,0 +1,29 @@
+{
+  "task": "KL11-28",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "group-lifecycle",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::lifecycle::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "lifecycle_tests_passed": 2,
+    "lifecycle_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A heartbeat inside the session timeout does not expire the member. Silence past the timeout revokes ownership.",
+    "Graceful leave revokes that member's partitions immediately.",
+    "An offset commit requires the partition to be owned and marked delivered. Cooperative revoke removes an undelivered partition before it can be committed.",
+    "A static instance rejoin replaces the old member id and keeps a single owner. Reopen preserves that commit decision."
+  ],
+  "limits": [
+    "This is not the Heartbeat or OffsetCommit RPC.",
+    "Group offset storage and administration stay on KL11-29.",
+    "The journal format is the local PLGLIF01 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
