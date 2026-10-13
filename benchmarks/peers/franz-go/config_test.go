@@ -16,6 +16,9 @@ func setEnv(t *testing.T, kv map[string]string) {
 		"ISOLATION", "TLS_CA_PEM", "TLS_SERVER_NAME", "TLS_CLIENT_CERT_PEM",
 		"TLS_CLIENT_KEY_PEM", "SASL_MECHANISM", "SASL_USERNAME", "SASL_PASSWORD",
 		"SCENARIO_ID", "PROFILE", "RESULT_PATH",
+		"QUEUE_MESSAGES", "QUEUE_KBYTES", "DELIVERY_TIMEOUT_MS", "FLUSH_TIMEOUT_MS",
+		"RUN_TIMEOUT_MS", "CONSUME_TIMEOUT_MS", "PAYLOAD_MODE", "KEY_MODE",
+		"CONNECTIONS_PER_BROKER", "SOCKET_NAGLE_DISABLE",
 	}
 	for _, k := range keys {
 		if _, ok := kv[k]; !ok {
@@ -96,6 +99,9 @@ func TestEffectiveSettingsShape(t *testing.T) {
 		t.Fatalf("effective settings not JSON: %v", err)
 	}
 	for _, key := range []string{"acks", "linger_ms", "batch_size_bytes", "max_in_flight", "idempotence",
+		"queue_max_messages", "queue_max_kbytes", "delivery_timeout_ms", "flush_timeout_ms",
+		"run_timeout_ms", "consume_timeout_ms", "payload_mode", "key_mode", "partitioner",
+		"connections_per_broker", "socket_nagle_disable",
 		"compression", "security_protocol", "delivery_definition", "record_id_definition", "unsupported_by_driver"} {
 		if _, ok := decoded[key]; !ok {
 			t.Fatalf("effective settings missing %q", key)

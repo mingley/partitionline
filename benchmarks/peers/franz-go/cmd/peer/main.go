@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"os"
 	"runtime"
 	"sort"
@@ -85,7 +86,18 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(cfg.Bootstrap...),
 		kgo.ClientID("franzgo-peer"),
-		kgo.RecordPartitioner(kgo.RoundRobinPartitioner()),
+		kgo.RecordPartitioner(kgo.ManualPartitioner()),
+		kgo.Dialer(func(ctx context.Context, network, host string) (net.Conn, error) {
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			conn, err := dialer.DialContext(ctx, network, host)
+			if err != nil {
+				return nil, err
+			}
+			if tcp, ok := conn.(*net.TCPConn); ok {
+				_ = tcp.SetNoDelay(cfg.NagleDisable)
+			}
+			return conn, nil
+		}),
 	}
 	switch cfg.Acks {
 	case -1:
@@ -101,17 +113,17 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	opts = append(opts,
 		kgo.ProducerLinger(time.Duration(cfg.LingerMs)*time.Millisecond),
 		kgo.MaxProduceRequestsInflightPerBroker(cfg.MaxInFlight),
+		kgo.MaxBufferedRecords(cfg.QueueMessages),
 	)
+	if cfg.QueueKBytes > 0 {
+		opts = append(opts, kgo.MaxBufferedBytes(cfg.QueueKBytes*1024))
+	}
+	if cfg.DeliveryTimeoutMs > 0 {
+		opts = append(opts, kgo.RecordDeliveryTimeout(time.Duration(cfg.DeliveryTimeoutMs)*time.Millisecond))
+	}
 	if cfg.BatchBytes > 0 && cfg.BatchBytes <= math.MaxInt32 {
 		opts = append(opts, kgo.ProducerBatchMaxBytes(int32(cfg.BatchBytes)))
 	}
-	// Client-side buffers are sized to the run so backpressure never
-	// rejects: the contract counts broker acks, not queue admissions.
-	bufRecords := cfg.Count + cfg.Warmup + 1024
-	if bufRecords > math.MaxInt32 {
-		bufRecords = math.MaxInt32
-	}
-	opts = append(opts, kgo.MaxBufferedRecords(int(bufRecords)))
 	switch cfg.Compression {
 	case "none":
 		opts = append(opts, kgo.ProducerBatchCompression(kgo.NoCompression()))
@@ -172,7 +184,7 @@ func produceRecords(client *kgo.Client, cfg peer.Config, topic string, count uin
 		latUs = make([]float64, count)
 		starts = make([]int64, count)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.RunTimeoutMs)*time.Millisecond)
 	defer cancel()
 	var acked atomic.Int64
 	var mu sync.Mutex
@@ -181,6 +193,7 @@ func produceRecords(client *kgo.Client, cfg peer.Config, topic string, count uin
 	for i := uint64(0); i < count; i++ {
 		rec := &kgo.Record{
 			Topic:     topic,
+			Partition: int32(i % uint64(cfg.Partitions)),
 			Key:       peer.MakeKey(i, cfg.Seed),
 			Value:     peer.MakeValue(i, cfg.Seed, cfg.PayloadBytes),
 			Timestamp: time.Now(),
@@ -204,7 +217,9 @@ func produceRecords(client *kgo.Client, cfg peer.Config, topic string, count uin
 		})
 	}
 	out.Accepted = int64(count)
-	flushErr := client.Flush(ctx)
+	flushCtx, flushCancel := context.WithTimeout(context.Background(), time.Duration(cfg.FlushTimeoutMs)*time.Millisecond)
+	defer flushCancel()
+	flushErr := client.Flush(flushCtx)
 	out.Elapsed = time.Since(start)
 	out.Acked = acked.Load()
 	if flushErr != nil {
@@ -291,7 +306,8 @@ func fetchRecords(client *kgo.Client, cfg peer.Config, expect uint64) fetchOutco
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	start := time.Now()
-	idleDeadline := time.Now().Add(15 * time.Second)
+	idle := time.Duration(cfg.ConsumeTimeoutMs) * time.Millisecond
+	idleDeadline := time.Now().Add(idle)
 	for {
 		if out.Verified >= int64(expect) {
 			break
@@ -328,7 +344,7 @@ func fetchRecords(client *kgo.Client, cfg peer.Config, expect uint64) fetchOutco
 			out.Verified++
 		})
 		if !empty {
-			idleDeadline = time.Now().Add(15 * time.Second)
+			idleDeadline = time.Now().Add(idle)
 		}
 	}
 	out.Elapsed = time.Since(start)
@@ -405,7 +421,7 @@ func roundtrip() int {
 	}
 	defer adminClient.Close()
 	adm := kadm.NewClient(adminClient)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.RunTimeoutMs)*time.Millisecond)
 	defer cancel()
 
 	warmupTopic := cfg.Topic + "-warmup"

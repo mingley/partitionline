@@ -29,6 +29,20 @@ type Config struct {
 	BatchBytes   int64
 	BatchRecords int64
 	MaxInFlight  int
+	// QueueMessages is the applied produce buffer, in records.
+	QueueMessages int
+	// QueueKBytes is the applied produce buffer, in kibibytes. Zero means unlimited.
+	QueueKBytes int
+	// DeliveryTimeoutMs is RecordDeliveryTimeout. Zero keeps the driver default.
+	DeliveryTimeoutMs int64
+	// FlushTimeoutMs bounds client.Flush.
+	FlushTimeoutMs int64
+	// RunTimeoutMs bounds a produce or fetch attempt.
+	RunTimeoutMs int64
+	// ConsumeTimeoutMs bounds idle time while fetching.
+	ConsumeTimeoutMs int64
+	// NagleDisable is applied with TCP_NODELAY on every dial.
+	NagleDisable bool
 	Compression  string
 	Isolation    string
 
@@ -161,6 +175,45 @@ func LoadConfig() (Config, error) {
 		return c, err
 	}
 	c.MaxInFlight = int(v)
+	if _, ok := os.LookupEnv("QUEUE_MESSAGES"); !ok || strings.TrimSpace(os.Getenv("QUEUE_MESSAGES")) == "" {
+		sized := c.Count + c.Warmup + 1024
+		if sized > uint64(int(^uint(0)>>1)) {
+			sized = uint64(int(^uint(0) >> 1))
+		}
+		c.QueueMessages = int(sized)
+	} else if v, err = getInt("QUEUE_MESSAGES", 0); err != nil {
+		return c, err
+	} else {
+		c.QueueMessages = int(v)
+	}
+	if v, err = getInt("QUEUE_KBYTES", 0); err != nil {
+		return c, err
+	}
+	c.QueueKBytes = int(v)
+	if c.DeliveryTimeoutMs, err = getInt("DELIVERY_TIMEOUT_MS", 0); err != nil {
+		return c, err
+	}
+	if c.FlushTimeoutMs, err = getInt("FLUSH_TIMEOUT_MS", 900_000); err != nil {
+		return c, err
+	}
+	if c.RunTimeoutMs, err = getInt("RUN_TIMEOUT_MS", 900_000); err != nil {
+		return c, err
+	}
+	if c.ConsumeTimeoutMs, err = getInt("CONSUME_TIMEOUT_MS", 15_000); err != nil {
+		return c, err
+	}
+	c.NagleDisable = getenv("SOCKET_NAGLE_DISABLE", "1") != "0"
+	if mode := getenv("PAYLOAD_MODE", "seeded"); mode != "seeded" {
+		return c, fmt.Errorf("peer: PAYLOAD_MODE must be seeded, got %q", mode)
+	}
+	if mode := getenv("KEY_MODE", "id"); mode != "id" {
+		return c, fmt.Errorf("peer: KEY_MODE must be id, got %q", mode)
+	}
+	if v, err = getInt("CONNECTIONS_PER_BROKER", 1); err != nil {
+		return c, err
+	} else if v != 1 {
+		return c, fmt.Errorf("peer: CONNECTIONS_PER_BROKER must be 1, got %d", v)
+	}
 	c.Compression = strings.ToLower(strings.TrimSpace(getenv("COMPRESSION", "none")))
 	c.Isolation = strings.ToLower(strings.TrimSpace(getenv("ISOLATION", "read_uncommitted")))
 	if c.TLSCAPem, err = readFileEnv("TLS_CA_PEM"); err != nil {
@@ -199,6 +252,15 @@ func (c Config) Validate() error {
 	}
 	if c.PayloadBytes < 0 {
 		return fmt.Errorf("peer: PAYLOAD_BYTES must be >= 0, got %d", c.PayloadBytes)
+	}
+	if c.QueueMessages < 1 {
+		return fmt.Errorf("peer: QUEUE_MESSAGES must be >= 1, got %d", c.QueueMessages)
+	}
+	if c.QueueKBytes < 0 {
+		return fmt.Errorf("peer: QUEUE_KBYTES must be >= 0, got %d", c.QueueKBytes)
+	}
+	if c.DeliveryTimeoutMs < 0 || c.FlushTimeoutMs < 1 || c.RunTimeoutMs < 1 || c.ConsumeTimeoutMs < 1 {
+		return fmt.Errorf("peer: timeouts must be positive (delivery may be 0)")
 	}
 	switch c.Acks {
 	case -1, 0, 1:
@@ -254,32 +316,42 @@ func (c Config) Validate() error {
 // included (presence flags only).
 func (c Config) EffectiveSettings() map[string]any {
 	return map[string]any{
-		"acks":                  c.Acks,
-		"linger_ms":             c.LingerMs,
-		"batch_size_bytes":      c.BatchBytes,
-		"batch_num_messages":    c.BatchRecords,
-		"max_in_flight":         c.MaxInFlight,
-		"idempotence":           c.Idempotent,
-		"compression":           c.Compression,
-		"isolation_level":       c.Isolation,
-		"security_protocol":     c.SecurityProtocol(),
-		"sasl_mechanism":        c.SASLMechanism,
-		"has_sasl_credentials":  c.SASLUsername != "" && c.SASLPassword != "",
-		"has_custom_ca":         len(c.TLSCAPem) > 0,
-		"tls_server_name":       c.TLSServerName,
-		"has_client_identity":   len(c.TLSClientCert) > 0,
-		"bootstrap":             c.Bootstrap,
-		"topic":                 c.Topic,
-		"partitions":            c.Partitions,
-		"count":                 c.Count,
-		"warmup":                c.Warmup,
-		"payload_bytes":         c.PayloadBytes,
-		"record_seed":           fmt.Sprintf("0x%X", c.Seed),
-		"partitioner":           "round_robin",
-		"franzgo_client_id":     "franzgo-peer",
-		"delivery_definition":   "acknowledged = broker Produce response with nil promise error; enqueue is never counted",
-		"record_id_definition":  "key = be64(index) || be64(splitmix64(seed^index)); value = splitmix64 stream; sha256 verified on consume",
-		"unsupported_by_driver": UnsupportedIDs(),
+		"acks":                   c.Acks,
+		"linger_ms":              c.LingerMs,
+		"batch_size_bytes":       c.BatchBytes,
+		"batch_num_messages":     c.BatchRecords,
+		"max_in_flight":          c.MaxInFlight,
+		"queue_max_messages":     c.QueueMessages,
+		"queue_max_kbytes":       c.QueueKBytes,
+		"delivery_timeout_ms":    c.DeliveryTimeoutMs,
+		"flush_timeout_ms":       c.FlushTimeoutMs,
+		"run_timeout_ms":         c.RunTimeoutMs,
+		"consume_timeout_ms":     c.ConsumeTimeoutMs,
+		"payload_mode":           "seeded",
+		"key_mode":               "id",
+		"connections_per_broker": 1,
+		"socket_nagle_disable":   c.NagleDisable,
+		"idempotence":            c.Idempotent,
+		"compression":            c.Compression,
+		"isolation_level":        c.Isolation,
+		"security_protocol":      c.SecurityProtocol(),
+		"sasl_mechanism":         c.SASLMechanism,
+		"has_sasl_credentials":   c.SASLUsername != "" && c.SASLPassword != "",
+		"has_custom_ca":          len(c.TLSCAPem) > 0,
+		"tls_server_name":        c.TLSServerName,
+		"has_client_identity":    len(c.TLSClientCert) > 0,
+		"bootstrap":              c.Bootstrap,
+		"topic":                  c.Topic,
+		"partitions":             c.Partitions,
+		"count":                  c.Count,
+		"warmup":                 c.Warmup,
+		"payload_bytes":          c.PayloadBytes,
+		"record_seed":            fmt.Sprintf("0x%X", c.Seed),
+		"partitioner":            "explicit_round_robin",
+		"franzgo_client_id":      "franzgo-peer",
+		"delivery_definition":    "acknowledged = broker Produce response with nil promise error; enqueue is never counted",
+		"record_id_definition":   "key = be64(index) || be64(splitmix64(seed^index)); value = splitmix64 stream; sha256 verified on consume",
+		"unsupported_by_driver":  UnsupportedIDs(),
 	}
 }
 
