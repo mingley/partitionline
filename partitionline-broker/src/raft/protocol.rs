@@ -1413,6 +1413,321 @@ fn read_vote_endpoints(reader: &mut Reader<'_>) -> Result<Vec<VoteNodeEndpoint>,
     Ok(endpoints)
 }
 
+/// One replica row in a DescribeQuorum response.
+///
+/// `directory` is present only on version 2. Fetch and caught-up timestamps
+/// are present on versions 1 and 2.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumReplica {
+    /// Replica id.
+    pub replica_id: i32,
+    /// Replica directory. Required on version 2.
+    pub directory: Option<[u8; 16]>,
+    /// Last known log end offset.
+    pub log_end_offset: i64,
+    /// Last fetch timestamp, or `-1` when unknown or on version 0.
+    pub last_fetch_timestamp: i64,
+    /// Last caught-up timestamp, or `-1` when unknown or on version 0.
+    pub last_caught_up_timestamp: i64,
+}
+
+/// One controller node in DescribeQuorum version 2.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumNode {
+    /// Node id.
+    pub node_id: i32,
+    /// Listeners for this node.
+    pub listeners: Vec<LeaderEndpoint>,
+}
+
+/// One DescribeQuorum response body for versions 0, 1, or 2.
+///
+/// Version 2 adds error messages, replica directories, and nodes. None of
+/// these versions are advertised on the controller listener.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumBody {
+    /// DescribeQuorum version, 0, 1, or 2.
+    pub version: i16,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Top-level error message. Version 2 only.
+    pub error_message: Option<String>,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Partition error code.
+    pub partition_error: i16,
+    /// Partition error message. Version 2 only.
+    pub partition_error_message: Option<String>,
+    /// Current leader, or `-1` when unknown.
+    pub leader_id: i32,
+    /// Leader epoch.
+    pub leader_epoch: i32,
+    /// High watermark.
+    pub high_watermark: i64,
+    /// Current voters.
+    pub voters: Vec<QuorumReplica>,
+    /// Observers.
+    pub observers: Vec<QuorumReplica>,
+    /// Nodes. Version 2 only.
+    pub nodes: Vec<QuorumNode>,
+}
+
+/// Encode a flexible DescribeQuorum body for version 0, 1, or 2.
+pub fn encode_describe_quorum(body: &DescribeQuorumBody) -> Result<Vec<u8>, Error> {
+    if !(0..=2).contains(&body.version)
+        || body.voters.len() > MAX_ARRAY
+        || body.observers.len() > MAX_ARRAY
+        || body.nodes.len() > MAX_ARRAY
+    {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version < 2
+        && (body.error_message.is_some()
+            || body.partition_error_message.is_some()
+            || !body.nodes.is_empty())
+    {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + 96)?;
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    if body.version >= 2 {
+        write_nullable(&mut out, body.error_message.as_deref(), true)?;
+    }
+    write_count(&mut out, 1, true)?;
+    string(&mut out, &body.topic, true)?;
+    write_count(&mut out, 1, true)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.partition_error.to_be_bytes());
+    if body.version >= 2 {
+        write_nullable(&mut out, body.partition_error_message.as_deref(), true)?;
+    }
+    out.extend_from_slice(&body.leader_id.to_be_bytes());
+    out.extend_from_slice(&body.leader_epoch.to_be_bytes());
+    out.extend_from_slice(&body.high_watermark.to_be_bytes());
+    write_replicas(&mut out, body.version, &body.voters)?;
+    write_replicas(&mut out, body.version, &body.observers)?;
+    out.extend_from_slice(&[0, 0]);
+    if body.version >= 2 {
+        write_quorum_nodes(&mut out, &body.nodes)?;
+    }
+    out.push(0);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_describe_quorum`].
+pub fn decode_describe_quorum(bytes: &[u8], version: i16) -> Result<DescribeQuorumBody, Error> {
+    if !(0..=2).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let error_code = reader.i16()?;
+    let error_message = if version >= 2 {
+        reader.nullable_string()?.map(str::to_owned)
+    } else {
+        None
+    };
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let partition_error = reader.i16()?;
+    let partition_error_message = if version >= 2 {
+        reader.nullable_string()?.map(str::to_owned)
+    } else {
+        None
+    };
+    let leader_id = reader.i32()?;
+    let leader_epoch = reader.i32()?;
+    let high_watermark = reader.i64()?;
+    let voters = read_replicas(&mut reader, version)?;
+    let observers = read_replicas(&mut reader, version)?;
+    reader.tags()?;
+    reader.tags()?;
+    let nodes = if version >= 2 {
+        read_quorum_nodes(&mut reader)?
+    } else {
+        Vec::new()
+    };
+    reader.tags()?;
+    reader.finish()?;
+    Ok(DescribeQuorumBody {
+        version,
+        error_code,
+        error_message,
+        topic,
+        partition,
+        partition_error,
+        partition_error_message,
+        leader_id,
+        leader_epoch,
+        high_watermark,
+        voters,
+        observers,
+        nodes,
+    })
+}
+
+/// Accept a DescribeQuorum body without changing `persistent`.
+///
+/// Version 2 is refused when the named replica's directory does not match.
+/// The body is not applied, and api 55 stays off the controller listener.
+pub fn decide_describe_quorum(
+    persistent: &election::PersistentState,
+    replica_id: i32,
+    expected_directory: [u8; 16],
+    body: &DescribeQuorumBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.version < 2 {
+        return VoteDisposition::NotAdvertised;
+    }
+    match body
+        .voters
+        .iter()
+        .find(|replica| replica.replica_id == replica_id)
+        .and_then(|replica| replica.directory)
+    {
+        Some(directory) if directory == expected_directory && directory != [0; 16] => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn write_replicas(
+    out: &mut Vec<u8>,
+    version: i16,
+    replicas: &[QuorumReplica],
+) -> Result<(), Error> {
+    write_count(
+        out,
+        u32::try_from(replicas.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for replica in replicas {
+        if version < 2 && replica.directory.is_some() {
+            return Err(Error::InvalidConfig);
+        }
+        if version >= 2 && replica.directory.is_none() {
+            return Err(Error::InvalidConfig);
+        }
+        if version == 0
+            && (replica.last_fetch_timestamp != -1 || replica.last_caught_up_timestamp != -1)
+        {
+            return Err(Error::InvalidConfig);
+        }
+        out.extend_from_slice(&replica.replica_id.to_be_bytes());
+        if let Some(directory) = replica.directory {
+            out.extend_from_slice(&directory);
+        }
+        out.extend_from_slice(&replica.log_end_offset.to_be_bytes());
+        if version >= 1 {
+            out.extend_from_slice(&replica.last_fetch_timestamp.to_be_bytes());
+            out.extend_from_slice(&replica.last_caught_up_timestamp.to_be_bytes());
+        }
+        out.push(0);
+    }
+    Ok(())
+}
+
+fn read_replicas(reader: &mut Reader<'_>, version: i16) -> Result<Vec<QuorumReplica>, Error> {
+    let n = reader.count()?;
+    let mut replicas = Vec::new();
+    replicas
+        .try_reserve_exact(n)
+        .map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let replica_id = reader.i32()?;
+        let directory = if version >= 2 {
+            Some(
+                reader
+                    .take(16)?
+                    .try_into()
+                    .map_err(|_| Error::InvalidConfig)?,
+            )
+        } else {
+            None
+        };
+        let log_end_offset = reader.i64()?;
+        let (last_fetch_timestamp, last_caught_up_timestamp) = if version >= 1 {
+            (reader.i64()?, reader.i64()?)
+        } else {
+            (-1, -1)
+        };
+        reader.tags()?;
+        replicas.push(QuorumReplica {
+            replica_id,
+            directory,
+            log_end_offset,
+            last_fetch_timestamp,
+            last_caught_up_timestamp,
+        });
+    }
+    Ok(replicas)
+}
+
+fn write_quorum_nodes(out: &mut Vec<u8>, nodes: &[QuorumNode]) -> Result<(), Error> {
+    write_count(
+        out,
+        u32::try_from(nodes.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for node in nodes {
+        if node.listeners.len() > MAX_ARRAY {
+            return Err(Error::InvalidConfig);
+        }
+        out.extend_from_slice(&node.node_id.to_be_bytes());
+        write_count(
+            out,
+            u32::try_from(node.listeners.len()).map_err(|_| Error::InvalidConfig)?,
+            true,
+        )?;
+        for listener in &node.listeners {
+            string(out, &listener.name, true)?;
+            string(out, &listener.host, true)?;
+            out.extend_from_slice(&listener.port.to_be_bytes());
+            out.push(0);
+        }
+        out.push(0);
+    }
+    Ok(())
+}
+
+fn read_quorum_nodes(reader: &mut Reader<'_>) -> Result<Vec<QuorumNode>, Error> {
+    let n = reader.count()?;
+    let mut nodes = Vec::new();
+    nodes.try_reserve_exact(n).map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let node_id = reader.i32()?;
+        let listeners_n = reader.count()?;
+        let mut listeners = Vec::new();
+        listeners
+            .try_reserve_exact(listeners_n)
+            .map_err(|_| Error::Allocation)?;
+        for _ in 0..listeners_n {
+            let name = reader.string()?.to_owned();
+            let host = reader.string()?.to_owned();
+            let port = u16::from_be_bytes(
+                reader
+                    .take(2)?
+                    .try_into()
+                    .map_err(|_| Error::InvalidConfig)?,
+            );
+            reader.tags()?;
+            listeners.push(LeaderEndpoint { name, host, port });
+        }
+        reader.tags()?;
+        nodes.push(QuorumNode { node_id, listeners });
+    }
+    Ok(nodes)
+}
+
 /// One leader endpoint from BeginQuorumEpoch version 1.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeaderEndpoint {
@@ -2535,5 +2850,58 @@ mod prevote_tests {
             ),
             Some(0)
         );
+    }
+
+    #[test]
+    fn describe_quorum_v2_directory_mismatch_is_not_advertised() {
+        let directory = [8u8; 16];
+        let replica = QuorumReplica {
+            replica_id: 7,
+            directory: Some(directory),
+            log_end_offset: 10,
+            last_fetch_timestamp: 1,
+            last_caught_up_timestamp: 2,
+        };
+        let body = DescribeQuorumBody {
+            version: 2,
+            error_code: 0,
+            error_message: None,
+            topic: "__cluster_metadata".to_owned(),
+            partition: 0,
+            partition_error: 0,
+            partition_error_message: None,
+            leader_id: 7,
+            leader_epoch: 3,
+            high_watermark: 9,
+            voters: vec![replica],
+            observers: Vec::new(),
+            nodes: vec![QuorumNode {
+                node_id: 7,
+                listeners: vec![LeaderEndpoint {
+                    name: "plaintext".to_owned(),
+                    host: "127.0.0.1".to_owned(),
+                    port: 9093,
+                }],
+            }],
+        };
+        let bytes = encode_describe_quorum(&body).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_describe_quorum(&bytes, 2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(decoded.high_watermark, 9);
+        assert_eq!(decoded.voters[0].directory, Some(directory));
+        assert_eq!(decoded.nodes[0].listeners[0].port, 9093);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_describe_quorum(&persistent, 7, directory, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale = decoded;
+        stale.voters[0].directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_describe_quorum(&persistent, 7, directory, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert!(CONTROLLER_API_VERSIONS.iter().all(|api| api.api_key != 55));
     }
 }
