@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "modern-consumer-range-assignor",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "e3e6860b26971b31d937e79d67cdd221daec8ee5",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::consumer::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
