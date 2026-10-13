@@ -746,9 +746,8 @@ impl ConsumerRecords {
         let mut seen = HashSet::new();
         let mut out = Vec::new();
         for rec in &self.records {
-            let tp = rec.topic_partition();
-            if seen.insert(tp.clone()) {
-                out.push(tp);
+            if seen.insert((rec.topic.as_str(), rec.partition)) {
+                out.push(TopicPartition::new(rec.topic.clone(), rec.partition));
             }
         }
         out
@@ -781,23 +780,23 @@ impl ConsumerRecords {
     /// order.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        let mut last = HashMap::new();
+        let mut last: HashMap<(&str, i32), &FetchedRecord> = HashMap::new();
         let mut order = Vec::new();
         for rec in &self.records {
-            let tp = rec.topic_partition();
-            if last.insert(tp.clone(), rec).is_none() {
-                order.push(tp);
+            let key = (rec.topic.as_str(), rec.partition);
+            if last.insert(key, rec).is_none() {
+                order.push(key);
             }
         }
         order
             .into_iter()
-            .filter_map(|tp| {
-                last.remove(&tp).map(|rec| {
+            .filter_map(|key| {
+                last.remove(&key).map(|rec| {
                     let mut md = OffsetAndMetadata::new(rec.offset.saturating_add(1));
                     if let Some(epoch) = rec.leader_epoch {
                         md = md.with_leader_epoch(epoch);
                     }
-                    (tp, md)
+                    (TopicPartition::new(rec.topic.clone(), rec.partition), md)
                 })
             })
             .collect()
@@ -4591,9 +4590,9 @@ impl Consumer {
         let cap = if self.cfg.buffer_memory == 0 {
             0
         } else {
-            self.cfg.buffer_memory.max(
-                usize::try_from(self.cfg.max_bytes.max(0)).unwrap_or(usize::MAX),
-            )
+            self.cfg
+                .buffer_memory
+                .max(usize::try_from(self.cfg.max_bytes.max(0)).unwrap_or(usize::MAX))
         };
         for batch in incoming {
             let size = batch.framed_len();
@@ -5039,6 +5038,23 @@ mod tests {
                 ),
                 (TopicPartition::new("a", 1), OffsetAndMetadata::new(3),),
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5),),
+            ]
+        );
+        let mut later = rec("a", 0, 8);
+        later.leader_epoch = Some(9);
+        let interleaved = ConsumerRecords::from(vec![rec("a", 0, 1), rec("b", 0, 4), later]);
+        assert_eq!(
+            interleaved.partitions(),
+            vec![TopicPartition::new("a", 0), TopicPartition::new("b", 0)]
+        );
+        assert_eq!(
+            interleaved.next_offsets(),
+            vec![
+                (
+                    TopicPartition::new("a", 0),
+                    OffsetAndMetadata::new(9).with_leader_epoch(9)
+                ),
+                (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
             ]
         );
     }

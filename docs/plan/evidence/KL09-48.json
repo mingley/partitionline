@@ -1,0 +1,29 @@
+{
+  "id": "KL09-48",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "9006407d",
+  "hypothesis": "next_offsets cloned and hashed a TopicPartition string for every record. Keying the scan by a borrowed topic and partition id removes that per-record clone.",
+  "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04, rustc 1.99.0, cargo test --release",
+  "commands": [
+    "cargo test --release --locked --lib next_offsets_partition_key_beats_topic_clone (temporary comparison, not committed)",
+    "cargo test --locked --lib consumer_records_partitions_and_filters",
+    "cargo test --locked --lib share_records_partitions_and_filters",
+    "cargo test --locked --test client_api next_offsets"
+  ],
+  "results": {
+    "primary": {
+      "metric": "nanoseconds for 40 calls of next_offsets on 60000 records across 6 partitions",
+      "baseline_ns": 112248780,
+      "candidate_ns": 42462784,
+      "delta_pct": -62.2,
+      "repetitions": 40
+    },
+    "correctness": "First-seen order and the last record's leader epoch match, including a partition that reappears after another partition."
+  },
+  "limits": [
+    "The comparison ran the previous algorithm and the new one back to back in one release test process, then the timing test was removed.",
+    "nb-fetch-bulk was not re-run. The measured work is next_offsets itself."
+  ]
+}

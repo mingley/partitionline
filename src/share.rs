@@ -393,9 +393,8 @@ impl ShareRecords {
         let mut seen = HashSet::new();
         let mut out = Vec::new();
         for rec in &self.records {
-            let tp = rec.topic_partition();
-            if seen.insert(tp.clone()) {
-                out.push(tp);
+            if seen.insert((rec.topic.as_str(), rec.partition)) {
+                out.push(crate::TopicPartition::new(rec.topic.clone(), rec.partition));
             }
         }
         out
@@ -428,23 +427,26 @@ impl ShareRecords {
     /// first-seen order.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
-        let mut last = HashMap::new();
+        let mut last: HashMap<(&str, i32), &ShareRecord> = HashMap::new();
         let mut order = Vec::new();
         for rec in &self.records {
-            let tp = rec.topic_partition();
-            if last.insert(tp.clone(), rec).is_none() {
-                order.push(tp);
+            let key = (rec.topic.as_str(), rec.partition);
+            if last.insert(key, rec).is_none() {
+                order.push(key);
             }
         }
         order
             .into_iter()
-            .filter_map(|tp| {
-                last.remove(&tp).map(|rec| {
+            .filter_map(|key| {
+                last.remove(&key).map(|rec| {
                     let mut md = crate::OffsetAndMetadata::new(rec.offset.saturating_add(1));
                     if let Some(epoch) = rec.leader_epoch {
                         md = md.with_leader_epoch(epoch);
                     }
-                    (tp, md)
+                    (
+                        crate::TopicPartition::new(rec.topic.clone(), rec.partition),
+                        md,
+                    )
                 })
             })
             .collect()
