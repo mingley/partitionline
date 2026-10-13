@@ -171,10 +171,17 @@ func LoadConfig() (Config, error) {
 	if c.BatchRecords, err = getInt("BATCH_RECORDS", 32768); err != nil {
 		return c, err
 	}
-	if v, err = getInt("MAX_IN_FLIGHT", 5); err != nil {
+	if _, ok := os.LookupEnv("MAX_IN_FLIGHT"); !ok || strings.TrimSpace(os.Getenv("MAX_IN_FLIGHT")) == "" {
+		if c.Idempotent {
+			c.MaxInFlight = 1
+		} else {
+			c.MaxInFlight = 5
+		}
+	} else if v, err = getInt("MAX_IN_FLIGHT", 5); err != nil {
 		return c, err
+	} else {
+		c.MaxInFlight = int(v)
 	}
-	c.MaxInFlight = int(v)
 	if _, ok := os.LookupEnv("QUEUE_MESSAGES"); !ok || strings.TrimSpace(os.Getenv("QUEUE_MESSAGES")) == "" {
 		sized := c.Count + c.Warmup + 1024
 		if sized > uint64(int(^uint(0)>>1)) {
@@ -267,8 +274,8 @@ func (c Config) Validate() error {
 	default:
 		return fmt.Errorf("peer: ACKS must be -1, 0 or 1, got %d", c.Acks)
 	}
-	if c.Idempotent && c.MaxInFlight > 5 {
-		return fmt.Errorf("peer: idempotent produce requires MAX_IN_FLIGHT <= 5, got %d", c.MaxInFlight)
+	if c.Idempotent && c.MaxInFlight != 1 {
+		return fmt.Errorf("peer: idempotent produce applies MAX_IN_FLIGHT 1, got %d", c.MaxInFlight)
 	}
 	if c.MaxInFlight < 1 {
 		return fmt.Errorf("peer: MAX_IN_FLIGHT must be >= 1, got %d", c.MaxInFlight)

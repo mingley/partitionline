@@ -112,9 +112,13 @@ func clientOpts(cfg peer.Config, tlsCfg *tls.Config) ([]kgo.Opt, error) {
 	}
 	opts = append(opts,
 		kgo.ProducerLinger(time.Duration(cfg.LingerMs)*time.Millisecond),
-		kgo.MaxProduceRequestsInflightPerBroker(cfg.MaxInFlight),
 		kgo.MaxBufferedRecords(cfg.QueueMessages),
 	)
+	// kgo rejects any explicit in-flight cap other than 1 while idempotent
+	// writes are enabled, and uses 1 in that mode.
+	if !cfg.Idempotent {
+		opts = append(opts, kgo.MaxProduceRequestsInflightPerBroker(cfg.MaxInFlight))
+	}
 	if cfg.QueueKBytes > 0 {
 		opts = append(opts, kgo.MaxBufferedBytes(cfg.QueueKBytes*1024))
 	}
@@ -303,7 +307,7 @@ func fetchRecords(client *kgo.Client, cfg peer.Config, expect uint64) fetchOutco
 	var out fetchOutcome
 	out.PerPartMax = map[int32]int64{}
 	seen := make([]bool, expect)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.RunTimeoutMs)*time.Millisecond)
 	defer cancel()
 	start := time.Now()
 	idle := time.Duration(cfg.ConsumeTimeoutMs) * time.Millisecond
@@ -315,7 +319,9 @@ func fetchRecords(client *kgo.Client, cfg peer.Config, expect uint64) fetchOutco
 		if time.Now().After(idleDeadline) {
 			break
 		}
-		fetches := client.PollFetches(ctx)
+		pollCtx, pollCancel := context.WithTimeout(ctx, idle)
+		fetches := client.PollFetches(pollCtx)
+		pollCancel()
 		if ctx.Err() != nil {
 			break
 		}

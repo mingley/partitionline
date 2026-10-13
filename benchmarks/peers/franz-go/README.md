@@ -53,7 +53,7 @@ Same names as the partitionline bench examples where they overlap:
 | `PAYLOAD_BYTES` | 100 | value size |
 | `RECORD_SEED` | 0x5EED0001 | contract seed |
 | `ACKS` | 1 | -1, 0 or 1 |
-| `IDEMPOTENT` | unset | `1` enables; requires `MAX_IN_FLIGHT` ≤ 5 |
+| `IDEMPOTENT` | unset | `1` enables; this driver then applies `MAX_IN_FLIGHT` 1 |
 | `LINGER_MS` | 5 | producer linger |
 | `BATCH_BYTES` | 1048576 | per-partition batch cap |
 | `BATCH_RECORDS` | 32768 | informational (client buffers size to the run) |

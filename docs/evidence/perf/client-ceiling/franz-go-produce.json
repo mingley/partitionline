@@ -1,0 +1,184 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "peer": "franz-go",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Five produce repetitions against nb-serve with explicit round-robin, acks, linger, and batch bytes set. Fetch was not recorded: nb-serve serves a synthetic log, so franz-go record-id verification does not apply. Java and librdkafka were not run. Not interleaved with partitionline in one matrix. Not a fastest-client result.",
+  "cells": {
+    "nb-produce-bulk": {
+      "repetitions": 5,
+      "records_per_second": [
+        82457.21,
+        83943.08,
+        83816.59,
+        81014.18,
+        83684.57
+      ],
+      "median": 83684.57
+    },
+    "nb-produce-idem": {
+      "repetitions": 5,
+      "records_per_second": [
+        82698.24,
+        82367.49,
+        80778.86,
+        82616.91,
+        80781.76
+      ],
+      "median": 82367.49
+    }
+  },
+  "runs": [
+    {
+      "cell": "nb-produce-bulk",
+      "rep": 0,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 82457.2079764271,
+        "elapsed_s": 0.242550051,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-idem",
+      "rep": 0,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 82698.24184778305,
+        "elapsed_s": 0.24184311,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "rep": 1,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 83943.08329895444,
+        "elapsed_s": 0.238256676,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-idem",
+      "rep": 1,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 82367.49042462479,
+        "elapsed_s": 0.242814245,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "rep": 2,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 83816.58905306397,
+        "elapsed_s": 0.238616248,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-idem",
+      "rep": 2,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 80778.86105416728,
+        "elapsed_s": 0.247589527,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "rep": 3,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 81014.17596177751,
+        "elapsed_s": 0.246870375,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-idem",
+      "rep": 3,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 82616.91490371429,
+        "elapsed_s": 0.242081177,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "rep": 4,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 83684.5661747109,
+        "elapsed_s": 0.238992695,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "cell": "nb-produce-idem",
+      "rep": 4,
+      "exit": 0,
+      "summary": {
+        "accepted": 20000,
+        "acked": 20000,
+        "acked_rec_s": 80781.75672628894,
+        "elapsed_s": 0.247580652,
+        "errors": null,
+        "offered": 20000,
+        "rejected": 0,
+        "unknown": 0
+      }
+    }
+  ]
+}
