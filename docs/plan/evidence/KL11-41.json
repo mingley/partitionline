@@ -1,0 +1,28 @@
+{
+  "task": "KL11-41",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "admin-dispositions-and-failover",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib admin::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "admin_tests_passed": 1,
+    "admin_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "DescribeCluster, log directories, partition reassignment, features, and quorum voter keys speak versions 0 and 1. Other keys and version 2 return unsupported and do not mutate.",
+    "A log-directory batch with one unknown directory stores nothing. A feature downgrade stores nothing. The last quorum voter cannot be removed.",
+    "A stale controller epoch stores nothing. Reopen restores the log directory, feature level, and remaining voter."
+  ],
+  "limits": [
+    "The disposition table covers the named admin keys. It is not a per-version result for every key in the pinned broker matrix, and those other keys are unsupported rather than advertised as success.",
+    "This is not the Kafka admin RPC and it does not forward to a mixed-version controller cluster.",
+    "The journal format is the local PLADM001 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

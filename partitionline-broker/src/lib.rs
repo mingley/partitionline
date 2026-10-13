@@ -7,6 +7,7 @@
 //! semantics are verified. Production and comparative performance qualification
 //! require the separate, evidence-backed completion gates.
 
+pub mod admin;
 pub mod catalog;
 pub mod compaction;
 pub mod configs;

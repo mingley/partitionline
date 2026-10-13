@@ -34744,8 +34744,8 @@
       "title": "Complete cluster/replica/log-directory/feature/quorum administration",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-20",
         "KL11-21",
@@ -34764,7 +34764,9 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL11-41.json"
+      ]
     },
     {
       "id": "KL11-42",
