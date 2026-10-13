@@ -1,0 +1,29 @@
+{
+  "task": "KL11-18",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "bounded-follower-log",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib replication::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "replication_tests_passed": 3,
+    "replication_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A follower copies the leader's offset, epoch, and bytes. An interrupted copy resumes from the last confirmed offset after reopen.",
+    "A divergent follower suffix is truncated to the first mismatch, then the leader bytes are copied.",
+    "A leader epoch older than one the follower already stores is fenced and does not change the follower log.",
+    "One call copies at most the requested record count and payload bytes."
+  ],
+  "limits": [
+    "This is a local replica log, not a Kafka Fetch RPC and not a network replica.",
+    "High watermarks, min ISR, and replicated produce acknowledgments stay on KL11-19.",
+    "The journal format is the local PLREPL01 record, not an Apache record batch log.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
