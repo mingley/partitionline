@@ -1,0 +1,21 @@
+{
+  "source_sha": "85dade06d8c72c468af105309870bec954b6f32b",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cluster_id": "cluster-1",
+  "config": {
+    "feature": "metadata.version",
+    "spoken_versions": [
+      0,
+      1
+    ],
+    "log_dir": "data-a"
+  },
+  "behavior": {
+    "proven_feature": "metadata.version",
+    "proven_level": 3,
+    "downgrade_rejected": true,
+    "unsupported_version_rejected": true,
+    "log_dir": "data-a",
+    "rollback_level": 3
+  }
+}

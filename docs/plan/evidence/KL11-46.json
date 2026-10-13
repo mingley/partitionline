@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "mixed-version-feature-rollback",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "85dade06d8c72c468af105309870bec954b6f32b",
   "commands": [
     "python3 scripts/broker-upgrade-campaign.py",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test upgrade_campaign -- -D warnings"
