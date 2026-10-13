@@ -1,0 +1,33 @@
+{
+  "task": "KL11-48",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "full-denominator-compatibility-matrix",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "python3 scripts/check-broker-compatibility.py --write",
+    "python3 -m unittest tests/conformance/test_broker_compatibility_matrix.py"
+  ],
+  "results": {
+    "denominator": 468,
+    "broker_denominator": 444,
+    "client_denominator": 24,
+    "blocking": 456,
+    "not_applicable": 12,
+    "passed": 0,
+    "pin_mismatches": 0,
+    "unittest": "2 passed"
+  },
+  "contract": [
+    "Every broker feature is present for Kafka 4.1.2, 4.2.1, and 4.3.1. The denominator is 444 broker cells plus 24 client scenario cells.",
+    "Required cells with qualification not_run stay blocking. No cell is marked passed.",
+    "LeaderAndIsr, StopReplica, UpdateMetadata, and ControlledShutdown stay in the denominator as not applicable.",
+    "Upstream version strings match the pinned api-matrix for those three commits. Dropping a cell fails the checker."
+  ],
+  "limits": [
+    "This matrix does not re-run the historical Apache Docker client campaign.",
+    "Client scenario cells stay blocking for this broker.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
