@@ -2962,6 +2962,7 @@ pub fn encode_fetch_snapshot_body(body: &FetchSnapshotBody) -> Result<Vec<u8>, E
     out.extend_from_slice(&body.current_leader_epoch.to_be_bytes());
     out.extend_from_slice(&body.end_offset.to_be_bytes());
     out.extend_from_slice(&body.epoch.to_be_bytes());
+    out.push(0);
     out.extend_from_slice(&body.position.to_be_bytes());
     if let Some(directory) = body.replica_directory {
         varint(&mut out, 1);
@@ -3008,6 +3009,7 @@ pub fn decode_fetch_snapshot_body(bytes: &[u8], version: i16) -> Result<FetchSna
     let current_leader_epoch = reader.i32()?;
     let end_offset = reader.i64()?;
     let epoch = reader.i32()?;
+    reader.tags()?;
     let position = reader.i64()?;
     let replica_directory = if version >= 1 {
         Some(read_directory_tag(&mut reader)?)
