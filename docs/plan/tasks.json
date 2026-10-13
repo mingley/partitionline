@@ -9715,7 +9715,7 @@
     {
       "id": "KL06-06",
       "title": "Run a short-lived secure-broker lifecycle matrix",
-      "priority": "P1", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "conformance", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL06-04", "KL06-05", "KL01-02"],
       "files": ["scripts/ci-auth-smoke.sh", "scripts/oidc-token-stub.py", "tests/conformance/cases.json"],
       "deliverable": "Live rotation/outage/reauth cases, beyond successful initial handshakes.",

@@ -38,6 +38,10 @@ STOREPASS="${AUTH_STORE_PASS:-changeit}"
 MTLS_BOOTSTRAP="${AUTH_MTLS_BOOTSTRAP:-127.0.0.1:9195}"
 OIDC_STUB_PORT="${AUTH_OIDC_STUB_PORT:-18080}"
 OIDC_STUB_PIDFILE="${WORKDIR}/oidc-stub.pid"
+OIDC_JWKS_BOOTSTRAP="${AUTH_OIDC_JWKS_BOOTSTRAP:-127.0.0.1:9196}"
+REAUTH_MS="${AUTH_CONNECTIONS_MAX_REAUTH_MS:-5000}"
+LIFECYCLE_SLEEP_MS="${AUTH_LIFECYCLE_SLEEP_MS:-4500}"
+LIFECYCLE_REPORT="${AUTH_LIFECYCLE_REPORT:-${WORKDIR}/lifecycle-report.json}"
 CLIENT_CERT_PEM="${CERTDIR}/client.crt"
 CLIENT_KEY_PEM="${CERTDIR}/client.key"
 # Class path confirmed in kafka-clients 3.9/4.0/4.1 jars (test/dev unsecured JWT).
@@ -142,16 +146,17 @@ openssl x509 -req -in "$CERTDIR/client.csr" -CA "$CA_PEM" -CAkey "$CERTDIR/ca.ke
 openssl pkcs8 -topk8 -nocrypt -in "$CLIENT_KEY_PEM" -out "$CERTDIR/client.pkcs8.key" >/dev/null 2>&1 \
   && mv "$CERTDIR/client.pkcs8.key" "$CLIENT_KEY_PEM"
 
-echo "== write broker props (PLAINTEXT admin + SASL_SSL + mTLS SSL) =="
+echo "== write broker props (PLAINTEXT admin + SASL_SSL + mTLS SSL + JWKS OIDC) =="
 cat >"$PROPS" <<EOF
 process.roles=broker,controller
 node.id=1
 controller.quorum.voters=1@${CONTROLLER}
-listeners=SASL_SSL://127.0.0.1:9192,CONTROLLER://127.0.0.1:9193,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195
-advertised.listeners=SASL_SSL://127.0.0.1:9192,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195
+listeners=SASL_SSL://127.0.0.1:9192,CONTROLLER://127.0.0.1:9193,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195,SASL_SSL_OIDC://127.0.0.1:9196
+advertised.listeners=SASL_SSL://127.0.0.1:9192,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195,SASL_SSL_OIDC://127.0.0.1:9196
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=PLAINTEXT
-listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SASL_SSL:SASL_SSL,SSL:SSL
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SASL_SSL:SASL_SSL,SSL:SSL,SASL_SSL_OIDC:SASL_SSL
+connections.max.reauth.ms=${REAUTH_MS}
 log.dirs=${LOGDIR}
 num.network.threads=2
 num.io.threads=4
@@ -178,9 +183,27 @@ listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.se
 listener.name.sasl_ssl.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
 listener.name.sasl_ssl.oauthbearer.sasl.server.callback.handler.class=${OAUTH_VALIDATOR}
 listener.name.sasl_ssl.ssl.client.auth=none
+listener.name.sasl_ssl_oidc.sasl.enabled.mechanisms=OAUTHBEARER
+listener.name.sasl_ssl_oidc.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+listener.name.sasl_ssl_oidc.oauthbearer.sasl.server.callback.handler.class=org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallbackHandler
+listener.name.sasl_ssl_oidc.sasl.oauthbearer.jwks.endpoint.url=http://127.0.0.1:${OIDC_STUB_PORT}/jwks
+listener.name.sasl_ssl_oidc.sasl.oauthbearer.expected.issuer=http://127.0.0.1:${OIDC_STUB_PORT}/
+listener.name.sasl_ssl_oidc.sasl.oauthbearer.expected.audience=partitionline-smoke
+listener.name.sasl_ssl_oidc.ssl.client.auth=none
 listener.name.ssl.ssl.client.auth=required
 super.users=User:${SCRAM_USER};User:${OAUTH_PRINCIPAL}
 EOF
+
+echo "== start OIDC stub before broker JWKS fetch =="
+AUTH_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL" OIDC_STUB_PORT="$OIDC_STUB_PORT" \
+  OIDC_STUB_ISSUER="http://127.0.0.1:${OIDC_STUB_PORT}/" \
+  python3 "$ROOT/scripts/oidc-token-stub.py" >"${WORKDIR}/oidc-stub.log" 2>&1 &
+echo $! >"$OIDC_STUB_PIDFILE"
+if ! wait_tcp "127.0.0.1:${OIDC_STUB_PORT}"; then
+  echo "ci-auth-smoke: OIDC stub did not listen; log:" >&2
+  cat "${WORKDIR}/oidc-stub.log" >&2 || true
+  exit 1
+fi
 
 echo "== format + start broker =="
 CLUSTER_ID="$("$KDIR/bin/kafka-storage.sh" random-uuid)"
@@ -218,7 +241,7 @@ echo "== create SCRAM user + topic =="
   --create --if-not-exists --topic "$TOPIC" --partitions 1 --replication-factor 1
 
 echo "== build examples =="
-cargo build --release --example sasl --example tls --example oauth
+cargo build --release --example sasl --example tls --example oauth --example auth_lifecycle
 
 export KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP"
 export KAFKA_TOPIC="$TOPIC"
@@ -243,16 +266,6 @@ echo "== SASL_SSL produce (OAUTHBEARER unsecured JWT + rustls) =="
 export SASL_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL"
 env -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID -u OIDC_CLIENT_SECRET \
   cargo run --release --example oauth
-
-echo "== start OIDC client_credentials stub =="
-AUTH_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL" OIDC_STUB_PORT="$OIDC_STUB_PORT" \
-  python3 "$ROOT/scripts/oidc-token-stub.py" >"${WORKDIR}/oidc-stub.log" 2>&1 &
-echo $! >"$OIDC_STUB_PIDFILE"
-if ! wait_tcp "127.0.0.1:${OIDC_STUB_PORT}"; then
-  echo "ci-auth-smoke: OIDC stub did not listen; log:" >&2
-  cat "${WORKDIR}/oidc-stub.log" >&2 || true
-  exit 1
-fi
 
 echo "== SASL_SSL produce (OIDC client_credentials → OAUTHBEARER + rustls) =="
 export OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token"
@@ -298,8 +311,144 @@ if grep -E -- '@[0-9]+' /tmp/pl-auth-mtls-deny.log >/dev/null; then
 fi
 echo "ci-auth-smoke: mTLS correctly denied bare TLS (rc=${mtls_deny_rc})"
 
+run_lifecycle_case() {
+  local case_name="$1"
+  shift
+  local log="${WORKDIR}/lifecycle-${case_name}.log"
+  local line
+  set +e
+  line="$(
+    AUTH_LIFECYCLE_CASE="$case_name" AUTH_SLEEP_MS="$LIFECYCLE_SLEEP_MS" \
+      "$@" cargo run --release --example auth_lifecycle 2>"$log"
+  )"
+  local rc=$?
+  set -e
+  if [[ "$rc" != "0" || -z "$line" ]]; then
+    echo "ci-auth-smoke: lifecycle ${case_name} failed rc=${rc}" >&2
+    echo "$line" >&2
+    cat "$log" >&2
+    echo "$line" >>"${WORKDIR}/lifecycle-cases.jsonl"
+    return 1
+  fi
+  echo "$line" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+  if ! echo "$line" | grep -q '"ok":true'; then
+    echo "ci-auth-smoke: lifecycle ${case_name} reported not ok" >&2
+    cat "$log" >&2
+    return 1
+  fi
+}
+
+echo "== lifecycle: Admin/Consumer/group reauth + idle reconnect + rejection =="
+export SASL_MECHANISM="PLAIN"
+: >"${WORKDIR}/lifecycle-cases.jsonl"
+run_lifecycle_case admin_reauth \
+  env KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  KAFKA_USERNAME="$SCRAM_USER" KAFKA_PASSWORD="$SCRAM_PASS" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost"
+run_lifecycle_case consumer_reauth \
+  env KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  KAFKA_USERNAME="$SCRAM_USER" KAFKA_PASSWORD="$SCRAM_PASS" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost"
+run_lifecycle_case group_reauth \
+  env KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  KAFKA_USERNAME="$SCRAM_USER" KAFKA_PASSWORD="$SCRAM_PASS" \
+  KAFKA_GROUP="pl-auth-lifecycle" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost"
+run_lifecycle_case admin_idle_reconnect \
+  env KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  KAFKA_USERNAME="$SCRAM_USER" KAFKA_PASSWORD="$SCRAM_PASS" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost"
+run_lifecycle_case admin_bad_password \
+  env KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  KAFKA_USERNAME="$SCRAM_USER" KAFKA_PASSWORD="$SCRAM_PASS" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost"
+
+echo "== lifecycle: IdP outage fails closed, then recovery =="
+if [[ -f "$OIDC_STUB_PIDFILE" ]]; then
+  kill "$(cat "$OIDC_STUB_PIDFILE")" 2>/dev/null || true
+  rm -f "$OIDC_STUB_PIDFILE"
+fi
+set +e
+pl_timeout 20s env OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token" \
+  OIDC_CLIENT_ID="partitionline-smoke" OIDC_CLIENT_SECRET="smoke-secret" \
+  KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
+  cargo run --release --example oauth >"${WORKDIR}/oidc-outage.log" 2>&1
+oidc_outage_rc=$?
+set -e
+if grep -E -- '@[0-9]+' "${WORKDIR}/oidc-outage.log" >/dev/null; then
+  echo "ci-auth-smoke: OIDC produce succeeded while IdP was down" >&2
+  cat "${WORKDIR}/oidc-outage.log" >&2
+  exit 1
+fi
+echo "{\"case\":\"oidc_idp_outage\",\"ok\":true,\"detail\":\"rc=${oidc_outage_rc}\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+
+AUTH_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL" OIDC_STUB_PORT="$OIDC_STUB_PORT" \
+  OIDC_STUB_ISSUER="http://127.0.0.1:${OIDC_STUB_PORT}/" \
+  python3 "$ROOT/scripts/oidc-token-stub.py" >"${WORKDIR}/oidc-stub.log" 2>&1 &
+echo $! >"$OIDC_STUB_PIDFILE"
+if ! wait_tcp "127.0.0.1:${OIDC_STUB_PORT}"; then
+  echo "ci-auth-smoke: OIDC stub did not restart; log:" >&2
+  cat "${WORKDIR}/oidc-stub.log" >&2 || true
+  exit 1
+fi
+OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token" \
+  OIDC_CLIENT_ID="partitionline-smoke" OIDC_CLIENT_SECRET="smoke-secret" \
+  cargo run --release --example oauth
+echo "{\"case\":\"oidc_idp_recovery\",\"ok\":true,\"detail\":\"produce after IdP restart\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+
+echo "== lifecycle: unsecured JWT vs JWKS-validating OIDC listener =="
+echo "{\"case\":\"oauth_unsecured_jwt\",\"ok\":true,\"detail\":\"unsecured validator on ${SSL_BOOTSTRAP}\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token/rs256" \
+  OIDC_CLIENT_ID="partitionline-smoke" OIDC_CLIENT_SECRET="smoke-secret" \
+  KAFKA_BOOTSTRAP="$OIDC_JWKS_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
+  cargo run --release --example oauth
+echo "{\"case\":\"oidc_jwks_validating\",\"ok\":true,\"detail\":\"RS256/JWKS listener ${OIDC_JWKS_BOOTSTRAP}\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+
+set +e
+pl_timeout 20s env -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID -u OIDC_CLIENT_SECRET \
+  SASL_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL" \
+  KAFKA_BOOTSTRAP="$OIDC_JWKS_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
+  cargo run --release --example oauth >"${WORKDIR}/unsecured-on-jwks.log" 2>&1
+unsecured_jwks_rc=$?
+set -e
+if grep -E -- '@[0-9]+' "${WORKDIR}/unsecured-on-jwks.log" >/dev/null; then
+  echo "ci-auth-smoke: unsecured JWT unexpectedly accepted by JWKS listener" >&2
+  cat "${WORKDIR}/unsecured-on-jwks.log" >&2
+  exit 1
+fi
+echo "{\"case\":\"unsecured_jwt_rejected_by_jwks\",\"ok\":true,\"detail\":\"rc=${unsecured_jwks_rc}\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
+
+python3 - <<PY
+import json, os, pathlib
+root = pathlib.Path("${WORKDIR}")
+cases = []
+for line in (root / "lifecycle-cases.jsonl").read_text().splitlines():
+    line = line.strip()
+    if line:
+        cases.append(json.loads(line))
+report = {
+    "id": "KL06-06",
+    "broker": os.environ.get("PL_BROKER_ACTUAL", "native-pending"),
+    "connections_max_reauth_ms": int("${REAUTH_MS}"),
+    "cases": cases,
+    "failed_attempt_logs": [
+        "lifecycle-admin_bad_password.log",
+        "oidc-outage.log",
+        "unsecured-on-jwks.log",
+        "/tmp/pl-auth-tls-only.log",
+        "/tmp/pl-auth-mtls-deny.log",
+    ],
+}
+(root / "lifecycle-report.json").write_text(json.dumps(report, indent=2) + "\n")
+print("ci-auth-smoke: wrote", root / "lifecycle-report.json")
+PY
+cp "${WORKDIR}/lifecycle-report.json" "$LIFECYCLE_REPORT"
+
 # shellcheck source=scripts/lib/broker-identity.sh
 source "$ROOT/scripts/lib/broker-identity.sh"
 pl_broker_identity_set_native
 pl_broker_identity_print "ci-auth-smoke"
-echo "ci-auth-smoke: ok actual=${PL_BROKER_ACTUAL}  (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP})"
+echo "ci-auth-smoke: ok actual=${PL_BROKER_ACTUAL}  (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS + lifecycle @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP} / ${OIDC_JWKS_BOOTSTRAP})"

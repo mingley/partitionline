@@ -143,6 +143,9 @@ name = "sasl"
 name = "oauth"
 
 [[example]]
+name = "auth_lifecycle"
+
+[[example]]
 name = "tls"
 
 [[example]]
