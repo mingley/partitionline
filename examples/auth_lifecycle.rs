@@ -7,7 +7,9 @@
 use std::time::{Duration, Instant};
 
 use partitionline::{
-    Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, Error, OidcConfig, Sasl, TlsConfig,
+    error::{COORDINATOR_LOAD_IN_PROGRESS, COORDINATOR_NOT_AVAILABLE, NOT_COORDINATOR},
+    Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, Error, OidcConfig, Sasl,
+    TlsConfig,
 };
 
 #[tokio::main]
@@ -160,7 +162,37 @@ async fn run_consumer_reauth(sleep_ms: u64) -> Result<(), Box<dyn std::error::Er
 async fn run_group_reauth(sleep_ms: u64) -> Result<(), Box<dyn std::error::Error>> {
     let topic = env("KAFKA_TOPIC", "partitionline");
     let group_id = env("KAFKA_GROUP", "pl-auth-lifecycle");
-    let mut group = ConsumerGroup::join(consumer_cfg().await?, group_id, topic).await?;
+    let cfg = consumer_cfg().await?;
+    let mut last = None;
+    let mut group = None;
+    for attempt in 0..8_u32 {
+        match ConsumerGroup::join(cfg.clone(), group_id.clone(), topic.clone()).await {
+            Ok(joined) => {
+                group = Some(joined);
+                break;
+            }
+            Err(err)
+                if err.broker_code().is_some_and(|code| {
+                    matches!(
+                        code,
+                        COORDINATOR_LOAD_IN_PROGRESS | COORDINATOR_NOT_AVAILABLE | NOT_COORDINATOR
+                    )
+                }) =>
+            {
+                last = Some(err);
+                tokio::time::sleep(Duration::from_millis(200 * u64::from(attempt + 1))).await;
+            }
+            Err(err) => return Err(err.into()),
+        }
+    }
+    let mut group = match group {
+        Some(g) => g,
+        None => {
+            return Err(last
+                .map(Into::into)
+                .unwrap_or_else(|| "group_reauth: join retry exhausted".into()))
+        }
+    };
     tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
     let recs = group.poll().await?;
     group.leave().await?;

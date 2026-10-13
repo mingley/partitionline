@@ -240,6 +240,21 @@ echo "== create SCRAM user + topic =="
 "$KDIR/bin/kafka-topics.sh" --bootstrap-server "$ADMIN_BOOTSTRAP" \
   --create --if-not-exists --topic "$TOPIC" --partitions 1 --replication-factor 1
 
+echo "== wait for classic group coordinator =="
+ready_groups=0
+for _ in $(seq 1 30); do
+  if "$KDIR/bin/kafka-consumer-groups.sh" --bootstrap-server "$ADMIN_BOOTSTRAP" --list >/dev/null 2>&1; then
+    ready_groups=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$ready_groups" != "1" ]]; then
+  echo "ci-auth-smoke: consumer groups CLI not ready; log:" >&2
+  tail -n 80 "${WORKDIR}/kafka.log" >&2 || true
+  soft_skip "group coordinator not ready"
+fi
+
 echo "== build examples =="
 cargo build --release --example sasl --example tls --example oauth --example auth_lifecycle
 
