@@ -2,7 +2,7 @@
   "id": "KL09-50",
   "status": "done",
   "disposition": "accepted",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "1c67bee8b0589d306841c64449ecb717ae87c3a0",
   "baseline_sha": "24c75502",
   "hypothesis": "Share poll waited for one leader's ShareFetch before opening the next. Overlapping those roundtrips hides the second leader's wait.",
   "commands": [
