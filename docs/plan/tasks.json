@@ -27551,8 +27551,8 @@
   "title": "Compact keyed logs with tombstone retention",
   "priority": "P1",
   "kind": "implementation",
-  "status": "pending",
-  "owner": null,
+  "status": "done",
+  "owner": "cursor-cloud",
   "depends_on": [
     "KL11-09",
     "KL11-10",
@@ -27573,7 +27573,9 @@
     "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
     "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/plan/evidence/KL11-11.json"
+  ],
   "dependency_note": "Child75 delivers ordinary keyed/sparse durable cleaning without weakening Produce admission. Full11 retains transactional/control/producer-state and tombstone acceptance until23/25 provide authoritative protection; unsupported inputs must remain fail-closed."
 },
     {

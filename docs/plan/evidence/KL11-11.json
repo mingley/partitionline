@@ -1,0 +1,33 @@
+{
+  "task": "KL11-11",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "classified-record-compaction",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib compaction::cleaner_tests",
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test compaction",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "cleaner_tests_passed": 1,
+    "cleaner_tests_failed": 0,
+    "existing_compaction_tests_passed": 9,
+    "existing_compaction_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A null key, an older value, aborted transaction data, and a resolved abort marker are removed from the stable prefix.",
+    "The last ordinary value keeps its producer id. A last tombstone stays until its delete horizon and is removed after that horizon.",
+    "An undecided transaction holds the suffix, so its record is copied unchanged.",
+    "A staged plan that is not published is discarded on reopen. The previously published generation remains, with no invented value and no missing retained offset.",
+    "A plan larger than the scratch budget fails before publication and leaves the source view intact."
+  ],
+  "limits": [
+    "The ordinary batch planner still rejects transactional, control, and idempotent Kafka batches. This cleaner accepts only records the caller has already classified.",
+    "It does not replace the segment generation swap in segments.rs and it does not parse Kafka record batches.",
+    "The journal format is the local PLCMP01 plan-then-commit record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

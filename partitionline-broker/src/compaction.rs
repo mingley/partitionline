@@ -1,9 +1,12 @@
 //! Explicit bounded cleaning of ordinary keyed records.
 //!
 //! The storage owner supplies confirmed/protected offset bounds and serializes
-//! cleaning with append/read/retention. Transactions, control batches and producer
-//! state remain unsupported. There is no background cleaner or Kafka wire API.
+//! cleaning with append/read/retention. The batch planner still rejects
+//! transactional, control, and idempotent batches. [`Cleaner`] compacts records
+//! the caller has already classified and publishes that result only after a
+//! durable swap commit. There is no background cleaner or Kafka wire API.
 
+use crate::journal::Journal;
 use crate::{journal, records};
 use std::fmt;
 
@@ -645,6 +648,656 @@ impl Planner {
         Ok(())
     }
 }
+const CLEAN_MAGIC: &[u8; 8] = b"PLCMP01\0";
+const CLEAN_APPEND: u8 = 1;
+const CLEAN_DECIDE: u8 = 2;
+const CLEAN_PLAN: u8 = 3;
+const CLEAN_COMMIT: u8 = 4;
+const NULL_FIELD: u16 = u16::MAX;
+
+/// Why a classified-record cleaning swap was refused.
+#[derive(Debug)]
+pub enum CleanError {
+    /// The policy or journal cannot store a cleaning round.
+    InvalidLimits,
+    /// The clock or a tombstone horizon is not a valid timestamp.
+    InvalidClock,
+    /// The record, key, or decision is not usable.
+    InvalidRecord,
+    /// This producer epoch already has the opposite outcome.
+    ConflictingDecision,
+    /// `publish` named a generation that is not the staged plan.
+    UnknownGeneration,
+    /// The round exceeded a configured budget before publication.
+    BudgetExceeded(Budget),
+    /// A failed append left this cleaner unable to confirm further writes.
+    Poisoned,
+    /// The journal rejected the record or could not be recovered.
+    Storage(journal::Error),
+}
+
+impl From<journal::Error> for CleanError {
+    fn from(error: journal::Error) -> Self {
+        Self::Storage(error)
+    }
+}
+
+/// How a classified record participates in cleaning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Role {
+    /// Ordinary or idempotent data. A producer id on this role is preserved.
+    Ordinary,
+    /// Application data that belongs to a producer epoch.
+    TransactionData,
+    /// Commit marker for a producer epoch.
+    ControlCommit,
+    /// Abort marker for a producer epoch.
+    ControlAbort,
+}
+
+/// One record supplied to [`Cleaner`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Input<'a> {
+    /// Log offset. Offsets must be strictly increasing.
+    pub offset: i64,
+    /// Record timestamp, in milliseconds.
+    pub timestamp: i64,
+    /// Producer id. Zero with epoch `-1` means no producer identity.
+    pub producer_id: i64,
+    /// Producer epoch. `-1` only with a zero producer id.
+    pub epoch: i16,
+    /// Cleaning role.
+    pub role: Role,
+    /// Record key. `None` is a null key.
+    pub key: Option<&'a [u8]>,
+    /// Record value. `None` is a tombstone.
+    pub value: Option<&'a [u8]>,
+}
+
+/// One record in the published cleaned view.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Retained {
+    /// Log offset.
+    pub offset: i64,
+    /// Record timestamp, in milliseconds.
+    pub timestamp: i64,
+    /// Producer id preserved from the input.
+    pub producer_id: i64,
+    /// Producer epoch preserved from the input.
+    pub epoch: i16,
+    /// Cleaning role.
+    pub role: Role,
+    /// Record key.
+    pub key: Option<Vec<u8>>,
+    /// Record value. `None` is a tombstone.
+    pub value: Option<Vec<u8>>,
+}
+
+/// Durable plan-then-commit cleaner for classified records.
+///
+/// Records before the first undecided transaction are eligible. Aborted data
+/// and resolved control markers in that prefix are removed. The last remaining
+/// value of each key is kept, and a last tombstone stays until its delete
+/// horizon. The undecided suffix is copied unchanged. A plan is not the
+/// published view until `publish` records the same generation.
+pub struct Cleaner {
+    policy: Policy,
+    source: Vec<Retained>,
+    decisions: std::collections::BTreeMap<(i64, i16), bool>,
+    pending: Option<(u64, Vec<Retained>)>,
+    published: Option<Vec<Retained>>,
+    published_generation: Option<u64>,
+    next_generation: u64,
+    journal: Journal,
+    journal_limits: journal::Limits,
+    poisoned: bool,
+}
+
+impl Cleaner {
+    /// Open or recover a cleaner. An uncommitted plan is discarded.
+    pub fn open(
+        path: impl AsRef<std::path::Path>,
+        policy: Policy,
+        journal_limits: journal::Limits,
+    ) -> Result<Self, CleanError> {
+        if journal_limits.max_entry_bytes() < 64
+            || journal_limits.max_index_entries() < policy.limits.records
+        {
+            return Err(CleanError::InvalidLimits);
+        }
+        let (journal, _) = Journal::open(path, 0, journal_limits)?;
+        let mut cleaner = Self {
+            policy,
+            source: Vec::new(),
+            decisions: std::collections::BTreeMap::new(),
+            pending: None,
+            published: None,
+            published_generation: None,
+            next_generation: 1,
+            journal,
+            journal_limits,
+            poisoned: false,
+        };
+        let mut cursor = cleaner.journal.base_offset();
+        loop {
+            let batch =
+                cleaner
+                    .journal
+                    .fetch(cursor, 32, cleaner.journal_limits.max_fetch_bytes())?;
+            if batch.is_empty() {
+                break;
+            }
+            for entry in batch {
+                if entry.record_count != 1 {
+                    return Err(CleanError::InvalidRecord);
+                }
+                cleaner.replay(&entry.payload)?;
+                cursor = entry
+                    .first_offset
+                    .checked_add(1)
+                    .ok_or(CleanError::InvalidRecord)?;
+            }
+        }
+        cleaner.pending = None;
+        Ok(cleaner)
+    }
+
+    /// Append one classified record.
+    pub fn append(&mut self, input: Input<'_>) -> Result<(), CleanError> {
+        self.ready()?;
+        if self.source.len() >= self.policy.limits.records {
+            return Err(CleanError::BudgetExceeded(Budget::Records));
+        }
+        let record = validate_input(&self.source, input)?;
+        self.persist(&encode_append(&record)?)?;
+        self.source.push(record);
+        Ok(())
+    }
+
+    /// Record that a producer epoch committed or aborted.
+    ///
+    /// The same decision is a no-op. The opposite decision stores nothing.
+    pub fn decide(&mut self, producer_id: i64, epoch: i16, commit: bool) -> Result<(), CleanError> {
+        self.ready()?;
+        if producer_id <= 0 || epoch < 0 {
+            return Err(CleanError::InvalidRecord);
+        }
+        if let Some(stored) = self.decisions.get(&(producer_id, epoch)).copied() {
+            if stored != commit {
+                return Err(CleanError::ConflictingDecision);
+            }
+            return Ok(());
+        }
+        self.persist(&encode_decide(producer_id, epoch, commit)?)?;
+        self.decisions.insert((producer_id, epoch), commit);
+        Ok(())
+    }
+
+    /// Write the next cleaned generation without publishing it.
+    pub fn stage(&mut self, now_ms: i64) -> Result<u64, CleanError> {
+        self.ready()?;
+        if now_ms < 0 {
+            return Err(CleanError::InvalidClock);
+        }
+        let generation = self.next_generation;
+        let retained = plan(&self.source, &self.decisions, self.policy, now_ms)?;
+        let payload = encode_plan(generation, &retained)?;
+        if payload.len() > self.policy.limits.scratch_bytes {
+            return Err(CleanError::BudgetExceeded(Budget::Scratch));
+        }
+        if payload.len() > self.journal_limits.max_entry_bytes() {
+            return Err(CleanError::BudgetExceeded(Budget::OutputBytes));
+        }
+        self.persist(&payload)?;
+        self.pending = Some((generation, retained));
+        self.next_generation = generation.saturating_add(1);
+        Ok(generation)
+    }
+
+    /// Publish a staged generation. Repeating the published generation is a no-op.
+    pub fn publish(&mut self, generation: u64) -> Result<(), CleanError> {
+        self.ready()?;
+        if self.published_generation == Some(generation)
+            && self
+                .pending
+                .as_ref()
+                .is_none_or(|(pending, _)| *pending != generation)
+        {
+            return Ok(());
+        }
+        let Some((pending, retained)) = self.pending.take() else {
+            return Err(CleanError::UnknownGeneration);
+        };
+        if pending != generation {
+            self.pending = Some((pending, retained));
+            return Err(CleanError::UnknownGeneration);
+        }
+        if let Err(error) = self.persist(&encode_commit(generation)?) {
+            self.pending = Some((pending, retained));
+            return Err(error);
+        }
+        self.published = Some(retained);
+        self.published_generation = Some(generation);
+        Ok(())
+    }
+
+    /// Stage and publish one generation.
+    pub fn compact(&mut self, now_ms: i64) -> Result<u64, CleanError> {
+        let generation = self.stage(now_ms)?;
+        self.publish(generation)?;
+        Ok(generation)
+    }
+
+    /// Published records, or the original source when nothing has been published.
+    pub fn retained(&self) -> &[Retained] {
+        self.published.as_deref().unwrap_or(&self.source)
+    }
+
+    fn ready(&self) -> Result<(), CleanError> {
+        if self.poisoned || self.journal.is_poisoned() {
+            Err(CleanError::Poisoned)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn persist(&mut self, payload: &[u8]) -> Result<(), CleanError> {
+        match self.journal.append(1, payload) {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                self.poisoned = true;
+                Err(error.into())
+            }
+        }
+    }
+
+    fn replay(&mut self, payload: &[u8]) -> Result<(), CleanError> {
+        match decode_kind(payload)? {
+            CleanRecord::Append(record) => {
+                if self
+                    .source
+                    .last()
+                    .is_some_and(|last| record.offset <= last.offset)
+                {
+                    return Err(CleanError::InvalidRecord);
+                }
+                self.source.push(record);
+            }
+            CleanRecord::Decide {
+                producer_id,
+                epoch,
+                commit,
+            } => {
+                if let Some(stored) = self.decisions.get(&(producer_id, epoch)).copied() {
+                    if stored != commit {
+                        return Err(CleanError::InvalidRecord);
+                    }
+                } else {
+                    self.decisions.insert((producer_id, epoch), commit);
+                }
+            }
+            CleanRecord::Plan {
+                generation,
+                records,
+            } => {
+                self.pending = Some((generation, records));
+                self.next_generation = self.next_generation.max(generation.saturating_add(1));
+            }
+            CleanRecord::Commit { generation } => {
+                if self
+                    .pending
+                    .as_ref()
+                    .is_some_and(|(pending, _)| *pending == generation)
+                {
+                    let records = self.pending.take().map(|(_, records)| records);
+                    if let Some(records) = records {
+                        self.published = Some(records);
+                        self.published_generation = Some(generation);
+                    }
+                }
+                self.next_generation = self.next_generation.max(generation.saturating_add(1));
+            }
+        }
+        Ok(())
+    }
+}
+
+enum CleanRecord {
+    Append(Retained),
+    Decide {
+        producer_id: i64,
+        epoch: i16,
+        commit: bool,
+    },
+    Plan {
+        generation: u64,
+        records: Vec<Retained>,
+    },
+    Commit {
+        generation: u64,
+    },
+}
+
+fn plan(
+    source: &[Retained],
+    decisions: &std::collections::BTreeMap<(i64, i16), bool>,
+    policy: Policy,
+    now_ms: i64,
+) -> Result<Vec<Retained>, CleanError> {
+    let limits = policy.limits;
+    if source.len() > limits.scan_entries || source.len() > limits.records {
+        return Err(CleanError::BudgetExceeded(Budget::ScanEntries));
+    }
+    let mut scan_bytes = 0u64;
+    for record in source {
+        let key = record.key.as_ref().map_or(0, Vec::len);
+        let value = record.value.as_ref().map_or(0, Vec::len);
+        scan_bytes = scan_bytes
+            .saturating_add(u64::try_from(key).unwrap_or(u64::MAX))
+            .saturating_add(u64::try_from(value).unwrap_or(u64::MAX));
+        if scan_bytes > limits.scan_bytes {
+            return Err(CleanError::BudgetExceeded(Budget::ScanBytes));
+        }
+    }
+    let lso = source
+        .iter()
+        .position(|record| transactional(record) && decision(decisions, record).is_none())
+        .unwrap_or(source.len());
+    let mut last = std::collections::BTreeMap::<Vec<u8>, i64>::new();
+    let mut key_bytes = 0usize;
+    for record in source {
+        if record.role != Role::Ordinary && record.role != Role::TransactionData {
+            continue;
+        }
+        if decision(decisions, record) == Some(false) {
+            continue;
+        }
+        let Some(key) = record.key.clone() else {
+            continue;
+        };
+        if let Some(offset) = last.get_mut(key.as_slice()) {
+            *offset = record.offset;
+            continue;
+        }
+        if last.len() >= limits.keys {
+            return Err(CleanError::BudgetExceeded(Budget::Keys));
+        }
+        key_bytes = key_bytes
+            .checked_add(key.len())
+            .ok_or(CleanError::BudgetExceeded(Budget::KeyBytes))?;
+        if key_bytes > limits.key_bytes {
+            return Err(CleanError::BudgetExceeded(Budget::KeyBytes));
+        }
+        last.insert(key, record.offset);
+    }
+    let mut retained = Vec::new();
+    for (index, record) in source.iter().enumerate() {
+        if index >= lso {
+            retained.push(record.clone());
+            continue;
+        }
+        if record.role == Role::ControlCommit || record.role == Role::ControlAbort {
+            continue;
+        }
+        if decision(decisions, record) == Some(false) {
+            continue;
+        }
+        let Some(key) = &record.key else {
+            continue;
+        };
+        if last.get(key) != Some(&record.offset) {
+            continue;
+        }
+        if record.value.is_none() && !tombstone_visible(record.timestamp, policy, now_ms)? {
+            continue;
+        }
+        retained.push(record.clone());
+    }
+    Ok(retained)
+}
+
+fn transactional(record: &Retained) -> bool {
+    record.role != Role::Ordinary
+}
+
+fn decision(
+    decisions: &std::collections::BTreeMap<(i64, i16), bool>,
+    record: &Retained,
+) -> Option<bool> {
+    if record.role == Role::Ordinary {
+        Some(true)
+    } else {
+        decisions.get(&(record.producer_id, record.epoch)).copied()
+    }
+}
+
+fn tombstone_visible(timestamp: i64, policy: Policy, now_ms: i64) -> Result<bool, CleanError> {
+    let retention =
+        i64::try_from(policy.delete_retention_ms).map_err(|_| CleanError::InvalidClock)?;
+    let horizon = timestamp
+        .checked_add(retention)
+        .ok_or(CleanError::InvalidClock)?;
+    Ok(now_ms < horizon)
+}
+
+fn validate_input(source: &[Retained], input: Input<'_>) -> Result<Retained, CleanError> {
+    if input.offset < 0
+        || source
+            .last()
+            .is_some_and(|last| input.offset <= last.offset)
+    {
+        return Err(CleanError::InvalidRecord);
+    }
+    let producer_ok = match input.role {
+        Role::Ordinary => {
+            (input.producer_id == 0 && input.epoch == -1)
+                || (input.producer_id > 0 && input.epoch >= 0)
+        }
+        Role::TransactionData | Role::ControlCommit | Role::ControlAbort => {
+            input.producer_id > 0 && input.epoch >= 0
+        }
+    };
+    if !producer_ok {
+        return Err(CleanError::InvalidRecord);
+    }
+    Ok(Retained {
+        offset: input.offset,
+        timestamp: input.timestamp,
+        producer_id: input.producer_id,
+        epoch: input.epoch,
+        role: input.role,
+        key: field_owned(input.key)?,
+        value: field_owned(input.value)?,
+    })
+}
+
+fn field_owned(field: Option<&[u8]>) -> Result<Option<Vec<u8>>, CleanError> {
+    let Some(bytes) = field else {
+        return Ok(None);
+    };
+    if bytes.len() >= usize::from(NULL_FIELD) {
+        return Err(CleanError::InvalidRecord);
+    }
+    Ok(Some(bytes.to_vec()))
+}
+
+fn encode_append(record: &Retained) -> Result<Vec<u8>, CleanError> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(CLEAN_MAGIC);
+    bytes.push(CLEAN_APPEND);
+    put_record(&mut bytes, record)?;
+    Ok(bytes)
+}
+
+fn encode_decide(producer_id: i64, epoch: i16, commit: bool) -> Result<Vec<u8>, CleanError> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(CLEAN_MAGIC);
+    bytes.push(CLEAN_DECIDE);
+    bytes.extend_from_slice(&producer_id.to_be_bytes());
+    bytes.extend_from_slice(&epoch.to_be_bytes());
+    bytes.push(u8::from(commit));
+    Ok(bytes)
+}
+
+fn encode_plan(generation: u64, records: &[Retained]) -> Result<Vec<u8>, CleanError> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(CLEAN_MAGIC);
+    bytes.push(CLEAN_PLAN);
+    bytes.extend_from_slice(&generation.to_be_bytes());
+    let count = u32::try_from(records.len()).map_err(|_| CleanError::InvalidRecord)?;
+    bytes.extend_from_slice(&count.to_be_bytes());
+    for record in records {
+        put_record(&mut bytes, record)?;
+    }
+    Ok(bytes)
+}
+
+fn encode_commit(generation: u64) -> Result<Vec<u8>, CleanError> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(CLEAN_MAGIC);
+    bytes.push(CLEAN_COMMIT);
+    bytes.extend_from_slice(&generation.to_be_bytes());
+    Ok(bytes)
+}
+
+fn put_record(bytes: &mut Vec<u8>, record: &Retained) -> Result<(), CleanError> {
+    bytes.extend_from_slice(&record.offset.to_be_bytes());
+    bytes.extend_from_slice(&record.timestamp.to_be_bytes());
+    bytes.extend_from_slice(&record.producer_id.to_be_bytes());
+    bytes.extend_from_slice(&record.epoch.to_be_bytes());
+    bytes.push(role_byte(record.role));
+    put_field(bytes, record.key.as_deref())?;
+    put_field(bytes, record.value.as_deref())?;
+    Ok(())
+}
+
+fn role_byte(role: Role) -> u8 {
+    match role {
+        Role::Ordinary => 0,
+        Role::TransactionData => 1,
+        Role::ControlCommit => 2,
+        Role::ControlAbort => 3,
+    }
+}
+
+fn role_from(byte: u8) -> Result<Role, CleanError> {
+    match byte {
+        0 => Ok(Role::Ordinary),
+        1 => Ok(Role::TransactionData),
+        2 => Ok(Role::ControlCommit),
+        3 => Ok(Role::ControlAbort),
+        _ => Err(CleanError::InvalidRecord),
+    }
+}
+
+fn put_field(bytes: &mut Vec<u8>, field: Option<&[u8]>) -> Result<(), CleanError> {
+    let Some(field) = field else {
+        bytes.extend_from_slice(&NULL_FIELD.to_be_bytes());
+        return Ok(());
+    };
+    let len = u16::try_from(field.len()).map_err(|_| CleanError::InvalidRecord)?;
+    bytes.extend_from_slice(&len.to_be_bytes());
+    bytes.extend_from_slice(field);
+    Ok(())
+}
+
+fn decode_kind(mut bytes: &[u8]) -> Result<CleanRecord, CleanError> {
+    if bytes.len() < CLEAN_MAGIC.len() + 1 || &bytes[..CLEAN_MAGIC.len()] != CLEAN_MAGIC {
+        return Err(CleanError::InvalidRecord);
+    }
+    let kind = bytes[CLEAN_MAGIC.len()];
+    bytes = &bytes[CLEAN_MAGIC.len() + 1..];
+    let record = match kind {
+        CLEAN_APPEND => CleanRecord::Append(take_record(&mut bytes)?),
+        CLEAN_DECIDE => CleanRecord::Decide {
+            producer_id: take_i64(&mut bytes)?,
+            epoch: take_i16(&mut bytes)?,
+            commit: take_u8(&mut bytes)? == 1,
+        },
+        CLEAN_PLAN => {
+            let generation = take_u64(&mut bytes)?;
+            let count = take_u32(&mut bytes)?;
+            let mut records = Vec::new();
+            for _ in 0..count {
+                records.push(take_record(&mut bytes)?);
+            }
+            CleanRecord::Plan {
+                generation,
+                records,
+            }
+        }
+        CLEAN_COMMIT => CleanRecord::Commit {
+            generation: take_u64(&mut bytes)?,
+        },
+        _ => return Err(CleanError::InvalidRecord),
+    };
+    if !bytes.is_empty() {
+        return Err(CleanError::InvalidRecord);
+    }
+    Ok(record)
+}
+
+fn take_record(bytes: &mut &[u8]) -> Result<Retained, CleanError> {
+    Ok(Retained {
+        offset: take_i64(bytes)?,
+        timestamp: take_i64(bytes)?,
+        producer_id: take_i64(bytes)?,
+        epoch: take_i16(bytes)?,
+        role: role_from(take_u8(bytes)?)?,
+        key: take_field(bytes)?,
+        value: take_field(bytes)?,
+    })
+}
+
+fn take_field(bytes: &mut &[u8]) -> Result<Option<Vec<u8>>, CleanError> {
+    let len = u16::from_be_bytes(
+        take(bytes, 2)?
+            .try_into()
+            .map_err(|_| CleanError::InvalidRecord)?,
+    );
+    if len == NULL_FIELD {
+        return Ok(None);
+    }
+    Ok(Some(take(bytes, usize::from(len))?.to_vec()))
+}
+
+fn take<'a>(input: &mut &'a [u8], len: usize) -> Result<&'a [u8], CleanError> {
+    if input.len() < len {
+        return Err(CleanError::InvalidRecord);
+    }
+    let (head, tail) = input.split_at(len);
+    *input = tail;
+    Ok(head)
+}
+
+fn take_i64(input: &mut &[u8]) -> Result<i64, CleanError> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(i64::from_be_bytes(value))
+}
+
+fn take_u64(input: &mut &[u8]) -> Result<u64, CleanError> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(u64::from_be_bytes(value))
+}
+
+fn take_u32(input: &mut &[u8]) -> Result<u32, CleanError> {
+    let mut value = [0u8; 4];
+    value.copy_from_slice(take(input, 4)?);
+    Ok(u32::from_be_bytes(value))
+}
+
+fn take_i16(input: &mut &[u8]) -> Result<i16, CleanError> {
+    let mut value = [0u8; 2];
+    value.copy_from_slice(take(input, 2)?);
+    Ok(i16::from_be_bytes(value))
+}
+
+fn take_u8(input: &mut &[u8]) -> Result<u8, CleanError> {
+    Ok(take(input, 1)?[0])
+}
+
 fn encode_varlong(value: i64, out: &mut [u8; 10]) -> usize {
     let mut value = ((value as u64) << 1) ^ ((value >> 63) as u64);
     let mut at = 0;
@@ -655,4 +1308,185 @@ fn encode_varlong(value: i64, out: &mut [u8; 10]) -> usize {
     }
     out[at] = value as u8;
     at + 1
+}
+
+#[cfg(test)]
+mod cleaner_tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn policy(retention: u64, scratch: usize) -> Policy {
+        let limits = Limits::new(64 * 1024, 100, 100, 16, 4096, 1000, 4, scratch)
+            .unwrap_or_else(|_| panic!("limits"));
+        Policy::new(retention, limits).unwrap_or_else(|_| panic!("policy"))
+    }
+
+    fn open_cleaner(name: &str, retention: u64, scratch: usize) -> (Cleaner, std::path::PathBuf) {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-cmp-{name}-{nanos}"));
+        let journal = journal::Limits::new(4096, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        let cleaner = Cleaner::open(&path, policy(retention, scratch), journal)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        (cleaner, path)
+    }
+
+    fn record<'a>(
+        offset: i64,
+        timestamp: i64,
+        producer_id: i64,
+        epoch: i16,
+        role: Role,
+        key: Option<&'a [u8]>,
+        value: Option<&'a [u8]>,
+    ) -> Input<'a> {
+        Input {
+            offset,
+            timestamp,
+            producer_id,
+            epoch,
+            role,
+            key,
+            value,
+        }
+    }
+
+    #[test]
+    fn transactional_prefix_tombstones_and_interrupted_swap() {
+        let (mut cleaner, path) = open_cleaner("swap", 5_000, 4096);
+        cleaner
+            .append(record(0, 0, 0, -1, Role::Ordinary, None, Some(b"null")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(
+                1,
+                0,
+                0,
+                -1,
+                Role::Ordinary,
+                Some(b"a"),
+                Some(b"old"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(
+                2,
+                1_000,
+                9,
+                1,
+                Role::Ordinary,
+                Some(b"a"),
+                Some(b"new"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(3, 1_000, 0, -1, Role::Ordinary, Some(b"c"), None))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(
+                4,
+                1_000,
+                4,
+                0,
+                Role::TransactionData,
+                Some(b"b"),
+                Some(b"gone"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(5, 1_000, 4, 0, Role::ControlAbort, None, None))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .decide(4, 0, false)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.decide(4, 0, true),
+            Err(CleanError::ConflictingDecision)
+        ));
+        cleaner
+            .append(record(
+                6,
+                2_000,
+                4,
+                1,
+                Role::TransactionData,
+                Some(b"d"),
+                Some(b"open"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .compact(2_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let kept: Vec<_> = cleaner
+            .retained()
+            .iter()
+            .map(|record| record.offset)
+            .collect();
+        assert_eq!(kept, vec![2, 3, 6]);
+        assert_eq!(cleaner.retained()[0].producer_id, 9);
+        assert_eq!(cleaner.retained()[0].value.as_deref(), Some(&b"new"[..]));
+        assert!(cleaner
+            .retained()
+            .iter()
+            .all(|record| record.value.as_deref() != Some(&b"gone"[..])));
+        let staged = cleaner
+            .stage(7_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        drop(cleaner);
+        let restored = Cleaner::open(&path, policy(5_000, 4096), journal_limits())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let restored_offsets: Vec<_> = restored
+            .retained()
+            .iter()
+            .map(|record| record.offset)
+            .collect();
+        assert_eq!(restored_offsets, vec![2, 3, 6]);
+        drop(restored);
+        let (mut cleaner, _) = open_at(&path);
+        assert!(matches!(
+            cleaner.publish(staged),
+            Err(CleanError::UnknownGeneration)
+        ));
+        cleaner
+            .compact(7_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let generation = cleaner
+            .compact(7_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .publish(generation)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let final_offsets: Vec<_> = cleaner
+            .retained()
+            .iter()
+            .map(|record| record.offset)
+            .collect();
+        assert_eq!(final_offsets, vec![2, 6]);
+        assert!(cleaner.retained().iter().all(|record| record.offset != 3));
+
+        let (mut bounded, _) = open_cleaner("scratch", 5_000, 1);
+        bounded
+            .append(record(0, 0, 0, -1, Role::Ordinary, Some(b"a"), Some(b"v")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            bounded.stage(1),
+            Err(CleanError::BudgetExceeded(Budget::Scratch))
+        ));
+        assert_eq!(bounded.retained().len(), 1);
+        assert_eq!(bounded.retained()[0].value.as_deref(), Some(&b"v"[..]));
+    }
+
+    fn journal_limits() -> journal::Limits {
+        journal::Limits::new(4096, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"))
+    }
+
+    fn open_at(path: &std::path::Path) -> (Cleaner, ()) {
+        let cleaner = Cleaner::open(path, policy(5_000, 4096), journal_limits())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        (cleaner, ())
+    }
 }
