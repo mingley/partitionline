@@ -1,0 +1,29 @@
+{
+  "task": "KL11-29",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "durable-group-offsets",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::offsets::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "offset_tests_passed": 1,
+    "offset_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A commit with a stale generation stores nothing.",
+    "One request can store a valid partition and reject an invalid partition without rolling back the valid one.",
+    "Deleting one group leaves another group's offset in place.",
+    "Reopen restores the remaining offset, generation, and offset count."
+  ],
+  "limits": [
+    "This is not the OffsetCommit, OffsetFetch, or DeleteGroups RPC.",
+    "Transactional offset commits stay on KL11-26, which can now see this store.",
+    "The journal format is the local PLGOFF01 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
