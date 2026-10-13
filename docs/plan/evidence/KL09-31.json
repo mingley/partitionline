@@ -1,0 +1,33 @@
+{
+  "id": "KL09-31",
+  "status": "done",
+  "disposition": "rejected-no-gain",
+  "source_sha": "95caed63034fc49cb6492ab9c053885dc7b81110",
+  "baseline_sha": "95caed63034fc49cb6492ab9c053885dc7b81110",
+  "hypothesis": "Decoding frozen contiguous record bytes with one slice check per varint would beat the generic Buf reader on micro-decode.",
+  "cells": ["micro-decode/f03"],
+  "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04 x86_64, rustc 1.99.0, bench profile, frequency unpinned",
+  "commands": [
+    "Five alternating criterion rounds of decode/f03 (500 records): parent binary from 95caed639 and a candidate with a contiguous cursor. warm-up 0.2s, measurement 0.8s, sample-size 10.",
+    "Candidate correctness before revert: cargo test --locked --lib protocol::records (40 pass), --test fuzz_decode_smoke (8 pass), --test protocol_oracles (39 pass, 1 ignored), --test mock_produce (7 pass), alloc_budget exact match."
+  ],
+  "results": {
+    "primary": {
+      "metric": "decode/f03 median time, 500 records",
+      "baseline_round_medians_us": [48.516, 51.064, 51.463, 48.001, 49.029],
+      "candidate_round_medians_us": [47.077, 47.382, 47.156, 54.47, 46.905],
+      "delta_pct": -1.88,
+      "ci95_pct": [-12.87, 9.11],
+      "repetitions": 5
+    },
+    "allocations": "alloc_budget cells matched existing constants on the candidate",
+    "net_production_lines": 0,
+    "correctness": "candidate suites passed; the candidate was reverted because the acceptance rule was not met"
+  },
+  "artifacts": ["docs/evidence/perf/KL09-31/README.md"],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput claim.",
+    "The paired 95% CI includes zero, so the wall-clock rule is not met. Instruction counts were not collected because valgrind is not installed.",
+    "No production decode change remains. No card lists KL09-31 in requires_accepted."
+  ]
+}
