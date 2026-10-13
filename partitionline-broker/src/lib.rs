@@ -18,6 +18,7 @@ pub mod idempotence;
 pub mod journal;
 pub mod metadata;
 pub mod metadata_quorum;
+pub mod metrics;
 pub mod partition;
 pub mod produce;
 pub mod protocol;

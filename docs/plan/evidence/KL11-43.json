@@ -1,0 +1,28 @@
+{
+  "task": "KL11-43",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "bounded-redacted-metrics",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib metrics::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "metric_tests_passed": 1,
+    "metric_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A password-shaped name or secret label is refused and is not copied into the error or the snapshot.",
+    "Authorization and quota counters record only an outcome. They do not accept a principal or payload.",
+    "A disabled registry retains zero bytes across repeated updates.",
+    "A stalled subscriber stops accepting events at the queue cap. The counter still advances and the retained-byte count does not grow."
+  ],
+  "limits": [
+    "The measured overhead is retained label and queue bytes, not a CPU or wall-clock profile.",
+    "This is not a Kafka metrics export or a log pipeline.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
