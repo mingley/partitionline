@@ -586,6 +586,13 @@ fn spoken_share_group_heartbeat(version: i16) -> Result<i16> {
     }
 }
 
+struct PreparedShareFetch {
+    node: i32,
+    version: i16,
+    by_id: BTreeMap<[u8; 16], Vec<i32>>,
+    request: BytesMut,
+}
+
 impl ShareGroup {
     /// Join a share group. One topic.
     ///
@@ -1398,6 +1405,46 @@ impl ShareGroup {
         Ok(by_leader)
     }
 
+    async fn overlap_share_fetches(
+        &mut self,
+        prepared: &[PreparedShareFetch],
+    ) -> HashMap<i32, Result<Bytes>> {
+        let timeout = self.cfg.request_timeout;
+        let mut set = tokio::task::JoinSet::new();
+        for job in prepared {
+            let Some(mut peer) = self.share_conns.remove(&job.node) else {
+                continue;
+            };
+            let node = job.node;
+            let version = job.version;
+            let request = job.request.clone();
+            let _ = set.spawn(async move {
+                let result = peer
+                    .conn
+                    .roundtrip(
+                        SHARE_FETCH,
+                        version,
+                        |buf| {
+                            buf.extend_from_slice(&request);
+                            Ok(())
+                        },
+                        timeout,
+                    )
+                    .await;
+                (node, peer, result)
+            });
+        }
+        let mut out = HashMap::new();
+        while let Some(joined) = set.join_next().await {
+            let Ok((node, peer, result)) = joined else {
+                continue;
+            };
+            let _ = self.share_conns.insert(node, peer);
+            let _ = out.insert(node, result);
+        }
+        out
+    }
+
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
@@ -1415,6 +1462,7 @@ impl ShareGroup {
             .decoded_byte_limit()
             .checked_sub(metadata_bytes)
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
+        let mut prepared = Vec::new();
         for (node, tps) in nodes {
             let version = self.node_share_version(node, SHARE_FETCH).await?;
             if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 {
@@ -1470,14 +1518,48 @@ impl ShareGroup {
                     is_renew_ack: false,
                 },
             )?;
-            let body = match self
-                .share_roundtrip(node, SHARE_FETCH, version, &request)
-                .await
-            {
-                Ok(body) => body,
-                Err(error) => {
-                    self.reset_node_session(node);
-                    return Err(error);
+            prepared.push(PreparedShareFetch {
+                node,
+                version,
+                by_id,
+                request,
+            });
+        }
+        let mut overlapped = if prepared.len() > 1 {
+            self.overlap_share_fetches(&prepared).await
+        } else {
+            HashMap::new()
+        };
+        let multi = prepared.len() > 1;
+        for PreparedShareFetch {
+            node,
+            version,
+            by_id,
+            request,
+        } in prepared
+        {
+            let body = if multi {
+                match overlapped.remove(&node) {
+                    Some(Ok(body)) => body,
+                    Some(Err(error)) => {
+                        self.reset_node_session(node);
+                        return Err(error);
+                    }
+                    None => {
+                        self.reset_node_session(node);
+                        return Err(Error::protocol("missing overlapped ShareFetch response"));
+                    }
+                }
+            } else {
+                match self
+                    .share_roundtrip(node, SHARE_FETCH, version, &request)
+                    .await
+                {
+                    Ok(body) => body,
+                    Err(error) => {
+                        self.reset_node_session(node);
+                        return Err(error);
+                    }
                 }
             };
             let mut body = body;

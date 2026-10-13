@@ -1,0 +1,26 @@
+{
+  "id": "KL09-50",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "24c75502",
+  "hypothesis": "Share poll waited for one leader's ShareFetch before opening the next. Overlapping those roundtrips hides the second leader's wait.",
+  "commands": [
+    "cargo test --locked --test share_semantics share_fetch_overlaps_two_leaders",
+    "cargo test --locked --test share_semantics"
+  ],
+  "results": {
+    "primary": {
+      "metric": "one poll against two leaders each delaying ShareFetch 250ms",
+      "serial_lower_bound_ms": 500,
+      "observed_test_budget_ms": 450,
+      "passed": true,
+      "note": "The test fails if the waits add. It passed, and both node ids appeared in one poll."
+    },
+    "correctness": "Share semantics suite passed, including session epochs, acknowledgements, wakeup, and memory limits. One leader still uses the serial path."
+  },
+  "limits": [
+    "lb-share-2leader was not re-run. The proof is the two-delay socket test, not a broker throughput cell.",
+    "Responses are still applied in node-id order, matching the previous delivery order."
+  ]
+}
