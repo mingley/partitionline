@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "cooperative-static-group-histories",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "4a93c3b031fe43e6e7e1143c51ab7947293d2554",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test group_transition_histories",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test group_transition_histories -- -D warnings"
