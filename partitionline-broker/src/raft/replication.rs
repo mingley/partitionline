@@ -2316,17 +2316,19 @@ impl Node {
     }
     /// Fence one unadvertised directory-qualified controller body.
     ///
-    /// Version 0 and the fixed profile stay on [`Self::respond_controller`].
-    /// A dynamic owner evaluates Vote, BeginQuorumEpoch, and EndQuorumEpoch
-    /// above version 0 against the active directory set. The result is not
-    /// persisted, advertised, or written to the WAL.
+    /// Fixed-profile and version 0 Vote, BeginQuorumEpoch, and EndQuorumEpoch
+    /// stay on [`Self::respond_controller`]. A dynamic owner evaluates higher
+    /// versions of those requests, plus FetchSnapshot and Add, Remove, and
+    /// Update voter bodies, against the active directory set. A matching
+    /// result is not persisted, advertised, or written to the voter set.
     pub fn inspect_unadvertised(
         &self,
         key: i16,
         version: i16,
         body: &[u8],
     ) -> Result<protocol::VoteDisposition, Error> {
-        if version <= 0 || self.log.dynamic.is_none() {
+        let version0_directory = matches!(key, 59 | 80..=82);
+        if self.log.dynamic.is_none() || version < 0 || (version == 0 && !version0_directory) {
             return Err(Error::Controller(protocol::Error::UnsupportedVersion));
         }
         let local = self.local_voter()?;
@@ -2335,15 +2337,10 @@ impl Node {
             52 => {
                 let decoded =
                     protocol::decode_vote_body(body, version).map_err(Error::Controller)?;
-                let replica_id =
-                    u32::try_from(decoded.replica_id).map_err(|_| Error::InvalidConfig)?;
-                let replica = self
-                    .voters()?
-                    .by_id(replica_id)
-                    .ok_or(Error::Membership(membership::Error::VoterNotFound))?;
+                let replica = self.known_voter(decoded.replica_id)?;
                 Ok(protocol::decide_vote_body(
                     &persistent,
-                    replica.key().directory,
+                    replica.directory,
                     local.directory,
                     &decoded,
                 ))
@@ -2367,12 +2364,66 @@ impl Node {
                         .0,
                 )
             }
+            59 => {
+                let decoded = protocol::decode_fetch_snapshot_body(body, version)
+                    .map_err(Error::Controller)?;
+                let follower = self.known_voter(decoded.replica_id)?;
+                Ok(protocol::decide_fetch_snapshot_body(
+                    &persistent,
+                    follower.directory,
+                    &decoded,
+                ))
+            }
+            80 => {
+                let decoded =
+                    protocol::decode_add_voter(body, version).map_err(Error::Controller)?;
+                let id = u32::try_from(decoded.voter_id).map_err(|_| Error::InvalidConfig)?;
+                if self.voters()?.by_id(id).is_some() {
+                    return Ok(protocol::VoteDisposition::Refused(
+                        protocol::PreVoteRefusal::StaleDirectory,
+                    ));
+                }
+                Ok(protocol::decide_add_voter(
+                    &persistent,
+                    decoded.voter_id,
+                    decoded.voter_directory,
+                    &decoded,
+                ))
+            }
+            81 if version == 0 => {
+                let decoded = protocol::decode_remove_voter(body).map_err(Error::Controller)?;
+                let known = self.known_voter(decoded.voter_id)?;
+                let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
+                Ok(protocol::decide_remove_voter(
+                    &persistent,
+                    known_id,
+                    known.directory,
+                    &decoded,
+                ))
+            }
+            82 if version == 0 => {
+                let decoded = protocol::decode_update_voter(body).map_err(Error::Controller)?;
+                let known = self.known_voter(decoded.voter_id)?;
+                let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
+                Ok(protocol::decide_update_voter(
+                    &persistent,
+                    known_id,
+                    known.directory,
+                    &decoded,
+                ))
+            }
             _ => Err(Error::Controller(protocol::Error::UnsupportedVersion)),
         }
     }
     fn local_voter(&self) -> Result<membership::Key, Error> {
+        self.known_voter(
+            i32::try_from(self.config.controller.local_id).map_err(|_| Error::InvalidConfig)?,
+        )
+    }
+    fn known_voter(&self, id: i32) -> Result<membership::Key, Error> {
+        let id = u32::try_from(id).map_err(|_| Error::InvalidConfig)?;
         self.voters()?
-            .by_id(self.config.controller.local_id)
+            .by_id(id)
             .map(membership::Voter::key)
             .ok_or(Error::Membership(membership::Error::VoterNotFound))
     }

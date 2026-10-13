@@ -766,8 +766,8 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     use partitionline_broker::raft::{
         membership::{Bootstrap, Endpoint, Key, Voter, Voters},
         protocol::{
-            BeginEpochBody, EndEpochBody, LeaderEndpoint, PreferredCandidate, VoteBody,
-            VoteDisposition,
+            AddVoterBody, BeginEpochBody, EndEpochBody, FetchSnapshotBody, LeaderEndpoint,
+            PreferredCandidate, RemoveVoterBody, UpdateVoterBody, VoteBody, VoteDisposition,
         },
         replication::{self, Node},
     };
@@ -797,6 +797,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         0,
     )?;
     let before = dynamic.state();
+    let voters_before = dynamic.voters()?.clone();
     let vote = VoteBody {
         version: 2,
         cluster_id: Some("cluster-fixed".into()),
@@ -863,6 +864,87 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         dynamic.inspect_unadvertised(52, 0, &[]),
         Err(replication::Error::Controller(Error::UnsupportedVersion))
     ));
+    let listener = LeaderEndpoint {
+        name: "CONTROLLER".into(),
+        host: "localhost".into(),
+        port: 9099,
+    };
+    let add = AddVoterBody {
+        version: 1,
+        cluster_id: Some("cluster-fixed".into()),
+        timeout_ms: 1000,
+        voter_id: 9,
+        voter_directory: [9u8; 16],
+        listeners: vec![listener.clone()],
+        ack_when_committed: false,
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(80, 1, &protocol::encode_add_voter(&add)?)?,
+        VoteDisposition::NotAdvertised
+    );
+    let mut duplicate = add;
+    duplicate.voter_id = 2;
+    duplicate.voter_directory = [2u8; 16];
+    assert_eq!(
+        dynamic.inspect_unadvertised(80, 1, &protocol::encode_add_voter(&duplicate)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let remove = RemoveVoterBody {
+        cluster_id: Some("cluster-fixed".into()),
+        voter_id: 2,
+        voter_directory: [2u8; 16],
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(81, 0, &protocol::encode_remove_voter(&remove)?)?,
+        VoteDisposition::NotAdvertised
+    );
+    let mut stale_remove = remove;
+    stale_remove.voter_directory = [8u8; 16];
+    assert_eq!(
+        dynamic.inspect_unadvertised(81, 0, &protocol::encode_remove_voter(&stale_remove)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let update = UpdateVoterBody {
+        cluster_id: Some("cluster-fixed".into()),
+        current_leader_epoch: 1,
+        voter_id: 2,
+        voter_directory: [2u8; 16],
+        listeners: vec![listener],
+        kraft_min: 0,
+        kraft_max: 1,
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(82, 0, &protocol::encode_update_voter(&update)?)?,
+        VoteDisposition::NotAdvertised
+    );
+    let fetch = FetchSnapshotBody {
+        version: 1,
+        cluster_id: Some("cluster-fixed".into()),
+        replica_id: 1,
+        max_bytes: 1024,
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        current_leader_epoch: 1,
+        end_offset: 0,
+        epoch: 1,
+        position: 0,
+        replica_directory: Some([8u8; 16]),
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&fetch)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    assert!(matches!(
+        dynamic.inspect_unadvertised(52, 2, &{
+            let mut unknown = protocol::decode_vote_body(&vote_bytes, 2)?;
+            unknown.replica_id = 9;
+            unknown.replica_directory = Some([9u8; 16]);
+            protocol::encode_vote_body(&unknown)?
+        }),
+        Err(replication::Error::Membership(
+            partitionline_broker::raft::membership::Error::VoterNotFound
+        ))
+    ));
     let mut framed = header(52, 2, 77);
     framed.extend_from_slice(&vote_bytes);
     assert!(matches!(
@@ -877,5 +959,6 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         before.election_durable_states
     );
     assert!(after.ready);
+    assert_eq!(dynamic.voters()?, &voters_before);
     Ok(())
 }
