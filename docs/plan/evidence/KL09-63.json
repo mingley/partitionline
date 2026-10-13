@@ -1,7 +1,7 @@
 {
   "id": "KL09-63",
   "status": "done",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "dc6b129a00a2f71beb4aa43511b086fe31ac97b8",
   "disposition": "qualified-local-exploratory",
   "commands": [
     "cargo build --release --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve (system census)",
