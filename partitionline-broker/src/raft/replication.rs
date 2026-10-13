@@ -2318,8 +2318,8 @@ impl Node {
     ///
     /// Fixed-profile and version 0 Vote, BeginQuorumEpoch, and EndQuorumEpoch
     /// stay on [`Self::respond_controller`]. A dynamic owner evaluates higher
-    /// versions of those requests, plus FetchSnapshot and Add, Remove, and
-    /// Update voter bodies, against the active directory set. A matching
+    /// versions of those requests, plus DescribeQuorum, FetchSnapshot, and Add,
+    /// Remove, and Update voter bodies, against the active directory set. A matching
     /// result is not persisted, advertised, or written to the voter set.
     pub fn inspect_unadvertised(
         &self,
@@ -2327,7 +2327,7 @@ impl Node {
         version: i16,
         body: &[u8],
     ) -> Result<protocol::VoteDisposition, Error> {
-        let version0_directory = matches!(key, 59 | 80..=82);
+        let version0_directory = matches!(key, 55 | 59 | 80..=82);
         if self.log.dynamic.is_none() || version < 0 || (version == 0 && !version0_directory) {
             return Err(Error::Controller(protocol::Error::UnsupportedVersion));
         }
@@ -2363,6 +2363,16 @@ impl Node {
                         .map_err(Error::Controller)?
                         .0,
                 )
+            }
+            55 => {
+                let decoded = protocol::decode_describe_quorum_request(body, version)
+                    .map_err(Error::Controller)?;
+                Ok(protocol::decide_describe_quorum_request(
+                    &persistent,
+                    &self.config.controller.topic,
+                    self.config.controller.partition,
+                    &decoded,
+                ))
             }
             59 => {
                 let decoded = protocol::decode_fetch_snapshot_body(body, version)

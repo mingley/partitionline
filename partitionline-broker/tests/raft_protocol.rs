@@ -935,6 +935,29 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&fetch)?)?,
         VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
     );
+    let describe = protocol::DescribeQuorumRequestBody {
+        version: 2,
+        topic: "__cluster_metadata".into(),
+        partitions: vec![0],
+    };
+    let describe_bytes = protocol::encode_describe_quorum_request(&describe)?;
+    assert_eq!(
+        protocol::decode_describe_quorum_request(&describe_bytes, 2)?.partitions,
+        vec![0]
+    );
+    assert_eq!(
+        dynamic.inspect_unadvertised(55, 2, &describe_bytes)?,
+        VoteDisposition::NotAdvertised
+    );
+    let other = protocol::DescribeQuorumRequestBody {
+        version: 0,
+        topic: "orders".into(),
+        partitions: vec![0],
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(55, 0, &protocol::encode_describe_quorum_request(&other)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
     let committed = dynamic.state().committed_end;
     let response = protocol::FetchSnapshotResponseBody {
         version: 1,

@@ -2312,6 +2312,105 @@ pub fn decode_describe_quorum(bytes: &[u8], version: i16) -> Result<DescribeQuor
     })
 }
 
+/// One DescribeQuorum request. Versions 0 through 2 share this body.
+///
+/// The request is not advertised, and decoding it does not write quorum state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumRequestBody {
+    /// DescribeQuorum version, 0, 1, or 2.
+    pub version: i16,
+    /// Topic name.
+    pub topic: String,
+    /// Partition indexes.
+    pub partitions: Vec<i32>,
+}
+
+/// Encode a flexible DescribeQuorum request.
+pub fn encode_describe_quorum_request(body: &DescribeQuorumRequestBody) -> Result<Vec<u8>, Error> {
+    if !(0..=2).contains(&body.version)
+        || body.partitions.is_empty()
+        || body.partitions.len() > MAX_ARRAY
+        || body
+            .partitions
+            .iter()
+            .enumerate()
+            .any(|(index, partition)| {
+                *partition < 0 || body.partitions[..index].contains(partition)
+            })
+    {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + 16 + body.partitions.len() * 4)?;
+    write_count(&mut out, 1, true)?;
+    string(&mut out, &body.topic, true)?;
+    write_count(
+        &mut out,
+        u32::try_from(body.partitions.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for partition in &body.partitions {
+        out.extend_from_slice(&partition.to_be_bytes());
+    }
+    out.extend_from_slice(&[0, 0]);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_describe_quorum_request`].
+pub fn decode_describe_quorum_request(
+    bytes: &[u8],
+    version: i16,
+) -> Result<DescribeQuorumRequestBody, Error> {
+    if !(0..=2).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    let n = reader.count()?;
+    if n == 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let mut partitions = Vec::new();
+    partitions
+        .try_reserve_exact(n)
+        .map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let partition = reader.i32()?;
+        if partition < 0 || partitions.contains(&partition) {
+            return Err(Error::InvalidConfig);
+        }
+        partitions.push(partition);
+    }
+    reader.tags()?;
+    reader.tags()?;
+    reader.finish()?;
+    Ok(DescribeQuorumRequestBody {
+        version,
+        topic,
+        partitions,
+    })
+}
+
+/// Accept a DescribeQuorum request without changing `persistent`.
+///
+/// A topic or partition other than the configured metadata log is refused.
+/// A match is `NotAdvertised` and must not be turned into a stored response.
+pub fn decide_describe_quorum_request(
+    persistent: &election::PersistentState,
+    topic: &str,
+    partition: i32,
+    body: &DescribeQuorumRequestBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.topic == topic && body.partitions.contains(&partition) {
+        VoteDisposition::NotAdvertised
+    } else {
+        VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+    }
+}
+
 /// Accept a DescribeQuorum body without changing `persistent`.
 ///
 /// Version 2 is refused when the named replica's directory does not match.
