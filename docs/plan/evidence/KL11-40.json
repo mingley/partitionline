@@ -1,0 +1,29 @@
+{
+  "task": "KL11-40",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "delegation-token-lifecycle",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib security::tokens::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "token_tests_passed": 1,
+    "token_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A requester without cluster Create authorization stores no token.",
+    "The owner and a listed renewer can renew until the maximum timestamp. Another principal cannot renew or expire the token.",
+    "Authentication fails for a wrong secret, an expired token, and a revoked token.",
+    "Debug and describe output omit the secret. Reopen accepts the issued secret and still rejects the revoked token id."
+  ],
+  "limits": [
+    "This is not the CreateDelegationToken, RenewDelegationToken, or ExpireDelegationToken RPC.",
+    "The token is not wired into SASL authentication.",
+    "The journal format is the local PLTKN001 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
