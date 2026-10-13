@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "typed-durable-session",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "87d7cbec1777be985d6aaded104869176a179443",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib controller::registration",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
