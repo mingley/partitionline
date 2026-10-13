@@ -1,0 +1,37 @@
+[package]
+name = "partitionline-broker-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Isolate from the crate root workspace (cargo-fuzz requirement).
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+partitionline-broker = { path = "../../partitionline-broker" }
+
+[[bin]]
+name = "decode_kraft"
+path = "fuzz_targets/decode_kraft.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "recover_journal"
+path = "fuzz_targets/recover_journal.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "controller_respond"
+path = "fuzz_targets/controller_respond.rs"
+test = false
+doc = false
+bench = false
