@@ -1,0 +1,29 @@
+{
+  "task": "KL11-25",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "marker-read-committed",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::markers::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "marker_tests_passed": 1,
+    "marker_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "An abort marker hides that epoch's data. A later committed epoch of the same producer id remains visible.",
+    "An incomplete transaction holds the last stable offset at its first record, so that record is not visible.",
+    "Repeating a marker returns the original offset. The opposite marker conflicts and does not replace it.",
+    "Two read_committed scans after reopen return the same ids."
+  ],
+  "limits": [
+    "This is not a Fetch response and it does not write Kafka control batches.",
+    "Transactional offset commits stay on KL11-26.",
+    "The journal format is the local PLTXNM01 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

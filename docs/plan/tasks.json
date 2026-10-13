@@ -33314,8 +33314,8 @@
       "title": "Write transaction markers and enforce LSO/read_committed",
       "priority": "P0",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-24",
         "KL11-07"
@@ -33333,7 +33333,7 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL11-25.json"]
     },
     {
       "id": "KL11-26",
