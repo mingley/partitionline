@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "full-denominator-compatibility-matrix",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "eab8c304d19c61f8cb51a0e9fa66a856394362ea",
   "commands": [
     "python3 scripts/check-broker-compatibility.py --write",
     "python3 -m unittest tests/conformance/test_broker_compatibility_matrix.py"
