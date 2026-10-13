@@ -12234,13 +12234,14 @@
     {
       "id": "KL09-42",
       "title": "Prefetch the next fetch round within the byte budget",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL09-10", "KL09-11", "KL03-22"],
       "files": ["src/consumer.rs", "docs/guide.md"],
       "deliverable": "While the application processes a returned batch, the next Fetch for eligible partitions is already in flight, bounded by the existing consumer byte budget.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Failing-first tests show seek, pause, assignment change, wakeup and close each discarding or invalidating prefetched data correctly; delivered and fetched positions stay separate (KL03-06).", "The byte budget and RSS guardrails hold; docs/guide.md describes prefetch and its budget."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test consumer_close_commit", "cargo test --locked --test network_deadlines", "A/B cell nb-fetch-appdelay (records/s, peak RSS): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL09-42.json", "docs/evidence/perf/KL09-42/"],
+      "evidence": ["docs/plan/evidence/KL09-42.json"]
     },
     {
       "id": "KL09-43",

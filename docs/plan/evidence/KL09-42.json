@@ -1,0 +1,41 @@
+{
+  "id": "KL09-42",
+  "status": "done",
+  "disposition": "rejected-no-gain",
+  "outcome_branch": "early rejection at performance-leadership.md section 6 step 2: application delay overlapped with a later Fetch is below 1% of nb-fetch-appdelay; remaining implementation criteria do not apply",
+  "source_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "baseline_sha": "2cd461d2c3d335f40a1492f4b645f86a363dba07",
+  "candidate_sha": null,
+  "hypothesis": "While the application sleeps after a returned batch, the next Fetch is still idle. Starting that Fetch before fetch returns would hide broker wait behind the 1 ms nb-fetch-appdelay pause and raise records/s.",
+  "finding": "One parent run of nb-fetch-appdelay performed 1 fetch round, fetched 135000 records, and consumed the 20000-record target from that response. Measured duration was 0.174219 s. The configured 1 ms batch delay therefore occurs once, after the only Fetch, and is 0.57% of wall time. No subsequent round exists for a prefetch to overlap. Client CPU was 54.632 ms for the round. No production code was changed.",
+  "cells": ["nb-fetch-appdelay"],
+  "host": "Intel Xeon family 6 model 207, 4 cores, Linux 6.12.94+ x86_64, frequency unpinned (harness 2400 MHz), rustc 1.99.0 (b940084d7 2026-09-28), release profile",
+  "commands": [
+    "cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve (exit 0; same HEAD binary as KL09-46, sha256 bac765108182c9d307faa555707c83f7a061bab0cba31151b236e8f1421c9c68)",
+    "NB_SERVE=benchmarks/runtime/target/release/nb-serve benchmarks/runtime/target/release/runtime --cell nb-fetch-appdelay --out /tmp/kl09-46-head/app --repetitions 1 (exit 0)",
+    "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-42/nb-fetch-appdelay-rep0.result.json --quiet --json (exit 0, valid, 0 errors)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "nb-fetch-appdelay wall seconds, one parent run; overlap ceiling is one 1 ms sleep",
+      "baseline_median": 0.174219,
+      "candidate_median": null,
+      "overlap_ceiling_pct_of_wall": 0.574,
+      "fetch_rounds": 1,
+      "repetitions": 1
+    },
+    "allocations": {"unit": "per round", "baseline": 135451, "candidate": null},
+    "net_production_lines": 0,
+    "correctness": "no production diff; remaining suites do not apply on this rejection branch"
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL09-42/README.md",
+    "docs/evidence/perf/KL09-42/nb-fetch-appdelay-rep0.result.json"
+  ],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput comparison. Suite HOLD remains active.",
+    "One repetition. A candidate was not built because the overlap ceiling is below 1%.",
+    "The null broker serves the whole target in one response. A broker that returned smaller batches could show a larger overlap; that shape is not this cell.",
+    "KL09-43 lists KL09-42 in depends_on, which is satisfied by status done. No card lists KL09-42 in requires_accepted."
+  ]
+}
