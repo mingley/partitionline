@@ -504,7 +504,41 @@ pub fn validate(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
             return Err(budget(at, Budget::Batches));
         }
         let batch = take_batch(&mut input, limits.batch_bytes)?;
-        validate_batch(batch, at, limits, &mut records, &mut headers, false)?;
+        validate_batch(batch, at, limits, &mut records, &mut headers, false, true)?;
+        batches += 1;
+    }
+    Ok(Validated {
+        bytes,
+        batches,
+        records,
+        headers,
+    })
+}
+
+/// Like [`validate`], for a single batch whose CRC32-C the caller already matched.
+///
+/// The structural checks are unchanged. The checksum is not computed again.
+/// Codec builds validate inside `codecs::normalize` instead, so this entry
+/// point exists only for the no-codec produce path.
+#[cfg(not(feature = "codecs"))]
+pub(crate) fn validate_known_crc(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
+    if bytes.len() > limits.input_bytes {
+        return Err(budget(0, Budget::InputBytes));
+    }
+    if bytes.is_empty() {
+        return Err(invalid(0, Invalid::Empty));
+    }
+    let mut input = Cursor::new(bytes, 0);
+    let mut batches = 0usize;
+    let mut records = 0usize;
+    let mut headers = 0usize;
+    while !input.remaining().is_empty() {
+        let at = input.at();
+        if batches == limits.batches {
+            return Err(budget(at, Budget::Batches));
+        }
+        let batch = take_batch(&mut input, limits.batch_bytes)?;
+        validate_batch(batch, at, limits, &mut records, &mut headers, false, false)?;
         batches += 1;
     }
     Ok(Validated {
@@ -533,7 +567,7 @@ pub fn validate_read(bytes: &[u8], limits: Limits) -> Result<ReadSummary<'_>, Er
             return Err(budget(at, Budget::Batches));
         }
         let bytes = take_batch(&mut input, limits.batch_bytes)?;
-        validate_batch(bytes, at, limits, &mut records, &mut headers, true)?;
+        validate_batch(bytes, at, limits, &mut records, &mut headers, true, true)?;
         let mut one = Cursor::new(bytes, at);
         let b = projection(&mut one)?;
         if next.is_some_and(|end| b.base_offset < end) {
@@ -580,6 +614,7 @@ fn validate_batch(
     total_records: &mut usize,
     total_headers: &mut usize,
     read: bool,
+    check_crc: bool,
 ) -> Result<(), Error> {
     let mut c = Cursor::new(bytes, at);
     let base = c.i64()?;
@@ -596,7 +631,7 @@ fn validate_batch(
         return Err(invalid(at, Invalid::Truncated));
     }
     let crc = c.u32()?;
-    if crc32c::crc32c(c.remaining()) != crc {
+    if check_crc && crc32c::crc32c(c.remaining()) != crc {
         return Err(invalid(at + 17, Invalid::Checksum));
     }
     let attrs = c.u16()?;
@@ -869,11 +904,18 @@ impl<'a> Cursor<'a> {
         let at = self.at();
         let mut value = 0u64;
         for group in 0..width {
-            let byte = self.byte()?;
+            let pos = self.position;
+            let Some(byte) = self.bytes.get(pos).copied() else {
+                return Err(invalid(self.at(), Invalid::Truncated));
+            };
+            self.position = pos
+                .checked_add(1)
+                .ok_or_else(|| invalid(self.at(), Invalid::Length))?;
             if group + 1 == width && byte > last {
                 return Err(invalid(at, Invalid::VarintOverflow));
             }
-            value |= u64::from(byte & 127) << (group * 7);
+            let shift = group.saturating_mul(7);
+            value |= u64::from(byte & 127) << shift;
             if byte & 128 == 0 {
                 if group > 0 && byte == 0 {
                     return Err(invalid(at, Invalid::NonCanonicalVarint));

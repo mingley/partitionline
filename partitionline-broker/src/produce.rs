@@ -862,7 +862,10 @@ fn normalize(bytes: Option<&[u8]>, version: i16, config: &Config) -> Result<Vec<
         })?;
     #[cfg(feature = "codecs")]
     let input = normalized.as_bytes();
-    records::validate(input, config.record_limits).map_err(record_error)?;
+    // CRC32-C was matched above for this single batch. Codec normalization
+    // validates the bytes it returns, including rewritten batches.
+    #[cfg(not(feature = "codecs"))]
+    records::validate_known_crc(input, config.record_limits).map_err(record_error)?;
     if input.len() > config.journal_limits.max_entry_bytes() {
         return Err(10);
     }
