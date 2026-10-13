@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "seeded-journal-fault-campaign",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "c79ef9f66bd49eca5eca631b044092d756b1911e",
   "commands": [
     "PL_FAULT_CAMPAIGN_OUT=docs/evidence/broker/faults/campaign.json cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test fault_campaign -- --nocapture",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test fault_campaign -- -D warnings"
