@@ -12,7 +12,8 @@
 //! owner must already know a sending leader's directory/configuration; a laggard
 //! rejects an unknown added leader before term or content mutation. Trusted
 //! discovery/continuous autonomous catch-up and native modern KRaft wire remain
-//! separate contracts. Self-supplied membership never grants an unknown peer
+//! separate contracts. [`evaluate_prevote`](crate::raft::protocol::evaluate_prevote)
+//! does not append to this WAL and does not advance the committed end. Self-supplied membership never grants an unknown peer
 //! authority.
 //! Defaults bound records to1MiB, chunks/fetches to2MiB (4MiB configurable
 //! ceiling), live content to4096 entries/64MiB and the WAL to65536 operations/

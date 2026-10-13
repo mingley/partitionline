@@ -1,7 +1,8 @@
 //! Fixed trusted-member controller RPCs: Vote52/0, Begin53/0 and End54/0.
 //!
 //! This is one configured metadata partition, not replication or full KRaft.
-//! Directory identities, pre-votes and dynamic membership are unadvertised.
+//! Directory-aware pre-vote is evaluated locally and is not advertised.
+//! Dynamic membership stays unadvertised.
 //! A controller listener must be restricted to trusted peers: node IDs and
 //! client IDs are not authentication. Its operator-owned election journal path
 //! must remain bound to the same cluster/topic and this epoch representation.
@@ -1056,5 +1057,141 @@ impl Drop for ControllerHandler {
     fn drop(&mut self) {
         self.stopping.store(true, Ordering::Release);
         drop(self.sender.try_send(Command::Stop));
+    }
+}
+
+/// A directory-qualified pre-vote. Granting it does not persist a term or vote.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DirectoryPreVote {
+    /// Candidate term. It is not written to stable state.
+    pub term: u64,
+    /// Candidate id.
+    pub candidate: election::NodeId,
+    /// Candidate directory identity. The zero id is refused.
+    pub directory: [u8; 16],
+    /// Candidate durable log summary.
+    pub log: election::LogPosition,
+}
+
+/// Why a pre-vote was not granted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreVoteRefusal {
+    /// The directory does not match the expected identity.
+    StaleDirectory,
+    /// The candidate term is older than the stable term.
+    StaleTerm,
+    /// The candidate log is behind the stable log.
+    StaleLog,
+}
+
+/// Decide a pre-vote without changing `persistent`.
+///
+/// The stable term and vote stay with the caller. Wire versions above the
+/// advertised Vote v0 profile are not selected by [`negotiate`].
+pub fn evaluate_prevote(
+    persistent: &election::PersistentState,
+    expected_directory: [u8; 16],
+    request: DirectoryPreVote,
+) -> Result<bool, PreVoteRefusal> {
+    if request.directory == [0; 16] || request.directory != expected_directory {
+        return Err(PreVoteRefusal::StaleDirectory);
+    }
+    if request.term < persistent.term {
+        return Err(PreVoteRefusal::StaleTerm);
+    }
+    if request.log < persistent.log {
+        return Err(PreVoteRefusal::StaleLog);
+    }
+    Ok(true)
+}
+
+#[cfg(test)]
+mod prevote_tests {
+    use super::*;
+
+    fn state(term: u64) -> election::PersistentState {
+        election::PersistentState {
+            term,
+            voted_for: Some(7),
+            log: election::LogPosition { term: 1, index: 1 },
+        }
+    }
+
+    #[test]
+    fn prevote_does_not_change_the_stable_term_or_vote() {
+        let persistent = state(4);
+        let before = persistent;
+        let directory = [9u8; 16];
+        let granted = evaluate_prevote(
+            &persistent,
+            directory,
+            DirectoryPreVote {
+                term: 5,
+                candidate: 3,
+                directory,
+                log: persistent.log,
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(granted);
+        assert_eq!(persistent, before);
+        assert_eq!(
+            negotiate(
+                &[ApiVersion {
+                    api_key: 52,
+                    min_version: 0,
+                    max_version: 2,
+                }],
+                52,
+            ),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn stale_directory_or_term_or_log_is_refused() {
+        let persistent = state(4);
+        let directory = [9u8; 16];
+        assert_eq!(
+            evaluate_prevote(
+                &persistent,
+                directory,
+                DirectoryPreVote {
+                    term: 5,
+                    candidate: 3,
+                    directory: [1u8; 16],
+                    log: persistent.log,
+                },
+            ),
+            Err(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(
+            evaluate_prevote(
+                &persistent,
+                directory,
+                DirectoryPreVote {
+                    term: 3,
+                    candidate: 3,
+                    directory,
+                    log: persistent.log,
+                },
+            ),
+            Err(PreVoteRefusal::StaleTerm)
+        );
+        assert_eq!(
+            evaluate_prevote(
+                &persistent,
+                directory,
+                DirectoryPreVote {
+                    term: 5,
+                    candidate: 3,
+                    directory,
+                    log: election::LogPosition { term: 0, index: 0 },
+                },
+            ),
+            Err(PreVoteRefusal::StaleLog)
+        );
+        assert_eq!(persistent.voted_for, Some(7));
+        assert_eq!(persistent.term, 4);
     }
 }
