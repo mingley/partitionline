@@ -266,13 +266,14 @@ echo "== SASL_SSL produce (OAUTHBEARER unsecured JWT + rustls) =="
 export SASL_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL"
 env -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID -u OIDC_CLIENT_SECRET \
   cargo run --release --example oauth
+unset SASL_OAUTH_PRINCIPAL
 
 echo "== SASL_SSL produce (OIDC client_credentials → OAUTHBEARER + rustls) =="
 export OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token"
 export OIDC_CLIENT_ID="partitionline-smoke"
 export OIDC_CLIENT_SECRET="smoke-secret"
 cargo run --release --example oauth
-unset OIDC_TOKEN_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET
+unset OIDC_TOKEN_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET SASL_OAUTH_PRINCIPAL
 
 echo "== SSL-only produce (no SASL) against SASL_SSL should fail closed =="
 set +e
@@ -317,9 +318,13 @@ run_lifecycle_case() {
   local log="${WORKDIR}/lifecycle-${case_name}.log"
   local line
   set +e
+  # Drop leftover OAuth/OIDC exports from earlier smoke legs. Callers that
+  # need those variables must pass them through env after this cleanup.
   line="$(
     AUTH_LIFECYCLE_CASE="$case_name" AUTH_SLEEP_MS="$LIFECYCLE_SLEEP_MS" \
-      "$@" cargo run --release --example auth_lifecycle 2>"$log"
+      env -u SASL_OAUTH_PRINCIPAL -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID \
+      -u OIDC_CLIENT_SECRET "$@" cargo run --release --example auth_lifecycle \
+      2>"$log"
   )"
   local rc=$?
   set -e
@@ -339,6 +344,7 @@ run_lifecycle_case() {
 }
 
 echo "== lifecycle: Admin/Consumer/group reauth + idle reconnect + rejection =="
+unset SASL_OAUTH_PRINCIPAL OIDC_TOKEN_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET
 export SASL_MECHANISM="PLAIN"
 : >"${WORKDIR}/lifecycle-cases.jsonl"
 run_lifecycle_case admin_reauth \
