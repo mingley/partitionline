@@ -1,6 +1,8 @@
 #!/bin/sh
 # Short libFuzzer smoke for the broker harness.
-# This is not the KL11-47 24-hour campaign and does not qualify the broker.
+# This rustc build does not instrument the broker for coverage, so the run is a
+# panic/crash oracle. It is not the KL11-47 24-hour campaign and does not
+# qualify the broker.
 set -eu
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 cargo build --release --locked --manifest-path "$root/fuzz/broker/Cargo.toml"
