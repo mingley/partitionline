@@ -1,0 +1,29 @@
+{
+  "task": "KL11-19",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "high-watermark-acks",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib high_watermark",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "high_watermark_tests_passed": 2,
+    "high_watermark_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "The high watermark is the minimum log end of the current ISR and does not move backward.",
+    "acks=1 can succeed from the leader alone. acks=-1 stays pending until the high watermark covers the records and the ISR is at least min.insync.replicas.",
+    "An ISR below the minimum after the leader append returns NOT_ENOUGH_REPLICAS_AFTER_APPEND and does not commit the id.",
+    "Committed ids remain after failover to a caught-up ISR member and after reopen."
+  ],
+  "limits": [
+    "This is not a Produce RPC and it does not replicate bytes. Replica progress is supplied by the caller.",
+    "Leader epoch recovery after divergence stays on KL11-20.",
+    "The journal format is the local PLHWMK01 record, not an Apache record batch.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

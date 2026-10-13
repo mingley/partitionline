@@ -11,6 +11,7 @@ pub mod catalog;
 pub mod compaction;
 pub mod controller;
 pub mod fetch;
+pub mod high_watermark;
 pub mod journal;
 pub mod metadata;
 pub mod metadata_quorum;
