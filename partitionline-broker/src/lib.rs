@@ -12,6 +12,7 @@ pub mod compaction;
 pub mod configs;
 pub mod controller;
 pub mod fetch;
+pub mod groups;
 pub mod high_watermark;
 pub mod idempotence;
 pub mod journal;

@@ -1,0 +1,29 @@
+{
+  "task": "KL11-27",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "classic-join-sync",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::classic::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "classic_group_tests_passed": 2,
+    "classic_group_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Two members join one generation. The leader's assignment gives each partition to one member. A follower cannot publish an assignment.",
+    "A session timeout removes the silent member, bumps the generation, and clears assignments. The old generation cannot sync.",
+    "An unknown member id is rejected. A stale coordinator epoch cannot sync.",
+    "Reopen restores the coordinator epoch and the disjoint assignment."
+  ],
+  "limits": [
+    "This is not the JoinGroup or SyncGroup RPC.",
+    "Heartbeats, leave, and static or cooperative revocation stay on KL11-28.",
+    "The journal format is the local PLGRP001 snapshot, not an Apache group metadata record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
