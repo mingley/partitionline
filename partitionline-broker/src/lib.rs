@@ -29,6 +29,7 @@ pub mod recovery;
 pub mod replication;
 pub mod retention;
 pub mod segments;
+pub mod share_delivery;
 pub mod tiered;
 pub mod transactions;
 pub mod transport;

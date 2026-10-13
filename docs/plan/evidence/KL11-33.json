@@ -1,0 +1,28 @@
+{
+  "task": "KL11-33",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "share-delivery-locks",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib share_delivery::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "delivery_tests_passed": 1,
+    "delivery_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A partial batch can accept one locked offset and refuse an offset that was never delivered. The refused offset is not accepted.",
+    "Release and leader loss return a locked offset without accepting it. A renewed lock survives an earlier deadline and is released at the new deadline.",
+    "Reopen keeps the accepted offset and the in-flight lock. Expiry after reopen releases the lock and does not accept it.",
+    "A record at the delivery limit is not locked again and is not accepted."
+  ],
+  "limits": [
+    "This is not the ShareFetch or ShareAcknowledge RPC.",
+    "The journal format is the local PLSHD001 snapshot.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

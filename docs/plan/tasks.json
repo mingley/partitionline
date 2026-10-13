@@ -33528,8 +33528,8 @@
       "title": "Implement share fetch locks, partial acknowledgments and expiry",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-32",
         "KL11-07"
@@ -33547,7 +33547,9 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL11-33.json"
+      ]
     },
     {
       "id": "KL11-34",
