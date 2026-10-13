@@ -1562,6 +1562,180 @@ pub fn decide_end_body(
     Ok((disposition, rank))
 }
 
+/// One FetchSnapshot partition request.
+///
+/// Version 0 has no follower directory. Version 1 carries it as tagged field 0
+/// and is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchSnapshotBody {
+    /// FetchSnapshot version, 0 or 1.
+    pub version: i16,
+    /// Cluster id, carried as request tagged field 0 when present.
+    pub cluster_id: Option<String>,
+    /// Follower replica id.
+    pub replica_id: i32,
+    /// Maximum snapshot bytes.
+    pub max_bytes: i32,
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Leader epoch the follower believes is current.
+    pub current_leader_epoch: i32,
+    /// Snapshot end offset.
+    pub end_offset: i64,
+    /// Snapshot epoch.
+    pub epoch: i32,
+    /// Byte position to resume from.
+    pub position: i64,
+    /// Follower directory. Required on version 1.
+    pub replica_directory: Option<[u8; 16]>,
+}
+
+/// Encode a flexible FetchSnapshot body for version 0 or 1.
+pub fn encode_fetch_snapshot_body(body: &FetchSnapshotBody) -> Result<Vec<u8>, Error> {
+    if body.version == 0 && body.replica_directory.is_some() {
+        return Err(Error::InvalidConfig);
+    }
+    if (body.version == 1 && body.replica_directory.is_none()) || !(0..=1).contains(&body.version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + 80)?;
+    out.extend_from_slice(&body.replica_id.to_be_bytes());
+    out.extend_from_slice(&body.max_bytes.to_be_bytes());
+    write_count(&mut out, 1, true)?;
+    string(&mut out, &body.topic, true)?;
+    write_count(&mut out, 1, true)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.current_leader_epoch.to_be_bytes());
+    out.extend_from_slice(&body.end_offset.to_be_bytes());
+    out.extend_from_slice(&body.epoch.to_be_bytes());
+    out.extend_from_slice(&body.position.to_be_bytes());
+    if let Some(directory) = body.replica_directory {
+        varint(&mut out, 1);
+        varint(&mut out, 0);
+        varint(&mut out, 16);
+        out.extend_from_slice(&directory);
+    } else {
+        out.push(0);
+    }
+    out.push(0);
+    match &body.cluster_id {
+        Some(cluster) => {
+            varint(&mut out, 1);
+            varint(&mut out, 0);
+            let mut payload = Vec::new();
+            string(&mut payload, cluster, true)?;
+            varint(
+                &mut out,
+                u32::try_from(payload.len()).map_err(|_| Error::InvalidConfig)?,
+            );
+            out.extend_from_slice(&payload);
+        }
+        None => out.push(0),
+    }
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_fetch_snapshot_body`].
+pub fn decode_fetch_snapshot_body(bytes: &[u8], version: i16) -> Result<FetchSnapshotBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let replica_id = reader.i32()?;
+    let max_bytes = reader.i32()?;
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let current_leader_epoch = reader.i32()?;
+    let end_offset = reader.i64()?;
+    let epoch = reader.i32()?;
+    let position = reader.i64()?;
+    let replica_directory = if version >= 1 {
+        Some(read_directory_tag(&mut reader)?)
+    } else {
+        reader.tags()?;
+        None
+    };
+    reader.tags()?;
+    let cluster_id = read_cluster_tag(&mut reader)?;
+    reader.finish()?;
+    Ok(FetchSnapshotBody {
+        version,
+        cluster_id,
+        replica_id,
+        max_bytes,
+        topic,
+        partition,
+        current_leader_epoch,
+        end_offset,
+        epoch,
+        position,
+        replica_directory,
+    })
+}
+
+/// Accept a FetchSnapshot body without changing `persistent`.
+///
+/// Version 1 with a mismatched follower directory is refused. Neither version
+/// is advertised on the controller listener.
+pub fn decide_fetch_snapshot_body(
+    persistent: &election::PersistentState,
+    expected_directory: [u8; 16],
+    body: &FetchSnapshotBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.version == 0 {
+        return VoteDisposition::NotAdvertised;
+    }
+    match body.replica_directory {
+        Some(directory) if directory == expected_directory && directory != [0; 16] => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn read_directory_tag(reader: &mut Reader<'_>) -> Result<[u8; 16], Error> {
+    let count = reader.varint()?;
+    if count != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    if reader.varint()? != 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let length = reader.varint()?;
+    if length != 16 {
+        return Err(Error::InvalidConfig);
+    }
+    reader
+        .take(16)?
+        .try_into()
+        .map_err(|_| Error::InvalidConfig)
+}
+
+fn read_cluster_tag(reader: &mut Reader<'_>) -> Result<Option<String>, Error> {
+    let count = reader.varint()?;
+    if count == 0 {
+        return Ok(None);
+    }
+    if count != 1 || reader.varint()? != 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let length = usize::try_from(reader.varint()?).map_err(|_| Error::InvalidConfig)?;
+    let payload = reader.take(length)?;
+    let mut nested = Reader::new(payload, true, protocol::Limits::default());
+    let cluster = nested.nullable_string()?.map(str::to_owned);
+    nested.finish()?;
+    Ok(cluster)
+}
+
 fn write_nullable(out: &mut Vec<u8>, value: Option<&str>, flexible: bool) -> Result<(), Error> {
     match value {
         Some(text) => string(out, text, flexible),
@@ -2046,5 +2220,53 @@ mod prevote_tests {
         assert_eq!(persistent, before);
         assert_eq!(CONTROLLER_API_VERSIONS[3].api_key, 54);
         assert_eq!(CONTROLLER_API_VERSIONS[3].max_version, 0);
+    }
+
+    #[test]
+    fn fetch_snapshot_v1_directory_mismatch_is_not_advertised() {
+        let directory = [7u8; 16];
+        let body = FetchSnapshotBody {
+            version: 1,
+            cluster_id: Some("cluster-1".to_owned()),
+            replica_id: 3,
+            max_bytes: 1024,
+            topic: "__cluster_metadata".to_owned(),
+            partition: 0,
+            current_leader_epoch: 2,
+            end_offset: 10,
+            epoch: 2,
+            position: 0,
+            replica_directory: Some(directory),
+        };
+        let bytes = encode_fetch_snapshot_body(&body).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded =
+            decode_fetch_snapshot_body(&bytes, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(decoded.cluster_id.as_deref(), Some("cluster-1"));
+        assert_eq!(decoded.end_offset, 10);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, directory, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale = decoded;
+        stale.replica_directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, directory, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert!(CONTROLLER_API_VERSIONS.iter().all(|api| api.api_key != 59));
+        assert_eq!(
+            negotiate(
+                &[ApiVersion {
+                    api_key: 59,
+                    min_version: 0,
+                    max_version: 1
+                }],
+                59
+            ),
+            None
+        );
     }
 }
