@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "epoch-recovery",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "1f467f8366817691c47cc30eacbbf8e70696e9a5",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib recovery::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
