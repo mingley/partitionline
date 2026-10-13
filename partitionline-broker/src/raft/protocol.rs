@@ -1214,6 +1214,200 @@ pub fn decide_vote_body(
     }
 }
 
+/// One leader endpoint from BeginQuorumEpoch version 1.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaderEndpoint {
+    /// Endpoint name.
+    pub name: String,
+    /// Hostname.
+    pub host: String,
+    /// Port.
+    pub port: u16,
+}
+
+/// One BeginQuorumEpoch body for versions 0 or 1.
+///
+/// Version 0 is classic. Version 1 is flexible and adds the voter directory
+/// and leader endpoints. Version 1 is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeginEpochBody {
+    /// BeginQuorumEpoch version, 0 or 1.
+    pub version: i16,
+    /// Cluster id.
+    pub cluster_id: Option<String>,
+    /// Receiving voter. Version 0 stores `-1`.
+    pub voter_id: i32,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Receiving voter directory. Required on version 1.
+    pub voter_directory: Option<[u8; 16]>,
+    /// Elected leader id.
+    pub leader_id: i32,
+    /// Elected leader epoch.
+    pub leader_epoch: i32,
+    /// Leader endpoints. Empty on version 0.
+    pub leader_endpoints: Vec<LeaderEndpoint>,
+}
+
+/// Encode a BeginQuorumEpoch body. Version 0 is classic; version 1 is flexible.
+pub fn encode_begin_body(body: &BeginEpochBody) -> Result<Vec<u8>, Error> {
+    if body.version == 0 {
+        if body.voter_directory.is_some()
+            || !body.leader_endpoints.is_empty()
+            || body.voter_id != -1
+        {
+            return Err(Error::InvalidConfig);
+        }
+    } else if body.version != 1 || body.voter_directory.is_none() {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = body.version >= 1;
+    let mut out = allocate(body.topic.len() + 64)?;
+    write_nullable(&mut out, body.cluster_id.as_deref(), flexible)?;
+    if flexible {
+        out.extend_from_slice(&body.voter_id.to_be_bytes());
+    }
+    write_count(&mut out, 1, flexible)?;
+    string(&mut out, &body.topic, flexible)?;
+    write_count(&mut out, 1, flexible)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    if flexible {
+        out.extend_from_slice(body.voter_directory.ok_or(Error::InvalidConfig)?.as_slice());
+    }
+    out.extend_from_slice(&body.leader_id.to_be_bytes());
+    out.extend_from_slice(&body.leader_epoch.to_be_bytes());
+    if flexible {
+        out.push(0);
+        out.push(0);
+        write_count(
+            &mut out,
+            u32::try_from(body.leader_endpoints.len()).map_err(|_| Error::InvalidConfig)?,
+            flexible,
+        )?;
+        for endpoint in &body.leader_endpoints {
+            string(&mut out, &endpoint.name, true)?;
+            string(&mut out, &endpoint.host, true)?;
+            out.extend_from_slice(&endpoint.port.to_be_bytes());
+            out.push(0);
+        }
+        out.push(0);
+    }
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_begin_body`].
+pub fn decode_begin_body(bytes: &[u8], version: i16) -> Result<BeginEpochBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = version >= 1;
+    let mut reader = Reader::new(bytes, flexible, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    let voter_id = if flexible { reader.i32()? } else { -1 };
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let voter_directory = if flexible {
+        Some(
+            reader
+                .take(16)?
+                .try_into()
+                .map_err(|_| Error::InvalidConfig)?,
+        )
+    } else {
+        None
+    };
+    let leader_id = reader.i32()?;
+    let leader_epoch = reader.i32()?;
+    let mut leader_endpoints = Vec::new();
+    if flexible {
+        reader.tags()?;
+        reader.tags()?;
+        let count = reader.count()?;
+        for _ in 0..count {
+            leader_endpoints.push(LeaderEndpoint {
+                name: reader.string()?.to_owned(),
+                host: reader.string()?.to_owned(),
+                port: u16::from_be_bytes(
+                    reader
+                        .take(2)?
+                        .try_into()
+                        .map_err(|_| Error::InvalidConfig)?,
+                ),
+            });
+            reader.tags()?;
+        }
+        reader.tags()?;
+    }
+    reader.finish()?;
+    Ok(BeginEpochBody {
+        version,
+        cluster_id,
+        voter_id,
+        topic,
+        partition,
+        voter_directory,
+        leader_id,
+        leader_epoch,
+        leader_endpoints,
+    })
+}
+
+/// Accept a BeginQuorumEpoch body without changing `persistent`.
+///
+/// Version 0 is the classic handler input. Version 1 with a mismatched
+/// directory is refused. A matching version 1 body is parsed and not advertised.
+pub fn decide_begin_body(
+    persistent: &election::PersistentState,
+    expected_directory: [u8; 16],
+    body: &BeginEpochBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.version == 0 {
+        return VoteDisposition::DurableV0;
+    }
+    match body.voter_directory {
+        Some(directory) if directory == expected_directory && directory != [0; 16] => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn write_nullable(out: &mut Vec<u8>, value: Option<&str>, flexible: bool) -> Result<(), Error> {
+    match value {
+        Some(text) => string(out, text, flexible),
+        None if flexible => {
+            out.push(0);
+            Ok(())
+        }
+        None => {
+            out.extend_from_slice(&(-1_i16).to_be_bytes());
+            Ok(())
+        }
+    }
+}
+
+fn write_count(out: &mut Vec<u8>, count: u32, flexible: bool) -> Result<(), Error> {
+    if flexible {
+        varint(out, count.saturating_add(1));
+    } else {
+        out.extend_from_slice(
+            &i32::try_from(count)
+                .map_err(|_| Error::InvalidConfig)?
+                .to_be_bytes(),
+        );
+    }
+    Ok(())
+}
+
 enum Command {
     Request(Vec<u8>, oneshot::Sender<Result<Vec<u8>, Error>>),
     Stop,
@@ -1560,5 +1754,57 @@ mod prevote_tests {
                 .unwrap_or_else(|error| panic!("{error:?}")),
             0
         );
+    }
+
+    #[test]
+    fn begin_v0_parses_and_v1_directory_mismatch_does_not_change_state() {
+        let config = Config::new(1, vec![1], "cluster-1".to_owned())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let classic = BeginEpochBody {
+            version: 0,
+            cluster_id: Some(config.cluster_id.clone()),
+            voter_id: -1,
+            topic: config.topic.clone(),
+            partition: config.partition,
+            voter_directory: None,
+            leader_id: 4,
+            leader_epoch: 3,
+            leader_endpoints: Vec::new(),
+        };
+        let bytes = encode_begin_body(&classic).unwrap_or_else(|error| panic!("{error:?}"));
+        let parsed = parse_request(53, &bytes, &config).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(parsed.node, 4);
+        assert_eq!(parsed.epoch, 3);
+        let directory = [6u8; 16];
+        let modern = BeginEpochBody {
+            version: 1,
+            voter_id: 1,
+            voter_directory: Some(directory),
+            leader_endpoints: vec![LeaderEndpoint {
+                name: "plaintext".to_owned(),
+                host: "127.0.0.1".to_owned(),
+                port: 9093,
+            }],
+            ..classic
+        };
+        let encoded = encode_begin_body(&modern).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_begin_body(&encoded, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(decoded.leader_endpoints.len(), 1);
+        assert_eq!(decoded.leader_endpoints[0].port, 9093);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_begin_body(&persistent, directory, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale = decoded;
+        stale.voter_directory = Some([2u8; 16]);
+        assert_eq!(
+            decide_begin_body(&persistent, directory, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[2].api_key, 53);
+        assert_eq!(CONTROLLER_API_VERSIONS[2].max_version, 0);
     }
 }
