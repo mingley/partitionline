@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "aggregate-of-qualified-constituents",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "e11dc1a7b422299497f65448b1c7637bacceb1b5",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test metadata_quorum --test raft_replication --test raft_membership --test raft_election"
   ],
