@@ -40,6 +40,8 @@ pub const API_KEY_FIND_COORDINATOR: i16 = 10;
 pub const API_KEY_INIT_PRODUCER_ID: i16 = 22;
 /// API key: ApiVersions.
 pub const API_KEY_API_VERSIONS: i16 = 18;
+/// API key: CreateTopics.
+pub const API_KEY_CREATE_TOPICS: i16 = 19;
 
 /// Error code: none.
 pub const ERR_NONE: i16 = 0;
@@ -47,6 +49,8 @@ pub const ERR_NONE: i16 = 0;
 pub const ERR_OFFSET_OUT_OF_RANGE: i16 = 1;
 /// Error code: `UNKNOWN_TOPIC_OR_PARTITION`.
 pub const ERR_UNKNOWN_TOPIC_OR_PARTITION: i16 = 3;
+/// Error code: `INVALID_PARTITIONS`.
+pub const ERR_INVALID_PARTITIONS: i16 = 37;
 /// Error code: `NOT_LEADER_OR_FOLLOWER`.
 pub const ERR_NOT_LEADER_OR_FOLLOWER: i16 = 6;
 /// Error code: `UNKNOWN_TOPIC_ID`.
@@ -356,6 +360,7 @@ fn decode_request_header(frame: &[u8]) -> Result<(i16, i16, i32, usize), DecodeE
         API_KEY_FIND_COORDINATOR => api_version >= 3,
         API_KEY_FETCH => api_version >= 12,
         API_KEY_LIST_OFFSETS => api_version >= 6,
+        API_KEY_CREATE_TOPICS => api_version >= 5,
         _ => return Err(DecodeError::Invalid("unknown api key")),
     };
     let len = cur.get_i16()?;
@@ -385,6 +390,7 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
         API_KEY_FIND_COORDINATOR => api_version >= 3,
         API_KEY_FETCH => api_version >= 12,
         API_KEY_LIST_OFFSETS => api_version >= 6,
+        API_KEY_CREATE_TOPICS => api_version >= 5,
         _ => false,
     };
     if flexible {
@@ -394,7 +400,7 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
 
 /// API versions this server advertises: `(api_key, min, max)`.
 #[must_use]
-pub const fn advertised_apis() -> [(i16, i16, i16); 7] {
+pub const fn advertised_apis() -> [(i16, i16, i16); 8] {
     [
         (API_KEY_PRODUCE, 9, 12),
         (API_KEY_METADATA, 12, 13),
@@ -403,6 +409,7 @@ pub const fn advertised_apis() -> [(i16, i16, i16); 7] {
         (API_KEY_FIND_COORDINATOR, 1, 6),
         (API_KEY_FETCH, 15, 17),
         (API_KEY_LIST_OFFSETS, 7, 10),
+        (API_KEY_CREATE_TOPICS, 5, 7),
     ]
 }
 
@@ -1649,6 +1656,70 @@ impl Worker {
         }
     }
 
+    /// Decode a flexible CreateTopics body (versions 5–7).
+    pub(crate) fn decode_create_topics_request(
+        body: &[u8],
+    ) -> Result<Vec<(String, i32)>, DecodeError> {
+        let mut cur = Cursor::new(body);
+        let count = cur.get_array_len(true)?.unwrap_or(0);
+        let mut topics = Vec::new();
+        for _ in 0..count {
+            let name = cur
+                .get_compact_string()?
+                .filter(|name| !name.is_empty())
+                .ok_or(DecodeError::Invalid("topic name"))?;
+            let partitions = cur.get_i32()?;
+            let _replication = cur.get_i16()?;
+            let assignments = cur.get_array_len(true)?.unwrap_or(0);
+            for _ in 0..assignments {
+                let _partition = cur.get_i32()?;
+                let brokers = cur.get_array_len(true)?.unwrap_or(0);
+                for _ in 0..brokers {
+                    let _broker = cur.get_i32()?;
+                }
+                cur.skip_tagged_fields()?;
+            }
+            let configs = cur.get_array_len(true)?.unwrap_or(0);
+            for _ in 0..configs {
+                let _name = cur.get_compact_string()?;
+                let _value = cur.get_compact_string()?;
+                cur.skip_tagged_fields()?;
+            }
+            cur.skip_tagged_fields()?;
+            topics.push((name, partitions));
+        }
+        let _timeout = cur.get_i32()?;
+        let _validate_only = cur.get_u8()?;
+        cur.skip_tagged_fields()?;
+        if !cur.is_empty() {
+            return Err(DecodeError::Invalid("trailing create topics"));
+        }
+        Ok(topics)
+    }
+
+    /// Encode a flexible CreateTopics response. Version 7 includes the topic id.
+    pub(crate) fn encode_create_topics_response(
+        out: &mut Vec<u8>,
+        version: i16,
+        topics: &[(String, i16, i32)],
+    ) {
+        out.extend_from_slice(&0i32.to_be_bytes());
+        out.put_compact_array_len(topics.len());
+        for (name, error, partitions) in topics {
+            out.put_compact_string(Some(name));
+            if version >= 7 {
+                out.extend_from_slice(&synth::topic_id(name));
+            }
+            out.extend_from_slice(&error.to_be_bytes());
+            out.put_compact_string(None);
+            out.extend_from_slice(&partitions.to_be_bytes());
+            out.extend_from_slice(&1i16.to_be_bytes());
+            out.put_uvarint(0);
+            out.put_empty_tagged_fields();
+        }
+        out.put_empty_tagged_fields();
+    }
+
     /// Handle one frame. `Ok(None)` means "no response" (`acks=0`);
     /// `Err` means the connection must close.
     fn handle_frame(&self, frame: &[u8]) -> Result<Option<Vec<u8>>, ()> {
@@ -1687,6 +1758,30 @@ impl Worker {
         let body = frame.get(header_len..).ok_or(())?;
         let mut out = Vec::new();
         match api_key {
+            API_KEY_CREATE_TOPICS if (5..=7).contains(&api_version) => {
+                let requested = Self::decode_create_topics_request(body).map_err(|_| ())?;
+                let mut results = Vec::new();
+                let mut state = self.lock_state().map_err(|_| ())?;
+                for (name, requested_partitions) in requested {
+                    let error =
+                        if requested_partitions > 0 && requested_partitions != self.partitions {
+                            ERR_INVALID_PARTITIONS
+                        } else {
+                            state.topic_ids.insert(synth::topic_id(&name), name.clone());
+                            ERR_NONE
+                        };
+                    let reported = if error == ERR_NONE {
+                        self.partitions
+                    } else {
+                        -1
+                    };
+                    results.push((name, error, reported));
+                }
+                drop(state);
+                encode_response_header(&mut out, api_key, api_version, correlation_id);
+                Self::encode_create_topics_response(&mut out, api_version, &results);
+                Ok(Some(out))
+            }
             API_KEY_API_VERSIONS => {
                 let _ = decode_api_versions_request(body, api_version).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
@@ -2569,5 +2664,36 @@ mod tests {
         assert_eq!(&classic[len..], &[0xbb]);
 
         assert!(decode_request_header(&[0, 99, 0, 0, 0, 0, 0, 1]).is_err());
+    }
+
+    #[test]
+    fn create_topics_v7_accepts_the_configured_partition_count() {
+        let mut body = Vec::new();
+        body.put_compact_array_len(1);
+        body.put_compact_string(Some("orders"));
+        body.extend_from_slice(&6i32.to_be_bytes());
+        body.extend_from_slice(&1i16.to_be_bytes());
+        body.put_compact_array_len(0);
+        body.put_compact_array_len(0);
+        body.put_empty_tagged_fields();
+        body.extend_from_slice(&1000i32.to_be_bytes());
+        body.push(0);
+        body.put_empty_tagged_fields();
+        let topics = super::Worker::decode_create_topics_request(&body).unwrap();
+        assert_eq!(topics, vec![("orders".to_owned(), 6)]);
+        let mut response = Vec::new();
+        super::Worker::encode_create_topics_response(
+            &mut response,
+            7,
+            &[("orders".to_owned(), super::ERR_NONE, 6)],
+        );
+        let mut cur = Cursor::new(&response);
+        assert_eq!(cur.get_i32().unwrap(), 0);
+        assert_eq!(cur.get_array_len(true).unwrap(), Some(1));
+        assert_eq!(cur.get_compact_string().unwrap().as_deref(), Some("orders"));
+        assert_eq!(cur.take(16).unwrap(), &synth::topic_id("orders"));
+        assert_eq!(cur.get_i16().unwrap(), ERR_NONE);
+        assert_eq!(cur.get_compact_string().unwrap(), None);
+        assert_eq!(cur.get_i32().unwrap(), 6);
     }
 }
