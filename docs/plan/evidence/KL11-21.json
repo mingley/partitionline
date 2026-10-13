@@ -1,0 +1,28 @@
+{
+  "task": "KL11-21",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "typed-dynamic-config",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib configs::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "config_tests_passed": 2,
+    "config_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Validate-only, read-only, and sensitive updates do not change stored values. Describe omits sensitive values.",
+    "Incremental set, append, and subtract persist as one resource record and replay after reopen.",
+    "In-flight task and budget counters are unchanged by alter."
+  ],
+  "limits": [
+    "This is not the DescribeConfigs, AlterConfigs, or IncrementalAlterConfigs RPC.",
+    "The schema is a fixed topic and broker subset, not the full Kafka config definition.",
+    "The journal format is the local PLCONF01 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

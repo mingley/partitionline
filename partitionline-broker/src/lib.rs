@@ -9,6 +9,7 @@
 
 pub mod catalog;
 pub mod compaction;
+pub mod configs;
 pub mod controller;
 pub mod fetch;
 pub mod high_watermark;
