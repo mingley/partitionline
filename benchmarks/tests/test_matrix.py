@@ -37,9 +37,13 @@ if mode=='crash':raise SystemExit(7)
 if mode=='orphan':
  child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)']);Path(sys.argv[3]+'.grandchild').write_text(str(child.pid));raise SystemExit(0)
 r=json.load(open(sys.argv[4]));r['provenance']['config']['effective_settings']=cfg
-r['execution'].update(repetition_index=int(os.environ['REPETITION_INDEX']),total_repetitions=int(os.environ['TOTAL_REPETITIONS']),pairing_order=os.environ['PAIRING_ORDER'])
 r['scenario']['scenario_id']=os.environ['SCENARIO_ID'];r['scenario']['tier']='exploratory'
-r['provenance']['broker']['cluster_id']='owned-test-cluster'
+if r.get('schema_version')=='2.0.0':
+ r['execution']['repetition_index']=int(os.environ['REPETITION_INDEX'])
+ r['provenance']['broker'].update(mode='null',cluster_id=None)
+else:
+ r['execution'].update(repetition_index=int(os.environ['REPETITION_INDEX']),total_repetitions=int(os.environ['TOTAL_REPETITIONS']),pairing_order=os.environ['PAIRING_ORDER'])
+ r['provenance']['broker']['cluster_id']='owned-test-cluster'
 r['provenance']['source']['note']='Synthetic orchestration unit fixture; no Kafka or measured delivery claim'
 raw=Path(sys.argv[3]+'.raw');raw.write_text('Explicit synthetic fixture')
 r['provenance']['artifacts']=[dict(path=str(raw),type='raw_delivery',sha256=hashlib.sha256(raw.read_bytes()).hexdigest(),size_bytes=raw.stat().st_size)]
@@ -83,9 +87,41 @@ class MatrixProcessTests(unittest.TestCase):
  def test_ceiling_cell_name_cannot_be_registered_as_kafka_throughput(self):
   self.manifest['cells'][0]['id']='ceiling-exp-null-fetch';self.save();r=self.run_cli()
   self.assertEqual(r.returncode,2);self.assertIn('null-broker cells',r.stderr);self.assertFalse(self.log.exists())
- def test_unqualified_ceiling_adapter_is_refused_before_processes(self):
+ def ceiling_fixture(self):
+  data=json.loads(self.data.read_text())
+  data['schema_version']='2.0.0';data['scenario']['tier']='exploratory'
+  data['scenario']['equal_semantics']['durability']=None
+  data['scenario']['equal_semantics']['isolation']=None
+  data['provenance']['broker'].update(mode='null',cluster_id=None)
+  data['execution'].update(phase='bounded_fixture',warmup_completed=False,warmup_records=0,warmup_duration_seconds=0,steady_state_duration_seconds=None,measured_duration_seconds=60.0,total_repetitions=None,pairing_order='unreported')
+  data['integrity']['idempotence_sequence_verified']=None
+  data['outcomes']['consumed']=0
+  return data
+ def test_null_broker_rehearsal_stays_a_client_ceiling_fixture(self):
+  data=self.ceiling_fixture();self.data.write_text(json.dumps(data))
+  cfg=json.loads(self.cfg.read_text());cfg['isolation_level']=None;self.cfg.write_text(json.dumps(cfg))
+  for peer in self.manifest['peers']:
+   peer['inputs'][1]['sha256']=sha(self.cfg);peer['inputs'][2]['sha256']=sha(self.data)
+  self.manifest['repetitions']=1;self.manifest['peers'][1]['id']='franz-go'
+  self.manifest['broker'].update(kind='null-broker',cluster_id=None,image='owned-null-fixture',version='fixture')
+  self.manifest['cells'][0].update(id='nb-produce-bulk',target_kind='null-broker',result_kind='client-ceiling',equal_semantics=data['scenario']['equal_semantics'])
+  self.save();r=self.run_cli();self.assertEqual(r.returncode,0,r.stderr+r.stdout)
+  summary=json.loads((self.output/'summary.json').read_text())
+  self.assertEqual((summary['executed'],summary['failed'],summary['result_kind']),(2,0,'client-ceiling'))
+  self.assertFalse(summary['performance_claims_valid']);self.assertEqual(summary['suite_hold'],'active')
+  plan=json.loads((self.output/'plan.json').read_text());self.assertEqual(plan['result_kind'],'client-ceiling');self.assertIn('no Kafka throughput',plan['scope'])
+  self.assertEqual(self.run_cli('cleanup').returncode,0)
+  self.assertEqual(len(self.log.read_text().splitlines()),4)
+ def test_kafka_shaped_result_cannot_satisfy_a_null_broker_cell(self):
+  self.manifest['repetitions']=1
+  self.manifest['broker'].update(kind='null-broker',cluster_id=None,image='owned-null-fixture',version='fixture')
+  self.manifest['cells'][0].update(id='nb-produce-bulk',target_kind='null-broker',result_kind='client-ceiling')
+  self.save();r=self.run_cli();self.assertEqual(r.returncode,1,r.stderr)
+  outcomes=[e for e in matrix.events(self.output) if e['state']=='failed']
+  self.assertEqual(len(outcomes),2);self.assertTrue(all('schema 2' in e['reason'] for e in outcomes))
+ def test_null_broker_manifest_cannot_invent_a_cluster_id(self):
   self.manifest['broker']['kind']='null-broker';self.manifest['cells'][0].update(id='nb-produce-bulk',target_kind='null-broker',result_kind='client-ceiling');self.save();r=self.run_cli()
-  self.assertEqual(r.returncode,2);self.assertIn('not qualified',r.stderr);self.assertFalse(self.log.exists());self.assertFalse(self.output.exists())
+  self.assertEqual(r.returncode,2);self.assertIn('cluster id',r.stderr);self.assertFalse(self.output.exists())
  def test_franz_go_missing_settings_are_named_without_guessing_defaults(self):
   cfg=json.loads(self.cfg.read_text());del cfg['queue_max_messages']
   with self.assertRaisesRegex(ValueError,'queue_max_messages'):matrix.settings(cfg)

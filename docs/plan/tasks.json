@@ -18888,7 +18888,7 @@
     {
       "id": "KL09-68",
       "title": "Register franz-go and client-ceiling cells in the orchestrator",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-root-20261008",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL04-08", "KL09-65", "KL09-66",
         "KL09-74"
       ],
@@ -18912,7 +18912,7 @@
         "benchmarks/peers/",
         "benchmarks/runtime/"
       ],
-      "qualification_limit": "Partial: 24 process tests and an actual pinned Go config refusal qualify tier-mixing guards and explicit missing-settings errors. Null-broker lifecycle/adapters and genuine tier rehearsal remain open; no comparable franz-go campaign is qualified."
+      "qualification_limit": "26 process tests pass, including a one-cell schema 2 null-broker rehearsal with a franz-go arm id. Kafka manifests still refuse the tier. The rehearsal is synthetic: no nb-serve run and no comparable franz-go campaign. The pinned Go driver still omits settings and those omissions stay refused."
     },
     {
       "id": "KL09-69",

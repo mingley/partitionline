@@ -108,10 +108,11 @@ def validate(manifest):
             raise ValueError('cell target kind differs from the inspected broker kind')
         if result_kind != ('client-ceiling' if broker_kind == 'null-broker' else 'kafka-throughput'):
             raise ValueError('client-ceiling and Kafka-throughput results need separate manifests')
-        if broker_kind == 'kafka' and cell['id'].startswith(('nb-', 'ceiling-exp-null-')):
-            raise ValueError('null-broker cells cannot be registered as Kafka-throughput cells')
         if broker_kind == 'null-broker':
-            raise ValueError('client-ceiling adapters are not qualified for this orchestrator yet')
+            if not cell['id'].startswith(('nb-', 'ceiling-exp-null-')):
+                raise ValueError('client-ceiling cell id must name the null-broker tier')
+        elif cell['id'].startswith(('nb-', 'ceiling-exp-null-')):
+            raise ValueError('null-broker cells cannot be registered as Kafka-throughput cells')
         if set(cell['env']) - SAFE_ENV or any(not isinstance(v, str) or len(v) > 1024 for v in cell['env'].values()):
             raise ValueError('cell environment must use declared nonsecret settings')
         if int(cell['env'].get('WARMUP', '0')) < 1: raise ValueError('explicit positive warmup required')
@@ -120,7 +121,13 @@ def validate(manifest):
             if peer not in {p['id'] for p in peers} or not isinstance(reason, str) or not reason:
                 raise ValueError('unsupported arms need an explicit reason')
     broker = manifest['broker']
-    if any(not isinstance(broker.get(k), str) or not broker[k] for k in ['bootstrap', 'image', 'version', 'cluster_id']):
+    if broker_kind == 'null-broker':
+        if broker.get('cluster_id') is not None:
+            raise ValueError('null-broker manifest must not name a Kafka cluster id')
+        identity = ['bootstrap', 'image', 'version']
+    else:
+        identity = ['bootstrap', 'image', 'version', 'cluster_id']
+    if any(not isinstance(broker.get(k), str) or not broker[k] for k in identity):
         raise ValueError('inspected broker identity required')
     for key in ['identity', 'create', 'delete']:
         argv(manifest['provision'][key])
@@ -251,7 +258,9 @@ def prepare(manifest, output, manifest_path):
             for peer in arms: rows.append(dict(index=len(rows),cell=cell['id'],peer=peer['id'],repetition=repetition,order=order))
     pins={str(Path(__file__).resolve()):sha(__file__),str(ROOT/'scripts/benchmark-report.py'):sha(ROOT/'scripts/benchmark-report.py'),str(ROOT/'benchmarks/result-schema.json'):sha(ROOT/'benchmarks/result-schema.json')}
     atomic(output/'manifest.json',manifest)
-    plan=dict(schema_version=1,run_id=run_id,topic_prefix='pl-matrix-'+run_id,seed=manifest['seed'],rows=rows,manifest_sha256=sha(manifest_path),source_pins=pins,scope='Paired diagnostics; no campaign or ranking qualification',suite_hold='active')
+    ceiling=manifest['broker'].get('kind')=='null-broker'
+    scope='Client-ceiling fixture rehearsal; no Kafka throughput or ranking' if ceiling else 'Paired diagnostics; no campaign or ranking qualification'
+    plan=dict(schema_version=1,run_id=run_id,topic_prefix='pl-matrix-'+run_id,seed=manifest['seed'],rows=rows,manifest_sha256=sha(manifest_path),source_pins=pins,scope=scope,result_kind='client-ceiling' if ceiling else 'kafka-throughput',suite_hold='active',performance_claims_valid=False)
     atomic(output/'plan.json',plan)
     atomic(output/'frozen.json',dict(plan_sha256=sha(output/'plan.json'),manifest_sha256=sha(output/'manifest.json')))
     return plan
@@ -318,16 +327,31 @@ def run(manifest, plan, output, retry_failed):
             execute(expand(peer['command'],values),env,directory,'peer',manifest['timeout_seconds'])
             check_pins(manifest)
             data=read(result)
-            if data.get('client_ceiling') is not None or data.get('provenance', {}).get('broker', {}).get('mode') == 'null':
+            ceiling=manifest['broker'].get('kind')=='null-broker'
+            broker_mode=data.get('provenance', {}).get('broker', {}).get('mode')
+            if not ceiling and (data.get('client_ceiling') is not None or broker_mode=='null' or data.get('schema_version')=='2.0.0'):
                 raise ValueError('client-ceiling result cannot enter a Kafka-throughput cell')
+            if ceiling and (data.get('schema_version')!='2.0.0' or broker_mode!='null'):
+                raise ValueError('client-ceiling cell requires a schema 2 null-broker result')
             schema.validate(data);valid,errors,_=validator.validate(data)
             if not valid:raise ValueError('result rejected: '+ '; '.join(errors[:5]))
             if data['scenario']['scenario_id']!=cell['id'] or data['scenario']['equal_semantics']!=cell['equal_semantics']:raise ValueError('durability/security differs from declared cell')
-            if data['provenance']['broker']['cluster_id']!=manifest['broker']['cluster_id']:raise ValueError('result broker identity differs')
             if settings(data['provenance']['config']['effective_settings'])!=effective:raise ValueError('executed settings differ from actual preflight')
-            if not data['integrity']['verified'] or any(data['outcomes'][k]!=effective['count'] for k in ['offered','accepted','acknowledged','consumed']):raise ValueError('incomplete delivery or receipt audit')
-            if not data['execution']['warmup_completed'] or data['execution']['warmup_records']!=effective['warmup']:raise ValueError('warmup not completed as declared')
-            if data['execution']['repetition_index']!=row['repetition'] or data['execution']['total_repetitions']!=manifest['repetitions'] or data['execution']['pairing_order']!=row['order']:raise ValueError('result repetition provenance differs')
+            if ceiling:
+                if data['provenance']['broker'].get('cluster_id') is not None:raise ValueError('null-broker result must not invent a cluster id')
+                if data['scenario'].get('tier')!='exploratory':raise ValueError('client-ceiling tier must stay exploratory')
+                execution=data['execution']
+                if execution.get('phase')!='bounded_fixture' or execution.get('warmup_completed') is not False or execution.get('warmup_records')!=0:raise ValueError('null-broker result must not claim a completed warmup')
+                if execution.get('pairing_order')!='unreported' or execution.get('total_repetitions') is not None:raise ValueError('null-broker result must not claim paired campaign provenance')
+                if execution.get('repetition_index')!=row['repetition']:raise ValueError('result repetition index differs')
+                outcomes=data['outcomes']
+                delivered=outcomes['acknowledged']==effective['count'] or outcomes['consumed']==effective['count']
+                if not data['integrity']['verified'] or outcomes['offered']!=effective['count'] or outcomes['accepted']!=effective['count'] or not delivered:raise ValueError('incomplete client-ceiling receipt audit')
+            else:
+                if data['provenance']['broker']['cluster_id']!=manifest['broker']['cluster_id']:raise ValueError('result broker identity differs')
+                if not data['integrity']['verified'] or any(data['outcomes'][k]!=effective['count'] for k in ['offered','accepted','acknowledged','consumed']):raise ValueError('incomplete delivery or receipt audit')
+                if not data['execution']['warmup_completed'] or data['execution']['warmup_records']!=effective['warmup']:raise ValueError('warmup not completed as declared')
+                if data['execution']['repetition_index']!=row['repetition'] or data['execution']['total_repetitions']!=manifest['repetitions'] or data['execution']['pairing_order']!=row['order']:raise ValueError('result repetition provenance differs')
             for artifact in data['provenance']['artifacts']:
                 path=Path(artifact['path']).resolve()
                 if not path.is_relative_to(directory.resolve()) or sha(path)!=artifact['sha256']:raise ValueError('missing, external or changed raw artifact')
@@ -344,7 +368,8 @@ def run(manifest, plan, output, retry_failed):
         print(json.dumps({'row':index,'state':outcome['state']}),flush=True)
     rows=events(output);final={e['row']:e for e in rows if e['state'] in ['executed','failed','unsupported','interrupted']}
     retained_failures=sum(e['state']=='failed' for e in rows)
-    atomic(output/'summary.json',dict(status='failed' if failures or retained_failures else 'complete',rows=len(plan['rows']),executed=sum(e['state']=='executed' for e in final.values()),failed=sum(e['state']=='failed' for e in final.values()),unsupported=sum(e['state']=='unsupported' for e in final.values()),retained_failed_attempts=retained_failures,retained_interrupted_attempts=sum(e['state']=='interrupted' for e in rows),suite_hold='active',performance_claims_valid=False))
+    ceiling=manifest['broker'].get('kind')=='null-broker'
+    atomic(output/'summary.json',dict(status='failed' if failures or retained_failures else 'complete',rows=len(plan['rows']),executed=sum(e['state']=='executed' for e in final.values()),failed=sum(e['state']=='failed' for e in final.values()),unsupported=sum(e['state']=='unsupported' for e in final.values()),retained_failed_attempts=retained_failures,retained_interrupted_attempts=sum(e['state']=='interrupted' for e in rows),result_kind='client-ceiling' if ceiling else 'kafka-throughput',suite_hold='active',performance_claims_valid=False))
     return int(bool(failures or retained_failures))
 
 

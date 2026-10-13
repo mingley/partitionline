@@ -1,9 +1,13 @@
 # Orchestrator tier checks
 
-KL09-68 is in progress. The orchestrator now refuses a null-broker cell in a
-Kafka manifest, client-ceiling result labels in Kafka cells, and client-ceiling
-artifacts returned by a Kafka peer. Null-broker orchestration remains disabled
-until its fixture lifecycle and adapters are qualified.
+KL09-68 registers the null-broker tier in the orchestrator. A Kafka manifest
+still refuses a null-broker cell id, a client-ceiling result kind, and a schema
+2 or null-mode artifact. A null-broker manifest has no Kafka cluster id. It
+runs the same owned create, peer, and delete lifecycle, accepts only schema 2
+exploratory null results, and records `result_kind=client-ceiling` with
+`performance_claims_valid=false`. The process rehearsal uses synthetic
+adapters, including a peer id of franz-go. It is not an nb-serve measurement
+and it is not a comparable franz-go campaign.
 
 A real process test reproduced the previous error: two explicitly synthetic
 Kafka-shaped results were accepted in a cell declaring a null-broker target and
@@ -19,8 +23,9 @@ consume timeouts, payload/key modes, connection count and Nagle configuration.
 The real output and explicit refusal are retained; missing settings are not
 filled from another client or guessed. No native Go comparison is qualified.
 
-The remaining work is to supply truthful, applied driver settings and owned
-null-broker lifecycle handling, then rehearse the tier with genuine result
-artifacts. Source and executable hashes, build logs and failed preparation
-outputs are retained. Verify this archive with `python3 -B verify-evidence.py`
-and `sha256sum -c SHA256SUMS` from this directory.
+The real franz-go 1.22.0 driver still omits queue capacities, delivery, flush,
+run and consume timeouts, payload and key modes, connection count, and Nagle
+configuration. Those omissions stay an explicit refusal. Missing settings are
+not filled from another client. The historical study archive remains. Verify
+it with `python3 -B verify-evidence.py` and `sha256sum -c SHA256SUMS` from this
+directory. This card does not lift Suite HOLD or support a fastest-client claim.

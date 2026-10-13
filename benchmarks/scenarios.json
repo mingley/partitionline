@@ -1906,8 +1906,8 @@
     "orchestrator": {
       "target_kind": "null-broker",
       "result_kind": "client-ceiling",
-      "status": "not_qualified",
-      "reason": "Owned fixture lifecycle and adapters are pending. The orchestrator currently refuses this tier before launching processes.",
+      "status": "fixture-rehearsal",
+      "reason": "The orchestrator runs an owned null-broker fixture lifecycle and accepts only schema 2 exploratory results. A Kafka manifest still refuses this tier. The rehearsal uses synthetic adapters, not nb-serve or a comparable franz-go campaign.",
       "evidence": "docs/evidence/perf/matrix-tiers/README.md"
     }
   },
