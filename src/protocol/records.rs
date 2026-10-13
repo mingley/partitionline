@@ -2186,8 +2186,8 @@ where
         }
         Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
             // KL09-33: 1 KiB floor kills the early doubling steps for real
-            // batches; exact one-pass sizing belongs to KL09-32. `reserve`
-            // is a no-op once reused capacity covers it.
+            // batches. `reserve` is a no-op once reused capacity covers it.
+            // KL09-32 sizes each record's varints once inside `encode_record`.
             let section = &mut scratch.section;
             section.clear();
             section.reserve(1024);
@@ -2383,6 +2383,51 @@ fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
     }
 }
 
+/// Zigzag length prefix computed once and reused by the record writer.
+struct NullablePrefix {
+    bits: u32,
+    width: usize,
+    payload: usize,
+}
+
+fn nullable_prefix(bytes: Option<&[u8]>) -> Result<NullablePrefix> {
+    let len = match bytes {
+        None => -1,
+        Some(b) => buf::i32_from_usize(b.len())?,
+    };
+    let bits = buf::zigzag_bits_i32(len);
+    Ok(NullablePrefix {
+        bits,
+        width: buf::unsigned_varint_size(bits),
+        payload: match bytes {
+            Some(b) => b.len(),
+            None => 0,
+        },
+    })
+}
+
+fn put_nullable(buf: &mut BytesMut, bytes: Option<&[u8]>, prefix: &NullablePrefix) {
+    buf::put_unsigned_varint_width(buf, prefix.bits, prefix.width);
+    if let Some(b) = bytes {
+        buf.extend_from_slice(b);
+    }
+}
+
+fn headers_wire_len(headers: &[Header]) -> Result<usize> {
+    let mut size = 0usize;
+    for h in headers {
+        let key_bits = buf::zigzag_bits_i32(buf::utf8_length(&h.key));
+        let value = nullable_prefix(h.value.as_deref())?;
+        size = size
+            .checked_add(buf::unsigned_varint_size(key_bits))
+            .and_then(|n| n.checked_add(h.key.len()))
+            .and_then(|n| n.checked_add(value.width))
+            .and_then(|n| n.checked_add(value.payload))
+            .ok_or_else(|| Error::protocol("header size overflow"))?;
+    }
+    Ok(size)
+}
+
 /// KL09-33: saturating input for [`estimate_compressed_size_in_bytes`];
 /// the estimate clamps to 64 KiB anyway, so saturation only affects
 /// absurd (>2 GiB) sections, which keep working with a 64 KiB hint.
@@ -2473,36 +2518,44 @@ fn encode_record(
     offset_delta: i32,
     timestamp_delta: i64,
 ) -> crate::error::Result<()> {
-    let inner = record_body_size(rec, offset_delta, timestamp_delta)?;
-    buf::put_varint(buf, inner);
+    // Widths are derived once from the zigzag bits and reused by the writer.
+    let ts_bits = buf::zigzag_bits_i64(timestamp_delta);
+    let ts_width = buf::unsigned_varlong_size(ts_bits);
+    let offset_bits = buf::zigzag_bits_i32(offset_delta);
+    let offset_width = buf::unsigned_varint_size(offset_bits);
+    let key = nullable_prefix(rec.key)?;
+    let value = nullable_prefix(rec.value)?;
+    let header_count = buf::i32_from_usize(rec.headers.len())?;
+    let header_bits = buf::zigzag_bits_i32(header_count);
+    let header_width = buf::unsigned_varint_size(header_bits);
+    let headers_len = headers_wire_len(rec.headers)?;
+    let body = 1usize
+        .checked_add(ts_width)
+        .and_then(|n| n.checked_add(offset_width))
+        .and_then(|n| n.checked_add(key.width))
+        .and_then(|n| n.checked_add(key.payload))
+        .and_then(|n| n.checked_add(value.width))
+        .and_then(|n| n.checked_add(value.payload))
+        .and_then(|n| n.checked_add(header_width))
+        .and_then(|n| n.checked_add(headers_len))
+        .ok_or_else(|| Error::protocol("record body size overflow"))?;
+    let body_len = buf::i32_from_usize(body)?;
+    let body_bits = buf::zigzag_bits_i32(body_len);
+    let body_width = buf::unsigned_varint_size(body_bits);
+    buf::put_unsigned_varint_width(buf, body_bits, body_width);
     buf.put_i8(0);
-    buf::put_varlong(buf, timestamp_delta);
-    buf::put_varint(buf, offset_delta);
-    match rec.key {
-        None => buf::put_varint(buf, -1),
-        Some(k) => {
-            buf::put_varint(buf, buf::i32_from_usize(k.len())?);
-            buf.extend_from_slice(k);
-        }
-    }
-    match rec.value {
-        None => buf::put_varint(buf, -1),
-        Some(v) => {
-            buf::put_varint(buf, buf::i32_from_usize(v.len())?);
-            buf.extend_from_slice(v);
-        }
-    }
-    buf::put_varint(buf, buf::i32_from_usize(rec.headers.len())?);
+    buf::put_unsigned_varlong_width(buf, ts_bits, ts_width);
+    buf::put_unsigned_varint_width(buf, offset_bits, offset_width);
+    put_nullable(buf, rec.key, &key);
+    put_nullable(buf, rec.value, &value);
+    buf::put_unsigned_varint_width(buf, header_bits, header_width);
     for h in rec.headers {
-        buf::put_varint(buf, buf::utf8_length(&h.key));
+        let key_len = buf::utf8_length(&h.key);
+        let key_bits = buf::zigzag_bits_i32(key_len);
+        buf::put_unsigned_varint_width(buf, key_bits, buf::unsigned_varint_size(key_bits));
         buf.extend_from_slice(h.key.as_bytes());
-        match h.value.as_deref() {
-            None => buf::put_varint(buf, -1),
-            Some(v) => {
-                buf::put_varint(buf, buf::i32_from_usize(v.len())?);
-                buf.extend_from_slice(v);
-            }
-        }
+        let value_prefix = nullable_prefix(h.value.as_deref())?;
+        put_nullable(buf, h.value.as_deref(), &value_prefix);
     }
     Ok(())
 }

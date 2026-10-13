@@ -1,0 +1,53 @@
+{
+  "id": "KL09-32",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "48c01f2e88d75322633cd6b3aca30c29f3475b5f",
+  "hypothesis": "Record encoding sized every varint and then encoded it again. Computing zigzag widths once per record field and writing those groups in one pass removes that second derivation from the produce encode hot path.",
+  "cells": ["micro-encode/f03"],
+  "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04 x86_64, rustc 1.99.0, bench profile, frequency unpinned",
+  "commands": [
+    "cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml --bench codec -- encode/f03 (parent binary, then candidate binary, 5 alternating rounds, warm-up 0.2s, measurement 0.8s, sample-size 10)",
+    "cargo test --locked --lib unsigned_varint_width_matches_scan_and_bytes (pass)",
+    "cargo test --locked --lib protocol::records (40 pass)",
+    "cargo test --locked --test protocol_oracles (39 pass, 1 ignored)",
+    "cargo test --locked --test mock_produce (7 pass)",
+    "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget (pass, budgets unchanged)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (pass)",
+    "rustfmt --edition 2021 --check on the edited sources (pass)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "encode/f03 median time, 500 records",
+      "baseline_median_us": 37.646,
+      "candidate_median_us": 29.128,
+      "delta_pct": -22.63,
+      "ci95_pct": [-27.82, -17.44],
+      "repetitions": 5,
+      "parent_round_medians_us": [37.623, 37.912, 37.451, 37.803, 37.44],
+      "candidate_round_medians_us": [28.153, 28.294, 28.922, 31.989, 28.28]
+    },
+    "allocations": {
+      "unit": "per encode call",
+      "baseline": "unchanged versus benchmarks/codec/tests/alloc_budget.rs",
+      "candidate": "exact budget match after dropping per-record BytesMut::reserve"
+    },
+    "instructions": {
+      "bench": "micro-encode",
+      "baseline": null,
+      "candidate": null
+    },
+    "guardrails": "alloc_budget cells match the existing consts. Decode and compress budgets did not move.",
+    "net_production_lines": "under 150 excluding the varint identity test",
+    "correctness": "protocol::records 40 pass; protocol_oracles 39 pass, 1 ignored; mock_produce 7 pass; varint widths and bytes match the previous scan for the tested domain"
+  },
+  "artifacts": ["docs/evidence/perf/KL09-32/README.md"],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput or fastest-client claim.",
+    "Instruction-count gate was not run: valgrind is not installed, so scripts/ci-perf-gate.sh cannot collect Ir on this machine.",
+    "scripts/ci-protocol-oracles.sh was not re-run; cargo test --test protocol_oracles covers the in-repo fixtures.",
+    "Header varint widths are included in the one-pass body length and derived again while those headers are written.",
+    "One of five candidate rounds was slower (31.989 µs) and still 15% under its paired parent."
+  ]
+}

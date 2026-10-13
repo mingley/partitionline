@@ -11538,14 +11538,14 @@
     {
       "id": "KL09-32",
       "title": "Size records in one pass and speed up varint encoding",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "write_set": ["src/protocol/records.rs", "src/protocol/buf.rs", "benchmarks/codec/tests/alloc_budget.rs", "benchmarks/codec/json1k-alloc-baseline.json", "docs/resource-contract.md", "docs/plan/tasks.json", "docs/plan/evidence/KL09-32.json", "docs/evidence/perf/KL09-32/"],
       "depends_on": ["KL09-04", "KL09-05"],
       "files": ["src/protocol/records.rs", "src/protocol/buf.rs"],
       "deliverable": "Record encoding computes body length and varint widths once per record and uses a fast varint writer instead of sizing and then re-deriving widths while writing.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Batches are byte-identical for all codecs, header counts and timestamp deltas."],
       "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test mock_produce", "bash scripts/ci-protocol-oracles.sh", "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml", "bash scripts/ci-perf-gate.sh", "A/B cell micro-encode (ns/record, instructions): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-32.json"]
     },
     {
       "id": "KL09-33",

@@ -97,8 +97,20 @@ fn unzigzag_i64(n: u64) -> i64 {
     hi ^ lo
 }
 
+#[cfg(test)]
+#[inline]
+fn u7(v: u32) -> u8 {
+    u8::try_from(v & 0x7f).unwrap_or_default()
+}
+
+#[inline]
+fn u7_64(v: u64) -> u8 {
+    u8::try_from(v & 0x7f).unwrap_or_default()
+}
+
+#[cfg(test)]
 fn varint_byte_u32(v: u32, more: bool) -> u8 {
-    let low = u8::try_from(v & 0x7f).unwrap_or(0);
+    let low = u7(v);
     if more {
         low | 0x80
     } else {
@@ -106,8 +118,9 @@ fn varint_byte_u32(v: u32, more: bool) -> u8 {
     }
 }
 
+#[cfg(test)]
 fn varint_byte_u64(v: u64, more: bool) -> u8 {
-    let low = u8::try_from(v & 0x7f).unwrap_or(0);
+    let low = u7_64(v);
     if more {
         low | 0x80
     } else {
@@ -128,23 +141,37 @@ pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
 }
 
 /// Encoded size of an unsigned varint (`u32` bits).
-pub fn unsigned_varint_size(mut v: u32) -> usize {
-    let mut n = 1;
-    while v >= 0x80 {
-        v >>= 7;
-        n += 1;
-    }
-    n
+///
+/// `ceil(significant_bits / 7)`, with zero occupying one byte. This matches
+/// the byte-at-a-time width scan for every `u32`.
+#[inline]
+pub fn unsigned_varint_size(v: u32) -> usize {
+    let bits = 32u32.wrapping_sub(v.leading_zeros());
+    let groups = bits.saturating_add(6) / 7;
+    usize::try_from(groups.max(1)).unwrap_or(1)
 }
 
 /// Encoded size of an unsigned varlong (`u64` bits).
-pub fn unsigned_varlong_size(mut v: u64) -> usize {
-    let mut n = 1;
-    while v >= 0x80 {
-        v >>= 7;
-        n += 1;
-    }
-    n
+///
+/// `ceil(significant_bits / 7)`, with zero occupying one byte. This matches
+/// the byte-at-a-time width scan for every `u64`.
+#[inline]
+pub fn unsigned_varlong_size(v: u64) -> usize {
+    let bits = 64u32.wrapping_sub(v.leading_zeros());
+    let groups = bits.saturating_add(6) / 7;
+    usize::try_from(groups.max(1)).unwrap_or(1)
+}
+
+/// Zigzag bits of a signed varint. Width is [`unsigned_varint_size`] of this.
+#[inline]
+pub(crate) fn zigzag_bits_i32(v: i32) -> u32 {
+    zigzag_i32(v)
+}
+
+/// Zigzag bits of a signed varlong. Width is [`unsigned_varlong_size`] of this.
+#[inline]
+pub(crate) fn zigzag_bits_i64(v: i64) -> u64 {
+    zigzag_i64(v)
 }
 
 /// Encoded size of a zigzag varint.
@@ -508,13 +535,29 @@ fn illegal_varlong_exception(value: u64) -> Error {
     ))
 }
 
-/// Write an unsigned varint (compact protocol lengths).
-pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
+/// Write an unsigned varint whose encoded width is already known.
+///
+/// `width` is [`unsigned_varint_size`] of `v` (1..=5). The bytes are the
+/// canonical little-endian 7-bit groups; a width outside that range falls
+/// back to the same encoding derived from the value.
+#[inline]
+pub(crate) fn put_unsigned_varint_width(buf: &mut BytesMut, v: u32, width: usize) {
+    put_unsigned_groups(buf, u64::from(v), width);
+}
+
+#[cfg(test)]
+fn put_unsigned_varint_scan(buf: &mut BytesMut, mut v: u32) {
     while v >= 0x80 {
         buf.put_u8(varint_byte_u32(v, true));
         v >>= 7;
     }
     buf.put_u8(varint_byte_u32(v, false));
+}
+
+/// Write an unsigned varint (compact protocol lengths).
+#[inline]
+pub fn put_unsigned_varint(buf: &mut BytesMut, v: u32) {
+    put_unsigned_varint_width(buf, v, unsigned_varint_size(v));
 }
 
 /// Read an unsigned varint.
@@ -551,13 +594,53 @@ pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
     Ok(unzigzag_i32(get_unsigned_varint(buf)?))
 }
 
-/// Write an unsigned varlong.
-pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
+/// Write `width` unsigned varint groups. One-byte values use a single `put_u8`.
+#[inline]
+fn put_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
+    if width == 1 {
+        buf.put_u8(u7_64(v));
+        return;
+    }
+    let mut tmp = [0u8; 10];
+    let mut n = 0usize;
+    while n + 1 < width {
+        let Some(slot) = tmp.get_mut(n) else {
+            break;
+        };
+        *slot = u7_64(v) | 0x80;
+        v >>= 7;
+        n += 1;
+    }
+    if let Some(slot) = tmp.get_mut(n) {
+        *slot = u7_64(v);
+        n += 1;
+    }
+    if let Some(bytes) = tmp.get(..n) {
+        buf.extend_from_slice(bytes);
+    }
+}
+
+/// Write an unsigned varlong whose encoded width is already known.
+///
+/// `width` is [`unsigned_varlong_size`] of `v` (1..=10).
+#[inline]
+pub(crate) fn put_unsigned_varlong_width(buf: &mut BytesMut, v: u64, width: usize) {
+    put_unsigned_groups(buf, v, width);
+}
+
+#[cfg(test)]
+fn put_unsigned_varlong_scan(buf: &mut BytesMut, mut v: u64) {
     while v >= 0x80 {
         buf.put_u8(varint_byte_u64(v, true));
         v >>= 7;
     }
     buf.put_u8(varint_byte_u64(v, false));
+}
+
+/// Write an unsigned varlong.
+#[inline]
+pub fn put_unsigned_varlong(buf: &mut BytesMut, v: u64) {
+    put_unsigned_varlong_width(buf, v, unsigned_varlong_size(v));
 }
 
 /// Read an unsigned varlong.
@@ -1181,6 +1264,73 @@ mod tests {
             i32::try_from(buf.len()).unwrap_or(i32::MAX),
             "unsigned varlong {value}"
         );
+    }
+
+    fn scan_unsigned_varint_size(mut v: u32) -> usize {
+        let mut n = 1usize;
+        while v >= 0x80 {
+            v >>= 7;
+            n += 1;
+        }
+        n
+    }
+
+    fn scan_unsigned_varlong_size(mut v: u64) -> usize {
+        let mut n = 1usize;
+        while v >= 0x80 {
+            v >>= 7;
+            n += 1;
+        }
+        n
+    }
+
+    #[test]
+    fn unsigned_varint_width_matches_scan_and_bytes() {
+        let check_u32 = |v: u32| {
+            let width = unsigned_varint_size(v);
+            assert_eq!(width, scan_unsigned_varint_size(v), "size {v}");
+            let mut fast = BytesMut::new();
+            let mut slow = BytesMut::new();
+            put_unsigned_varint_width(&mut fast, v, width);
+            put_unsigned_varint_scan(&mut slow, v);
+            assert_eq!(fast, slow, "bytes {v}");
+            assert_eq!(fast.len(), width, "width {v}");
+        };
+        let mut v = 0u32;
+        while v < 20_000 {
+            check_u32(v);
+            v += 1;
+        }
+        for shift in 0..31 {
+            let base = 1u32 << shift;
+            check_u32(base.saturating_sub(1));
+            check_u32(base);
+            check_u32(base.saturating_add(1));
+        }
+        check_u32(u32::MAX);
+
+        let check_u64 = |v: u64| {
+            let width = unsigned_varlong_size(v);
+            assert_eq!(width, scan_unsigned_varlong_size(v), "size {v}");
+            let mut fast = BytesMut::new();
+            let mut slow = BytesMut::new();
+            put_unsigned_varlong_width(&mut fast, v, width);
+            put_unsigned_varlong_scan(&mut slow, v);
+            assert_eq!(fast, slow, "bytes {v}");
+            assert_eq!(fast.len(), width, "width {v}");
+        };
+        let mut v = 0u64;
+        while v < 20_000 {
+            check_u64(v);
+            v += 1;
+        }
+        for shift in 0..63 {
+            let base = 1u64 << shift;
+            check_u64(base.saturating_sub(1));
+            check_u64(base);
+            check_u64(base.saturating_add(1));
+        }
+        check_u64(u64::MAX);
     }
 
     #[test]
