@@ -189,7 +189,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     77: list(range(0, 2)),   # ShareGroupDescribe: 0-1
     78: list(range(0, 3)),   # ShareFetch: 0-2 (KL05-15)
     79: list(range(0, 3)),   # ShareAcknowledge: 0-2 (KL05-15)
-    80: [0],                 # AddRaftVoter: 0 (Admin::add_raft_voter)
+    80: [0, 1],              # AddRaftVoter: 0-1 (Admin::add_raft_voter; v1 AckWhenCommitted)
     81: [0],                 # RemoveRaftVoter: 0 (Admin::remove_raft_voter)
     88: [0],                 # Caller-driven Streams heartbeat
     89: [0],                 # Typed Streams group descriptions
@@ -245,7 +245,6 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (22, 6): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "InitProducerId6 fields and ordinary false-flag initialization are supported; historical/stable ranges stop at5. Full prepared lifecycle remains separate."},
     (45, 1): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Reassignment policy flag is implemented for current0-1 peers; historical3.9.1/4.1.0 peers offer only0 and reject explicitfalse locally."},
     (66, 2): {"pin": "3.9.1/4.1.0", "direction": "client_only", "reason": "Nullable TransactionalIdPattern and public all-broker filters are implemented for current0-2 peers; historical3.9.1/4.1.0 ranges stop at1."},
-    (80, 1): {"pin": "4.2.1/4.3.1", "direction": "upstream_cap", "reason": "AckWhenCommitted option unsupported; add-voter runtime caps at0"},
 
     # Produce (0)
     (0, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"},

@@ -168,7 +168,7 @@ pub use crate::protocol::admin::{
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use crate::protocol::admin::{
-    AddRaftVoterResponse, RaftVoterEndpoint, RemoveRaftVoterResponse,
+    AddRaftVoterResponse, RaftVoterAcknowledgement, RaftVoterEndpoint, RemoveRaftVoterResponse,
 };
 pub use crate::protocol::admin::{
     DescribeQuorumListener, DescribeQuorumNode, DescribeQuorumReplicaState,
@@ -224,14 +224,33 @@ pub struct ElectLeadersOptions {
     pub timeout: Option<Duration>,
 }
 
-/// Expected cluster and total deadline for [`Admin::add_raft_voter`].
-#[derive(Debug, Clone, Default)]
+/// Expected cluster, acknowledgement policy, and total deadline for
+/// [`Admin::add_raft_voter`].
+///
+/// [`Default`] sets `ack_when_committed` to true. That matches the Apache
+/// schema default and is the only mode Java's public `AddRaftVoterOptions`
+/// exposes (cluster id only). `false` is a Rust extension.
+#[derive(Debug, Clone)]
 pub struct AddRaftVoterOptions {
     /// Optional expected cluster identity, checked by the controller.
     pub cluster_id: Option<String>,
     /// Total deadline including discovery, authentication and retries.
     /// `None` uses [`AdminConfig::request_timeout`].
     pub timeout: Option<Duration>,
+    /// When true, ask the controller to respond after the new voter set is
+    /// committed. When false, require AddRaftVoter v1 and treat success as a
+    /// local append, not a committed or voting membership.
+    pub ack_when_committed: bool,
+}
+
+impl Default for AddRaftVoterOptions {
+    fn default() -> Self {
+        Self {
+            cluster_id: None,
+            timeout: None,
+            ack_when_committed: true,
+        }
+    }
 }
 
 /// Expected cluster and local total deadline for [`Admin::remove_raft_voter`].
@@ -3267,7 +3286,7 @@ fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
 }
 
 impl Admin {
-    /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0.
+    /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0 or v1.
     ///
     /// Broker-bootstrap clients send through a broker, which forwards to the
     /// active controller, matching pinned Java 4.1. Controller bootstrap is not
@@ -3275,11 +3294,23 @@ impl Admin {
     /// and at least one valid endpoint with unique listener names. These checks
     /// run before I/O. The controller determines membership and feature support.
     ///
+    /// The default [`AddRaftVoterOptions::ack_when_committed`] is true: negotiate
+    /// the highest of v0 and v1, and a successful response is
+    /// [`RaftVoterAcknowledgement::Committed`]. v0 has no other mode. Kafka 4.1
+    /// advertises only v0, so that fallback is the schema default, not a
+    /// separately measured 4.1 Raft commit. Explicit `false` is not a Java
+    /// public option. It requires v1 and is rejected with
+    /// [`Error::Unsupported`] before any AddRaftVoter frame when the broker's
+    /// maximum is below 1. A successful false result is
+    /// [`RaftVoterAcknowledgement::LocalAppend`]: the leader wrote the change
+    /// locally. That is not a committed or voting membership.
+    ///
     /// Only NOT_CONTROLLER and transport failures are retried within one total
     /// deadline. Other broker errors preserve their code/message, including
-    /// duplicate voter and server-side timeout. A lost response can leave the
-    /// membership outcome ambiguous; inspect the quorum before another change.
-    /// Success retains the broker's throttle time in the typed response.
+    /// duplicate voter and server-side timeout, and are not returned as a
+    /// successful acknowledgement. A lost response can leave the membership
+    /// outcome ambiguous; inspect the quorum before another change. Success
+    /// retains the broker's throttle time in the typed response.
     pub async fn add_raft_voter(
         &mut self,
         voter_id: i32,
@@ -3318,6 +3349,7 @@ impl Admin {
             voter_id,
             voter_directory_id: voter_directory_id.to_bytes(),
             listeners: endpoints,
+            ack_when_committed: options.ack_when_committed,
         };
         tokio::time::timeout(timeout, self.add_raft_voter_until(request, deadline))
             .await
@@ -3346,13 +3378,28 @@ impl Admin {
                 }
                 let capabilities =
                     crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
+                let (want_min, want_max) = if request.ack_when_committed {
+                    (0, 1)
+                } else {
+                    (1, 1)
+                };
                 let version = capabilities
                     .api_keys
                     .iter()
                     .find(|api| api.api_key == crate::protocol::api_keys::ADD_RAFT_VOTER)
-                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+                    .and_then(|api| {
+                        pick_version(api.min_version, api.max_version, want_min, want_max)
+                    })
                     .ok_or_else(|| {
-                        Error::Unsupported("broker does not support AddRaftVoter v0".into())
+                        if request.ack_when_committed {
+                            Error::Unsupported(
+                                "broker does not support AddRaftVoter v0 or v1".into(),
+                            )
+                        } else {
+                            Error::Unsupported(
+                                "AddRaftVoter local-append acknowledgement requires v1".into(),
+                            )
+                        }
                     })?;
                 if refresh {
                     self.refresh_metadata(None).await?;
@@ -3378,7 +3425,7 @@ impl Admin {
                         remaining,
                     )
                     .await?;
-                let response =
+                let mut response =
                     crate::protocol::admin::decode_add_raft_voter_response(&mut body, version)?;
                 if !body.is_empty() {
                     return Err(Error::protocol("trailing AddRaftVoter response bytes"));
@@ -3390,6 +3437,10 @@ impl Admin {
                             .error_message
                             .unwrap_or_else(|| "AddRaftVoter".into()),
                     ));
+                }
+                if !request.ack_when_committed {
+                    response.acknowledgement =
+                        crate::protocol::admin::RaftVoterAcknowledgement::LocalAppend;
                 }
                 Ok(response)
             }

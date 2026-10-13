@@ -1,0 +1,15 @@
+{
+  "id": "KL05-40",
+  "status": "in_progress",
+  "acceptance_met": false,
+  "disposition": "wire-and-mock-only",
+  "source_sha": "WILL_REPLACE",
+  "results": "AddRaftVoter v0 omits AckWhenCommitted and rejects explicit false before any byte. v1 writes the bool before tagged fields. Default options stay true and may negotiate v0. Explicit false requires v1 and is refused before I/O on a v0-only broker. Successful false is labeled local append. Broker errors and lost responses are not durable success.",
+  "limits": [
+    "No Apache 4.2 or 4.3 serializer bytes were generated. The checked-in 4.1.0 generator is v0 only. Rust roundtrips are not Apache fixtures.",
+    "Java public AddRaftVoterOptions exposes clusterId only. Rust ack_when_committed=false is a labeled non-Java extension.",
+    "No live quorum was available: java exists, and neither docker nor kafka-server-start.sh was installed. A mock cannot prove that false returns after local append while true waits for majority commit.",
+    "v0 fallback for default true is the schema default, not a measured 4.1 Raft handler. KL05-40 stays open until that proof and the bounded lab quorum exist.",
+    "No production membership change, fastest-client claim, or Suite HOLD change."
+  ]
+}

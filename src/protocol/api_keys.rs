@@ -137,7 +137,8 @@ pub const SHARE_GROUP_DESCRIBE: i16 = 77;
 pub const SHARE_FETCH: i16 = 78;
 /// ShareAcknowledge (79).
 pub const SHARE_ACKNOWLEDGE: i16 = 79;
-/// AddRaftVoter (80). Kafka 4.1 `validVersions` is `0`.
+/// AddRaftVoter (80). Kafka 4.1 `validVersions` is `0`. Kafka 4.2+ adds v1
+/// `AckWhenCommitted` (default true). This crate speaks 0–1.
 pub const ADD_RAFT_VOTER: i16 = 80;
 /// RemoveRaftVoter (81). Kafka 4.1 `validVersions` is `0`.
 pub const REMOVE_RAFT_VOTER: i16 = 81;

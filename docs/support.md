@@ -146,14 +146,20 @@ coordinator. Typed Admin descriptions retain every group/member/topology field,
 caller order and duplicates, with per-group discovery/capability failures.
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and
-`add_raft_voter` / `remove_raft_voter` Admin methods. Both membership operations
-follow broker forwarding with v0
-negotiation, explicit voter/directory/cluster validation and a total deadline;
-addition also validates named endpoints. Removal has no wire TimeoutMs field.
-Independent Apache wire fixtures and mock failures cover its contract; no real
-controller membership change or direct controller-bootstrap support is qualified.
-A lost response can leave membership ambiguous: inspect the quorum before another
-change. Production membership operations need an operator-approved procedure.
+`add_raft_voter` / `remove_raft_voter` Admin methods. Removal stays on v0.
+Addition negotiates v0 or v1. The default acknowledgement waits for a committed
+voter set and can use v0, which has no other mode. An explicit local append
+(`ack_when_committed: false`) requires v1 and is rejected before I/O on a
+v0-only broker; that success is a local append, not committed membership.
+Java's public options expose cluster id only, so the false mode is a Rust
+extension. Both membership operations follow broker forwarding, with explicit
+voter/directory/cluster validation and a total deadline; addition also
+validates named endpoints. Removal has no wire TimeoutMs field. Independent
+Apache v0 fixtures and mock v1 checks cover the wire contract. No live quorum
+delay-commit proof, real membership change, or direct controller-bootstrap
+support is qualified. A lost response can leave membership ambiguous: inspect
+the quorum before another change. Production membership operations need an
+operator-approved procedure.
 
 **Source versus published crate:** the migration map
 ([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verified at source

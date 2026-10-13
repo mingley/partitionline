@@ -14659,6 +14659,7 @@ fn raft_voter_options(timeout: Duration) -> partitionline::AddRaftVoterOptions {
     partitionline::AddRaftVoterOptions {
         cluster_id: Some("cluster-410".into()),
         timeout: Some(timeout),
+        ..Default::default()
     }
 }
 fn raft_voter_reply(code: i16, message: Option<&str>) -> partitionline::AddRaftVoterResponse {
@@ -14666,6 +14667,7 @@ fn raft_voter_reply(code: i16, message: Option<&str>) -> partitionline::AddRaftV
         throttle_time_ms: 57,
         error_code: code,
         error_message: message.map(str::to_owned),
+        acknowledgement: partitionline::RaftVoterAcknowledgement::Committed,
     }
 }
 

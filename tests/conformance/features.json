@@ -2043,7 +2043,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::add_raft_voter",
     "evidence": "docs/plan/evidence/KL05-20.json",
-    "notes": "Typed v0 broker-forwarded operation, validated identity/endpoints, preserved errors and total deadline. Independent Apache fixtures and mock runtime checks; no real membership change or controller-bootstrap qualification.",
+    "notes": "Typed v0-v1 broker-forwarded operation. Default ack waits for commit and may use v0. Explicit local-append requires v1 and is rejected before I/O on a v0-only broker; that success is not committed membership. Independent Apache v0 fixtures and mock v1 checks; no live quorum delay-commit proof, real membership change, or controller-bootstrap qualification.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],

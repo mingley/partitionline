@@ -19181,7 +19181,27 @@ impl RaftVoterEndpoint {
     }
 }
 
-/// AddRaftVoter (api 80), v0, always flexible (KIP-853).
+/// How a successful AddRaftVoter result should be read.
+///
+/// The response schema has no durability field in v0 or v1. Decode always
+/// sets [`Committed`](Self::Committed). [`crate::Admin::add_raft_voter`]
+/// replaces that with [`LocalAppend`](Self::LocalAppend) only after a
+/// successful call that sent `AckWhenCommitted=false`. Broker errors are
+/// [`Error::Broker`] and do not carry either label.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RaftVoterAcknowledgement {
+    /// The caller asked for a committed voter set, or the bytes were decoded
+    /// outside that local-append Admin path. v0 has only this mode.
+    Committed,
+    /// The leader reported that it wrote the voter change locally. This is
+    /// not a committed or voting membership.
+    LocalAppend,
+}
+
+/// AddRaftVoter (api 80), v0–v1, always flexible (KIP-853).
+///
+/// v1 adds `AckWhenCommitted` immediately before the tagged fields. v0 omits
+/// it and can represent only the schema default, true.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddRaftVoterRequest {
     /// Optional expected cluster identity; `None` is the Java default.
@@ -19194,9 +19214,14 @@ pub struct AddRaftVoterRequest {
     pub voter_directory_id: [u8; 16],
     /// Named endpoints for reaching that controller.
     pub listeners: Vec<RaftVoterEndpoint>,
+    /// v1 `AckWhenCommitted`. True waits for a committed voter set. False
+    /// asks the leader to return after a local append. Omitted on v0, which
+    /// rejects false before any byte is written.
+    pub ack_when_committed: bool,
 }
 
-/// AddRaftVoter v0 result; errors and throttling are top-level.
+/// AddRaftVoter v0/v1 result. Errors and throttling are top-level. The
+/// acknowledgement label is not on the wire.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddRaftVoterResponse {
     /// Broker-reported quota throttle interval.
@@ -19205,23 +19230,39 @@ pub struct AddRaftVoterResponse {
     pub error_code: i16,
     /// Nullable broker error message.
     pub error_message: Option<String>,
+    /// Durability reading. Decode sets [`RaftVoterAcknowledgement::Committed`].
+    /// The Admin local-append path overwrites a successful result.
+    pub acknowledgement: RaftVoterAcknowledgement,
 }
 
 fn add_raft_voter_version(version: i16) -> Result<()> {
-    if version != 0 {
-        return Err(Error::Unsupported("AddRaftVoter supports only v0".into()));
+    if !(0..=1).contains(&version) {
+        return Err(Error::Unsupported("AddRaftVoter supports v0 and v1".into()));
     }
     Ok(())
 }
 
-/// Encode AddRaftVoter v0. Semantic endpoint/identity validation belongs to
-/// the high-level Admin API; the codec also represents Apache's fresh defaults.
+fn add_raft_voter_bool<B: Buf>(buf: &mut B) -> Result<bool> {
+    match buf::get_i8(buf)? {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(Error::protocol("invalid AddRaftVoter AckWhenCommitted")),
+    }
+}
+
+/// Encode AddRaftVoter v0 or v1. Semantic endpoint/identity validation belongs
+/// to the high-level Admin API. v0 omits `AckWhenCommitted` and refuses false.
 pub fn encode_add_raft_voter_request(
     buf: &mut BytesMut,
     version: i16,
     req: &AddRaftVoterRequest,
 ) -> Result<()> {
     add_raft_voter_version(version)?;
+    if version < 1 && !req.ack_when_committed {
+        return Err(Error::Unsupported(
+            "AddRaftVoter local-append acknowledgement requires v1".into(),
+        ));
+    }
     buf::put_string(buf, true, req.cluster_id.as_deref())?;
     buf.put_i32(req.timeout_ms);
     buf.put_i32(req.voter_id);
@@ -19233,11 +19274,17 @@ pub fn encode_add_raft_voter_request(
         buf.put_u16(endpoint.port);
         buf::put_empty_tagged_fields(buf);
     }
+    if version >= 1 {
+        buf.put_i8(i8::from(req.ack_when_committed));
+    }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-/// Decode AddRaftVoter v0, rejecting null required fields and skipping unknown tags.
+/// Decode AddRaftVoter v0 or v1, rejecting null required fields and skipping unknown tags.
+///
+/// v0 sets `ack_when_committed` to the schema default, true. A v0 body is not
+/// a valid v1 body: its tagged-field byte is not `AckWhenCommitted`.
 pub fn decode_add_raft_voter_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -19264,6 +19311,11 @@ pub fn decode_add_raft_voter_request<B: Buf>(
             port,
         });
     }
+    let ack_when_committed = if version >= 1 {
+        add_raft_voter_bool(buf)?
+    } else {
+        true
+    };
     buf::skip_tagged_fields(buf)?;
     Ok(AddRaftVoterRequest {
         cluster_id,
@@ -19271,10 +19323,11 @@ pub fn decode_add_raft_voter_request<B: Buf>(
         voter_id,
         voter_directory_id,
         listeners,
+        ack_when_committed,
     })
 }
 
-/// Encode AddRaftVoter v0 response.
+/// Encode AddRaftVoter v0 or v1 response. The acknowledgement label is not written.
 pub fn encode_add_raft_voter_response(
     buf: &mut BytesMut,
     version: i16,
@@ -19288,7 +19341,10 @@ pub fn encode_add_raft_voter_response(
     Ok(())
 }
 
-/// Decode AddRaftVoter v0 response, retaining errors and throttle time.
+/// Decode AddRaftVoter v0 or v1 response, retaining errors and throttle time.
+///
+/// v0 and v1 response bodies have the same fields. The decoded
+/// acknowledgement is always [`RaftVoterAcknowledgement::Committed`].
 pub fn decode_add_raft_voter_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -19302,6 +19358,7 @@ pub fn decode_add_raft_voter_response<B: Buf>(
         throttle_time_ms,
         error_code,
         error_message,
+        acknowledgement: RaftVoterAcknowledgement::Committed,
     })
 }
 

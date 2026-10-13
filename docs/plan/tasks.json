@@ -51507,8 +51507,8 @@
       "title": "Add v1 AckWhenCommitted while preserving safe voter acknowledgement semantics",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL05-20",
         "KL05-19",
@@ -51536,7 +51536,16 @@
         "Ack=false uses authentic generated request/actual Raft handler source and a real bounded quorum; internal proof is not mislabeled a public Java option.",
         "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "schema_version": 1,
+          "task": "KL05-40",
+          "status": "in_progress",
+          "disposition": "wire-and-mock-only",
+          "acceptance_met": false,
+          "artifacts": ["docs/plan/evidence/KL05-40.json", "docs/evidence/client/add-raft-voter-v1/README.md"]
+        }
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",

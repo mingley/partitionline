@@ -231,13 +231,14 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 1. Version gaps
         self.assertIn("version_gaps", results)
         version_gaps = results["version_gaps"]
-        self.assertEqual(len(version_gaps), 41)
+        self.assertEqual(len(version_gaps), 40)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13 vs Apache3.9.1 max11
         self.assertFalse(any(g["api_key"] == 1 and g["version"] == 18 and g.get("direction") == "upstream_cap" for g in version_gaps))  # Fetch18 is implemented; old peer difference stays classified
         self.assertFalse(any(g["api_key"] == 2 and g["version"] == 11 for g in version_gaps))  # ListOffsets v11 implemented
         self.assertFalse(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2 qualified in KL05-15
         self.assertFalse(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5 implemented
+        self.assertFalse(any(g["api_key"] == 80 and g["version"] == 1 for g in version_gaps)) # AddRaftVoter v1 AckWhenCommitted
 
         # 2. Missing runtime wiring
         self.assertIn("missing_runtime_wiring", results)
@@ -322,7 +323,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         res = self.run_cli(["--diff-only"])
         self.assertEqual(res.returncode, 0)
         self.assertNotIn("Implemented Client APIs (71):", res.stdout)
-        self.assertIn("Version Gaps (41):", res.stdout)
+        self.assertIn("Version Gaps (40):", res.stdout)
 
     def test_cli_self_test_flag(self):
         """
@@ -508,7 +509,10 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertFalse(report["full_current_protocol_complete"])
         self.assertEqual({r["api_key"] for r in report["missing_runtime_wiring"]["unimplemented_apis"]}, set())
         caps = {(r["api_key"], r["version"]) for r in report["version_gaps"] if r["direction"] == "upstream_cap"}
-        self.assertTrue({(80, 1), (24, 4), (24, 5)} <= caps)
+        self.assertNotIn((80, 1), caps)
+        voter = next(r for r in report["implemented_client_operations"] if r["api_key"] == 80)
+        self.assertEqual(voter["client_advertised_max"], 1)
+        self.assertTrue({(24, 4), (24, 5)} <= caps)
         for key in (8, 9):
             self.assertNotIn((key, 10), caps)
             operation = next(r for r in report["implemented_client_operations"] if r["api_key"] == key)

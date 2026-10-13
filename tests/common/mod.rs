@@ -34,7 +34,7 @@ use partitionline::protocol::acl::{
 };
 use partitionline::protocol::admin::{
     decode_add_raft_voter_request, encode_add_raft_voter_response, AddRaftVoterRequest,
-    AddRaftVoterResponse,
+    AddRaftVoterResponse, RaftVoterAcknowledgement,
 };
 use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
@@ -5740,6 +5740,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 throttle_time_ms: 0,
                                 error_code: 0,
                                 error_message: None,
+                                acknowledgement: RaftVoterAcknowledgement::Committed,
                             }),
                         st.add_raft_voter_delay,
                         drop_response,

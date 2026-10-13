@@ -5109,6 +5109,7 @@ fn add_raft_voter_apache_v0_fixtures() {
             } else {
                 vec![]
             },
+            ack_when_committed: true,
         };
         assert_eq!(actual, expected);
         let mut resp = response;
@@ -5120,6 +5121,7 @@ fn add_raft_voter_apache_v0_fixtures() {
                 throttle_time_ms: if populated { 42 } else { 0 },
                 error_code: if populated { 41 } else { 0 },
                 error_message: Some(if populated { "controller moved" } else { "" }.into()),
+                acknowledgement: partitionline::RaftVoterAcknowledgement::Committed,
             }
         );
         if !tagged {
@@ -5136,7 +5138,7 @@ fn add_raft_voter_apache_v0_fixtures() {
         for end in 0..response.len() {
             assert!(decode_add_raft_voter_response(&mut &response[..end], 0).is_err());
         }
-        for version in [-1, 1] {
+        for version in [-1, 2] {
             assert!(decode_add_raft_voter_request(&mut &request[..], version).is_err());
             assert!(decode_add_raft_voter_response(&mut &response[..], version).is_err());
             let mut bytes = BytesMut::new();
@@ -5144,6 +5146,19 @@ fn add_raft_voter_apache_v0_fixtures() {
             assert!(bytes.is_empty());
             assert!(encode_add_raft_voter_response(&mut bytes, version, &actual_response).is_err());
             assert!(bytes.is_empty());
+        }
+        // v0 request bodies omit AckWhenCommitted, so they are not v1 bodies.
+        // v0 response bodies stay valid at v1: the response schema did not grow.
+        assert!(decode_add_raft_voter_request(&mut &request[..], 1).is_err());
+        let mut response_as_v1 = response;
+        let decoded_v1 = decode_add_raft_voter_response(&mut response_as_v1, 1).unwrap();
+        assert!(response_as_v1.is_empty());
+        assert_eq!(decoded_v1, actual_response);
+        let mut bytes = BytesMut::new();
+        encode_add_raft_voter_request(&mut bytes, 1, &actual).unwrap();
+        if !tagged {
+            // One AckWhenCommitted byte; unknown tags are not part of this comparison.
+            assert_eq!(bytes.len(), request.len() + 1);
         }
     }
 }
