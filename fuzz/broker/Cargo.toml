@@ -35,3 +35,17 @@ path = "fuzz_targets/controller_respond.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "parse_header"
+path = "fuzz_targets/parse_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "recover_epoch"
+path = "fuzz_targets/recover_epoch.rs"
+test = false
+doc = false
+bench = false

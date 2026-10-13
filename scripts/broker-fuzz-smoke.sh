@@ -8,7 +8,7 @@ target=x86_64-unknown-linux-gnu
 cd "$root/fuzz/broker"
 export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-Cpasses=sancov-module -Cllvm-args=-sanitizer-coverage-level=4 -Cllvm-args=-sanitizer-coverage-inline-8bit-counters -Cllvm-args=-sanitizer-coverage-pc-table"
 cargo build --release --locked --target "$target"
-for bin in decode_kraft recover_journal controller_respond; do
+for bin in decode_kraft recover_journal controller_respond parse_header recover_epoch; do
   work=$(mktemp -d)
   cp -a "$root/fuzz/broker/seeds/$bin/." "$work/"
   echo "smoke $bin"
