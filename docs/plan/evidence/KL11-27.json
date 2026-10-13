@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "classic-join-sync",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "906200bfcfc875c0da0e6b8ff6b0319177cf34f3",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib groups::classic::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
