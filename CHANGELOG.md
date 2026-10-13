@@ -16,7 +16,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - Auth smoke now exercises short broker session lifetimes, IdP outage and
   recovery, idle reconnect, and a JWKS-validating OAUTHBEARER listener
-  distinct from the unsecured-JWT test validator (KL06-06).
+  distinct from the unsecured-JWT test validator (KL06-06). Mid-connection
+  reauthentication sends SaslHandshake before SaslAuthenticate so a live
+  Kafka broker enters KIP-368 renewal instead of treating Authenticate as
+  an application request.
 
 - Development and CI use the latest stable Rust only. Package manifests now
   require Rust 1.99; Rust 1.85 is no longer supported.

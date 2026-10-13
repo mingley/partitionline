@@ -572,14 +572,14 @@ pub fn spoken_reauthenticate_version(conn: &BrokerConn) -> Result<i16> {
     }
 }
 
-/// Mid-connection PLAIN reauth: SaslAuthenticate only (KIP-368; no SaslHandshake).
+/// Mid-connection PLAIN reauth: SaslHandshake, then SaslAuthenticate (KIP-368).
 pub async fn reauthenticate_plain(
     conn: &mut BrokerConn,
     user: &str,
     pass: &str,
     timeout: Duration,
 ) -> Result<()> {
-    let auth_version = spoken_reauthenticate_version(conn)?;
+    let auth_version = reauthenticate_handshake(conn, "PLAIN", timeout).await?;
     let auth = plain_auth_bytes(user, pass);
     let body = conn
         .roundtrip_sasl(
@@ -607,7 +607,7 @@ pub async fn reauthenticate_plain(
     Ok(())
 }
 
-/// Mid-connection SCRAM reauth: SaslAuthenticate exchange only (no SaslHandshake).
+/// Mid-connection SCRAM reauth: SaslHandshake, then the SaslAuthenticate exchange.
 pub async fn reauthenticate_scram(
     conn: &mut BrokerConn,
     alg: super::scram::ScramAlg,
@@ -615,7 +615,7 @@ pub async fn reauthenticate_scram(
     pass: &str,
     timeout: Duration,
 ) -> Result<()> {
-    let auth_version = spoken_reauthenticate_version(conn)?;
+    let auth_version = reauthenticate_handshake(conn, alg.name(), timeout).await?;
     let nonce = super::scram::client_nonce();
     let (first, bare) = super::scram::client_first(user, &nonce);
     let body = conn
@@ -682,13 +682,13 @@ pub async fn reauthenticate_oauthbearer(
     reauthenticate_oauthbearer_token(conn, &token, timeout).await
 }
 
-/// Mid-connection OAUTHBEARER reauth: SaslAuthenticate only (KIP-368; no SaslHandshake).
+/// Mid-connection OAUTHBEARER reauth: SaslHandshake, then SaslAuthenticate (KIP-368).
 pub async fn reauthenticate_oauthbearer_token(
     conn: &mut BrokerConn,
     token: &str,
     timeout: Duration,
 ) -> Result<()> {
-    let auth_version = spoken_reauthenticate_version(conn)?;
+    let auth_version = reauthenticate_handshake(conn, "OAUTHBEARER", timeout).await?;
     let auth = super::oauth::client_initial(token);
     let body = conn
         .roundtrip_sasl(
@@ -757,9 +757,10 @@ fn count_sasl_mechs(
     Ok(n)
 }
 
-/// Mid-connection reauthentication dispatcher (KIP-368): SaslAuthenticate only, no SaslHandshake.
+/// Mid-connection reauthentication dispatcher (KIP-368).
 ///
-/// Fetches a fresh OIDC token when OIDC is configured.
+/// Sends SaslHandshake so a live Kafka broker begins reauthentication, then
+/// SaslAuthenticate. Fetches a fresh OIDC token when OIDC is configured.
 /// Returns [`Error::Unsupported`] if no SASL mechanism is configured, preventing silent auth weakening.
 pub async fn reauthenticate(
     conn: &mut BrokerConn,
@@ -840,6 +841,49 @@ pub async fn should_reconnect_after_reauth(
         Ok(()) => Ok(false),
         Err(_) => Ok(true),
     }
+}
+
+/// Start KIP-368 reauthentication with SaslHandshake v1.
+///
+/// Apache Kafka only calls `maybeBeginServerReauthentication` when the next
+/// request is SaslHandshake. A bare SaslAuthenticate is handled as an
+/// application request and fails. Handshake v0 cannot enable Kafka
+/// SaslAuthenticate headers on the replacement authenticator.
+///
+/// Returns the spoken SaslAuthenticate version (1 or 2).
+async fn reauthenticate_handshake(
+    conn: &mut BrokerConn,
+    mechanism: &str,
+    timeout: Duration,
+) -> Result<i16> {
+    let auth_version = spoken_reauthenticate_version(conn)?;
+    let (hs_version, _) = spoken_sasl_versions(conn)?;
+    if hs_version < 1 {
+        conn.close();
+        return Err(Error::Unsupported(
+            "broker does not support SASL reauthentication (SaslHandshake v0)".into(),
+        ));
+    }
+    let hs = conn
+        .roundtrip_sasl(
+            SASL_HANDSHAKE,
+            hs_version,
+            |buf| encode_sasl_handshake_request(buf, hs_version, mechanism),
+            timeout,
+        )
+        .await?;
+    let (code, mechs) = decode_sasl_handshake_response(&mut hs.clone(), hs_version)?;
+    if code != 0 {
+        conn.close();
+        return Err(Error::broker(code, "SaslHandshake"));
+    }
+    if !mechs.iter().any(|m| m == mechanism) {
+        conn.close();
+        return Err(Error::Unsupported(format!(
+            "{mechanism} not in mechanisms {mechs:?}"
+        )));
+    }
+    Ok(auth_version)
 }
 
 fn sasl_reauth_from_args(
@@ -923,9 +967,9 @@ async fn reauthenticate_material(
 /// Honor a stored SASL session before an application [`BrokerConn::roundtrip`].
 ///
 /// Reauthenticates with reserved SASL correlation ids when the 85% lifetime
-/// threshold is due or the session has expired. SaslAuthenticate v0 peers
-/// and missing credentials fail closed; the connection is never downgraded
-/// to unauthenticated traffic.
+/// threshold is due or the session has expired. The exchange is SaslHandshake
+/// then SaslAuthenticate. SaslAuthenticate v0 peers and missing credentials
+/// fail closed; the connection is never downgraded to unauthenticated traffic.
 pub async fn ensure_roundtrip_session(conn: &mut BrokerConn, timeout: Duration) -> Result<()> {
     if !conn.needs_reauth() && !conn.is_session_expired() {
         return Ok(());

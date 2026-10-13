@@ -4,7 +4,8 @@ Consumer, ConsumerGroup, ShareGroup, and Admin exclusive RPCs honor broker
 `SaslAuthenticate` session lifetimes on one shared `BrokerConn::roundtrip`
 path. `authenticate` stores the chosen mechanism. A later exclusive
 roundtrip reauthenticates with reserved SASL correlation IDs when the 85%
-lifetime threshold is due or the session has expired.
+lifetime threshold is due or the session has expired. Renewal sends
+SaslHandshake and then SaslAuthenticate, matching live Kafka.
 
 These checks use the in-tree mock broker. They do not qualify a live Kafka
 broker, Producer workers (KL06-11), or the short-lived secure-broker matrix
