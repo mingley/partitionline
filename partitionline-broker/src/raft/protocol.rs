@@ -1381,6 +1381,187 @@ pub fn decide_begin_body(
     }
 }
 
+/// One EndQuorumEpoch body for versions 0 or 1.
+///
+/// Version 0 lists preferred successor ids. Version 1 lists preferred
+/// candidates with directory ids and is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EndEpochBody {
+    /// EndQuorumEpoch version, 0 or 1.
+    pub version: i16,
+    /// Cluster id.
+    pub cluster_id: Option<String>,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Resigning leader id.
+    pub leader_id: i32,
+    /// Resigning leader epoch.
+    pub leader_epoch: i32,
+    /// Preferred successors. Version 0 entries omit directories.
+    pub preferred: Vec<PreferredCandidate>,
+    /// Leader endpoints. Empty on version 0.
+    pub leader_endpoints: Vec<LeaderEndpoint>,
+}
+
+/// Encode an EndQuorumEpoch body. Version 0 is classic; version 1 is flexible.
+pub fn encode_end_body(body: &EndEpochBody) -> Result<Vec<u8>, Error> {
+    if body.preferred.len() > MAX_SUCCESSORS {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version == 0 {
+        if body
+            .preferred
+            .iter()
+            .any(|candidate| candidate.directory.is_some())
+            || !body.leader_endpoints.is_empty()
+        {
+            return Err(Error::InvalidConfig);
+        }
+    } else if body.version != 1
+        || body
+            .preferred
+            .iter()
+            .any(|candidate| candidate.directory.is_none())
+    {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = body.version >= 1;
+    let mut out = allocate(body.topic.len() + 96)?;
+    write_nullable(&mut out, body.cluster_id.as_deref(), flexible)?;
+    write_count(&mut out, 1, flexible)?;
+    string(&mut out, &body.topic, flexible)?;
+    write_count(&mut out, 1, flexible)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.leader_id.to_be_bytes());
+    out.extend_from_slice(&body.leader_epoch.to_be_bytes());
+    write_count(
+        &mut out,
+        u32::try_from(body.preferred.len()).map_err(|_| Error::InvalidConfig)?,
+        flexible,
+    )?;
+    for candidate in &body.preferred {
+        out.extend_from_slice(&candidate.id.to_be_bytes());
+        if flexible {
+            out.extend_from_slice(candidate.directory.ok_or(Error::InvalidConfig)?.as_slice());
+            out.push(0);
+        }
+    }
+    if flexible {
+        out.push(0);
+        out.push(0);
+        write_count(
+            &mut out,
+            u32::try_from(body.leader_endpoints.len()).map_err(|_| Error::InvalidConfig)?,
+            true,
+        )?;
+        for endpoint in &body.leader_endpoints {
+            string(&mut out, &endpoint.name, true)?;
+            string(&mut out, &endpoint.host, true)?;
+            out.extend_from_slice(&endpoint.port.to_be_bytes());
+            out.push(0);
+        }
+        out.push(0);
+    }
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_end_body`].
+pub fn decode_end_body(bytes: &[u8], version: i16) -> Result<EndEpochBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = version >= 1;
+    let mut reader = Reader::new(bytes, flexible, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let leader_id = reader.i32()?;
+    let leader_epoch = reader.i32()?;
+    let preferred_count = reader.count()?;
+    if preferred_count > MAX_SUCCESSORS {
+        return Err(Error::InvalidConfig);
+    }
+    let mut preferred = Vec::new();
+    for _ in 0..preferred_count {
+        let id = reader.i32()?;
+        let directory = if flexible {
+            let bytes = reader.take(16)?;
+            let mut directory = [0u8; 16];
+            directory.copy_from_slice(bytes);
+            reader.tags()?;
+            Some(directory)
+        } else {
+            None
+        };
+        preferred.push(PreferredCandidate { id, directory });
+    }
+    let mut leader_endpoints = Vec::new();
+    if flexible {
+        reader.tags()?;
+        reader.tags()?;
+        let count = reader.count()?;
+        for _ in 0..count {
+            leader_endpoints.push(LeaderEndpoint {
+                name: reader.string()?.to_owned(),
+                host: reader.string()?.to_owned(),
+                port: u16::from_be_bytes(
+                    reader
+                        .take(2)?
+                        .try_into()
+                        .map_err(|_| Error::InvalidConfig)?,
+                ),
+            });
+            reader.tags()?;
+        }
+        reader.tags()?;
+    }
+    reader.finish()?;
+    Ok(EndEpochBody {
+        version,
+        cluster_id,
+        topic,
+        partition,
+        leader_id,
+        leader_epoch,
+        preferred,
+        leader_endpoints,
+    })
+}
+
+/// Rank the local voter in an EndQuorumEpoch body without changing `persistent`.
+///
+/// Version 0 remains the classic handler input. Version 1 is ranked only when
+/// the directory matches and is not advertised.
+pub fn decide_end_body(
+    persistent: &election::PersistentState,
+    local_id: i32,
+    local_directory: [u8; 16],
+    body: &EndEpochBody,
+) -> Result<(VoteDisposition, Option<usize>), Error> {
+    let _ = persistent;
+    let rank = preferred_rank(&body.preferred, local_id, local_directory)?;
+    let disposition = if body.version == 0 {
+        VoteDisposition::DurableV0
+    } else if rank.is_none()
+        && body.preferred.iter().any(|candidate| {
+            candidate.id == local_id && candidate.directory != Some(local_directory)
+        })
+    {
+        VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+    } else {
+        VoteDisposition::NotAdvertised
+    };
+    Ok((disposition, rank))
+}
+
 fn write_nullable(out: &mut Vec<u8>, value: Option<&str>, flexible: bool) -> Result<(), Error> {
     match value {
         Some(text) => string(out, text, flexible),
@@ -1806,5 +1987,64 @@ mod prevote_tests {
         assert_eq!(persistent, before);
         assert_eq!(CONTROLLER_API_VERSIONS[2].api_key, 53);
         assert_eq!(CONTROLLER_API_VERSIONS[2].max_version, 0);
+    }
+
+    #[test]
+    fn end_v0_parses_and_v1_stale_directory_is_not_a_successor() {
+        let config = Config::new(7, vec![4, 7], "cluster-1".to_owned())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let classic = EndEpochBody {
+            version: 0,
+            cluster_id: Some(config.cluster_id.clone()),
+            topic: config.topic.clone(),
+            partition: config.partition,
+            leader_id: 4,
+            leader_epoch: 2,
+            preferred: vec![
+                PreferredCandidate {
+                    id: 4,
+                    directory: None,
+                },
+                PreferredCandidate {
+                    id: 7,
+                    directory: None,
+                },
+            ],
+            leader_endpoints: Vec::new(),
+        };
+        let bytes = encode_end_body(&classic).unwrap_or_else(|error| panic!("{error:?}"));
+        let parsed = parse_request(54, &bytes, &config).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(parsed.node, 4);
+        assert_eq!(parsed.epoch, 2);
+        assert_eq!(parsed.successor_count, 2);
+        assert_eq!(parsed.successors[1], 7);
+        let directory = [8u8; 16];
+        let modern = EndEpochBody {
+            version: 1,
+            preferred: vec![PreferredCandidate {
+                id: 7,
+                directory: Some([1u8; 16]),
+            }],
+            leader_endpoints: vec![LeaderEndpoint {
+                name: "plaintext".to_owned(),
+                host: "127.0.0.1".to_owned(),
+                port: 9093,
+            }],
+            ..classic
+        };
+        let encoded = encode_end_body(&modern).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_end_body(&encoded, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        let persistent = state(4);
+        let before = persistent;
+        let (disposition, rank) = decide_end_body(&persistent, 7, directory, &decoded)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            disposition,
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(rank, None);
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[3].api_key, 54);
+        assert_eq!(CONTROLLER_API_VERSIONS[3].max_version, 0);
     }
 }
