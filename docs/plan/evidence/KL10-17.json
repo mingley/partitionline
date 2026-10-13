@@ -2,10 +2,12 @@
   "id": "KL10-17",
   "status": "done",
   "disposition": "accepted",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "94eb9788bb4ec6d604e12fd4ebcd769f5c762bc3",
   "baseline_sha": "028dedca6f4654de9600471e7b2e57c536b47242",
   "hypothesis": "Batches past buffer_memory were dropped after the response arrived and fetched again. Keeping framed batches up to max(buffer_memory, max_bytes) lets later polls decode them.",
-  "cells": ["nb-fetch-gzip-overfetch"],
+  "cells": [
+    "nb-fetch-gzip-overfetch"
+  ],
   "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04 x86_64, rustc 1.99.0, release profile, frequency unpinned",
   "commands": [
     "cargo test --locked --test fetch_buffer_budget (10 pass)",
@@ -24,17 +26,29 @@
       "baseline_fetch_requests": 15,
       "candidate_fetch_requests": 2,
       "repetitions": 3,
-      "ci95_pct": [-86.6, -86.6]
+      "ci95_pct": [
+        -86.6,
+        -86.6
+      ]
     },
     "cpu_ns_per_record": {
       "baseline": 5811.8,
-      "candidate_runs": [1686.7, 1412.5, 1378.0]
+      "candidate_runs": [
+        1686.7,
+        1412.5,
+        1378.0
+      ]
     },
-    "allocations_per_record": {"baseline": 1.052, "candidate": 1.041},
+    "allocations_per_record": {
+      "baseline": 1.052,
+      "candidate": 1.041
+    },
     "correctness": "fetch_buffer_budget 10 pass; consumer_fetch_semantics 62 pass, 1 ignored; cell verification mismatches 0",
     "net_production_lines": "retention queue plus the wider cap"
   },
-  "artifacts": ["docs/evidence/perf/KL10-17/README.md"],
+  "artifacts": [
+    "docs/evidence/perf/KL10-17/README.md"
+  ],
   "limits": [
     "Local unsigned null-broker cell. Not a fastest-client claim.",
     "The two arms were measured as back-to-back groups of three, not strictly interleaved. Counts were identical inside each arm.",
