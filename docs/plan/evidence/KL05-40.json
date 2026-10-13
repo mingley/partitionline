@@ -3,7 +3,7 @@
   "status": "in_progress",
   "acceptance_met": false,
   "disposition": "wire-and-mock-only",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "37d438e12b39dd2a58fdc0e8698af37bb2953c58",
   "results": "AddRaftVoter v0 omits AckWhenCommitted and rejects explicit false before any byte. v1 writes the bool before tagged fields. Default options stay true and may negotiate v0. Explicit false requires v1 and is refused before I/O on a v0-only broker. Successful false is labeled local append. Broker errors and lost responses are not durable success.",
   "limits": [
     "No Apache 4.2 or 4.3 serializer bytes were generated. The checked-in 4.1.0 generator is v0 only. Rust roundtrips are not Apache fixtures.",
