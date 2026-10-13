@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "admin-dispositions-and-failover",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "edf09380b9ef8153ea88be6c5740a3cde1c1dbfd",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib admin::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
