@@ -1,0 +1,29 @@
+{
+  "task": "KL11-26",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "transactional-offset-commit",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::offsets::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "offset_tests_passed": 1,
+    "offset_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "Data and group offsets staged by one producer epoch stay hidden until that epoch commits. An abort hides both.",
+    "A later committed epoch of the same producer publishes its own data and offset.",
+    "A lower group generation than one already staged stores nothing. An empty member id stores nothing. An older producer epoch stores nothing.",
+    "Repeating the same commit marker does not append another record. Reopen shows the committed offset and data and still hides the aborted id."
+  ],
+  "limits": [
+    "This is not the transactional OffsetCommit RPC and it does not consult a live group coordinator.",
+    "The generation fence is the highest generation already staged in this log. Member metadata is a nonempty member id stored with the offset.",
+    "The journal format is the local PLTXNO01 record.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
