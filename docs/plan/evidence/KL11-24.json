@@ -1,0 +1,29 @@
+{
+  "task": "KL11-24",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "durable-coordinator",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib transactions::coordinator::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "coordinator_tests_passed": 2,
+    "coordinator_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "init, begin, add, and end persist. end prepares commit or abort and does not complete it.",
+    "The opposite decision after prepare is INVALID_TXN_STATE. finish records completion and a repeat is the same outcome.",
+    "A stale coordinator epoch cannot finish. Reopen restores the prepared transaction and the new coordinator epoch.",
+    "A later init bumps the producer epoch. The old epoch is PRODUCER_FENCED and does not complete the new epoch."
+  ],
+  "limits": [
+    "This is not the InitProducerId, AddPartitionsToTxn, or EndTxn RPC.",
+    "Transaction markers and read_committed visibility stay on KL11-25.",
+    "The journal format is the local PLTXNC01 record, not an Apache transaction log.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

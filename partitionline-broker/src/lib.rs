@@ -27,6 +27,7 @@ pub mod recovery;
 pub mod replication;
 pub mod retention;
 pub mod segments;
+pub mod transactions;
 pub mod transport;
 
 #[cfg(feature = "codecs")]
