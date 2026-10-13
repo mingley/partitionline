@@ -19203,7 +19203,7 @@
     {
       "id": "KL10-17",
       "title": "Keep fetched batches the budget cannot hold instead of re-fetching them",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL10-16"],
       "files": ["src/consumer.rs", "docs/resource-contract.md", "docs/guide.md"],
       "deliverable": "Batches past buffer_memory stay in a per-partition queue of framed, still-compressed batches (Java Fetcher CompletedFetch model) and are decoded as application consumption drains the budget, so the consumer stops re-fetching them. After KL10-16 the nb-fetch-gzip-overfetch cell still fetches about 13x the consumed bytes and the real-broker gateway probe sits at 4.5 us/record against librdkafka's 2.35.",

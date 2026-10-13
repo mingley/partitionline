@@ -40,9 +40,11 @@ A valid first batch may exceed the soft fetch or retention limit so the
 partition can make progress. Batch decoding has a 64 MiB decoded-byte ceiling.
 Further batches stay in a per-partition queue of framed, still-compressed
 batches and are decoded when consumption frees budget. Retained framed bytes
-are capped by the same `buffer_memory` value. One batch that does not fit is
-still kept so the consumer does not fetch it again. A zero `buffer_memory`
-keeps every framed batch. Wire frames, temporary decoding allocations and
+are capped by the larger of `buffer_memory` and `max_bytes` (the response
+already requested). One batch that does not fit is still kept so the consumer
+does not fetch it again. A zero `buffer_memory` keeps every framed batch.
+Decoded key, value and header bytes reported by `buffered_bytes()` stay within
+`buffer_memory`. Wire frames, temporary decoding allocations and
 object overhead need separate accounting; a byte gauge does not measure these
 allocations.
 

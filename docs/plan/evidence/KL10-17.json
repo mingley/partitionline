@@ -1,20 +1,43 @@
 {
   "id": "KL10-17",
-  "status": "in_progress",
-  "disposition": "implementation-landed-measurement-open",
-  "baseline_sha": "e32f821418e4cd899ef3afdf18704f25738aaf12",
-  "hypothesis": "Batches that do not fit in buffer_memory were dropped after CRC checks and fetched again. Keeping the framed batches and decoding them when the budget drains removes that repeat download.",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "028dedca6f4654de9600471e7b2e57c536b47242",
+  "hypothesis": "Batches past buffer_memory were dropped after the response arrived and fetched again. Keeping framed batches up to max(buffer_memory, max_bytes) lets later polls decode them.",
+  "cells": ["nb-fetch-gzip-overfetch"],
+  "host": "Intel Xeon (family 6 model 207), 4 cores, Ubuntu 24.04 x86_64, rustc 1.99.0, release profile, frequency unpinned",
   "commands": [
     "cargo test --locked --test fetch_buffer_budget (10 pass)",
     "cargo test --locked --test consumer_fetch_semantics (62 pass, 1 ignored)",
-    "cargo clippy --locked --all-targets --all-features -- -D warnings (pass)"
+    "NB_SERVE=benchmarks/runtime/target/release/nb-serve runtime --cell nb-fetch-gzip-overfetch --repetitions 3 on parent 028dedca and on the candidate"
   ],
   "results": {
-    "correctness": "Delivered-record, budget, seek, pause, and decode-ceiling tests still pass with framed batches retained.",
-    "cap": "Retained framed bytes are capped by buffer_memory. One non-fitting batch is kept so it is not fetched again. Zero buffer_memory keeps every framed batch."
+    "primary": {
+      "metric": "fetched_records / records_consumed",
+      "baseline": 12.883,
+      "candidate": 1.725,
+      "delta_pct": -86.6,
+      "baseline_fetched_records": 773000,
+      "candidate_fetched_records": 103500,
+      "consumed": 60000,
+      "baseline_fetch_requests": 15,
+      "candidate_fetch_requests": 2,
+      "repetitions": 3,
+      "ci95_pct": [-86.6, -86.6]
+    },
+    "cpu_ns_per_record": {
+      "baseline": 5811.8,
+      "candidate_runs": [1686.7, 1412.5, 1378.0]
+    },
+    "allocations_per_record": {"baseline": 1.052, "candidate": 1.041},
+    "correctness": "fetch_buffer_budget 10 pass; consumer_fetch_semantics 62 pass, 1 ignored; cell verification mismatches 0",
+    "net_production_lines": "retention queue plus the wider cap"
   },
+  "artifacts": ["docs/evidence/perf/KL10-17/README.md"],
   "limits": [
-    "nb-fetch-gzip-overfetch and nb-fetch-bulk were not re-run, so the fetched/consumed ratio is not yet shown to fall toward 1.",
-    "The card stays in progress until that measurement is recorded."
+    "Local unsigned null-broker cell. Not a fastest-client claim.",
+    "The two arms were measured as back-to-back groups of three, not strictly interleaved. Counts were identical inside each arm.",
+    "nb-fetch-bulk was not re-run. Fetch-request counts are the over-fetch signal for this card."
   ]
 }

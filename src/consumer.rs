@@ -4557,8 +4557,9 @@ impl Consumer {
     /// Keep framed batches so a later poll can decode them without another fetch.
     ///
     /// `buffer_memory == 0` keeps every batch. Otherwise retained framed bytes
-    /// stay within that cap, except one batch may be kept when the partition
-    /// has nothing held yet so that batch is not downloaded again.
+    /// stay within `max(buffer_memory, max_bytes)`, except one batch may be
+    /// kept when the partition has nothing held yet so that batch is not
+    /// downloaded again. Decoded payload remains under `buffer_memory`.
     fn retain_held(
         &mut self,
         topic: &str,
@@ -4584,7 +4585,16 @@ impl Consumer {
             return;
         };
         held.last_stable_offset = last_stable_offset;
-        let cap = self.cfg.buffer_memory;
+        // Decoded records stay within buffer_memory. Framed batches already
+        // fetched are kept up to the larger of that budget and max_bytes,
+        // which is the response the broker was asked to send.
+        let cap = if self.cfg.buffer_memory == 0 {
+            0
+        } else {
+            self.cfg.buffer_memory.max(
+                usize::try_from(self.cfg.max_bytes.max(0)).unwrap_or(usize::MAX),
+            )
+        };
         for batch in incoming {
             let size = batch.framed_len();
             let fits = cap == 0 || self.retained_bytes.saturating_add(size) <= cap;

@@ -766,8 +766,9 @@ partition queues and brokers (KL02-08):
   frees budget. Their fetch cursors stay unadvanced until that decode. Every
   fetched batch is framed and CRC-checked when its response arrives, but
   decompressed only when it is applied (KL10-16, KL10-17). Retained framed
-  bytes are capped by `buffer_memory`; one batch that does not fit is still
-  kept so it is not downloaded again. Pause keeps that queue. Seek, unassign
+  bytes are capped by the larger of `buffer_memory` and `max_bytes`; one batch
+  that does not fit is still kept so it is not downloaded again. Decoded
+  payload stays within `buffer_memory`. Pause keeps that queue. Seek, unassign
   and leader changes drop it with the decoded pending records.
 - **Oversized First Batch Progress:** In accordance with Kafka protocol rules
   (KIP-74), a valid first batch larger than the soft fetch limit (`max_partition_fetch_bytes`
