@@ -1,0 +1,28 @@
+{
+  "task": "KL11-20",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "epoch-recovery",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib recovery::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "recovery_tests_passed": 2,
+    "recovery_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "OffsetForLeaderEpoch returns the exclusive end of a stored epoch, or the log end when that epoch is current.",
+    "Truncation at or above the high watermark removes the divergent suffix. Truncation below the high watermark is refused.",
+    "A seeded failover keeps committed ids once, with unique offsets, and does not expose the truncated epoch.",
+    "Reopen restores the high watermark and the truncated log."
+  ],
+  "limits": [
+    "This is not the OffsetForLeaderEpoch RPC and it does not replicate over the network.",
+    "The journal format is the local PLRCVR01 record, not an Apache leader-epoch checkpoint.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
