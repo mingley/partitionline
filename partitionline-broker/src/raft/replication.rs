@@ -2427,6 +2427,32 @@ impl Node {
             .map(membership::Voter::key)
             .ok_or(Error::Membership(membership::Error::VoterNotFound))
     }
+    /// Compare one Kafka `VotersRecord` with the active set without applying it.
+    ///
+    /// A changed directory is refused. An added or removed voter is not written
+    /// into the local configuration or the WAL.
+    pub fn inspect_voters_record(&self, body: &[u8]) -> Result<protocol::VoteDisposition, Error> {
+        if self.log.dynamic.is_none() {
+            return Err(Error::Controller(protocol::Error::UnsupportedVersion));
+        }
+        let decoded = protocol::decode_voters_record(body).map_err(Error::Controller)?;
+        let voters = self.voters()?;
+        let mut current = Vec::new();
+        current
+            .try_reserve_exact(voters.voters().len())
+            .map_err(|_| Error::Allocation)?;
+        for voter in voters.voters() {
+            current.push((
+                i32::try_from(voter.key().id).map_err(|_| Error::InvalidConfig)?,
+                voter.key().directory,
+            ));
+        }
+        Ok(protocol::decide_voters_record(
+            &self.controller.state().persistent,
+            &current,
+            &decoded,
+        ))
+    }
     /// Trigger a due actual election and return its existing Vote0 request payload.
     pub fn campaign(&mut self, now_ms: u64, correlation: i32) -> Result<Option<Vec<u8>>, Error> {
         self.clock(now_ms)?;

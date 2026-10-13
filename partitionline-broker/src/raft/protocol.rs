@@ -1863,6 +1863,130 @@ fn read_listeners(reader: &mut Reader<'_>) -> Result<Vec<LeaderEndpoint>, Error>
     Ok(listeners)
 }
 
+/// One voter inside a Kafka `VotersRecord`.
+///
+/// This is the upstream flexible record, not the local `PLVOTR01` configuration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KafkaVoter {
+    /// Replica id.
+    pub id: i32,
+    /// Directory id. Zero is not a usable identity.
+    pub directory: [u8; 16],
+    /// Endpoints for this voter.
+    pub endpoints: Vec<LeaderEndpoint>,
+    /// Minimum KRaft protocol version.
+    pub kraft_min: i16,
+    /// Maximum KRaft protocol version.
+    pub kraft_max: i16,
+}
+
+/// Kafka `VotersRecord` version 0.
+///
+/// Decoding it does not replace the live voter set.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KafkaVotersRecord {
+    /// Record version. Only 0 is defined.
+    pub version: i16,
+    /// Voters in the record.
+    pub voters: Vec<KafkaVoter>,
+}
+
+/// Encode a flexible Kafka `VotersRecord`.
+pub fn encode_voters_record(record: &KafkaVotersRecord) -> Result<Vec<u8>, Error> {
+    if record.version != 0 || record.voters.is_empty() || record.voters.len() > MAX_ARRAY {
+        return Err(Error::InvalidConfig);
+    }
+    let mut seen = Vec::new();
+    let mut out = allocate(64)?;
+    out.extend_from_slice(&record.version.to_be_bytes());
+    write_count(
+        &mut out,
+        u32::try_from(record.voters.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for voter in &record.voters {
+        if voter.kraft_min < 0 || voter.kraft_max < voter.kraft_min || seen.contains(&voter.id) {
+            return Err(Error::InvalidConfig);
+        }
+        seen.push(voter.id);
+        out.extend_from_slice(&voter.id.to_be_bytes());
+        out.extend_from_slice(&voter.directory);
+        write_listeners(&mut out, &voter.endpoints)?;
+        out.extend_from_slice(&voter.kraft_min.to_be_bytes());
+        out.extend_from_slice(&voter.kraft_max.to_be_bytes());
+        out.extend_from_slice(&[0, 0]);
+    }
+    out.push(0);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_voters_record`].
+pub fn decode_voters_record(bytes: &[u8]) -> Result<KafkaVotersRecord, Error> {
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let version = reader.i16()?;
+    if version != 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let n = reader.count()?;
+    if n == 0 {
+        return Err(Error::InvalidConfig);
+    }
+    let mut voters = Vec::new();
+    voters.try_reserve_exact(n).map_err(|_| Error::Allocation)?;
+    for _ in 0..n {
+        let id = reader.i32()?;
+        if voters.iter().any(|voter: &KafkaVoter| voter.id == id) {
+            return Err(Error::InvalidConfig);
+        }
+        let directory = reader
+            .take(16)?
+            .try_into()
+            .map_err(|_| Error::InvalidConfig)?;
+        let endpoints = read_listeners(&mut reader)?;
+        let kraft_min = reader.i16()?;
+        let kraft_max = reader.i16()?;
+        reader.tags()?;
+        reader.tags()?;
+        voters.push(KafkaVoter {
+            id,
+            directory,
+            endpoints,
+            kraft_min,
+            kraft_max,
+        });
+    }
+    reader.tags()?;
+    reader.finish()?;
+    Ok(KafkaVotersRecord { version, voters })
+}
+
+/// Compare a `VotersRecord` with the live identities without changing them.
+///
+/// A directory that disagrees with a live id is refused. An add or removal is
+/// only `NotAdvertised` and must not be applied by the caller.
+pub fn decide_voters_record(
+    persistent: &election::PersistentState,
+    current: &[(i32, [u8; 16])],
+    record: &KafkaVotersRecord,
+) -> VoteDisposition {
+    let _ = persistent;
+    if record.version != 0 {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    for voter in &record.voters {
+        if voter.directory == [0; 16] || voter.endpoints.is_empty() {
+            return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+        }
+        if current
+            .iter()
+            .any(|(id, directory)| *id == voter.id && *directory != voter.directory)
+        {
+            return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+        }
+    }
+    VoteDisposition::NotAdvertised
+}
+
 /// One replica row in a DescribeQuorum response.
 ///
 /// `directory` is present only on version 2. Fetch and caught-up timestamps

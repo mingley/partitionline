@@ -766,8 +766,9 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     use partitionline_broker::raft::{
         membership::{Bootstrap, Endpoint, Key, Voter, Voters},
         protocol::{
-            AddVoterBody, BeginEpochBody, EndEpochBody, FetchSnapshotBody, LeaderEndpoint,
-            PreferredCandidate, RemoveVoterBody, UpdateVoterBody, VoteBody, VoteDisposition,
+            AddVoterBody, BeginEpochBody, EndEpochBody, FetchSnapshotBody, KafkaVoter,
+            KafkaVotersRecord, LeaderEndpoint, PreferredCandidate, RemoveVoterBody,
+            UpdateVoterBody, VoteBody, VoteDisposition,
         },
         replication::{self, Node},
     };
@@ -945,6 +946,42 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
             partitionline_broker::raft::membership::Error::VoterNotFound
         ))
     ));
+    let listener_record = LeaderEndpoint {
+        name: "CONTROLLER".into(),
+        host: "localhost".into(),
+        port: 9093,
+    };
+    let dropped = KafkaVotersRecord {
+        version: 0,
+        voters: vec![
+            KafkaVoter {
+                id: 1,
+                directory: [1u8; 16],
+                endpoints: vec![listener_record.clone()],
+                kraft_min: 0,
+                kraft_max: 1,
+            },
+            KafkaVoter {
+                id: 2,
+                directory: [2u8; 16],
+                endpoints: vec![listener_record.clone()],
+                kraft_min: 0,
+                kraft_max: 1,
+            },
+        ],
+    };
+    let dropped_bytes = protocol::encode_voters_record(&dropped)?;
+    assert_ne!(&dropped_bytes[..8], b"PLVOTR01");
+    assert_eq!(
+        dynamic.inspect_voters_record(&dropped_bytes)?,
+        VoteDisposition::NotAdvertised
+    );
+    let mut renamed = dropped;
+    renamed.voters[1].directory = [8u8; 16];
+    assert_eq!(
+        dynamic.inspect_voters_record(&protocol::encode_voters_record(&renamed)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
     let mut framed = header(52, 2, 77);
     framed.extend_from_slice(&vote_bytes);
     assert!(matches!(
