@@ -684,27 +684,21 @@ async fn expect_reauth_handshake(
     socket: &mut tokio::net::TcpStream,
     mechanism: &str,
     enabled: &[&str],
-) {
-    let (h, b) = read_request_frame(socket)
-        .await
-        .expect("read SaslHandshake during reauth");
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (h, b) = read_request_frame(socket).await?;
     assert_eq!(h.api_key(), SASL_HANDSHAKE);
     assert!(
         is_reserved_correlation_id(h.correlation_id()),
         "reauth handshake must use a reserved SASL correlation ID"
     );
-    let mech = decode_sasl_handshake_request(&mut &b[..], h.api_version())
-        .expect("decode SaslHandshake mechanism");
+    let mech = decode_sasl_handshake_request(&mut &b[..], h.api_version())?;
     assert_eq!(mech, mechanism);
     let mut resp = BytesMut::new();
-    encode_sasl_handshake_response(&mut resp, h.api_version(), 0, enabled)
-        .expect("encode SaslHandshake response");
+    encode_sasl_handshake_response(&mut resp, h.api_version(), 0, enabled)?;
     socket
-        .write_all(
-            &make_response_frame(h.correlation_id(), &resp).expect("frame SaslHandshake response"),
-        )
-        .await
-        .expect("write SaslHandshake response");
+        .write_all(&make_response_frame(h.correlation_id(), &resp)?)
+        .await?;
+    Ok(())
 }
 
 #[tokio::test]
@@ -799,7 +793,8 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
             "OAUTHBEARER",
             &["OAUTHBEARER", "PLAIN", "SCRAM-SHA-256"],
         )
-        .await;
+        .await
+        .unwrap();
         let (h3, b3) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(
             h3.api_key(),
@@ -827,7 +822,8 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
             "PLAIN",
             &["OAUTHBEARER", "PLAIN", "SCRAM-SHA-256"],
         )
-        .await;
+        .await
+        .unwrap();
         let (h4, b4) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h4.api_key(), SASL_AUTHENTICATE);
         assert!(is_reserved_correlation_id(h4.correlation_id()));
@@ -847,7 +843,8 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
             "OAUTHBEARER",
             &["OAUTHBEARER", "PLAIN", "SCRAM-SHA-256"],
         )
-        .await;
+        .await
+        .unwrap();
         let (h5, b5) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h5.api_key(), SASL_AUTHENTICATE);
         assert!(is_reserved_correlation_id(h5.correlation_id()));
@@ -1033,7 +1030,9 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
             .unwrap();
 
         // 3. Next request MUST be SaslHandshake, then SaslAuthenticate, reserved IDs.
-        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"]).await;
+        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"])
+            .await
+            .unwrap();
         let (sasl_req, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(sasl_req.api_key(), SASL_AUTHENTICATE);
         assert!(
@@ -1157,7 +1156,9 @@ async fn failed_reauthentication_closes_connection_and_fails_accepted_work() {
             .unwrap();
 
         // 2. Reauth handshake then Authenticate -> respond with error 58
-        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"]).await;
+        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"])
+            .await
+            .unwrap();
         let (h3, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h3.api_key(), SASL_AUTHENTICATE);
         let mut resp3 = BytesMut::new();
@@ -1429,7 +1430,9 @@ async fn credential_redaction_and_response_body_hygiene_on_reauth() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"]).await;
+        expect_reauth_handshake(&mut socket, "OAUTHBEARER", &["OAUTHBEARER"])
+            .await
+            .unwrap();
         let (h, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp = BytesMut::new();
         // Broker failure JSON echoing sensitive material
