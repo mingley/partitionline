@@ -967,6 +967,215 @@ fn vote_request(
     Ok(out)
 }
 
+/// One Vote partition body for versions 0, 1, or 2.
+///
+/// Version 1 adds directory ids. Version 2 adds `pre_vote`. Versions above 0
+/// are not advertised in [`CONTROLLER_API_VERSIONS`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VoteBody {
+    /// Vote API version, 0, 1, or 2.
+    pub version: i16,
+    /// Cluster id. `None` is the nullable default.
+    pub cluster_id: Option<String>,
+    /// Receiving voter. Version 0 stores `-1`.
+    pub voter_id: i32,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Candidate epoch.
+    pub replica_epoch: i32,
+    /// Candidate replica id.
+    pub replica_id: i32,
+    /// Candidate directory. Required on versions 1 and 2.
+    pub replica_directory: Option<[u8; 16]>,
+    /// Receiving voter directory. Required on versions 1 and 2.
+    pub voter_directory: Option<[u8; 16]>,
+    /// Epoch of the candidate's last metadata record.
+    pub last_offset_epoch: i32,
+    /// Candidate log end offset.
+    pub last_offset: i64,
+    /// Version 2 pre-vote. True means the decision must not be persisted.
+    pub pre_vote: bool,
+}
+
+/// What a decoded Vote body is allowed to do to stable state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VoteDisposition {
+    /// Version 0 durable vote. The existing handler owns persistence.
+    DurableV0,
+    /// Pre-vote granted. The caller must not write a term or vote.
+    PreVoteGranted,
+    /// Refused. The caller must not write a term or vote.
+    Refused(PreVoteRefusal),
+    /// Directory-qualified durable vote. Parsed, not advertised, not persisted here.
+    NotAdvertised,
+}
+
+/// Encode one flexible Vote body for `version` 0, 1, or 2.
+pub fn encode_vote_body(body: &VoteBody) -> Result<Vec<u8>, Error> {
+    if !(0..=2).contains(&body.version) {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version == 0
+        && (body.replica_directory.is_some() || body.pre_vote || body.voter_id != -1)
+    {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version >= 1 && (body.replica_directory.is_none() || body.voter_directory.is_none()) {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version < 2 && body.pre_vote {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(body.topic.len() + 96)?;
+    match &body.cluster_id {
+        Some(cluster) => string(&mut out, cluster, true)?,
+        None => out.push(0),
+    }
+    if body.version >= 1 {
+        out.extend_from_slice(&body.voter_id.to_be_bytes());
+    }
+    out.push(2);
+    string(&mut out, &body.topic, true)?;
+    out.push(2);
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.replica_epoch.to_be_bytes());
+    out.extend_from_slice(&body.replica_id.to_be_bytes());
+    if body.version >= 1 {
+        out.extend_from_slice(
+            body.replica_directory
+                .ok_or(Error::InvalidConfig)?
+                .as_slice(),
+        );
+        out.extend_from_slice(body.voter_directory.ok_or(Error::InvalidConfig)?.as_slice());
+    }
+    out.extend_from_slice(&body.last_offset_epoch.to_be_bytes());
+    out.extend_from_slice(&body.last_offset.to_be_bytes());
+    if body.version >= 2 {
+        out.push(u8::from(body.pre_vote));
+    }
+    out.extend_from_slice(&[0, 0, 0]);
+    Ok(out)
+}
+
+/// Decode one flexible Vote body encoded by [`encode_vote_body`].
+pub fn decode_vote_body(bytes: &[u8], version: i16) -> Result<VoteBody, Error> {
+    if !(0..=2).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let cluster_id = reader.nullable_string()?.map(str::to_owned);
+    let voter_id = if version >= 1 { reader.i32()? } else { -1 };
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let replica_epoch = reader.i32()?;
+    let replica_id = reader.i32()?;
+    let (replica_directory, voter_directory) = if version >= 1 {
+        (
+            Some(
+                reader
+                    .take(16)?
+                    .try_into()
+                    .map_err(|_| Error::InvalidConfig)?,
+            ),
+            Some(
+                reader
+                    .take(16)?
+                    .try_into()
+                    .map_err(|_| Error::InvalidConfig)?,
+            ),
+        )
+    } else {
+        (None, None)
+    };
+    let last_offset_epoch = reader.i32()?;
+    let last_offset = reader.i64()?;
+    let pre_vote = if version >= 2 {
+        reader.byte()? == 1
+    } else {
+        false
+    };
+    reader.tags()?;
+    reader.tags()?;
+    reader.tags()?;
+    reader.finish()?;
+    Ok(VoteBody {
+        version,
+        cluster_id,
+        voter_id,
+        topic,
+        partition,
+        replica_epoch,
+        replica_id,
+        replica_directory,
+        voter_directory,
+        last_offset_epoch,
+        last_offset,
+        pre_vote,
+    })
+}
+
+/// Apply a decoded Vote body without persisting a pre-vote.
+///
+/// `expected_replica` and `expected_voter` are the directory ids that must
+/// match on versions 1 and 2. The returned disposition never asks the caller
+/// to write `persistent`.
+pub fn decide_vote_body(
+    persistent: &election::PersistentState,
+    expected_replica: [u8; 16],
+    expected_voter: [u8; 16],
+    body: &VoteBody,
+) -> VoteDisposition {
+    if body.version == 0 {
+        return VoteDisposition::DurableV0;
+    }
+    let Some(replica_directory) = body.replica_directory else {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    };
+    let Some(voter_directory) = body.voter_directory else {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    };
+    if replica_directory != expected_replica || voter_directory != expected_voter {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    if !body.pre_vote {
+        return VoteDisposition::NotAdvertised;
+    }
+    let log = if body.last_offset == 0 {
+        election::LogPosition { term: 0, index: 0 }
+    } else {
+        election::LogPosition {
+            term: u64::try_from(body.last_offset_epoch.max(0))
+                .unwrap_or(0)
+                .saturating_add(1),
+            index: u64::try_from(body.last_offset).unwrap_or(0),
+        }
+    };
+    match evaluate_prevote(
+        persistent,
+        expected_replica,
+        DirectoryPreVote {
+            term: u64::try_from(body.replica_epoch.max(0))
+                .unwrap_or(0)
+                .saturating_add(1),
+            candidate: u32::try_from(body.replica_id).unwrap_or(0),
+            directory: replica_directory,
+            log,
+        },
+    ) {
+        Ok(true) => VoteDisposition::PreVoteGranted,
+        Err(error) => VoteDisposition::Refused(error),
+        Ok(false) => VoteDisposition::Refused(PreVoteRefusal::StaleLog),
+    }
+}
+
 enum Command {
     Request(Vec<u8>, oneshot::Sender<Result<Vec<u8>, Error>>),
     Stop,
@@ -1193,5 +1402,81 @@ mod prevote_tests {
         );
         assert_eq!(persistent.voted_for, Some(7));
         assert_eq!(persistent.term, 4);
+    }
+
+    fn sample_body(version: i16, replica: [u8; 16], voter: [u8; 16], pre_vote: bool) -> VoteBody {
+        VoteBody {
+            version,
+            cluster_id: Some("cluster-1".to_owned()),
+            voter_id: if version == 0 { -1 } else { 7 },
+            topic: "__cluster_metadata".to_owned(),
+            partition: 0,
+            replica_epoch: 5,
+            replica_id: 3,
+            replica_directory: (version >= 1).then_some(replica),
+            voter_directory: (version >= 1).then_some(voter),
+            last_offset_epoch: 1,
+            last_offset: 1,
+            pre_vote,
+        }
+    }
+
+    #[test]
+    fn vote_v0_matches_the_existing_request_and_v2_prevote_is_not_persisted() {
+        let config = Config::new(1, vec![1, 2], "cluster-1".to_owned())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let vote = election::VoteRequest {
+            term: 2,
+            candidate: 3,
+            log: election::LogPosition { term: 1, index: 1 },
+        };
+        let framed = vote_request(&config, vote, 9).unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded = encode_vote_body(&VoteBody {
+            version: 0,
+            cluster_id: Some("cluster-1".to_owned()),
+            voter_id: -1,
+            topic: config.topic.clone(),
+            partition: config.partition,
+            replica_epoch: wire_epoch(vote.term).unwrap_or_else(|error| panic!("{error:?}")),
+            replica_id: 3,
+            replica_directory: None,
+            voter_directory: None,
+            last_offset_epoch: wire_epoch(vote.log.term)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            last_offset: 1,
+            pre_vote: false,
+        })
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(&framed[11..], encoded.as_slice());
+        let replica = [4u8; 16];
+        let voter = [5u8; 16];
+        let body = sample_body(2, replica, voter, true);
+        let bytes = encode_vote_body(&body).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_vote_body(&bytes, 2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(decoded.pre_vote);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &decoded),
+            VoteDisposition::PreVoteGranted
+        );
+        assert_eq!(persistent, before);
+        let mut stale = decoded.clone();
+        stale.replica_directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(
+            decide_vote_body(
+                &persistent,
+                replica,
+                voter,
+                &sample_body(1, replica, voter, false)
+            ),
+            VoteDisposition::NotAdvertised
+        );
+        assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
     }
 }
