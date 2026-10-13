@@ -980,6 +980,60 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
     );
     assert_eq!(dynamic.state().committed_end, committed);
+    let voters_at_response = dynamic.voters()?.clone();
+    let added = protocol::VoterChangeResponse {
+        api_key: 80,
+        version: 1,
+        throttle_ms: 0,
+        error_code: 0,
+        error_message: None,
+    };
+    assert_eq!(
+        dynamic.inspect_voter_change_response(
+            80,
+            1,
+            &protocol::encode_voter_change_response(&added)?
+        )?,
+        VoteDisposition::NotAdvertised
+    );
+    let removed = protocol::VoterChangeResponse {
+        api_key: 81,
+        version: 0,
+        throttle_ms: 0,
+        error_code: 0,
+        error_message: None,
+    };
+    assert_eq!(
+        dynamic.inspect_voter_change_response(
+            81,
+            0,
+            &protocol::encode_voter_change_response(&removed)?
+        )?,
+        VoteDisposition::NotAdvertised
+    );
+    let updated = protocol::UpdateVoterResponse {
+        throttle_ms: 0,
+        error_code: 0,
+        leader_present: true,
+        leader_id: 2,
+        leader_epoch: 1,
+        host: "localhost".into(),
+        port: 9093,
+    };
+    assert_eq!(
+        dynamic
+            .inspect_update_voter_response(&protocol::encode_update_voter_response(&updated)?)?,
+        VoteDisposition::NotAdvertised
+    );
+    let mut bare_leader = updated;
+    bare_leader.host.clear();
+    assert_eq!(
+        dynamic.inspect_update_voter_response(&protocol::encode_update_voter_response(
+            &bare_leader
+        )?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    assert_eq!(dynamic.voters()?, &voters_at_response);
     assert!(matches!(
         dynamic.inspect_unadvertised(52, 2, &{
             let mut unknown = protocol::decode_vote_body(&vote_bytes, 2)?;

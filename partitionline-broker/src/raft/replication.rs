@@ -2477,6 +2477,46 @@ impl Node {
             &decoded,
         ))
     }
+    /// Inspect an Add or Remove voter response without editing the voter set.
+    ///
+    /// Error code 0 is still `NotAdvertised`. The active configuration is not
+    /// rewritten.
+    pub fn inspect_voter_change_response(
+        &self,
+        key: i16,
+        version: i16,
+        body: &[u8],
+    ) -> Result<protocol::VoteDisposition, Error> {
+        if self.log.dynamic.is_none() {
+            return Err(Error::Controller(protocol::Error::UnsupportedVersion));
+        }
+        let decoded = protocol::decode_voter_change_response(body, key, version)
+            .map_err(Error::Controller)?;
+        Ok(protocol::decide_voter_change_response(
+            &self.controller.state().persistent,
+            &decoded,
+        ))
+    }
+    /// Inspect an UpdateRaftVoter response without editing the voter set.
+    ///
+    /// A tagged leader must already be in the set. An empty host does not
+    /// become the live leader address.
+    pub fn inspect_update_voter_response(
+        &self,
+        body: &[u8],
+    ) -> Result<protocol::VoteDisposition, Error> {
+        if self.log.dynamic.is_none() {
+            return Err(Error::Controller(protocol::Error::UnsupportedVersion));
+        }
+        let decoded = protocol::decode_update_voter_response(body).map_err(Error::Controller)?;
+        if decoded.leader_present && decoded.leader_id >= 0 {
+            let _ = self.known_voter(decoded.leader_id)?;
+        }
+        Ok(protocol::decide_update_voter_response(
+            &self.controller.state().persistent,
+            &decoded,
+        ))
+    }
     /// Trigger a due actual election and return its existing Vote0 request payload.
     pub fn campaign(&mut self, now_ms: u64, correlation: i32) -> Result<Option<Vec<u8>>, Error> {
         self.clock(now_ms)?;

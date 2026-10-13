@@ -1804,6 +1804,171 @@ pub fn decide_update_voter(
     )
 }
 
+/// AddRaftVoter or RemoveRaftVoter response.
+///
+/// A zero error code is not a committed membership change.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VoterChangeResponse {
+    /// Api 80 or 81.
+    pub api_key: i16,
+    /// Response version. Add allows 0 and 1. Remove allows 0.
+    pub version: i16,
+    /// Throttle time in milliseconds.
+    pub throttle_ms: i32,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Error message, when present.
+    pub error_message: Option<String>,
+}
+
+/// Encode an AddRaftVoter or RemoveRaftVoter response body.
+pub fn encode_voter_change_response(body: &VoterChangeResponse) -> Result<Vec<u8>, Error> {
+    let allowed = match body.api_key {
+        80 => (0..=1).contains(&body.version),
+        81 => body.version == 0,
+        _ => false,
+    };
+    if !allowed {
+        return Err(Error::InvalidConfig);
+    }
+    let mut out = allocate(32 + body.error_message.as_ref().map_or(0, String::len))?;
+    out.extend_from_slice(&body.throttle_ms.to_be_bytes());
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    write_nullable(&mut out, body.error_message.as_deref(), true)?;
+    out.push(0);
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_voter_change_response`].
+pub fn decode_voter_change_response(
+    bytes: &[u8],
+    api_key: i16,
+    version: i16,
+) -> Result<VoterChangeResponse, Error> {
+    let allowed = match api_key {
+        80 => (0..=1).contains(&version),
+        81 => version == 0,
+        _ => false,
+    };
+    if !allowed {
+        return Err(Error::InvalidConfig);
+    }
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let throttle_ms = reader.i32()?;
+    let error_code = reader.i16()?;
+    let error_message = reader.nullable_string()?.map(str::to_owned);
+    reader.tags()?;
+    reader.finish()?;
+    Ok(VoterChangeResponse {
+        api_key,
+        version,
+        throttle_ms,
+        error_code,
+        error_message,
+    })
+}
+
+/// A decoded voter-change response is never applied to `persistent`.
+pub fn decide_voter_change_response(
+    persistent: &election::PersistentState,
+    body: &VoterChangeResponse,
+) -> VoteDisposition {
+    let _ = (persistent, body);
+    VoteDisposition::NotAdvertised
+}
+
+/// UpdateRaftVoter response. The current leader is tagged field 0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateVoterResponse {
+    /// Throttle time in milliseconds.
+    pub throttle_ms: i32,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Whether tagged field 0 was present.
+    pub leader_present: bool,
+    /// Leader id, or `-1` when the tag is absent.
+    pub leader_id: i32,
+    /// Leader epoch, or `-1` when the tag is absent.
+    pub leader_epoch: i32,
+    /// Leader hostname.
+    pub host: String,
+    /// Leader port.
+    pub port: i32,
+}
+
+/// Encode an UpdateRaftVoter response body.
+pub fn encode_update_voter_response(body: &UpdateVoterResponse) -> Result<Vec<u8>, Error> {
+    let mut out = allocate(48 + body.host.len())?;
+    out.extend_from_slice(&body.throttle_ms.to_be_bytes());
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    if body.leader_present {
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&body.leader_id.to_be_bytes());
+        payload.extend_from_slice(&body.leader_epoch.to_be_bytes());
+        string(&mut payload, &body.host, true)?;
+        payload.extend_from_slice(&body.port.to_be_bytes());
+        payload.push(0);
+        varint(&mut out, 1);
+        varint(&mut out, 0);
+        varint(
+            &mut out,
+            u32::try_from(payload.len()).map_err(|_| Error::InvalidConfig)?,
+        );
+        out.extend_from_slice(&payload);
+    } else {
+        out.push(0);
+    }
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_update_voter_response`].
+pub fn decode_update_voter_response(bytes: &[u8]) -> Result<UpdateVoterResponse, Error> {
+    let mut reader = Reader::new(bytes, true, protocol::Limits::default());
+    let throttle_ms = reader.i32()?;
+    let error_code = reader.i16()?;
+    let count = reader.varint()?;
+    let (leader_present, leader_id, leader_epoch, host, port) = if count == 0 {
+        (false, -1, -1, String::new(), 0)
+    } else if count == 1 && reader.varint()? == 0 {
+        let length = usize::try_from(reader.varint()?).map_err(|_| Error::InvalidConfig)?;
+        let payload = reader.take(length)?;
+        let mut nested = Reader::new(payload, true, protocol::Limits::default());
+        let leader_id = nested.i32()?;
+        let leader_epoch = nested.i32()?;
+        let host = nested.string()?.to_owned();
+        let port = nested.i32()?;
+        nested.tags()?;
+        nested.finish()?;
+        (true, leader_id, leader_epoch, host, port)
+    } else {
+        return Err(Error::InvalidConfig);
+    };
+    reader.finish()?;
+    Ok(UpdateVoterResponse {
+        throttle_ms,
+        error_code,
+        leader_present,
+        leader_id,
+        leader_epoch,
+        host,
+        port,
+    })
+}
+
+/// Accept an update response without changing `persistent` or the voter set.
+///
+/// A present leader with an empty host or a nonpositive port is refused.
+pub fn decide_update_voter_response(
+    persistent: &election::PersistentState,
+    body: &UpdateVoterResponse,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.leader_present && body.leader_id >= 0 && (body.host.is_empty() || body.port <= 0) {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    VoteDisposition::NotAdvertised
+}
+
 fn directory_change(
     persistent: &election::PersistentState,
     voter_id: i32,
