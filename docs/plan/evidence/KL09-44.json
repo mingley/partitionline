@@ -1,0 +1,52 @@
+{
+  "id": "KL09-44",
+  "status": "done",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "f52161d9bfe8ee421d833e9115bacde0cf612134",
+  "disposition": "accepted",
+  "hypothesis": "fetch waits for every leader before returning. On nb-fetch-multinode the slow leader adds 50 ms after the fast leaders have already produced the consumed records. Returning those records after a short collection window raises fast-node records/s.",
+  "cells": ["nb-fetch-multinode"],
+  "host": "Intel Xeon family 6 model 207, 4 cores, Linux 6.12.94+ x86_64, frequency unpinned (harness 2400 MHz), rustc 1.99.0 (b940084d7 2026-09-28), release profile",
+  "commands": [
+    "cargo test --locked --offline --test consumer_fetch_semantics --test fetch_buffer_budget --test consumer_close_commit --test network_deadlines -- --test-threads=8 (exit 0)",
+    "cargo clippy --locked --offline --lib -- -D warnings (exit 0)",
+    "Parent runtime sha256 bac765108182c9d307faa555707c83f7a061bab0cba31151b236e8f1421c9c68; candidate sha256 65f65b86306cbaf1aadc47b5d3560b59bd66bf96d0169bab78cad885312cba51",
+    "Five interleaved pairs of NB_SERVE=<candidate nb-serve> runtime --cell nb-fetch-multinode --repetitions 1 (all exit 0)",
+    "python3 scripts/benchmark-report.py on parent-rep0 and candidate-rep0 (both valid, 0 errors)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "nb-fetch-multinode fast-node records/s",
+      "baseline_median": 58219.61206752947,
+      "candidate_median": 68703.54871485925,
+      "delta_pct": 18.007,
+      "paired_mean_pct": 17.318,
+      "ci95_pct": [7.044, 27.591],
+      "repetitions": 5,
+      "baseline_values": [54553.612393463474, 59151.64567804596, 58487.38777238984, 58219.61206752947, 55817.632363616955],
+      "candidate_values": [68703.54871485925, 69175.79161075014, 61554.1341680074, 66612.17147122663, 69239.1283109476]
+    },
+    "allocations": {"unit": "per round", "baseline": 289865, "candidate": 266783, "delta_pct": -7.963},
+    "guardrails": {
+      "p99_us_paired_mean_pct": -16.121,
+      "p99_us_ci95_pct": [-25.020, -7.223],
+      "cpu_ns_per_record_paired_mean_pct": -13.887,
+      "process_peak_rss_paired_mean_pct": -11.875
+    },
+    "net_production_lines": 86,
+    "correctness": "consumer_fetch_semantics, fetch_buffer_budget, consumer_close_commit, and network_deadlines exited 0. The slow-leader and transport-failure tests now accept records from a responded leader before a peer that has not completed."
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL09-44/README.md",
+    "docs/evidence/perf/KL09-44/rows.json",
+    "docs/evidence/perf/KL09-44/stats.json",
+    "docs/evidence/perf/KL09-44/parent-rep0.result.json",
+    "docs/evidence/perf/KL09-44/candidate-rep0.result.json"
+  ],
+  "limits": [
+    "Local unsigned measurement. Not a Kafka throughput comparison and not a fastest-client or fastest-server claim. Suite HOLD remains active.",
+    "The 10 ms collection window is part of the documented fetch policy. A peer that responds inside that window is still included in the same fetch.",
+    "The null broker still serves the slow leader; fetched_records stayed 399000. The client returns before that body is decoded.",
+    "No card lists KL09-44 in requires_accepted."
+  ]
+}

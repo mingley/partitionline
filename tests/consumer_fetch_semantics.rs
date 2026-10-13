@@ -726,12 +726,21 @@ async fn mixed_partition_retry_with_transport_failure_must_preserve_successful_r
         .await
         .expect("assign partitions");
 
-    let records = consumer.fetch().await.expect("fetch succeeds after retry");
+    // A leader that has responded is returned without waiting for a peer
+    // whose connection is still failing. The failed leader is retried on a
+    // later fetch; each record is still delivered once.
+    let mut got = Vec::new();
+    let start = std::time::Instant::now();
+    while got.len() < 2 && start.elapsed() < Duration::from_secs(5) {
+        let batch = consumer
+            .fetch_timeout(Duration::from_millis(500))
+            .await
+            .expect("fetch succeeds after retry");
+        got.extend(batch.iter().map(|r| (r.partition, r.offset)));
+    }
+    got.sort();
     assert_eq!(
-        records
-            .iter()
-            .map(|r| (r.partition, r.offset))
-            .collect::<Vec<_>>(),
+        got,
         vec![(0, 0), (1, 0)],
         "both partition records must be returned exactly once"
     );
@@ -3031,7 +3040,14 @@ async fn fetch_throttle_interval_starts_at_each_response_completion() {
         .assign_many([(("t", 0), 0), (("t", 1), 0)])
         .await
         .unwrap();
-    assert_eq!(consumer.fetch().await.unwrap().len(), 2);
+    let started = std::time::Instant::now();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert!(
+        started.elapsed() < Duration::from_millis(150),
+        "fast leader waited for the delayed peer"
+    );
     for partition in 0..2 {
         let ack = producer
             .send(ProduceRecord::to("t").partition(partition).value("after"))
@@ -3039,15 +3055,30 @@ async fn fetch_throttle_interval_starts_at_each_response_completion() {
             .unwrap();
         assert_eq!(ack.offset, 1);
     }
-    // Broker 1's 400ms quota expired while broker 2's first response waited.
-    // Its clock must not restart when the aggregate result is processed.
-    let next = consumer.fetch().await.unwrap();
-    let mut identities = next
+    // Broker 1's 400ms quota is dated from its own response, not restarted
+    // when the delayed peer is applied. After that quota has expired, the
+    // next fetch of broker 1 must not wait another 400ms.
+    let since_response = started.elapsed();
+    if since_response < Duration::from_millis(420) {
+        tokio::time::sleep(Duration::from_millis(420) - since_response).await;
+    }
+    let next_started = std::time::Instant::now();
+    let mut got = first
         .iter()
         .map(|r| (r.partition, r.offset))
         .collect::<Vec<_>>();
-    identities.sort();
-    assert_eq!(identities, [(0, 1), (1, 1)]);
+    while got.len() < 4 && started.elapsed() < Duration::from_secs(3) {
+        let batch = consumer.fetch().await.unwrap();
+        if got.len() == 1 {
+            assert!(
+                next_started.elapsed() < Duration::from_millis(250),
+                "throttle interval restarted when the delayed peer completed"
+            );
+        }
+        got.extend(batch.iter().map(|r| (r.partition, r.offset)));
+    }
+    got.sort();
+    assert_eq!(got, [(0, 0), (0, 1), (1, 0), (1, 1)]);
     consumer.close().await.unwrap();
     producer.close().await.unwrap();
 }

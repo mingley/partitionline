@@ -1548,7 +1548,16 @@ pub struct Consumer {
     m_fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
     reconnect_fails: HashMap<i32, u32>,
+    /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
+    /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
+    /// responded, and these tasks finish on a later `fetch`.
+    inflight_fetches: Option<tokio::task::JoinSet<(FetchReply, BrokerConn)>>,
+    inflight_nodes: HashSet<i32>,
 }
+
+/// After one leader in a multi-leader round has responded, wait this long for
+/// the others. A slower leader stays in flight and is applied on a later fetch.
+const MULTI_LEADER_COLLECTION_WINDOW: Duration = Duration::from_millis(10);
 
 /// Preserve each peer's completion clock while collecting a concurrent round.
 struct FetchReply {
@@ -1556,6 +1565,35 @@ struct FetchReply {
     version: i16,
     received_at: Instant,
     body: Result<Bytes>,
+}
+
+/// Aborts parked leader tasks if this round is cancelled before they are
+/// stored back on the consumer.
+struct InflightFetches {
+    set: Option<tokio::task::JoinSet<(FetchReply, BrokerConn)>>,
+    pending: HashSet<i32>,
+}
+
+impl Drop for InflightFetches {
+    fn drop(&mut self) {
+        if let Some(mut set) = self.set.take() {
+            set.abort_all();
+        }
+    }
+}
+
+impl InflightFetches {
+    fn park(mut self, consumer: &mut Consumer) {
+        let set = self.set.take().unwrap_or_default();
+        let pending = std::mem::take(&mut self.pending);
+        if set.is_empty() {
+            consumer.inflight_fetches = None;
+            consumer.inflight_nodes.clear();
+        } else {
+            consumer.inflight_fetches = Some(set);
+            consumer.inflight_nodes = pending;
+        }
+    }
 }
 
 struct FetchBody {
@@ -1869,6 +1907,8 @@ impl Consumer {
             m_fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
             reconnect_fails: HashMap::new(),
+            inflight_fetches: None,
+            inflight_nodes: HashSet::new(),
         })
     }
 
@@ -1883,6 +1923,7 @@ impl Consumer {
     ) -> Result<()> {
         let topic = topic.into();
         Topic::validate(&topic)?;
+        self.abort_inflight_fetches();
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
         self.drop_pending_for(&topic, partition);
@@ -2158,6 +2199,7 @@ impl Consumer {
     }
 
     pub(crate) fn clear_assignment(&mut self) {
+        self.abort_inflight_fetches();
         self.assigned.clear();
         self.assigned_topic_ids.clear();
         self.pending.clear();
@@ -2170,6 +2212,7 @@ impl Consumer {
 
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
+        self.abort_inflight_fetches();
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }
@@ -2897,7 +2940,15 @@ impl Consumer {
         Ok(())
     }
 
+    fn abort_inflight_fetches(&mut self) {
+        if let Some(mut set) = self.inflight_fetches.take() {
+            set.abort_all();
+        }
+        self.inflight_nodes.clear();
+    }
+
     pub(crate) async fn close_fetch_sessions(&mut self, timeout: Duration) {
+        self.abort_inflight_fetches();
         if !timeout.is_zero() {
             if let Some(deadline) = Instant::now().checked_add(timeout) {
                 let nodes = self.fetch_sessions.keys().copied().collect();
@@ -3166,7 +3217,7 @@ impl Consumer {
             let retired = self
                 .fetch_sessions
                 .keys()
-                .filter(|node| !by_leader.contains_key(node))
+                .filter(|node| !by_leader.contains_key(node) && !self.inflight_nodes.contains(node))
                 .copied()
                 .collect();
             self.retire_fetch_sessions(retired, deadline.min(poll_deadline))
@@ -3421,7 +3472,8 @@ impl Consumer {
                 }
             }
         }
-        if nodes.len() <= 1 {
+        let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
+        if !collect_parallel {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
                 let Some(by_topic) = by_leader.remove(&node) else {
@@ -3480,8 +3532,14 @@ impl Consumer {
             }
             return Ok(out);
         }
-        let mut set = tokio::task::JoinSet::new();
+        let mut inflight = InflightFetches {
+            set: Some(self.inflight_fetches.take().unwrap_or_default()),
+            pending: std::mem::take(&mut self.inflight_nodes),
+        };
         for node in nodes {
+            if inflight.pending.contains(&node) {
+                continue;
+            }
             let Some(by_topic) = by_leader.remove(&node) else {
                 continue;
             };
@@ -3509,6 +3567,10 @@ impl Consumer {
                 .or_default()
                 .prepare(topics, fetch_version);
             let rack = rack.clone();
+            let _ = inflight.pending.insert(node);
+            let Some(set) = inflight.set.as_mut() else {
+                return Err(Error::protocol("inflight fetch set missing"));
+            };
             let _ = set.spawn(async move {
                 let result = conn
                     .roundtrip(
@@ -3543,11 +3605,33 @@ impl Consumer {
             });
         }
         let mut out = Vec::new();
-        while let Some(joined) = set.join_next().await {
+        let mut first_reply: Option<Instant> = None;
+        while let Some(set) = inflight.set.as_mut().filter(|set| !set.is_empty()) {
+            let joined = if let Some(started) = first_reply {
+                let grace = MULTI_LEADER_COLLECTION_WINDOW.saturating_sub(started.elapsed());
+                if grace.is_zero() {
+                    break;
+                }
+                tokio::select! {
+                    biased;
+                    joined = set.join_next() => joined,
+                    () = tokio::time::sleep(grace) => break,
+                }
+            } else {
+                set.join_next().await
+            };
+            let Some(joined) = joined else {
+                break;
+            };
             let (reply, conn) = joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            let _ = inflight.pending.remove(&reply.node);
             let _ = self.conns.insert(reply.node, conn);
+            if first_reply.is_none() {
+                first_reply = Some(reply.received_at);
+            }
             out.push(reply);
         }
+        inflight.park(self);
         out.sort_by_key(|reply| reply.node);
         Ok(out)
     }
@@ -4225,6 +4309,8 @@ impl Consumer {
         if offset < 0 {
             return Err(Error::protocol("seek offset must not be a negative number"));
         }
+        // The in-flight request still carries the pre-seek offset.
+        self.abort_inflight_fetches();
         if let Some(slot) = self
             .assigned
             .iter_mut()

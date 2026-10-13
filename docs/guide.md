@@ -291,6 +291,12 @@ let recs = consumer.fetch().await?;
 `assign_topic` assigns every partition. `seek` / `pause` / `resume` / `wakeup`
 match the Java consumer shapes.
 
+When a fetch round has several leaders, `fetch` returns after the first
+leader responds and about 10 ms have passed for the others. A slower
+leader stays in flight; its records arrive on a later `fetch`. Seek,
+assignment changes, and close drop that in-flight round. One leader is
+unchanged: that fetch waits for its response.
+
 ## Consumer groups
 
 ```rust,no_run

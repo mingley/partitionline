@@ -1,0 +1,222 @@
+[
+  {
+    "arm": "A",
+    "i": 0,
+    "fast_rec_s": 54553.612393463474,
+    "p99_us": 311997.0,
+    "cpu_ns": 6896.4,
+    "allocs": 289865,
+    "rss": 140152832,
+    "dur": 0.366611836,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "B",
+    "i": 0,
+    "fast_rec_s": 68703.54871485925,
+    "p99_us": 238724.0,
+    "cpu_ns": 5782.15,
+    "allocs": 266783,
+    "rss": 123629568,
+    "dur": 0.291105778,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "A",
+    "i": 1,
+    "fast_rec_s": 59151.64567804596,
+    "p99_us": 284313.0,
+    "cpu_ns": 6045.25,
+    "allocs": 289865,
+    "rss": 139956224,
+    "dur": 0.338114008,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "B",
+    "i": 1,
+    "fast_rec_s": 69175.79161075014,
+    "p99_us": 238617.0,
+    "cpu_ns": 5688.1,
+    "allocs": 266783,
+    "rss": 123293696,
+    "dur": 0.289118484,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "A",
+    "i": 2,
+    "fast_rec_s": 58487.38777238984,
+    "p99_us": 287006.0,
+    "cpu_ns": 6635.7,
+    "allocs": 289865,
+    "rss": 140099584,
+    "dur": 0.341954065,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "B",
+    "i": 2,
+    "fast_rec_s": 61554.1341680074,
+    "p99_us": 271641.0,
+    "cpu_ns": 6082.95,
+    "allocs": 266783,
+    "rss": 123453440,
+    "dur": 0.32491725,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "A",
+    "i": 3,
+    "fast_rec_s": 58219.61206752947,
+    "p99_us": 292376.0,
+    "cpu_ns": 6586.15,
+    "allocs": 289865,
+    "rss": 140013568,
+    "dur": 0.343526851,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "B",
+    "i": 3,
+    "fast_rec_s": 66612.17147122663,
+    "p99_us": 251400.0,
+    "cpu_ns": 5790.2,
+    "allocs": 266783,
+    "rss": 123346944,
+    "dur": 0.300245429,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "A",
+    "i": 4,
+    "fast_rec_s": 55817.632363616955,
+    "p99_us": 306751.0,
+    "cpu_ns": 7471.05,
+    "allocs": 289865,
+    "rss": 140058624,
+    "dur": 0.358309716,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  },
+  {
+    "arm": "B",
+    "i": 4,
+    "fast_rec_s": 69239.1283109476,
+    "p99_us": 240247.0,
+    "cpu_ns": 5457.25,
+    "allocs": 266783,
+    "rss": 123396096,
+    "dur": 0.288854012,
+    "rounds": 1,
+    "fetched": 399000,
+    "consumed": 20000,
+    "failed": {
+      "accepted": 20000,
+      "acknowledged": 0,
+      "consumed": 20000,
+      "offered": 20000,
+      "rejected": 0,
+      "timed_out": 0,
+      "unknown": 0
+    }
+  }
+]
