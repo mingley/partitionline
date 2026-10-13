@@ -52955,8 +52955,8 @@
       "title": "Integrate owned session reauthentication into shared roundtrip RPC callers",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL06-03",
         "KL06-04",

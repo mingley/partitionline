@@ -1860,6 +1860,8 @@ impl Consumer {
             cfg.request_timeout,
         )
         .await?;
+        // BrokerConn::roundtrip reauthenticates this socket when the broker
+        // session lifetime is due (KL06-12).
         // Best-effort: each leader connection negotiates its own Fetch
         // version in `open_node_conn`; the fetch path fails per-peer when a
         // leader cannot speak Fetch v4-18 (KL03-22, mirrors KL03-11).
@@ -2567,6 +2569,7 @@ impl Consumer {
             self.cfg.request_timeout,
         )
         .await?;
+        // Leader Fetch roundtrips honor session_lifetime_ms on this conn (KL06-12).
         Ok(conn)
     }
 

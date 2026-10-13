@@ -1195,7 +1195,7 @@
     "disposition": "missing",
     "entrypoint": "none",
     "evidence": "docs/ROADMAP.md:KL-06",
-    "notes": "Proactive token refresh before expiry and broker session_lifetime_ms reauth are missing; tracked in KL06-01 to KL06-04.",
+    "notes": "OIDC cache/refresh (KL06-03/13) and BrokerPipeline session lifetimes (KL06-04) are present. Shared Consumer/group/share/Admin roundtrip reauth is KL06-12. Producer connection integration remains KL06-11; the short-lived secure-broker matrix is KL06-06.",
     "backlog_tasks": [
       "KL06-06",
       "KL06-11",

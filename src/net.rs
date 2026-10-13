@@ -667,6 +667,65 @@ pub struct BrokerConn {
     pub(crate) reauth_at: Option<Instant>,
     /// In-flight application request count on this connection.
     pub(crate) in_flight: usize,
+    /// Credentials used to honor broker `session_lifetime_ms` on the next
+    /// exclusive [`Self::roundtrip`]. `Debug` redacts secrets.
+    sasl_reauth: Option<SaslReauthMaterial>,
+}
+
+/// Owned SASL material retained so exclusive roundtrips can reauthenticate.
+///
+/// Stored on [`BrokerConn`] after a successful [`crate::protocol::sasl::authenticate`]
+/// so Consumer, group, share, and Admin callers share one transport path.
+/// Passwords and client secrets are redacted in [`fmt::Debug`].
+#[derive(Clone)]
+pub(crate) enum SaslReauthMaterial {
+    /// SASL PLAIN.
+    Plain { user: String, pass: String },
+    /// SASL SCRAM-SHA-256.
+    ScramSha256 { user: String, pass: String },
+    /// SASL SCRAM-SHA-512.
+    ScramSha512 { user: String, pass: String },
+    /// Unsecured OAUTHBEARER principal.
+    OauthBearer { principal: String },
+    /// OIDC client-credentials fields reconstructed into [`crate::protocol::oidc::OidcConfig`].
+    Oidc {
+        token_url: String,
+        client_id: String,
+        client_secret: String,
+        tls: Option<TlsConfig>,
+    },
+}
+
+impl fmt::Debug for SaslReauthMaterial {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Plain { user, .. } => f
+                .debug_struct("Plain")
+                .field("user", user)
+                .field("pass", &"<redacted>")
+                .finish(),
+            Self::ScramSha256 { user, .. } => f
+                .debug_struct("ScramSha256")
+                .field("user", user)
+                .field("pass", &"<redacted>")
+                .finish(),
+            Self::ScramSha512 { user, .. } => f
+                .debug_struct("ScramSha512")
+                .field("user", user)
+                .field("pass", &"<redacted>")
+                .finish(),
+            Self::OauthBearer { principal } => f
+                .debug_struct("OauthBearer")
+                .field("principal", principal)
+                .finish(),
+            Self::Oidc { client_id, .. } => f
+                .debug_struct("Oidc")
+                .field("client_id", client_id)
+                .field("token_url", &"<redacted>")
+                .field("client_secret", &"<redacted>")
+                .finish(),
+        }
+    }
 }
 
 impl BrokerConn {
@@ -743,6 +802,7 @@ impl BrokerConn {
             sasl_session_expires_at: None,
             reauth_at: None,
             in_flight: 0,
+            sasl_reauth: None,
         })
     }
 
@@ -893,6 +953,17 @@ impl BrokerConn {
         self.authenticated_at = None;
         self.sasl_session_expires_at = None;
         self.reauth_at = None;
+    }
+
+    /// Retain credentials used to honor a later broker session lifetime.
+    pub(crate) fn set_sasl_reauth_material(&mut self, material: SaslReauthMaterial) {
+        self.sasl_reauth = Some(material);
+    }
+
+    /// Credentials stored after a successful SASL authenticate, if any.
+    #[must_use]
+    pub(crate) fn sasl_reauth_material(&self) -> Option<&SaslReauthMaterial> {
+        self.sasl_reauth.as_ref()
     }
 
     /// Convert this connection into a pipelined connection manager.
@@ -1162,6 +1233,11 @@ impl BrokerConn {
     }
 
     /// Write a request and read its response bounded by a single absolute `deadline`.
+    ///
+    /// When this socket stored SASL credentials and the broker session
+    /// lifetime is due, the call reauthenticates first with reserved SASL
+    /// correlation ids (KIP-368). Unsupported peers and failed
+    /// reauthentication fail closed without sending the application request.
     pub async fn roundtrip_deadline(
         &mut self,
         api_key: i16,
@@ -1169,6 +1245,10 @@ impl BrokerConn {
         encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         deadline: Deadline,
     ) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        crate::protocol::sasl::ensure_roundtrip_session(self, deadline.remaining()?).await?;
         if self.is_closed() {
             return Err(Error::Closed);
         }
@@ -1196,7 +1276,9 @@ impl BrokerConn {
     ///
     /// Uses a single shared absolute deadline across request write,
     /// response header/body read, and partial-frame progress so delayed
-    /// peers cannot consume two independent full RPC budgets.
+    /// peers cannot consume two independent full RPC budgets. Consumer,
+    /// group, share, and Admin callers share this path, including SASL
+    /// session reauthentication when a lifetime was negotiated.
     pub async fn roundtrip(
         &mut self,
         api_key: i16,
@@ -2076,6 +2158,30 @@ mod tests {
         reserve_frame(&mut buf, 8);
         assert_eq!(buf.capacity(), cap);
         assert_eq!(buf.len(), 16);
+    }
+
+    #[test]
+    fn sasl_reauth_material_debug_redacts_secrets() {
+        let plain = SaslReauthMaterial::Plain {
+            user: "alice".into(),
+            pass: "super-secret".into(),
+        };
+        let dbg = format!("{plain:?}");
+        assert!(dbg.contains("alice"), "{dbg}");
+        assert!(dbg.contains("<redacted>"), "{dbg}");
+        assert!(!dbg.contains("super-secret"), "{dbg}");
+
+        let oidc = SaslReauthMaterial::Oidc {
+            token_url: "http://idp.example/oauth/token".into(),
+            client_id: "cid".into(),
+            client_secret: "csecret".into(),
+            tls: None,
+        };
+        let dbg = format!("{oidc:?}");
+        assert!(dbg.contains("cid"), "{dbg}");
+        assert!(dbg.contains("<redacted>"), "{dbg}");
+        assert!(!dbg.contains("csecret"), "{dbg}");
+        assert!(!dbg.contains("idp.example"), "{dbg}");
     }
 
     #[test]

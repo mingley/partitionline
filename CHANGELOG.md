@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Consumer, ConsumerGroup, ShareGroup, and Admin exclusive roundtrips
+  reauthenticate when a broker SaslAuthenticate session lifetime is due
+  (KIP-368). One shared `BrokerConn::roundtrip` path honors the stored
+  mechanism, including the shared OIDC token manager. SaslAuthenticate v0
+  peers and failed reauthentication fail closed without sending the
+  application request or falling back to plaintext (KL06-12).
+
 - Development and CI use the latest stable Rust only. Package manifests now
   require Rust 1.99; Rust 1.85 is no longer supported.
 - The schema companion checks a bounded Apache Avro Rust 0.22.0 codec against

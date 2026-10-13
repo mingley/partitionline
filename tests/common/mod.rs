@@ -27,6 +27,7 @@ use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
 use partitionline::error;
 use partitionline::group::assign_range_subscribed;
+use partitionline::net::is_reserved_correlation_id;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_filter_results, encode_describe_acls_response,
@@ -288,6 +289,12 @@ struct State {
     oauth_principal: Option<String>,
     /// Override SaslAuthenticate failure messages (broker-echo tests, KL06-07).
     sasl_authenticate_error_message: Option<String>,
+    /// SaslAuthenticate SessionLifetimeMs for v1+ (0 means no reauth window).
+    sasl_session_lifetime_ms: i64,
+    sasl_authenticate_calls: u32,
+    sasl_reserved_authenticate_calls: u32,
+    last_application_api_key: Option<i16>,
+    describe_cluster_calls: u32,
     next_pid: i64,
     last_producer_id: Option<i64>,
     last_produce_producer_epoch: Option<i16>,
@@ -776,6 +783,11 @@ fn new_state(
         scram_user,
         oauth_principal,
         sasl_authenticate_error_message: None,
+        sasl_session_lifetime_ms: 0,
+        sasl_authenticate_calls: 0,
+        sasl_reserved_authenticate_calls: 0,
+        last_application_api_key: None,
+        describe_cluster_calls: 0,
         next_pid: 1000,
         last_producer_id: None,
         last_produce_producer_epoch: None,
@@ -3199,6 +3211,30 @@ impl Mock {
         self.state.lock().last_sasl_authenticate_correlation
     }
 
+    pub fn set_sasl_session_lifetime_ms(&self, session_lifetime_ms: i64) {
+        self.state.lock().sasl_session_lifetime_ms = session_lifetime_ms;
+    }
+
+    pub fn sasl_authenticate_calls(&self) -> u32 {
+        self.state.lock().sasl_authenticate_calls
+    }
+
+    pub fn sasl_reserved_authenticate_calls(&self) -> u32 {
+        self.state.lock().sasl_reserved_authenticate_calls
+    }
+
+    pub fn last_application_api_key(&self) -> Option<i16> {
+        self.state.lock().last_application_api_key
+    }
+
+    pub fn describe_cluster_calls(&self) -> u32 {
+        self.state.lock().describe_cluster_calls
+    }
+
+    pub fn set_sasl_user(&self, creds: Option<(String, String)>) {
+        self.state.lock().sasl_user = creds;
+    }
+
     pub fn last_list_groups_node(&self) -> Option<i32> {
         self.state.lock().last_list_groups_node
     }
@@ -4708,6 +4744,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         {
             break;
         }
+        if !matches!(
+            header.api_key,
+            API_VERSIONS | SASL_HANDSHAKE | SASL_AUTHENTICATE
+        ) {
+            state.lock().last_application_api_key = Some(header.api_key);
+        }
         let mut body = BytesMut::new();
         encode_response_header(
             &mut body,
@@ -5392,6 +5434,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (_include, endpoint, fenced) =
                     decode_describe_cluster_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.describe_cluster_calls = st.describe_cluster_calls.saturating_add(1);
                 st.last_describe_cluster_version = Some(version);
                 st.last_describe_cluster_endpoint_type = Some(endpoint);
                 st.last_describe_cluster_include_fenced = Some(fenced);
@@ -7434,15 +7477,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SASL_AUTHENTICATE => {
                 let version = header.api_version;
-                let (scram_user, oauth_principal, sasl_user, msg_override) = {
+                let (scram_user, oauth_principal, sasl_user, msg_override, session_lifetime_ms) = {
                     let mut st = state.lock();
                     st.last_sasl_authenticate_version = Some(version);
                     st.last_sasl_authenticate_correlation = Some(header.correlation_id);
+                    st.sasl_authenticate_calls = st.sasl_authenticate_calls.saturating_add(1);
+                    if is_reserved_correlation_id(header.correlation_id) {
+                        st.sasl_reserved_authenticate_calls =
+                            st.sasl_reserved_authenticate_calls.saturating_add(1);
+                    }
                     (
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),
                         st.sasl_user.clone(),
                         st.sasl_authenticate_error_message.clone(),
+                        st.sasl_session_lifetime_ms,
                     )
                 };
                 let bytes = decode_sasl_authenticate_request(&mut frame, version).unwrap();
@@ -7464,7 +7513,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         sf.as_bytes(),
-                                        0,
+                                        session_lifetime_ms,
                                     )
                                     .unwrap();
                                 }
@@ -7495,7 +7544,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         fin.as_bytes(),
-                                        0,
+                                        session_lifetime_ms,
                                     )
                                     .unwrap();
                                 }
@@ -7530,7 +7579,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { oauth_err.as_deref() },
                         &[],
-                        0,
+                        if ok { session_lifetime_ms } else { 0 },
                     )
                     .unwrap();
                 } else {
@@ -7548,7 +7597,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { plain_err.as_deref() },
                         &[],
-                        0,
+                        if ok { session_lifetime_ms } else { 0 },
                     )
                     .unwrap();
                 }

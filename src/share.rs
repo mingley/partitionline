@@ -1316,6 +1316,8 @@ impl ShareGroup {
                 self.cfg.request_timeout,
             )
             .await?;
+            // share_roundtrip is BrokerConn::roundtrip, so session lifetimes
+            // are honored before Fetch/Acknowledge (KL06-12).
             let _ = self.share_addresses.insert(node, addr);
             let _ = entry.insert(ShareNodeConnection {
                 conn,

@@ -3287,6 +3287,8 @@ async fn open_coord_with_find_version(
         cfg.request_timeout,
     )
     .await?;
+    // coord_roundtrip uses BrokerConn::roundtrip, which reauthenticates
+    // when the broker session lifetime is due (KL06-12).
     Ok((conn, version))
 }
 

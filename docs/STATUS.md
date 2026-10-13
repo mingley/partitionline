@@ -29,8 +29,10 @@ validation, malformed fields and per-feature errors. The source mapping records
 48 parameter invocations. Java public v0 is unsupported; Rust v0 wire support
 uses an independent SDK parser. See the [qualification record](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
 
-Current gaps include prepared transaction initialization. Fault recovery, session reauthentication and
+Current gaps include prepared transaction initialization. Fault recovery and
 mixed-version behavior need further implementation or independent checks.
+Consumer, group, share and Admin exclusive roundtrips now honor broker SASL
+session lifetimes; Producer connection reauthentication remains a separate card.
 
 ## Broker
 

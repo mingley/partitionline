@@ -4019,6 +4019,8 @@ impl Admin {
             cfg.request_timeout,
         )
         .await?;
+        // Bootstrap and routed Admin RPCs share BrokerConn::roundtrip, which
+        // reauthenticates when the broker session lifetime is due (KL06-12).
         let create_version = versions
             .get(&CREATE_TOPICS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 7))
@@ -8133,6 +8135,7 @@ impl Admin {
             self.cfg.request_timeout,
         )
         .await?;
+        // Per-node Admin sockets reauthenticate on the shared roundtrip (KL06-12).
         Ok(AdminOffsetConn::new(conn, &versions_resp))
     }
 

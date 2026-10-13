@@ -510,6 +510,10 @@ pub async fn authenticate_with_token_provider<P: super::oidc::TokenProvider + ?S
 }
 
 /// Run the one configured SASL mechanism, or return immediately when none is set.
+///
+/// On success the connection retains the chosen credentials so a later
+/// exclusive [`BrokerConn::roundtrip`] can honor `session_lifetime_ms`
+/// (KIP-368) without a second transport engine per caller.
 pub async fn authenticate(
     conn: &mut BrokerConn,
     sasl_plain: Option<&(String, String)>,
@@ -527,20 +531,27 @@ pub async fn authenticate(
         sasl_oidc,
     )?;
     if let Some((u, p)) = sasl_plain {
-        return authenticate_plain(conn, u, p, timeout).await;
-    }
-    if let Some((u, p)) = sasl_scram {
-        return authenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await;
-    }
-    if let Some((u, p)) = sasl_scram_sha512 {
-        return authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
-    }
-    if let Some(oidc) = sasl_oidc {
+        authenticate_plain(conn, u, p, timeout).await?;
+    } else if let Some((u, p)) = sasl_scram {
+        authenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await?;
+    } else if let Some((u, p)) = sasl_scram_sha512 {
+        authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await?;
+    } else if let Some(oidc) = sasl_oidc {
         let token = super::oidc::shared_client_credentials_token(oidc, timeout).await?;
-        return authenticate_oauthbearer_token(conn, &token, timeout).await;
+        authenticate_oauthbearer_token(conn, &token, timeout).await?;
+    } else if let Some(principal) = sasl_oauthbearer {
+        authenticate_oauthbearer(conn, principal, timeout).await?;
+    } else {
+        return Ok(());
     }
-    if let Some(principal) = sasl_oauthbearer {
-        return authenticate_oauthbearer(conn, principal, timeout).await;
+    if let Some(material) = sasl_reauth_from_args(
+        sasl_plain,
+        sasl_scram,
+        sasl_scram_sha512,
+        sasl_oauthbearer,
+        sasl_oidc,
+    ) {
+        conn.set_sasl_reauth_material(material);
     }
     Ok(())
 }
@@ -829,6 +840,119 @@ pub async fn should_reconnect_after_reauth(
         Ok(()) => Ok(false),
         Err(_) => Ok(true),
     }
+}
+
+fn sasl_reauth_from_args(
+    sasl_plain: Option<&(String, String)>,
+    sasl_scram: Option<&(String, String)>,
+    sasl_scram_sha512: Option<&(String, String)>,
+    sasl_oauthbearer: Option<&str>,
+    sasl_oidc: Option<&super::oidc::OidcConfig>,
+) -> Option<crate::net::SaslReauthMaterial> {
+    use crate::net::SaslReauthMaterial;
+    if let Some((user, pass)) = sasl_plain {
+        return Some(SaslReauthMaterial::Plain {
+            user: user.clone(),
+            pass: pass.clone(),
+        });
+    }
+    if let Some((user, pass)) = sasl_scram {
+        return Some(SaslReauthMaterial::ScramSha256 {
+            user: user.clone(),
+            pass: pass.clone(),
+        });
+    }
+    if let Some((user, pass)) = sasl_scram_sha512 {
+        return Some(SaslReauthMaterial::ScramSha512 {
+            user: user.clone(),
+            pass: pass.clone(),
+        });
+    }
+    if let Some(oidc) = sasl_oidc {
+        return Some(SaslReauthMaterial::Oidc {
+            token_url: oidc.token_url.clone(),
+            client_id: oidc.client_id.clone(),
+            client_secret: oidc.client_secret.clone(),
+            tls: oidc.tls.clone(),
+        });
+    }
+    if let Some(principal) = sasl_oauthbearer {
+        return Some(SaslReauthMaterial::OauthBearer {
+            principal: principal.to_string(),
+        });
+    }
+    None
+}
+
+async fn reauthenticate_material(
+    conn: &mut BrokerConn,
+    material: &crate::net::SaslReauthMaterial,
+    timeout: Duration,
+) -> Result<()> {
+    use crate::net::SaslReauthMaterial;
+    match material {
+        SaslReauthMaterial::Plain { user, pass } => {
+            reauthenticate_plain(conn, user, pass, timeout).await
+        }
+        SaslReauthMaterial::ScramSha256 { user, pass } => {
+            reauthenticate_scram(conn, super::scram::ScramAlg::Sha256, user, pass, timeout).await
+        }
+        SaslReauthMaterial::ScramSha512 { user, pass } => {
+            reauthenticate_scram(conn, super::scram::ScramAlg::Sha512, user, pass, timeout).await
+        }
+        SaslReauthMaterial::OauthBearer { principal } => {
+            reauthenticate_oauthbearer(conn, principal, timeout).await
+        }
+        SaslReauthMaterial::Oidc {
+            token_url,
+            client_id,
+            client_secret,
+            tls,
+        } => {
+            let cfg = super::oidc::OidcConfig {
+                token_url: token_url.clone(),
+                client_id: client_id.clone(),
+                client_secret: client_secret.clone(),
+                tls: tls.clone(),
+            };
+            reauthenticate(conn, None, None, None, None, Some(&cfg), timeout).await
+        }
+    }
+}
+
+/// Honor a stored SASL session before an application [`BrokerConn::roundtrip`].
+///
+/// Reauthenticates with reserved SASL correlation ids when the 85% lifetime
+/// threshold is due or the session has expired. SaslAuthenticate v0 peers
+/// and missing credentials fail closed; the connection is never downgraded
+/// to unauthenticated traffic.
+pub async fn ensure_roundtrip_session(conn: &mut BrokerConn, timeout: Duration) -> Result<()> {
+    if !conn.needs_reauth() && !conn.is_session_expired() {
+        return Ok(());
+    }
+    if conn.in_flight() != 0 {
+        if conn.is_session_expired() {
+            conn.close();
+            return Err(Error::protocol(
+                "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+            ));
+        }
+        return Ok(());
+    }
+    let Some(material) = conn.sasl_reauth_material().cloned() else {
+        if conn.is_session_expired() {
+            conn.close();
+            return Err(Error::protocol(
+                "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+            ));
+        }
+        return Ok(());
+    };
+    if let Err(error) = spoken_reauthenticate_version(conn) {
+        conn.close();
+        return Err(error);
+    }
+    reauthenticate_material(conn, &material, timeout).await
 }
 
 #[cfg(test)]
