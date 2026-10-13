@@ -12,7 +12,9 @@
 //! owner must already know a sending leader's directory/configuration; a laggard
 //! rejects an unknown added leader before term or content mutation. Trusted
 //! discovery/continuous autonomous catch-up and native modern KRaft wire remain
-//! separate contracts. [`evaluate_prevote`](crate::raft::protocol::evaluate_prevote)
+//! separate contracts. [`Node::inspect_unadvertised`] evaluates directory
+//! versions locally and does not advertise or apply them.
+//! [`evaluate_prevote`](crate::raft::protocol::evaluate_prevote)
 //! does not append to this WAL and does not advance the committed end. Self-supplied membership never grants an unknown peer
 //! authority.
 //! Defaults bound records to1MiB, chunks/fetches to2MiB (4MiB configurable
@@ -2312,6 +2314,68 @@ impl Node {
         let result = self.controller.respond(input, now_ms);
         self.controller_result(result)
     }
+    /// Fence one unadvertised directory-qualified controller body.
+    ///
+    /// Version 0 and the fixed profile stay on [`Self::respond_controller`].
+    /// A dynamic owner evaluates Vote, BeginQuorumEpoch, and EndQuorumEpoch
+    /// above version 0 against the active directory set. The result is not
+    /// persisted, advertised, or written to the WAL.
+    pub fn inspect_unadvertised(
+        &self,
+        key: i16,
+        version: i16,
+        body: &[u8],
+    ) -> Result<protocol::VoteDisposition, Error> {
+        if version <= 0 || self.log.dynamic.is_none() {
+            return Err(Error::Controller(protocol::Error::UnsupportedVersion));
+        }
+        let local = self.local_voter()?;
+        let persistent = self.controller.state().persistent;
+        match key {
+            52 => {
+                let decoded =
+                    protocol::decode_vote_body(body, version).map_err(Error::Controller)?;
+                let replica_id =
+                    u32::try_from(decoded.replica_id).map_err(|_| Error::InvalidConfig)?;
+                let replica = self
+                    .voters()?
+                    .by_id(replica_id)
+                    .ok_or(Error::Membership(membership::Error::VoterNotFound))?;
+                Ok(protocol::decide_vote_body(
+                    &persistent,
+                    replica.key().directory,
+                    local.directory,
+                    &decoded,
+                ))
+            }
+            53 => {
+                let decoded =
+                    protocol::decode_begin_body(body, version).map_err(Error::Controller)?;
+                Ok(protocol::decide_begin_body(
+                    &persistent,
+                    local.directory,
+                    &decoded,
+                ))
+            }
+            54 => {
+                let decoded =
+                    protocol::decode_end_body(body, version).map_err(Error::Controller)?;
+                let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
+                Ok(
+                    protocol::decide_end_body(&persistent, local_id, local.directory, &decoded)
+                        .map_err(Error::Controller)?
+                        .0,
+                )
+            }
+            _ => Err(Error::Controller(protocol::Error::UnsupportedVersion)),
+        }
+    }
+    fn local_voter(&self) -> Result<membership::Key, Error> {
+        self.voters()?
+            .by_id(self.config.controller.local_id)
+            .map(membership::Voter::key)
+            .ok_or(Error::Membership(membership::Error::VoterNotFound))
+    }
     /// Trigger a due actual election and return its existing Vote0 request payload.
     pub fn campaign(&mut self, now_ms: u64, correlation: i32) -> Result<Option<Vec<u8>>, Error> {
         self.clock(now_ms)?;
@@ -3830,7 +3894,8 @@ impl Node {
     /// have the same full genesis descriptors, excluding local replica identity.
     /// A laggard must learn a newly added directory from a known leader before
     /// that directory leads its catch-up; unknown leaders fail before mutation.
-    /// No Kafka directory wire version or autonomous network loop is enabled.
+    /// Directory wire versions are inspected locally and are not advertised.
+    /// No autonomous network loop is enabled.
     pub fn open_dynamic(
         wal_path: impl AsRef<Path>,
         election_path: impl AsRef<Path>,

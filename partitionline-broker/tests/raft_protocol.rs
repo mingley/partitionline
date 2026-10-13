@@ -760,3 +760,122 @@ fn dynamic_directory_owner_closes_fixed_v0_wire_before_persistent_changes() -> R
     assert!(after.ready);
     Ok(())
 }
+
+#[test]
+fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Result {
+    use partitionline_broker::raft::{
+        membership::{Bootstrap, Endpoint, Key, Voter, Voters},
+        protocol::{
+            BeginEpochBody, EndEpochBody, LeaderEndpoint, PreferredCandidate, VoteBody,
+            VoteDisposition,
+        },
+        replication::{self, Node},
+    };
+    let t = Temp::new()?;
+    let voters = (1u32..=3)
+        .map(|id| {
+            Ok(Voter::new(
+                Key::new(id, [id as u8; 16])?,
+                vec![Endpoint::new(
+                    "CONTROLLER".into(),
+                    "localhost".into(),
+                    9000 + id as u16,
+                )?],
+                0,
+                1,
+            )?)
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let local = voters[0].clone();
+    let genesis = Voters::new(0, election::LogPosition::default(), 1, voters)?;
+    let mut dynamic = Node::open_dynamic(
+        t.path("dynamic-content"),
+        t.path("dynamic-election"),
+        replication::Config::new(config(1)?),
+        Bootstrap::new(local, genesis, "CONTROLLER".into())?,
+        None,
+        0,
+    )?;
+    let before = dynamic.state();
+    let vote = VoteBody {
+        version: 2,
+        cluster_id: Some("cluster-fixed".into()),
+        voter_id: 1,
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        replica_epoch: 1,
+        replica_id: 2,
+        replica_directory: Some([2u8; 16]),
+        voter_directory: Some([1u8; 16]),
+        last_offset_epoch: 0,
+        last_offset: 0,
+        pre_vote: true,
+    };
+    let vote_bytes = protocol::encode_vote_body(&vote)?;
+    assert_eq!(
+        dynamic.inspect_unadvertised(52, 2, &vote_bytes)?,
+        VoteDisposition::PreVoteGranted
+    );
+    let mut stale_vote = vote;
+    stale_vote.voter_directory = Some([9u8; 16]);
+    let stale_vote_bytes = protocol::encode_vote_body(&stale_vote)?;
+    assert_eq!(
+        dynamic.inspect_unadvertised(52, 2, &stale_vote_bytes)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let begin = BeginEpochBody {
+        version: 1,
+        cluster_id: Some("cluster-fixed".into()),
+        voter_id: 1,
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        voter_directory: Some([9u8; 16]),
+        leader_id: 2,
+        leader_epoch: 1,
+        leader_endpoints: vec![LeaderEndpoint {
+            name: "CONTROLLER".into(),
+            host: "localhost".into(),
+            port: 9093,
+        }],
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(53, 1, &protocol::encode_begin_body(&begin)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let end = EndEpochBody {
+        version: 1,
+        cluster_id: Some("cluster-fixed".into()),
+        topic: "__cluster_metadata".into(),
+        partition: 0,
+        leader_id: 2,
+        leader_epoch: 1,
+        preferred: vec![PreferredCandidate {
+            id: 1,
+            directory: Some([9u8; 16]),
+        }],
+        leader_endpoints: Vec::new(),
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(54, 1, &protocol::encode_end_body(&end)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    assert!(matches!(
+        dynamic.inspect_unadvertised(52, 0, &[]),
+        Err(replication::Error::Controller(Error::UnsupportedVersion))
+    ));
+    let mut framed = header(52, 2, 77);
+    framed.extend_from_slice(&vote_bytes);
+    assert!(matches!(
+        dynamic.respond_controller(&framed, 0),
+        Err(replication::Error::Controller(Error::UnsupportedVersion))
+    ));
+    let after = dynamic.state();
+    assert_eq!(after.election.persistent, before.election.persistent);
+    assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
+    assert_eq!(
+        after.election_durable_states,
+        before.election_durable_states
+    );
+    assert!(after.ready);
+    Ok(())
+}
