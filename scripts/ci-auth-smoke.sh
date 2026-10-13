@@ -442,6 +442,10 @@ if grep -E -- '@[0-9]+' "${WORKDIR}/unsecured-on-jwks.log" >/dev/null; then
 fi
 echo "{\"case\":\"unsecured_jwt_rejected_by_jwks\",\"ok\":true,\"detail\":\"rc=${unsecured_jwks_rc}\"}" | tee -a "${WORKDIR}/lifecycle-cases.jsonl"
 
+# shellcheck source=scripts/lib/broker-identity.sh
+source "$ROOT/scripts/lib/broker-identity.sh"
+pl_broker_identity_set_native
+
 python3 - <<PY
 import json, os, pathlib
 root = pathlib.Path("${WORKDIR}")
@@ -466,10 +470,9 @@ report = {
 (root / "lifecycle-report.json").write_text(json.dumps(report, indent=2) + "\n")
 print("ci-auth-smoke: wrote", root / "lifecycle-report.json")
 PY
-cp "${WORKDIR}/lifecycle-report.json" "$LIFECYCLE_REPORT"
+if [[ "$LIFECYCLE_REPORT" != "${WORKDIR}/lifecycle-report.json" ]]; then
+  cp "${WORKDIR}/lifecycle-report.json" "$LIFECYCLE_REPORT"
+fi
 
-# shellcheck source=scripts/lib/broker-identity.sh
-source "$ROOT/scripts/lib/broker-identity.sh"
-pl_broker_identity_set_native
 pl_broker_identity_print "ci-auth-smoke"
 echo "ci-auth-smoke: ok actual=${PL_BROKER_ACTUAL}  (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS + lifecycle @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP} / ${OIDC_JWKS_BOOTSTRAP})"
