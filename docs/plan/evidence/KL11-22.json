@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "in-memory-quotas",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "eb6d2ca7547a8a3ffa5d0a3d3a05c587b95028dd",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib quotas::tests",
     "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
