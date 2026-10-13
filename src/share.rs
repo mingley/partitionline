@@ -1076,8 +1076,10 @@ impl ShareGroup {
     /// Fetch records from assigned share partitions.
     ///
     /// Returns [`ShareRecords`], which indexes like a slice of [`ShareRecord`].
-    /// `max_poll_records` caps each returned poll. When unset, the legacy
-    /// acquisition request cap of 16 records per broker is preserved.
+    /// `max_poll_records` caps each returned poll and the ShareFetch
+    /// `MaxRecords` and `BatchSize` fields. When unset, both stay at the
+    /// legacy 16 records per broker. `max_bytes` and
+    /// `max_partition_fetch_bytes` are the request byte limits.
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
     /// subscribed to any topics.`).
@@ -1462,7 +1464,7 @@ impl ShareGroup {
                 max_records,
                 &topics,
                 &[],
-                max_records.min(16),
+                max_records,
                 ShareFetchRequestOptions {
                     acquire_mode: self.acquire_mode as i8,
                     is_renew_ack: false,

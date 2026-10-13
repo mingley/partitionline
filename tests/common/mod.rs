@@ -626,6 +626,9 @@ struct State {
     last_share_acquire_mode: i8,
     last_share_renew_ack: bool,
     last_share_fetch_epoch: Option<i32>,
+    last_share_fetch_max_records: Option<i32>,
+    last_share_fetch_batch_size: Option<i32>,
+    last_share_fetch_max_bytes: Option<i32>,
     last_share_fetch_version: Option<i16>,
     last_share_ack_epoch: Option<i32>,
     last_share_ack_version: Option<i16>,
@@ -1099,6 +1102,9 @@ fn new_state(
         last_share_acquire_mode: 0,
         last_share_renew_ack: false,
         last_share_fetch_epoch: None,
+        last_share_fetch_max_records: None,
+        last_share_fetch_batch_size: None,
+        last_share_fetch_max_bytes: None,
         last_share_fetch_version: None,
         last_share_ack_epoch: None,
         last_share_ack_version: None,
@@ -3511,6 +3517,18 @@ impl Mock {
 
     pub fn last_share_fetch_epoch(&self) -> Option<i32> {
         self.state.lock().last_share_fetch_epoch
+    }
+
+    pub fn last_share_fetch_max_records(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_max_records
+    }
+
+    pub fn last_share_fetch_batch_size(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_batch_size
+    }
+
+    pub fn last_share_fetch_max_bytes(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_max_bytes
     }
 
     pub fn last_share_fetch_version(&self) -> Option<i16> {
@@ -7624,8 +7642,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SHARE_FETCH => {
                 let version = header.api_version;
-                let (group_id, member_id, epoch, max_records, topics, _, _, _, _, _, options) =
-                    decode_share_fetch_request_with_options(&mut frame, version).unwrap();
+                let (
+                    group_id,
+                    member_id,
+                    epoch,
+                    max_records,
+                    topics,
+                    _,
+                    batch_size,
+                    _,
+                    _,
+                    max_bytes,
+                    options,
+                ) = decode_share_fetch_request_with_options(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_fetch_version = Some(version);
                 st.last_share_acquire_mode = options.acquire_mode;
@@ -7641,6 +7670,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .collect();
                 st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
                 st.last_share_fetch_epoch = Some(epoch);
+                st.last_share_fetch_max_records = Some(max_records);
+                st.last_share_fetch_batch_size = Some(batch_size);
+                st.last_share_fetch_max_bytes = Some(max_bytes);
                 st.share_fetch_history.push((node_id, epoch));
                 let injected_error = st
                     .share_session_faults

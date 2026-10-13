@@ -1,0 +1,20 @@
+{
+  "id": "KL09-49",
+  "status": "done",
+  "disposition": "accepted",
+  "source_sha": "WILL_REPLACE",
+  "baseline_sha": "ff54c1ac",
+  "hypothesis": "ShareFetch BatchSize was capped at 16 even when max_poll_records was higher, so a configured poll could not ask for more than 16 records per broker.",
+  "commands": [
+    "cargo test --locked --test share_semantics (20 pass, 1 ignored), including share_fetch_request_uses_configured_record_and_byte_limits",
+    "cargo clippy --locked --lib --tests --all-features -- -D warnings (pass)"
+  ],
+  "results": {
+    "wire": "max_poll_records 64 is sent as MaxRecords 64 and BatchSize 64. max_bytes 4096 is sent as MaxBytes 4096. Unset max_poll_records still requests 16.",
+    "correctness": "Existing share session, acknowledgement, lock, and coordinator tests still pass. No new configuration field."
+  },
+  "limits": [
+    "lb-share-2leader was not re-run. The default request size is still 16 records, so that cell's speed is unchanged.",
+    "The gain is for callers that set max_poll_records above 16."
+  ]
+}

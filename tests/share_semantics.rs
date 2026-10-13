@@ -64,6 +64,24 @@ fn assert_broker(error: Error, expected: i16) {
 }
 
 #[tokio::test]
+async fn share_fetch_request_uses_configured_record_and_byte_limits() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"wide")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(64);
+    cfg.max_bytes = 4096;
+    cfg.max_partition_fetch_bytes = 2048;
+    let mut group = ShareGroup::join(cfg, "limits", "t").await.unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(mock.last_share_fetch_max_records(), Some(64));
+    assert_eq!(mock.last_share_fetch_batch_size(), Some(64));
+    assert_eq!(mock.last_share_fetch_max_bytes(), Some(4096));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     let mock = common::Mock::start().await;
     v2(&mock);
