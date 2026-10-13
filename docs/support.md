@@ -26,7 +26,7 @@ still tracks broader correctness, fault and performance work.
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
 | Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on **3.9.1** / **4.1.0** | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
 | Default features | gzip through `zlib-rs`; TLS through rustls and Ring | `Cargo.toml` defaults + deny/audit lanes |
-| Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
+| Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS, plus short-lived reauth, IdP outage, idle reconnect, and JWKS vs unsecured JWT (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
 
 KL01-10 qualifies the three current broker distributions at source `8bec4f2`
 in [CI run 36869103809](https://github.com/mingley/partitionline/actions/runs/36869103809).

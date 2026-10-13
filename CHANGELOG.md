@@ -14,6 +14,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   peers and failed reauthentication fail closed without sending the
   application request or falling back to plaintext (KL06-12).
 
+- Auth smoke now exercises short broker session lifetimes, IdP outage and
+  recovery, idle reconnect, and a JWKS-validating OAUTHBEARER listener
+  distinct from the unsecured-JWT test validator (KL06-06).
+
 - Development and CI use the latest stable Rust only. Package manifests now
   require Rust 1.99; Rust 1.85 is no longer supported.
 - The schema companion checks a bounded Apache Avro Rust 0.22.0 codec against

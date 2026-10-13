@@ -106,10 +106,14 @@ advisories when enabled). Do not open a public issue with exploit details.
 - Real-broker smoke (`scripts/ci-broker-smoke.sh`) checks live produce/fetch
   against Apache Kafka in CI when Docker is available.
 - Auth smoke (`scripts/ci-auth-smoke.sh`) boots an isolated KRaft broker with
-  SASL_SSL + PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER (Kafka unsecured JWT validator),
-  produces via `examples/sasl` and `examples/oauth` (rustls), and checks
-  that TLS-without-SASL fails closed. Soft-skips without Java/openssl/Kafka
-  unless `REQUIRE_AUTH=1`.
+  SASL_SSL + PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER (Kafka unsecured JWT
+  validator), a JWKS-validating OAUTHBEARER listener, and mTLS. It produces via
+  `examples/sasl`, `examples/oauth`, and `examples/tls` (rustls), then runs
+  `examples/auth_lifecycle` across short `connections.max.reauth.ms` windows
+  (Admin, Consumer, classic group), idle reconnect, bad-password rejection,
+  IdP outage and recovery, and unsecured-JWT rejection on the JWKS listener.
+  Failed attempts keep logs. Soft-skips without Java/openssl/Kafka unless
+  `REQUIRE_AUTH=1`.
 - Dependency advisories: CI `audit` job (`cargo audit`) and `deny` job
   (`cargo deny` via `deny.toml` / `scripts/ci-deny.sh`). Mock TLS uses the
   `openssl` CLI (not `rcgen`), so `RUSTSEC-2026-0009` (`time`) is not ignored.
