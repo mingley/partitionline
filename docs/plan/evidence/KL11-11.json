@@ -4,7 +4,7 @@
   "acceptance_met": true,
   "disposition": "classified-record-compaction",
   "production_qualified": false,
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "09689b281316170ae173f4054a30c1993038c788",
   "commands": [
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib compaction::cleaner_tests",
     "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test compaction",
