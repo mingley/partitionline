@@ -2,7 +2,7 @@
   "id": "KL09-49",
   "status": "done",
   "disposition": "accepted",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "08184cef381ce6513a931331202efdd4da5df30c",
   "baseline_sha": "ff54c1ac",
   "hypothesis": "ShareFetch BatchSize was capped at 16 even when max_poll_records was higher, so a configured poll could not ask for more than 16 records per broker.",
   "commands": [
