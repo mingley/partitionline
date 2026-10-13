@@ -1,0 +1,28 @@
+{
+  "task": "KL11-30",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "cooperative-static-group-histories",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test group_transition_histories",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --test group_transition_histories -- -D warnings"
+  ],
+  "results": {
+    "history_tests_passed": 1,
+    "history_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "An overlapping join is refused and recorded. The partitions stay with their original owner.",
+    "An undelivered partition is not committed. A delivered partition is committed. A stale generation stores nothing and leaves the committed offset in place.",
+    "After a cooperative revoke, another member can own the freed partition. A static instance replacement removes the old member id and does not duplicate ownership.",
+    "Reopen keeps the committed offsets and the disjoint assignment. Session expiry removes the silent member and keeps the offset that member had already committed."
+  ],
+  "limits": [
+    "The history drives the local lifecycle and offset journals. It is not a JoinGroup, SyncGroup, Heartbeat, or OffsetCommit RPC trace against Apache Kafka.",
+    "Failed attempts recorded are overlap-join, undelivered-commit, stale-generation, and member-crash.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}
