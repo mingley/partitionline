@@ -1,0 +1,34 @@
+{
+  "task": "KL11-14",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "aggregate-of-qualified-constituents",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --test metadata_quorum --test raft_replication --test raft_membership --test raft_election"
+  ],
+  "results": {
+    "metadata_quorum": {"passed": 2, "failed": 0},
+    "raft_replication": {"passed": 29, "failed": 0},
+    "raft_membership": {"passed": 31, "failed": 0},
+    "raft_election": {"passed": 10, "failed": 0}
+  },
+  "constituents": [
+    "docs/plan/evidence/KL11-73.json",
+    "docs/plan/evidence/KL11-74.json",
+    "docs/plan/evidence/KL11-76.json",
+    "docs/plan/evidence/KL11-15.json"
+  ],
+  "contract": [
+    "Three-node and five-node TCP metadata application keeps a committed topic visible after a minority restart and refuses a follower create.",
+    "Replication tests cover committed-prefix conflicts, minority partition, lost ack, truncation of an uncommitted suffix, stale terms, and snapshot catch-up.",
+    "Membership tests cover addition, removal, stale directory identity, and three/five voter fault restart. Election tests cover stale leader fencing and losing partitions."
+  ],
+  "limits": [
+    "This close records the current-source constituent suites. It does not add a new replication implementation.",
+    "Not a production qualification. Native Kafka Fetch, FetchSnapshot, and KRaft compatibility stay on KL11-70.",
+    "Data partition placement, ISR, and replicated produce acknowledgments stay on KL11-16 through KL11-19.",
+    "No fastest-server claim and Suite HOLD is unchanged."
+  ]
+}

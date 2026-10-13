@@ -29611,8 +29611,8 @@
       "title": "Replicate and commit the metadata quorum log",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-coordinator-20261003",
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-12",
         "KL11-13",
@@ -29641,7 +29641,8 @@
       "evidence": [
         "docs/evidence/broker/KL11-14/application/proposal-02/handoff.json",
         "docs/evidence/integration/latest-stable-20261005/summary.json",
-        "docs/evidence/integration/open-cards-20261006/summary.json"
+        "docs/evidence/integration/open-cards-20261006/summary.json",
+        "docs/plan/evidence/KL11-14.json"
       ],
       "write_set": [
         "docs/evidence/broker/KL11-14/",
@@ -29652,7 +29653,7 @@
         "partitionline-broker/src/raft/runtime.rs",
         "partitionline-broker/tests/metadata_quorum.rs"
       ],
-      "scope": "Aggregate remains open until fixed-membership replication, safe dynamic quorum transitions and an owned autonomous peer runtime satisfy the original contract. Child73 owns initial typed runtime,74 membership transitions and76 actual TCP ownership. Native Kafka wire integration remains separately tracked by70. Installed explicit quorum Catalog/Router backend applies only committed commands and persists exact source-position decisions before publication. Legacy local backend remains available. Request-driven reads are committed-prefix reads; data partition placement, full failover qualification and native Kafka metadata records remain open.",
+      "scope": "Fixed-membership replication, dynamic quorum transitions and the owned TCP peer runtime are the done constituents KL11-73, KL11-74 and KL11-76. Current-source metadata, replication, membership and election suites passed together; see docs/plan/evidence/KL11-14.json. Child73 owns initial typed runtime,74 membership transitions and76 actual TCP ownership. Native Kafka wire integration remains separately tracked by70. Installed explicit quorum Catalog/Router backend applies only committed commands and persists exact source-position decisions before publication. Legacy local backend remains available. Request-driven reads are committed-prefix reads; data partition placement, full failover qualification and native Kafka metadata records remain open.",
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
           "partitionline-broker/src/lib.rs"
