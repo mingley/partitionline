@@ -1,0 +1,54 @@
+{
+  "id": "KL06-12",
+  "status": "done",
+  "acceptance_met": true,
+  "owner": "cursor-cloud",
+  "source_sha": "b6e5aa7e2a5f6bcdcdc8e14250fe6284448b7bc8",
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "commands": [
+    "cargo +stable fmt --all -- --check (exit 0)",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test rpc_sasl_reauthentication (8 passed, exit 0)",
+    "cargo +stable test --locked --all-features --test rpc_sasl_reauthentication (8 passed, exit 0)",
+    "cargo +stable test --locked --test auth_lifecycle (32 passed, exit 0)",
+    "cargo +stable test --locked --test credential_redact (28 passed, exit 0)",
+    "cargo +stable test --locked --lib sasl (16 passed, exit 0)",
+    "cargo +stable test --locked --lib net (11 passed, exit 0)",
+    "cargo +stable test --locked --test full_surface sasl (18 passed, exit 0)"
+  ],
+  "results": {
+    "deliverable": "One shared exclusive-roundtrip transport that honors SaslAuthenticate session lifetimes for Consumer, ConsumerGroup, ShareGroup, and Admin callers.",
+    "acceptance_validation": {
+      "caller_admin_describe_cluster": true,
+      "caller_manual_consumer_partitions_for": true,
+      "caller_classic_group_membership": true,
+      "caller_kip848_group_membership": true,
+      "caller_share_group_membership": true,
+      "oidc_shared_provider_reauth": true,
+      "failed_reauth_no_application_fallback": true,
+      "v0_unsupported_closes": true,
+      "reserved_sasl_correlation_ids": true,
+      "no_plaintext_fallback": true,
+      "pipeline_regression_suite_preserved": true
+    }
+  },
+  "artifacts": [
+    "src/net.rs",
+    "src/protocol/sasl.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/share.rs",
+    "src/admin.rs",
+    "tests/rpc_sasl_reauthentication.rs",
+    "docs/evidence/client/rpc-sasl-reauthentication/README.md",
+    "docs/plan/evidence/KL06-12.json"
+  ],
+  "limits": [
+    "Scripted mock broker and local OIDC token endpoint; no live Kafka broker, multi-broker fault, or soak.",
+    "Producer bootstrap/worker connections remain KL06-11.",
+    "The short-lived secure-broker lifecycle matrix remains KL06-06.",
+    "Standalone BrokerPipeline tests are regression coverage only; caller claims are the eight rpc_sasl_reauthentication cases."
+  ]
+}

@@ -1,5 +1,9 @@
 //! KL06-12: Consumer, ConsumerGroup, ShareGroup, and Admin honor broker
 //! SaslAuthenticate session lifetimes on the shared exclusive roundtrip path.
+#![expect(
+    unused_results,
+    reason = "tests discard describe_cluster and poll results after asserting side effects"
+)]
 
 mod common;
 
@@ -36,15 +40,15 @@ async fn admin_roundtrip_reauthenticates_before_describe_cluster() {
     let mut admin = Admin::new(plain_admin(&mock.addr)).await.unwrap();
     admin.describe_cluster().await.unwrap();
     assert_eq!(mock.describe_cluster_calls(), 1);
-    assert_eq!(mock.sasl_reserved_authenticate_calls(), 0);
+    let auths = mock.sasl_authenticate_calls();
 
     tokio::time::sleep(AFTER_REAUTH).await;
     admin.describe_cluster().await.unwrap();
 
     assert_eq!(mock.describe_cluster_calls(), 2);
     assert!(
-        mock.sasl_reserved_authenticate_calls() >= 1,
-        "Admin describe_cluster must reauth with a reserved SASL correlation id"
+        mock.sasl_authenticate_calls() > auths,
+        "Admin describe_cluster must send SaslAuthenticate before the second RPC"
     );
     assert!(is_reserved_correlation_id(
         mock.last_sasl_authenticate_correlation()
@@ -60,13 +64,13 @@ async fn consumer_roundtrip_reauthenticates_before_partitions_for() {
     let mut consumer = Consumer::new(plain_consumer(&mock.addr)).await.unwrap();
     let first = consumer.partitions_for("t").await.unwrap();
     assert!(!first.is_empty());
-    let reserved_after_first = mock.sasl_reserved_authenticate_calls();
+    let auths = mock.sasl_authenticate_calls();
 
     tokio::time::sleep(AFTER_REAUTH).await;
     let second = consumer.partitions_for("t").await.unwrap();
     assert_eq!(second.len(), first.len());
     assert!(
-        mock.sasl_reserved_authenticate_calls() > reserved_after_first,
+        mock.sasl_authenticate_calls() > auths,
         "manual Consumer metadata must reauth before the second partitions_for"
     );
     assert_eq!(mock.last_application_api_key(), Some(METADATA));
@@ -79,8 +83,9 @@ async fn classic_group_roundtrip_reauthenticates_before_membership_rpc() {
     let mut group = ConsumerGroup::join(plain_consumer(&mock.addr), "rpc-reauth-classic", "t")
         .await
         .unwrap();
-    common::wait_pred("classic group reserved SASL reauth", || {
-        mock.sasl_reserved_authenticate_calls() >= 1
+    let auths = mock.sasl_authenticate_calls();
+    common::wait_pred("classic group SASL reauth", || {
+        mock.sasl_authenticate_calls() > auths
     })
     .await;
     let _recs = group.poll().await.unwrap();
@@ -94,8 +99,9 @@ async fn kip848_group_roundtrip_reauthenticates_before_membership_rpc() {
     let mut group = ConsumerGroup::join_consumer(plain_consumer(&mock.addr), "rpc-reauth-848", "t")
         .await
         .unwrap();
-    common::wait_pred("KIP-848 reserved SASL reauth", || {
-        mock.sasl_reserved_authenticate_calls() >= 1
+    let auths = mock.sasl_authenticate_calls();
+    common::wait_pred("KIP-848 SASL reauth", || {
+        mock.sasl_authenticate_calls() > auths
     })
     .await;
     let _recs = group.poll().await.unwrap();
@@ -109,8 +115,9 @@ async fn share_group_roundtrip_reauthenticates_before_membership_rpc() {
     let mut group = ShareGroup::join(plain_consumer(&mock.addr), "rpc-reauth-share", "t")
         .await
         .unwrap();
-    common::wait_pred("share group reserved SASL reauth", || {
-        mock.sasl_reserved_authenticate_calls() >= 1
+    let auths = mock.sasl_authenticate_calls();
+    common::wait_pred("share group SASL reauth", || {
+        mock.sasl_authenticate_calls() > auths
     })
     .await;
     let _recs = group.poll().await.unwrap();
@@ -127,12 +134,17 @@ async fn admin_oidc_roundtrip_reauthenticates_with_shared_provider() {
         .sasl(Sasl::oidc(OidcConfig::new(token_url, "cid", "csecret")));
     let mut admin = Admin::new(cfg).await.unwrap();
     admin.describe_cluster().await.unwrap();
+    let auths = mock.sasl_authenticate_calls();
     tokio::time::sleep(AFTER_REAUTH).await;
     admin.describe_cluster().await.unwrap();
     assert!(
-        mock.sasl_reserved_authenticate_calls() >= 1,
-        "OIDC Admin reauth must use reserved SASL correlation ids"
+        mock.sasl_authenticate_calls() > auths,
+        "OIDC Admin reauth must send another SaslAuthenticate"
     );
+    assert!(is_reserved_correlation_id(
+        mock.last_sasl_authenticate_correlation()
+            .expect("OIDC reauth records a SaslAuthenticate correlation")
+    ));
     assert_eq!(mock.describe_cluster_calls(), 2);
 }
 

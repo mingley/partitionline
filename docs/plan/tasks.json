@@ -52955,7 +52955,7 @@
       "title": "Integrate owned session reauthentication into shared roundtrip RPC callers",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL06-03",
@@ -52982,7 +52982,31 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "b6e5aa7e2a5f6bcdcdc8e14250fe6284448b7bc8",
+          "commands": [
+            "cargo +stable fmt --all -- --check (exit 0)",
+            "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+            "cargo +stable test --locked --test rpc_sasl_reauthentication (8 passed, exit 0)",
+            "cargo +stable test --locked --all-features --test rpc_sasl_reauthentication (8 passed, exit 0)",
+            "cargo +stable test --locked --test auth_lifecycle (32 passed, exit 0)",
+            "cargo +stable test --locked --test credential_redact (28 passed, exit 0)",
+            "cargo +stable test --locked --lib sasl (16 passed, exit 0)",
+            "cargo +stable test --locked --lib net (11 passed, exit 0)",
+            "cargo +stable test --locked --test full_surface sasl (18 passed, exit 0)"
+          ],
+          "results": "Shared BrokerConn::roundtrip reauthenticates Admin, manual Consumer, classic and KIP-848 groups, and ShareGroup before dispatch. OIDC uses the shared token manager. Failed reauth does not send the application RPC. SaslAuthenticate v0 is Unsupported and closes. Pipeline and redaction suites still pass.",
+          "artifacts": [
+            "docs/plan/evidence/KL06-12.json",
+            "docs/evidence/client/rpc-sasl-reauthentication/README.md",
+            "tests/rpc_sasl_reauthentication.rs"
+          ],
+          "limits": [
+            "Mock broker and local OIDC endpoint only. Producer reauth remains KL06-11. Secure-broker matrix remains KL06-06."
+          ]
+        }
+      ],
       "write_set": [
         "src/net.rs",
         "src/protocol/sasl.rs",
