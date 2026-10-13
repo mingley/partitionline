@@ -1413,6 +1413,156 @@ fn read_vote_endpoints(reader: &mut Reader<'_>) -> Result<Vec<VoteNodeEndpoint>,
     Ok(endpoints)
 }
 
+/// BeginQuorumEpoch and EndQuorumEpoch share this response body.
+///
+/// Version 0 is classic and matches the controller handler. Version 1 is
+/// flexible, carries leader endpoints, and is not advertised.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpochResponseBody {
+    /// Response version, 0 or 1.
+    pub version: i16,
+    /// Top-level error code.
+    pub error_code: i16,
+    /// Metadata topic.
+    pub topic: String,
+    /// Metadata partition.
+    pub partition: i32,
+    /// Partition error code.
+    pub partition_error: i16,
+    /// Current leader, or `-1` when unknown.
+    pub leader_id: i32,
+    /// Leader epoch.
+    pub leader_epoch: i32,
+    /// Leader endpoints. Empty on version 0.
+    pub endpoints: Vec<VoteNodeEndpoint>,
+}
+
+/// Encode a BeginQuorumEpoch or EndQuorumEpoch response body.
+pub fn encode_epoch_response(body: &EpochResponseBody) -> Result<Vec<u8>, Error> {
+    if !(0..=1).contains(&body.version) || body.endpoints.len() > MAX_ARRAY {
+        return Err(Error::InvalidConfig);
+    }
+    if body.version == 0 && !body.endpoints.is_empty() {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = body.version >= 1;
+    let mut out = allocate(body.topic.len() + 48)?;
+    out.extend_from_slice(&body.error_code.to_be_bytes());
+    write_count(&mut out, 1, flexible)?;
+    string(&mut out, &body.topic, flexible)?;
+    write_count(&mut out, 1, flexible)?;
+    out.extend_from_slice(&body.partition.to_be_bytes());
+    out.extend_from_slice(&body.partition_error.to_be_bytes());
+    out.extend_from_slice(&body.leader_id.to_be_bytes());
+    out.extend_from_slice(&body.leader_epoch.to_be_bytes());
+    if !flexible {
+        return Ok(out);
+    }
+    out.extend_from_slice(&[0, 0]);
+    write_tagged_endpoints(&mut out, &body.endpoints)?;
+    Ok(out)
+}
+
+/// Decode a body produced by [`encode_epoch_response`].
+pub fn decode_epoch_response(bytes: &[u8], version: i16) -> Result<EpochResponseBody, Error> {
+    if !(0..=1).contains(&version) {
+        return Err(Error::InvalidConfig);
+    }
+    let flexible = version >= 1;
+    let mut reader = Reader::new(bytes, flexible, protocol::Limits::default());
+    let error_code = reader.i16()?;
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let topic = reader.string()?.to_owned();
+    if reader.count()? != 1 {
+        return Err(Error::InvalidConfig);
+    }
+    let partition = reader.i32()?;
+    let partition_error = reader.i16()?;
+    let leader_id = reader.i32()?;
+    let leader_epoch = reader.i32()?;
+    let endpoints = if flexible {
+        reader.tags()?;
+        reader.tags()?;
+        read_vote_endpoints(&mut reader)?
+    } else {
+        Vec::new()
+    };
+    reader.finish()?;
+    Ok(EpochResponseBody {
+        version,
+        error_code,
+        topic,
+        partition,
+        partition_error,
+        leader_id,
+        leader_epoch,
+        endpoints,
+    })
+}
+
+/// Accept an epoch response without changing `persistent`.
+///
+/// Version 0 stays on the existing handler. Version 1 is not applied: one
+/// non-empty endpoint naming `leader_id` is only `NotAdvertised`.
+pub fn decide_epoch_response(
+    persistent: &election::PersistentState,
+    body: &EpochResponseBody,
+) -> VoteDisposition {
+    let _ = persistent;
+    if body.version == 0 {
+        return if body.endpoints.is_empty() {
+            VoteDisposition::DurableV0
+        } else {
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        };
+    }
+    if body.version != 1 {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
+    }
+    if body.leader_id < 0 {
+        return if body.endpoints.is_empty() {
+            VoteDisposition::NotAdvertised
+        } else {
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        };
+    }
+    match body.endpoints.as_slice() {
+        [endpoint] if endpoint.node_id == body.leader_id && !endpoint.host.is_empty() => {
+            VoteDisposition::NotAdvertised
+        }
+        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    }
+}
+
+fn write_tagged_endpoints(out: &mut Vec<u8>, endpoints: &[VoteNodeEndpoint]) -> Result<(), Error> {
+    if endpoints.is_empty() {
+        out.push(0);
+        return Ok(());
+    }
+    let mut payload = Vec::new();
+    write_count(
+        &mut payload,
+        u32::try_from(endpoints.len()).map_err(|_| Error::InvalidConfig)?,
+        true,
+    )?;
+    for endpoint in endpoints {
+        payload.extend_from_slice(&endpoint.node_id.to_be_bytes());
+        string(&mut payload, &endpoint.host, true)?;
+        payload.extend_from_slice(&endpoint.port.to_be_bytes());
+        payload.push(0);
+    }
+    varint(out, 1);
+    varint(out, 0);
+    varint(
+        out,
+        u32::try_from(payload.len()).map_err(|_| Error::InvalidConfig)?,
+    );
+    out.extend_from_slice(&payload);
+    Ok(())
+}
+
 /// One replica row in a DescribeQuorum response.
 ///
 /// `directory` is present only on version 2. Fetch and caught-up timestamps
@@ -2903,5 +3053,63 @@ mod prevote_tests {
         );
         assert_eq!(persistent, before);
         assert!(CONTROLLER_API_VERSIONS.iter().all(|api| api.api_key != 55));
+    }
+
+    #[test]
+    fn epoch_response_v0_matches_the_handler_and_v1_endpoint_is_not_applied() {
+        let config = Config::new(1, vec![1, 2], "cluster-1".to_owned())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let election = election::State {
+            persistent: state(4),
+            role: election::Role::Follower,
+            leader: Some(4),
+            deadline_ms: 0,
+            granted_votes: 0,
+            poisoned: false,
+        };
+        let classic = EpochResponseBody {
+            version: 0,
+            error_code: 0,
+            topic: config.topic.clone(),
+            partition: config.partition,
+            partition_error: 0,
+            leader_id: 4,
+            leader_epoch: wire_epoch(4).unwrap_or_else(|error| panic!("{error:?}")),
+            endpoints: Vec::new(),
+        };
+        for key in [53_i16, 54] {
+            let framed = response(key, 9, 0, Some((0, false)), &config, election)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            let encoded =
+                encode_epoch_response(&classic).unwrap_or_else(|error| panic!("{error:?}"));
+            assert_eq!(&framed[4..], encoded.as_slice());
+        }
+        let modern = EpochResponseBody {
+            version: 1,
+            endpoints: vec![VoteNodeEndpoint {
+                node_id: 4,
+                host: "127.0.0.1".to_owned(),
+                port: 9093,
+            }],
+            ..classic
+        };
+        let bytes = encode_epoch_response(&modern).unwrap_or_else(|error| panic!("{error:?}"));
+        let decoded = decode_epoch_response(&bytes, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(decoded.endpoints[0].port, 9093);
+        let persistent = state(4);
+        let before = persistent;
+        assert_eq!(
+            decide_epoch_response(&persistent, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut stale = decoded;
+        stale.endpoints[0].node_id = 9;
+        assert_eq!(
+            decide_epoch_response(&persistent, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[2].max_version, 0);
+        assert_eq!(CONTROLLER_API_VERSIONS[3].max_version, 0);
     }
 }
