@@ -18817,13 +18817,14 @@
     {
       "id": "KL09-63",
       "title": "Measure allocator choice and publish the performance build recipe",
-      "priority": "P2", "kind": "documentation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "documentation", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL09-62"],
       "files": ["benchmarks/runtime/", "docs/guide.md"],
       "deliverable": "Allocator comparisons in benchmark binaries only, and an adopter-facing performance build recipe built from KL09-62 and this card's evidence.",
       "acceptance": ["Allocator crates appear only in workspace-excluded benchmark crates, never in partitionline.", "Peers are built with their documented optimized builds when compared, and the recipe states what is host-specific."],
       "validation": ["python3 scripts/benchmark-report.py <artifact> (exit 0) for every result artifact", "Follow the recipe from a clean checkout and reproduce one headline configuration."],
-      "evidence": []
+      "write_set": ["benchmarks/runtime/", "docs/guide.md", "docs/plan/tasks.json", "docs/plan/evidence/KL09-63.json", "docs/evidence/perf/KL09-63/"],
+      "evidence": ["docs/plan/evidence/KL09-63.json"]
     },
     {
       "id": "KL09-64",

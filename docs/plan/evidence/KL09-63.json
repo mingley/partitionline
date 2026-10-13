@@ -1,0 +1,27 @@
+{
+  "id": "KL09-63",
+  "status": "done",
+  "source_sha": "WILL_REPLACE",
+  "disposition": "qualified-local-exploratory",
+  "commands": [
+    "cargo build --release --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve (system census)",
+    "cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features jemalloc",
+    "cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features mimalloc",
+    "Five interleaved triples of runtime --cell nb-fetch-bulk --repetitions 1",
+    "python3 scripts/benchmark-report.py on system, jemalloc, and mimalloc rep0 (each valid, 0 errors)"
+  ],
+  "results": "Allocators are benchmark-crate features only. On this host mimalloc raised nb-fetch-bulk records/s by a paired mean 8.3% (95% CI 4.5 to 12.1) and lowered CPU-ns/record 16.6% (CI 0.4 to 32.8) while raising peak RSS about 16%. Jemalloc records/s and CPU intervals included zero; RSS rose about 12%. The published recipe keeps the library on the system allocator and release defaults. KL09-62 did not justify a portable LTO or PGO switch.",
+  "artifacts": [
+    "docs/evidence/perf/KL09-63/README.md",
+    "docs/evidence/perf/KL09-63/rows.json",
+    "docs/evidence/perf/KL09-63/system-rep0.result.json",
+    "docs/evidence/perf/KL09-63/jemalloc-rep0.result.json",
+    "docs/evidence/perf/KL09-63/mimalloc-rep0.result.json"
+  ],
+  "limits": [
+    "Local unsigned null-broker cell. Not a Kafka comparison and not a fastest-client claim. Suite HOLD remains active.",
+    "Host frequency was unpinned. Five repetitions. RSS increased for both alternate allocators.",
+    "Allocation census is the system wrapper. Alternate allocators report zero counted allocations because they replace that wrapper.",
+    "No peer binaries were rebuilt in this card. Peer optimized builds stay in their own evidence."
+  ]
+}

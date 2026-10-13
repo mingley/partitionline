@@ -10,9 +10,10 @@ mod history;
 #[path = "../../../../examples/common/bench_produce_settings.rs"]
 mod settings;
 
-// Census is process-wide so runtime worker allocations are included.
-#[global_allocator]
-static ALLOCATOR: codec::CountingAlloc = codec::CountingAlloc;
+// Census is process-wide so runtime worker allocations are included,
+// unless an alternate benchmark allocator feature replaces it.
+#[path = "../global_alloc.rs"]
+mod global_alloc;
 
 use std::time::Instant;
 

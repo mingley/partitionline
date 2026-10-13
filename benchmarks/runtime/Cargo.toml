@@ -8,6 +8,8 @@ description = "Runtime measurements against null and native Kafka brokers. Stand
 
 [features]
 tracing = ["partitionline/tracing"]
+jemalloc = ["dep:tikv-jemallocator"]
+mimalloc = ["dep:mimalloc"]
 
 [dependencies]
 partitionline = { version = "0.1.0", path = "../.." }
@@ -20,6 +22,8 @@ libc = "0.2"
 sha2 = "0.10"
 parking_lot = "0.12"
 time = { version = "0.3", features = ["formatting", "std"] }
+tikv-jemallocator = { version = "0.6.1", optional = true }
+mimalloc = { version = "0.1.48", optional = true, default-features = false }
 
 [[bin]]
 name = "runtime"

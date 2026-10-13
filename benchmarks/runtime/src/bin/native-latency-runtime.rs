@@ -6,9 +6,10 @@
 //! `LATENCY_MODE=open-loop` offers fixed-rate arrivals independently of delivery,
 //! retaining all raw outcomes and timing bounds; see docs/open-loop-latency.md.
 
-// Census is process-wide so runtime worker allocations are included.
-#[global_allocator]
-static ALLOCATOR: codec::CountingAlloc = codec::CountingAlloc;
+// Census is process-wide so runtime worker allocations are included,
+// unless an alternate benchmark allocator feature replaces it.
+#[path = "../global_alloc.rs"]
+mod global_alloc;
 
 use std::time::{Duration, Instant};
 

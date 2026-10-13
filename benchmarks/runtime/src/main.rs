@@ -17,7 +17,10 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use codec::{census, CountingAlloc};
+use codec::census;
+
+#[path = "global_alloc.rs"]
+mod global_alloc;
 use partitionline::producer::{Producer, ProducerConfig};
 use partitionline::Acks;
 
@@ -27,9 +30,6 @@ use runtime::drive::drive_cell;
 use runtime::executor::RuntimeConfig;
 use runtime::host::probe as probe_host;
 use runtime::measure::{cpu_now, peak_rss_bytes, rss_now, RssSampler};
-
-#[global_allocator]
-static ALLOC: CountingAlloc = CountingAlloc;
 
 fn usage() -> ! {
     eprintln!(

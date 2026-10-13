@@ -27,6 +27,37 @@ benchmark adds a bounded cancellation barrier after close, outside timing, to
 keep repetitions separate. Production shutdown completion remains tracked in
 KL02-12.
 
+## Performance builds
+
+Library builds stay on Cargo's default release profile and the system
+allocator. `partitionline` does not depend on jemalloc or mimalloc. Alternate
+allocators exist only as features of the workspace-excluded `benchmarks/runtime`
+crate.
+
+The [build-profile study](evidence/perf/build-profiles/README.md) compared LTO,
+codegen units, `target-cpu`, and PGO on this class of host. Throughput
+intervals against the portable baseline included zero. PGO's CPU change was
+specific to those fixtures. Do not treat thin LTO, fat LTO, native CPU, or PGO
+as a portable throughput recipe.
+
+Allocator choice was measured on `nb-fetch-bulk` with five interleaved rounds
+of the system allocator (census wrapper), jemalloc 0.6.1, and mimalloc 0.1.52.
+On this host mimalloc's paired records/s mean was +8.3% (95% CI +4.5% to
++12.1%) and CPU-ns/record was −16.6% (CI −32.8% to −0.4%). Peak RSS rose about
+16%. Jemalloc's records/s interval included zero and its RSS rose about 12%.
+These figures are host-specific. They are not a Kafka throughput claim, and
+Suite HOLD remains active. Allocation counts are reported only for the census
+build; the other allocators replace that wrapper.
+
+```bash
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --bin nb-serve
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features mimalloc
+cargo build --release --locked --manifest-path benchmarks/runtime/Cargo.toml --bin runtime --features jemalloc
+```
+
+Enable only one of `jemalloc` or `mimalloc`. The client crate is unchanged
+either way.
+
 ## Fresh package quickstart
 
 This exercise produces one record, verifies application processing, commits
