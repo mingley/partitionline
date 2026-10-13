@@ -3,7 +3,7 @@
   "status": "done",
   "acceptance_met": true,
   "disposition": "fixture-rehearsal",
-  "source_sha": "WILL_REPLACE",
+  "source_sha": "1cf94c5ce36d1dae546fddfe30f986d5720ccf67",
   "commands": [
     "python3 -B -m unittest benchmarks.tests.test_matrix benchmarks.tests.test_report"
   ],
