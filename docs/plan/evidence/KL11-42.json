@@ -1,0 +1,29 @@
+{
+  "task": "KL11-42",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "checksummed-tiered-segments",
+  "production_qualified": false,
+  "source_sha": "WILL_REPLACE",
+  "commands": [
+    "cargo test --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib tiered::tests",
+    "cargo clippy --locked --offline --manifest-path partitionline-broker/Cargo.toml --lib --tests -- -D warnings"
+  ],
+  "results": {
+    "tiered_tests_passed": 1,
+    "tiered_tests_failed": 0,
+    "clippy": "exit 0"
+  },
+  "contract": [
+    "A staged object is not releasable, including after reopen, so local bytes must stay.",
+    "Finish publishes the same key, offset, and body. A repeated finish does not create a second object.",
+    "Restore rejects a checksum mismatch. Reopen of an untampered publish returns the original key and body.",
+    "A payload over the scratch cap stores nothing. Abort drops only the partial. Retention removes a published object and does not mark it releasable."
+  ],
+  "limits": [
+    "This store does not delete local log segments. Callers must keep them until releasable is true.",
+    "The remote backend is the local PLTIER01 journal, not an object store.",
+    "This is not a Kafka tiered-storage RPC.",
+    "Not a production qualification and not a fastest-server claim."
+  ]
+}

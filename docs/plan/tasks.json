@@ -34761,8 +34761,8 @@
       "title": "Serve retained remote/tiered log segments safely",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "done",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-09",
         "KL11-10",
@@ -34781,7 +34781,9 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL11-42.json"
+      ]
     },
     {
       "id": "KL11-43",
