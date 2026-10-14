@@ -131,10 +131,11 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 **Reading:**
 
 - lz4_flex is already at parity with C.
-- miniz compresses at the same speed as librdkafka's zlib. Yet the client
-  spends about 18 µs per record in deflate, against about 10 µs when the
-  same backend compresses the same bytes in one call. That feed overhead
-  needs explaining (KL10-04).
+- miniz compresses at the same speed as librdkafka's zlib. The dated 18 µs
+  vs 10 µs "feed overhead" inside `gzip_compress_into` is **not
+  reproducible** on this tree (KL10-04). The function already
+  `write_all`s the full encoded section. See
+  [KL10-04](../evidence/perf/KL10-04/README.md).
 - zlib-rs compresses 1.8× faster. It uses internal `unsafe` code and SIMD
   internally, so adopting it is a policy decision (KL10-05).
 - zstd is a potential migration path for workloads that can change codec,
@@ -170,6 +171,36 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 - `TlsConfig::client_identity` with a PKCS#8 PEM key worked against a
   client-authenticating broker on the first try. Metadata, explicit
   partitions, headers and manual assignment behaved as documented.
+
+### KL10-04 (2026-10-14): the 18 µs vs 10 µs gap is not a feed bug
+
+Measured on the same Linux host as KL10-02 (4-core Xeon, rustc 1.99.0),
+with gateway json1k records packed to the 1 MiB `batch_bytes` bound (973
+records, 1 034 171-byte uncompressed section). No edits to
+`src/protocol/records.rs` or `src/producer.rs`.
+
+| Hypothesis | zlib-rs µs/record | miniz_oxide µs/record |
+|---|---:|---:|
+| `encode_record_batch` gzip (fresh scratch) | 28.19 | 46.98 |
+| `write_record_batch_scratch` reused | 28.17 | 47.24 |
+| Kafka encode only (`Compression::None`) | 0.25 | 0.25 |
+| `GzEncoder::write_all` + `finish` (same as `gzip_compress_into`) | 28.01 | 47.06 |
+| Same bytes in 8 KiB writes | 28.03 | 47.33 |
+| One write per pre-encoded record | 29.00 | 46.67 |
+| `GzEncoder::new` + empty `finish` | 0.010 | ~0.009 |
+
+`gzip_compress_into` already compresses the whole encoded section in one
+`write_all`. Write granularity, encoder construction, output growth
+(`reserve` + `mem::take`), and level (flate2 default is 6) add less than
+1 µs/record — under 5% of the KL10-02 gzip open-loop cell (~48 µs/record
+process CPU). The dated 18 vs 10 µs comparison on miniz_oxide / Apple M4
+is not reproducible here. No outcome-branch child card.
+
+Under the gateway knobs the open-loop 25k load typically fires on linger
+(100 ms ≈ 312 records per partition) before the 1 MiB byte cap. That
+changes batch count, not the one-shot deflate.
+
+Raw timings: [docs/evidence/perf/KL10-04](../evidence/perf/KL10-04/).
 
 ## 3. Findings and cards
 

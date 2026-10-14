@@ -19151,14 +19151,14 @@
     {
       "id": "KL10-04",
       "title": "Explain the in-client gzip deflate overhead",
-      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "analysis", "status": "done", "owner": "cursor-cloud",
       "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL10-04.json", "docs/plan/gateway-adoption.md", "docs/evidence/perf/KL10-04/"],
       "depends_on": ["KL10-02", "KL10-03"],
       "files": ["docs/plan/gateway-adoption.md", "docs/plan/tasks.json"],
       "deliverable": "A measured explanation (reading src/protocol/records.rs and src/producer.rs; no edits) of why gzip_compress_into costs about 18 us per 1 KiB record on lb-gateway-produce-gzip versus about 10 us for the same backend compressing the same bytes in one call (gateway-adoption.md section 2).",
       "acceptance": ["Measure batch-size distribution under the gateway knobs, write granularity into the encoder, encoder and hash-table initialization per batch, output growth and level; attribute the gap with profiles from the KL09-11 script or equivalent.", "Split each fix worth >=5% of the cell into a dependent outcome-branch card (at most three), or record that the gap is not reproducible.", "No production code changes in this card."],
       "validation": ["Link the profiles and per-hypothesis measurements in evidence.", "Each proposed child card fits one session and names its hot files."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL10-04.json"]
     },
     {
       "id": "KL10-05",

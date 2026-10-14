@@ -1,0 +1,52 @@
+{
+ "cell": "kl10-04-gzip-hypotheses",
+ "run_dir": "/workspace/docs/evidence/perf/KL10-04/profile",
+ "captures_requested": [
+  "rusage"
+ ],
+ "command": [
+  "/workspace/docs/evidence/perf/KL10-04/measure/target/release/kl10-04-measure",
+  "/tmp/kl10-04-profile-out.json"
+ ],
+ "env_knobs": {
+  "COUNT": "25000",
+  "KAFKA_BOOTSTRAP": "127.0.0.1:9092",
+  "CARGO_PROFILE_RELEASE_DEBUG": "true",
+  "KAFKA_TOPIC": "pl-gateway"
+ },
+ "cargo_profile_release_debug": "true",
+ "git_sha": "754398c220caecc5f8cc6d6715b27eeb3be8fbcc",
+ "git_dirty": true,
+ "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+ "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+ "python": "Python 3.12.3",
+ "host": {
+  "system": "Linux",
+  "node": "cursor",
+  "release": "6.12.94+",
+  "version": "#1 SMP PREEMPT_DYNAMIC Mon Oct 12 16:05:39 UTC 2026",
+  "machine": "x86_64",
+  "processor": "x86_64"
+ },
+ "cpu_model": "Intel(R) Xeon(R) Processor",
+ "os": "Linux 6.12.94+ x86_64",
+ "tools": {
+  "cpu": {
+   "tool": null,
+   "version": null
+  },
+  "syscalls": {
+   "tool": null,
+   "version": null
+  },
+  "rusage": {
+   "tool": "python3-wait4",
+   "version": "Python 3.12.3"
+  },
+  "heap": {
+   "tool": null,
+   "version": null
+  }
+ },
+ "sample_secs_cap": 120
+}

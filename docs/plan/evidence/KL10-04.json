@@ -1,0 +1,46 @@
+{
+  "task": "KL10-04",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "754398c220caecc5f8cc6d6715b27eeb3be8fbcc",
+  "tested_base_sha": "64c5a14c08492e8fbd549efdc79dcf7e934b0bfe",
+  "claim_sha": "754398c220caecc5f8cc6d6715b27eeb3be8fbcc",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "commands": [
+    "cargo +stable clippy --manifest-path docs/evidence/perf/KL10-04/measure/Cargo.toml --all-targets -- -D warnings",
+    "cargo +stable build --release --manifest-path docs/evidence/perf/KL10-04/measure/Cargo.toml",
+    "docs/evidence/perf/KL10-04/measure/target/release/kl10-04-measure docs/evidence/perf/KL10-04/zlib-rs.json",
+    "cargo +stable build --release --manifest-path docs/evidence/perf/KL10-04/measure/Cargo.toml --no-default-features --features miniz --target-dir /tmp/kl10-04-miniz",
+    "/tmp/kl10-04-miniz/release/kl10-04-measure docs/evidence/perf/KL10-04/miniz_oxide.json",
+    "bash scripts/perf-profile.sh --self-test (PASS; cpu/syscalls/heap missing, rusage present)",
+    "bash scripts/perf-profile.sh --cell kl10-04-gzip-hypotheses --only rusage -- kl10-04-measure",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (workspace client; no src edits)"
+  ],
+  "results": {
+    "production_edits": false,
+    "records_at_1mib_cap": 973,
+    "section_bytes": 1034171,
+    "zlib_rs_encode_gzip_us_per_record": 28.19,
+    "zlib_rs_write_all_us_per_record": 28.01,
+    "zlib_rs_encode_minus_write_all_us": 0.18,
+    "miniz_encode_gzip_us_per_record": 46.98,
+    "miniz_write_all_us_per_record": 47.06,
+    "write_granularity_gap": "8 KiB and per-record writes match write_all within ~1 us/record",
+    "encoder_init_us_per_batch": 0.01,
+    "child_cards": [],
+    "disposition": "gap-not-reproducible"
+  },
+  "actual_failures_retained": [
+    "scripts/perf-profile.sh cpu/syscalls/heap fail closed: samply/perf/strace/valgrind are not installed.",
+    "Dated 18 us vs 10 us numbers were miniz_oxide on Apple M4 Pro; this host is a 4-core Xeon with zlib-rs default."
+  ],
+  "qualification_limit": "Local unsigned micro-timings of the public encode/compress path on synthetic json1k batches. Not a live 20 s gateway profile, not a flamegraph (perf missing), not a performance claim. Suite HOLD remains. The world-class client objective remains open.",
+  "evidence": "docs/evidence/perf/KL10-04",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}

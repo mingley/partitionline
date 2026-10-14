@@ -1,0 +1,11 @@
+{
+ "exit_code": 0,
+ "wall_s": 8.002326011657715,
+ "user_s": 7.974143,
+ "sys_s": 0.023868999999999998,
+ "max_rss_kb": 29360,
+ "voluntary_ctx_switches": 30,
+ "involuntary_ctx_switches": 93,
+ "minor_faults": 5916,
+ "major_faults": 0
+}

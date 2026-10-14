@@ -1,0 +1,108 @@
+{
+  "backend": "zlib-rs",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "packing": {
+    "records_at_byte_cap": 973,
+    "estimated_bytes": 1047982,
+    "encoded_none_bytes": 1034232,
+    "section_bytes": 1034171,
+    "gzip_wire_bytes": 206604,
+    "ratio": 0.19971842180838564
+  },
+  "timings": [
+    {
+      "name": "encode_record_batch_gzip",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 206604,
+      "median_ns": 27380059,
+      "p10_ns": 27293202,
+      "p90_ns": 27505996,
+      "ns_per_record": 28139.8345323741,
+      "us_per_record": 28.139834532374103
+    },
+    {
+      "name": "write_record_batch_scratch_reused",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 206604,
+      "median_ns": 27432003,
+      "p10_ns": 27301813,
+      "p90_ns": 27615740,
+      "ns_per_record": 28193.219938335045,
+      "us_per_record": 28.193219938335044
+    },
+    {
+      "name": "encode_record_batch_none",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 1034232,
+      "median_ns": 236957,
+      "p10_ns": 233656,
+      "p90_ns": 272526,
+      "ns_per_record": 243.53237410071944,
+      "us_per_record": 0.24353237410071943
+    },
+    {
+      "name": "gzip_write_all_new_encoder",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 206543,
+      "median_ns": 27394734,
+      "p10_ns": 27258812,
+      "p90_ns": 28020141,
+      "ns_per_record": 28154.916752312434,
+      "us_per_record": 28.154916752312435
+    },
+    {
+      "name": "gzip_write_8kib_chunks",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 206623,
+      "median_ns": 27363746,
+      "p10_ns": 27272934,
+      "p90_ns": 27485425,
+      "ns_per_record": 28123.068859198356,
+      "us_per_record": 28.123068859198355
+    },
+    {
+      "name": "gzip_write_per_record",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 200795,
+      "median_ns": 28195809,
+      "p10_ns": 28069268,
+      "p90_ns": 28308971,
+      "ns_per_record": 28978.220966084275,
+      "us_per_record": 28.978220966084276
+    },
+    {
+      "name": "gzip_encoder_new_empty",
+      "records": 973,
+      "section_bytes": 0,
+      "output_bytes": 20,
+      "median_ns": 9564,
+      "p10_ns": 9420,
+      "p90_ns": 9783,
+      "ns_per_record": 9.82939362795478,
+      "us_per_record": 0.009829393627954779
+    },
+    {
+      "name": "gzip_write_all_level_6",
+      "records": 973,
+      "section_bytes": 1034171,
+      "output_bytes": 206543,
+      "median_ns": 27217747,
+      "p10_ns": 27110476,
+      "p90_ns": 27402374,
+      "ns_per_record": 27973.018499486127,
+      "us_per_record": 27.973018499486127
+    }
+  ],
+  "reading": [
+    "gzip_compress_into already write_all-s the full encoded section, then finish; it is not a per-record deflate.",
+    "write_record_batch allocates a fresh CompressScratch; the produce worker reuses one via write_record_batch_scratch.",
+    "Gateway packing is linger 100 ms or 1 MiB estimated record bytes, max in flight 1, eight explicit partitions.",
+    "A gap >=5% of the live cell (~48 us/record wall CPU on KL10-02 gzip open-loop) is required before a child card."
+  ]
+}
