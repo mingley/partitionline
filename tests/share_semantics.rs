@@ -150,6 +150,41 @@ async fn implicit_mode_refuses_explicit_acknowledge() {
 }
 
 #[tokio::test]
+async fn explicit_mode_requires_last_poll_acknowledged() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(2);
+    let mut group = ShareGroup::join(cfg, "explicit-inflight", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 2);
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("All records must be acknowledged in explicit acknowledgement mode."),
+        "{err}"
+    );
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.renew(&first[..1]).await.unwrap();
+    let still = group.poll().await.unwrap_err().to_string();
+    assert!(
+        still.contains("All records must be acknowledged in explicit acknowledgement mode."),
+        "{still}"
+    );
+    group.accept(&first[..1]).await.unwrap();
+    let partial = group.poll().await.unwrap_err().to_string();
+    assert!(
+        partial.contains("All records must be acknowledged in explicit acknowledgement mode."),
+        "{partial}"
+    );
+    group.release(&first[1..]).await.unwrap();
+    let second = group.poll().await.unwrap();
+    assert!(second.is_empty());
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_next_poll_piggybacks_acks_on_share_fetch() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;
@@ -203,6 +238,7 @@ async fn subscribe_shrink_keeps_share_session() {
     let first = group.poll().await.unwrap();
     assert!(!first.is_empty());
     assert_eq!(mock.last_share_fetch_epoch(), Some(0));
+    group.accept(&first).await.unwrap();
     let acks = mock.share_ack_calls();
     group.subscribe(["t"]).await.unwrap();
     assert!(
@@ -663,6 +699,7 @@ async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     assert_eq!(first[0].value.as_deref(), Some(&b"v1"[..]));
     assert_eq!(group.acquisition_lock_timeout_ms(), Some(1200));
     assert_eq!(group.acquired_record_count(), 2);
+    group.accept(&first).await.unwrap();
     let calls = mock.share_fetch_calls();
     let second = group.poll().await.unwrap();
     assert_eq!(second.len(), 1);
@@ -1049,6 +1086,7 @@ async fn fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition() 
     cfg.max_poll_records = Some(1);
     let mut group = ShareGroup::join(cfg, "fetch-top", "t").await.unwrap();
     let first = group.poll().await.unwrap();
+    group.accept(&first).await.unwrap();
     mock.fail_share_top_once(SHARE_FETCH, 1, error::GROUP_AUTHORIZATION_FAILED);
     assert_broker(
         group.poll().await.unwrap_err(),
@@ -1056,9 +1094,8 @@ async fn fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition() 
     );
     let second = group.poll().await.unwrap();
     assert_eq!(mock.share_fetch_history(), [(1, 0), (1, 1), (1, 2)]);
-    assert_eq!(group.acquired_record_count(), 2);
-    let all: Vec<_> = first.iter().chain(second.iter()).cloned().collect();
-    group.accept(&all).await.unwrap();
+    assert_eq!(group.acquired_record_count(), 1);
+    group.accept(&second).await.unwrap();
     group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
@@ -1289,39 +1326,23 @@ async fn decoded_budget_and_overlapping_acquisitions_fail_before_delivery() {
 async fn outstanding_acquisitions_consume_budget_across_successive_polls() {
     let mock = common::Mock::start().await;
     v2(&mock);
-    let entries: Vec<_> = (0..32).map(|_| (0, &b"bounded"[..])).collect();
-    produce(&mock, &entries).await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
     let mut cfg = config(&mock);
-    cfg.buffer_memory = 1400;
     cfg.max_poll_records = Some(1);
     let mut group = ShareGroup::join(cfg, "acquisition-budget", "t")
         .await
         .unwrap();
-    let mut delivered = 0;
-    loop {
-        match group.poll().await {
-            Ok(records) => {
-                assert_eq!(records.len(), 1);
-                delivered += 1;
-                assert!(
-                    delivered < 32,
-                    "outstanding metadata must consume the allowance"
-                );
-            }
-            Err(Error::Protocol(message)) => {
-                assert!(message.contains("budget"), "{message}");
-                break;
-            }
-            Err(error) => panic!("unexpected budget outcome: {error:?}"),
-        }
-    }
-    assert!(delivered > 0);
-    assert_eq!(group.metrics().records_fetched, delivered);
-    assert_eq!(
-        group.acquired_record_count(),
-        0,
-        "failed decoded response resets its ambiguous session"
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("All records must be acknowledged in explicit acknowledgement mode."),
+        "unacked last-poll records must block the next poll, got {err}"
     );
+    group.accept(&first).await.unwrap();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    group.accept(&second).await.unwrap();
     group.unsubscribe().await.unwrap();
     assert_eq!(group.acquired_record_count(), 0);
     group.leave().await.unwrap();
@@ -1412,6 +1433,7 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
         owner.renew(&held).await.unwrap();
         assert_eq!(owner.acquired_record_count(), 1);
         assert_eq!(owner.metrics().records_acknowledged, 0);
+        owner.accept(&held).await.unwrap();
         let mut accepted = std::collections::BTreeSet::new();
         // Drain available neighbours while proving another member cannot acquire
         // the held offset before its acquisition lock expires.

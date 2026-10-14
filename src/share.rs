@@ -73,6 +73,9 @@ pub enum ShareAcknowledgementMode {
     /// / [`ShareGroup::reject`] every delivered record (Java `explicit`).
     /// Those calls are local until the next [`ShareGroup::poll`],
     /// [`ShareGroup::commit`], [`ShareGroup::leave`], or [`ShareGroup::close`].
+    /// A later [`ShareGroup::poll`] is Java `IllegalStateException`
+    /// (`All records must be acknowledged in explicit acknowledgement mode.`)
+    /// until every record from the previous poll is acknowledged.
     #[default]
     Explicit,
 }
@@ -647,6 +650,7 @@ pub enum ShareAcquireMode {
 /// partitions when the assignment shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
+/// Explicit mode requires those acknowledgements before the next poll.
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -1313,7 +1317,12 @@ impl ShareGroup {
     /// `max_partition_fetch_bytes` are the request byte limits.
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
-    /// subscribed to any topics.`).
+    /// subscribed to any topics.`). In
+    /// [`ShareAcknowledgementMode::Explicit`], a later poll is Java
+    /// `IllegalStateException` (`All records must be acknowledged in
+    /// explicit acknowledgement mode.`) until every record from the
+    /// previous poll is [`Self::accept`] / [`Self::release`] /
+    /// [`Self::reject`] (local; Renew does not count).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -1321,6 +1330,7 @@ impl ShareGroup {
         if self.topics.is_empty() && self.topic_match.is_none() {
             return Err(reject_java_share_not_subscribed());
         }
+        self.ensure_explicit_in_flight_acknowledged()?;
         self.maybe_refresh_matching().await?;
         self.prune_expired_acquisitions();
         let latest_epoch = self.hb_epoch.load(Ordering::SeqCst);
@@ -2474,7 +2484,6 @@ impl ShareGroup {
             if !pending.is_empty() {
                 self.complete_piggyback(&pending);
             }
-            self.last_poll_unacked = recs.to_vec();
         }
         if !self.pending_acknowledgements.is_empty() {
             let pending: Vec<ShareRecord> = std::mem::take(&mut self.pending_acknowledgements)
@@ -2483,6 +2492,7 @@ impl ShareGroup {
                 .collect();
             self.complete_piggyback(&pending);
         }
+        self.last_poll_unacked = recs.to_vec();
     }
 
     fn complete_piggyback(&mut self, recs: &[ShareRecord]) {
@@ -2612,6 +2622,16 @@ impl ShareGroup {
                     && rec.offset == held.offset
             })
         });
+    }
+
+    /// Java `ShareConsumerImpl.ensureInFlightAcknowledgedIfExplicitAcknowledgement`.
+    fn ensure_explicit_in_flight_acknowledged(&self) -> Result<()> {
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Explicit
+            && !self.last_poll_unacked.is_empty()
+        {
+            return Err(reject_java_explicit_in_flight());
+        }
+        Ok(())
     }
 
     fn ensure_acquired(&mut self, recs: &[ShareRecord]) -> Result<()> {
@@ -3406,6 +3426,11 @@ fn reject_java_acknowledge_before_poll() -> Error {
 /// implicit.
 fn reject_java_acknowledge_in_implicit_mode() -> Error {
     Error::protocol("Implicit acknowledgement of delivery is being used.")
+}
+
+/// Java `ShareConsumerImpl.ensureInFlightAcknowledgedIfExplicitAcknowledgement`.
+fn reject_java_explicit_in_flight() -> Error {
+    Error::protocol("All records must be acknowledged in explicit acknowledgement mode.")
 }
 
 fn pending_typed(

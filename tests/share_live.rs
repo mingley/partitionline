@@ -59,20 +59,9 @@ async fn share_join_then_produce_against_local_broker() {
         md.generation_id()
     );
     assert!(md.group_instance_id().is_none());
-    let assigned_deadline = Instant::now() + Duration::from_secs(15);
-    loop {
-        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
-        if names.contains(&topic) {
-            let _warmup = g.poll().await.expect("share warmup poll");
-            break;
-        }
-        let _recs = g.poll().await.expect("share poll for assignment");
-        assert!(
-            Instant::now() < assigned_deadline,
-            "share assignment never included {topic}"
-        );
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    }
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("share assignment");
     let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO))
         .await
         .expect("producer");
@@ -81,24 +70,12 @@ async fn share_join_then_produce_against_local_broker() {
         .await
         .expect("produce after join");
     producer.close().await.expect("producer close");
-    let deadline = Instant::now() + Duration::from_secs(15);
-    let recs = loop {
-        let recs = g.poll().await.expect("share poll");
-        if recs
-            .iter()
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
             .any(|r| r.topic == topic && r.offset == md.offset)
-        {
-            break recs;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "share poll never saw {}-{}@{}",
-            md.topic,
-            md.partition,
-            md.offset
-        );
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    };
+    })
+    .await
+    .expect("share poll");
     let fired = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let fired_cb = fired.clone();
     g.set_acknowledgement_commit_callback(move |offsets, exception| {
@@ -167,7 +144,10 @@ async fn share_join_topics_against_local_broker() {
         names
     } else {
         loop {
-            let _recs = g.poll().await.expect("share poll");
+            let recs = g.poll().await.expect("share poll");
+            if !recs.is_empty() && g.acknowledgement_mode() == ShareAcknowledgementMode::Explicit {
+                g.accept(&recs).await.expect("ack assignment leftover");
+            }
             let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
             if names.contains(&a) && names.contains(&b) {
                 break names;
@@ -229,7 +209,10 @@ async fn share_join_matching_against_local_broker() {
         if names.contains(&keep) {
             break names;
         }
-        let _recs = g.poll().await.expect("share poll");
+        let recs = g.poll().await.expect("share poll");
+        if !recs.is_empty() && g.acknowledgement_mode() == ShareAcknowledgementMode::Explicit {
+            g.accept(&recs).await.expect("ack matching leftover");
+        }
         assert!(
             Instant::now() < deadline,
             "share matching assignment {names:?} wanted {keep}"
@@ -278,20 +261,9 @@ async fn share_release_then_reject_against_local_broker() {
     let mut g = ShareGroup::join(cfg, group, topic.clone())
         .await
         .expect("share join");
-    let assigned_deadline = Instant::now() + Duration::from_secs(15);
-    loop {
-        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
-        if names.contains(&topic) {
-            let _warmup = g.poll().await.expect("share warmup poll");
-            break;
-        }
-        let _recs = g.poll().await.expect("share poll for assignment");
-        assert!(
-            Instant::now() < assigned_deadline,
-            "share assignment never included {topic}"
-        );
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    }
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("share assignment");
     let producer =
         Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::ZERO))
             .await
@@ -758,10 +730,17 @@ async fn wait_assigned_and_warmup(g: &mut ShareGroup, topic: &str) -> partitionl
     loop {
         let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
         if names.iter().any(|n| n == topic) {
-            let _warmup = g.poll().await?;
+            let warmup = g.poll().await?;
+            if !warmup.is_empty() && g.acknowledgement_mode() == ShareAcknowledgementMode::Explicit
+            {
+                g.accept(&warmup).await?;
+            }
             return Ok(());
         }
-        let _recs = g.poll().await?;
+        let recs = g.poll().await?;
+        if !recs.is_empty() && g.acknowledgement_mode() == ShareAcknowledgementMode::Explicit {
+            g.accept(&recs).await?;
+        }
         if Instant::now() >= deadline {
             return Err(partitionline::Error::protocol(format!(
                 "share assignment never included {topic}"
@@ -780,6 +759,9 @@ async fn poll_until(
         let recs = g.poll().await?;
         if ok(&recs) {
             return Ok(recs);
+        }
+        if !recs.is_empty() && g.acknowledgement_mode() == ShareAcknowledgementMode::Explicit {
+            g.accept(&recs).await?;
         }
         if Instant::now() >= deadline {
             return Err(partitionline::Error::protocol(format!(
