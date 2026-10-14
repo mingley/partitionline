@@ -72,8 +72,10 @@ pub(crate) fn truncate_group_reason(reason: &str) -> String {
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
     let mut members: Vec<String> = members.to_vec();
     members.sort();
-    let mut partitions: Vec<i32> = partitions.to_vec();
-    partitions.sort();
+    members.dedup();
+    let mut partitions: Vec<i32> = partitions.iter().copied().filter(|p| *p >= 0).collect();
+    partitions.sort_unstable();
+    partitions.dedup();
     let mut out: HashMap<String, Vec<i32>> = HashMap::new();
     for m in &members {
         let _ = out.insert(m.clone(), Vec::new());
@@ -107,7 +109,8 @@ pub fn assign_sticky(
     prev: &HashMap<String, Vec<i32>>,
 ) -> HashMap<String, Vec<i32>> {
     let member_set: std::collections::HashSet<&str> = members.iter().map(String::as_str).collect();
-    let part_set: std::collections::HashSet<i32> = partitions.iter().copied().collect();
+    let part_set: std::collections::HashSet<i32> =
+        partitions.iter().copied().filter(|p| *p >= 0).collect();
     let mut out: HashMap<String, Vec<i32>> = HashMap::new();
     for m in members {
         let _ = out.insert(m.clone(), Vec::new());
@@ -125,7 +128,7 @@ pub fn assign_sticky(
             }
         }
     }
-    let mut remaining: Vec<i32> = partitions
+    let mut remaining: Vec<i32> = part_set
         .iter()
         .copied()
         .filter(|p| !used.contains(p))
@@ -287,10 +290,15 @@ pub fn resolve_sticky_owned_partitions(
                 }
                 Some((other, other_generation)) => match generation.cmp(&other_generation) {
                     std::cmp::Ordering::Equal => {
-                        if let Some(other_slot) = out.get_mut(&other) {
-                            other_slot.retain(|p| p != tp);
+                        // A member repeating its own claim keeps the partition.
+                        // The same generation from a different member revokes
+                        // it from both (KAFKA-13081).
+                        if other != *member {
+                            if let Some(other_slot) = out.get_mut(&other) {
+                                other_slot.retain(|p| p != tp);
+                            }
+                            let _ = owner.insert(tp.clone(), (member.clone(), *generation));
                         }
-                        let _ = owner.insert(tp.clone(), (member.clone(), *generation));
                     }
                     std::cmp::Ordering::Greater => {
                         if let Some(other_slot) = out.get_mut(&other) {
@@ -3747,6 +3755,36 @@ mod tests {
         assert!(a.iter().all(|p| !b.contains(p)));
         assert_eq!(a, vec![0, 1]);
         assert_eq!(b, vec![2, 3]);
+        let deduped = assign_range(&["a".into(), "a".into(), "b".into()], &[0, 0, 1, -1]);
+        assert_eq!(deduped.get("a").cloned().unwrap_or_default(), vec![0]);
+        assert_eq!(deduped.get("b").cloned().unwrap_or_default(), vec![1]);
+    }
+
+    #[test]
+    fn sticky_does_not_assign_one_partition_twice() {
+        let members = vec!["a".into(), "b".into()];
+        let parts = vec![0, 0, 1, -1];
+        let map = assign_sticky(&members, &parts, &HashMap::new());
+        let mut union: Vec<i32> = map.values().flatten().copied().collect();
+        union.sort_unstable();
+        assert_eq!(union, vec![0, 1]);
+        let a = map.get("a").cloned().unwrap_or_default();
+        let b = map.get("b").cloned().unwrap_or_default();
+        assert!(a.iter().all(|p| !b.contains(p)));
+    }
+
+    #[test]
+    fn sticky_owned_repeat_by_the_same_member_keeps_the_partition() {
+        let claims = vec![(
+            "a".into(),
+            vec![("t".into(), 0), ("t".into(), 0), ("t".into(), 1)],
+            4,
+        )];
+        let got = resolve_sticky_owned_partitions(&claims);
+        assert_eq!(
+            got.get("a").cloned().unwrap_or_default(),
+            vec![("t".into(), 0), ("t".into(), 1)]
+        );
     }
 
     #[test]
