@@ -686,7 +686,9 @@ pub enum ShareAcquireMode {
 /// shrinks or a topic id is replaced.
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
-/// (Java `canSkipIfRequestEmpty`).
+/// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
+/// or partition is skipped (Java `lookupTopicId` /
+/// `testShareFetchInvalidResponse`).
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -2235,15 +2237,17 @@ impl ShareGroup {
             let mut incoming_keys = HashSet::new();
             let mut seen_ack_tps = HashSet::new();
             for topic in fetched {
-                let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
-                    Error::protocol("ShareFetch returned an unrequested topic id")
-                })?;
+                // Java lookupTopicId: unknown topic id / partition is
+                // skipped (testShareFetchInvalidResponse). poll does not
+                // fail. Piggybacked acks for requested TPs stay missing
+                // and complete as INVALID_RESPONSE below.
+                let Some(requested) = by_id.get(&topic.topic_id) else {
+                    continue;
+                };
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
                     if !requested.contains(&part.partition) {
-                        return Err(Error::protocol(
-                            "ShareFetch returned an unrequested partition",
-                        ));
+                        continue;
                     }
                     let _ = seen_ack_tps.insert((name.clone(), part.partition));
                     if part.error_code != 0 {

@@ -1523,6 +1523,32 @@ async fn unknown_topic_id_refreshes_topic_id_for_next_poll() {
 }
 
 #[tokio::test]
+async fn share_fetch_unrequested_topic_id_is_skipped() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "skip-id", "t")
+        .await
+        .unwrap();
+    let topics = vec![ShareFetchedTopic {
+        topic_id: [0xCD; 16],
+        partitions: vec![ShareFetchedPartition::partition_response(0, 0)],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, 2, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java lookupTopicId skips an unknown topic id; poll does not fail"
+    );
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);
