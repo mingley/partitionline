@@ -19256,13 +19256,20 @@
     {
       "id": "KL10-10",
       "title": "Explain consumer peak RSS on the gateway fetch cell",
-      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL10-14"],
       "files": ["docs/resource-contract.md", "docs/plan/gateway-adoption.md"],
       "deliverable": "A measured account of the consumer's peak RSS on lb-gateway-fetch-gzip (1.4 GB against 193 MB for the peer in gateway-adoption.md section 2) against the configured fetch, partition and buffer budgets, with a decision on defaults or documentation.",
       "acceptance": ["Attribute peak RSS to fetched bytes, decompressed expansion, pending records and allocator retention at the cell's settings.", "If RSS exceeds the documented budget, open a failing-first bounds card (P0); if it is within budget, document why and the knobs that reduce it.", "No production code changes in this card."],
       "validation": ["Record RSS samples and the effective consumer configuration in evidence.", "Cross-check against docs/resource-contract.md."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/plan/tasks.json",
+        "docs/resource-contract.md",
+        "docs/plan/gateway-adoption.md",
+        "docs/plan/evidence/KL10-10.json",
+        "docs/evidence/perf/KL10-10/"
+      ]
     },
     {
       "id": "KL10-11",
