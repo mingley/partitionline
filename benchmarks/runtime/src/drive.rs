@@ -52,8 +52,8 @@ pub struct DriveOutcome {
 const MAX_ERRORS: usize = 32;
 
 /// Build the API record, moving headers out of `rec` (no clone).
-fn to_produce_record(cell: &CellDef, rec: &mut GenRecord) -> ProduceRecord {
-    let mut out = ProduceRecord::to(cell.topics[rec.topic_idx].name);
+fn to_produce_record(topics: &[Arc<str>], rec: &mut GenRecord) -> ProduceRecord {
+    let mut out = ProduceRecord::to(Arc::clone(&topics[rec.topic_idx]));
     out.partition = Some(rec.partition);
     out.key = Some(std::mem::take(&mut rec.key));
     out.value = Some(std::mem::take(&mut rec.value));
@@ -74,11 +74,14 @@ fn micros(d: Duration) -> u64 {
 /// Drive `records` through `producer` per the cell's mode.
 ///
 /// `out.latencies_us` and `stamps` must be pre-reserved for
-/// `records.len()` entries; the drive itself allocates nothing in
-/// the common path.
+/// `records.len()` entries. `topics` is one `Arc` per cell topic,
+/// built before the census, so each record clones that arc instead
+/// of allocating a topic string. The drive itself allocates nothing
+/// in the common path.
 pub async fn drive_cell(
     producer: &Arc<Producer>,
     cell: &CellDef,
+    topics: &[Arc<str>],
     records: &mut [GenRecord],
     out: &mut DriveOutcome,
     stamps: &mut Vec<Instant>,
@@ -86,9 +89,13 @@ pub async fn drive_cell(
     out.bytes_offered = records.iter().map(|r| r.bytes as u64).sum();
     let result = tokio::time::timeout(cell.timeout, async {
         match cell.mode {
-            DriveMode::Pipelined => drive_pipelined(producer, records, cell, out, stamps).await,
-            DriveMode::Sequential => drive_sequential(producer, records, cell, out).await,
-            DriveMode::FlushHeavy => drive_flush_heavy(producer, records, cell, out, stamps).await,
+            DriveMode::Pipelined => {
+                drive_pipelined(producer, records, cell, topics, out, stamps).await
+            }
+            DriveMode::Sequential => drive_sequential(producer, records, topics, out).await,
+            DriveMode::FlushHeavy => {
+                drive_flush_heavy(producer, records, cell, topics, out, stamps).await
+            }
             DriveMode::Idle => {
                 tokio::time::sleep(Duration::from_secs(cell.idle_seconds)).await;
             }
@@ -107,6 +114,7 @@ pub async fn drive_cell(
 async fn try_send_one(
     producer: &Arc<Producer>,
     cell: &CellDef,
+    topics: &[Arc<str>],
     rec: &mut GenRecord,
     out: &mut DriveOutcome,
 ) -> Option<Instant> {
@@ -114,10 +122,10 @@ async fn try_send_one(
     loop {
         let req = if first {
             first = false;
-            to_produce_record(cell, rec)
+            to_produce_record(topics, rec)
         } else {
-            let regen = gen_one(cell, rec.topic_idx, rec.index, rec.id);
-            to_produce_record_owned(cell, regen)
+            let mut regen = gen_one(cell, rec.topic_idx, rec.index, rec.id);
+            to_produce_record(topics, &mut regen)
         };
         match producer.try_send(req) {
             Ok(()) => return Some(Instant::now()),
@@ -144,20 +152,17 @@ async fn try_send_one(
     }
 }
 
-fn to_produce_record_owned(cell: &CellDef, mut rec: GenRecord) -> ProduceRecord {
-    to_produce_record(cell, &mut rec)
-}
-
 async fn drive_pipelined(
     producer: &Arc<Producer>,
     records: &mut [GenRecord],
     cell: &CellDef,
+    topics: &[Arc<str>],
     out: &mut DriveOutcome,
     stamps: &mut Vec<Instant>,
 ) {
     let total = records.len() as u64;
     for rec in records.iter_mut() {
-        match try_send_one(producer, cell, rec, out).await {
+        match try_send_one(producer, cell, topics, rec, out).await {
             Some(stamp) => stamps.push(stamp),
             None => return,
         }
@@ -181,12 +186,12 @@ async fn drive_pipelined(
 async fn drive_sequential(
     producer: &Arc<Producer>,
     records: &mut [GenRecord],
-    cell: &CellDef,
+    topics: &[Arc<str>],
     out: &mut DriveOutcome,
 ) {
     out.offsets_observed = true;
     for rec in records.iter_mut() {
-        let req = to_produce_record(cell, rec);
+        let req = to_produce_record(topics, rec);
         let start = Instant::now();
         match producer.send(req).await {
             Ok(meta) => {
@@ -205,6 +210,7 @@ async fn drive_flush_heavy(
     producer: &Arc<Producer>,
     records: &mut [GenRecord],
     cell: &CellDef,
+    topics: &[Arc<str>],
     out: &mut DriveOutcome,
     stamps: &mut Vec<Instant>,
 ) {
@@ -213,7 +219,7 @@ async fn drive_flush_heavy(
         stamps.clear();
         let mut group_ok = true;
         for rec in chunk.iter_mut() {
-            match try_send_one(producer, cell, rec, out).await {
+            match try_send_one(producer, cell, topics, rec, out).await {
                 Some(stamp) => stamps.push(stamp),
                 None => {
                     group_ok = false;

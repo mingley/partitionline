@@ -489,7 +489,14 @@ fn run_produce(
         rt.block_on(producer.partitions_for(topic.name))
             .map_err(|e| format!("producer metadata {}: {e}", topic.name))?;
     }
-    // Pre-reserve drive bookkeeping outside the census.
+    // Pre-reserve drive bookkeeping outside the census. Topic arcs are
+    // built once so the measured phase clones them instead of allocating
+    // a topic string per record.
+    let topics: Vec<std::sync::Arc<str>> = cell
+        .topics
+        .iter()
+        .map(|topic| std::sync::Arc::from(topic.name))
+        .collect();
     let mut outcome = runtime::drive::DriveOutcome::default();
     outcome.latencies_us.reserve(records.len());
     let mut stamps = Vec::with_capacity(records.len());
@@ -497,6 +504,7 @@ fn run_produce(
         rt.block_on(drive_cell(
             &producer,
             cell,
+            &topics,
             &mut records,
             &mut outcome,
             &mut stamps,
