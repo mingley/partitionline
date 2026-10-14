@@ -14,6 +14,17 @@ use crate::protocol::records::RecordBatch;
 /// billions of slots.
 const MAX_CACHED_PARTITIONS: i32 = 1_000_000;
 
+/// A broker that can be dialed. Empty hosts, non-positive ids, and ports
+/// outside `1..=65535` are not addresses.
+fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> {
+    let host = host.trim();
+    if node_id < 0 || host.is_empty() || !(1..=i32::from(u16::MAX)).contains(&port) {
+        None
+    } else {
+        Some(crate::net::format_address(host, port))
+    }
+}
+
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Cluster {
@@ -41,9 +52,9 @@ impl Cluster {
     pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
-            let _prev = self
-                .brokers
-                .insert(b.node_id, crate::net::format_address(&b.host, b.port));
+            if let Some(address) = usable_broker_address(b.node_id, &b.host, b.port) {
+                let _prev = self.brokers.insert(b.node_id, address);
+            }
         }
         let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
         // A topic named twice in one response is one image. A later copy must
@@ -311,12 +322,9 @@ impl Cluster {
     /// CurrentLeader id can patch the partition cache (KIP-951).
     pub(crate) fn apply_node_endpoints(&mut self, endpoints: &[NodeEndpoint]) {
         for e in endpoints {
-            if e.node_id < 0 || e.host.is_empty() || e.port <= 0 {
-                continue;
+            if let Some(address) = usable_broker_address(e.node_id, &e.host, e.port) {
+                let _prev = self.brokers.insert(e.node_id, address);
             }
-            let _prev = self
-                .brokers
-                .insert(e.node_id, crate::net::format_address(&e.host, e.port));
         }
     }
 
@@ -429,6 +437,56 @@ mod tests {
         assert_eq!(cluster.controller().unwrap(), 2);
         cluster.invalidate_controller();
         assert!(cluster.controller().is_err());
+    }
+
+    #[test]
+    fn an_undialable_broker_does_not_replace_a_reachable_address() {
+        let metadata = |brokers: Vec<Broker>| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers,
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let broker = |node_id: i32, host: &str, port: i32| Broker {
+            node_id,
+            host: host.into(),
+            port,
+            rack: None,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(&metadata(vec![broker(1, "127.0.0.1", 9092)]), 13);
+        cluster.apply(
+            &metadata(vec![
+                broker(1, "", 9092),
+                broker(1, "   ", 9092),
+                broker(1, "127.0.0.1", 0),
+                broker(1, "127.0.0.1", 70_000),
+                broker(-1, "127.0.0.1", 9092),
+            ]),
+            13,
+        );
+        assert_eq!(
+            cluster.brokers.get(&1).map(String::as_str),
+            Some("127.0.0.1:9092")
+        );
+        assert!(!cluster.brokers.contains_key(&-1));
+        cluster.apply_node_endpoints(&[
+            NodeEndpoint::new(-1, "127.0.0.1", 9092, None),
+            NodeEndpoint::new(1, "", 9094, None),
+            NodeEndpoint::new(1, "127.0.0.1", 70_000, None),
+        ]);
+        assert_eq!(
+            cluster.brokers.get(&1).map(String::as_str),
+            Some("127.0.0.1:9092")
+        );
+        cluster.apply_node_endpoints(&[NodeEndpoint::new(1, " 10.0.0.2 ", 9093, None)]);
+        assert_eq!(
+            cluster.brokers.get(&1).map(String::as_str),
+            Some("10.0.0.2:9093")
+        );
     }
 
     #[test]
