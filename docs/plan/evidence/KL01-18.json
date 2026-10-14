@@ -2,6 +2,7 @@
   "task": "KL01-18",
   "status": "done",
   "date": "2026-10-14",
+  "source_sha": "e74dcc43fae34731abb4b2801caae4ddcd5b80fa",
   "owner": "cursor-cloud",
   "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
   "JDK": "21.0.12.1",

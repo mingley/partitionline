@@ -51979,7 +51979,8 @@
         "proto-differential-produce-apache-java"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "e74dcc43fae34731abb4b2801caae4ddcd5b80fa"
     },
     {
       "id": "KL01-19",
