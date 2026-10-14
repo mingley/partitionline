@@ -58,6 +58,32 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+#[tokio::test]
+async fn wakeup_interrupts_share_poll_and_accept_once() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut group = ShareGroup::join(config(&mock), "wakeup-share", "t")
+        .await
+        .unwrap();
+    group.wakeup();
+    let interrupted = group.poll().await.unwrap_err();
+    assert!(
+        matches!(interrupted, Error::Wakeup),
+        "share poll must observe a pending wakeup, got {interrupted}"
+    );
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 1);
+    group.wakeup();
+    let interrupted = group.accept(&acquired).await.unwrap_err();
+    assert!(
+        matches!(interrupted, Error::Wakeup),
+        "share accept must observe a pending wakeup, got {interrupted}"
+    );
+    group.accept(&acquired).await.unwrap();
+    group.leave().await.unwrap();
+}
+
 fn assert_broker(error: Error, expected: i16) {
     assert!(
         matches!(error, Error::Broker { code, .. } if code == expected),

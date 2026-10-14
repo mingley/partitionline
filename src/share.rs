@@ -1757,6 +1757,9 @@ impl ShareGroup {
     /// Heartbeats stop and the assignment is cleared. [`Self::subscribe`] joins
     /// again with a new topic list. [`Self::leave`] after this is a no-op.
     pub async fn unsubscribe(&mut self) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if self.member_id.is_empty() {
             self.topic_match = None;
             self.topics.clear();
@@ -1822,6 +1825,9 @@ impl ShareGroup {
     }
 
     async fn apply_topics(&mut self, topics: Vec<String>) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if topics == self.topics && !self.member_id.is_empty() {
             return Ok(());
         }
@@ -1879,6 +1885,9 @@ impl ShareGroup {
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if recs.is_empty() {
             return Ok(());
         }
