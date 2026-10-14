@@ -16,7 +16,6 @@ use std::path::{Path, PathBuf};
 
 use bytes::BytesMut;
 use partitionline::protocol::api::{MetadataResponse, NodeEndpoint};
-use partitionline::protocol::epoch::EpochEndOffset;
 use partitionline::protocol::fetch::{
     decode_fetch_request, decode_fetch_request_with_high_watermarks, decode_fetch_response,
     encode_fetch_request, encode_fetch_request_with_forgotten, encode_fetch_response_with_throttle,
@@ -516,72 +515,32 @@ fn crate_refuses_unspoken_fetch_versions() {
     assert!(decode_fetch_request(&mut buf.as_ref(), 18).is_err());
 }
 
-fn fetched(
-    partition: i32,
-    error_code: i16,
-    high_watermark: i64,
-    last_stable_offset: i64,
-    log_start_offset: i64,
-    aborted: Vec<(i64, i64)>,
-    preferred_read_replica: i32,
-    current_leader_id: i32,
-    current_leader_epoch: i32,
-) -> FetchedPartition {
-    FetchedPartition {
-        partition,
-        error_code,
-        high_watermark,
-        last_stable_offset,
-        log_start_offset,
-        aborted_transactions: aborted,
-        preferred_read_replica,
-        current_leader_id,
-        current_leader_epoch,
-        diverging_epoch: EpochEndOffset::UNDEFINED_EPOCH,
-        diverging_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-        snapshot_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-        snapshot_epoch: EpochEndOffset::UNDEFINED_EPOCH,
-        records: Vec::new(),
+fn fetched_ok(version: i16) -> FetchedPartition {
+    let mut part = FetchedPartition::partition_response(0, 0);
+    part.high_watermark = 250;
+    part.last_stable_offset = 240;
+    part.log_start_offset = 100;
+    if version >= 11 {
+        part.preferred_read_replica = 7;
     }
+    part
+}
+
+fn fetched_failed(version: i16) -> FetchedPartition {
+    let mut part = FetchedPartition::partition_response(3, 3);
+    part.aborted_transactions = vec![(7, 10)];
+    if version >= 12 {
+        part.current_leader_id = 7;
+        part.current_leader_epoch = 9;
+    }
+    part
 }
 
 #[test]
 fn rust_session_response_roundtrip_matches_gates() {
     for version in CRATE_MIN..=FETCH_CRATE_MAX_VERSION {
-        let ok = fetched(
-            0,
-            0,
-            250,
-            240,
-            100,
-            Vec::new(),
-            if version >= 11 {
-                7
-            } else {
-                FetchedPartition::INVALID_PREFERRED_REPLICA_ID
-            },
-            MetadataResponse::NO_LEADER_ID,
-            RecordBatch::NO_PARTITION_LEADER_EPOCH,
-        );
-        let failed = fetched(
-            3,
-            3,
-            -1,
-            -1,
-            FetchedPartition::INVALID_LOG_START_OFFSET,
-            vec![(7, 10)],
-            FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
-            if version >= 12 {
-                7
-            } else {
-                MetadataResponse::NO_LEADER_ID
-            },
-            if version >= 12 {
-                9
-            } else {
-                RecordBatch::NO_PARTITION_LEADER_EPOCH
-            },
-        );
+        let ok = fetched_ok(version);
+        let failed = fetched_failed(version);
         let topic_id = if version >= 13 { SESSION_ID } else { [0; 16] };
         let name = if version >= 13 {
             ""
@@ -692,40 +651,8 @@ fn rust_bodies(version: i16) -> (BytesMut, BytesMut) {
         &forgotten,
     )
     .unwrap();
-    let ok = fetched(
-        0,
-        0,
-        250,
-        240,
-        100,
-        Vec::new(),
-        if version >= 11 {
-            7
-        } else {
-            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
-        },
-        MetadataResponse::NO_LEADER_ID,
-        RecordBatch::NO_PARTITION_LEADER_EPOCH,
-    );
-    let failed = fetched(
-        3,
-        3,
-        -1,
-        -1,
-        FetchedPartition::INVALID_LOG_START_OFFSET,
-        vec![(7, 10)],
-        FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
-        if version >= 12 {
-            7
-        } else {
-            MetadataResponse::NO_LEADER_ID
-        },
-        if version >= 12 {
-            9
-        } else {
-            RecordBatch::NO_PARTITION_LEADER_EPOCH
-        },
-    );
+    let ok = fetched_ok(version);
+    let failed = fetched_failed(version);
     let endpoints = if version >= 16 {
         vec![NodeEndpoint::new(7, "broker", 9092, None)]
     } else {

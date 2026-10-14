@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "task": "KL01-19",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "matrix-cell-fetch-3-9-1",
+    "matrix-cell-fetch-4-1-0",
+    "proto-fetch-v04-local",
+    "proto-fetch-v05-local",
+    "proto-fetch-v06-local",
+    "proto-fetch-v07-local",
+    "proto-fetch-v08-local",
+    "proto-fetch-v09-local",
+    "proto-fetch-v10-local",
+    "proto-fetch-v11-local",
+    "proto-fetch-v12-local",
+    "proto-fetch-v13-local",
+    "proto-fetch-v14-local",
+    "proto-fetch-v15-local",
+    "proto-fetch-v16-local",
+    "proto-fetch-v17-local",
+    "proto-diff-fetch-v18-apache-3-9-1",
+    "proto-differential-fetch-apache-java",
+    "proto-fetch-v18-local"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "matrix-cell-fetch-3-9-1",
+      "matrix-cell-fetch-4-1-0",
+      "proto-fetch-v04-local",
+      "proto-fetch-v05-local",
+      "proto-fetch-v06-local",
+      "proto-fetch-v07-local",
+      "proto-fetch-v08-local",
+      "proto-fetch-v09-local",
+      "proto-fetch-v10-local",
+      "proto-fetch-v11-local",
+      "proto-fetch-v12-local",
+      "proto-fetch-v13-local",
+      "proto-fetch-v14-local",
+      "proto-fetch-v15-local",
+      "proto-fetch-v16-local",
+      "proto-fetch-v17-local",
+      "proto-fetch-v18-local"
+    ],
+    "unsupported": [
+      "proto-diff-fetch-v18-apache-3-9-1"
+    ],
+    "blocked": [
+      "proto-differential-fetch-apache-java"
+    ]
+  },
+  "crate_spoken_versions": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+  "parameter_invocations": {
+    "cells": ["empty", "canonical", "session_errors", "tagged"],
+    "tagged_versions": [12, 13, 14, 15, 16, 17, 18],
+    "nested_counts": {
+      "empty": {"topics": 0, "partitions": 0},
+      "canonical": {"topics": 1, "partitions": 1},
+      "session_errors": {"topics": 1, "partitions": 2, "forgotten": 1},
+      "tagged": {"topics": 1, "partitions": 1, "unknown_tags": 4}
+    },
+    "field_gates": {
+      "IsolationLevel": "4+",
+      "LogStartOffset": "5+",
+      "SessionId_SessionEpoch_ForgottenTopicsData": "7+",
+      "CurrentLeaderEpoch": "9+",
+      "RackId": "11+",
+      "flexible": "12+",
+      "LastFetchedEpoch": "12+",
+      "CurrentLeader_DivergingEpoch_SnapshotId": "12+",
+      "TopicId": "13+",
+      "Name": "0-12",
+      "ReplicaId_untagged": "0-14",
+      "ReplicaState": "15+",
+      "NodeEndpoints": "16+",
+      "ReplicaDirectoryId": "17+",
+      "HighWatermark_request_tag1": "18+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "valid_versions": "0-17",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "GitHub raw 404s the pinned commit object; sources hashed from tag 3.9.1. FetchResponseTest.java does not exist; response version tests live in RequestResponseTest.java.",
+      "sources": {
+        "FetchRequest.json": "556074dc9896bd9fe33a85aa7bd8816bf1c22b9dc56f03a2b2b359560c31e4eb",
+        "FetchResponse.json": "61d3e92615763f6cf0b2482ac48f7cb3e61dbcf71f2978a403ec3a065ae70011",
+        "FetchRequest.java": "535e4b8a4e4a5b4c204fa28b6e07dbb88df9e34283e1808c64f7ff8f00a3a5f9",
+        "FetchResponse.java": "adb6b322363c1bdec00a66a9844b1f7ba25c18a0128287afa31222e045954e50",
+        "FetchRequestTest.java": "336bf6c981edd58b839c20ef83eb30517c2d4e990d51ae2c1032c6f36d59f457",
+        "RequestResponseTest.java": "98ac3c1f832c8f0cd83e134f44b9e7672a2046205c29669f9d8319d464079586"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "valid_versions": "4-18",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "sources": {
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "FetchRequest.java": "a25a2d6406bb17ce3f0b32cc2f90032a6032ff2eb19f1532a5b4631b1e17b0c2",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchRequestTest.java": "103f4f1521430d71fab337c32efaa2b580a50b7d90ac41fbbdf5b7a4a1da004f",
+        "RequestResponseTest.java": "76c74a9102970d983ae1a9e22b3465833b164752d63bd3b9d14b28f256028ea4"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "valid_versions": "4-18",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Fetch request/response JSON and Java match 4.1.0 byte-for-byte. RequestResponseTest.java differs.",
+      "sources": {
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "FetchRequest.java": "a25a2d6406bb17ce3f0b32cc2f90032a6032ff2eb19f1532a5b4631b1e17b0c2",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchRequestTest.java": "103f4f1521430d71fab337c32efaa2b580a50b7d90ac41fbbdf5b7a4a1da004f",
+        "RequestResponseTest.java": "35c97cfa4437d7eac8362976d2e99375abaeae73e4b1e8487219dbfe94d0d884"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "valid_versions": "4-18",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "FetchRequest.json differs from 4.1.x by one byte; FetchResponse JSON and FetchRequest/FetchResponse/FetchRequestTest Java match 4.1.0.",
+      "sources": {
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "FetchRequest.java": "a25a2d6406bb17ce3f0b32cc2f90032a6032ff2eb19f1532a5b4631b1e17b0c2",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchRequestTest.java": "103f4f1521430d71fab337c32efaa2b580a50b7d90ac41fbbdf5b7a4a1da004f",
+        "RequestResponseTest.java": "960081d4601a6241fc16219b77761eaf4b026c4b39f68a4e3cf0e98b688dcafd"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "valid_versions": "4-18",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "FetchRequest.json matches 4.2.1; FetchResponse JSON matches 4.1.0–4.2.1; FetchRequest.java and FetchResponse.java differ.",
+      "sources": {
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "FetchRequest.java": "ad0092a58bb9e3bac06bf9098e571485159a0bae78b3a4cf094002e4548cce7f",
+        "FetchResponse.java": "251d68781a289306550986d91cb1f2cd05d96d95b4243c967ca55acec82db4e3",
+        "FetchRequestTest.java": "103f4f1521430d71fab337c32efaa2b580a50b7d90ac41fbbdf5b7a4a1da004f",
+        "RequestResponseTest.java": "63d71dbc27c3e129a84138392b0407fd528bab43191c2aced47cfaa12136c9cc"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testToReplaceWithDifferentVersions",
+      "invocations": "ApiKeys.FETCH.allVersions(); replaced TopicIdPartition appears in ForgottenTopicsData only on v13+",
+      "applicability": "applicable",
+      "reason": "Direct forgotten/replaced topic-id version gate. session_errors writes ForgottenTopicsData on v7+ and TopicId on v13+."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testFetchData",
+      "applicability": "applicable",
+      "reason": "fetchData name vs topic-id lookup. Crate FetchRequest::fetch_data matches; this card checks the encoded Topics identity bytes."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testForgottenTopics",
+      "applicability": "applicable",
+      "reason": "ForgottenTopicsData v7+ with TopicId on v13+."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testFetchRequestSimpleBuilderReplicaStateDowngrade",
+      "applicability": "applicable",
+      "reason": "SimpleBuilder moves ReplicaId into ReplicaState below v15. Consumers in this card omit ReplicaState (defaults -1/-1)."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testFetchRequestSimpleBuilderReplicaIdNotSupported",
+      "applicability": "applicable",
+      "reason": "Untagged ReplicaId >= 0 is illegal on SimpleBuilder. Crate FetchRequest::simple_build already refuses that."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "methods": ["testFetchRequestNoCacheData", "testFetchDataNoCacheData"],
+      "applicability": "applicable",
+      "reason": "Topic-name cache vs TopicId on v13+. testFetchDataNoCacheData is 4.1.0+ only."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/FetchRequestTest.java",
+      "method": "testPartitionDataEquals",
+      "applicability": "nonapplicable",
+      "reason": "Java PartitionData.equals, not request/response body layout."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "fetchResponseVersionTest",
+      "applicability": "applicable",
+      "reason": "Response field projection across Fetch versions, including throttle and session."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchResponseV4",
+      "applicability": "applicable",
+      "reason": "v4 LastStableOffset / AbortedTransactions / records."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchResponseShouldNotHaveNullRecords",
+      "releases": ["4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+      "applicability": "applicable",
+      "reason": "Null MemoryRecords on the wire. This card uses null records so records.rs stays read-only."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "verifyFetchResponseFullWrites",
+      "applicability": "applicable",
+      "reason": "size/write of a fully populated response. Generator asserts size/write leftover-empty on every cell."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchRequestIsolationLevel",
+      "applicability": "applicable",
+      "reason": "IsolationLevel v4+. session_errors writes READ_COMMITTED (1)."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchRequestWithMetadata",
+      "applicability": "applicable",
+      "reason": "SessionId / SessionEpoch v7+. session_errors writes session 42 / epoch 3."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchRequestMaxBytesOldVersions",
+      "releases": ["3.9.1"],
+      "applicability": "unsupported",
+      "reason": "MaxBytes rewrite below v3. Crate spoken range is 4–18; Kafka 4.0 removed v0–v3."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testFetchRequestCompat",
+      "releases": ["3.9.1"],
+      "applicability": "nonapplicable",
+      "reason": "Historical request compatibility helper, not crate-spoken envelope versions."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testShareFetchResponseShouldNotHaveNullRecords",
+      "releases": ["4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+      "applicability": "nonapplicable",
+      "reason": "ShareFetch, not Fetch api key 1."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "methods": [
+        "testOffsetFetchRequestBuilderToStringV0ToV7",
+        "testOffsetFetchRequestBuilderToStringV8AndAbove"
+      ],
+      "releases": ["3.9.1"],
+      "applicability": "nonapplicable",
+      "reason": "OffsetFetch toString, not Fetch."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/FetchRequest.java",
+      "methods": [
+        "replicaId",
+        "isFromFollower",
+        "isConsumer",
+        "Builder.forConsumer",
+        "Builder.forReplica",
+        "getErrorResponse"
+      ],
+      "applicability": "applicable",
+      "reason": "Already crate-local helpers. This card checks consumer ReplicaId -1, empty ReplicaState, and encoded bodies rather than re-running those helpers."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "Fetch v0-v3",
+      "reason": "Crate spoken range is 4–18. Apache 4.0+ validVersions is 4-18; 3.9.1 still lists 0-17. Historical message-set versions stay out of this cohort."
+    },
+    {
+      "cell": "proto-diff-fetch-v18-apache-3-9-1",
+      "reason": "3.9.1 FetchRequest.json validVersions 0-17. Live generator throws UnsupportedVersionException when sizing crate-spoken v18."
+    },
+    {
+      "cell": "FetchSnapshot / incremental FetchSessionHandler cache",
+      "reason": "This card qualifies builders/parsers of Fetch request and response bodies, not FetchSnapshot RPCs or broker fetch-session cache."
+    },
+    {
+      "cell": "public KafkaConsumer poll / replica fetch acknowledgment",
+      "reason": "KIP-1166 HighWatermark is encoded as partition tag 1 on tagged v18 only. Replica quorum-commit behavior and public Consumer.poll remain outside this card."
+    }
+  ]
+}

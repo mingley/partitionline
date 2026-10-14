@@ -1,0 +1,60 @@
+{
+  "task": "KL01-19",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "22e8cb183de64e588f7fdaa689cdba04eaed817c",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "initial_registered_case_ids": [
+    "matrix-cell-fetch-3-9-1",
+    "matrix-cell-fetch-4-1-0",
+    "proto-fetch-v04-local",
+    "proto-fetch-v05-local",
+    "proto-fetch-v06-local",
+    "proto-fetch-v07-local",
+    "proto-fetch-v08-local",
+    "proto-fetch-v09-local",
+    "proto-fetch-v10-local",
+    "proto-fetch-v11-local",
+    "proto-fetch-v12-local",
+    "proto-fetch-v13-local",
+    "proto-fetch-v14-local",
+    "proto-fetch-v15-local",
+    "proto-fetch-v16-local",
+    "proto-fetch-v17-local",
+    "proto-diff-fetch-v18-apache-3-9-1",
+    "proto-differential-fetch-apache-java",
+    "proto-fetch-v18-local"
+  ],
+  "commands": [
+    "python3 tests/conformance/test_fetch_wire.py -q (4 passed, exit 0)",
+    "python3 tests/conformance/java/generate_fetch_wire.py --output /tmp/fetch-wire-gen --install tests/fixtures/fetch_wire (512 bodies, 1 unsupported receipt, two generations match, 172.429s remaining of 180s)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --test fetch_wire_conformance -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test fetch_wire_conformance (4 passed, including 74 live Apache reverse parses)"
+  ],
+  "results": {
+    "generated_bodies": 512,
+    "unsupported_receipts": 1,
+    "independent_generations_match": true,
+    "rust_offline_fixture_bodies": 512,
+    "rust_apache_reverse_parses": 74,
+    "original_dispositions_preserved": true,
+    "cases_json_rows_added": 0
+  },
+  "actual_failures_retained": [
+    {
+      "attempt": 1,
+      "error": "clippy too_many_arguments on fetched() (9/7)",
+      "cause": "Local test helper packed every FetchedPartition field into one constructor. Not a wire mismatch. Replaced with FetchedPartition::partition_response plus version-gated field writes."
+    }
+  ],
+  "qualification_limit": "Finite Fetch envelope versions 4–18, four named cells, five pinned client jars. Null records only; replica acknowledgment, incremental session cache, FetchSnapshot and public KafkaConsumer poll remain outside this card. Registered local_consistency rows are not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+  "evidence": "docs/evidence/conformance/q-conf-fetchwire",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false
+}

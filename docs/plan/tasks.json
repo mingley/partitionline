@@ -51987,7 +51987,7 @@
       "title": "Qualify complete registered Fetch wire versions and unsupported historical peers",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52013,7 +52013,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-19.json",
+        "docs/evidence/conformance/q-conf-fetchwire/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceFetchWire.java",
         "tests/conformance/java/generate_fetch_wire.py",
@@ -52054,7 +52057,8 @@
         "proto-fetch-v18-local"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "22e8cb183de64e588f7fdaa689cdba04eaed817c"
     },
     {
       "id": "KL01-20",
