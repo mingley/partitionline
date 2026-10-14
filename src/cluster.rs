@@ -7,6 +7,13 @@ use crate::error::{Error, Result};
 use crate::protocol::api::{MetadataResponse, NodeEndpoint};
 use crate::protocol::records::RecordBatch;
 
+/// Largest partition index stored in the dense leader cache.
+///
+/// Metadata can name a partition index of `i32::MAX` in a one-element array.
+/// The cache is indexed by that value, so an unbounded index would allocate
+/// billions of slots.
+const MAX_CACHED_PARTITIONS: i32 = 1_000_000;
+
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Cluster {
@@ -60,7 +67,9 @@ impl Cluster {
             }
             let mut max_idx = -1i32;
             for p in &t.partitions {
-                if p.partition_index > max_idx {
+                if (0..MAX_CACHED_PARTITIONS).contains(&p.partition_index)
+                    && p.partition_index > max_idx
+                {
                     max_idx = p.partition_index;
                 }
             }
@@ -191,6 +200,9 @@ impl Cluster {
     /// OffsetForLeaderEpoch can report the epoch of an older offset. That
     /// value must not replace the current leader epoch.
     pub(crate) fn set_leader_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
+        if !(0..MAX_CACHED_PARTITIONS).contains(&partition) {
+            return;
+        }
         let Ok(idx) = usize::try_from(partition) else {
             return;
         };
@@ -394,6 +406,62 @@ mod tests {
         );
         cluster.invalidate_topic("t");
         assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn an_absurd_partition_index_does_not_grow_the_leader_cache() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![
+                        PartitionMetadata {
+                            error_code: 0,
+                            partition_index: 0,
+                            leader_id: 1,
+                            leader_epoch: 4,
+                            replica_nodes: vec![1],
+                            isr_nodes: vec![1],
+                            offline_replicas: Vec::new(),
+                        },
+                        PartitionMetadata {
+                            error_code: 0,
+                            partition_index: i32::MAX,
+                            leader_id: 1,
+                            leader_epoch: 9,
+                            replica_nodes: vec![1],
+                            isr_nodes: vec![1],
+                            offline_replicas: Vec::new(),
+                        },
+                    ],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                error_code: 0,
+            },
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 4);
+        assert!(cluster.leader("t", i32::MAX).is_err());
+        assert_eq!(cluster.leader_epochs.get("t").map(Vec::len), Some(1));
+        cluster.set_leader_epoch("t", i32::MAX, 3);
+        assert_eq!(cluster.leader_epochs.get("t").map(Vec::len), Some(1));
     }
 
     #[test]
