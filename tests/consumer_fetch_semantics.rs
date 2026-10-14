@@ -5032,6 +5032,20 @@ async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
     broker.shutdown().await;
 }
 
+#[tokio::test]
+async fn max_poll_records_zero_is_rejected_before_connect() {
+    let mut cfg = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
+    cfg.max_poll_records = Some(0);
+    let err = match Consumer::new(cfg).await {
+        Ok(_) => panic!("max.poll.records of 0 must be rejected"),
+        Err(err) => err,
+    };
+    assert!(
+        err.to_string().contains("max.poll.records"),
+        "zero cap must be rejected, got {err}"
+    );
+}
+
 /// Buffered records are still lag, and a position past the high watermark is zero.
 #[tokio::test]
 async fn current_lag_includes_buffered_records_and_clamps_at_zero() {

@@ -359,7 +359,8 @@ impl ConsumerConfig {
         self
     }
 
-    /// Kafka `max.poll.records`. `None` means no cap.
+    /// Kafka `max.poll.records`. `None` means no cap. `0` is rejected when
+    /// the consumer starts; Java requires at least one record.
     #[must_use]
     pub fn max_poll_records(mut self, n: usize) -> Self {
         self.max_poll_records = Some(n);
@@ -2105,6 +2106,9 @@ impl Consumer {
             return Err(Error::protocol(
                 "bootstrap/client ID exceeds discovery limit",
             ));
+        }
+        if cfg.max_poll_records == Some(0) {
+            return Err(Error::protocol("max.poll.records must be at least 1"));
         }
         let mut cfg = cfg;
         for (field, value) in [
@@ -5456,11 +5460,7 @@ impl Consumer {
     }
 
     fn drain_pending(&mut self) -> Vec<FetchedRecord> {
-        let cap = self
-            .cfg
-            .max_poll_records
-            .filter(|n| *n > 0)
-            .unwrap_or(usize::MAX);
+        let cap = self.cfg.max_poll_records.unwrap_or(usize::MAX);
         self.pending
             .drain(&self.paused, cap, &mut self.buffered_bytes)
     }
