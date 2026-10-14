@@ -733,17 +733,28 @@ pub struct Retained {
     pub value: Option<Vec<u8>>,
 }
 
+/// One marker for the transactional records already appended in an epoch.
+struct EpochDecision {
+    producer_id: i64,
+    epoch: i16,
+    commit: bool,
+    /// Source length when the marker was recorded. It covers earlier indexes.
+    through: usize,
+}
+
 /// Durable plan-then-commit cleaner for classified records.
 ///
-/// Records before the first undecided transaction are eligible. Aborted data
-/// and resolved control markers in that prefix are removed. The last remaining
-/// value of each key is kept, and a last tombstone stays until its delete
-/// horizon. The undecided suffix is copied unchanged. A plan is not the
-/// published view until `publish` records the same generation.
+/// Records before the first undecided transaction are eligible. A decision
+/// covers only the transactional records already appended for that producer
+/// epoch; a later transaction in the same epoch stays undecided. Aborted data
+/// and resolved control markers in the stable prefix are removed. The last
+/// remaining value of each key in that prefix is kept, and a last tombstone
+/// stays until its delete horizon. The undecided suffix is copied unchanged.
+/// A plan is not the published view until `publish` records the same generation.
 pub struct Cleaner {
     policy: Policy,
     source: Vec<Retained>,
-    decisions: std::collections::BTreeMap<(i64, i16), bool>,
+    decisions: Vec<EpochDecision>,
     pending: Option<(u64, Vec<Retained>)>,
     published: Option<Vec<Retained>>,
     published_generation: Option<u64>,
@@ -769,7 +780,7 @@ impl Cleaner {
         let mut cleaner = Self {
             policy,
             source: Vec::new(),
-            decisions: std::collections::BTreeMap::new(),
+            decisions: Vec::new(),
             pending: None,
             published: None,
             published_generation: None,
@@ -814,22 +825,29 @@ impl Cleaner {
         Ok(())
     }
 
-    /// Record that a producer epoch committed or aborted.
+    /// Record that the current transaction in a producer epoch committed or aborted.
     ///
-    /// The same decision is a no-op. The opposite decision stores nothing.
+    /// The marker applies to transactional records already appended for that
+    /// epoch. The same marker with no newer records is a no-op. The opposite
+    /// marker stores nothing. Records appended afterward stay undecided.
     pub fn decide(&mut self, producer_id: i64, epoch: i16, commit: bool) -> Result<(), CleanError> {
         self.ready()?;
         if producer_id <= 0 || epoch < 0 {
             return Err(CleanError::InvalidRecord);
         }
-        if let Some(stored) = self.decisions.get(&(producer_id, epoch)).copied() {
+        if let Some(stored) = self.trailing_commit(producer_id, epoch) {
             if stored != commit {
                 return Err(CleanError::ConflictingDecision);
             }
             return Ok(());
         }
         self.persist(&encode_decide(producer_id, epoch, commit)?)?;
-        self.decisions.insert((producer_id, epoch), commit);
+        self.decisions.push(EpochDecision {
+            producer_id,
+            epoch,
+            commit,
+            through: self.source.len(),
+        });
         Ok(())
     }
 
@@ -928,12 +946,17 @@ impl Cleaner {
                 epoch,
                 commit,
             } => {
-                if let Some(stored) = self.decisions.get(&(producer_id, epoch)).copied() {
+                if let Some(stored) = self.trailing_commit(producer_id, epoch) {
                     if stored != commit {
                         return Err(CleanError::InvalidRecord);
                     }
                 } else {
-                    self.decisions.insert((producer_id, epoch), commit);
+                    self.decisions.push(EpochDecision {
+                        producer_id,
+                        epoch,
+                        commit,
+                        through: self.source.len(),
+                    });
                 }
             }
             CleanRecord::Plan {
@@ -960,6 +983,27 @@ impl Cleaner {
         }
         Ok(())
     }
+
+    /// Commit flag of the marker that already closed this epoch, when no later
+    /// transactional record has been appended for it.
+    fn trailing_commit(&self, producer_id: i64, epoch: i16) -> Option<bool> {
+        let span = self
+            .decisions
+            .iter()
+            .rev()
+            .find(|decision| decision.producer_id == producer_id && decision.epoch == epoch)?;
+        let open = self.source.iter().enumerate().any(|(index, record)| {
+            index >= span.through
+                && record.producer_id == producer_id
+                && record.epoch == epoch
+                && record.role != Role::Ordinary
+        });
+        if open {
+            None
+        } else {
+            Some(span.commit)
+        }
+    }
 }
 
 enum CleanRecord {
@@ -980,7 +1024,7 @@ enum CleanRecord {
 
 fn plan(
     source: &[Retained],
-    decisions: &std::collections::BTreeMap<(i64, i16), bool>,
+    decisions: &[EpochDecision],
     policy: Policy,
     now_ms: i64,
 ) -> Result<Vec<Retained>, CleanError> {
@@ -1001,15 +1045,21 @@ fn plan(
     }
     let lso = source
         .iter()
-        .position(|record| transactional(record) && decision(decisions, record).is_none())
+        .enumerate()
+        .position(|(index, record)| {
+            transactional(record) && decision(decisions, record, index).is_none()
+        })
         .unwrap_or(source.len());
     let mut last = std::collections::BTreeMap::<Vec<u8>, i64>::new();
     let mut key_bytes = 0usize;
-    for record in source {
+    for (index, record) in source.iter().enumerate() {
+        if index >= lso {
+            break;
+        }
         if record.role != Role::Ordinary && record.role != Role::TransactionData {
             continue;
         }
-        if decision(decisions, record) == Some(false) {
+        if decision(decisions, record, index) == Some(false) {
             continue;
         }
         let Some(key) = record.key.clone() else {
@@ -1039,7 +1089,7 @@ fn plan(
         if record.role == Role::ControlCommit || record.role == Role::ControlAbort {
             continue;
         }
-        if decision(decisions, record) == Some(false) {
+        if decision(decisions, record, index) == Some(false) {
             continue;
         }
         let Some(key) = &record.key else {
@@ -1060,14 +1110,18 @@ fn transactional(record: &Retained) -> bool {
     record.role != Role::Ordinary
 }
 
-fn decision(
-    decisions: &std::collections::BTreeMap<(i64, i16), bool>,
-    record: &Retained,
-) -> Option<bool> {
+fn decision(decisions: &[EpochDecision], record: &Retained, index: usize) -> Option<bool> {
     if record.role == Role::Ordinary {
         Some(true)
     } else {
-        decisions.get(&(record.producer_id, record.epoch)).copied()
+        decisions
+            .iter()
+            .find(|decision| {
+                decision.producer_id == record.producer_id
+                    && decision.epoch == record.epoch
+                    && index < decision.through
+            })
+            .map(|decision| decision.commit)
     }
 }
 
@@ -1477,6 +1531,78 @@ mod cleaner_tests {
         ));
         assert_eq!(bounded.retained().len(), 1);
         assert_eq!(bounded.retained()[0].value.as_deref(), Some(&b"v"[..]));
+    }
+
+    #[test]
+    fn a_later_transaction_in_the_same_epoch_stays_undecided() {
+        let (mut cleaner, path) = open_cleaner("same-epoch", 5_000, 4096);
+        cleaner
+            .append(record(
+                0,
+                1_000,
+                4,
+                0,
+                Role::TransactionData,
+                Some(b"a"),
+                Some(b"committed"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .decide(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .append(record(
+                1,
+                1_000,
+                4,
+                0,
+                Role::TransactionData,
+                Some(b"a"),
+                Some(b"open"),
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .compact(2_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let kept: Vec<_> = cleaner
+            .retained()
+            .iter()
+            .map(|record| record.offset)
+            .collect();
+        assert_eq!(kept, vec![0, 1]);
+        cleaner
+            .decide(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        cleaner
+            .decide(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.decide(4, 0, false),
+            Err(CleanError::ConflictingDecision)
+        ));
+        cleaner
+            .compact(2_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            cleaner
+                .retained()
+                .iter()
+                .map(|record| record.offset)
+                .collect::<Vec<_>>(),
+            vec![1]
+        );
+        assert_eq!(cleaner.retained()[0].value.as_deref(), Some(&b"open"[..]));
+        drop(cleaner);
+        let restored = Cleaner::open(&path, policy(5_000, 4096), journal_limits())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            restored
+                .retained()
+                .iter()
+                .map(|record| record.offset)
+                .collect::<Vec<_>>(),
+            vec![1]
+        );
     }
 
     fn journal_limits() -> journal::Limits {
