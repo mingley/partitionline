@@ -14,7 +14,7 @@ qualification details.
 | Consumer protocol | KIP-848 group join, heartbeat and polling APIs. |
 | Discovery | Metadata0–13 and GROUP FindCoordinator0–6; unsupported creation options, coordinator types and missing identities are refused. |
 | Committed offsets | Name-based methods and typed UUID requests; v10 group/Admin routing, member epochs and bounded batched fetches. |
-| Share groups | Join, polling, accept/release/reject, implicit or explicit acknowledgement, version negotiation, acquisition modes and lock renewal. |
+| Share groups | Join, polling, accept/release/reject, implicit or explicit acknowledgement, `commit` (`commitSync`), version negotiation, acquisition modes and lock renewal. |
 | Transactions | Initialize, begin, commit/abort and send group offsets with output records. |
 | Admin | Topics, configs, ACLs, offsets, groups, transactions, quotas, log directories, leader elections and typed quorum operations. |
 | Compression | None, gzip, Snappy and LZ4. Enable `zstd` for bounded zstd encoding and decoding. |

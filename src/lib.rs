@@ -2033,6 +2033,9 @@
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
+//! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
+//! [`ShareGroup::commit_async`] are Java `ShareConsumer.commitSync` /
+//! `commitSync(Duration)` / `commitAsync`.
 //! [`ShareRequestMetadata`] `Display` is Java `ShareRequestMetadata.toString`
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.

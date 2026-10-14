@@ -114,6 +114,47 @@ async fn implicit_mode_accepts_previous_poll_on_next_poll() {
 }
 
 #[tokio::test]
+async fn implicit_commit_flushes_without_waiting_for_next_poll() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "commit", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.commit().await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    assert!(group.metrics().records_acknowledged >= 1);
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first_off);
+    group.commit_async().await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 2);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn explicit_commit_is_noop_until_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "explicit-commit", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    group.commit().await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.accept(&recs).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    group.commit_timeout(Duration::from_secs(1)).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_overlaps_two_leaders() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

@@ -365,7 +365,9 @@ while the share member is already polling. Java
 `share.acknowledgement.mode` defaults to implicit; this client defaults to
 **explicit** so a missed `accept` cannot silently commit. Opt in with
 `ConsumerConfig::share_acknowledgement_mode(ShareAcknowledgementMode::Implicit)`
-or `ShareGroup::set_acknowledgement_mode`. Live smoke:
+or `ShareGroup::set_acknowledgement_mode`. `ShareGroup::commit` is Java
+`commitSync` and flushes implicit acknowledgements without waiting for the
+next poll. Live smoke:
 `tests/share_live.rs` (`RUN_LIVE=1` on a 4.1+ broker) covers join-then-produce,
 `join_topics`, `join_matching`, live `release`/`reject`, and two members
 acquiring distinct offsets on one partition. `KAFKA_TOPIC` may be a

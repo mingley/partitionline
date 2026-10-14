@@ -1264,6 +1264,34 @@ impl ShareGroup {
         self.acknowledge(recs, AcknowledgeType::Renew).await
     }
 
+    /// Send pending implicit acknowledgements now (Java `ShareConsumer.commitSync()`).
+    ///
+    /// In [`ShareAcknowledgementMode::Implicit`], this accepts the last poll
+    /// without waiting for the next [`Self::poll`] or [`Self::leave`].
+    /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] already send
+    /// immediately, so this is a no-op in explicit mode after those calls.
+    pub async fn commit(&mut self) -> Result<()> {
+        self.implicit_accept_pending().await
+    }
+
+    /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
+    pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
+        let prev = self.cfg.request_timeout;
+        self.cfg.request_timeout = timeout;
+        let out = self.commit().await;
+        self.cfg.request_timeout = prev;
+        out
+    }
+
+    /// Java `ShareConsumer.commitAsync()`.
+    ///
+    /// Same send path as [`Self::commit`]. Explicit acknowledgements already
+    /// RPC from `accept` / `release` / `reject`; implicit pending acks are
+    /// flushed here rather than waiting for the next poll.
+    pub async fn commit_async(&mut self) -> Result<()> {
+        self.commit().await
+    }
+
     fn decoded_byte_limit(&self) -> usize {
         let hard = crate::protocol::records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
         if self.cfg.buffer_memory == 0 {

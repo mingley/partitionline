@@ -10,11 +10,15 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `ShareAcknowledgementMode` implements Java `share.acknowledgement.mode`.
   Implicit accepts the previous poll on the next `poll` / `leave` / `close`.
   The client default stays **explicit** (Java defaults to implicit).
+  `ShareGroup::commit` / `commit_timeout` / `commit_async` are Java
+  `ShareConsumer.commitSync` / `commitSync(Duration)` / `commitAsync` and
+  flush implicit acknowledgements without waiting for the next poll.
 
 - `examples/share.rs` accepts a comma-separated `KAFKA_TOPIC` list via
   `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+
   join-then-produce / multi-topic / `join_matching` / release-then-reject /
-  two-member same-partition probe (`RUN_LIVE=1`). Produce after a warmup
+  two-member same-partition / implicit-ack / `commit` probe (`RUN_LIVE=1`).
+  Produce after a warmup
   ShareFetch so `share.auto.offset.reset=latest` does not skip the first
   record.
 

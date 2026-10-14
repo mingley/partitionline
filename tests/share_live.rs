@@ -504,6 +504,88 @@ async fn share_implicit_ack_against_local_broker() {
     );
 }
 
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_implicit_commit_against_local_broker() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let topic = format!("pl-share-cmt-{suffix}");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(&[NewTopic::new(&topic, 1, 1)], 30_000, false)
+        .await
+        .expect("create share topic");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let group = format!("pl-share-cmt-{suffix}");
+    let cfg = ConsumerConfig::bootstrap([bootstrap.clone()])
+        .max_wait_ms(500)
+        .max_poll_records(1)
+        .share_acknowledgement_mode(ShareAcknowledgementMode::Implicit);
+    let mut g = ShareGroup::join(cfg, group, topic.clone())
+        .await
+        .expect("share join");
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("assignment");
+    let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO))
+        .await
+        .expect("producer");
+    let first = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"cmt-a"[..]))
+        .await
+        .expect("produce first");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == first.offset)
+    })
+    .await
+    .expect("poll first");
+    let first_off = recs[0].offset;
+    g.commit().await.expect("commitSync");
+    assert!(
+        g.metrics().records_acknowledged >= 1,
+        "commit must flush implicit accept"
+    );
+    let second = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"cmt-b"[..]))
+        .await
+        .expect("produce second");
+    producer.close().await.expect("producer close");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == second.offset)
+    })
+    .await
+    .expect("poll second");
+    assert!(
+        recs.iter().all(|r| r.offset != first_off),
+        "committed {first_off} must not redeliver, got {:?}",
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>()
+    );
+    g.leave().await.expect("leave");
+    admin.close().await.expect("admin close");
+    eprintln!(
+        "share live commit ok first={}@{} next={}@{}",
+        first.topic, first.offset, second.topic, second.offset
+    );
+}
+
 async fn wait_assigned_and_warmup(g: &mut ShareGroup, topic: &str) -> partitionline::Result<()> {
     let deadline = Instant::now() + Duration::from_secs(15);
     loop {

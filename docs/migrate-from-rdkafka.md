@@ -78,7 +78,7 @@ set is an earlier baseline.
 | Transactions | init / begin / send_offsets / commit | same names on `Producer`; see `examples/eos.rs` |
 | Create topic | admin create | `Admin::create_topics` |
 | Wake a blocked poll | — | `Consumer::wakeup` / `WakeupHandle` (`src/consumer.rs:1320`; interrupts in-flight Fetch) |
-| Share-group ack | — | `ShareGroup::{accept, release, reject}`; optional `ShareAcknowledgementMode::Implicit` |
+| Share-group ack | — | `ShareGroup::{accept, release, reject, commit}`; optional `ShareAcknowledgementMode::Implicit` |
 
 ## Partitioning
 
