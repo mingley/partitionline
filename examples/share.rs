@@ -1,6 +1,11 @@
 //! Join a KIP-932 share group, poll, and accept records.
 //!
 //! Broker on `KAFKA_BOOTSTRAP`. Topic `KAFKA_TOPIC` (default `partitionline`).
+//!
+//! Join applies `ConsumerConfig::auto_offset_reset` as
+//! `share.auto.offset.reset` when the broker accepts IncrementalAlterConfigs
+//! (crate default earliest). If the broker keeps latest, produce while this
+//! process is already polling — empty polls are waiting, not hung.
 
 use partitionline::{ConsumerConfig, ShareGroup};
 
@@ -11,10 +16,11 @@ async fn main() -> partitionline::Result<()> {
     let topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "partitionline".into());
     let mut group = ShareGroup::join(
         ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500),
-        group_id,
-        topic,
+        group_id.clone(),
+        topic.clone(),
     )
     .await?;
+    println!("joined group={group_id} topic={topic}");
     loop {
         let recs = group.poll().await?;
         if recs.is_empty() {

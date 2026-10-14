@@ -13,6 +13,7 @@ use bytes::{Bytes, BytesMut};
 use parking_lot::Mutex;
 use tokio::sync::{watch, Notify};
 
+use crate::admin::{Admin, AdminConfig, AlterConfig, ConfigResource, ConfigResourceUpdate};
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
 use crate::group::{
@@ -36,6 +37,7 @@ use crate::protocol::share::{
     ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
     ACK_RELEASE, ACK_RENEW,
 };
+use crate::AutoOffsetReset;
 use crate::Uuid;
 
 pub use crate::protocol::share::{
@@ -588,6 +590,46 @@ fn spoken_share_group_heartbeat(version: i16) -> Result<i16> {
     }
 }
 
+/// Best-effort `share.auto.offset.reset` from [`ConsumerConfig::auto_offset_reset`].
+///
+/// Kafka's broker default is latest. This crate defaults ordinary consumers
+/// to earliest; share join applies the same value as a group config when
+/// IncrementalAlterConfigs accepts the key. Mock peers and some 4.1 brokers
+/// reject GROUP resources or the key (`UNKNOWN_TOPIC_OR_PARTITION` /
+/// `INVALID_CONFIG`); join still proceeds.
+async fn apply_share_auto_offset_reset(cfg: &ConsumerConfig, group_id: &str) {
+    let value = match cfg.auto_offset_reset {
+        AutoOffsetReset::Earliest => "earliest",
+        AutoOffsetReset::Latest => "latest",
+        AutoOffsetReset::None => return,
+    };
+    let timeout = cfg.request_timeout.min(Duration::from_secs(2));
+    let mut admin_cfg = AdminConfig::bootstrap(cfg.bootstrap.clone())
+        .client_id(cfg.client_id.clone())
+        .request_timeout(timeout)
+        .connect_timeout(cfg.connect_timeout.min(timeout));
+    admin_cfg.sasl_plain = cfg.sasl_plain.clone();
+    admin_cfg.sasl_scram = cfg.sasl_scram.clone();
+    admin_cfg.sasl_scram_sha512 = cfg.sasl_scram_sha512.clone();
+    admin_cfg.sasl_oauthbearer = cfg.sasl_oauthbearer.clone();
+    admin_cfg.sasl_oauthbearer_oidc = cfg.sasl_oauthbearer_oidc.clone();
+    admin_cfg.tls = cfg.tls.clone();
+    admin_cfg.retry_backoff = cfg.retry_backoff;
+    admin_cfg.retry_backoff_max = cfg.retry_backoff_max;
+    admin_cfg.reconnect_backoff = cfg.reconnect_backoff;
+    admin_cfg.reconnect_backoff_max = cfg.reconnect_backoff_max;
+    admin_cfg.connections_max_idle = cfg.connections_max_idle;
+    let Ok(mut admin) = Admin::new(admin_cfg).await else {
+        return;
+    };
+    let changes = [ConfigResourceUpdate::new(
+        ConfigResource::group(group_id),
+        [AlterConfig::set("share.auto.offset.reset", value)],
+    )];
+    drop(admin.incremental_alter_configs_for(&changes, false).await);
+    drop(admin.close().await);
+}
+
 struct PreparedShareFetch {
     node: i32,
     version: i16,
@@ -600,7 +642,12 @@ impl ShareGroup {
     ///
     /// Returns after the first successful share heartbeat. Assignment may
     /// still be empty; [`Self::poll`] waits for it (Java `ShareConsumer`).
-    /// An empty `group_id` is Java `InvalidGroupIdException`
+    /// [`ConsumerConfig::auto_offset_reset`] is applied as group config
+    /// `share.auto.offset.reset` (`earliest` / `latest`) before that
+    /// heartbeat when IncrementalAlterConfigs accepts the key. Brokers
+    /// that reject it still join; Kafka's default is then latest — produce
+    /// while already polling. An empty `group_id` is Java
+    /// `InvalidGroupIdException`
     /// (`You must provide a valid group.id in the consumer configuration.`).
     pub async fn join(
         cfg: ConsumerConfig,
@@ -745,6 +792,7 @@ impl ShareGroup {
             g.last_match_refresh = Instant::now();
         }
 
+        apply_share_auto_offset_reset(&g.cfg, &g.group_id).await;
         g.heartbeat_join().await?;
 
         g.spawn_heartbeat(hb_rx);

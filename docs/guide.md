@@ -360,8 +360,11 @@ KIP-848 (Kafka **4.x** ConsumerGroupHeartbeat) join sends an **empty**
 Share groups (KIP-932) need Kafka **4.1+** with finalized
 `share.version=1` (`kafka-features.sh … upgrade --feature share.version=1`).
 On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
-removed upstream. Default `share.auto.offset.reset` is **latest** — produce
-while the share member is already polling.
+removed upstream. Broker default `share.auto.offset.reset` is **latest**.
+`ShareGroup::join` applies `ConsumerConfig::auto_offset_reset` (crate
+default **earliest**) as that group config when IncrementalAlterConfigs
+accepts the key. Produce while already polling if the broker rejects the
+alter.
 
 ## Exactly-once (transactions)
 

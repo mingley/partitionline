@@ -31,7 +31,7 @@ use partitionline::{
     AclResourceType, Admin, AdminConfig, AlterConfig, AlterConfigOpType,
     AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic,
     AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
-    AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, AutoOffsetReset, ClientQuotaAlteration,
     ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent, ClientQuotaOp, Compression,
     Config, ConfigEntry, ConfigReplacement, ConfigResource, ConfigResourceType,
     ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig, ConsumerGroup,
@@ -4839,6 +4839,57 @@ async fn share_group_join_leave_without_classic_or_kip848() {
         "ShareGroup must prefer ShareGroupHeartbeat v1 when the broker advertises it"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_join_applies_auto_offset_reset_best_effort() {
+    let mock = common::Mock::start().await;
+    let earliest = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-reset-earliest",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mock.last_incremental_alter_configs_n(),
+        Some(1),
+        "default earliest must try IncrementalAlterConfigs for share.auto.offset.reset"
+    );
+    earliest.leave().await.unwrap();
+
+    let latest = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_offset_reset(AutoOffsetReset::Latest),
+        "sg-reset-latest",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mock.last_incremental_alter_configs_n(),
+        Some(1),
+        "latest must still try IncrementalAlterConfigs"
+    );
+    latest.leave().await.unwrap();
+
+    let mock_none = common::Mock::start().await;
+    let none = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock_none.addr.clone()])
+            .max_wait_ms(10)
+            .auto_offset_reset(AutoOffsetReset::None),
+        "sg-reset-none",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mock_none.last_incremental_alter_configs_n(),
+        None,
+        "auto.offset.reset=none has no share.auto.offset.reset mapping"
+    );
+    none.leave().await.unwrap();
 }
 
 #[tokio::test]
