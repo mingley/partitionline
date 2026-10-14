@@ -53,8 +53,8 @@ use partitionline::protocol::records::{
     Record, RecordBatch,
 };
 use partitionline::{
-    AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, ProduceRecord,
-    Producer, ProducerConfig, TopicPartition,
+    AutoOffsetReset, Consumer, ConsumerConfig, ConsumerGroup, IsolationLevel, OffsetAndMetadata,
+    ProduceRecord, Producer, ProducerConfig, TopicPartition,
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -3509,6 +3509,35 @@ async fn list_offsets_on_another_leader_negotiates_once() {
         "opening the leader socket negotiates ApiVersions once; ListOffsets must not repeat it"
     );
     consumer.close().await.unwrap();
+}
+
+/// Group poll and commit consume one pending wakeup before joining or sending offsets.
+#[tokio::test]
+async fn wakeup_interrupts_group_poll_and_commit_once() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "g",
+        "t",
+    )
+    .await
+    .unwrap();
+    group.wakeup();
+    let interrupted = group.poll().await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "group poll must observe a pending wakeup, got {interrupted}"
+    );
+    assert!(group.poll().await.unwrap().is_empty());
+    group.wakeup();
+    let interrupted = group.commit().await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "group commit must observe a pending wakeup, got {interrupted}"
+    );
+    group.commit().await.unwrap();
+    group.close().await.unwrap();
 }
 
 /// `wakeup` fails the next blocking metadata or offset call once, then later calls proceed.

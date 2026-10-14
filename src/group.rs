@@ -1235,6 +1235,9 @@ impl ConsumerGroup {
     }
 
     async fn poll_fetch(&mut self, wait: Option<Duration>) -> Result<ConsumerRecords> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if self.left_max_poll.load(Ordering::SeqCst) {
             return Err(Error::MaxPollInterval);
         }
@@ -1520,6 +1523,9 @@ impl ConsumerGroup {
 
     /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
     pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         let started = Instant::now();
         if self.kip848 {
             self.check_kip848_membership().await?;
@@ -1553,6 +1559,9 @@ impl ConsumerGroup {
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
         timeout: Duration,
     ) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         let started = Instant::now();
         let items =
             crate::offsets::collect_bounded_commits(offsets.into_iter().map(|(tp, offset)| {
