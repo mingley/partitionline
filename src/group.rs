@@ -2423,9 +2423,12 @@ impl ConsumerGroup {
 
     async fn apply_pending_assignment(&mut self) -> Result<()> {
         self.adopt_kip848_member_id();
-        let pending = self.hb_assignment.lock().take();
-        let Some(assignment) = pending else {
-            return Ok(());
+        let assignment = {
+            let pending = self.hb_assignment.lock();
+            let Some(assignment) = pending.as_ref() else {
+                return Ok(());
+            };
+            assignment.clone()
         };
         self.consumer.refresh_topics(&self.topics).await?;
         let names = self.consumer.topic_id_names();
@@ -2439,7 +2442,16 @@ impl ConsumerGroup {
             ));
         }
         let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
-        let _ = self.assign_committed(&wanted).await?;
+        if !kip848_assignment_can_apply(&wanted, &assignment) {
+            return Ok(());
+        }
+        let _revoked = self.assign_committed(&wanted).await?;
+        {
+            let mut pending = self.hb_assignment.lock();
+            if pending.as_ref() == Some(&assignment) {
+                *pending = None;
+            }
+        }
         *self.hb_ack.lock() = Some(assignment);
         self.generation_id = self.hb_generation.load(Ordering::SeqCst);
         Ok(())
@@ -3116,6 +3128,7 @@ fn wanted_from_kip848(
     assignment: &[TopicPartitions],
 ) -> Vec<(String, i32)> {
     let mut out = Vec::new();
+    let mut seen = HashSet::new();
     for tp in assignment {
         let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
             if subscribed.len() == 1 || tp.topic_id == [0u8; 16] {
@@ -3128,10 +3141,24 @@ fn wanted_from_kip848(
             continue;
         };
         for p in &tp.partitions {
+            if *p < 0 || !seen.insert((name.clone(), *p)) {
+                continue;
+            }
             out.push((name.clone(), *p));
         }
     }
     out
+}
+
+/// An empty assignment revokes. A non-empty assignment that names no
+/// partition stays pending so a later metadata refresh can apply it.
+fn kip848_assignment_can_apply(wanted: &[(String, i32)], assignment: &[TopicPartitions]) -> bool {
+    if !wanted.is_empty() || assignment.is_empty() {
+        return true;
+    }
+    !assignment
+        .iter()
+        .any(|topic| topic.partitions.iter().any(|partition| *partition >= 0))
 }
 
 /// Java `ClassicKafkaConsumer` / `AsyncKafkaConsumer` constructor when
@@ -4114,6 +4141,22 @@ mod tests {
             wanted_from_kip848(&["orders".into(), "payments".into()], &ids, &multi),
             vec![("payments".into(), 0)]
         );
+        let messy = vec![TopicPartitions {
+            topic_id: [1u8; 16],
+            partitions: vec![0, -1, 0, 2],
+        }];
+        assert_eq!(
+            wanted_from_kip848(&["payments".into()], &ids, &messy),
+            vec![("payments".into(), 0), ("payments".into(), 2)]
+        );
+        let unknown = vec![TopicPartitions {
+            topic_id: [9u8; 16],
+            partitions: vec![1],
+        }];
+        let unresolved = wanted_from_kip848(&["orders".into(), "payments".into()], &ids, &unknown);
+        assert!(unresolved.is_empty());
+        assert!(!kip848_assignment_can_apply(&unresolved, &unknown));
+        assert!(kip848_assignment_can_apply(&[], &[]));
     }
 
     #[test]
