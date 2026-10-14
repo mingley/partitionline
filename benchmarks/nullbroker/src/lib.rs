@@ -19,7 +19,7 @@ pub mod synth;
 
 use std::collections::HashMap;
 use std::fmt;
-use std::io::{self, Read, Write};
+use std::io::{self, IoSlice, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -1812,9 +1812,39 @@ impl Worker {
     }
 }
 
+/// Write the 4-byte length and body in one vectored send.
+fn write_frame(stream: &mut TcpStream, response: &[u8]) -> io::Result<()> {
+    let len = u32::try_from(response.len())
+        .unwrap_or(u32::MAX)
+        .to_be_bytes();
+    let mut slices = [IoSlice::new(&len), IoSlice::new(response)];
+    let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+    let mut rest = 4usize.saturating_add(response.len());
+    while rest > 0 {
+        match stream.write_vectored(bufs) {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "broker write returned 0",
+                ));
+            }
+            Ok(n) => {
+                IoSlice::advance_slices(&mut bufs, n);
+                rest = rest.saturating_sub(n);
+            }
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
 impl Worker {
     fn serve_conn(&self, stream: TcpStream) {
         let mut stream = stream;
+        // The client disables Nagle. The length prefix is 4 bytes; without
+        // this, that write can wait on a delayed ACK before the body follows.
+        let _ = stream.set_nodelay(true);
         self.serve_stream(&mut stream);
         // The shutdown tracker holds a cloned descriptor until the run ends.
         // Shut down the socket here so protocol rejections reach the peer now.
@@ -1840,11 +1870,7 @@ impl Worker {
                     if self.slow == Some(self.node_id) && !self.slow_delay.is_zero() {
                         std::thread::sleep(self.slow_delay);
                     }
-                    let out_len = u32::try_from(response.len()).unwrap_or(u32::MAX);
-                    if stream.write_all(&out_len.to_be_bytes()).is_err() {
-                        return;
-                    }
-                    if stream.write_all(&response).is_err() {
+                    if write_frame(stream, &response).is_err() {
                         return;
                     }
                 }
