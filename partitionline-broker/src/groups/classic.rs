@@ -352,6 +352,37 @@ impl Groups {
         Ok(owned)
     }
 
+    /// Refresh one member's session clock.
+    ///
+    /// The generation must be the one this member joined. A stale generation or
+    /// an unknown member does not move `last_seen_ms`.
+    pub fn heartbeat(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        generation: i32,
+        coordinator_epoch: i64,
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        let Some(group) = self.groups.get_mut(group_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if generation != group.generation {
+            return Err(Error::IllegalGeneration);
+        }
+        let Some(member) = group.members.get_mut(member_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if member.joined_generation != generation {
+            return Err(Error::RebalanceInProgress);
+        }
+        member.last_seen_ms = now_ms;
+        self.persist_all()?;
+        Ok(())
+    }
+
     /// Remove members that have been silent longer than the session timeout.
     pub fn expire(&mut self, now_ms: u64) -> Result<usize, Error> {
         self.ready()?;
@@ -719,6 +750,25 @@ mod tests {
             restored.assignment("orders", &follower.member_id),
             Some(&[2][..])
         );
+    }
+
+    #[test]
+    fn heartbeat_holds_the_session_and_a_stale_generation_does_not() {
+        let (mut groups, _) = open("heartbeat");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat("orders", &leader.member_id, leader.generation, 0, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation + 1, 0, 1_500),
+            Err(Error::IllegalGeneration)
+        ));
+        assert_eq!(groups.expire(1_501).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups.assignment("orders", &leader.member_id).is_none());
     }
 
     #[test]
