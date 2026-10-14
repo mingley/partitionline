@@ -144,6 +144,41 @@ async fn control_scenario_aligned_batch_delivers_and_shuts_down() {
     );
 }
 
+/// A metadata failure while replacing the assignment must not drop the
+/// positions the caller already held.
+#[tokio::test]
+async fn assign_keeps_the_previous_assignment_when_metadata_fails() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::AlignedBatch).await;
+    let mut consumer = Consumer::new(
+        broker
+            .config()
+            .max_wait_ms(1)
+            .request_timeout(Duration::from_millis(200))
+            .retry_backoff(Duration::from_millis(1)),
+    )
+    .await
+    .expect("consumer starts successfully");
+    consumer
+        .assign("t", 0, 4)
+        .await
+        .expect("assign partition 0 at offset 4");
+    consumer
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(4).with_leader_epoch(7))
+        .expect("seek keeps the leader epoch");
+    broker.shutdown().await;
+    let failed = consumer.assign_many([(("t", 0), 1), (("t", 1), 2)]).await;
+    assert!(failed.is_err(), "metadata refresh must fail after shutdown");
+    assert_eq!(
+        consumer.assignment(),
+        vec![TopicPartition::new("t", 0)],
+        "the previous assignment stays"
+    );
+    assert_eq!(consumer.position("t", 0).expect("position remains"), 4);
+    assert!(consumer.position("t", 1).is_err());
+    consumer.close().await.expect("consumer closes cleanly");
+}
+
 /// Fixture test: prove the fixture builds a whole batch containing records BEFORE
 /// the requested offset (fetch_offset: 2, batch contains offsets 0, 1, 2) and that
 /// it does NOT pre-filter those records out.

@@ -2566,6 +2566,9 @@ impl Consumer {
     }
 
     /// Replace the assignment. One Metadata refresh for the topic set.
+    ///
+    /// A failed refresh leaves the previous assignment, fetch epochs, and
+    /// aborted-transaction cursors in place. An empty list still clears them.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
         self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
@@ -2586,9 +2589,9 @@ impl Consumer {
         for (topic, partition, offset) in &self.assigned {
             let _previous = old_assigned.insert(topic, *partition, *offset);
         }
-        self.assigned.clear();
-        self.last_fetched_epochs.clear();
-        self.aborted.clear();
+        let previous_assigned = std::mem::take(&mut self.assigned);
+        let previous_epochs = std::mem::replace(&mut self.last_fetched_epochs, PartitionMap::new());
+        let previous_aborted = std::mem::replace(&mut self.aborted, PartitionMap::new());
         if starts.is_empty() {
             self.pending.clear();
             self.retained.clear();
@@ -2603,7 +2606,13 @@ impl Consumer {
                 topics.push(topic.clone());
             }
         }
-        self.refresh_metadata(Some(&topics)).await?;
+        if let Err(error) = self.refresh_metadata(Some(&topics)).await {
+            self.assigned = previous_assigned;
+            self.assigned_topic_ids = old_ids;
+            self.last_fetched_epochs = previous_epochs;
+            self.aborted = previous_aborted;
+            return Err(error);
+        }
         let new_ids = self.topic_name_ids();
         self.assigned.extend(starts.iter().cloned());
         for (topic, part, offset) in starts {
