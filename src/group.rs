@@ -945,7 +945,8 @@ impl ConsumerGroup {
     ///
     /// If records are buffered in the consumer (e.g. via [`ConsumerConfig::max_poll_records`]),
     /// each partition reports its next undelivered record offset rather than the
-    /// ahead-of-delivery broker fetch cursor.
+    /// ahead-of-delivery broker fetch cursor. A partition waiting to be placed
+    /// in the log is omitted.
     #[must_use]
     pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
         self.consumer.positions()

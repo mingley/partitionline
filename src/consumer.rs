@@ -2392,13 +2392,14 @@ impl Consumer {
     /// When [`ConsumerConfig::max_poll_records`] leaves fetched records buffered,
     /// each partition reports its next undelivered record offset rather than the
     /// ahead-of-delivery broker fetch cursor, matching Java `position(TopicPartition)`.
+    /// A partition waiting to be placed in the log is omitted.
     #[must_use]
     pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
         self.assigned
             .iter()
-            .map(|(t, p, o)| {
+            .filter_map(|(t, p, o)| {
                 let pos = self.delivered_position(t, *p, *o);
-                (TopicPartition::new(t.clone(), *p), pos)
+                defined_position(pos).map(|pos| (TopicPartition::new(t.clone(), *p), pos))
             })
             .collect()
     }
