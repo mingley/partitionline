@@ -978,7 +978,8 @@ impl ConsumerRecords {
     /// For each partition that has at least one record, this is the last
     /// record's offset plus one, with that record's leader epoch and
     /// [`OffsetAndMetadata::NO_METADATA`]. Partitions appear in first-seen
-    /// order.
+    /// order. A record at [`i64::MAX`] has no next offset, so that partition
+    /// is omitted.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         let mut last: HashMap<(&str, i32), &FetchedRecord> = HashMap::new();
@@ -992,12 +993,13 @@ impl ConsumerRecords {
         order
             .into_iter()
             .filter_map(|key| {
-                last.remove(&key).map(|rec| {
-                    let mut md = OffsetAndMetadata::new(rec.offset.saturating_add(1));
+                last.remove(&key).and_then(|rec| {
+                    let next = exclusive_fetch_offset(rec.offset)?;
+                    let mut md = OffsetAndMetadata::new(next);
                     if let Some(epoch) = rec.leader_epoch {
                         md = md.with_leader_epoch(epoch);
                     }
-                    (TopicPartition::new(rec.topic.clone(), rec.partition), md)
+                    Some((TopicPartition::new(rec.topic.clone(), rec.partition), md))
                 })
             })
             .collect()
@@ -4635,6 +4637,7 @@ impl Consumer {
                         let mut last_record_off = None;
                         // Highest `offset + 1` among records that are delivered.
                         let mut included_next: Option<i64> = None;
+                        let mut cursor_overflow = false;
                         let visited = encoded.try_visit_short_keys(|rec| {
                             last_record_off = Some(rec.offset);
                             if rec.offset < req_offset
@@ -4643,14 +4646,16 @@ impl Consumer {
                             {
                                 return;
                             }
+                            let Some(advanced) = exclusive_fetch_offset(rec.offset) else {
+                                cursor_overflow = true;
+                                return;
+                            };
                             let key_len = rec.key.as_ref().map_or(0, |(_, len)| usize::from(*len));
                             let val_len = rec.value.as_ref().map_or(0, Bytes::len);
                             added = added.saturating_add(key_len.saturating_add(val_len));
                             added_records = added_records.saturating_add(1);
                             included_next = Some(
-                                included_next.map_or(rec.offset.saturating_add(1), |current| {
-                                    current.max(rec.offset.saturating_add(1))
-                                }),
+                                included_next.map_or(advanced, |current| current.max(advanced)),
                             );
                             out.push(FetchedRecord {
                                 topic: TopicName::from(name.as_str()),
@@ -4664,6 +4669,9 @@ impl Consumer {
                                 leader_epoch: None,
                             });
                         })?;
+                        if cursor_overflow {
+                            return Err(Error::protocol("fetch cursor overflow"));
+                        }
                         if let Some(meta) = visited {
                             let over_budget = budget > 0
                                 && !is_first_batch
@@ -4706,10 +4714,18 @@ impl Consumer {
                                         .insert(name.clone(), (added_records, added_bytes));
                                 }
                             }
-                            let count_i64 = i64::try_from(meta.count).unwrap_or(i64::MAX);
-                            let next_off = meta.base_offset.saturating_add(count_i64);
-                            let batch_next = last_record_off
-                                .map_or(next_off, |offset| offset.saturating_add(1).max(next_off));
+                            let count_i64 = i64::try_from(meta.count)
+                                .map_err(|_| Error::protocol("fetch cursor overflow"))?;
+                            let next_off = meta
+                                .base_offset
+                                .checked_add(count_i64)
+                                .ok_or_else(|| Error::protocol("fetch cursor overflow"))?;
+                            let batch_next = match last_record_off {
+                                Some(offset) => exclusive_fetch_offset(offset)
+                                    .ok_or_else(|| Error::protocol("fetch cursor overflow"))?
+                                    .max(next_off),
+                                None => next_off,
+                            };
                             if let Some(advanced) = included_next {
                                 let advanced = cap_fetch_cursor(advanced, part.high_watermark);
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
@@ -4751,10 +4767,12 @@ impl Consumer {
                     }
 
                     let batch_last = batch.last_offset();
-                    let batch_next = batch.records.last().map_or_else(
-                        || batch.next_offset(),
-                        |r| r.offset.saturating_add(1).max(batch.next_offset()),
-                    );
+                    let batch_next = match batch.records.last() {
+                        Some(record) => exclusive_fetch_offset(record.offset)
+                            .ok_or_else(|| Error::protocol("fetch cursor overflow"))?
+                            .max(batch.next_offset()),
+                        None => batch.next_offset(),
+                    };
 
                     if let Some(state) = aborted.as_deref_mut() {
                         state.advance(batch_last);
@@ -4831,8 +4849,11 @@ impl Consumer {
                             break;
                         }
                         if offset >= req_offset {
-                            let advanced =
-                                cap_fetch_cursor(offset.saturating_add(1), part.high_watermark);
+                            let advanced = cap_fetch_cursor(
+                                exclusive_fetch_offset(offset)
+                                    .ok_or_else(|| Error::protocol("fetch cursor overflow"))?,
+                                part.high_watermark,
+                            );
                             next = Some(next.map_or(advanced, |c| c.max(advanced)));
                             last_epoch = batch.partition_leader_epoch;
                         } else {
@@ -5725,6 +5746,11 @@ fn record_is_retained(offset: i64, log_start: i64) -> bool {
     log_start < 0 || offset >= log_start
 }
 
+/// Offset after `offset`. [`i64::MAX`] has no exclusive end.
+fn exclusive_fetch_offset(offset: i64) -> Option<i64> {
+    offset.checked_add(1)
+}
+
 /// Do not advance a fetch cursor to or past a known high watermark.
 fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
     if high_watermark >= 0 {
@@ -6527,6 +6553,17 @@ mod tests {
                 ),
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
             ]
+        );
+    }
+
+    #[test]
+    fn a_record_at_i64_max_has_no_next_offset() {
+        assert_eq!(exclusive_fetch_offset(10), Some(11));
+        assert_eq!(exclusive_fetch_offset(i64::MAX), None);
+        let recs = ConsumerRecords::from(vec![rec("a", 0, i64::MAX), rec("b", 0, 4)]);
+        assert_eq!(
+            recs.next_offsets(),
+            vec![(TopicPartition::new("b", 0), OffsetAndMetadata::new(5))]
         );
     }
 

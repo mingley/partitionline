@@ -424,7 +424,8 @@ impl ShareRecords {
     /// For each partition that has at least one record, this is the last
     /// record's offset plus one, with that record's leader epoch and
     /// [`crate::OffsetAndMetadata::NO_METADATA`]. Partitions appear in
-    /// first-seen order.
+    /// first-seen order. A record at [`i64::MAX`] has no next offset, so that
+    /// partition is omitted.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
         let mut last: HashMap<(&str, i32), &ShareRecord> = HashMap::new();
@@ -438,15 +439,16 @@ impl ShareRecords {
         order
             .into_iter()
             .filter_map(|key| {
-                last.remove(&key).map(|rec| {
-                    let mut md = crate::OffsetAndMetadata::new(rec.offset.saturating_add(1));
+                last.remove(&key).and_then(|rec| {
+                    let next = rec.offset.checked_add(1)?;
+                    let mut md = crate::OffsetAndMetadata::new(next);
                     if let Some(epoch) = rec.leader_epoch {
                         md = md.with_leader_epoch(epoch);
                     }
-                    (
+                    Some((
                         crate::TopicPartition::new(rec.topic.clone(), rec.partition),
                         md,
-                    )
+                    ))
                 })
             })
             .collect()
@@ -2951,6 +2953,14 @@ mod tests {
         assert!(!recs.is_empty());
         assert!(ShareRecords::empty().is_empty());
         assert!(ShareRecords::empty().next_offsets().is_empty());
+        let at_end = ShareRecords::from(vec![rec(0, i64::MAX), rec(1, 4)]);
+        assert_eq!(
+            at_end.next_offsets(),
+            vec![(
+                crate::TopicPartition::new("t", 1),
+                crate::OffsetAndMetadata::new(5)
+            )]
+        );
         assert_eq!(recs.records_for_topic("t").count(), 3);
         assert_eq!(recs.records_for_topic("missing").count(), 0);
         assert_eq!(
