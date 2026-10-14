@@ -646,7 +646,14 @@ pub struct ShareGroup {
     acquire_mode: ShareAcquireMode,
     acknowledgement_mode: ShareAcknowledgementMode,
     last_poll_unacked: Vec<ShareRecord>,
-    ack_commit_callback: Option<Box<dyn AcknowledgementCommitCallback>>,
+    ack_commit_callback: Option<
+        Box<
+            dyn FnMut(
+                    Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+                    Option<AcknowledgementCommitError>,
+                ) + Send,
+        >,
+    >,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
@@ -883,11 +890,26 @@ impl ShareGroup {
     /// before poll.`, empty input) do not invoke the callback. Pass a new
     /// callback to replace; use [`Self::clear_acknowledgement_commit_callback`]
     /// for Java `null`.
-    pub fn set_acknowledgement_commit_callback(
-        &mut self,
-        callback: impl AcknowledgementCommitCallback + 'static,
-    ) {
+    pub fn set_acknowledgement_commit_callback<F>(&mut self, callback: F)
+    where
+        F: FnMut(
+                Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+                Option<AcknowledgementCommitError>,
+            ) + Send
+            + 'static,
+    {
         self.ack_commit_callback = Some(Box::new(callback));
+    }
+
+    /// Java `ShareConsumer.setAcknowledgementCommitCallback` for a named
+    /// [`AcknowledgementCommitCallback`] implementation.
+    pub fn set_acknowledgement_commit_handler(
+        &mut self,
+        mut callback: impl AcknowledgementCommitCallback + 'static,
+    ) {
+        self.set_acknowledgement_commit_callback(move |offsets, exception| {
+            callback.on_complete(offsets, exception);
+        });
     }
 
     /// Java `ShareConsumer.setAcknowledgementCommitCallback(null)`.
@@ -2130,7 +2152,7 @@ impl ShareGroup {
         let offsets = self.acknowledgement_commit_offsets(recs);
         let exception = exception.map(AcknowledgementCommitError::from_error);
         if let Some(callback) = self.ack_commit_callback.as_mut() {
-            callback.on_complete(offsets, exception);
+            callback(offsets, exception);
         }
     }
 

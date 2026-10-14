@@ -22,9 +22,9 @@ use partitionline::protocol::share::{
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
-    error, Admin, AlterConfig, ConfigResource, ConfigResourceUpdate, ConsumerConfig, Error,
-    NewTopic, ProduceRecord, Producer, ProducerConfig, ShareAcknowledgementMode, ShareGroup,
-    ShareRecord, TimestampType,
+    error, AcknowledgementCommitCallback, AcknowledgementCommitError, Admin, AlterConfig,
+    ConfigResource, ConfigResourceUpdate, ConsumerConfig, Error, NewTopic, ProduceRecord, Producer,
+    ProducerConfig, ShareAcknowledgementMode, ShareGroup, ShareRecord, TimestampType,
 };
 
 fn config(mock: &common::Mock) -> ConsumerConfig {
@@ -257,6 +257,37 @@ async fn acknowledgement_commit_callback_skips_before_poll() {
         0,
         "Acknowledge called before poll must not invoke the callback"
     );
+    group.leave().await.unwrap();
+}
+
+struct CountingAckCallback(Arc<Mutex<usize>>);
+
+impl AcknowledgementCommitCallback for CountingAckCallback {
+    fn on_complete(
+        &mut self,
+        _offsets: Vec<(
+            partitionline::TopicIdPartition,
+            Vec<partitionline::OffsetAndMetadata>,
+        )>,
+        _exception: Option<AcknowledgementCommitError>,
+    ) {
+        *self.0.lock().unwrap() += 1;
+    }
+}
+
+#[tokio::test]
+async fn acknowledgement_commit_handler_trait_fires_on_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "cb-handler", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    let fired = Arc::new(Mutex::new(0usize));
+    group.set_acknowledgement_commit_handler(CountingAckCallback(fired.clone()));
+    group.accept(&recs).await.unwrap();
+    assert_eq!(*fired.lock().unwrap(), 1);
     group.leave().await.unwrap();
 }
 
