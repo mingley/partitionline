@@ -2785,7 +2785,35 @@ impl Consumer {
             let _ = self.preferred.remove(&topic, partition);
         }
         self.metadata = Some(md);
+        self.adopt_recreated_topics();
         Ok(())
+    }
+
+    /// A topic id change means the name was deleted and created again.
+    ///
+    /// The stored id is replaced and the fetch position is cleared. The next
+    /// fetch is out of range, so [`Self::reset_fetched_offset`] places it in
+    /// the new log. ListOffsets is not called here: that lookup refreshes
+    /// metadata and would recurse.
+    fn adopt_recreated_topics(&mut self) {
+        let changed = recreated_topic_partitions(
+            &self.assigned,
+            &self.assigned_topic_ids,
+            &self.topic_name_ids(),
+        );
+        for (topic, partition, id) in changed {
+            let _previous = self
+                .assigned_topic_ids
+                .insert((topic.clone(), partition), id);
+            self.drop_pending_for(&topic, partition);
+            let _removed = self.preferred.remove(&topic, partition);
+            self.set_last_fetched_epoch(
+                &topic,
+                partition,
+                crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            );
+            self.advance(&topic, partition, -1);
+        }
     }
 
     pub(crate) async fn ensure_topic_metadata(&mut self, topic: &str) -> Result<()> {
@@ -5671,6 +5699,30 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
     }
 }
 
+/// Partitions whose stored topic id disagrees with the latest Metadata id.
+///
+/// A missing stored id is the first time the assignment learns the id, not a
+/// recreation. A zero metadata id does not replace a stored id.
+fn recreated_topic_partitions(
+    assigned: &[(String, i32, i64)],
+    assigned_ids: &HashMap<(String, i32), [u8; 16]>,
+    metadata_ids: &HashMap<String, [u8; 16]>,
+) -> Vec<(String, i32, [u8; 16])> {
+    let mut changed = Vec::new();
+    for (topic, partition, _) in assigned {
+        let Some(id) = metadata_ids.get(topic).copied().filter(|id| *id != [0; 16]) else {
+            continue;
+        };
+        if assigned_ids
+            .get(&(topic.clone(), *partition))
+            .is_some_and(|current| *current != id)
+        {
+            changed.push((topic.clone(), *partition, id));
+        }
+    }
+    changed
+}
+
 fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     if high_watermark < 0 {
         None
@@ -5911,6 +5963,29 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_changed_topic_id_is_a_new_log() {
+        let assigned = vec![("t".to_string(), 0, 4), ("u".to_string(), 1, 0)];
+        let mut assigned_ids = HashMap::new();
+        let _ = assigned_ids.insert(("t".to_string(), 0), [1u8; 16]);
+        let _ = assigned_ids.insert(("u".to_string(), 1), [4u8; 16]);
+        let mut metadata_ids = HashMap::new();
+        let _ = metadata_ids.insert("t".to_string(), [2u8; 16]);
+        let _ = metadata_ids.insert("u".to_string(), [4u8; 16]);
+        assert_eq!(
+            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids),
+            vec![("t".to_string(), 0, [2u8; 16])]
+        );
+        let _ = metadata_ids.insert("t".to_string(), [0u8; 16]);
+        assert!(recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).is_empty());
+        assigned_ids.clear();
+        let _ = metadata_ids.insert("t".to_string(), [2u8; 16]);
+        assert!(
+            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).is_empty(),
+            "the first stored id is not a recreation"
+        );
     }
 
     #[test]
