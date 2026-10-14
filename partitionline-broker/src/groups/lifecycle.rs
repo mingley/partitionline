@@ -273,14 +273,21 @@ impl Lifecycle {
         now_ms: u64,
     ) -> Result<(), Error> {
         self.ready()?;
+        if partitions.iter().any(|partition| *partition < 0) {
+            return Err(Error::InvalidRequest);
+        }
         let Some(member) = self.members.get_mut(member_id) else {
             return Err(Error::UnknownMember);
         };
+        let mut removed = false;
         for partition in partitions {
-            member.owned.remove(partition);
-            if !member.delivered.contains(partition) {
-                member.delivered.remove(partition);
+            if member.owned.remove(partition) {
+                removed = true;
             }
+            member.delivered.remove(partition);
+        }
+        if !removed {
+            return Ok(());
         }
         let clock = now_ms.max(member.last_heartbeat_ms);
         let deadline = clock.saturating_add(self.limits.rebalance_timeout_ms);
@@ -571,6 +578,16 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         life.heartbeat("a", 5_000)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            life.revoke("a", &[-1], 5_000),
+            Err(Error::InvalidRequest)
+        ));
+        life.revoke("a", &[9], 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(life
+            .expire(5_501)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_empty());
         life.revoke("a", &[1], 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(life.owned("a").map(|set| set.contains(&1)), Some(false));
