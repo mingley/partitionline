@@ -2626,15 +2626,29 @@ impl Consumer {
     pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
         let topics = [topic.to_string()];
         self.refresh_metadata(Some(&topics)).await?;
-        let tmd = self
-            .metadata
-            .as_ref()
-            .and_then(|md| md.topics.iter().find(|t| t.name.as_deref() == Some(topic)))
-            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
-        if tmd.error_code != 0 {
-            return Err(Error::broker(tmd.error_code, topic.to_string()));
+        let Some(md) = self.metadata.as_ref() else {
+            return Err(Error::UnknownTopic(topic.to_string()));
+        };
+        let entries: Vec<(i16, Vec<i32>)> = md
+            .topics
+            .iter()
+            .filter(|tmd| tmd.name.as_deref() == Some(topic))
+            .map(|tmd| {
+                (
+                    tmd.error_code,
+                    tmd.partitions
+                        .iter()
+                        .map(|partition| partition.partition_index)
+                        .collect(),
+                )
+            })
+            .collect();
+        match listed_partition_indexes(entries.iter().map(|(error, ids)| (*error, ids.as_slice())))
+        {
+            ListedPartitions::Indexes(indexes) => Ok(indexes),
+            ListedPartitions::Error(code) => Err(Error::broker(code, topic.to_string())),
+            ListedPartitions::Missing => Err(Error::UnknownTopic(topic.to_string())),
         }
-        Ok(tmd.partitions.iter().map(|p| p.partition_index).collect())
     }
 
     /// Set the next fetch offset without a ListOffsets call.
@@ -5737,6 +5751,46 @@ fn take_fetch_partition(seen: &mut HashSet<(String, i32)>, topic: &str, partitio
     seen.insert((topic.to_owned(), partition))
 }
 
+/// Partition indexes for one topic across every copy in a Metadata response.
+///
+/// A later successful copy supplies indexes even when an earlier copy has a
+/// topic error. Negative indexes are omitted. The result is sorted and unique.
+enum ListedPartitions {
+    Missing,
+    Error(i16),
+    Indexes(Vec<i32>),
+}
+
+fn listed_partition_indexes<'a>(
+    entries: impl IntoIterator<Item = (i16, &'a [i32])>,
+) -> ListedPartitions {
+    let mut saw = false;
+    let mut error = None;
+    let mut indexes = Vec::new();
+    for (error_code, partitions) in entries {
+        saw = true;
+        if error_code != 0 {
+            if error.is_none() {
+                error = Some(error_code);
+            }
+            continue;
+        }
+        error = None;
+        indexes.extend(partitions.iter().copied().filter(|index| *index >= 0));
+    }
+    if !saw {
+        return ListedPartitions::Missing;
+    }
+    if indexes.is_empty() {
+        if let Some(code) = error {
+            return ListedPartitions::Error(code);
+        }
+    }
+    indexes.sort_unstable();
+    indexes.dedup();
+    ListedPartitions::Indexes(indexes)
+}
+
 fn recreated_topic_partitions(
     assigned: &[(String, i32, i64)],
     assigned_ids: &HashMap<(String, i32), [u8; 16]>,
@@ -5997,6 +6051,28 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_later_metadata_copy_supplies_partition_indexes() {
+        let none: &[(i16, &[i32])] = &[];
+        let empty: &[i32] = &[];
+        assert!(matches!(
+            listed_partition_indexes(none.iter().copied()),
+            ListedPartitions::Missing
+        ));
+        assert!(matches!(
+            listed_partition_indexes([(3, empty)]),
+            ListedPartitions::Error(3)
+        ));
+        assert!(matches!(
+            listed_partition_indexes([(5, empty), (0, &[1, 0, 0, -1][..])]),
+            ListedPartitions::Indexes(ref indexes) if indexes == &[0, 1]
+        ));
+        assert!(matches!(
+            listed_partition_indexes([(0, &[0, 1][..]), (5, empty)]),
+            ListedPartitions::Indexes(ref indexes) if indexes == &[0, 1]
+        ));
     }
 
     #[test]
