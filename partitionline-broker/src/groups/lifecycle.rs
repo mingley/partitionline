@@ -273,7 +273,6 @@ impl Lifecycle {
         now_ms: u64,
     ) -> Result<(), Error> {
         self.ready()?;
-        let deadline = now_ms.saturating_add(self.limits.rebalance_timeout_ms);
         let Some(member) = self.members.get_mut(member_id) else {
             return Err(Error::UnknownMember);
         };
@@ -283,7 +282,13 @@ impl Lifecycle {
                 member.delivered.remove(partition);
             }
         }
-        member.rebalance_deadline_ms = Some(deadline);
+        let clock = now_ms.max(member.last_heartbeat_ms);
+        let deadline = clock.saturating_add(self.limits.rebalance_timeout_ms);
+        member.rebalance_deadline_ms = Some(
+            member
+                .rebalance_deadline_ms
+                .map_or(deadline, |current| current.max(deadline)),
+        );
         self.persist()?;
         Ok(())
     }
@@ -557,6 +562,27 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(expired, vec!["a".to_owned()]);
         assert!(life.owned("a").is_none());
+    }
+
+    #[test]
+    fn an_older_revoke_does_not_expire_a_fresh_session() {
+        let (mut life, _) = open("revoke-clock");
+        life.join("a", None, &[0, 1], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.heartbeat("a", 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.revoke("a", &[1], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(life.owned("a").map(|set| set.contains(&1)), Some(false));
+        assert!(life
+            .expire(5_001)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_empty());
+        assert_eq!(
+            life.expire(5_501)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec!["a".to_owned()]
+        );
     }
 
     #[test]
