@@ -359,6 +359,9 @@ impl Registry {
     }
 
     /// Record a heartbeat. A stale epoch is refused and does not change the live session.
+    ///
+    /// An older clock does not move the session backward, so a late heartbeat
+    /// cannot make a fresh broker look silent.
     pub fn heartbeat(&mut self, request: &Heartbeat) -> Result<HeartbeatResult, Error> {
         self.ready()?;
         if !(0..=1).contains(&request.version) {
@@ -390,7 +393,7 @@ impl Registry {
         if request.want_shutdown {
             session.shutdown = true;
         }
-        if !session.fenced {
+        if !session.fenced && request.now_ms >= session.last_heartbeat_ms {
             session.last_heartbeat_ms = request.now_ms;
         }
         session.metadata_offset = request.metadata_offset;
@@ -946,5 +949,36 @@ mod tests {
             Err(Error::UnsupportedVersion)
         ));
         assert_eq!(registry.epoch(3), None);
+    }
+
+    #[test]
+    fn an_older_heartbeat_does_not_shorten_the_session() {
+        let (mut registry, path) = registry("clock");
+        let mut request = registration(4, 2, -1);
+        request.now_ms = 5_000;
+        registry
+            .register(&request)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let beat = registry
+            .heartbeat(&Heartbeat {
+                version: 0,
+                broker_id: 3,
+                broker_epoch: 0,
+                metadata_offset: 1,
+                want_fence: false,
+                want_shutdown: false,
+                last_transaction_timestamp_ms: -1,
+                now_ms: 1_000,
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(beat.error_code, 0);
+        assert!(!beat.is_fenced);
+        drop(registry);
+        let mut registry = Registry::open(&path, "cluster-410", limits())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(registry.expire(6_000).unwrap_or(99), 0);
+        assert_eq!(registry.is_fenced(3), Some(false));
+        assert_eq!(registry.expire(6_001).unwrap_or(99), 1);
+        assert_eq!(registry.is_fenced(3), Some(true));
     }
 }
