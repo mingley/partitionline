@@ -204,9 +204,12 @@ impl Durability {
     }
 
     /// Record a follower's log end offset. The offset must not move backward.
+    ///
+    /// A replica outside the ISR may catch up. Its offset does not move the
+    /// high watermark until [`Self::add_isr`] accepts it.
     pub fn replicate_to(&mut self, replica: i32, end_offset: i64) -> Result<i64, Error> {
         self.ready()?;
-        if !self.isr.contains(&replica) || end_offset < 0 {
+        if replica < 0 || end_offset < 0 {
             return Err(Error::IneligibleLeader);
         }
         let previous = self.end_offset.get(&replica).copied().unwrap_or(0);
@@ -215,7 +218,9 @@ impl Durability {
             return Err(Error::OffsetMoved);
         }
         self.end_offset.insert(replica, end_offset);
-        self.advance_watermark();
+        if self.isr.contains(&replica) {
+            self.advance_watermark();
+        }
         Ok(self.high_watermark)
     }
 
@@ -544,6 +549,38 @@ mod tests {
             Some(Ack::Committed)
         );
         assert!(state.is_committed(1) && state.is_committed(2) && state.is_committed(3));
+    }
+
+    #[test]
+    fn a_replica_outside_the_isr_can_catch_up_and_rejoin() {
+        let (mut state, _) = open("rejoin", 1);
+        state.add_isr(2).unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .append(&[1, 2, 3])
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .replicate_to(2, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .remove_isr(2)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 3);
+        state
+            .replicate_to(2, 3)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 3);
+        state.add_isr(2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(state.add_isr(4), Err(Error::IneligibleLeader)));
+        state
+            .replicate_to(4, 3)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 3);
+        state.add_isr(4).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            state.replicate_to(-1, 0),
+            Err(Error::IneligibleLeader)
+        ));
+        assert!(state.isr().any(|replica| replica == 4));
     }
 
     #[test]
