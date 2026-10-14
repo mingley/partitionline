@@ -3066,7 +3066,18 @@ pub fn decide_fetch_snapshot_body(
     expected_directory: [u8; 16],
     body: &FetchSnapshotBody,
 ) -> VoteDisposition {
-    let _ = persistent;
+    // Apache `validateLeaderOnlyRequest` requires the follower's leader epoch
+    // to equal the local epoch. An older epoch is fenced and a newer one is
+    // unknown. Neither result installs snapshot bytes.
+    if body.current_leader_epoch < 0 {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
+    }
+    if quorum_epoch_fenced(persistent, body.current_leader_epoch) {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleTerm);
+    }
+    if wire_epoch(persistent.term).is_ok_and(|current| body.current_leader_epoch > current) {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
+    }
     if body.version == 0 {
         return VoteDisposition::NotAdvertised;
     }
@@ -3920,7 +3931,7 @@ mod prevote_tests {
             max_bytes: 1024,
             topic: "__cluster_metadata".to_owned(),
             partition: 0,
-            current_leader_epoch: 2,
+            current_leader_epoch: 3,
             end_offset: 10,
             epoch: 2,
             position: 0,
@@ -3937,11 +3948,23 @@ mod prevote_tests {
             decide_fetch_snapshot_body(&persistent, directory, &decoded),
             VoteDisposition::NotAdvertised
         );
-        let mut stale = decoded;
+        let mut stale = decoded.clone();
         stale.replica_directory = Some([1u8; 16]);
         assert_eq!(
             decide_fetch_snapshot_body(&persistent, directory, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        let mut older = decoded.clone();
+        older.current_leader_epoch = 2;
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, directory, &older),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
+        );
+        let mut newer = decoded;
+        newer.current_leader_epoch = 4;
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, directory, &newer),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
         assert!(CONTROLLER_API_VERSIONS.iter().all(|api| api.api_key != 59));

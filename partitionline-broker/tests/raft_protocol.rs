@@ -925,7 +925,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         max_bytes: 1024,
         topic: "__cluster_metadata".into(),
         partition: 0,
-        current_leader_epoch: 1,
+        current_leader_epoch: 0,
         end_offset: 0,
         epoch: 1,
         position: 0,
@@ -934,6 +934,12 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     assert_eq!(
         dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&fetch)?)?,
         VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let mut ahead = fetch;
+    ahead.current_leader_epoch = 1;
+    assert_eq!(
+        dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&ahead)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::IllegalEpoch)
     );
     let describe = protocol::DescribeQuorumRequestBody {
         version: 2,
