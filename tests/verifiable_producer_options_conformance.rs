@@ -300,9 +300,17 @@ fn prefixes_must_fail(bytes: &[u8], what: &str) {
     }
 }
 
-fn assert_option_records(topics: &[partitionline::protocol::api::ProduceTopicData], count: usize, what: &str) {
+fn assert_option_records(
+    topics: &[partitionline::protocol::api::ProduceTopicData],
+    count: usize,
+    what: &str,
+) {
     assert_eq!(topics[0].topic, TOPIC, "{what}");
-    assert_eq!(topics[0].partitions[0].records.records.len(), count, "{what}");
+    assert_eq!(
+        topics[0].partitions[0].records.records.len(),
+        count,
+        "{what}"
+    );
     for (i, record) in topics[0].partitions[0].records.records.iter().enumerate() {
         assert_eq!(
             record.key.as_deref(),
@@ -424,8 +432,7 @@ async fn apache_option_profile_replays_public_producer() {
                 "{peer} captured value {i}"
             );
             assert_eq!(
-                topics[0].partitions[0].records.records[0].timestamp,
-                CREATE_TIME,
+                topics[0].partitions[0].records.records[0].timestamp, CREATE_TIME,
                 "{peer} captured create-time {i}"
             );
         }
@@ -466,7 +473,8 @@ async fn rust_option_output_decodes_with_pinned_apache_when_jars_present() {
         if !jar.exists() {
             continue;
         }
-        let classes = PathBuf::from("/tmp").join(format!("verifiable-producer-options-classes-{peer}"));
+        let classes =
+            PathBuf::from("/tmp").join(format!("verifiable-producer-options-classes-{peer}"));
         std::fs::create_dir_all(&classes).unwrap();
         let cp = format!("{}:{}", jar.display(), slf4j.display());
         let compile = std::process::Command::new("java")
