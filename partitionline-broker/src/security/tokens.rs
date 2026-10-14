@@ -414,6 +414,9 @@ impl Tokens {
                     .tokens
                     .get_mut(&token_id)
                     .ok_or(Error::InvalidRequest)?;
+                if expiry_ms < token.view.expiry_ms || expiry_ms > token.view.max_timestamp_ms {
+                    return Err(Error::InvalidRequest);
+                }
                 token.view.expiry_ms = expiry_ms;
             }
             Record::Revoke { token_id } => {
@@ -772,6 +775,26 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(kept, 2_500);
+        assert!(matches!(
+            tokens.apply(
+                &encode_renew(&issued.view.token_id, 1).unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            tokens.apply(
+                &encode_renew(&issued.view.token_id, 9_000)
+                    .unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(
+            tokens
+                .view(&auth, "User:alice", "*", &issued.view.token_id)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .expiry_ms,
+            2_500
+        );
         assert_eq!(
             tokens
                 .authenticate(&issued.view.token_id, issued.secret.expose(), 2_000)
