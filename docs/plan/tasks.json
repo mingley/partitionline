@@ -52215,7 +52215,7 @@
       "title": "Independently replay delivered-position/fetch boundary regression histories",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52241,7 +52241,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-22.json",
+        "docs/evidence/conformance/q-conf-fetchdeliveryregressions/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceFetchDeliveryRegressions.java",
         "tests/conformance/java/generate_fetch_delivery_regressions.py",

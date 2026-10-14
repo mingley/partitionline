@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The five delivered-position fetch-boundary histories (A01–A05) are
+  replayed against pinned Apache kafka-clients 3.9.1, 4.1.0, 4.1.2,
+  4.2.1 and 4.3.1 Fetch v12 bodies. OffsetCommit/OffsetFetch v8 bodies
+  leftover-empty decode. The original `audit-regression-a0*` rows stay
+  failed historical pins (KL01-22).
+
 - ListOffsets v1–v11 request and response bodies are checked against pinned
   Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
   parsers. Kafka 3.9.1 v10/v11 and 4.1.x v11 stay unsupported receipts.

@@ -12,4 +12,4 @@ and OffsetCommit/OffsetFetch v8 evidence; it does not promote those rows.
 
 - Applicability and source hashes: `applicability.json`
 - Generated bodies: `tests/fixtures/fetch_delivery_regressions/`
-- Qualification receipts: written after the bounded Rust/Python run
+- Qualification receipts: `qualification-20261014/`
