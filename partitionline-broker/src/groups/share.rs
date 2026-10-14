@@ -3,7 +3,8 @@
 //! Heartbeat versions 0 and 1 use the same membership fields. Join is member
 //! epoch 0 and leave is member epoch -1. The broker owns the range assignment.
 //! A member presents the epoch it was last given; an older epoch is fenced and
-//! a skipped epoch is stale. Describe reports the group epoch and the
+//! a skipped epoch is stale. A heartbeat that changes the member's version
+//! bumps the group epoch. Describe reports the group epoch and the
 //! assignment epoch. Reopen restores both.
 //!
 //! This is not the ShareGroupHeartbeat or ShareGroupDescribe RPC.
@@ -410,6 +411,9 @@ impl Groups {
                 member.topics = topics;
                 group.epoch = group.epoch.saturating_add(1);
             }
+        }
+        if member.version != request.version {
+            group.epoch = group.epoch.saturating_add(1);
         }
         member.version = request.version;
         reassign(group, &counts);
@@ -997,5 +1001,52 @@ mod tests {
         assert_eq!(again.group_epoch, described.group_epoch);
         assert_eq!(again.assignment_epoch, described.assignment_epoch);
         assert_eq!(again.members.len(), 1);
+    }
+
+    #[test]
+    fn a_share_member_version_change_bumps_the_group_epoch() {
+        let (mut groups, path) = open("share-version");
+        groups
+            .set_topic("orders", 2)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let alice = groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+                now_ms: 0,
+                subscribed_topics: Some(&["orders"]),
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(alice.version, 1);
+        let lowered = groups
+            .heartbeat(Heartbeat {
+                version: 0,
+                group_id: "g",
+                member_id: &alice.member_id,
+                member_epoch: alice.member_epoch,
+                now_ms: 1,
+                subscribed_topics: None,
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(lowered.group_epoch > alice.group_epoch);
+        assert_eq!(lowered.version, 0);
+        let again = groups
+            .heartbeat(Heartbeat {
+                version: 0,
+                group_id: "g",
+                member_id: &alice.member_id,
+                member_epoch: lowered.member_epoch,
+                now_ms: 2,
+                subscribed_topics: None,
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(again.group_epoch, lowered.group_epoch);
+        drop(groups);
+        let restored = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        let described = restored.describe("g").unwrap_or_else(|| panic!("describe"));
+        assert_eq!(described.version, 0);
+        assert_eq!(described.group_epoch, lowered.group_epoch);
     }
 }
