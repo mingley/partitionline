@@ -2034,8 +2034,11 @@
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
-//! [`ShareGroup::commit_async`] are Java `ShareConsumer.commitSync` /
-//! `commitSync(Duration)` / `commitAsync`.
+//! [`ShareGroup::commit_async`] flush implicit acknowledgements
+//! (`Result<()>`). [`ShareGroup::commit_sync`] /
+//! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
+//! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
+//! [`AcknowledgementCommitResults`]).
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java
@@ -3291,8 +3294,9 @@ pub use protocol::records::{
 pub use protocol::txn::{TransactionResult, WritableTxnMarkerWithVersion};
 pub use share::{
     AcknowledgeType, AcknowledgementCommitCallback, AcknowledgementCommitError,
-    ShareAcknowledgementMode, ShareAcquireMode, ShareGroup, ShareRecord, ShareRecords,
-    ShareRequestMetadata, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE, SHARE_ACK_RENEW,
+    AcknowledgementCommitResults, ShareAcknowledgementMode, ShareAcquireMode, ShareGroup,
+    ShareRecord, ShareRecords, ShareRequestMetadata, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT,
+    SHARE_ACK_RELEASE, SHARE_ACK_RENEW,
 };
 pub use streams::{StreamsClient, StreamsConfig, StreamsLimits};
 

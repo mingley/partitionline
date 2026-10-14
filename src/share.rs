@@ -168,6 +168,14 @@ type AcknowledgementCommitFn = Box<
         ) + Send,
 >;
 
+/// Java `ShareConsumer.commitSync()` result:
+/// `Map<TopicIdPartition, Optional<KafkaException>>`.
+///
+/// `None` is Java `Optional.empty()` (that partition succeeded).
+/// A present [`AcknowledgementCommitError`] is Java `Optional.of`.
+pub type AcknowledgementCommitResults =
+    Vec<(crate::TopicIdPartition, Option<AcknowledgementCommitError>)>;
+
 impl AcknowledgeType {
     /// Java `AcknowledgeType.id`.
     #[must_use]
@@ -631,6 +639,8 @@ pub enum ShareAcquireMode {
 ///
 /// [`Self::group_metadata`] is Java `ShareConsumer.groupMetadata()`;
 /// [`crate::ConsumerGroupMetadata::generation_id`] is the share member epoch.
+/// [`Self::commit_sync`] is Java `ShareConsumer.commitSync()`
+/// (`Map<TopicIdPartition, Optional<KafkaException>>`).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -1409,7 +1419,12 @@ impl ShareGroup {
         self.acknowledge(recs, AcknowledgeType::Renew).await
     }
 
-    /// Send pending implicit acknowledgements now (Java `ShareConsumer.commitSync()`).
+    /// Send pending implicit acknowledgements now.
+    ///
+    /// Unlike [`Self::commit_sync`], the first partition error is [`Err`]
+    /// and implicit pending is restored so a later [`Self::commit`] /
+    /// [`Self::poll`] can retry. Java `commitSync()` returns the
+    /// per-partition map — use [`Self::commit_sync`].
     ///
     /// In [`ShareAcknowledgementMode::Implicit`], this accepts the last poll
     /// without waiting for the next [`Self::poll`] or [`Self::leave`].
@@ -1419,11 +1434,53 @@ impl ShareGroup {
         self.implicit_accept_pending().await
     }
 
-    /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
+    /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`
+    /// when the caller only wants success/failure).
     pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
         let prev = self.cfg.request_timeout;
         self.cfg.request_timeout = timeout;
         let out = self.commit().await;
+        self.cfg.request_timeout = prev;
+        out
+    }
+
+    /// Java `ShareConsumer.commitSync()`:
+    /// `Map<TopicIdPartition, Optional<KafkaException>>`.
+    ///
+    /// `None` is Java `Optional.empty()` (that partition succeeded).
+    /// A present [`AcknowledgementCommitError`] is Java `Optional.of`.
+    /// The map is empty when there is nothing to flush (explicit mode after
+    /// `accept` / `release` / `reject`, or no last poll).
+    ///
+    /// Broker per-partition failures stay in the map ([`Ok`]). Overall
+    /// timeout / protocol / closed failures still return [`Err`]. Implicit
+    /// pending is completed for partitions that received a response.
+    pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
+        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
+            return Ok(Vec::new());
+        }
+        if self.last_poll_unacked.is_empty() {
+            return Ok(Vec::new());
+        }
+        let recs = std::mem::take(&mut self.last_poll_unacked);
+        match self.acknowledge_records(&recs, ACK_ACCEPT).await {
+            Ok(outcomes) => Ok(self.acknowledgement_commit_results(&recs, &outcomes, None)),
+            Err(error) => {
+                self.last_poll_unacked = recs;
+                Err(error)
+            }
+        }
+    }
+
+    /// [`Self::commit_sync`] with a one-shot timeout (Java
+    /// `commitSync(Duration)`).
+    pub async fn commit_sync_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<AcknowledgementCommitResults> {
+        let prev = self.cfg.request_timeout;
+        self.cfg.request_timeout = timeout;
+        let out = self.commit_sync().await;
         self.cfg.request_timeout = prev;
         out
     }
@@ -2127,16 +2184,47 @@ impl ShareGroup {
         grouped
             .into_iter()
             .map(|((topic, partition), offsets)| {
-                let topic_id = self
-                    .topic_ids
-                    .get(&topic)
-                    .copied()
-                    .map(crate::Uuid::from_bytes)
-                    .unwrap_or(crate::Uuid::ZERO);
-                (
-                    crate::TopicIdPartition::from_topic(topic_id, partition, topic),
-                    offsets,
-                )
+                (self.topic_id_partition(topic, partition), offsets)
+            })
+            .collect()
+    }
+
+    fn topic_id_partition(
+        &self,
+        topic: impl Into<String>,
+        partition: i32,
+    ) -> crate::TopicIdPartition {
+        let topic = topic.into();
+        let topic_id = self
+            .topic_ids
+            .get(&topic)
+            .copied()
+            .map(crate::Uuid::from_bytes)
+            .unwrap_or(crate::Uuid::ZERO);
+        crate::TopicIdPartition::from_topic(topic_id, partition, topic)
+    }
+
+    fn acknowledgement_commit_results(
+        &self,
+        recs: &[ShareRecord],
+        outcomes: &BTreeMap<(String, i32), Option<Error>>,
+        fallback: Option<&Error>,
+    ) -> AcknowledgementCommitResults {
+        let mut partitions = BTreeMap::new();
+        for rec in recs {
+            partitions
+                .entry((rec.topic.clone(), rec.partition))
+                .or_insert(());
+        }
+        partitions
+            .into_iter()
+            .map(|((topic, partition), _)| {
+                let exception = match outcomes.get(&(topic.clone(), partition)) {
+                    Some(None) => None,
+                    Some(Some(error)) => Some(AcknowledgementCommitError::from_error(error)),
+                    None => fallback.map(AcknowledgementCommitError::from_error),
+                };
+                (self.topic_id_partition(topic, partition), exception)
             })
             .collect()
     }
@@ -2184,8 +2272,25 @@ impl ShareGroup {
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
+        let outcomes = self.acknowledge_records(recs, ack).await?;
+        if let Some(error) = outcomes.values().find_map(|error| error.as_ref()) {
+            return Err(error.clone());
+        }
+        Ok(())
+    }
+
+    /// ShareAcknowledge with per-partition outcomes.
+    ///
+    /// Broker / leader / unknown-topic failures are [`Ok`] entries with
+    /// `Some(error)` (Java `commitSync` map). Timeout, protocol, closed,
+    /// and stale-before-send failures stay [`Err`].
+    async fn acknowledge_records(
+        &mut self,
+        recs: &[ShareRecord],
+        ack: i8,
+    ) -> Result<BTreeMap<(String, i32), Option<Error>>> {
         if recs.is_empty() {
-            return Ok(());
+            return Ok(BTreeMap::new());
         }
         if self.share_epochs.is_empty() {
             return Err(reject_java_acknowledge_before_poll());
@@ -2208,16 +2313,22 @@ impl ShareGroup {
         let mut partitions = acknowledgement_batches(recs, ack);
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
+        let mut outcomes = BTreeMap::new();
         loop {
             let outcome = tokio::time::timeout_at(
                 tokio::time::Instant::from_std(deadline),
-                self.acknowledge_leaders(&mut partitions, ack),
+                self.acknowledge_leaders(&mut partitions, ack, &mut outcomes),
             )
             .await;
             match outcome.unwrap_or(Err(Error::Timeout)) {
                 Ok(()) => {
                     self.fire_acknowledgement_commit_callback(recs, None);
-                    return Ok(());
+                    for rec in recs {
+                        outcomes
+                            .entry((rec.topic.clone(), rec.partition))
+                            .or_insert(None);
+                    }
+                    return Ok(outcomes);
                 }
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
@@ -2227,9 +2338,18 @@ impl ShareGroup {
                     self.consumer.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                 }
-                Err(error) => {
+                Err(error) if ack_outcome_is_fatal(&error) => {
                     self.fire_acknowledgement_commit_callback(recs, Some(&error));
                     return Err(error);
+                }
+                Err(error) => {
+                    self.fire_acknowledgement_commit_callback(recs, Some(&error));
+                    for rec in recs {
+                        outcomes
+                            .entry((rec.topic.clone(), rec.partition))
+                            .or_insert_with(|| Some(error.clone()));
+                    }
+                    return Ok(outcomes);
                 }
             }
         }
@@ -2239,6 +2359,7 @@ impl ShareGroup {
         &mut self,
         partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
         ack: i8,
+        outcomes: &mut BTreeMap<(String, i32), Option<Error>>,
     ) -> Result<()> {
         let tps: Vec<_> = partitions
             .iter()
@@ -2352,6 +2473,7 @@ impl ShareGroup {
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
                     if part.error_code == 0 {
+                        outcomes.insert((name.clone(), part.partition), None);
                         let count = self
                             .acquisitions
                             .iter()
@@ -2431,6 +2553,7 @@ impl ShareGroup {
                             part.error_code,
                             format!("ShareAcknowledge {name}-{}", part.partition),
                         );
+                        outcomes.insert((name.clone(), part.partition), Some(error.clone()));
                         // A terminal outcome must remain visible even when another
                         // partition asks for a metadata retry.
                         if first_error.as_ref().is_none_or(share_ack_retriable) {
@@ -2818,6 +2941,15 @@ fn share_ack_retriable(error: &Error) -> bool {
             && !share_session_reset(error)
             && (error.is_retriable() || code == error::NETWORK_EXCEPTION)
     })
+}
+
+/// Timeout / protocol / closed stay [`Err`] on [`ShareGroup::commit_sync`].
+/// Broker, missing-leader, and unknown-topic land in the Java result map.
+fn ack_outcome_is_fatal(error: &Error) -> bool {
+    !matches!(
+        error,
+        Error::Broker { .. } | Error::NoLeader { .. } | Error::UnknownTopic(_)
+    )
 }
 
 fn share_fetch_session_reset(error: &Error) -> bool {

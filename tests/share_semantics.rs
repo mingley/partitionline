@@ -141,6 +141,99 @@ async fn implicit_commit_flushes_without_waiting_for_next_poll() {
 }
 
 #[tokio::test]
+async fn implicit_commit_sync_returns_empty_optional() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "commit-sync", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].0.topic(), "t");
+    assert_eq!(results[0].0.partition(), 0);
+    assert!(
+        results[0].1.is_none(),
+        "Java Optional.empty() on success, got {:?}",
+        results[0].1
+    );
+    assert_eq!(mock.share_ack_calls(), 1);
+    let empty = group
+        .commit_sync_timeout(Duration::from_secs(1))
+        .await
+        .unwrap();
+    assert!(
+        empty.is_empty(),
+        "second commitSync must be empty after flush"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn explicit_commit_sync_is_empty_until_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "explicit-sync", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    assert!(group.commit_sync().await.unwrap().is_empty());
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.accept(&recs).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    assert!(group.commit_sync().await.unwrap().is_empty());
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_sync_maps_broker_error() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "sync-err", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    mock.fail_share_ack_once("t", 0, error::INVALID_RECORD_STATE);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(
+        results[0].1.as_ref().and_then(|error| error.code()),
+        Some(error::INVALID_RECORD_STATE)
+    );
+    let empty = group.commit_sync().await.unwrap();
+    assert!(
+        empty.is_empty(),
+        "Java commitSync completes the map; pending must not retry"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_restores_pending_after_broker_error() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "commit-retry", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    mock.fail_share_ack_once("t", 0, error::UNKNOWN_SERVER_ERROR);
+    assert_broker(
+        group.commit().await.unwrap_err(),
+        error::UNKNOWN_SERVER_ERROR,
+    );
+    group.commit().await.unwrap();
+    assert!(
+        mock.share_ack_calls() >= 2,
+        "commit() must restore implicit pending after a broker error"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn explicit_commit_is_noop_until_accept() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"held")]).await;

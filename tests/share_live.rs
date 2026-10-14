@@ -583,7 +583,19 @@ async fn share_implicit_commit_against_local_broker() {
     .await
     .expect("poll first");
     let first_off = recs[0].offset;
-    g.commit().await.expect("commitSync");
+    let committed = g.commit_sync().await.expect("commitSync map");
+    assert_eq!(
+        committed.len(),
+        1,
+        "commitSync must name the flushed partition"
+    );
+    assert_eq!(committed[0].0.topic(), topic);
+    assert_eq!(committed[0].0.partition(), 0);
+    assert!(
+        committed[0].1.is_none(),
+        "live commitSync Optional.empty(), got {:?}",
+        committed[0].1
+    );
     assert!(
         g.metrics().records_acknowledged >= 1,
         "commit must flush implicit accept"
