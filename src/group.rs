@@ -2445,15 +2445,23 @@ impl ConsumerGroup {
         // silently handing over uncommitted work.
         if !revoked.is_empty() && self.cfg.enable_auto_commit {
             let revoked_set: HashSet<(String, i32)> = revoked.iter().cloned().collect();
-            let to_commit: Vec<(TopicPartition, i64)> = self
+            let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = self
                 .consumer
                 .positions()
                 .into_iter()
                 .filter(|(tp, _)| revoked_set.contains(&(tp.topic.clone(), tp.partition)))
+                .map(|(tp, offset)| {
+                    let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
+                    (
+                        tp,
+                        OffsetAndMetadata::from_wire(offset, epoch, String::new()),
+                    )
+                })
                 .collect();
             if !to_commit.is_empty() {
                 let timeout = self.cfg.request_timeout;
-                self.commit_offsets_timeout(to_commit, timeout).await?;
+                self.commit_with_metadata_timeout(to_commit, timeout)
+                    .await?;
             }
         }
         let kept_epochs: HashMap<(String, i32), i32> = wanted

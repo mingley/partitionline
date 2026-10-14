@@ -13708,6 +13708,11 @@ async fn cooperative_transfer_commits_revoked_without_double_delivery() {
     );
     assert_eq!(mock.committed_offset("coop-xfer", "t", 0), None);
     assert_eq!(mock.committed_offset("coop-xfer", "t", 1), None);
+    let bumped = mock.bump_leader_epoch("t", 0);
+    let _ = mock.bump_leader_epoch("t", 1);
+    assert!(bumped > 0);
+    let _ = a.list_offsets("t", 0, LATEST_TIMESTAMP).await.unwrap();
+    let _ = a.list_offsets("t", 1, LATEST_TIMESTAMP).await.unwrap();
 
     let mut b = ConsumerGroup::join_cooperative_sticky(
         ConsumerConfig::bootstrap([mock.addr.clone()])
@@ -13735,6 +13740,16 @@ async fn cooperative_transfer_commits_revoked_without_double_delivery() {
         mock.committed_offset("coop-xfer", "t", revoked_partition),
         Some(3),
         "revoke must commit the revoked partition's delivered position"
+    );
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin
+        .list_consumer_group_offsets("coop-xfer", [TopicPartition::new("t", revoked_partition)])
+        .await
+        .unwrap();
+    assert_eq!(
+        listed[0].1.leader_epoch,
+        Some(0),
+        "revoke must commit the fetched epoch, not metadata epoch {bumped}"
     );
     assert_eq!(
         mock.committed_offset("coop-xfer", "t", kept[0].partition),
