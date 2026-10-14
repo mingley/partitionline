@@ -4,8 +4,9 @@
 //! until that epoch's marker commits them. A marker decides only the records
 //! written since the previous marker, so the same epoch can start another
 //! transaction. An abort hides its own records. A later committed epoch of the
-//! same producer can publish new offsets. A stale group generation or an older
-//! producer epoch stores nothing. Repeating a commit after a lost
+//! same producer can publish new offsets. A generation older than one still
+//! open or already committed is refused. An aborted generation does not raise
+//! that floor. An older producer epoch stores nothing. Repeating a commit after a lost
 //! acknowledgement returns success and does not append another marker.
 //!
 //! The log is journaled, so reopen shows the same committed offsets and data.
@@ -379,12 +380,19 @@ impl TxnOffsets {
     fn generation_for(&self, group: &str) -> Option<i32> {
         self.rows
             .iter()
-            .filter_map(|row| match row {
+            .enumerate()
+            .filter_map(|(index, row)| match row {
                 Row::Offset {
+                    producer_id,
+                    epoch,
                     group: stored,
                     generation,
                     ..
-                } if stored == group => Some(*generation),
+                } if stored == group
+                    && self.closing_marker(*producer_id, *epoch, index) != Some(false) =>
+                {
+                    Some(*generation)
+                }
                 _ => None,
             })
             .max()
@@ -740,5 +748,37 @@ mod tests {
             .visible_offsets()
             .iter()
             .all(|offset| offset.offset != 14));
+    }
+
+    #[test]
+    fn an_aborted_generation_does_not_fence_the_next_transaction() {
+        let (mut log, path) = open("generation");
+        log.stage_offset(4, 0, staged("orders", "m-1", 5, "orders", 0, 9))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.marker(4, 0, false)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.stage_offset(4, 0, staged("orders", "m-1", 2, "orders", 0, 10))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            log.stage_offset(4, 0, staged("orders", "m-1", 1, "orders", 1, 1)),
+            Err(Error::IllegalGeneration)
+        ));
+        log.marker(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            log.stage_offset(4, 1, staged("orders", "m-1", 1, "orders", 1, 1)),
+            Err(Error::IllegalGeneration)
+        ));
+        assert!(log
+            .visible_offsets()
+            .iter()
+            .all(|offset| offset.generation != 5));
+        drop(log);
+        let log = TxnOffsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.visible_offsets()[0].generation, 2);
+        assert!(log
+            .visible_offsets()
+            .iter()
+            .all(|offset| offset.offset != 9));
     }
 }
