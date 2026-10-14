@@ -16,6 +16,7 @@ use crate::{
     compaction, journal, metadata, partition, protocol, records, retention, segments,
 };
 use std::{
+    borrow::Cow,
     fs::{self, File},
     path::{Path, PathBuf},
     time::{Duration, Instant},
@@ -791,18 +792,18 @@ fn parse<'a>(
         topics,
     })
 }
-struct ResultPart {
+struct ResultPart<'a> {
     index: i32,
     error: i16,
     base: i64,
     log_start: i64,
-    bytes: Vec<u8>,
+    bytes: Cow<'a, [u8]>,
     id: Option<TopicId>,
 }
 struct ResultTopic<'a> {
     name: Option<&'a str>,
     id: [u8; 16],
-    parts: Vec<ResultPart>,
+    parts: Vec<ResultPart<'a>>,
 }
 fn record_error(error: records::Error) -> i16 {
     match error {
@@ -823,7 +824,11 @@ fn record_error(error: records::Error) -> i16 {
         _ => 87,
     }
 }
-fn normalize(bytes: Option<&[u8]>, version: i16, config: &Config) -> Result<Vec<u8>, i16> {
+fn normalize<'a>(
+    bytes: Option<&'a [u8]>,
+    version: i16,
+    config: &Config,
+) -> Result<Cow<'a, [u8]>, i16> {
     let input = bytes.filter(|b| !b.is_empty()).ok_or(87i16)?;
     if input.len() < 17 {
         return Err(87);
@@ -853,19 +858,34 @@ fn normalize(bytes: Option<&[u8]>, version: i16, config: &Config) -> Result<Vec<
     if codec == 4 && version < 7 {
         return Err(76);
     }
-    #[cfg(feature = "codecs")]
-    let normalized = crate::codecs::normalize(input, config.codec_limits, config.record_limits)
-        .map_err(|error| match error {
-            crate::codecs::Error::Records(error) => record_error(error),
-            crate::codecs::Error::BudgetExceeded { .. } => 10,
-            _ => 2,
-        })?;
-    #[cfg(feature = "codecs")]
-    let input = normalized.as_bytes();
     // CRC32-C was matched above for this single batch. Codec normalization
     // validates the bytes it returns, including rewritten batches.
+    #[cfg(feature = "codecs")]
+    {
+        let normalized = crate::codecs::normalize(input, config.codec_limits, config.record_limits)
+            .map_err(|error| match error {
+                crate::codecs::Error::Records(error) => record_error(error),
+                crate::codecs::Error::BudgetExceeded { .. } => 10,
+                _ => 2,
+            })?;
+        owned_epoch(normalized.as_bytes(), config)
+    }
     #[cfg(not(feature = "codecs"))]
-    records::validate_known_crc(input, config.record_limits).map_err(record_error)?;
+    {
+        records::validate_known_crc(input, config.record_limits).map_err(record_error)?;
+        if input.len() > config.journal_limits.max_entry_bytes() {
+            return Err(10);
+        }
+        // Clients send leader epoch 0. Keep the request bytes instead of
+        // copying them only to write that same zero.
+        if input.get(12..16) == Some(&[0, 0, 0, 0]) {
+            return Ok(Cow::Borrowed(input));
+        }
+        owned_epoch(input, config)
+    }
+}
+
+fn owned_epoch(input: &[u8], config: &Config) -> Result<Cow<'static, [u8]>, i16> {
     if input.len() > config.journal_limits.max_entry_bytes() {
         return Err(10);
     }
@@ -873,7 +893,7 @@ fn normalize(bytes: Option<&[u8]>, version: i16, config: &Config) -> Result<Vec<
     output.try_reserve_exact(input.len()).map_err(|_| 10i16)?;
     output.extend_from_slice(input);
     output[12..16].copy_from_slice(&0i32.to_be_bytes());
-    Ok(output)
+    Ok(Cow::Owned(output))
 }
 fn storage_error(error: partition::Error) -> i16 {
     match error {
@@ -979,7 +999,7 @@ pub(crate) fn process(
             } else {
                 0
             };
-            let mut bytes = Vec::new();
+            let mut bytes = Cow::Owned(Vec::new());
             if error == 0 {
                 match normalize(part.bytes, version, &store.config) {
                     Ok(value) => {
