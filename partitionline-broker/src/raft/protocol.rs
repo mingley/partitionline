@@ -1951,6 +1951,11 @@ pub fn decide_update_voter(
     if let Some(refusal) = kraft_range_refusal(body.kraft_min, body.kraft_max) {
         return VoteDisposition::Refused(refusal);
     }
+    // This profile finalizes kraft.version at 1. A range that cannot speak
+    // that level is not applied.
+    if body.kraft_min > 1 || body.kraft_max < 1 {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
+    }
     disposition
 }
 
@@ -5392,6 +5397,35 @@ mod prevote_tests {
                 &updated
             ),
             VoteDisposition::NotAdvertised
+        );
+        let mut above = updated.clone();
+        above.kraft_min = 2;
+        above.kraft_max = 2;
+        assert_eq!(
+            decide_update_voter(
+                &persistent,
+                election::Role::Leader,
+                metadata_log(),
+                7,
+                directory,
+                "plaintext",
+                &above
+            ),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut below = updated.clone();
+        below.kraft_max = 0;
+        assert_eq!(
+            decide_update_voter(
+                &persistent,
+                election::Role::Leader,
+                metadata_log(),
+                7,
+                directory,
+                "plaintext",
+                &below
+            ),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(
             decide_update_voter(
