@@ -1,0 +1,44 @@
+{
+  "task": "KL10-02",
+  "status": "in_progress",
+  "date": "2026-10-14",
+  "source_sha": "d2d5c9600db1919e89cc66d4058a3c4304189c72",
+  "tested_base_sha": "c7d99750e5688e08988ab6ba49de600939da4e34",
+  "claim_sha": "8b49e6c58edd8f5d88270152f74787286e5cbc35",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "commands": [
+    "cargo +stable test --locked --manifest-path benchmarks/gateway/Cargo.toml (14 passed: cells 4, config_match 4, payload 2, report 4)",
+    "cargo +stable clippy --locked --manifest-path benchmarks/gateway/Cargo.toml --all-targets -- -D warnings",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (workspace client)",
+    "python3 scripts/benchmark-report.py docs/evidence/perf/KL10-02/lb-gateway-produce-gzip-open-loop-25k-partitionline-rep1.json (valid, not_run)",
+    "cargo run --locked --manifest-path benchmarks/gateway/Cargo.toml -- campaign --out /tmp/gateway-kl10-02-sample (60 not_run files)",
+    "cargo tree -p partitionline --edges normal (no rdkafka, no librdkafka)"
+  ],
+  "results": {
+    "cells_registered": [
+      "lb-gateway-produce-gzip",
+      "lb-gateway-produce-lz4",
+      "lb-gateway-produce-ack"
+    ],
+    "config_gate": "refuses codec, level, acks, max_in_flight, linger_ms, batch_size_bytes, tls; fire-and-forget never compared with per-record",
+    "throughput_definition": "acknowledged / elapsed",
+    "cpu_source": "process rusage (getrusage / wait4)",
+    "json1k_matches_codec": true,
+    "librdkafka_in_partitionline_tree": false,
+    "live_campaign": "not_run"
+  },
+  "actual_failures_retained": [
+    "KAFKA_BOOTSTRAP unset; no Kafka distribution, Docker, or pinned librdkafka 2.15.0 on this host.",
+    "GATEWAY_RUST_PEER_BIN unset; the rust-rdkafka peer was not built or executed.",
+    "Campaign wrote schema-valid not_run results instead of >=5 interleaved live A-B repetitions."
+  ],
+  "qualification_limit": "Harness and registration only. The baseline has not been measured on a broker. Differences from gateway-adoption.md section 2 are recorded, not gated. The card stays in_progress. The world-class client objective remains open.",
+  "evidence": "docs/evidence/perf/KL10-02",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}
