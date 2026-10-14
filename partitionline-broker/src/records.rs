@@ -590,6 +590,146 @@ pub fn validate_read(bytes: &[u8], limits: Limits) -> Result<ReadSummary<'_>, Er
         next,
     })
 }
+/// Header-only assignment of bytes already covered by a payload checksum.
+///
+/// Admission and recovery keep [`validate`]. This checks magic, declared
+/// counts, and contiguous assigned bases without walking records or
+/// recomputing CRC32-C.
+pub fn framed_assignment(bytes: &[u8], limits: Limits) -> Result<FramedAssignment, Error> {
+    if bytes.len() > limits.input_bytes {
+        return Err(budget(0, Budget::InputBytes));
+    }
+    if bytes.is_empty() {
+        return Err(invalid(0, Invalid::Empty));
+    }
+    let mut input = Cursor::new(bytes, 0);
+    let mut batches = 0usize;
+    let mut records = 0usize;
+    let mut prev_next: Option<i64> = None;
+    let mut first = None;
+    while !input.remaining().is_empty() {
+        let at = input.at();
+        if batches == limits.batches {
+            return Err(budget(at, Budget::Batches));
+        }
+        let batch = take_batch(&mut input, limits.batch_bytes)?;
+        if batch.len() < HEADER || batch.get(16) != Some(&2) {
+            return Err(invalid(at + 16, Invalid::Magic));
+        }
+        let base = read_be_i64(batch, 0).ok_or_else(|| invalid(at, Invalid::Offset))?;
+        let attrs = read_be_u16(batch, 21).ok_or_else(|| invalid(at + 21, Invalid::Attributes))?;
+        if attrs & !0x7f != 0
+            || attrs & 7 != 0
+            || attrs & 0x20 != 0
+            || attrs & 0x10 != 0
+            || attrs & 0x40 != 0
+            || attrs & 8 != 0
+        {
+            return Err(invalid(at + 21, Invalid::Attributes));
+        }
+        let producer = read_be_i64(batch, 43).ok_or_else(|| invalid(at + 43, Invalid::Metadata))?;
+        if producer >= 0 {
+            return Err(unsupported(at + 43, Unsupported::Idempotent));
+        }
+        let count = read_be_i32(batch, 57).ok_or_else(|| invalid(at + 57, Invalid::Length))?;
+        if base < 0 || count <= 0 {
+            return Err(invalid(at, Invalid::Offset));
+        }
+        let count = usize::try_from(count).map_err(|_| invalid(at + 57, Invalid::Length))?;
+        if records.saturating_add(count) > limits.records {
+            return Err(budget(at + 57, Budget::Records));
+        }
+        let next = base
+            .checked_add(i64::try_from(count).map_err(|_| invalid(at, Invalid::Offset))?)
+            .ok_or_else(|| invalid(at, Invalid::Offset))?;
+        if prev_next.is_some_and(|end| base != end) {
+            return Err(invalid(at, Invalid::Offset));
+        }
+        if first.is_none() {
+            first = Some(base);
+        }
+        prev_next = Some(next);
+        records = records.saturating_add(count);
+        batches = batches.saturating_add(1);
+    }
+    Ok(FramedAssignment {
+        records,
+        batches,
+        first: first.ok_or_else(|| invalid(0, Invalid::Empty))?,
+        next: prev_next.ok_or_else(|| invalid(0, Invalid::Empty))?,
+    })
+}
+
+fn read_be_i64(bytes: &[u8], at: usize) -> Option<i64> {
+    let end = at.checked_add(8)?;
+    let raw = bytes.get(at..end)?;
+    let sized = <[u8; 8]>::try_from(raw).ok()?;
+    Some(i64::from_be_bytes(sized))
+}
+
+fn read_be_i32(bytes: &[u8], at: usize) -> Option<i32> {
+    let end = at.checked_add(4)?;
+    let raw = bytes.get(at..end)?;
+    let sized = <[u8; 4]>::try_from(raw).ok()?;
+    Some(i32::from_be_bytes(sized))
+}
+
+fn read_be_u16(bytes: &[u8], at: usize) -> Option<u16> {
+    let end = at.checked_add(2)?;
+    let raw = bytes.get(at..end)?;
+    let sized = <[u8; 2]>::try_from(raw).ok()?;
+    Some(u16::from_be_bytes(sized))
+}
+
+/// Header-only [`ReadSummary`] for bytes whose payload checksum already matched.
+///
+/// [`ReadSummary::header_count`] is zero because record headers are not walked.
+pub fn frame_stored<'a>(bytes: &'a [u8], limits: Limits) -> Result<ReadSummary<'a>, Error> {
+    let framed = framed_assignment(bytes, limits)?;
+    Ok(ReadSummary {
+        validated: Validated {
+            bytes,
+            batches: framed.batch_count(),
+            records: framed.record_count(),
+            headers: 0,
+        },
+        first: Some(framed.first_offset()),
+        next: Some(framed.next_offset()),
+    })
+}
+
+/// Declared batch and record counts from [`framed_assignment`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FramedAssignment {
+    records: usize,
+    batches: usize,
+    first: i64,
+    next: i64,
+}
+
+impl FramedAssignment {
+    /// Sum of header record counts.
+    #[must_use]
+    pub fn record_count(self) -> usize {
+        self.records
+    }
+    /// Number of framed batches.
+    #[must_use]
+    pub fn batch_count(self) -> usize {
+        self.batches
+    }
+    /// Base offset of the first batch.
+    #[must_use]
+    pub fn first_offset(self) -> i64 {
+        self.first
+    }
+    /// Offset after the last declared record.
+    #[must_use]
+    pub fn next_offset(self) -> i64 {
+        self.next
+    }
+}
+
 fn take_batch<'a>(input: &mut Cursor<'a>, limit: usize) -> Result<&'a [u8], Error> {
     let at = input.at();
     let mut peek = *input;
@@ -1126,7 +1266,10 @@ impl<'a> Cursor<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate, validate_batch, validate_read, Error, Invalid, Limits, SKIP_PLAIN};
+    use super::{
+        framed_assignment, validate, validate_batch, validate_read, Error, Invalid, Limits,
+        SKIP_PLAIN,
+    };
 
     fn put_i32(out: &mut Vec<u8>, n: i32) {
         let mut u = ((n as u32) << 1) ^ ((n >> 31) as u32);
@@ -1349,5 +1492,20 @@ mod tests {
             let _ = both(&garbage, false);
             let _ = both(&garbage, true);
         }
+    }
+
+    #[test]
+    fn framed_assignment_matches_validated_contiguous_batches() {
+        let records: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
+        let bytes = encode(&records, 1_000, 1_003, 3);
+        let checked = validate(&bytes, Limits::default()).unwrap();
+        let framed = framed_assignment(&bytes, Limits::default()).unwrap();
+        assert_eq!(framed.record_count(), checked.record_count());
+        assert_eq!(framed.batch_count(), checked.batch_count());
+        assert_eq!(framed.first_offset(), 0);
+        assert_eq!(framed.next_offset(), 4);
+        let mut gapped = bytes.clone();
+        gapped.extend_from_slice(&bytes);
+        assert!(framed_assignment(&gapped, Limits::default()).is_err());
     }
 }

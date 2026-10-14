@@ -463,8 +463,9 @@ fn stored_records(
         .checked_add(i64::from(entry.record_count))
         .filter(|next| *next > first)
         .ok_or(Error::StoredRecords)?;
-    let checked =
-        records::validate_read(&entry.payload, limits).map_err(|_| Error::StoredRecords)?;
+    let checked = records::frame_stored(&entry.payload, limits)
+        .or_else(|_| records::validate_read(&entry.payload, limits))
+        .map_err(|_| Error::StoredRecords)?;
     if checked.first_offset().is_some_and(|offset| offset < first)
         || checked.next_offset().is_some_and(|offset| offset > next)
     {

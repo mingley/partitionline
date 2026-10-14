@@ -266,7 +266,13 @@ impl Partition {
         let offset = u64::try_from(first_offset).map_err(|_| Error::OffsetOverflow)?;
         let entries = self.journal.fetch(offset, max_entries, max_bytes)?;
         for entry in &entries {
-            if let Err(error) = self.check_entry(entry) {
+            let check = if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(entry.first_offset))
+            {
+                self.check_entry(entry)
+            } else {
+                self.check_fetched_entry(entry)
+            };
+            if let Err(error) = check {
                 self.poisoned = true;
                 return Err(error);
             }
@@ -405,6 +411,28 @@ impl Partition {
             Ok(())
         }
     }
+    /// Assignment check after the journal payload checksum has matched.
+    ///
+    /// Append and recovery already walked the records. A later fetch only
+    /// checks that the declared bases still form that assigned range.
+    fn check_fetched_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        let framed = records::framed_assignment(&entry.payload, self.record_limits)
+            .map_err(|_| Error::CorruptPayload)?;
+        if framed.record_count() != entry.record_count as usize {
+            return Err(Error::CorruptPayload);
+        }
+        let offset = i64::try_from(entry.first_offset).map_err(|_| Error::CorruptPayload)?;
+        let next = entry
+            .first_offset
+            .checked_add(u64::from(entry.record_count))
+            .ok_or(Error::CorruptPayload)?;
+        if framed.first_offset() != offset || u64::try_from(framed.next_offset()).ok() != Some(next)
+        {
+            return Err(Error::CorruptPayload);
+        }
+        Ok(next)
+    }
+
     fn check_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
         if matches!(&self.journal,Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
             let checked = records::validate_read(&entry.payload, self.record_limits)
