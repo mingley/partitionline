@@ -1211,6 +1211,7 @@ pub fn decide_vote_body(
     persistent: &election::PersistentState,
     metadata: MetadataLog<'_>,
     expected_replica: [u8; 16],
+    local_voter_id: i32,
     expected_voter: [u8; 16],
     body: &VoteBody,
 ) -> VoteDisposition {
@@ -1228,10 +1229,7 @@ pub fn decide_vote_body(
     let Some(replica_directory) = body.replica_directory else {
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     };
-    let Some(voter_directory) = body.voter_directory else {
-        return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
-    };
-    if replica_directory != expected_replica || voter_directory != expected_voter {
+    if replica_directory != expected_replica {
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     }
     // Apache `KafkaRaftClient.handleVoteRequest` returns INVALID_REQUEST
@@ -1245,6 +1243,17 @@ pub fn decide_vote_body(
     // epoch and rejects a negative replica id before any grant. A higher epoch
     // would become unattached in Apache; this path does not persist that bump.
     if let Some(refusal) = voter_request_refusal(persistent, body) {
+        return VoteDisposition::Refused(refusal);
+    }
+    // Apache checks the receiving replica after the candidate epoch. A
+    // negative voter id is untargeted. A different id, or a non-zero
+    // directory that is not this replica, is `INVALID_VOTER_KEY`.
+    if let Some(refusal) = addressed_voter_refusal(
+        local_voter_id,
+        expected_voter,
+        body.voter_id,
+        body.voter_directory,
+    ) {
         return VoteDisposition::Refused(refusal);
     }
     if !body.pre_vote {
@@ -2824,11 +2833,12 @@ pub fn decode_begin_body(bytes: &[u8], version: i16) -> Result<BeginEpochBody, E
 
 /// Accept a BeginQuorumEpoch body without changing `persistent`.
 ///
-/// Version 0 is the classic handler input. Version 1 with a mismatched
-/// directory is refused. A matching version 1 body is parsed and not advertised.
+/// Version 0 is the classic handler input. Version 1 addressed to another
+/// replica is refused. A matching version 1 body is parsed and not advertised.
 pub fn decide_begin_body(
     persistent: &election::PersistentState,
     metadata: MetadataLog<'_>,
+    local_voter_id: i32,
     expected_directory: [u8; 16],
     body: &BeginEpochBody,
 ) -> VoteDisposition {
@@ -2851,12 +2861,17 @@ pub fn decide_begin_body(
     if body.leader_epoch < 0 || body.leader_id < 0 {
         return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
     }
-    match body.voter_directory {
-        Some(directory) if directory == expected_directory && directory != [0; 16] => {
-            VoteDisposition::NotAdvertised
-        }
-        _ => VoteDisposition::Refused(PreVoteRefusal::StaleDirectory),
+    // Apache `isValidVoterKey` runs after the epoch fence and does not write
+    // the new leader. A zero directory is the id-only key.
+    if let Some(refusal) = addressed_voter_refusal(
+        local_voter_id,
+        expected_directory,
+        body.voter_id,
+        body.voter_directory,
+    ) {
+        return VoteDisposition::Refused(refusal);
     }
+    VoteDisposition::NotAdvertised
 }
 
 /// One EndQuorumEpoch body for versions 0 or 1.
@@ -3643,6 +3658,12 @@ pub enum PreVoteRefusal {
     /// standard vote must name a last offset epoch strictly older than the
     /// candidate epoch. A pre-vote may name the same epoch, but not a newer one.
     IllegalEpoch,
+    /// The request is addressed to a different replica.
+    ///
+    /// Apache `isValidVoterKey` returns `INVALID_VOTER_KEY` (125). A negative
+    /// voter id is untargeted and is not this refusal. A zero directory is the
+    /// id-only key and is compared by id alone.
+    InvalidVoterKey,
 }
 
 /// Whether Apache would reject this Vote body as `INVALID_REQUEST`.
@@ -3693,6 +3714,31 @@ fn inconsistent_cluster(expected: &str, presented: Option<&str>) -> Option<PreVo
         Some(id) if id == expected => None,
         Some(_) => Some(PreVoteRefusal::InconsistentCluster),
     }
+}
+
+/// Apache `isValidVoterKey` for Vote and BeginQuorumEpoch.
+///
+/// A negative voter id is untargeted and accepted. A non-negative id must be
+/// this replica. A zero directory is `ReplicaKey.NO_DIRECTORY_ID` and is not
+/// compared. Any other directory must be this replica's directory.
+fn addressed_voter_refusal(
+    local_id: i32,
+    local_directory: [u8; 16],
+    voter_id: i32,
+    voter_directory: Option<[u8; 16]>,
+) -> Option<PreVoteRefusal> {
+    if voter_id < 0 {
+        return None;
+    }
+    if voter_id != local_id {
+        return Some(PreVoteRefusal::InvalidVoterKey);
+    }
+    if let Some(directory) = voter_directory {
+        if directory != [0; 16] && directory != local_directory {
+            return Some(PreVoteRefusal::InvalidVoterKey);
+        }
+    }
+    None
 }
 
 fn voter_request_refusal(
@@ -3925,14 +3971,14 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &decoded),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &decoded),
             VoteDisposition::PreVoteGranted
         );
         assert_eq!(persistent, before);
         let mut stale = decoded.clone();
         stale.replica_directory = Some([1u8; 16]);
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &stale),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         assert_eq!(persistent, before);
@@ -3941,6 +3987,7 @@ mod prevote_tests {
                 &persistent,
                 metadata_log(),
                 replica,
+                7,
                 voter,
                 &sample_body(1, replica, voter, false)
             ),
@@ -3950,19 +3997,19 @@ mod prevote_tests {
         let mut ahead = decoded;
         ahead.last_offset_epoch = ahead.replica_epoch.saturating_add(1);
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &ahead),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &ahead),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut negative = sample_body(2, replica, voter, true);
         negative.last_offset = -1;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &negative),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut same_epoch = sample_body(1, replica, voter, false);
         same_epoch.last_offset_epoch = same_epoch.replica_epoch;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &same_epoch),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &same_epoch),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
@@ -3979,7 +4026,7 @@ mod prevote_tests {
         body.last_offset = 0;
         body.last_offset_epoch = 3;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &body),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &body),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
@@ -3994,13 +4041,13 @@ mod prevote_tests {
         let mut older = sample_body(1, replica, voter, false);
         older.replica_epoch = 2;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &older),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         let mut negative_id = sample_body(2, replica, voter, true);
         negative_id.replica_id = -1;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative_id),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &negative_id),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut negative_epoch = sample_body(2, replica, voter, true);
@@ -4008,27 +4055,119 @@ mod prevote_tests {
         negative_epoch.last_offset_epoch = 0;
         negative_epoch.last_offset = 0;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative_epoch),
+            decide_vote_body(
+                &persistent,
+                metadata_log(),
+                replica,
+                7,
+                voter,
+                &negative_epoch
+            ),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut behind = sample_body(1, replica, voter, false);
         behind.last_offset_epoch = 0;
         behind.last_offset = 0;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &behind),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &behind),
             VoteDisposition::Refused(PreVoteRefusal::StaleLog)
         );
         let mut same_epoch = sample_body(1, replica, voter, false);
         same_epoch.replica_epoch = 3;
         same_epoch.last_offset_epoch = 1;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &same_epoch),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &same_epoch),
             VoteDisposition::Refused(PreVoteRefusal::AlreadyVoted)
         );
         let mut repeat = same_epoch;
         repeat.replica_id = 7;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &repeat),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &repeat),
+            VoteDisposition::NotAdvertised
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
+    }
+
+    #[test]
+    fn a_vote_for_another_replica_is_not_a_grant() {
+        let persistent = state(4);
+        let before = persistent;
+        let replica = [4u8; 16];
+        let voter = [5u8; 16];
+        let mut misaddressed = sample_body(2, replica, voter, true);
+        misaddressed.voter_id = 9;
+        assert_eq!(
+            decide_vote_body(
+                &persistent,
+                metadata_log(),
+                replica,
+                7,
+                voter,
+                &misaddressed
+            ),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidVoterKey)
+        );
+        let mut illegal = misaddressed.clone();
+        illegal.last_offset = -1;
+        assert_eq!(
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &illegal),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut id_only = sample_body(2, replica, voter, true);
+        id_only.voter_directory = Some([0u8; 16]);
+        assert_eq!(
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &id_only),
+            VoteDisposition::PreVoteGranted
+        );
+        let mut untargeted = sample_body(2, replica, voter, true);
+        untargeted.voter_id = -1;
+        untargeted.voter_directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &untargeted),
+            VoteDisposition::PreVoteGranted
+        );
+        let mut standard = sample_body(1, replica, voter, false);
+        standard.voter_id = 4;
+        assert_eq!(
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &standard),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidVoterKey)
+        );
+        let begin = BeginEpochBody {
+            version: 1,
+            cluster_id: Some("cluster-1".to_owned()),
+            voter_id: 4,
+            topic: "__cluster_metadata".to_owned(),
+            partition: 0,
+            voter_directory: Some(voter),
+            leader_id: 3,
+            leader_epoch: 5,
+            leader_endpoints: Vec::new(),
+        };
+        assert_eq!(
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &begin),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidVoterKey)
+        );
+        let mut older = begin;
+        older.leader_epoch = 1;
+        older.voter_id = 9;
+        assert_eq!(
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &older),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
+        );
+        let mut id_only_begin = older;
+        id_only_begin.voter_id = 7;
+        id_only_begin.leader_epoch = 5;
+        id_only_begin.voter_directory = Some([0u8; 16]);
+        assert_eq!(
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &id_only_begin),
+            VoteDisposition::NotAdvertised
+        );
+        let mut untargeted_begin = id_only_begin;
+        untargeted_begin.voter_id = -1;
+        untargeted_begin.voter_directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &untargeted_begin),
             VoteDisposition::NotAdvertised
         );
         assert_eq!(persistent, before);
@@ -4046,13 +4185,13 @@ mod prevote_tests {
         foreign.replica_directory = Some([1u8; 16]);
         foreign.replica_epoch = 1;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &foreign),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &foreign),
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         let mut absent = sample_body(2, replica, voter, true);
         absent.cluster_id = None;
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &absent),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &absent),
             VoteDisposition::PreVoteGranted
         );
         let begin = BeginEpochBody {
@@ -4067,7 +4206,7 @@ mod prevote_tests {
             leader_endpoints: Vec::new(),
         };
         assert_eq!(
-            decide_begin_body(&persistent, metadata_log(), voter, &begin),
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &begin),
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         let end = EndEpochBody {
@@ -4091,7 +4230,7 @@ mod prevote_tests {
         wrong_topic.topic = "orders".to_owned();
         wrong_topic.replica_directory = Some([1u8; 16]);
         assert_eq!(
-            decide_vote_body(&persistent, metadata_log(), replica, voter, &wrong_topic),
+            decide_vote_body(&persistent, metadata_log(), replica, 7, voter, &wrong_topic),
             VoteDisposition::Refused(PreVoteRefusal::InvalidTopic)
         );
         let mut wrong_partition = begin;
@@ -4100,7 +4239,7 @@ mod prevote_tests {
         wrong_partition.partition = 4;
         wrong_partition.leader_epoch = 2;
         assert_eq!(
-            decide_begin_body(&persistent, metadata_log(), voter, &wrong_partition),
+            decide_begin_body(&persistent, metadata_log(), 7, voter, &wrong_partition),
             VoteDisposition::Refused(PreVoteRefusal::InvalidTopic)
         );
         let mut snapshot = FetchSnapshotBody {
@@ -4277,20 +4416,20 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_begin_body(&persistent, metadata_log(), directory, &decoded),
+            decide_begin_body(&persistent, metadata_log(), 1, directory, &decoded),
             VoteDisposition::NotAdvertised
         );
         let mut stale = decoded.clone();
         stale.voter_directory = Some([2u8; 16]);
         assert_eq!(
-            decide_begin_body(&persistent, metadata_log(), directory, &stale),
-            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+            decide_begin_body(&persistent, metadata_log(), 1, directory, &stale),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidVoterKey)
         );
         assert_eq!(persistent, before);
         let mut older = decoded;
         older.leader_epoch = 2;
         assert_eq!(
-            decide_begin_body(&persistent, metadata_log(), directory, &older),
+            decide_begin_body(&persistent, metadata_log(), 1, directory, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         assert_eq!(persistent, before);

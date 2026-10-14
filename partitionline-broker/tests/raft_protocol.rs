@@ -823,7 +823,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     let stale_vote_bytes = protocol::encode_vote_body(&stale_vote)?;
     assert_eq!(
         dynamic.inspect_unadvertised(52, 2, &stale_vote_bytes)?,
-        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+        VoteDisposition::Refused(protocol::PreVoteRefusal::InvalidVoterKey)
     );
     let begin = BeginEpochBody {
         version: 1,
@@ -842,7 +842,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     };
     assert_eq!(
         dynamic.inspect_unadvertised(53, 1, &protocol::encode_begin_body(&begin)?)?,
-        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+        VoteDisposition::Refused(protocol::PreVoteRefusal::InvalidVoterKey)
     );
     let end = EndEpochBody {
         version: 1,

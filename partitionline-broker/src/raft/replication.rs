@@ -2332,6 +2332,7 @@ impl Node {
             return Err(Error::Controller(protocol::Error::UnsupportedVersion));
         }
         let local = self.local_voter()?;
+        let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
         let persistent = self.controller.state().persistent;
         let metadata = protocol::MetadataLog {
             cluster_id: &self.config.controller.cluster_id,
@@ -2347,6 +2348,7 @@ impl Node {
                     &persistent,
                     metadata,
                     replica.directory,
+                    local_id,
                     local.directory,
                     &decoded,
                 ))
@@ -2357,6 +2359,7 @@ impl Node {
                 Ok(protocol::decide_begin_body(
                     &persistent,
                     metadata,
+                    local_id,
                     local.directory,
                     &decoded,
                 ))
@@ -2364,7 +2367,6 @@ impl Node {
             54 => {
                 let decoded =
                     protocol::decode_end_body(body, version).map_err(Error::Controller)?;
-                let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_end_body(
                     &persistent,
                     metadata,
