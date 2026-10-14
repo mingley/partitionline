@@ -1227,8 +1227,12 @@ fn main() {
 
     let mut jobs: Vec<Job> = Vec::new();
     for cell in producer_cells() {
+        // Produce cells do not read the synthetic fetch log. An empty log
+        // reports offsets assigned by accepted produces, which is the log
+        // the other ceiling peers can reconcile.
         let broker_opts = BrokerOpts {
             partitions: cell.broker_partitions(),
+            synth_records_per_partition: 0,
             ..BrokerOpts::default()
         };
         jobs.push(Job::Produce(
