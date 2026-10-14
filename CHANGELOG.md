@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `examples/share.rs` accepts a comma-separated `KAFKA_TOPIC` list via
+  `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+
+  join-then-produce / multi-topic assignment probe (`RUN_LIVE=1`).
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a
