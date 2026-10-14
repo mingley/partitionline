@@ -2160,6 +2160,42 @@ async fn out_of_range_with_reset_none_must_fail_without_advancing() {
     }
 }
 
+/// A containing batch may include records that have already been deleted.
+/// Those offsets are not delivered, and the cursor moves to the log start.
+#[tokio::test]
+async fn fetch_skips_records_below_the_log_start() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 4;
+                    part.last_stable_offset = 4;
+                    part.log_start_offset = 2;
+                    part.records = vec![fetch_fixture::data_batch(
+                        0,
+                        &[b"deleted-0", b"deleted-1", b"kept-2"],
+                        None,
+                    )];
+                    part
+                }],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    let recs = consumer.fetch().await.expect("fetch");
+    let offsets: Vec<_> = recs.iter().map(|record| record.offset).collect();
+    assert_eq!(offsets, vec![2]);
+    assert_eq!(consumer.position("t", 0).expect("position"), 3);
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
 /// Records at or past the high watermark are not delivered, and the cursor
 /// stops on the watermark.
 #[tokio::test]

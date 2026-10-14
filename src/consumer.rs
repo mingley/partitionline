@@ -4560,6 +4560,7 @@ impl Consumer {
                             last_record_off = Some(rec.offset);
                             if rec.offset < req_offset
                                 || !record_is_visible(rec.offset, part.high_watermark)
+                                || !record_is_retained(rec.offset, part.log_start_offset)
                             {
                                 return;
                             }
@@ -4756,6 +4757,9 @@ impl Consumer {
                             next = Some(next.map_or(advanced, |c| c.max(advanced)));
                             last_epoch = batch.partition_leader_epoch;
                         } else {
+                            continue;
+                        }
+                        if !record_is_retained(offset, part.log_start_offset) {
                             continue;
                         }
                         if isolation == crate::IsolationLevel::ReadCommitted
@@ -5626,6 +5630,11 @@ fn record_is_visible(offset: i64, high_watermark: i64) -> bool {
     high_watermark < 0 || offset < high_watermark
 }
 
+/// A record remains in the log when it is at or after a known log start.
+fn record_is_retained(offset: i64, log_start: i64) -> bool {
+    log_start < 0 || offset >= log_start
+}
+
 /// Do not advance a fetch cursor to or past a known high watermark.
 fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
     if high_watermark >= 0 {
@@ -5881,6 +5890,9 @@ mod tests {
         assert!(record_is_visible(1, 2));
         assert!(!record_is_visible(2, 2));
         assert!(record_is_visible(9, -1));
+        assert!(!record_is_retained(1, 2));
+        assert!(record_is_retained(2, 2));
+        assert!(record_is_retained(0, -1));
         assert_eq!(cap_fetch_cursor(5, 2), 2);
         assert_eq!(cap_fetch_cursor(1, 2), 1);
         assert_eq!(cap_fetch_cursor(5, -1), 5);
