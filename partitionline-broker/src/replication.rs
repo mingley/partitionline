@@ -167,7 +167,9 @@ impl Log {
                     .ok_or(Error::InvalidRecord)?;
             }
         }
-        if log.records.len() > log.limits.max_records || log.stored > log.limits.max_records {
+        if log.records.len() > log.limits.max_records
+            || log.stored > log.limits.journal.max_index_entries()
+        {
             return Err(Error::Budget);
         }
         Ok(log)
@@ -274,12 +276,18 @@ impl Log {
                 break;
             }
             if self.records.len() >= self.limits.max_records {
-                return Err(Error::Budget);
+                break;
             }
             self.persist(&encode_record(source)?)?;
             used = used.saturating_add(source.bytes.len());
             self.records.push(source.clone());
             copied = copied.saturating_add(1);
+        }
+        // A full follower that copied or truncated has a durable result. An
+        // unchanged follower that still has leader records it cannot store
+        // reports the limit.
+        if copied == 0 && truncated == 0 && leader.records.len() > self.records.len() {
+            return Err(Error::Budget);
         }
         Ok(Progress {
             truncated,
@@ -310,7 +318,9 @@ impl Log {
     }
 
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
-        if self.stored >= self.limits.max_records {
+        // Truncation is a journal record of its own. The logical cap limits
+        // live records; the index cap limits the append and truncate history.
+        if self.stored >= self.limits.journal.max_index_entries() {
             return Err(Error::Budget);
         }
         match self.journal.append(1, payload) {
@@ -524,5 +534,62 @@ mod tests {
             ),
             Err(Error::Budget)
         ));
+    }
+
+    #[test]
+    fn a_full_follower_keeps_records_copied_before_the_cap() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let journal = journal::Limits::new(64, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        let tight = Limits::new(2, 32, journal).unwrap_or_else(|_| panic!("replica limits"));
+        let leader_path = std::env::temp_dir().join(format!("pl-repl-cap-leader-{nanos}"));
+        let follower_path = std::env::temp_dir().join(format!("pl-repl-cap-follower-{nanos}"));
+        let mut leader =
+            Log::open(&leader_path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        leader
+            .append(1, b"aaa")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        leader
+            .append(1, b"bbb")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        leader
+            .append(1, b"ccc")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut follower =
+            Log::open(&follower_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
+        let progress = follower
+            .replicate_from(&leader, 1, budget(8))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(progress.copied, 2);
+        assert_eq!(follower.records().len(), 2);
+        assert_eq!(follower.records()[1].bytes, b"bbb");
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(8)),
+            Err(Error::Budget)
+        ));
+        assert_eq!(follower.records().len(), 2);
+        let diverge_path = std::env::temp_dir().join(format!("pl-repl-cap-diverge-{nanos}"));
+        let mut diverge =
+            Log::open(&diverge_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
+        diverge
+            .append(1, b"aaa")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        diverge
+            .append(1, b"old")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let replaced = diverge
+            .replicate_from(&leader, 1, budget(8))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(replaced.truncated, 1);
+        assert_eq!(replaced.copied, 1);
+        assert_eq!(diverge.records()[1].bytes, b"bbb");
+        assert_eq!(diverge.records().len(), 2);
+        drop(diverge);
+        let diverge = Log::open(&diverge_path, tight).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(diverge.records().len(), 2);
+        assert_eq!(diverge.records()[1].bytes, b"bbb");
     }
 }
