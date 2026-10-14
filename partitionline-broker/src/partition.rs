@@ -110,6 +110,12 @@ impl Backend {
     fn is_journal(&self) -> bool {
         matches!(self, Self::Journal(_))
     }
+    fn invalidate_length_observation(&mut self) {
+        match self {
+            Self::Journal(log) => log.invalidate_length_observation(),
+            Self::Segments(log) => log.invalidate_length_observation(),
+        }
+    }
     fn fetch(
         &mut self,
         offset: u64,
@@ -671,6 +677,10 @@ impl Partition {
             self.check_fetched_entry(entry)
         }
     }
+    pub(crate) fn invalidate_length_observation(&mut self) {
+        self.journal.invalidate_length_observation();
+    }
+
     /// Whether reopening is required after a payload or storage failure.
     pub fn is_poisoned(&self) -> bool {
         self.poisoned || self.journal.is_poisoned()

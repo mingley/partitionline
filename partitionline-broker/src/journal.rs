@@ -261,6 +261,8 @@ pub(crate) struct CheckedCursor {
     position: u64,
     next_offset: u64,
     fingerprint: u32,
+    /// The file length matched `bytes` for this cursor.
+    length_ok: bool,
 }
 impl CheckedCursor {
     pub(crate) fn open(path: &Path, base: u64, limits: Limits) -> Result<Self, Error> {
@@ -296,6 +298,7 @@ impl CheckedCursor {
             position: FILE_HEADER as u64,
             next_offset: base,
             fingerprint: crc32c::crc32c(&header),
+            length_ok: false,
         })
     }
     pub(crate) fn seek(&mut self, position: u64, offset: u64) -> Result<(), Error> {
@@ -312,8 +315,11 @@ impl CheckedCursor {
         max_bytes: usize,
         dest: &mut Vec<u8>,
     ) -> Result<Option<(u64, PayloadView)>, Error> {
-        if self.file.metadata()?.len() != self.bytes {
-            return Err(Error::ChangedFile);
+        if !self.length_ok {
+            if self.file.metadata()?.len() != self.bytes {
+                return Err(Error::ChangedFile);
+            }
+            self.length_ok = true;
         }
         if self.position == self.bytes {
             return Ok(None);
@@ -345,20 +351,9 @@ impl CheckedCursor {
         let checksum_ok = dest
             .get(mark..)
             .is_some_and(|payload| crc32c::crc32c(payload) == index.checksum);
-        let file_len = match self.file.metadata() {
-            Ok(metadata) => metadata.len(),
-            Err(error) => {
-                dest.truncate(mark);
-                return Err(error.into());
-            }
-        };
-        if !checksum_ok || file_len != self.bytes {
+        if !checksum_ok {
             dest.truncate(mark);
-            return Err(if !checksum_ok {
-                corrupt(position, Corruption::PayloadChecksum)
-            } else {
-                Error::ChangedFile
-            });
+            return Err(corrupt(position, Corruption::PayloadChecksum));
         }
         let payload = dest
             .get(mark..)
@@ -507,6 +502,14 @@ impl Journal {
     /// The charge and checksum rules match [`Self::fetch`] of a single entry.
     /// On failure `dest` is restored to its incoming length. An offset at or
     /// beyond the next offset returns [`None`] and leaves `dest` unchanged.
+    /// The next read stats the file again.
+    ///
+    /// Fetch checks the length once per request, then reuses that result for
+    /// every later entry until an append or a failed read.
+    pub(crate) fn invalidate_length_observation(&mut self) {
+        self.inner.length_ok = false;
+    }
+
     pub(crate) fn fetch_one_into(
         &mut self,
         first_offset: u64,
@@ -585,6 +588,9 @@ struct Engine<S> {
     /// File position after the last successful read or append. The next
     /// contiguous read skips `seek`.
     read_pos: Option<u64>,
+    /// `byte_len` matched `file_bytes` since the last mutation or explicit
+    /// invalidation. Later reads in that interval skip the stat.
+    length_ok: bool,
 }
 
 /// Journal checksum of `payload`.
@@ -932,6 +938,7 @@ impl<S: Storage> Engine<S> {
             poisoned: false,
             staged: None,
             read_pos: None,
+            length_ok: false,
         };
         let mut truncated = 0;
         while engine.file_bytes < observed {
@@ -1057,11 +1064,22 @@ impl<S: Storage> Engine<S> {
         };
         Ok((index, file_bytes))
     }
+    fn ensure_length(&mut self) -> Result<(), Error> {
+        if self.length_ok {
+            return Ok(());
+        }
+        if self.storage.byte_len()? != self.file_bytes {
+            return Err(Error::ChangedFile);
+        }
+        self.length_ok = true;
+        Ok(())
+    }
     fn write_planned(&mut self, index: Index, payload: &[u8]) -> Result<(), Error> {
         if self.storage.byte_len()? != self.file_bytes {
             return Err(Error::ChangedFile);
         }
         self.read_pos = None;
+        self.length_ok = false;
         self.storage.seek(SeekFrom::Start(self.file_bytes))?;
         let header = entry_header(index);
         write_two(&mut self.storage, &header, payload)?;
@@ -1229,17 +1247,13 @@ impl<S: Storage> Engine<S> {
         }
         let mark = dest.len();
         let result = (|| {
-            if self.storage.byte_len()? != self.file_bytes {
-                return Err(Error::ChangedFile);
-            }
+            self.ensure_length()?;
             self.read_indexed(&index, dest)?;
-            if self.storage.byte_len()? != self.file_bytes {
-                return Err(Error::ChangedFile);
-            }
             Ok(())
         })();
         if let Err(error) = result {
             dest.truncate(mark);
+            self.length_ok = false;
             self.poisoned = true;
             return Err(error);
         }

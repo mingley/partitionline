@@ -779,9 +779,6 @@ impl SparseCursor {
         dest: &mut Vec<u8>,
     ) -> Result<Option<(u64, journal::PayloadView)>, Error> {
         let dest_len = dest.len();
-        if self.file.metadata()?.len() != self.bytes {
-            return Err(Error::CorruptData);
-        }
         if self.position == self.bytes {
             return Ok(None);
         }
@@ -824,14 +821,7 @@ impl SparseCursor {
         let checksum_ok = dest
             .get(mark..)
             .is_some_and(|payload| crc32c::crc32c(payload) == stored);
-        let file_len = match self.file.metadata() {
-            Ok(metadata) => metadata.len(),
-            Err(error) => {
-                dest.truncate(mark);
-                return Err(error.into());
-            }
-        };
-        if !checksum_ok || file_len != self.bytes {
+        if !checksum_ok {
             dest.truncate(mark);
             return Err(Error::CorruptData);
         }
@@ -1328,6 +1318,11 @@ impl Log {
     }
     fn active(&self) -> Result<&journal::Journal, Error> {
         self.active.as_ref().ok_or(Error::Poisoned)
+    }
+    pub(crate) fn invalidate_length_observation(&mut self) {
+        if let Some(active) = &mut self.active {
+            active.invalidate_length_observation();
+        }
     }
     fn active_mut(&mut self) -> Result<&mut journal::Journal, Error> {
         self.active.as_mut().ok_or(Error::Poisoned)

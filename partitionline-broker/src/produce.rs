@@ -558,6 +558,11 @@ impl Store {
         self.changed |= poisoned != slot.partition.is_poisoned();
         result
     }
+    pub(crate) fn invalidate_length_observations(&mut self) {
+        for slot in &mut self.slots {
+            slot.partition.invalidate_length_observation();
+        }
+    }
     pub(crate) fn read_entry_into(
         &mut self,
         id: TopicId,
