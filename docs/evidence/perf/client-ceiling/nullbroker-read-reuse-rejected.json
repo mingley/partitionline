@@ -1,0 +1,29 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "017ab0867f1d1f944e1ed5778844ff02c9b0b4e1",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The null broker reused one request buffer instead of zero-filling a new vector for every frame. Ten interleaved pairs, same runtime. nb-produce-bulk paired mean records/s ratio 0.988, bootstrap 95% CI 0.942 to 1.032, six pairs slower. nb-fetch-bulk paired mean ratio 1.033, CI 1.009 to 1.061, three pairs slower. The code was not kept. This is not a peer comparison and not a KL09-70 claim.",
+  "cells": [
+    {
+      "cell": "nb-produce-bulk",
+      "pairs": 10,
+      "paired_mean_ratio": 0.988,
+      "paired_ratio_ci95": [0.942, 1.032],
+      "before_median": 841702,
+      "after_median": 822679,
+      "slower_pairs": 6
+    },
+    {
+      "cell": "nb-fetch-bulk",
+      "pairs": 10,
+      "paired_mean_ratio": 1.033,
+      "paired_ratio_ci95": [1.009, 1.061],
+      "before_median": 457599,
+      "after_median": 476939,
+      "slower_pairs": 3
+    }
+  ]
+}
