@@ -739,14 +739,27 @@ struct FetchPartitionResult {
     partition: i32,
     error_code: i16,
     high_watermark: i64,
-    records: Vec<u8>,
+    records: Vec<Arc<[u8]>>,
     aborted: Vec<(i64, i64)>,
+}
+
+fn record_chunk_len(chunks: &[Arc<[u8]>]) -> usize {
+    chunks
+        .iter()
+        .fold(0usize, |sum, chunk| sum.saturating_add(chunk.len()))
 }
 
 /// Encode a `Fetch` v15–v17 response: full data, `session_id` 0.
 /// Log start is always 0 and last-stable-offset always equals the high
 /// watermark (everything served is stable; aborts are listed explicitly).
 fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartitionResult>)]) {
+    let payload = topics
+        .iter()
+        .flat_map(|(_, parts)| parts)
+        .fold(0usize, |sum, part| {
+            sum.saturating_add(record_chunk_len(&part.records))
+        });
+    out.reserve(payload.saturating_add(1024));
     out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
     out.extend_from_slice(&ERR_NONE.to_be_bytes()); // top-level error
     out.extend_from_slice(&0i32.to_be_bytes()); // session_id: none, full data
@@ -767,10 +780,21 @@ fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartit
                 out.put_empty_tagged_fields();
             }
             out.extend_from_slice(&(-1i32).to_be_bytes()); // preferred replica
-            if p.records.is_empty() {
+            let record_bytes = record_chunk_len(&p.records);
+            if record_bytes == 0 {
                 out.put_uvarint(1); // empty, non-null
+            } else if let [only] = p.records.as_slice() {
+                out.put_compact_bytes(Some(only));
             } else {
-                out.put_compact_bytes(Some(&p.records));
+                out.reserve(record_bytes);
+                out.put_uvarint(
+                    u32::try_from(record_bytes)
+                        .unwrap_or(u32::MAX)
+                        .saturating_add(1),
+                );
+                for chunk in &p.records {
+                    out.extend_from_slice(chunk);
+                }
             }
             out.put_empty_tagged_fields();
         }
@@ -2477,7 +2501,8 @@ impl Worker {
                     continue;
                 }
                 let part_budget = usize::try_from(part.partition_max_bytes.max(0)).unwrap_or(0);
-                let mut records = Vec::new();
+                let mut records: Vec<Arc<[u8]>> = Vec::new();
+                let mut records_len = 0usize;
                 let mut aborted = Vec::new();
                 let mut part_records = 0u64;
                 if synthetic_end == 0 {
@@ -2488,14 +2513,15 @@ impl Worker {
                             if batch_end <= part.fetch_offset {
                                 continue;
                             }
-                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_part = records_len + batch.bytes.len() <= part_budget;
                             let fits_total = total_used + batch.bytes.len() <= total_budget;
                             if !records.is_empty() && (!fits_part || !fits_total) {
                                 break;
                             }
                             part_records += u64::from(batch.records);
                             total_used += batch.bytes.len();
-                            records.extend_from_slice(&batch.bytes);
+                            records_len += batch.bytes.len();
+                            records.push(Arc::from(batch.bytes.as_slice()));
                         }
                     }
                 } else if self.synth.records_per_batch > 0 {
@@ -2509,7 +2535,7 @@ impl Worker {
                     if let Some(cached) = cached {
                         let start = usize::try_from(start_index).unwrap_or(usize::MAX);
                         for batch in cached.iter().skip(start) {
-                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_part = records_len + batch.bytes.len() <= part_budget;
                             let fits_total = total_used + batch.bytes.len() <= total_budget;
                             if !records.is_empty() && (!fits_part || !fits_total) {
                                 break;
@@ -2519,14 +2545,15 @@ impl Worker {
                             }
                             part_records += u64::from(batch.count);
                             total_used += batch.bytes.len();
-                            records.extend_from_slice(&batch.bytes);
+                            records_len += batch.bytes.len();
+                            records.push(Arc::clone(&batch.bytes));
                         }
                     } else {
                         let mut batch_index = start_index;
                         while let Some(batch) =
                             synth::encode_batch(&self.synth, part.partition, batch_index)
                         {
-                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_part = records_len + batch.bytes.len() <= part_budget;
                             let fits_total = total_used + batch.bytes.len() <= total_budget;
                             if !records.is_empty() && (!fits_part || !fits_total) {
                                 break;
@@ -2536,7 +2563,8 @@ impl Worker {
                             }
                             part_records += u64::from(batch.count);
                             total_used += batch.bytes.len();
-                            records.extend_from_slice(&batch.bytes);
+                            records_len += batch.bytes.len();
+                            records.push(batch.bytes);
                             batch_index += 1;
                         }
                     }

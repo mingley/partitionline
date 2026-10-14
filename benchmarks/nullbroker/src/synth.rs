@@ -20,6 +20,8 @@ pub const CODEC_SNAPPY: u8 = 2;
 /// LZ4 attribute bits.
 pub const CODEC_LZ4: u8 = 3;
 
+use std::sync::Arc;
+
 /// Synthetic log configuration.
 #[derive(Debug, Clone)]
 pub struct SynthConfig {
@@ -377,7 +379,9 @@ pub fn lz4_stored(data: &[u8]) -> Vec<u8> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SynthBatch {
     /// Encoded batch bytes (records field already codec-wrapped).
-    pub bytes: Vec<u8>,
+    ///
+    /// Shared so a precomputed log can be copied into a response by reference.
+    pub bytes: Arc<[u8]>,
     /// First offset.
     pub base_offset: u64,
     /// Record count.
@@ -442,7 +446,7 @@ pub fn encode_batch(cfg: &SynthConfig, partition: i32, batch_index: u64) -> Opti
     let crc = crc32c(&out[crc_start..]);
     out[17..21].copy_from_slice(&crc.to_be_bytes());
     Some(SynthBatch {
-        bytes: out,
+        bytes: Arc::from(out),
         base_offset: base,
         count,
         aborted,
