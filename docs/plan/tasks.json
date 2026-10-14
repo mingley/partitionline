@@ -19232,13 +19232,24 @@
     {
       "id": "KL10-09",
       "title": "Decode compressed fetch batches off the caller task",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL10-01", "KL09-34", "KL10-14"],
       "files": ["src/consumer.rs", "src/protocol/fetch.rs"],
       "deliverable": "Decompression and record decoding of fetched batches run on bounded workers (per partition or per leader response) instead of inline in the caller's fetch/poll, so consuming compressed data can use more than one core.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Per-partition order, the KL02-08 aggregate buffer budget, seek, pause, rebalance and read_committed filtering are unchanged; each has a test that fails if decoded results are applied out of order or after invalidation.", "Worker count is bounded and configurable with a documented default; decode errors surface on the same call they do today."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test protocol_oracles", "A/B cells lb-gateway-fetch-gzip: >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4, gateway rows)"],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/plan/tasks.json",
+        "src/consumer.rs",
+        "src/protocol/fetch.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/fetch_buffer_budget.rs",
+        "docs/guide.md",
+        "CHANGELOG.md",
+        "docs/plan/evidence/KL10-09.json",
+        "docs/evidence/perf/KL10-09/"
+      ]
     },
     {
       "id": "KL10-10",
