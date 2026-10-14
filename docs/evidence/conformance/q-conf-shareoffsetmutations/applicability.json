@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "task": "KL01-29",
+  "declared_before_qualification": true,
+  "api_scope": [91, 92],
+  "registered_case_ids": [
+    "current-public-api-091-v0-4-1-2",
+    "current-public-api-091-v0-4-2-1",
+    "current-public-api-091-v0-4-3-1",
+    "current-public-api-092-v0-4-1-2",
+    "current-public-api-092-v0-4-2-1",
+    "current-public-api-092-v0-4-3-1"
+  ],
+  "original_dispositions_preserved": {
+    "not_run": [
+      "current-public-api-091-v0-4-1-2",
+      "current-public-api-091-v0-4-2-1",
+      "current-public-api-091-v0-4-3-1",
+      "current-public-api-092-v0-4-1-2",
+      "current-public-api-092-v0-4-2-1",
+      "current-public-api-092-v0-4-3-1"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+    "adapter": "none",
+    "note": "cases.json rows stay not_run. This card independently qualifies Apache Alter/DeleteShareGroupOffsets v0 bodies and public Admin histories without rewriting those pins."
+  },
+  "parameter_invocations": {
+    "alter_version": 0,
+    "delete_version": 0,
+    "topic": "pl-share",
+    "group_id": "pl-share",
+    "coordinator_key_type": 0,
+    "cells": [
+      "alter-ok",
+      "alter-invalid",
+      "delete-ok",
+      "delete-unknown"
+    ],
+    "nested_counts": {
+      "alter-ok": {
+        "start_offset": 7,
+        "error_code": 0,
+        "topic_id": "01010101010101010101010101010101",
+        "partition_index": 0
+      },
+      "alter-invalid": {
+        "error_code": 42,
+        "responses": 0,
+        "top_level_error_bytes": "4-5"
+      },
+      "delete-ok": {
+        "error_code": 0,
+        "topics_are_names_only": true,
+        "topic_id": "01010101010101010101010101010101"
+      },
+      "delete-unknown": {
+        "error_code": 69,
+        "responses": 0,
+        "top_level_error_bytes": "4-5"
+      }
+    },
+    "field_gates": {
+      "AlterShareGroupOffsets_flexible": "0+",
+      "DeleteShareGroupOffsets_flexible": "0+",
+      "spoken_versions": "0-0",
+      "FindCoordinator_key_type": "GROUP=0, not SHARE=2"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "kafka-clients 3.9.1 has no AlterShareGroupOffsetsRequestData or DeleteShareGroupOffsetsRequestData. Eight unsupported receipts; no invented bodies.",
+      "generated_bodies": 0,
+      "unsupported_receipts": 8
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "First speaking historical peer. APIs 91/92 v0 only. Official handlers use CoordinatorType.GROUP.",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/admin/internals/AlterShareGroupOffsetsHandler.java",
+      "method": "coordinatorKey / newFuture",
+      "applicability": "applicable",
+      "reason": "Official Java handler looks up CoordinatorType.GROUP (FindCoordinator key_type=0). SHARE key_type=2 is the FindCoordinator v6 share-state key and is not used."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/admin/internals/DeleteShareGroupOffsetsHandler.java",
+      "method": "coordinatorKey / newFuture",
+      "applicability": "applicable",
+      "reason": "Official Java handler looks up CoordinatorType.GROUP. Request topics are names only — no partitions."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/AlterShareGroupOffsetsResponse.json",
+      "method": "ErrorCode",
+      "applicability": "applicable",
+      "reason": "Top-level ErrorCode after ThrottleTimeMs (bytes 4–5 on leftover-empty responses). Listed errors include NOT_COORDINATOR (16), INVALID_REQUEST (42), GROUP_ID_NOT_FOUND (69)."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/DeleteShareGroupOffsetsRequest.json",
+      "method": "Topics",
+      "applicability": "applicable",
+      "reason": "Official request topics are TopicName only. No partitions on the request."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json not_run dispositions",
+      "reason": "The six registered rows stay not_run at source pin f0ca05da9c04942b211e2f56ddc615b9860cdea2 adapter none. This card does not rewrite the historical audit pins."
+    },
+    {
+      "cell": "3.9.1 share-offset message classes",
+      "reason": "APIs 91/92 are 4.1+ KIP-932. Eight unsupported receipts; no invented bodies."
+    },
+    {
+      "cell": "describe-share-group-offsets",
+      "reason": "DescribeShareGroupOffsets (api 90) is outside this alter/delete mutation cohort."
+    },
+    {
+      "cell": "share-fetch-acknowledge",
+      "reason": "ShareFetch / ShareAcknowledge are consume-path APIs, not Admin offset mutations."
+    },
+    {
+      "cell": "share-group-heartbeat",
+      "reason": "ShareGroupHeartbeat is membership, not offset alter/delete."
+    },
+    {
+      "cell": "ducktape-live-broker",
+      "reason": "No live Apache broker or ducktape suite. Independent leftover-empty and public Admin replay only."
+    },
+    {
+      "cell": "not-coordinator-public-retry-loop",
+      "reason": "NOT_COORDINATOR (16) is coordinator-retriable. Serving it as the final public Admin body would hide the Apache error under a retry loop. The public replay uses INVALID_REQUEST / GROUP_ID_NOT_FOUND."
+    },
+    {
+      "cell": "tests/common Mock / full_surface.rs",
+      "reason": "Local Mock coordinator hops are not this card's independent leftover-empty / public Admin oracle."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "reason": "3.9.1 kafka-clients has no AlterShareGroupOffsetsRequestData / DeleteShareGroupOffsetsRequestData (APIs 91/92 are 4.1+ KIP-932).",
+  "receipts": [
+    {
+      "cell": "alter-ok",
+      "disposition": "unsupported",
+      "reason": "3.9.1 kafka-clients has no AlterShareGroupOffsetsRequestData / DeleteShareGroupOffsetsRequestData (APIs 91/92 are 4.1+ KIP-932)."
+    },
+    {
+      "cell": "alter-invalid",
+      "disposition": "unsupported",
+      "reason": "3.9.1 kafka-clients has no AlterShareGroupOffsetsRequestData / DeleteShareGroupOffsetsRequestData (APIs 91/92 are 4.1+ KIP-932)."
+    },
+    {
+      "cell": "delete-ok",
+      "disposition": "unsupported",
+      "reason": "3.9.1 kafka-clients has no AlterShareGroupOffsetsRequestData / DeleteShareGroupOffsetsRequestData (APIs 91/92 are 4.1+ KIP-932)."
+    },
+    {
+      "cell": "delete-unknown",
+      "disposition": "unsupported",
+      "reason": "3.9.1 kafka-clients has no AlterShareGroupOffsetsRequestData / DeleteShareGroupOffsetsRequestData (APIs 91/92 are 4.1+ KIP-932)."
+    }
+  ]
+}

@@ -7,6 +7,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Public AlterShareGroupOffsets and DeleteShareGroupOffsets v0 bodies
+  (start-offset 7, `INVALID_REQUEST` 42, topic-name-only delete, and
+  `GROUP_ID_NOT_FOUND` 69) are checked against pinned Apache
+  kafka-clients 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and parsers.
+  Kafka 3.9.1 stays eight unsupported receipts. Public Admin replay
+  lands on FindCoordinator `key_type=0` and uses those Apache bodies.
+  The original `not_run` rows stay frozen (KL01-29).
+
 - Finite VerifiableConsumer reset and autocommit profiles (`latest`
   delivers only the new offset and stores the next offset, `none`
   without a stored offset errors, `none` with a stored offset resumes,
