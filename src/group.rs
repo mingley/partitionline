@@ -1864,6 +1864,9 @@ impl ConsumerGroup {
     }
 
     async fn apply_subscription(&mut self, topics: Vec<String>) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if topics == self.topics && !self.member_id.is_empty() {
             return Ok(());
         }

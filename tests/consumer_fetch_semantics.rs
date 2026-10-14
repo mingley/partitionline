@@ -3511,6 +3511,46 @@ async fn list_offsets_on_another_leader_negotiates_once() {
     consumer.close().await.unwrap();
 }
 
+/// Resubscribe consumes one pending wakeup before leaving and rejoining.
+#[tokio::test]
+async fn wakeup_interrupts_group_subscribe_once() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "g-sub",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    group.wakeup();
+    let interrupted = group.subscribe(["u"]).await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "subscribe must observe a pending wakeup, got {interrupted}"
+    );
+    assert_eq!(
+        group
+            .assignment()
+            .iter()
+            .map(|tp| tp.topic.as_str())
+            .collect::<Vec<_>>(),
+        ["t"]
+    );
+    group.subscribe(["u"]).await.unwrap();
+    assert_eq!(
+        group
+            .assignment()
+            .iter()
+            .map(|tp| tp.topic.as_str())
+            .collect::<Vec<_>>(),
+        ["u"]
+    );
+    group.close().await.unwrap();
+}
+
 /// Group poll and commit consume one pending wakeup before joining or sending offsets.
 #[tokio::test]
 async fn wakeup_interrupts_group_poll_and_commit_once() {
