@@ -1,0 +1,1 @@
+{"topic":"pl-ordinary","record_count":25,"produce_acks":-1,"produce_base_offset":0,"fetch_offset":0,"fetch_high_watermark":25,"list_offsets_timestamp":-1,"list_offsets_offset":25,"metadata_leader_id":1,"metadata_partitions":1,"verifiable_producer_successes":25,"verifiable_commit_offset":25}

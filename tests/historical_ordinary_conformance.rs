@@ -271,10 +271,7 @@ impl Drop for RawBroker {
 
 fn prefixes_must_fail(bytes: &[u8], what: &str, mut decode: impl FnMut(&[u8]) -> bool) {
     for prefix in 0..bytes.len() {
-        assert!(
-            decode(&bytes[..prefix]),
-            "{what} prefix {prefix} decoded"
-        );
+        assert!(decode(&bytes[..prefix]), "{what} prefix {prefix} decoded");
     }
 }
 
@@ -297,7 +294,8 @@ async fn apache_ordinary_bodies_decode_leftover_empty() {
             decode_produce_response(&mut &buf[..], PRODUCE_VERSION).is_err()
         });
         let mut cur = produce_req.as_slice();
-        let (txn, acks, timeout_ms, topics) = decode_produce_request(&mut cur, PRODUCE_VERSION).unwrap();
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut cur, PRODUCE_VERSION).unwrap();
         leftover(cur, &format!("{peer} Produce request"));
         assert!(txn.is_none());
         assert_eq!(acks, -1);
@@ -444,12 +442,7 @@ async fn apache_fetch_replay_public_consumer_25_records() {
         let mut consumer = Consumer::new(broker.config()).await.unwrap();
         consumer.assign(TOPIC, 0, 0).await.unwrap();
         let records = consumer.fetch().await.unwrap();
-        assert_eq!(
-            records.len(),
-            25,
-            "{peer} delivered {}",
-            records.len()
-        );
+        assert_eq!(records.len(), 25, "{peer} delivered {}", records.len());
         let offsets: Vec<i64> = records.iter().map(|r| r.offset).collect();
         assert_eq!(offsets, (0..25).collect::<Vec<_>>(), "{peer} offsets");
         assert_eq!(records[0].value.as_deref(), Some(&b"0"[..]));
