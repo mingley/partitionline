@@ -3192,8 +3192,8 @@ impl Consumer {
                         .find(|(name, part, _)| name == &t.topic && *part == p.partition)
                         .map(|(_, _, o)| *o);
                     if let Some(off) = assigned {
-                        if off > p.end_offset {
-                            self.advance(&t.topic, p.partition, p.end_offset);
+                        if let Some(next) = truncated_fetch_offset(off, p.end_offset) {
+                            self.advance(&t.topic, p.partition, next);
                             self.set_last_fetched_epoch(&t.topic, p.partition, p.leader_epoch);
                         }
                     }
@@ -5515,6 +5515,18 @@ fn fetch_topics(
         .collect()
 }
 
+/// Next fetch offset when `position` sits past the epoch end.
+///
+/// [`crate::protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] is not a
+/// log position. A successful lookup with that sentinel must not rewind.
+fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
+    if end_offset >= 0 && position > end_offset {
+        Some(end_offset)
+    } else {
+        None
+    }
+}
+
 fn offset_for_leader_epoch_topics(
     cluster: &Cluster,
     last_fetched: &PartitionMap<i32>,
@@ -5691,6 +5703,20 @@ mod tests {
         bytes.extend_from_slice(&code.to_be_bytes());
         bytes.extend_from_slice(&id.to_be_bytes());
         Bytes::from(bytes)
+    }
+
+    #[test]
+    fn undefined_epoch_end_does_not_rewind_the_fetch_position() {
+        assert_eq!(truncated_fetch_offset(10, 4), Some(4));
+        assert_eq!(truncated_fetch_offset(4, 4), None);
+        assert_eq!(truncated_fetch_offset(0, 0), None);
+        assert_eq!(
+            truncated_fetch_offset(
+                3,
+                crate::protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+            ),
+            None
+        );
     }
 
     #[test]
