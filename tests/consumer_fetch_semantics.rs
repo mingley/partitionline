@@ -61,6 +61,48 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
 use tokio::task::JoinSet;
 
+/// A legacy Fetch can include a partition this consumer did not assign.
+/// Those records stay out of the poll result and do not become a position.
+#[tokio::test]
+async fn fetch_ignores_a_partition_that_was_not_assigned() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler_version("t", 1, 6, |_topics, _attempt| {
+            let mut assigned = FetchedPartition::partition_response(0, 0);
+            assigned.high_watermark = 1;
+            assigned.last_stable_offset = 1;
+            assigned.records = vec![fetch_fixture::data_batch(0, &[b"mine"], None)];
+            let mut extra = FetchedPartition::partition_response(1, 0);
+            extra.high_watermark = 1;
+            extra.last_stable_offset = 1;
+            extra.records = vec![fetch_fixture::data_batch(0, &[b"extra"], None)];
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![assigned, extra],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign partition 0");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| (record.partition, record.value.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![(0, Some(&b"mine"[..]))]
+    );
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 1)]);
+    assert!(consumer.position("t", 1).is_err());
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
 /// Control scenario: a batch whose first record offset equals the requested
 /// assignment offset (0). The current client already handles this correctly,
 /// so the missing lower-bound filter (A01) is not what makes it pass.

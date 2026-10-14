@@ -4439,6 +4439,9 @@ impl Consumer {
                     if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
                         continue;
                     }
+                    if !partition_is_assigned(&self.assigned, &name, part.partition) {
+                        continue;
+                    }
                     if part.error_code == 0 {
                         self.retain_held(
                             &name,
@@ -4459,6 +4462,9 @@ impl Consumer {
             };
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
+                    continue;
+                }
+                if !partition_is_assigned(&self.assigned, &name, part.partition) {
                     continue;
                 }
                 if *budget_reached {
@@ -5749,6 +5755,12 @@ fn record_is_retained(offset: i64, log_start: i64) -> bool {
 /// Offset after `offset`. [`i64::MAX`] has no exclusive end.
 fn exclusive_fetch_offset(offset: i64) -> Option<i64> {
     offset.checked_add(1)
+}
+
+fn partition_is_assigned(assigned: &[(String, i32, i64)], topic: &str, partition: i32) -> bool {
+    assigned
+        .iter()
+        .any(|(name, index, _)| name == topic && *index == partition)
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.

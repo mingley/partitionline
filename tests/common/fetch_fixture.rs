@@ -193,7 +193,27 @@ impl FixtureBroker {
     where
         F: Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync + 'static,
     {
-        Self::start_internal(topic, partition_count, Arc::new(handler), 12, None).await
+        Self::start_with_handler_version(topic, partition_count, 12, handler).await
+    }
+
+    /// Like [`Self::start_with_handler`] with an advertised Fetch maximum.
+    pub async fn start_with_handler_version<F>(
+        topic: &str,
+        partition_count: usize,
+        fetch_max_version: i16,
+        handler: F,
+    ) -> Self
+    where
+        F: Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync + 'static,
+    {
+        Self::start_internal(
+            topic,
+            partition_count,
+            Arc::new(handler),
+            fetch_max_version,
+            None,
+        )
+        .await
     }
 
     /// Like [`Self::start_with_handler`], then rewrite the encoded Fetch
