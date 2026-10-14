@@ -268,9 +268,13 @@ async fn offsets_replay_and_deleted_identity_never_reuses_data() -> Result<(), B
                 partition::Partition::open(path, 0, config.journal_limits, config.record_limits)?;
             let entries = log.fetch(0, 16, 4096)?;
             assert_eq!(entries.len(), 3);
+            let mut expected_base = 0i64;
             for entry in &entries {
+                assert_eq!(&entry.payload[0..8], &expected_base.to_be_bytes());
                 assert_eq!(&entry.payload[12..16], &0i32.to_be_bytes());
+                expected_base = expected_base.saturating_add(i64::from(entry.record_count));
             }
+            assert_eq!(expected_base, log.next_offset());
             Ok((
                 log.next_offset(),
                 fs::read_dir(root.join("partitions"))?.count(),
