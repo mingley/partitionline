@@ -278,6 +278,14 @@ KL10-14 registers `lb-gateway-fetch-gzip` and recorded a local unsigned
 `COUNT=25000` A-B baseline (`docs/evidence/perf/KL10-14`). Suite HOLD
 remains. Those numbers are not a performance claim.
 
+KL10-11 proposes adding `bulk-req-idempotent-acks-all-gzip-json1k`,
+`fetch-req-standard-6p-gzip-json1k` and `sec-req-mtls-per-record-ack` to
+the required set and naming gzip a required codec alongside lz4 and zstd
+(contract 1.2.0). The proposal is not accepted. Section 0 claim wording,
+contract 1.1.0 and `claim_gate` are unchanged. See
+[benchmark-contract.md §11](../benchmark-contract.md#11-proposed-amendment-kl10-11-not-accepted).
+The `lb-gateway-*` rows above stay exploratory local cells.
+
 ## 5. Strategy and waves
 
 A card's wave is its position in the dependency graph. The graph in

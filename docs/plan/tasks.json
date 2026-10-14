@@ -19281,7 +19281,7 @@
       "deliverable": "A contract amendment proposal that adds gzip bulk and fetch cells with ~1 KiB text records, and an mTLS per-record-acknowledgment cell, to the required set for the bulk, fetch and secure profiles.",
       "acceptance": ["The proposal states each cell's knobs, peers, metrics and the contract version bump, and makes gzip an explicit required codec cell alongside lz4 and zstd.", "The maintainer's acceptance or rejection is recorded in evidence; frozen contract text and the KL09 claim gate change only after acceptance.", "If accepted, KL09-70's required-cell list includes the new cells."],
       "validation": ["Validate scenarios.json changes with the existing contract tooling.", "Diff the contract and claim-gate text against the accepted proposal."],
-      "evidence": [],
+      "evidence": ["docs/plan/evidence/KL10-11.json"],
       "write_set": [
         "docs/plan/tasks.json",
         "docs/benchmark-contract.md",
@@ -19290,7 +19290,8 @@
         "docs/plan/performance-leadership.md",
         "docs/plan/gateway-adoption.md",
         "docs/plan/evidence/KL10-11.json"
-      ]
+      ],
+      "follow_up": "Proposal complete. Maintainer accept/reject pending. Frozen contract 1.1.0 and claim_gate unchanged. Proposed 1.2.0 cells: bulk-req-idempotent-acks-all-gzip-json1k, fetch-req-standard-6p-gzip-json1k, sec-req-mtls-per-record-ack."
     },
     {
       "id": "KL10-12",

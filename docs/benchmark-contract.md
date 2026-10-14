@@ -447,3 +447,160 @@ KL09 cards never publish a claim; only KL04-12, KL04-14 and KL09-70 can.
   thresholds, client-ceiling tier, local-evidence rules); required lz4
   and zstd bulk cells specified; Suite HOLD unchanged.
 - **1.0.0** (KL04-01): initial equal-semantics contract.
+
+---
+
+## 11. Proposed amendment (KL10-11; not accepted)
+
+This section is a **proposal**. It does not change contract **1.1.0**.
+Section 10 remains the frozen claim gate. The cells below are **not**
+required, do not feed any claim wording, and must not be treated as
+accepted until the maintainer records accept or reject in
+`docs/plan/evidence/KL10-11.json`. Machine-readable copy:
+`kl10_11_proposal` in [benchmarks/scenarios.json](../benchmarks/scenarios.json).
+
+### 11.1 Motive (gateway-adoption F9)
+
+The 1.1.0 required set uses 100-byte `uniform_random` records and requires
+only **lz4** and **zstd** compressed cells. None of those cells is gzip or
+~1 KiB text, so a global or profile claim can be won without exercising
+the gateway path (1 KiB json1k, gzip, mTLS, per-record acknowledgments).
+KL10-02 and KL10-14 built exploratory L2 cells for that path; this
+amendment would add claim-gate cells for it.
+
+### 11.2 Proposed version bump
+
+| Field | Frozen now | After acceptance |
+|---|---|---|
+| Contract version | `1.1.0` | `1.2.0` |
+| Required compressed codecs | lz4, zstd | **gzip**, lz4, zstd |
+| Suite HOLD | active | unchanged |
+| Peer set and superior rule | §10.1–10.2 | unchanged |
+| Existing required cells | remain required | remain required (additive only) |
+
+`1.2.0` is required because the global-claim denominator grows. Rejection
+leaves the version at `1.1.0` and keeps this section as a rejected
+proposal.
+
+### 11.3 Proposed required cells
+
+Gzip required cells use ~1 KiB seeded JSON text (`json1k`, seed `0xC0DEC`,
+exactly 1024 ASCII bytes, one 8-byte `gw` header). That is intentional
+and different from the lz4/zstd 100-byte random cells, which keep ratio
+near 1.0 so they measure codec CPU rather than compression ratio. The
+gzip cells measure the gateway-realistic compressible path (ratio about
+7). A 100-byte random gzip cell is **not** proposed.
+
+Exploratory `lb-gateway-*` cells stay L2 (`feeds_claims: false`). They
+are not promoted. After acceptance, KL09-70's required-cell list includes
+the three IDs below and not the `lb-gateway-*` IDs.
+
+#### `bulk-req-idempotent-acks-all-gzip-json1k` (bulk)
+
+| Knob | Value |
+|---|---|
+| Records | 8,000,000 |
+| Payload | json1k, 1024 bytes, seed `0xC0DEC` |
+| Headers | one 8-byte `gw` header |
+| Partitions | 6 |
+| Acks / idempotence / isolation | `-1` / `true` / `read_committed` |
+| Batching | linger 5 ms, 1,000,000 bytes, 32,768 messages |
+| Max in flight | 5 |
+| Codec | gzip, backend default level (`-1`; zlib/flate2 default 6) |
+| Security | PLAINTEXT |
+| Replication (Lab A) | RF=1, `min.insync.replicas`=1 |
+
+| | |
+|---|---|
+| **Peers** | Frozen §10.1 set. Best-peer rule unchanged. A peer that cannot emit json1k + gzip at the default level is excluded (non-win), never counted. |
+| **Primary** | HW-verified acknowledged rec/s and MB/s |
+| **Guardrails** | CPU per record; p99 ack latency at matched load; RSS within the declared budget |
+| **Disclosure** | Record gzip backend and version (partitionline: zlib-rs via flate2; librdkafka/rust-rdkafka: native zlib; Java: JDK Deflater). Default level is the match field. |
+
+#### `fetch-req-standard-6p-gzip-json1k` (fetch)
+
+| Knob | Value |
+|---|---|
+| Records | 8,000,000, pre-filled, consumed with ID/hash verification (KL04-07) |
+| Payload / codec | Same json1k gzip corpus as the bulk cell |
+| Partitions | 6 |
+| Isolation | `read_uncommitted` |
+| Fetch | `min.bytes`=1, `max.bytes`=16 MiB, `max.wait.ms`=100 |
+| Security | PLAINTEXT |
+| Backlog | Written once by a pinned peer; corpus hash and compressed/uncompressed bytes recorded |
+
+| | |
+|---|---|
+| **Peers** | Frozen §10.1 set. Same json1k + gzip exclusion rule. |
+| **Primary** | ID/hash-verified consumed rec/s and MB/s |
+| **Guardrails** | CPU per record; RSS |
+| **Disclosure** | Encoder backend/version, level, corpus hash. Decoder level is not a setting. |
+
+#### `sec-req-mtls-per-record-ack` (secure)
+
+| Knob | Value |
+|---|---|
+| Records | 8,000,000 |
+| Payload | json1k, 1024 bytes, seed `0xC0DEC`, one 8-byte `gw` header |
+| Partitions | 8 |
+| Acks / idempotence / isolation | `-1` / `true` / `read_committed` |
+| Batching | linger 100 ms, 1 MiB, max in flight 1 |
+| Codec | gzip, backend default level |
+| Security | SSL/TLS 1.3, `client_auth=required` (mTLS), cipher `TLS_AES_256_GCM_SHA384` |
+| Acknowledgment | Per-record completion (`Producer::send` / librdkafka delivery callback / Java `Callback`). Fire-and-forget plus a timed flush is a different cell and must not be compared. |
+
+| | |
+|---|---|
+| **Peers** | Frozen §10.1 set. A peer without mTLS or without a per-record completion API is excluded (non-win). |
+| **Primary** | HW-verified acknowledged rec/s and MB/s (secure profile, as for bulk) |
+| **Guardrails** | CPU per record; p99 ack latency at matched load; RSS; handshake and reauthentication counted separately |
+| **Match field** | `acknowledgment_mode=per-record` is required alongside the existing security match fields. |
+
+### 11.4 Claim-gate text that would change after acceptance
+
+Apply these substitutions only after a recorded **accept**. Do not apply
+them on reject.
+
+In §10.2 global wording and the mirrored sentence in
+`docs/plan/performance-leadership.md` section 0 and
+`benchmarks/scenarios.json` `claim_gate.claim_types[0]`:
+
+- from: `plus the required compressed cells (lz4, zstd)`
+- to: `plus the required compressed cells (gzip, lz4, zstd)`
+
+In §10.3 bulk row:
+
+- from: `bulk (acks=1; idempotent acks=all; none/lz4/zstd)`
+- to: `bulk (acks=1; idempotent acks=all; none/gzip/lz4/zstd)`
+
+In §10.3 secure row, append `mTLS per-record-ack` to the listed cells.
+
+In `benchmarks/scenarios.json` `claim_gate`, add:
+
+```json
+"gzip_required_cells": [
+  "bulk-req-idempotent-acks-all-gzip-json1k",
+  "fetch-req-standard-6p-gzip-json1k"
+]
+```
+
+and promote the three proposed cells from `kl10_11_proposal` into
+`profiles.bulk|fetch|secure.cells` with `tier: "required"`.
+
+Version history line to add on accept:
+
+- **1.2.0** (KL10-11): gzip ~1 KiB json1k bulk and fetch cells, and an
+  mTLS per-record-acknowledgment cell, become required; gzip is a
+  required codec alongside lz4 and zstd; Suite HOLD unchanged.
+
+### 11.5 KL09-70
+
+If this proposal is **accepted**, KL09-70's required-cell list includes
+`bulk-req-idempotent-acks-all-gzip-json1k`,
+`fetch-req-standard-6p-gzip-json1k`, and `sec-req-mtls-per-record-ack`.
+If it is **rejected**, KL09-70 stays on the 1.1.0 required set.
+
+### 11.6 Decision
+
+Maintainer accept or reject is **pending**. Until it is recorded, contract
+version, `claim_gate`, and every `tier: "required"` cell stay at 1.1.0.

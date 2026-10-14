@@ -763,5 +763,83 @@ class CompleteResultSchemaTests(unittest.TestCase):
             self.assertIn('non-finite', ' '.join(errors))
 
 
+class Kl1011ProposalContract(unittest.TestCase):
+    """KL10-11 proposal is recorded without changing the frozen 1.1.0 gate."""
+
+    PROPOSED = (
+        'bulk-req-idempotent-acks-all-gzip-json1k',
+        'fetch-req-standard-6p-gzip-json1k',
+        'sec-req-mtls-per-record-ack',
+    )
+
+    def registry(self):
+        return json.loads((REPO_ROOT / 'benchmarks' / 'scenarios.json').read_text())
+
+    def test_frozen_claim_gate_stays_at_1_1_0(self):
+        registry = self.registry()
+        self.assertEqual(registry['contract_version'], '1.1.0')
+        self.assertEqual(
+            set(registry['claim_gate']['zstd_required_cells']),
+            {'bulk-req-idempotent-acks-all-zstd', 'fetch-req-standard-6p-zstd'},
+        )
+        self.assertNotIn('gzip_required_cells', registry['claim_gate'])
+        wording = registry['claim_gate']['claim_types'][0]['requirement']
+        self.assertIn('(lz4, zstd)', wording)
+        self.assertNotIn('gzip, lz4, zstd', wording)
+
+    def test_proposal_names_gzip_cells_knobs_peers_and_version_bump(self):
+        proposal = self.registry()['kl10_11_proposal']
+        self.assertEqual(proposal['status'], 'proposed')
+        self.assertFalse(proposal['feeds_claims'])
+        self.assertEqual(proposal['frozen_contract_version'], '1.1.0')
+        self.assertEqual(proposal['proposed_contract_version'], '1.2.0')
+        self.assertTrue(proposal['gzip_as_required_codec'])
+        self.assertEqual(proposal['maintainer_decision'], 'pending')
+        self.assertEqual(
+            proposal['gzip_required_cells'],
+            [
+                'bulk-req-idempotent-acks-all-gzip-json1k',
+                'fetch-req-standard-6p-gzip-json1k',
+            ],
+        )
+        self.assertEqual(
+            proposal['kl09_70_additional_required_cells_if_accepted'],
+            list(self.PROPOSED),
+        )
+        cells = {cell['id']: cell for cell in proposal['cells']}
+        self.assertEqual(set(cells), set(self.PROPOSED))
+        for identity, profile in (
+            ('bulk-req-idempotent-acks-all-gzip-json1k', 'bulk'),
+            ('fetch-req-standard-6p-gzip-json1k', 'fetch'),
+            ('sec-req-mtls-per-record-ack', 'secure'),
+        ):
+            cell = cells[identity]
+            self.assertEqual(cell['profile'], profile)
+            self.assertEqual(cell['proposed_tier'], 'required')
+            self.assertEqual(cell['tier'], 'proposed')
+            self.assertFalse(cell['feeds_claims'])
+            self.assertEqual(cell['disposition'], 'not_run')
+            self.assertEqual(cell['equal_semantics_knobs']['payload']['size_bytes'], 1024)
+            self.assertEqual(cell['equal_semantics_knobs']['payload']['entropy'], 'json1k')
+            self.assertEqual(cell['equal_semantics_knobs']['compression']['codec'], 'gzip')
+            self.assertTrue(cell['peers'])
+            self.assertTrue(cell['primary_metric'])
+            self.assertTrue(cell['guardrails'])
+        secure = cells['sec-req-mtls-per-record-ack']
+        self.assertEqual(secure['acknowledgment_mode'], 'per-record')
+        self.assertEqual(secure['equal_semantics_knobs']['security']['client_auth'], 'required')
+
+    def test_proposed_cells_are_not_in_the_frozen_required_set(self):
+        registry = self.registry()
+        required = {
+            cell['id']
+            for profile in registry['profiles'].values()
+            for cell in profile['cells']
+            if cell.get('tier') == 'required'
+        }
+        self.assertTrue(self.PROPOSED)
+        self.assertTrue(set(self.PROPOSED).isdisjoint(required))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -229,7 +229,7 @@ Raw timings: [docs/evidence/perf/KL10-04](../evidence/perf/KL10-04/).
 | F6 | gzip decode uses 7.8× librdkafka's CPU per record | Decode-then-discard (re-probe 2026-10-01): decompress only applied batches, then keep the rest instead of re-fetching; pre-sized output (rejected) and off-caller decode | KL10-16, KL10-17, **KL09-34**, KL10-09 |
 | F7 | No owned, eagerly admitted per-record completion | Specify, then implement, an additive delivery API | KL10-07, KL10-08 |
 | F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Dated 8 MiB/partition decode-then-discard; at KL10-14 knobs both clients are ~52 MB. Documented, no default change | **KL10-10** |
-| F9 | The claim gate has no gzip or ~1 KiB cells | Propose a contract amendment adding gateway cells | KL10-11 |
+| F9 | The claim gate has no gzip or ~1 KiB cells | Proposal written (benchmark-contract.md §11); maintainer accept/reject pending | KL10-11 |
 | F10 | zstd is missing | The existing decision and implementation chain | **KL05-02..05** |
 | F11 | Adopters need a gateway recipe | An example and a migration-guide section | KL10-13 |
 

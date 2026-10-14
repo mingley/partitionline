@@ -2050,5 +2050,223 @@
         "description": "Gateway gzip fetch versus rust-rdkafka BaseConsumer at matched fetch knobs (KL10-14)."
       }
     ]
+  },
+  "kl10_11_proposal": {
+    "card": "KL10-11",
+    "status": "proposed",
+    "feeds_claims": false,
+    "performance_claims_valid": false,
+    "suite_hold": "active",
+    "frozen_contract_version": "1.1.0",
+    "proposed_contract_version": "1.2.0",
+    "maintainer_decision": "pending",
+    "proposal_section": "docs/benchmark-contract.md section 11",
+    "gzip_as_required_codec": true,
+    "note": "Proposal only. Do not treat these cells as required and do not change claim_gate until the maintainer records accept or reject in docs/plan/evidence/KL10-11.json.",
+    "lb_gateway_cells_remain_exploratory": [
+      "lb-gateway-produce-gzip",
+      "lb-gateway-produce-lz4",
+      "lb-gateway-produce-ack",
+      "lb-gateway-fetch-gzip"
+    ],
+    "gzip_required_cells": [
+      "bulk-req-idempotent-acks-all-gzip-json1k",
+      "fetch-req-standard-6p-gzip-json1k"
+    ],
+    "kl09_70_additional_required_cells_if_accepted": [
+      "bulk-req-idempotent-acks-all-gzip-json1k",
+      "fetch-req-standard-6p-gzip-json1k",
+      "sec-req-mtls-per-record-ack"
+    ],
+    "claim_gate_text_after_acceptance": {
+      "compressed_cells": "gzip, lz4, zstd",
+      "bulk_guardrail_codecs": "none/gzip/lz4/zstd",
+      "global_wording": "superior in every required cell of all six contract profiles plus the required compressed cells (gzip, lz4, zstd), on both x86_64 and arm64, independently reproduced (KL04-14); no exceptions"
+    },
+    "cells": [
+      {
+        "id": "bulk-req-idempotent-acks-all-gzip-json1k",
+        "profile": "bulk",
+        "proposed_tier": "required",
+        "tier": "proposed",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Idempotent 8,000,000-record bulk produce at 1024-byte json1k text (seed 0xC0DEC), one 8-byte gw header, acks=all, linger=5ms, 6 partitions, gzip at the backend default level. Compressible on purpose: this is the gateway-realistic gzip cell, not a ratio-near-1.0 codec-overhead cell.",
+        "peers": "frozen claim_gate.peer_set; best-peer rule unchanged; peer cannot emit json1k+gzip => excluded, never counted",
+        "primary_metric": "HW-verified acknowledged rec/s and MB/s",
+        "guardrails": ["CPU per record", "p99 ack latency at matched load", "RSS within the declared budget"],
+        "equal_semantics_knobs": {
+          "durability_isr": {
+            "replication_factor": 1,
+            "min_insync_replicas": 1
+          },
+          "acks": -1,
+          "idempotence": true,
+          "isolation_level": "read_committed",
+          "payload": {
+            "size_bytes": 1024,
+            "entropy": "json1k",
+            "seed": "0xC0DEC"
+          },
+          "headers_keys_skew": {
+            "key_type": "seeded_16b",
+            "has_headers": true,
+            "header_key": "gw",
+            "header_bytes": 8,
+            "partition_skew": "uniform"
+          },
+          "partitions": 6,
+          "batching": {
+            "linger_ms": 5,
+            "batch_size_bytes": 1000000,
+            "batch_num_messages": 32768
+          },
+          "connection_in_flight": {
+            "max_in_flight_requests_per_connection": 5,
+            "connections_per_broker": 1,
+            "tcp_nodelay": true
+          },
+          "network_topology": {
+            "environment": "loopback",
+            "rtt_ms": 0.1
+          },
+          "security": {
+            "protocol": "PLAINTEXT"
+          },
+          "compression": {
+            "codec": "gzip",
+            "level": -1
+          }
+        }
+      },
+      {
+        "id": "fetch-req-standard-6p-gzip-json1k",
+        "profile": "fetch",
+        "proposed_tier": "required",
+        "tier": "proposed",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch the same json1k gzip corpus (seed 0xC0DEC, 1024-byte values, one 8-byte gw header) on every peer from a pre-filled 6-partition topic. Record encoder backend/version, default level, corpus hash and compressed/uncompressed bytes. Decoder level is not a setting.",
+        "peers": "frozen claim_gate.peer_set; same json1k+gzip exclusion rule",
+        "primary_metric": "ID/hash-verified consumed rec/s and MB/s",
+        "guardrails": ["CPU per record", "RSS"],
+        "equal_semantics_knobs": {
+          "durability_isr": {
+            "replication_factor": 1,
+            "min_insync_replicas": 1
+          },
+          "acks": 1,
+          "idempotence": false,
+          "isolation_level": "read_uncommitted",
+          "payload": {
+            "size_bytes": 1024,
+            "entropy": "json1k",
+            "seed": "0xC0DEC"
+          },
+          "headers_keys_skew": {
+            "key_type": "seeded_16b",
+            "has_headers": true,
+            "header_key": "gw",
+            "header_bytes": 8,
+            "partition_skew": "uniform"
+          },
+          "partitions": 6,
+          "batching": {
+            "linger_ms": 0,
+            "batch_size_bytes": 16777216,
+            "batch_num_messages": 65536
+          },
+          "connection_in_flight": {
+            "max_in_flight_requests_per_connection": 1,
+            "connections_per_broker": 1,
+            "tcp_nodelay": true
+          },
+          "network_topology": {
+            "environment": "loopback",
+            "rtt_ms": 0.1
+          },
+          "security": {
+            "protocol": "PLAINTEXT"
+          },
+          "compression": {
+            "codec": "gzip",
+            "level": -1
+          },
+          "fetch": {
+            "min_bytes": 1,
+            "max_bytes": 16777216,
+            "max_wait_ms": 100
+          }
+        }
+      },
+      {
+        "id": "sec-req-mtls-per-record-ack",
+        "profile": "secure",
+        "proposed_tier": "required",
+        "tier": "proposed",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "mTLS TLS 1.3 produce of 8,000,000 json1k records with one completion per record. Gateway identity knobs: 8 partitions, gzip, acks=all, max in flight 1, linger 100 ms, 1 MiB batches. Fire-and-forget plus a timed flush is not this cell.",
+        "peers": "frozen claim_gate.peer_set; peer without mTLS or per-record completion => excluded, never counted",
+        "primary_metric": "HW-verified acknowledged rec/s and MB/s",
+        "guardrails": [
+          "CPU per record",
+          "p99 ack latency at matched load",
+          "RSS within the declared budget",
+          "handshake and reauthentication counted separately"
+        ],
+        "acknowledgment_mode": "per-record",
+        "equal_semantics_knobs": {
+          "durability_isr": {
+            "replication_factor": 1,
+            "min_insync_replicas": 1
+          },
+          "acks": -1,
+          "idempotence": true,
+          "isolation_level": "read_committed",
+          "payload": {
+            "size_bytes": 1024,
+            "entropy": "json1k",
+            "seed": "0xC0DEC"
+          },
+          "headers_keys_skew": {
+            "key_type": "seeded_16b",
+            "has_headers": true,
+            "header_key": "gw",
+            "header_bytes": 8,
+            "partition_skew": "uniform"
+          },
+          "partitions": 8,
+          "batching": {
+            "linger_ms": 100,
+            "batch_size_bytes": 1048576,
+            "batch_num_messages": 32768
+          },
+          "connection_in_flight": {
+            "max_in_flight_requests_per_connection": 1,
+            "connections_per_broker": 1,
+            "tcp_nodelay": true
+          },
+          "network_topology": {
+            "environment": "loopback",
+            "rtt_ms": 0.1
+          },
+          "security": {
+            "protocol": "SSL",
+            "client_auth": "required",
+            "tls_version": "TLSv1.3",
+            "cipher_suite": "TLS_AES_256_GCM_SHA384"
+          },
+          "compression": {
+            "codec": "gzip",
+            "level": -1
+          },
+          "acknowledgment_mode": "per-record"
+        }
+      }
+    ]
   }
 }

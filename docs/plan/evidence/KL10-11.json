@@ -1,0 +1,98 @@
+{
+  "task": "KL10-11",
+  "status": "in_progress",
+  "disposition": "proposal-complete",
+  "date": "2026-10-14",
+  "owner": "cursor-cloud",
+  "kind": "specification",
+  "claim_sha": "6a91c2eba9dc99bb21970809c0711faaeaafb19d",
+  "source_sha": "2db10d66587c9af7941ccf435640b0c963f355d3",
+  "source_sha": "2db10d66587c9af7941ccf435640b0c963f355d3",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "maintainer_decision": "pending",
+  "frozen_contract_version": "1.1.0",
+  "proposed_contract_version": "1.2.0",
+  "production_code_changed": false,
+  "frozen_claim_gate_changed": false,
+  "hypothesis": "The 1.1.0 required set has no gzip or ~1 KiB cells, so a claim can be won without the gateway path. An additive 1.2.0 amendment should add gzip json1k bulk/fetch cells and an mTLS per-record-ack cell, and name gzip a required codec beside lz4 and zstd.",
+  "proposed_required_cells": [
+    {
+      "id": "bulk-req-idempotent-acks-all-gzip-json1k",
+      "profile": "bulk",
+      "payload": "json1k 1024 B seed 0xC0DEC + gw8 header",
+      "codec": "gzip",
+      "primary": "HW-verified acknowledged rec/s and MB/s",
+      "peers": "frozen §10.1 set; json1k+gzip inability excludes, never counts"
+    },
+    {
+      "id": "fetch-req-standard-6p-gzip-json1k",
+      "profile": "fetch",
+      "payload": "same json1k gzip corpus",
+      "codec": "gzip",
+      "primary": "ID/hash-verified consumed rec/s and MB/s",
+      "peers": "frozen §10.1 set; same exclusion rule"
+    },
+    {
+      "id": "sec-req-mtls-per-record-ack",
+      "profile": "secure",
+      "payload": "json1k 1024 B, 8 partitions, mTLS, per-record completion",
+      "codec": "gzip",
+      "primary": "HW-verified acknowledged rec/s and MB/s",
+      "peers": "frozen §10.1 set; no mTLS or no per-record completion excludes, never counts"
+    }
+  ],
+  "gzip_as_required_codec": true,
+  "kl09_70_if_accepted": [
+    "bulk-req-idempotent-acks-all-gzip-json1k",
+    "fetch-req-standard-6p-gzip-json1k",
+    "sec-req-mtls-per-record-ack"
+  ],
+  "not_promoted": [
+    "lb-gateway-produce-gzip",
+    "lb-gateway-produce-lz4",
+    "lb-gateway-produce-ack",
+    "lb-gateway-fetch-gzip"
+  ],
+  "commands": [
+    "python3 -m json.tool benchmarks/scenarios.json (exit 0)",
+    "python3 -m unittest benchmarks.tests.test_report.Kl1011ProposalContract (3 passed, exit 0)",
+    "python3 -m unittest benchmarks.tests.test_report.ZstdComparisonContract (3 passed, exit 0)",
+    "python3 -m unittest benchmarks.tests.test_report (30 passed, exit 0)"
+  ],
+  "results": {
+    "proposal_section": "docs/benchmark-contract.md section 11",
+    "registry_key": "kl10_11_proposal",
+    "contract_version_unchanged": "1.1.0",
+    "claim_gate_gzip_required_cells_absent": true,
+    "zstd_required_cells_unchanged": [
+      "bulk-req-idempotent-acks-all-zstd",
+      "fetch-req-standard-6p-zstd"
+    ],
+    "proposed_cells_not_in_frozen_required_set": true,
+    "unittest_report": "30 passed"
+  },
+  "acceptance": {
+    "knobs_peers_metrics_and_version_bump": true,
+    "gzip_named_alongside_lz4_zstd": true,
+    "maintainer_accept_or_reject_recorded": false,
+    "frozen_text_unchanged": true,
+    "kl09_70_list_updated": false
+  },
+  "artifacts": [
+    "docs/benchmark-contract.md",
+    "benchmarks/scenarios.json",
+    "benchmarks/tests/test_report.py",
+    "docs/plan/performance-leadership.md",
+    "docs/plan/gateway-adoption.md"
+  ],
+  "limits": [
+    "Maintainer accept/reject is pending. Frozen contract 1.1.0 and claim_gate are unchanged.",
+    "No campaign executed. Proposed cells are specified/not_run.",
+    "Suite HOLD remains. No performance claim.",
+    "World-class client objective remains open."
+  ],
+  "qualification_limit": "Proposal only. Not a contract version bump. Not a claim-gate change.",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "world_class_client_complete": false
+}
