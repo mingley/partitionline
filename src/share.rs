@@ -667,8 +667,11 @@ pub enum ShareAcquireMode {
 /// A piggybacked ShareFetch acknowledgement error fires the commit
 /// callback and does not fail [`Self::poll`] (Java
 /// `ShareConsumeRequestManager`); the callback message is
-/// `AcknowledgeErrorMessage` when the broker sends one. Incremental
-/// ShareFetch sends Java
+/// `AcknowledgeErrorMessage` when the broker sends one. A top-level
+/// ShareFetch error completes in-flight piggybacked acknowledgements
+/// with that code (Java `handleResponse` false). Piggyback is refused
+/// on the initial share session (Java `maybeAddAcknowledgements`).
+/// Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
@@ -1900,7 +1903,7 @@ impl ShareGroup {
             let _ = by_leader.insert(node, Vec::new());
         }
         let assigned_set: HashSet<(String, i32)> = assigned.into_iter().collect();
-        let pending_acks = self.pending_fetch_acknowledgements();
+        let mut pending_acks = self.pending_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
@@ -1929,6 +1932,20 @@ impl ShareGroup {
                 )));
             }
             let epoch = self.session_epoch(node);
+            // Java maybeAddAcknowledgements: piggyback is refused on the
+            // initial ShareFetch (isNewSession). Those acks complete with
+            // NOT_LEADER_OR_FOLLOWER and are not sent.
+            let piggyback = epoch > ShareRequestMetadata::INITIAL_EPOCH;
+            if !piggyback && !tps.is_empty() {
+                let error = Error::broker(
+                    error::NOT_LEADER_OR_FOLLOWER,
+                    "cannot piggyback acknowledgements on initial ShareFetch",
+                );
+                self.fail_node_share_fetch_acknowledgements(&tps, &error);
+                for (topic, part) in &tps {
+                    let _ = pending_acks.remove(&(topic.clone(), *part));
+                }
+            }
             let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
             for (topic, part) in &tps {
                 let id = self
@@ -1964,10 +1981,14 @@ impl ShareGroup {
                                 } else {
                                     0
                                 },
-                                acknowledgements: pending_acks
-                                    .get(&(name.clone(), *part))
-                                    .cloned()
-                                    .unwrap_or_default(),
+                                acknowledgements: if piggyback {
+                                    pending_acks
+                                        .get(&(name.clone(), *part))
+                                        .cloned()
+                                        .unwrap_or_default()
+                                } else {
+                                    Vec::new()
+                                },
                             })
                             .collect(),
                     }
@@ -2053,6 +2074,17 @@ impl ShareGroup {
             }
             if error_code != 0 {
                 let error = Error::broker(error_code, "ShareFetch");
+                // Java ShareSessionHandler.handleResponse false: complete
+                // in-flight piggybacked acknowledgements with the top-level
+                // code. The next fetch does not resend them.
+                let failed: Vec<(String, i32)> = by_id
+                    .iter()
+                    .flat_map(|(id, parts)| {
+                        let name = self.name_for_topic_id(*id);
+                        parts.iter().map(move |part| (name.clone(), *part))
+                    })
+                    .collect();
+                self.fail_node_share_fetch_acknowledgements(&failed, &error);
                 if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
                     self.reset_node_session(node);
                 } else {
@@ -2778,6 +2810,12 @@ impl ShareGroup {
     /// Java `ShareConsumeRequestManager` piggyback acknowledge error:
     /// fire the commit callback and drop the queued acknowledgements
     /// for this partition. The ShareFetch records are still delivered.
+    fn fail_node_share_fetch_acknowledgements(&mut self, tps: &[(String, i32)], error: &Error) {
+        for (topic, partition) in tps {
+            self.fail_share_fetch_acknowledgements(topic, *partition, error);
+        }
+    }
+
     fn fail_share_fetch_acknowledgements(&mut self, topic: &str, partition: i32, error: &Error) {
         let failed: Vec<ShareRecord> = self
             .pending_ack_records()

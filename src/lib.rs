@@ -2038,7 +2038,10 @@
 //! acknowledgement error fires the commit callback and does not fail
 //! that poll; [`AcknowledgementCommitError::message`] is the broker
 //! `AcknowledgeErrorMessage` when present (Java
-//! `Errors.exception(acknowledgeErrorMessage)`). Implicit
+//! `Errors.exception(acknowledgeErrorMessage)`). A top-level ShareFetch
+//! error completes in-flight piggybacked acknowledgements (Java
+//! `ShareSessionHandler.handleResponse` false); the initial share
+//! session does not piggyback (Java `maybeAddAcknowledgements`). Implicit
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll
 //! without ACCEPT (Java `close`). [`ShareGroup::poll`] returns
 //! [`Error::MaxPollInterval`] when [`ConsumerConfig::max_poll_interval`]
