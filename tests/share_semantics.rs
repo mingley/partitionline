@@ -22,7 +22,8 @@ use partitionline::protocol::share::{
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
     error, Admin, AlterConfig, ConfigResource, ConfigResourceUpdate, ConsumerConfig, Error,
-    NewTopic, ProduceRecord, Producer, ProducerConfig, ShareGroup, ShareRecord,
+    NewTopic, ProduceRecord, Producer, ProducerConfig, ShareAcknowledgementMode, ShareGroup,
+    ShareRecord,
 };
 
 fn config(mock: &common::Mock) -> ConsumerConfig {
@@ -79,6 +80,37 @@ async fn share_fetch_request_uses_configured_record_and_byte_limits() {
     assert_eq!(mock.last_share_fetch_batch_size(), Some(64));
     assert_eq!(mock.last_share_fetch_max_bytes(), Some(4096));
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn implicit_mode_accepts_previous_poll_on_next_poll() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "implicit", "t").await.unwrap();
+    assert_eq!(
+        group.acknowledgement_mode(),
+        ShareAcknowledgementMode::Implicit
+    );
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first_off);
+    assert!(
+        group.metrics().records_acknowledged >= 1,
+        "next poll must implicit-accept the previous poll"
+    );
+    assert_eq!(mock.share_ack_calls(), 1);
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_ack_calls() >= 2,
+        "leave must implicit-accept the last poll"
+    );
 }
 
 #[tokio::test]

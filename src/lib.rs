@@ -2031,6 +2031,8 @@
 //! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
 //! (`accept`). [`AcknowledgeType::id`] / [`AcknowledgeType::from_id`] are
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
+//! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
+//! (`implicit` / `explicit`); this client defaults to explicit.
 //! [`ShareRequestMetadata`] `Display` is Java `ShareRequestMetadata.toString`
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
@@ -3278,8 +3280,9 @@ pub use protocol::records::{
 };
 pub use protocol::txn::{TransactionResult, WritableTxnMarkerWithVersion};
 pub use share::{
-    AcknowledgeType, ShareAcquireMode, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata,
-    SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE, SHARE_ACK_RENEW,
+    AcknowledgeType, ShareAcknowledgementMode, ShareAcquireMode, ShareGroup, ShareRecord,
+    ShareRecords, ShareRequestMetadata, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
+    SHARE_ACK_RENEW,
 };
 pub use streams::{StreamsClient, StreamsConfig, StreamsLimits};
 

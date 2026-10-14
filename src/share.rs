@@ -60,6 +60,38 @@ pub enum AcknowledgeType {
     Renew = ACK_RENEW,
 }
 
+/// Java `share.acknowledgement.mode` for KIP-932 share groups.
+///
+/// Java defaults to [`Self::Implicit`]. This client defaults to
+/// [`Self::Explicit`] so a missed `accept` cannot silently commit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ShareAcknowledgementMode {
+    /// Accept the previous poll's records on the next [`ShareGroup::poll`],
+    /// [`ShareGroup::leave`], or [`ShareGroup::close`] (Java `implicit`).
+    Implicit,
+    /// The application must [`ShareGroup::accept`] / [`ShareGroup::release`]
+    /// / [`ShareGroup::reject`] every delivered record (Java `explicit`).
+    #[default]
+    Explicit,
+}
+
+impl ShareAcknowledgementMode {
+    /// Java config value (`implicit` / `explicit`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Implicit => "implicit",
+            Self::Explicit => "explicit",
+        }
+    }
+}
+
+impl fmt::Display for ShareAcknowledgementMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl AcknowledgeType {
     /// Java `AcknowledgeType.id`.
     #[must_use]
@@ -540,6 +572,8 @@ pub struct ShareGroup {
     acquisitions: HashMap<AcquisitionKey, Acquisition>,
     pending_delivery: VecDeque<ShareRecord>,
     acquire_mode: ShareAcquireMode,
+    acknowledgement_mode: ShareAcknowledgementMode,
+    last_poll_unacked: Vec<ShareRecord>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
@@ -719,6 +753,8 @@ impl ShareGroup {
             acquisitions: HashMap::new(),
             pending_delivery: VecDeque::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
+            acknowledgement_mode: cfg.share_acknowledgement_mode,
+            last_poll_unacked: Vec::new(),
             acquisition_lock_timeout_ms: None,
             hb_err,
             hb_epoch,
@@ -750,6 +786,20 @@ impl ShareGroup {
     /// before fetching; RecordLimit fails on a peer older than v2 before its RPC.
     pub fn set_acquire_mode(&mut self, mode: ShareAcquireMode) {
         self.acquire_mode = mode;
+    }
+
+    /// Java `share.acknowledgement.mode`.
+    pub fn set_acknowledgement_mode(&mut self, mode: ShareAcknowledgementMode) {
+        self.acknowledgement_mode = mode;
+        if mode == ShareAcknowledgementMode::Explicit {
+            self.last_poll_unacked.clear();
+        }
+    }
+
+    /// Java `share.acknowledgement.mode`.
+    #[must_use]
+    pub fn acknowledgement_mode(&self) -> ShareAcknowledgementMode {
+        self.acknowledgement_mode
     }
 
     /// Last broker-reported acquisition lock duration (absent for v0 peers).
@@ -1099,6 +1149,7 @@ impl ShareGroup {
         if self.topics.is_empty() && self.topic_match.is_none() {
             return Err(reject_java_share_not_subscribed());
         }
+        self.implicit_accept_pending().await?;
         self.maybe_refresh_matching().await?;
         self.prune_expired_acquisitions();
         let latest_epoch = self.hb_epoch.load(Ordering::SeqCst);
@@ -1142,6 +1193,9 @@ impl ShareGroup {
                             .map(|r| (r.topic.as_str(), share_record_bytes(r))),
                         elapsed,
                     );
+                    if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+                        self.last_poll_unacked = recs.clone();
+                    }
                     return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
@@ -1197,7 +1251,11 @@ impl ShareGroup {
     /// Called before [`Self::poll`] is Java `IllegalStateException`
     /// (`Acknowledge called before poll.`).
     pub async fn acknowledge(&mut self, recs: &[ShareRecord], ack: AcknowledgeType) -> Result<()> {
-        self.send_acknowledgements(recs, ack.id()).await
+        self.send_acknowledgements(recs, ack.id()).await?;
+        if ack != AcknowledgeType::Renew {
+            self.drop_last_poll_unacked(recs);
+        }
+        Ok(())
     }
 
     /// Extend the locks of acquired records without accepting/releasing them.
@@ -1767,6 +1825,7 @@ impl ShareGroup {
             self.share_conns.clear();
             self.acquisitions.clear();
             self.pending_delivery.clear();
+            self.last_poll_unacked.clear();
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
@@ -1776,6 +1835,7 @@ impl ShareGroup {
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
+        let implicit = self.implicit_accept_pending().await;
         let close = self.close_share_session().await;
         let leave = self.leave_coordinator().await;
         self.assigned.clear();
@@ -1790,7 +1850,8 @@ impl ShareGroup {
             Ordering::SeqCst,
         );
         self.hb_err.store(0, Ordering::SeqCst);
-        close.and(leave)
+        self.last_poll_unacked.clear();
+        implicit.and(close).and(leave)
     }
 
     /// Replace the subscription and (re)join (Java `subscribe`).
@@ -1877,6 +1938,33 @@ impl ShareGroup {
             .map(|(n, _)| n.clone())
             .or_else(|| self.topics.first().cloned())
             .unwrap_or_default()
+    }
+
+    async fn implicit_accept_pending(&mut self) -> Result<()> {
+        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
+            return Ok(());
+        }
+        if self.last_poll_unacked.is_empty() {
+            return Ok(());
+        }
+        let recs = std::mem::take(&mut self.last_poll_unacked);
+        match self.accept(&recs).await {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.last_poll_unacked = recs;
+                Err(error)
+            }
+        }
+    }
+
+    fn drop_last_poll_unacked(&mut self, recs: &[ShareRecord]) {
+        self.last_poll_unacked.retain(|held| {
+            !recs.iter().any(|rec| {
+                rec.topic == held.topic
+                    && rec.partition == held.partition
+                    && rec.offset == held.offset
+            })
+        });
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -2205,10 +2293,11 @@ impl ShareGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
+        let implicit = self.implicit_accept_pending().await;
         let close = self.close_share_session().await;
         let out = self.leave_coordinator().await;
         self.consumer.close_interceptors();
-        close.and(out)
+        implicit.and(close).and(out)
     }
 
     async fn leave_coordinator(&mut self) -> Result<()> {
@@ -2677,6 +2766,17 @@ mod tests {
         assert_eq!(AcknowledgeType::Release.to_string(), "release");
         assert_eq!(AcknowledgeType::Reject.to_string(), "reject");
         assert_eq!(AcknowledgeType::Accept.as_str(), "accept");
+    }
+
+    #[test]
+    fn share_acknowledgement_mode_matches_java_names() {
+        assert_eq!(ShareAcknowledgementMode::Implicit.as_str(), "implicit");
+        assert_eq!(ShareAcknowledgementMode::Explicit.as_str(), "explicit");
+        assert_eq!(ShareAcknowledgementMode::Implicit.to_string(), "implicit");
+        assert_eq!(
+            ShareAcknowledgementMode::default(),
+            ShareAcknowledgementMode::Explicit
+        );
     }
 
     #[test]

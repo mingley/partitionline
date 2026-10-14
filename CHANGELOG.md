@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ShareAcknowledgementMode` implements Java `share.acknowledgement.mode`.
+  Implicit accepts the previous poll on the next `poll` / `leave` / `close`.
+  The client default stays **explicit** (Java defaults to implicit).
+
 - `examples/share.rs` accepts a comma-separated `KAFKA_TOPIC` list via
   `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+
   join-then-produce / multi-topic / `join_matching` / release-then-reject /

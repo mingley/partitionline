@@ -126,6 +126,11 @@ pub struct ConsumerConfig {
     ///
     /// `None` (the default) returns every record from the Fetch round.
     pub max_poll_records: Option<usize>,
+    /// Kafka `share.acknowledgement.mode` for [`crate::ShareGroup`].
+    ///
+    /// Java defaults to [`crate::ShareAcknowledgementMode::Implicit`]. This
+    /// client defaults to [`crate::ShareAcknowledgementMode::Explicit`].
+    pub share_acknowledgement_mode: crate::ShareAcknowledgementMode,
     /// Kafka `buffer.memory` equivalent for consumer fetch buffering.
     ///
     /// Upper bound on prefetched record bytes (key + value + headers) across all
@@ -220,6 +225,10 @@ impl fmt::Debug for ConsumerConfig {
             .field("group_instance_id", &self.group_instance_id)
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
+            .field(
+                "share_acknowledgement_mode",
+                &self.share_acknowledgement_mode,
+            )
             .field("buffer_memory", &self.buffer_memory)
             .field("session_timeout_ms", &self.session_timeout_ms)
             .field("heartbeat_interval", &self.heartbeat_interval)
@@ -261,6 +270,7 @@ impl Default for ConsumerConfig {
             group_instance_id: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
+            share_acknowledgement_mode: crate::ShareAcknowledgementMode::Explicit,
             buffer_memory: 32 * 1024 * 1024,
             session_timeout_ms: 10_000,
             heartbeat_interval: Duration::from_millis(150),
@@ -371,6 +381,15 @@ impl ConsumerConfig {
     #[must_use]
     pub fn max_poll_records(mut self, n: usize) -> Self {
         self.max_poll_records = Some(n);
+        self
+    }
+
+    /// Kafka `share.acknowledgement.mode` for [`crate::ShareGroup`].
+    ///
+    /// Java defaults to implicit. This client defaults to explicit.
+    #[must_use]
+    pub fn share_acknowledgement_mode(mut self, mode: crate::ShareAcknowledgementMode) -> Self {
+        self.share_acknowledgement_mode = mode;
         self
     }
 
