@@ -4752,6 +4752,9 @@ impl Consumer {
         timestamp: i64,
         timeout: Duration,
     ) -> Result<(i64, i64, i32)> {
+        if self.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }

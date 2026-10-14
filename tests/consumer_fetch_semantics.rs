@@ -3511,6 +3511,33 @@ async fn list_offsets_on_another_leader_negotiates_once() {
     consumer.close().await.unwrap();
 }
 
+/// `wakeup` fails the in-flight or next blocking call once, then later calls proceed.
+#[tokio::test]
+async fn wakeup_interrupts_list_offsets_once() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.wakeup();
+    let interrupted = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "list_offsets must observe a pending wakeup, got {interrupted}"
+    );
+    let latest = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    consumer.close().await.unwrap();
+}
+
 /// Opening a leader already negotiated ApiVersions. A missing ListOffsets
 /// range means that handshake omitted it, so ListOffsets must not ask again.
 #[tokio::test]
