@@ -4,8 +4,9 @@
 //! task count. Epoch -1 leaves. Epoch -2 replaces the member id of the same
 //! static instance. Active tasks are range-assigned. A second member receives
 //! the other member's active tasks as standby, so one task is never active on
-//! two members. A different topology epoch stores nothing. Reopen restores the
-//! assignment epoch.
+//! two members. A different topology epoch stores nothing. Silence past the
+//! session timeout drops the member and reassigns the rest. Reopen restores
+//! the assignment epoch.
 //!
 //! Kafka 4.1.2 advertises this heartbeat as version 0 only. This is not the
 //! StreamsGroupHeartbeat or StreamsGroupDescribe RPC.
@@ -46,6 +47,8 @@ pub struct Heartbeat<'a> {
     pub member_id: &'a str,
     /// Last issued epoch, or a join, leave, or static-rejoin sentinel.
     pub member_epoch: i32,
+    /// Coordinator clock for this heartbeat. Older values do not shorten the session.
+    pub now_ms: u64,
     /// Static instance id, required for [`STATIC_REJOIN_MEMBER_EPOCH`].
     pub instance_id: Option<&'a str>,
     /// Latest endpoint epoch this client received.
@@ -151,18 +154,21 @@ impl From<journal::Error> for Error {
 pub struct Limits {
     max_members: usize,
     max_tasks: i32,
+    session_timeout_ms: u64,
     journal: journal::Limits,
 }
 
 impl Limits {
-    /// Configure positive member and task caps.
+    /// Configure positive member, task, and session caps.
     pub fn new(
         max_members: usize,
         max_tasks: i32,
+        session_timeout_ms: u64,
         journal: journal::Limits,
     ) -> Result<Self, Error> {
         if !(1..=10_000).contains(&max_members)
             || !(1..=100_000).contains(&max_tasks)
+            || session_timeout_ms == 0
             || journal.max_entry_bytes() < 1024
             || journal.max_index_entries() < max_members
         {
@@ -171,6 +177,7 @@ impl Limits {
         Ok(Self {
             max_members,
             max_tasks,
+            session_timeout_ms,
             journal,
         })
     }
@@ -179,6 +186,7 @@ impl Limits {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Member {
     epoch: i32,
+    last_seen_ms: u64,
     acked: bool,
     instance: Option<String>,
     endpoint_epoch: i32,
@@ -296,6 +304,42 @@ impl Groups {
         })
     }
 
+    /// Remove members silent longer than the session timeout and reassign the rest.
+    pub fn expire(&mut self, now_ms: u64) -> Result<usize, Error> {
+        self.ready()?;
+        let timeout = self.limits.session_timeout_ms;
+        let mut next = self.state.clone();
+        let mut removed = 0usize;
+        let ids: Vec<String> = next.groups.keys().cloned().collect();
+        for id in ids {
+            let Some(group) = next.groups.get_mut(&id) else {
+                continue;
+            };
+            let stale: Vec<String> = group
+                .members
+                .iter()
+                .filter(|(_, member)| now_ms.saturating_sub(member.last_seen_ms) > timeout)
+                .map(|(member_id, _)| member_id.clone())
+                .collect();
+            if stale.is_empty() {
+                continue;
+            }
+            for member_id in stale {
+                group.members.remove(&member_id);
+                removed = removed.saturating_add(1);
+            }
+            if group.members.is_empty() {
+                next.groups.remove(&id);
+            } else if let Some(group) = next.groups.get_mut(&id) {
+                reassign(group);
+            }
+        }
+        if removed > 0 {
+            self.commit(next)?;
+        }
+        Ok(removed)
+    }
+
     fn join(&mut self, request: Heartbeat<'_>) -> Result<HeartbeatResult, Error> {
         let (topology, tasks) = topology_of(request, self.limits.max_tasks)?;
         let instance = instance_of(request.instance_id)?;
@@ -326,6 +370,7 @@ impl Groups {
             request.member_id.to_owned(),
             Member {
                 epoch: 0,
+                last_seen_ms: request.now_ms,
                 acked: true,
                 instance,
                 endpoint_epoch: request.endpoint_epoch,
@@ -371,6 +416,7 @@ impl Groups {
         if member.instance.as_deref() != request.instance_id {
             return Err(Error::FencedInstance);
         }
+        member.last_seen_ms = later_seen(member.last_seen_ms, request.now_ms);
         member.endpoint_epoch = request.endpoint_epoch;
         reassign(group);
         if let Some(member) = group.members.get_mut(request.member_id) {
@@ -430,16 +476,17 @@ impl Groups {
         if request.member_id != previous && group.members.contains_key(request.member_id) {
             return Err(Error::InvalidRequest);
         }
-        let endpoint = group
+        let (endpoint, seen) = group
             .members
             .get(&previous)
-            .map(|member| member.endpoint_epoch)
-            .unwrap_or(request.endpoint_epoch);
+            .map(|member| (member.endpoint_epoch, member.last_seen_ms))
+            .unwrap_or((request.endpoint_epoch, request.now_ms));
         group.members.remove(&previous);
         group.members.insert(
             request.member_id.to_owned(),
             Member {
                 epoch: 0,
+                last_seen_ms: later_seen(seen, request.now_ms),
                 acked: true,
                 instance: Some(instance),
                 endpoint_epoch: endpoint,
@@ -562,6 +609,10 @@ fn reassign(group: &mut Group) {
     }
 }
 
+fn later_seen(current: u64, now_ms: u64) -> u64 {
+    current.max(now_ms)
+}
+
 fn result_from(group: &Group, member_id: &str) -> Result<HeartbeatResult, Error> {
     let member = group.members.get(member_id).ok_or(Error::UnknownMember)?;
     Ok(HeartbeatResult {
@@ -595,6 +646,7 @@ fn encode(state: &State) -> Result<Vec<u8>, Error> {
         for (member_id, member) in &group.members {
             put_str(&mut bytes, member_id)?;
             bytes.extend_from_slice(&member.epoch.to_be_bytes());
+            bytes.extend_from_slice(&member.last_seen_ms.to_be_bytes());
             bytes.push(u8::from(member.acked));
             bytes.extend_from_slice(&member.endpoint_epoch.to_be_bytes());
             match &member.instance {
@@ -642,6 +694,7 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
         for _ in 0..member_count {
             let member_id = take_str(&mut bytes)?;
             let member_epoch = take_i32(&mut bytes)?;
+            let last_seen_ms = take_u64(&mut bytes)?;
             let acked = take_u8(&mut bytes)? == 1;
             let endpoint_epoch = take_i32(&mut bytes)?;
             let instance = if take_u8(&mut bytes)? == 1 {
@@ -653,6 +706,7 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
                 member_id,
                 Member {
                     epoch: member_epoch,
+                    last_seen_ms,
                     acked,
                     instance,
                     endpoint_epoch,
@@ -717,6 +771,12 @@ fn take_ids(input: &mut &[u8]) -> Result<Vec<i32>, Error> {
     Ok(ids)
 }
 
+fn take_u64(input: &mut &[u8]) -> Result<u64, Error> {
+    let mut value = [0u8; 8];
+    value.copy_from_slice(take(input, 8)?);
+    Ok(u64::from_be_bytes(value))
+}
+
 fn take_i32(input: &mut &[u8]) -> Result<i32, Error> {
     let mut value = [0u8; 4];
     value.copy_from_slice(take(input, 4)?);
@@ -742,7 +802,7 @@ mod tests {
     fn limits() -> Limits {
         let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20)
             .unwrap_or_else(|_| panic!("journal limits"));
-        Limits::new(16, 64, journal).unwrap_or_else(|_| panic!("streams limits"))
+        Limits::new(16, 64, 1_000, journal).unwrap_or_else(|_| panic!("streams limits"))
     }
 
     fn open(name: &str) -> (Groups, std::path::PathBuf) {
@@ -761,11 +821,47 @@ mod tests {
             group_id: "app",
             member_id: id,
             member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+            now_ms: 0,
             instance_id: instance,
             endpoint_epoch: 1,
             topology_epoch: Some(3),
             task_count: Some(4),
         }
+    }
+
+    #[test]
+    fn session_timeout_removes_a_silent_streams_member() {
+        let (mut groups, _) = open("streams-session");
+        let _joined = groups
+            .heartbeat(join("a", Some("i-1")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
+        assert!(groups.describe("app").is_none());
+        let joined = groups
+            .heartbeat(join("a", Some("i-1")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let pinged = groups
+            .heartbeat(Heartbeat {
+                member_epoch: joined.member_epoch,
+                now_ms: 1_000,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        groups
+            .heartbeat(Heartbeat {
+                member_epoch: pinged.member_epoch,
+                now_ms: 1,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups.describe("app").is_none());
     }
 
     #[test]
