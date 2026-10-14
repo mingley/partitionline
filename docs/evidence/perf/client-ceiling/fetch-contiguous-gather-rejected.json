@@ -1,0 +1,16 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "9cb7080ec81a5a30642e6968555f3c26e4f2cba2",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-regression",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The synthetic log was copied into one buffer per partition at startup, and a fetch from offset 0 was sent as one slice instead of one slice per batch. Twelve interleaved pairs on one host, same runtime, parent and candidate null brokers. Before median 495,237.86 records/s, after median 482,231.47. Paired mean ratio 0.958, bootstrap 95% CI 0.914 to 0.997. Nine of twelve pairs were slower. Client CPU-nanoseconds per record median ratio was 1.038. Every run verified. The code was not kept. This is not a peer comparison and not a KL09-70 claim.",
+  "before_median": 495237.86,
+  "after_median": 482231.47,
+  "paired_mean_ratio": 0.958,
+  "paired_ratio_ci95": [0.914, 0.997],
+  "pairs": 12,
+  "slower_pairs": 9
+}
