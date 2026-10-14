@@ -328,7 +328,12 @@ impl Groups {
         {
             return Err(Error::RebalanceInProgress);
         }
-        if member_id == group.leader {
+        if member_id == group.leader
+            && !group
+                .members
+                .get(member_id)
+                .is_some_and(|member| member.synced)
+        {
             validate_assignment(group, assignment)?;
             let group = self.groups.get_mut(group_id).ok_or(Error::UnknownMember)?;
             for (id, partitions) in assignment {
@@ -665,6 +670,21 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(owned, vec![0, 1]);
+        let mut rewritten = assignment.clone();
+        rewritten
+            .get_mut(&leader.member_id)
+            .unwrap_or_else(|| panic!("leader assignment"))
+            .push(9);
+        let again = groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                &rewritten,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(again, vec![0, 1]);
         let followed = groups
             .sync(
                 "orders",
