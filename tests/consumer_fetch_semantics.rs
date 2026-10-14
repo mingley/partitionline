@@ -3338,16 +3338,19 @@ async fn fetch_throttle_wait_consumes_request_deadline() {
     let mut consumer = Consumer::new(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .request_timeout(Duration::from_millis(100))
-            .max_wait_ms(2000),
+            .max_wait_ms(1),
     )
     .await
     .unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
     assert_eq!(consumer.fetch().await.unwrap().len(), 1);
     let start = std::time::Instant::now();
-    let result = tokio::time::timeout(Duration::from_millis(300), consumer.fetch())
-        .await
-        .unwrap();
+    let result = tokio::time::timeout(
+        Duration::from_millis(300),
+        consumer.fetch_timeout(Duration::from_millis(2000)),
+    )
+    .await
+    .unwrap();
     assert!(
         matches!(result, Err(partitionline::Error::Timeout)),
         "{result:?}"
@@ -4562,6 +4565,7 @@ async fn fetch_session_recovery_repeated_errors_are_bounded_by_original_request_
     let mut consumer = Consumer::new(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .request_timeout(Duration::from_millis(100))
+            .max_wait_ms(1)
             .retry_backoff(Duration::from_millis(20)),
     )
     .await
