@@ -2488,6 +2488,7 @@ impl Consumer {
     ///
     /// An unassigned partition is Java `IllegalStateException`
     /// (`You can only check the position for partitions assigned to this consumer.`).
+    /// A position below zero is waiting to be placed in the log and is not returned.
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
         let fetch_offset = self
             .assigned
@@ -2495,7 +2496,12 @@ impl Consumer {
             .find(|(t, p, _)| t == topic && *p == partition)
             .map(|(_, _, o)| *o)
             .ok_or_else(reject_java_position_unassigned)?;
-        Ok(self.delivered_position(topic, partition, fetch_offset))
+        let position = self.delivered_position(topic, partition, fetch_offset);
+        defined_position(position).ok_or_else(|| {
+            Error::protocol(format!(
+                "position for {topic}-{partition} is not in the log"
+            ))
+        })
     }
 
     /// [`Self::position`] for a [`TopicPartition`].
@@ -5813,6 +5819,15 @@ fn recreated_topic_partitions(
     changed
 }
 
+/// A negative offset is the reset marker, not a consumable position.
+fn defined_position(offset: i64) -> Option<i64> {
+    if offset < 0 {
+        None
+    } else {
+        Some(offset)
+    }
+}
+
 fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     if high_watermark < 0 || position < 0 {
         None
@@ -6256,6 +6271,9 @@ mod tests {
         assert_eq!(partition_lag(2, 5), Some(0));
         assert_eq!(partition_lag(-1, 0), None);
         assert_eq!(partition_lag(5, -1), None);
+        assert_eq!(defined_position(0), Some(0));
+        assert_eq!(defined_position(4), Some(4));
+        assert_eq!(defined_position(-1), None);
     }
 
     #[test]
