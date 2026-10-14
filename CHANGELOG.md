@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The finite VerifiableProducer option profile (six records, throughput
+  5, value-prefix 42, repeating-keys 2, create-time 1650000000000) is
+  checked against pinned Apache kafka-clients 3.9.1, 4.1.0, 4.1.2,
+  4.2.1 and 4.3.1 Produce v9 builders and parsers. Public Producer
+  replay sends the hashed `getValue` / `getKey` mapping. The original
+  `local_consistency` row stays frozen (KL01-26).
+
 - Produce v9 and Fetch v12 `ThrottleTimeMs` histories (zero, 250 ms
   Produce quota, negative unmute refusal, 80 ms Fetch quota, and empty
   throttled full reset to INITIAL) are checked against pinned Apache

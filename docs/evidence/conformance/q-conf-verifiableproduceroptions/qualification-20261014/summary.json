@@ -1,0 +1,31 @@
+{
+  "task": "KL01-26",
+  "source_sha": "9d60aae371235a48bc4d8f84a6d5a9514325dc00",
+  "date": "2026-10-14",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 172.241,
+  "generator_sha256": "176f51043f175e447ffd8d427e9f6ec6cf10f9db0b8cf50e7250279bc42c881f",
+  "runner_sha256": "ed4e6d08015573ce66e4ab8601e6ca0b381b8dcbe0a4a4407e9619fe24b0d67b",
+  "independent_generations_match": true,
+  "peers": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "generated_bodies": 40,
+  "unsupported_receipts": 0,
+  "fixture_files": 61,
+  "rust_offline_tests": 4,
+  "rust_apache_reverse_parses": 20,
+  "python_plan_tests": 4,
+  "replay_peers": ["4.1.0", "4.3.1"],
+  "public_histories": {
+    "keys": ["0", "1", "0", "1", "0", "1"],
+    "values": ["42.0", "42.1", "42.2", "42.3", "42.4", "42.5"],
+    "create_time": 1650000000000,
+    "records_acked": 6
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0,
+  "records_rs_edited": false,
+  "buf_rs_edited": false,
+  "qualification_limit": "Finite named Produce v9 option-profile cells for five pinned client jars. Public Producer replay covers hashed getValue/getKey and the first-message create time. Elapsed create-time accumulation, throughput 0, max-messages -1, --command-config and --broker-list stay nonapplicable. The registered local_consistency row is not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+}

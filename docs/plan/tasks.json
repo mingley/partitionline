@@ -52460,7 +52460,7 @@
       "title": "Qualify the finite verifiable Producer option profile",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52486,7 +52486,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-26.json",
+        "docs/evidence/conformance/q-conf-verifiableproduceroptions/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceVerifiableProducerOptions.java",
         "tests/conformance/java/generate_verifiable_producer_options.py",
@@ -52509,7 +52512,8 @@
         "verifiable-producer-options-3-9-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "9d60aae371235a48bc4d8f84a6d5a9514325dc00"
     },
     {
       "id": "KL01-27",

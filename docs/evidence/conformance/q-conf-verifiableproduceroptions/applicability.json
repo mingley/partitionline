@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "task": "KL01-26",
+  "declared_before_qualification": true,
+  "api_scope": [0],
+  "registered_case_ids": [
+    "verifiable-producer-options-3-9-1"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "verifiable-producer-options-3-9-1"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+    "peer_version_pin": "3.9.1",
+    "adapter": "verifiable-scenario",
+    "note": "cases.json row stays local_consistency. The audit recorded a mock-broker six-record paced run. This card independently qualifies Apache Produce v9 option-profile bodies and public Producer key/value/create-time histories without rewriting that pin."
+  },
+  "parameter_invocations": {
+    "produce_version": 9,
+    "topic": "pl-options",
+    "cells": [
+      "o01-profile-batch",
+      "o02-per-send",
+      "o03-events"
+    ],
+    "nested_counts": {
+      "o01-profile-batch": {
+        "acks": -1,
+        "records": 6,
+        "keys": ["0", "1", "0", "1", "0", "1"],
+        "values": ["42.0", "42.1", "42.2", "42.3", "42.4", "42.5"],
+        "create_time": 1650000000000
+      },
+      "o02-per-send": {
+        "requests": 6,
+        "records_each": 1
+      },
+      "o03-events": {
+        "json_property_order": ["timestamp", "name"],
+        "producer_send_success": 6,
+        "tool_data_target_throughput": 5
+      }
+    },
+    "option_profile": {
+      "max_messages": 6,
+      "throughput": 5,
+      "acks": -1,
+      "message_create_time": 1650000000000,
+      "value_prefix": 42,
+      "repeating_keys": 2,
+      "hashed_defaults": {
+        "max-messages": -1,
+        "throughput": -1,
+        "acks": -1,
+        "message-create-time": -1
+      }
+    },
+    "field_gates": {
+      "Produce_flexible": "9+",
+      "Produce_TransactionalId": "3+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "GitHub raw of the 3.9.1 commit SHA 404s; VerifiableProducer.java hashed via tag 3.9.1. getValue/getKey/send create-time and @JsonPropertyOrder match later pins for this profile.",
+      "sources": {
+        "VerifiableProducer.java": "abd0b6cbca72e32d9bd2dde91c7e5010a79b81048b21179ede94292761c675d6",
+        "ProduceRequest.json": "96b36966cc0fab3b829f6cd81c2cec3b6b6b9781e265099760474b6645a9bf99",
+        "ProduceResponse.json": "b1c01c1cba74b7cc4b32a57c48c8fba54c12e7d64b93781da4431b11ad96bca1"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "VerifiableProducer.java matches 4.1.2. getValue/getKey/send create-time are unchanged for this profile.",
+      "sources": {
+        "VerifiableProducer.java": "ba064d0f0fbcbef1ae720e91af274ac7a1591ebf5dcd84c531644963db180f61",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "VerifiableProducer and Produce JSON match 4.1.0.",
+      "sources": {
+        "VerifiableProducer.java": "ba064d0f0fbcbef1ae720e91af274ac7a1591ebf5dcd84c531644963db180f61",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "VerifiableProducer.java differs: --broker-list removed, --command-config added, --producer.config deprecated. getValue/getKey/send create-time stay the same.",
+      "sources": {
+        "VerifiableProducer.java": "3a4ec03886f9f6291650cbe30062e39e10cd38e164b89c9aa3c2d9e90507009f",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "VerifiableProducer.java matches 4.2.1. MemoryRecords used for the six-record batches lives under record.internal; the generator reflects both packages.",
+      "sources": {
+        "VerifiableProducer.java": "3a4ec03886f9f6291650cbe30062e39e10cd38e164b89c9aa3c2d9e90507009f",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "getValue",
+      "applicability": "applicable",
+      "reason": "Hashed on all five pins. valuePrefix != null returns String.format(\"%d.%d\", valuePrefix, val). This profile uses prefix 42 so values are 42.0..42.5."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "getKey",
+      "applicability": "applicable",
+      "reason": "repeatingKeys != null: key = Integer.toString(keyCounter++) then reset at repeatingKeys. repeating-keys 2 yields 0,1,0,1,0,1."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "send / message-create-time",
+      "applicability": "applicable",
+      "reason": "When createTime != null, ProducerRecord(topic, null, createTime, key, value) then createTime += now - startTime. Fixtures pin the first-message create time 1650000000000 on every record. Elapsed accumulation is runtime-dependent and stays nonapplicable as pinned wire."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "argParser defaults",
+      "applicability": "applicable",
+      "reason": "max-messages -1, throughput -1, acks -1, message-create-time -1 (null). The registered profile overrides max-messages 6, throughput 5, create-time, value-prefix 42, repeating-keys 2."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "SuccessfulSend / ToolData @JsonPropertyOrder",
+      "applicability": "applicable",
+      "reason": "@JsonPropertyOrder({\"timestamp\",\"name\"}). Independent events are startup_complete, producer_send_success x6 with keyed prefixed values, shutdown_complete, tool_data sent=acked=6 target_throughput=5."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json local_consistency disposition",
+      "reason": "verifiable-producer-options-3-9-1 stays local_consistency at source pin 3e1803560e081d44f8e5ae4a3e4b449f69ff0a54. This card does not rewrite the historical mock-broker result."
+    },
+    {
+      "cell": "message-create-time-elapsed-runtime",
+      "reason": "Java advances createTime by elapsed wall time after every send. That delta is not a pinned wire timestamp and is not encoded as a fixed step."
+    },
+    {
+      "cell": "throughput-0-unthrottled",
+      "reason": "Java throughput >= 0 throttles; 0 would divide in ThroughputThrottler. The adapter treats 0 as unthrottled. Outside this throughput=5 profile."
+    },
+    {
+      "cell": "max-messages-until-killed",
+      "reason": "Default max-messages -1 produces until killed. Unbounded. This profile is the finite 6-message cohort."
+    },
+    {
+      "cell": "command-config-4-2-plus",
+      "reason": "4.2.1/4.3.1 add --command-config and deprecate --producer.config. Not part of the registered 3.9.1 option profile."
+    },
+    {
+      "cell": "broker-list-removed-4-2",
+      "reason": "3.9.1/4.1.x accept --broker-list. 4.2.1 removes it. The registered profile uses --bootstrap-server."
+    },
+    {
+      "cell": "verifiable-consumer-earliest",
+      "reason": "The local KL01-16 test also ran a verbose earliest consumer. This card's api_scope is Produce (0) only."
+    },
+    {
+      "cell": "ducktape-live-broker",
+      "reason": "No live Apache broker or ducktape suite. Independent leftover-empty and public Producer replay only."
+    },
+    {
+      "cell": "tests/verifiable_contract.rs mock",
+      "reason": "The existing mock-broker paced scenario is not this card's independent leftover-empty / public Producer oracle."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}
