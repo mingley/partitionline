@@ -505,16 +505,21 @@ fn list_query(timestamp: i64) -> ListQuery {
     }
 }
 
+fn offset_in_log(offset: i64, log_start: i64, watermark: i64) -> bool {
+    offset >= log_start && offset < watermark
+}
+
 fn observe_max(
     batch: records::Batch<'_>,
     log_start: i64,
+    watermark: i64,
     active: &impl Fn() -> Result<(), Error>,
 ) -> Result<Option<(i64, i64)>, Error> {
     let mut best = None;
     for record in batch.records() {
         active()?;
         let record = record.map_err(|_| Error::StoredRecords)?;
-        if record.offset < log_start {
+        if !offset_in_log(record.offset, log_start, watermark) {
             continue;
         }
         let candidate = (record.timestamp, record.offset);
@@ -529,6 +534,7 @@ fn first_timestamp(
     batch: records::Batch<'_>,
     wanted: i64,
     log_start: i64,
+    watermark: i64,
     active: &impl Fn() -> Result<(), Error>,
 ) -> Result<Option<(i64, i64)>, Error> {
     if batch.max_timestamp < wanted {
@@ -537,7 +543,7 @@ fn first_timestamp(
     for record in batch.records() {
         active()?;
         let record = record.map_err(|_| Error::StoredRecords)?;
-        if record.offset >= log_start && record.timestamp >= wanted {
+        if offset_in_log(record.offset, log_start, watermark) && record.timestamp >= wanted {
             return Ok(Some((record.timestamp, record.offset)));
         }
     }
@@ -548,6 +554,15 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    #[test]
+    fn a_listed_offset_must_fall_inside_the_log() {
+        assert!(super::offset_in_log(1, 1, 4));
+        assert!(super::offset_in_log(3, 1, 4));
+        assert!(!super::offset_in_log(0, 1, 4));
+        assert!(!super::offset_in_log(4, 1, 4));
+        assert!(!super::offset_in_log(1, 2, 2));
+    }
 
     #[test]
     fn a_log_start_past_the_high_watermark_is_storage_corruption() {
@@ -704,16 +719,21 @@ pub(crate) fn process(
                                     active()?;
                                     let batch = batch.map_err(|_| Error::StoredRecords)?;
                                     if want_max {
-                                        if let Some(found) = observe_max(batch, log_start, &active)?
+                                        if let Some(found) =
+                                            observe_max(batch, log_start, watermark, &active)?
                                         {
                                             best = Some(match best {
                                                 Some(current) if found <= current => current,
                                                 _ => found,
                                             });
                                         }
-                                    } else if let Some(found) =
-                                        first_timestamp(batch, part.offset, log_start, &active)?
-                                    {
+                                    } else if let Some(found) = first_timestamp(
+                                        batch,
+                                        part.offset,
+                                        log_start,
+                                        watermark,
+                                        &active,
+                                    )? {
                                         (timestamp, offset) = found;
                                         break 'scan;
                                     }
