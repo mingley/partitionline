@@ -410,6 +410,21 @@ impl Journal {
         self.inner.append(record_count, payload)
     }
 
+    /// Append using a caller-supplied payload checksum.
+    ///
+    /// [`checksum_reusing_record_crc`] builds that value from a validated
+    /// single-batch record CRC plus the 21-byte prefix, skipping a second
+    /// scan of the records.
+    pub(crate) fn append_with_checksum(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<Append, Error> {
+        self.inner
+            .append_checksummed(record_count, payload, checksum)
+    }
+
     /// Write one entry and return a cloned descriptor for a later `sync_data`.
     ///
     /// The offset index advances only in [`Self::commit_staged`], after that
@@ -420,8 +435,9 @@ impl Journal {
         &mut self,
         record_count: u32,
         payload: &[u8],
+        checksum: u32,
     ) -> Result<File, Error> {
-        self.inner.stage(record_count, payload)?;
+        self.inner.stage(record_count, payload, checksum)?;
         match self.inner.storage.try_clone() {
             Ok(file) => Ok(file),
             Err(error) => {
@@ -523,6 +539,19 @@ struct Engine<S> {
     index: Vec<Index>,
     poisoned: bool,
     staged: Option<Staged>,
+}
+
+/// Journal checksum of `payload`.
+///
+/// A single Kafka record batch stores its CRC32-C at bytes 17..21 over the
+/// suffix starting at byte 21. That suffix is outside the base-offset and
+/// leader-epoch fields, so a validated batch can reuse it.
+pub(crate) fn checksum_reusing_record_crc(payload: &[u8], batches: usize) -> u32 {
+    if batches == 1 && payload.len() >= 21 {
+        let suffix = u32::from_be_bytes([payload[17], payload[18], payload[19], payload[20]]);
+        return crc32c::crc32c_combine(crc32c::crc32c(&payload[..21]), suffix, payload.len() - 21);
+    }
+    crc32c::crc32c(payload)
 }
 
 fn corrupt(position: u64, kind: Corruption) -> Error {
@@ -914,7 +943,12 @@ impl<S: Storage> Engine<S> {
             Ok(())
         }
     }
-    fn plan(&mut self, record_count: u32, payload: &[u8]) -> Result<(Index, u64), Error> {
+    fn plan(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<(Index, u64), Error> {
         self.check_alive()?;
         if self.staged.is_some() {
             self.poisoned = true;
@@ -948,7 +982,7 @@ impl<S: Storage> Engine<S> {
             position: self.file_bytes,
             payload_len: payload.len() as u32,
             record_count,
-            checksum: crc32c::crc32c(payload),
+            checksum,
         };
         Ok((index, file_bytes))
     }
@@ -973,8 +1007,13 @@ impl<S: Storage> Engine<S> {
         self.file_bytes = file_bytes;
         appended
     }
-    fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
-        let (index, file_bytes) = self.plan(record_count, payload)?;
+    fn append_checksummed(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<Append, Error> {
+        let (index, file_bytes) = self.plan(record_count, payload, checksum)?;
         let result = (|| {
             self.write_planned(index, payload)?;
             self.storage.synchronize()?;
@@ -986,8 +1025,11 @@ impl<S: Storage> Engine<S> {
         }
         Ok(self.publish(index, file_bytes))
     }
-    fn stage(&mut self, record_count: u32, payload: &[u8]) -> Result<(), Error> {
-        let (index, file_bytes) = self.plan(record_count, payload)?;
+    fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
+        self.append_checksummed(record_count, payload, crc32c::crc32c(payload))
+    }
+    fn stage(&mut self, record_count: u32, payload: &[u8], checksum: u32) -> Result<(), Error> {
+        let (index, file_bytes) = self.plan(record_count, payload, checksum)?;
         if let Err(error) = self.write_planned(index, payload) {
             self.poisoned = true;
             return Err(error);
@@ -1424,6 +1466,28 @@ mod tests {
     }
 
     #[test]
+    fn record_crc_plus_prefix_matches_the_payload_checksum() {
+        let mut payload = vec![0u8; 21 + 4_096];
+        for (i, byte) in payload.iter_mut().enumerate() {
+            *byte = (i as u8).wrapping_mul(17).wrapping_add(3);
+        }
+        let suffix = crc32c::crc32c(&payload[21..]);
+        payload[17..21].copy_from_slice(&suffix.to_be_bytes());
+        assert_eq!(
+            checksum_reusing_record_crc(&payload, 1),
+            crc32c::crc32c(&payload)
+        );
+        assert_eq!(
+            checksum_reusing_record_crc(&payload, 2),
+            crc32c::crc32c(&payload)
+        );
+        assert_eq!(
+            checksum_reusing_record_crc(b"short", 1),
+            crc32c::crc32c(b"short")
+        );
+    }
+
+    #[test]
     fn staged_sync_commits_and_abort_poisons() -> Result<(), Error> {
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1437,8 +1501,8 @@ mod tests {
         let limits = Limits::default();
         let (mut first, _) = Journal::open(dir.join("a"), 0, limits)?;
         let (mut second, _) = Journal::open(dir.join("b"), 0, limits)?;
-        let left = first.append_staged(1, b"left")?;
-        let right = second.append_staged(1, b"right")?;
+        let left = first.append_staged(1, b"left", crc32c::crc32c(b"left"))?;
+        let right = second.append_staged(1, b"right", crc32c::crc32c(b"right"))?;
         let joined = std::thread::spawn(move || left.sync_data());
         right.sync_data()?;
         joined
@@ -1456,7 +1520,7 @@ mod tests {
         let fetched = reopened.fetch(0, 1, 1024)?;
         assert_eq!(fetched[0].payload, b"left");
         let (mut aborted, _) = Journal::open(dir.join("c"), 0, limits)?;
-        let _file = aborted.append_staged(1, b"gone")?;
+        let _file = aborted.append_staged(1, b"gone", crc32c::crc32c(b"gone"))?;
         aborted.abort_staged();
         assert!(aborted.is_poisoned());
         assert!(aborted.append(1, b"next").is_err());

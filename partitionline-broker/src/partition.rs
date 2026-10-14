@@ -74,15 +74,25 @@ enum Backend {
     Segments(segments::Log),
 }
 impl Backend {
-    fn append(&mut self, count: u32, payload: &[u8]) -> Result<journal::Append, Error> {
+    fn append(
+        &mut self,
+        count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<journal::Append, Error> {
         match self {
-            Self::Journal(log) => Ok(log.append(count, payload)?),
+            Self::Journal(log) => Ok(log.append_with_checksum(count, payload, checksum)?),
             Self::Segments(log) => Ok(log.append(count, payload)?),
         }
     }
-    fn append_staged(&mut self, count: u32, payload: &[u8]) -> Result<std::fs::File, Error> {
+    fn append_staged(
+        &mut self,
+        count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<std::fs::File, Error> {
         match self {
-            Self::Journal(log) => Ok(log.append_staged(count, payload)?),
+            Self::Journal(log) => Ok(log.append_staged(count, payload, checksum)?),
             Self::Segments(_) => Err(Error::InvalidLimits),
         }
     }
@@ -309,7 +319,8 @@ impl Partition {
 
     pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
         let (record_count, base_offset, next_offset, batch_count) = self.assign_offsets(bytes)?;
-        self.journal.append(record_count, bytes)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        self.journal.append(record_count, bytes, checksum)?;
         self.next_offset = next_offset;
         Ok(Append {
             base_offset,
@@ -329,7 +340,8 @@ impl Partition {
             return Ok(Stage::Done(self.append_in_place(bytes)?));
         }
         let (record_count, _base_offset, _next_offset, batch_count) = self.assign_offsets(bytes)?;
-        let file = self.journal.append_staged(record_count, bytes)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        let file = self.journal.append_staged(record_count, bytes, checksum)?;
         Ok(Stage::Sync(StagedWrite { file, batch_count }))
     }
 
