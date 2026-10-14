@@ -19,6 +19,9 @@ const MAX_CACHED_PARTITIONS: i32 = 1_000_000;
 /// An IPv6 host already wrapped in brackets is unwrapped before formatting,
 /// so `[::1]` becomes `[::1]:port` rather than `[[::1]]:port`.
 pub(crate) fn dial_address(host: &str, port: i32) -> Option<String> {
+    if host.chars().any(|c| c.is_control()) {
+        return None;
+    }
     let host = host.trim();
     let host = match host
         .strip_prefix('[')
@@ -27,7 +30,10 @@ pub(crate) fn dial_address(host: &str, port: i32) -> Option<String> {
         Some(inner) => inner.trim(),
         None => host,
     };
-    if host.is_empty() || !(1..=i32::from(u16::MAX)).contains(&port) {
+    if host.is_empty()
+        || host.chars().any(|c| c.is_whitespace())
+        || !(1..=i32::from(u16::MAX)).contains(&port)
+    {
         None
     } else {
         Some(crate::net::format_address(host, port))
@@ -531,6 +537,14 @@ mod tests {
         assert!(dial_address("[]", 9092).is_none());
         assert!(dial_address("::1", 0).is_none());
         assert!(dial_address("", 9092).is_none());
+        assert!(dial_address("bad host", 9092).is_none());
+        assert!(dial_address("broker\n.example", 9092).is_none());
+        assert!(dial_address("[::1\n]", 9092).is_none());
+        cluster.apply(&metadata(vec![broker(1, "bad host", 9092)]), 13);
+        assert_eq!(
+            cluster.brokers.get(&1).map(String::as_str),
+            Some("10.0.0.2:9093")
+        );
     }
 
     #[test]
