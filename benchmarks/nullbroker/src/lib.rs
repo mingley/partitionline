@@ -1146,6 +1146,17 @@ fn error_for(failure: ValidationFailure) -> i16 {
     }
 }
 
+/// One accepted batch retained so an empty synthetic log can be fetched.
+#[derive(Clone, Debug)]
+struct StoredBatch {
+    base_offset: i64,
+    records: u32,
+    bytes: Vec<u8>,
+}
+
+/// Cap on retained produce bytes. The synthetic ceiling log does not use this.
+const MAX_STORED_BYTES: u64 = 64 * 1024 * 1024;
+
 /// Mutable broker state: log end offsets, idempotent sequences, counters.
 #[derive(Debug, Default)]
 struct State {
@@ -1170,6 +1181,10 @@ struct State {
     next_producer_id: i64,
     /// Topic id to name, learned from `Metadata` responses (Fetch is by id).
     topic_ids: HashMap<[u8; 16], String>,
+    /// Accepted batches kept only for an empty synthetic log.
+    stored: HashMap<(String, i32), Vec<StoredBatch>>,
+    /// Bytes retained in `stored`.
+    stored_bytes: u64,
     /// Fetch requests handled.
     fetch_requests: u64,
     /// Synthetic records served.
@@ -2055,10 +2070,11 @@ impl Worker {
         I: IntoIterator<Item = &'a ProduceTopicData<'a>>,
     {
         /// One partition's parsed batch, ready to commit.
-        struct Pending {
+        struct Pending<'a> {
             topic: String,
             partition: i32,
             wire_len: u64,
+            records: &'a [u8],
             parsed: Result<ParsedBatch, ValidationFailure>,
         }
         let mut pending = Vec::new();
@@ -2073,6 +2089,7 @@ impl Worker {
                     topic: topic.topic.clone(),
                     partition: part.index,
                     wire_len: part.records.len() as u64,
+                    records: part.records,
                     parsed,
                 });
             }
@@ -2173,6 +2190,23 @@ impl Worker {
             }
             state.accepted_records += u64::from(parsed.records);
             state.accepted_wire_bytes += item.wire_len;
+            if self.synth.records_per_partition == 0 && !item.records.is_empty() {
+                let next_bytes = state.stored_bytes.saturating_add(item.wire_len);
+                if next_bytes <= MAX_STORED_BYTES {
+                    let mut bytes = item.records.to_vec();
+                    bytes[..8].copy_from_slice(&assigned.to_be_bytes());
+                    state
+                        .stored
+                        .entry((item.topic.clone(), item.partition))
+                        .or_default()
+                        .push(StoredBatch {
+                            base_offset: assigned,
+                            records: parsed.records,
+                            bytes,
+                        });
+                    state.stored_bytes = next_bytes;
+                }
+            }
             parts.push(ProducePartitionResult {
                 topic: item.topic,
                 partition: item.partition,
@@ -2183,7 +2217,33 @@ impl Worker {
         parts
     }
 
+    /// High watermark of a retained produce log, or 0 when nothing was accepted.
+    fn produced_end(&self, topic_id: &[u8; 16], partition: i32) -> i64 {
+        let Ok(state) = self.state.lock() else {
+            return 0;
+        };
+        let Some(name) = state.topic_ids.get(topic_id) else {
+            return 0;
+        };
+        state
+            .next_offset
+            .get(&(name.clone(), partition))
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// Batches retained for one partition of an empty synthetic log.
+    fn stored_batches(&self, topic_id: &[u8; 16], partition: i32) -> Option<Vec<StoredBatch>> {
+        let state = self.state.lock().ok()?;
+        let name = state.topic_ids.get(topic_id)?.clone();
+        state.stored.get(&(name, partition)).cloned()
+    }
+
     /// Serve one `Fetch` v15–v17 request from the synthetic log.
+    ///
+    /// An empty synthetic log instead returns accepted produce batches, with
+    /// each batch's base offset rewritten to the offset assigned at append.
+    /// The batch CRC does not cover that field.
     ///
     /// Whole batches while both budgets allow, with a one-batch progress
     /// guarantee per partition below log end (mirroring Kafka, which can
@@ -2204,7 +2264,7 @@ impl Worker {
                 .map(|t| state.topic_ids.contains_key(&t.topic_id))
                 .collect()
         };
-        let end = self.synth.records_per_partition as i64;
+        let synthetic_end = self.synth.records_per_partition as i64;
         let total_budget = usize::try_from(max_bytes.max(0)).unwrap_or(0);
         let mut total_used = 0usize;
         let mut served_records = 0u64;
@@ -2223,7 +2283,12 @@ impl Worker {
                     });
                     continue;
                 }
-                if part.fetch_offset < 0 {
+                let end = if synthetic_end > 0 {
+                    synthetic_end
+                } else {
+                    self.produced_end(&topic.topic_id, part.partition)
+                };
+                if part.fetch_offset < 0 || (synthetic_end == 0 && part.fetch_offset > end) {
                     partitions.push(FetchPartitionResult {
                         partition: part.partition,
                         error_code: ERR_OFFSET_OUT_OF_RANGE,
@@ -2250,7 +2315,25 @@ impl Worker {
                 let mut records = Vec::new();
                 let mut aborted = Vec::new();
                 let mut part_records = 0u64;
-                if self.synth.records_per_batch > 0 {
+                if synthetic_end == 0 {
+                    if let Some(batches) = self.stored_batches(&topic.topic_id, part.partition) {
+                        for batch in batches {
+                            let batch_end =
+                                batch.base_offset.saturating_add(i64::from(batch.records));
+                            if batch_end <= part.fetch_offset {
+                                continue;
+                            }
+                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_total = total_used + batch.bytes.len() <= total_budget;
+                            if !records.is_empty() && (!fits_part || !fits_total) {
+                                break;
+                            }
+                            part_records += u64::from(batch.records);
+                            total_used += batch.bytes.len();
+                            records.extend_from_slice(&batch.bytes);
+                        }
+                    }
+                } else if self.synth.records_per_batch > 0 {
                     let mut batch_index =
                         (part.fetch_offset as u64) / u64::from(self.synth.records_per_batch);
                     while let Some(batch) =

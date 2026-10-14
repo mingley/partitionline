@@ -1296,6 +1296,41 @@ fn empty_synthetic_log_lists_offsets_assigned_by_produce() {
     let (error, _, offset) =
         parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1)));
     assert_eq!((error, offset), (0, 1));
+    let _ = rpc.call(3, 13, &metadata_body("orders"));
+    let client_base = 99i64;
+    let batch = build_batch(client_base, -1, 0, 2, b'y');
+    let response = rpc.call(0, 12, &produce_body(-1, &[("orders", &[(0, &batch)])]));
+    assert_eq!(parse_produce_response(&response)[0].3, 1);
+    let response = rpc.call(
+        1,
+        17,
+        &fetch_body(
+            &nullbroker::synth::topic_id("orders"),
+            &[(0, 0, 1_000_000)],
+            1_000_000,
+        ),
+    );
+    let parts = parse_fetch_response(&response);
+    assert_eq!(parts[0].1, 0);
+    assert_eq!(parts[0].2, 3);
+    assert_eq!(count_fetched_records(&parts[0].5).0, 3);
+    assert_eq!(i64::from_be_bytes(parts[0].5[..8].try_into().unwrap()), 0);
+    // The second batch keeps the offset assigned after the first record.
+    let mut found = false;
+    let mut pos = 0;
+    while pos + 8 < parts[0].5.len() {
+        let base = i64::from_be_bytes(parts[0].5[pos..pos + 8].try_into().unwrap());
+        if base == 1 {
+            found = true;
+            break;
+        }
+        let len = i32::from_be_bytes(parts[0].5[pos + 8..pos + 12].try_into().unwrap()) as usize;
+        pos += 12 + len;
+    }
+    assert!(
+        found,
+        "assigned base offset 1 was not written into the fetched log"
+    );
     drop(stream);
     broker.shutdown();
     handle.join().unwrap();
