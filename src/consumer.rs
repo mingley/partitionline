@@ -2625,6 +2625,8 @@ impl Consumer {
             .map(|range| (range.api_key, range))
             .collect();
         self.conn = conn;
+        self.list_offsets_ranges.clear();
+        self.leader_epoch_ranges.clear();
         // Dedicated sockets were dropped above, and this bootstrap socket is new.
         // An incremental fetch session belongs to the previous connection.
         for session in self.fetch_sessions.values_mut() {
@@ -2943,17 +2945,32 @@ impl Consumer {
         conn: BrokerConn,
         versions: &ApiVersionsResponse,
     ) {
-        if let Some(range) = versions.api_version(LIST_OFFSETS) {
-            let _previous = self
-                .list_offsets_ranges
-                .insert(node, (range.min_version, range.max_version));
-        }
-        if let Some(range) = versions.api_version(OFFSET_FOR_LEADER_EPOCH) {
-            let _previous = self
-                .leader_epoch_ranges
-                .insert(node, (range.min_version, range.max_version));
-        }
+        Self::store_api_range(
+            &mut self.list_offsets_ranges,
+            node,
+            versions.api_version(LIST_OFFSETS),
+        );
+        Self::store_api_range(
+            &mut self.leader_epoch_ranges,
+            node,
+            versions.api_version(OFFSET_FOR_LEADER_EPOCH),
+        );
         let _previous = self.conns.insert(node, conn);
+    }
+
+    fn store_api_range(
+        ranges: &mut HashMap<i32, (i16, i16)>,
+        node: i32,
+        version: Option<&ApiVersion>,
+    ) {
+        match version {
+            Some(range) => {
+                let _previous = ranges.insert(node, (range.min_version, range.max_version));
+            }
+            None => {
+                let _previous = ranges.remove(&node);
+            }
+        }
     }
 
     fn note_reconnect_failure(&mut self, node: i32) {

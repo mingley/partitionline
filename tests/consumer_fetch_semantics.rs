@@ -37,7 +37,9 @@ use partitionline::protocol::api::{
     encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
-use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA, OFFSET_FOR_LEADER_EPOCH};
+use partitionline::protocol::api_keys::{
+    API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
+};
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchPartition, FetchTopic, FetchedPartition,
     FetchedTopic,
@@ -3505,6 +3507,45 @@ async fn list_offsets_on_another_leader_negotiates_once() {
         mock.api_versions_versions().len(),
         before + 1,
         "opening the leader socket negotiates ApiVersions once; ListOffsets must not repeat it"
+    );
+    consumer.close().await.unwrap();
+}
+
+/// A metadata reconnect drops dedicated sockets. The next handshake must replace
+/// the cached ListOffsets range, including when the leader no longer offers it.
+#[tokio::test]
+async fn metadata_reconnect_forgets_a_leader_list_offsets_range() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .connections_max_idle(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    let calls = mock.list_offsets_calls();
+    mock.hide_api(LIST_OFFSETS);
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    consumer.assign("t", 0, 0).await.unwrap();
+    let again = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await;
+    assert!(
+        again.is_err(),
+        "ListOffsets must not be sent from a range the new handshake omitted"
+    );
+    assert_eq!(
+        mock.list_offsets_calls(),
+        calls,
+        "a metadata reconnect must not reuse the previous leader ListOffsets range"
     );
     consumer.close().await.unwrap();
 }
