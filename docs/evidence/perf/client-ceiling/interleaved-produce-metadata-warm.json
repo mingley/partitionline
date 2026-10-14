@@ -1,0 +1,633 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "75c28cf5",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "interleave_seed": "0x5EED",
+  "note": "Five shuffled repetitions after topic metadata is resolved before the timed produce. Every run acknowledged 20,000 records and the high-watermark delta matched. One connection per leader. franz-go stays out of the idempotent cell because it requires max.in.flight 1. Fetch was not run. partitionline values are random bytes; the other peers use the shared seeded stream. Not a fastest-client result and not a KL09-70 claim.",
+  "settings": {
+    "count": 20000,
+    "warmup": 0,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "linger_ms": 5,
+    "batch_size_bytes": 1000000,
+    "compression": "none",
+    "acks_bulk": 1,
+    "acks_idem": -1,
+    "max_in_flight_bulk": 16,
+    "max_in_flight_idem": 5,
+    "connections_per_broker": 1,
+    "metadata_before_timer": true
+  },
+  "cells": {
+    "nb-produce-bulk": {
+      "partitionline": {
+        "repetitions": 5,
+        "records_per_second": [
+          256686.1,
+          272499.89,
+          258031.3,
+          256813.76,
+          271342.98
+        ],
+        "median": 258031.3,
+        "min": 256686.1,
+        "max": 272499.89
+      },
+      "franz-go": {
+        "repetitions": 5,
+        "records_per_second": [
+          83042.27,
+          85103.46,
+          83427.82,
+          86013.9,
+          84198.42
+        ],
+        "median": 84198.42,
+        "min": 83042.27,
+        "max": 86013.9
+      },
+      "librdkafka": {
+        "repetitions": 5,
+        "records_per_second": [
+          202845.53,
+          203039.6,
+          213789.02,
+          213024.83,
+          204195.37
+        ],
+        "median": 204195.37,
+        "min": 202845.53,
+        "max": 213789.02
+      },
+      "java": {
+        "repetitions": 5,
+        "records_per_second": [
+          84708.26,
+          107670.98,
+          104110.49,
+          97572.6,
+          107034.33
+        ],
+        "median": 104110.49,
+        "min": 84708.26,
+        "max": 107670.98
+      }
+    },
+    "nb-produce-idem": {
+      "librdkafka": {
+        "repetitions": 5,
+        "records_per_second": [
+          136099.16,
+          144656.52,
+          139936.62,
+          143636.66,
+          136047.53
+        ],
+        "median": 139936.62,
+        "min": 136047.53,
+        "max": 144656.52
+      },
+      "java": {
+        "repetitions": 5,
+        "records_per_second": [
+          108644.48,
+          85773.15,
+          101960.77,
+          96152.51,
+          81006.21
+        ],
+        "median": 96152.51,
+        "min": 81006.21,
+        "max": 108644.48
+      },
+      "partitionline": {
+        "repetitions": 5,
+        "records_per_second": [
+          270058.84,
+          271927.91,
+          272270.25,
+          257264.48,
+          257439.88
+        ],
+        "median": 270058.84,
+        "min": 257264.48,
+        "max": 272270.25
+      }
+    }
+  },
+  "rows": [
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "partitionline",
+      "rep": 0,
+      "order": [
+        "partitionline",
+        "franz-go",
+        "librdkafka",
+        "java"
+      ],
+      "records_per_second": 256686.1,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 3
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "franz-go",
+      "rep": 0,
+      "order": [
+        "partitionline",
+        "franz-go",
+        "librdkafka",
+        "java"
+      ],
+      "records_per_second": 83042.27,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "librdkafka",
+      "rep": 0,
+      "order": [
+        "partitionline",
+        "franz-go",
+        "librdkafka",
+        "java"
+      ],
+      "records_per_second": 202845.53,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "java",
+      "rep": 0,
+      "order": [
+        "partitionline",
+        "franz-go",
+        "librdkafka",
+        "java"
+      ],
+      "records_per_second": 84708.26,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "librdkafka",
+      "rep": 0,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 136099.16,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "java",
+      "rep": 0,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 108644.48,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "partitionline",
+      "rep": 0,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 270058.84,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 2
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "partitionline",
+      "rep": 1,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 272499.89,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 1
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "librdkafka",
+      "rep": 1,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 203039.6,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "java",
+      "rep": 1,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 107670.98,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "franz-go",
+      "rep": 1,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 85103.46,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "librdkafka",
+      "rep": 1,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 144656.52,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "java",
+      "rep": 1,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 85773.15,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "partitionline",
+      "rep": 1,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 271927.91,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 2
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "partitionline",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 258031.3,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 3
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "librdkafka",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 213789.02,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "java",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 104110.49,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "franz-go",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "librdkafka",
+        "java",
+        "franz-go"
+      ],
+      "records_per_second": 83427.82,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "partitionline",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 272270.25,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 2
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "java",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 101960.77,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "librdkafka",
+      "rep": 2,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 139936.62,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "librdkafka",
+      "rep": 3,
+      "order": [
+        "librdkafka",
+        "franz-go",
+        "partitionline",
+        "java"
+      ],
+      "records_per_second": 213024.83,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "franz-go",
+      "rep": 3,
+      "order": [
+        "librdkafka",
+        "franz-go",
+        "partitionline",
+        "java"
+      ],
+      "records_per_second": 86013.9,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "partitionline",
+      "rep": 3,
+      "order": [
+        "librdkafka",
+        "franz-go",
+        "partitionline",
+        "java"
+      ],
+      "records_per_second": 256813.76,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 3
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "java",
+      "rep": 3,
+      "order": [
+        "librdkafka",
+        "franz-go",
+        "partitionline",
+        "java"
+      ],
+      "records_per_second": 97572.6,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "partitionline",
+      "rep": 3,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 257264.48,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 2
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "java",
+      "rep": 3,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 96152.51,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "librdkafka",
+      "rep": 3,
+      "order": [
+        "partitionline",
+        "java",
+        "librdkafka"
+      ],
+      "records_per_second": 143636.66,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "java",
+      "rep": 4,
+      "order": [
+        "java",
+        "franz-go",
+        "partitionline",
+        "librdkafka"
+      ],
+      "records_per_second": 107034.33,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "franz-go",
+      "rep": 4,
+      "order": [
+        "java",
+        "franz-go",
+        "partitionline",
+        "librdkafka"
+      ],
+      "records_per_second": 84198.42,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "partitionline",
+      "rep": 4,
+      "order": [
+        "java",
+        "franz-go",
+        "partitionline",
+        "librdkafka"
+      ],
+      "records_per_second": 271342.98,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 3
+    },
+    {
+      "cell": "nb-produce-bulk",
+      "peer": "librdkafka",
+      "rep": 4,
+      "order": [
+        "java",
+        "franz-go",
+        "partitionline",
+        "librdkafka"
+      ],
+      "records_per_second": 204195.37,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "librdkafka",
+      "rep": 4,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 136047.53,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "java",
+      "rep": 4,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 81006.21,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": null
+    },
+    {
+      "cell": "nb-produce-idem",
+      "peer": "partitionline",
+      "rep": 4,
+      "order": [
+        "librdkafka",
+        "java",
+        "partitionline"
+      ],
+      "records_per_second": 257439.88,
+      "acked": 20000,
+      "hw_match": true,
+      "queue_full_retries": 3
+    }
+  ]
+}
