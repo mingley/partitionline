@@ -74,6 +74,31 @@ pub struct Config {
     /// Response payload cap, 64bytes..=64MiB; align with transport configuration.
     pub max_response_bytes: usize,
 }
+
+/// Host written on Metadata. One surrounding bracket pair is removed so
+/// `[::1]` is advertised as `::1`. A host that is empty or still contains
+/// brackets after that is not advertisable.
+fn wire_advertised_host(host: &str) -> Option<&str> {
+    let host = match host
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+    {
+        Some(inner) => inner,
+        None => host,
+    };
+    if host.is_empty()
+        || host.len() > 253
+        || !host.is_ascii()
+        || host.bytes().any(|byte| {
+            byte.is_ascii_control() || byte.is_ascii_whitespace() || byte == b'[' || byte == b']'
+        })
+    {
+        None
+    } else {
+        Some(host)
+    }
+}
+
 impl Config {
     /// Construct defaults around an explicit stable cluster/node endpoint.
     pub fn new(
@@ -98,13 +123,7 @@ impl Config {
     fn validate(&self) -> Result<(), Error> {
         if self.broker_id < 0
             || self.advertised_port == 0
-            || self.advertised_host.is_empty()
-            || self.advertised_host.len() > 253
-            || !self.advertised_host.is_ascii()
-            || self
-                .advertised_host
-                .bytes()
-                .any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
+            || wire_advertised_host(&self.advertised_host).is_none()
             || self.cluster_id.is_empty()
             || self.cluster_id.len() > 32767
             || self.default_partitions == 0
@@ -1598,7 +1617,7 @@ fn metadata(
     writer.count(if semantic_error { 0 } else { 1 }, flex)?;
     if !semantic_error {
         writer.i32(config.broker_id)?;
-        writer.string(Some(&config.advertised_host), flex, false)?;
+        writer.string(wire_advertised_host(&config.advertised_host), flex, false)?;
         writer.i32(i32::from(config.advertised_port))?;
         if version >= 1 {
             writer.string(None, flex, true)?;
@@ -2141,6 +2160,19 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn a_bracketed_advertised_host_is_sent_without_brackets() {
+        assert_eq!(wire_advertised_host("[::1]"), Some("::1"));
+        assert_eq!(wire_advertised_host("::1"), Some("::1"));
+        assert_eq!(wire_advertised_host("127.0.0.1"), Some("127.0.0.1"));
+        assert!(wire_advertised_host("[]").is_none());
+        assert!(wire_advertised_host("[[::1]]").is_none());
+        let mut config = Config::new(0, "[::1]".into(), 9092, "cluster".into());
+        assert!(config.validate().is_ok());
+        config.advertised_host = "[]".into();
+        assert!(config.validate().is_err());
+    }
     static NEXT: AtomicU64 = AtomicU64::new(0);
     fn parked_actor() -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         parked_profile(false)
