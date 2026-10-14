@@ -1,0 +1,53 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "peer": "kafka-clients",
+  "library_release": "4.3.1",
+  "source_sha": "8d27e714aad3a639c8e5c766c6d7033d91a1a11a",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "benchmark_report_exit": 0,
+  "note": "Five fresh-broker round trips per cell. kafka-clients 4.3.1 produced 20000 records and verified every id against batches the null broker retained from that produce. The synthetic fetch log was empty. benchmark-report.py exited 0 on each result. librdkafka was not run. Runs were not interleaved with partitionline or franz-go. max.in.flight is 5. This is not the synthetic nb-fetch-bulk cell and not a fastest-client result.",
+  "cells": {
+    "nb-produce-bulk": {
+      "repetitions": 5,
+      "records_per_second": [
+        106378.63,
+        105912.51,
+        106099.31,
+        80558.59,
+        100482.6
+      ],
+      "median": 105912.51,
+      "acknowledged": 20000,
+      "verified_ids": 20000
+    },
+    "nb-produce-idem": {
+      "repetitions": 5,
+      "records_per_second": [
+        97781.92,
+        104352.99,
+        102188.43,
+        106316.53,
+        104051.06
+      ],
+      "median": 104051.06,
+      "acknowledged": 20000,
+      "verified_ids": 20000
+    }
+  },
+  "settings": {
+    "acks_bulk": 1,
+    "acks_idem": -1,
+    "idempotence_bulk": false,
+    "idempotence_idem": true,
+    "linger_ms": 5,
+    "batch_size_bytes": 1000000,
+    "max_in_flight": 5,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "count": 20000,
+    "warmup": 0,
+    "compression": "none"
+  }
+}

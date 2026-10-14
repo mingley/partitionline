@@ -1,0 +1,414 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Unsigned samples do not lift Suite HOLD",
+    "note": "Adapter validation only; no comparison or scenario qualification"
+  },
+  "scenario": {
+    "scenario_id": "java-pipelined-peer-smoke",
+    "profile": "bulk",
+    "tier": "exploratory",
+    "peer": "kafka-clients",
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "durability": {
+        "replication_factor": 1,
+        "min_insync_replicas": 1
+      },
+      "acks": 1,
+      "idempotence": false,
+      "isolation": "read_uncommitted",
+      "security": {
+        "protocol": "PLAINTEXT",
+        "mechanism": "NONE"
+      }
+    }
+  },
+  "provenance": {
+    "source": {
+      "git_commit": "8d27e714aad3a639c8e5c766c6d7033d91a1a11a",
+      "git_branch": "main",
+      "repo_url": "https://github.com/mingley/partitionline",
+      "clean": false,
+      "tree_hash": "1f8bef6c6d129549faccb6353a684d432fdcb923",
+      "library_repository": "https://github.com/apache/kafka",
+      "library_release": "4.3.1",
+      "peer_source_sha256": "5db069f1b64a4ff5b252faf637b1044a2ea1bdde2bd1b508a61df6226483f405",
+      "adapter_source_sha256": "c62405e4c04e427d4794d4c1d09faae90054c346370a235b7917e20d5f85cc8e",
+      "note": "Dirty checkout: exact peer, adapter and dependency bytes are hashed in the build manifest"
+    },
+    "binary": {
+      "name": "apache-java-pipelined-peer",
+      "path": "/tmp/java-peer/java-peer.jar",
+      "sha256": "ea8e0f08072e7002ce5927c1f6fe8e275b945a43c728e7cca4279e429f155f6c"
+    },
+    "config": {
+      "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.effective-config.json",
+      "sha256": "3fff29d50e2f1e81d0bad961c16211aa9f8647350627bdb649d04f53195b8051",
+      "effective_settings": {
+        "bootstrap": "127.0.0.1:39903",
+        "topic": "orders",
+        "count": 20000,
+        "warmup": 0,
+        "payload_bytes": 100,
+        "partitions": 6,
+        "acks": 1,
+        "linger_ms": 5,
+        "batch_size_bytes": 1000000,
+        "max_in_flight": 5,
+        "queue_max_messages": 1000000,
+        "queue_max_kbytes": 32768,
+        "delivery_timeout_ms": 30000,
+        "flush_timeout_ms": 35000,
+        "run_timeout_ms": 120000,
+        "consume_timeout_ms": 30000,
+        "record_seed": 1592590337,
+        "latency_samples": 1000000000,
+        "idempotence": false,
+        "compression": "none",
+        "isolation_level": "read_uncommitted",
+        "payload_mode": "seeded",
+        "key_mode": "id",
+        "sasl_mechanism": "",
+        "has_sasl_credentials": false,
+        "has_custom_ca": false,
+        "has_client_identity": false,
+        "security_protocol": "PLAINTEXT",
+        "partitioner": "explicit_round_robin",
+        "connections_per_broker": 1,
+        "delivery_definition": "successful delivery callback with acks!=0; enqueue never acknowledged",
+        "record_id_definition": "key=be64(index)||be64(splitmix64(seed^index)); splitmix64 value stream",
+        "unsupported": [
+          "open-loop latency",
+          "transactions",
+          "groups/share",
+          "TLS/SASL",
+          "batch record-count cap",
+          "null-key ID audit"
+        ],
+        "pipeline": "bounded asynchronous send with completion callbacks",
+        "batch_records": "unsupported: byte-based batching only",
+        "java_effective": {
+          "producer": {
+            "acks": "1",
+            "batch.size": 1000000,
+            "buffer.memory": 33554432,
+            "compression.type": "none",
+            "compression.zstd.level": 3,
+            "delivery.timeout.ms": 30000,
+            "enable.idempotence": false,
+            "linger.ms": 5,
+            "max.block.ms": 120000,
+            "max.in.flight.requests.per.connection": 5,
+            "request.timeout.ms": 10000,
+            "retries": 2147483647,
+            "security.protocol": "PLAINTEXT"
+          },
+          "consumer": {
+            "allow.auto.create.topics": false,
+            "auto.offset.reset": "none",
+            "enable.auto.commit": false,
+            "fetch.max.bytes": 52428800,
+            "fetch.max.wait.ms": 500,
+            "fetch.min.bytes": 1,
+            "isolation.level": "read_uncommitted",
+            "max.partition.fetch.bytes": 1048576,
+            "max.poll.records": 500,
+            "security.protocol": "PLAINTEXT"
+          },
+          "queue_messages": 1000000,
+          "pipeline": "bounded asynchronous send with completion callbacks",
+          "batch_records": "unsupported: Java byte-based batching only",
+          "sdk_version": "4.3.1",
+          "java_version": "21.0.12.1"
+        }
+      }
+    },
+    "toolchains": {
+      "compiler": "Property settings:\n    file.encoding = UTF-8\n    file.separator = /\n    java.class.path = \n    java.class.version = 65.0\n    java.home = /usr/lib/jvm/java-21-openjdk-amd64\n    java.io.tmpdir = /tmp\n    java.library.path = /usr/java/packages/lib\n        /usr/lib/x86_64-linux-gnu/jni\n        /lib/x86_64-linux-gnu\n        /usr/lib/x86_64-linux-gnu\n        /usr/lib/jni\n        /lib\n        /usr/lib\n    java.runtime.name = OpenJDK Runtime Environment\n    java.runtime.version = 21.0.12.1+1-1-24.04.4-Ubuntu\n    java.specification.name = Java Platform API Specification\n    java.specification.vendor = Oracle Corporation\n    java.specification.version = 21\n    java.vendor = Ubuntu\n    java.vendor.url = https://ubuntu.com/\n    java.vendor.url.bug = https://bugs.launchpad.net/ubuntu/+source/openjdk-21\n    java.version = 21.0.12.1\n    java.version.date = 2026-08-18\n    java.vm.compressedOopsMode = Zero based\n    java.vm.info = mixed mode, sharing\n    java.vm.name = OpenJDK 64-Bit Server VM\n    java.vm.specification.name = Java Virtual Machine Specification\n    java.vm.specification.vendor = Oracle Corporation\n    java.vm.specification.version = 21\n    java.vm.vendor = Ubuntu\n    java.vm.version = 21.0.12.1+1-1-24.04.4-Ubuntu\n    jdk.debug = release\n    line.separator = \\n \n    native.encoding = UTF-8\n    os.arch = amd64\n    os.name = Linux\n    os.version = 6.12.94+\n    path.separator = :\n    stderr.encoding = UTF-8\n    stdout.encoding = UTF-8\n    sun.arch.data.model = 64\n    sun.boot.library.path = /usr/lib/jvm/java-21-openjdk-amd64/lib\n    sun.cpu.endian = little\n    sun.io.unicode.encoding = UnicodeLittle\n    sun.java.launcher = SUN_STANDARD\n    sun.jnu.encoding = UTF-8\n    sun.management.compiler = HotSpot 64-Bit Tiered Compilers\n    user.country = US\n    user.dir = /workspace\n    user.home = /home/ubuntu\n    user.language = en\n    user.name = ubuntu\n\nopenjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)",
+      "runtime": "JDK 21.0.12.1 / Apache kafka-clients 4.3.1",
+      "build_tool": "Pinned JDK 21 JavaCompiler -source 21 -target 21; deterministic JarOutputStream",
+      "library_release": "4.3.1"
+    },
+    "broker": {
+      "image": "nullbroker",
+      "version": "synthetic",
+      "mode": "kraft",
+      "cluster_id": "nullbroker",
+      "node_count": 1,
+      "endpoints": [
+        "127.0.0.1:39903"
+      ],
+      "identity_note": "Image/version supplied by operator; cluster ID, nodes, RF and minISR queried by Java Admin API. Version is not inferred from ApiVersions"
+    },
+    "host": {
+      "hostname": "cursor",
+      "os": "Linux-6.12.94+-x86_64-with-glibc2.39",
+      "os_family": "linux",
+      "kernel_version": "6.12.94+",
+      "arch": "x86_64",
+      "cpu": {
+        "model": "Intel(R) Xeon(R) Processor",
+        "physical_cores": 4,
+        "logical_cores": 4,
+        "frequency_mhz": 2400.0
+      },
+      "memory": {
+        "total_bytes": 16780713984,
+        "unit": "bytes"
+      }
+    },
+    "topology": {
+      "environment": "loopback",
+      "rtt_ms": 0.0,
+      "rtt_unit": "milliseconds",
+      "client_nodes": 1,
+      "broker_nodes": 1,
+      "network_interface": "lo",
+      "rtt_note": "RTT unmeasured unless RTT_MS supplied"
+    },
+    "timestamps": {
+      "start_time_utc": "2026-10-14T00:26:58.097897Z",
+      "end_time_utc": "2026-10-14T00:26:59.373150Z",
+      "duration_seconds": 1.275253,
+      "duration_unit": "seconds"
+    },
+    "seeds": {
+      "payload_seed": "0x5eed0001",
+      "key_seed": "0x5eed0001",
+      "partition_seed": "explicit index modulo partitions",
+      "repetition_seed": "0x5EED0004"
+    },
+    "artifacts": [
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.raw.json",
+        "type": "raw_delivery",
+        "sha256": "88901e13441621f1c8c2467be61a27a7a49884dc2286e30ad4d44a5f822659a3",
+        "size_bytes": 2068
+      },
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.samples.csv",
+        "type": "raw_latency",
+        "sha256": "6f7670a438ec8566813fd452ba0494b2814836b6a8581a35be754b6bd473e672",
+        "size_bytes": 298413
+      },
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.effective-config.json",
+        "type": "effective_config",
+        "sha256": "3fff29d50e2f1e81d0bad961c16211aa9f8647350627bdb649d04f53195b8051",
+        "size_bytes": 2406
+      },
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.stderr.log",
+        "type": "stderr",
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "size_bytes": 210
+      },
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.build-manifest.json",
+        "type": "build_manifest",
+        "sha256": "5d5c0f26ef71132999eda30c0d2f01cc867ca9e93d9e2749634db9673c9a9c62",
+        "size_bytes": 4551
+      },
+      {
+        "path": "/tmp/java-rt5/nb-produce-bulk-rep0/result.json.process.json",
+        "type": "process_ownership",
+        "sha256": "f32f55ab344e63bae4b87b6956f39e100bc072ebc0f29c88ec9cbad7a765a311",
+        "size_bytes": 623
+      }
+    ]
+  },
+  "execution": {
+    "phase": "steady_state",
+    "warmup_completed": true,
+    "warmup_records": 0,
+    "warmup_duration_seconds": 0.000175569,
+    "steady_state_duration_seconds": 0.188007683,
+    "repetition_index": 1,
+    "total_repetitions": 1,
+    "pairing_order": "standalone smoke",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "contract_sample_floors_met": false,
+    "note": "Single adapter correctness check; a campaign must independently enforce contract warmup/repetition/sample floors"
+  },
+  "outcomes": {
+    "offered": 20000,
+    "accepted": 20000,
+    "acknowledged": 20000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0,
+    "consumed": 20000
+  },
+  "measurements": {
+    "throughput": {
+      "records_per_second": 106378.63134561367,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 10.637863134561368,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 2000000,
+      "total_bytes_unit": "bytes",
+      "mb_definition": "1 MB=1000000 value bytes; excludes keys/protocol"
+    },
+    "latency": {
+      "sample_count": 20000,
+      "unit": "microseconds",
+      "p50": 10495.379,
+      "p90": 13425.452,
+      "p95": 14719.18,
+      "p99": 49193.937,
+      "p99_9": 49702.836,
+      "min": 4991.984,
+      "max": 76944.986,
+      "mean": 11555.13854675,
+      "stddev": 7044.758061840617,
+      "confidence_interval_95": {
+        "lower": 49137.053,
+        "upper": 49241.58,
+        "unit": "microseconds",
+        "method": "200 fixed-seed bootstrap p99 resamples; population capped at 10000"
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "min_us": 4096,
+            "max_us": 8192,
+            "count": 3230
+          },
+          {
+            "min_us": 8192,
+            "max_us": 16384,
+            "count": 16073
+          },
+          {
+            "min_us": 16384,
+            "max_us": 32768,
+            "count": 75
+          },
+          {
+            "min_us": 32768,
+            "max_us": 65536,
+            "count": 621
+          },
+          {
+            "min_us": 65536,
+            "max_us": 131072,
+            "count": 1
+          }
+        ]
+      },
+      "definition": "First LATENCY_SAMPLES IDs sampled; queue attempt to successful delivery callback, includes local backpressure; closed-loop diagnostic, no open-loop latency claim"
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 119.89518942515721,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 1.456557,
+      "system_cpu_seconds": 0.07241,
+      "cpu_seconds_unit": "seconds",
+      "allocations": {
+        "total_allocated_bytes": 0,
+        "allocation_count": 0,
+        "unit": "bytes",
+        "note": "Uninstrumented, not measured"
+      },
+      "rss": {
+        "peak_rss_bytes": 134152192,
+        "average_rss_bytes": 0,
+        "unit": "bytes",
+        "note": "Peak from owned JVM Linux /proc sampling; average unmeasured"
+      },
+      "threads_count": 8,
+      "threads_note": "Peak Java thread count; CPU from wait4 and RSS sampled across produce + audit, not steady-state isolation"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 0,
+      "cpu_unit": "percent",
+      "peak_rss_bytes": 0,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 0,
+      "disk_write_unit": "bytes",
+      "note": "Unmeasured external broker"
+    },
+    "errors": [],
+    "callback_failures": 0,
+    "warmup_callback_failures": 0,
+    "queue_full_retries": 0
+  },
+  "integrity": {
+    "verified": true,
+    "record_ids": {
+      "start_id": 0,
+      "end_id": 19999,
+      "expected_count": 20000,
+      "verified_count": 20000,
+      "missing_ids_count": 0,
+      "duplicate_ids_count": 0,
+      "checksum_algorithm": "exact deterministic bytes",
+      "payload_checksum_matches": true
+    },
+    "high_watermark_audit": {
+      "partitions": [
+        {
+          "partition": 0,
+          "start_offset": 0,
+          "end_offset": 3334,
+          "offset_delta": 3334
+        },
+        {
+          "partition": 1,
+          "start_offset": 0,
+          "end_offset": 3334,
+          "offset_delta": 3334
+        },
+        {
+          "partition": 2,
+          "start_offset": 0,
+          "end_offset": 3333,
+          "offset_delta": 3333
+        },
+        {
+          "partition": 3,
+          "start_offset": 0,
+          "end_offset": 3333,
+          "offset_delta": 3333
+        },
+        {
+          "partition": 4,
+          "start_offset": 0,
+          "end_offset": 3333,
+          "offset_delta": 3333
+        },
+        {
+          "partition": 5,
+          "start_offset": 0,
+          "end_offset": 3333,
+          "offset_delta": 3333
+        }
+      ],
+      "total_offset_delta": 20000,
+      "matches_acknowledged": true
+    },
+    "idempotence_sequence_verified": false,
+    "integrity_failure": false
+  },
+  "repetition_history": {
+    "total_attempts": 1,
+    "failed_attempts": 0,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "integrity_failure": false,
+        "error_message": null,
+        "timestamp_utc": "2026-10-14T00:26:59.373150Z"
+      }
+    ]
+  }
+}
