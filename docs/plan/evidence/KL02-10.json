@@ -41,7 +41,8 @@
     "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~14502s, T+4h, first-hour median RSS 11759616, fourth-hour median RSS 7020544)",
     "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~18131s, T+5h, first-hour median RSS 11759616, fifth-hour median RSS 7020544)",
     "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~21744s, T+6h, first-hour median RSS 11759616, sixth-hour median RSS 7020544, latest RSS 8437760, ambiguous 16)",
-    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~25526s, T+7h, first-hour median RSS 11759616, seventh-hour median RSS 6889472, latest RSS 6877184, ambiguous 16)"
+    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~25526s, T+7h, first-hour median RSS 11759616, seventh-hour median RSS 6889472, latest RSS 6877184, ambiguous 16)",
+    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~29047s, T+8h, first-hour median RSS 11759616, eighth-hour median RSS 6844416, latest RSS 7282688, ambiguous 16)"
   ],
   "results": {
     "calibration_completed_per_second": 799.4133724418373,
@@ -171,6 +172,26 @@
       "producer_queue_bytes": 0,
       "complete_24h": false
     },
+    "t_plus_8h": {
+      "elapsed_ms": 29047188,
+      "first_hour_median_rss_bytes": 11759616,
+      "second_hour_median_rss_bytes": 10891264,
+      "third_hour_median_rss_bytes": 7237632,
+      "fourth_hour_median_rss_bytes": 7020544,
+      "fifth_hour_median_rss_bytes": 7020544,
+      "sixth_hour_median_rss_bytes": 7020544,
+      "seventh_hour_median_rss_bytes": 6889472,
+      "eighth_hour_median_rss_bytes": 6844416,
+      "eighth_hour_samples": 69850,
+      "rss_latest_bytes": 7282688,
+      "threads": 3,
+      "socket_fds": 7,
+      "ambiguous": 16,
+      "fetch_errors": 0,
+      "pending": 0,
+      "producer_queue_bytes": 0,
+      "complete_24h": false
+    },
     "launched_job_is_not_a_pass": true,
     "rss_drift_compared": false,
     "rss_drift_checker": "scripts/check-soak-rss-drift.py fails closed until 24h elapse; --progress never sets passed",
@@ -203,7 +224,9 @@
     "docs/evidence/resource-soak/KL02-10/progress/t-plus-6h.json",
     "docs/evidence/resource-soak/KL02-10/progress/t-plus-6h-receipt.json",
     "docs/evidence/resource-soak/KL02-10/progress/t-plus-7h.json",
-    "docs/evidence/resource-soak/KL02-10/progress/t-plus-7h-receipt.json"
+    "docs/evidence/resource-soak/KL02-10/progress/t-plus-7h-receipt.json",
+    "docs/evidence/resource-soak/KL02-10/progress/t-plus-8h.json",
+    "docs/evidence/resource-soak/KL02-10/progress/t-plus-8h-receipt.json"
   ],
   "limits": [
     "Launched job is not a pass. First-hour vs final-hour RSS comparison is after 24h.",
