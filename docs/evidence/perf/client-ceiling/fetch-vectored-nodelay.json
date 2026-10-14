@@ -1,0 +1,15 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "61d8ffdf7b3ebe8a78d48b7806d7b2164926db81",
+  "cell": "nb-fetch-bulk",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Ten interleaved pairs on one host. The same partitionline runtime fetched from two null brokers. The parent writes the 4-byte length and the body separately with Nagle left on. The candidate disables Nagle and sends both in one vectored write. Every run verified 20,000 records and validation_failures stayed 0. The paired mean records/s ratio is 1.080 and the bootstrap 95% CI is 1.040 to 1.120. This is a null-broker socket change, not a client-code speedup, not a fetch comparison against other clients, and not a fastest-client result.",
+  "before_records_per_second": [367395.48, 367416.82, 369911.67, 391000.24, 356176.38, 325797.73, 345514.27, 334482.88, 358161.22, 336624.7],
+  "before_median": 357168.8,
+  "after_records_per_second": [383935.05, 423529.31, 393974.77, 389625.27, 376923.32, 340412.22, 395444.3, 395620.39, 352363.31, 379425.82],
+  "after_median": 386780.16,
+  "paired_mean_ratio": 1.08,
+  "paired_ratio_ci95": [1.04, 1.12]
+}
