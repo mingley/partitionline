@@ -2035,12 +2035,15 @@
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
 //! ShareFetch (Java `ShareConsumeRequestManager`).
+//! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`]
+//! are Java `acknowledge` (local until the next poll, commit, or leave;
+//! Renew is sent immediately).
 //! Incremental ShareFetch forgotten topics follow Java
 //! `ShareSessionHandler.newShareFetchBuilder` (assignment shrink and
 //! topic-id replacement). [`ShareGroup::subscribe`] keeps open share
 //! sessions and heartbeats the new topic list.
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
-//! [`ShareGroup::commit_async`] flush implicit acknowledgements
+//! [`ShareGroup::commit_async`] flush pending acknowledgements
 //! (`Result<()>`). [`ShareGroup::commit_sync`] /
 //! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
@@ -3003,7 +3006,8 @@
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
-//! [`ShareGroup::acknowledge`] (acknowledge before [`ShareGroup::poll`] is
+//! [`ShareGroup::acknowledge`] (local until the next poll, commit, or leave;
+//! acknowledge before [`ShareGroup::poll`] is
 //! `Acknowledge called before poll.`);
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]

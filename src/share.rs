@@ -71,6 +71,8 @@ pub enum ShareAcknowledgementMode {
     Implicit,
     /// The application must [`ShareGroup::accept`] / [`ShareGroup::release`]
     /// / [`ShareGroup::reject`] every delivered record (Java `explicit`).
+    /// Those calls are local until the next [`ShareGroup::poll`],
+    /// [`ShareGroup::commit`], [`ShareGroup::leave`], or [`ShareGroup::close`].
     #[default]
     Explicit,
 }
@@ -643,6 +645,8 @@ pub enum ShareAcquireMode {
 /// (`Map<TopicIdPartition, Optional<KafkaException>>`).
 /// Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
 /// partitions when the assignment shrinks or a topic id is replaced.
+/// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
+/// `acknowledge` (local until the next poll, commit, or leave).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -667,6 +671,8 @@ pub struct ShareGroup {
     acquire_mode: ShareAcquireMode,
     acknowledgement_mode: ShareAcknowledgementMode,
     last_poll_unacked: Vec<ShareRecord>,
+    /// Java `ShareConsumer.acknowledge` queue (Accept/Release/Reject).
+    pending_acknowledgements: BTreeMap<(String, i32, i64), (ShareRecord, i8)>,
     ack_commit_callback: Option<AcknowledgementCommitFn>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
@@ -850,6 +856,7 @@ impl ShareGroup {
             acquire_mode: ShareAcquireMode::BatchOptimized,
             acknowledgement_mode: cfg.share_acknowledgement_mode,
             last_poll_unacked: Vec::new(),
+            pending_acknowledgements: BTreeMap::new(),
             ack_commit_callback: None,
             acquisition_lock_timeout_ms: None,
             hb_err,
@@ -1174,6 +1181,7 @@ impl ShareGroup {
         if assigned.is_empty() {
             self.acquisitions.clear();
             self.pending_delivery.clear();
+            self.pending_acknowledgements.clear();
             return;
         }
         let id_to_name = self.consumer.topic_id_names();
@@ -1352,13 +1360,7 @@ impl ShareGroup {
                             .map(|r| (r.topic.as_str(), share_record_bytes(r))),
                         elapsed,
                     );
-                    if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
-                        let pending = std::mem::take(&mut self.last_poll_unacked);
-                        if !pending.is_empty() {
-                            self.complete_implicit_piggyback(&pending);
-                        }
-                        self.last_poll_unacked = recs.clone();
-                    }
+                    self.complete_poll_piggyback(&recs);
                     return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
@@ -1384,7 +1386,9 @@ impl ShareGroup {
 
     /// Acknowledge records as successfully processed (`ACCEPT`).
     ///
-    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.ACCEPT)`.
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.ACCEPT)`:
+    /// local until the next [`Self::poll`] (piggybacked on ShareFetch),
+    /// [`Self::commit`], [`Self::leave`], or [`Self::close`].
     /// Called before [`Self::poll`] is Java `IllegalStateException`
     /// (`Acknowledge called before poll.`).
     pub async fn accept(&mut self, recs: &[ShareRecord]) -> Result<()> {
@@ -1393,32 +1397,36 @@ impl ShareGroup {
 
     /// Return records to the share (`RELEASE`).
     ///
-    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.RELEASE)`.
-    /// Called before [`Self::poll`] is the same Java `IllegalStateException`
-    /// as [`Self::acknowledge`].
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.RELEASE)`:
+    /// local until the next [`Self::poll`], [`Self::commit`], [`Self::leave`],
+    /// or [`Self::close`]. Called before [`Self::poll`] is the same Java
+    /// `IllegalStateException` as [`Self::acknowledge`].
     pub async fn release(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, AcknowledgeType::Release).await
     }
 
     /// Reject records (`REJECT`, KIP-932).
     ///
-    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.REJECT)`.
-    /// Called before [`Self::poll`] is the same Java `IllegalStateException`
-    /// as [`Self::acknowledge`].
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.REJECT)`:
+    /// local until the next [`Self::poll`], [`Self::commit`], [`Self::leave`],
+    /// or [`Self::close`]. Called before [`Self::poll`] is the same Java
+    /// `IllegalStateException` as [`Self::acknowledge`].
     pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, AcknowledgeType::Reject).await
     }
 
     /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType)`.
     ///
-    /// Called before [`Self::poll`] is Java `IllegalStateException`
+    /// Accept / Release / Reject are local until the next [`Self::poll`],
+    /// [`Self::commit`], [`Self::leave`], or [`Self::close`]. Renew is sent
+    /// immediately so the acquisition lock is extended. Called before
+    /// [`Self::poll`] is Java `IllegalStateException`
     /// (`Acknowledge called before poll.`).
     pub async fn acknowledge(&mut self, recs: &[ShareRecord], ack: AcknowledgeType) -> Result<()> {
-        self.send_acknowledgements(recs, ack.id()).await?;
-        if ack != AcknowledgeType::Renew {
-            self.drop_last_poll_unacked(recs);
+        if ack == AcknowledgeType::Renew {
+            return self.send_acknowledgements(recs, ack.id()).await;
         }
-        Ok(())
+        self.queue_acknowledgements(recs, ack.id())
     }
 
     /// Extend the locks of acquired records without accepting/releasing them.
@@ -1427,19 +1435,18 @@ impl ShareGroup {
         self.acknowledge(recs, AcknowledgeType::Renew).await
     }
 
-    /// Send pending implicit acknowledgements now.
+    /// Send pending acknowledgements now.
     ///
     /// Unlike [`Self::commit_sync`], the first partition error is [`Err`]
-    /// and implicit pending is restored so a later [`Self::commit`] /
+    /// and pending is restored so a later [`Self::commit`] /
     /// [`Self::poll`] can retry. Java `commitSync()` returns the
     /// per-partition map — use [`Self::commit_sync`].
     ///
-    /// In [`ShareAcknowledgementMode::Implicit`], this accepts the last poll
-    /// without waiting for the next [`Self::poll`] or [`Self::leave`].
-    /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] already send
-    /// immediately, so this is a no-op in explicit mode after those calls.
+    /// Flushes implicit last-poll ACCEPT and queued
+    /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] without
+    /// waiting for the next [`Self::poll`] or [`Self::leave`].
     pub async fn commit(&mut self) -> Result<()> {
-        self.implicit_accept_pending().await
+        self.flush_pending_acknowledgements().await
     }
 
     /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`
@@ -1457,24 +1464,23 @@ impl ShareGroup {
     ///
     /// `None` is Java `Optional.empty()` (that partition succeeded).
     /// A present [`AcknowledgementCommitError`] is Java `Optional.of`.
-    /// The map is empty when there is nothing to flush (explicit mode after
-    /// `accept` / `release` / `reject`, or no last poll).
+    /// The map is empty when there is nothing to flush (no last implicit
+    /// poll and no queued `accept` / `release` / `reject`).
     ///
     /// Broker per-partition failures stay in the map ([`Ok`]). Overall
-    /// timeout / protocol / closed failures still return [`Err`]. Implicit
-    /// pending is completed for partitions that received a response.
+    /// timeout / protocol / closed failures still return [`Err`]. Pending
+    /// is completed for partitions that received a response.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
-        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
+        if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
         }
-        if self.last_poll_unacked.is_empty() {
-            return Ok(Vec::new());
-        }
-        let recs = std::mem::take(&mut self.last_poll_unacked);
-        match self.acknowledge_records(&recs, ACK_ACCEPT).await {
+        let (implicit, explicit) = self.take_pending_acknowledgements();
+        let typed = pending_typed(&implicit, &explicit);
+        let recs: Vec<ShareRecord> = typed.iter().map(|(rec, _)| rec.clone()).collect();
+        match self.acknowledge_typed(&typed).await {
             Ok(outcomes) => Ok(self.acknowledgement_commit_results(&recs, &outcomes, None)),
             Err(error) => {
-                self.last_poll_unacked = recs;
+                self.restore_pending_acknowledgements(implicit, explicit);
                 Err(error)
             }
         }
@@ -1495,9 +1501,8 @@ impl ShareGroup {
 
     /// Java `ShareConsumer.commitAsync()`.
     ///
-    /// Same send path as [`Self::commit`]. Explicit acknowledgements already
-    /// RPC from `accept` / `release` / `reject`; implicit pending acks are
-    /// flushed here rather than waiting for the next poll.
+    /// Same send path as [`Self::commit`]: flushes queued acknowledgements
+    /// now rather than waiting for the next poll.
     pub async fn commit_async(&mut self) -> Result<()> {
         self.commit().await
     }
@@ -1757,21 +1762,19 @@ impl ShareGroup {
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
         if !self.pending_delivery.is_empty() {
-            // Buffered records skip ShareFetch; flush implicit acks now so
+            // Buffered records skip ShareFetch; flush pending acks now so
             // they are not delayed until the next broker round-trip.
-            self.implicit_accept_pending().await?;
+            self.flush_pending_acknowledgements().await?;
             return Ok(self.drain_pending_delivery());
         }
         let assigned = self.assigned.clone();
         let mut fetch_tps = assigned.clone();
-        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
-            for rec in &self.last_poll_unacked {
-                if !fetch_tps
-                    .iter()
-                    .any(|(topic, part)| topic == &rec.topic && *part == rec.partition)
-                {
-                    fetch_tps.push((rec.topic.clone(), rec.partition));
-                }
+        for rec in self.pending_ack_records() {
+            if !fetch_tps
+                .iter()
+                .any(|(topic, part)| topic == rec.topic && *part == rec.partition)
+            {
+                fetch_tps.push((rec.topic.clone(), rec.partition));
             }
         }
         let mut by_leader = self.leaders_of(&fetch_tps).await?;
@@ -1789,7 +1792,7 @@ impl ShareGroup {
             let _ = by_leader.insert(node, Vec::new());
         }
         let assigned_set: HashSet<(String, i32)> = assigned.into_iter().collect();
-        let pending_acks = self.implicit_fetch_acknowledgements();
+        let pending_acks = self.pending_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
@@ -2006,10 +2009,8 @@ impl ShareGroup {
                             part.acknowledge_error_code,
                             format!("ShareFetch acknowledgement {name}-{}", part.partition),
                         );
-                        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit
-                            && !self.last_poll_unacked.is_empty()
-                        {
-                            let pending = self.last_poll_unacked.clone();
+                        if self.has_pending_acknowledgements() {
+                            let pending = self.pending_ack_records().cloned().collect::<Vec<_>>();
                             self.fire_acknowledgement_commit_callback(&pending, Some(&error));
                         }
                         return Err(error);
@@ -2139,6 +2140,7 @@ impl ShareGroup {
             self.acquisitions.clear();
             self.pending_delivery.clear();
             self.last_poll_unacked.clear();
+            self.pending_acknowledgements.clear();
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
@@ -2148,7 +2150,7 @@ impl ShareGroup {
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
-        let implicit = self.implicit_accept_pending().await;
+        let implicit = self.flush_pending_acknowledgements().await;
         let close = self.close_share_session().await;
         let leave = self.leave_coordinator().await;
         self.assigned.clear();
@@ -2165,6 +2167,7 @@ impl ShareGroup {
         );
         self.hb_err.store(0, Ordering::SeqCst);
         self.last_poll_unacked.clear();
+        self.pending_acknowledgements.clear();
         implicit.and(close).and(leave)
     }
 
@@ -2421,21 +2424,57 @@ impl ShareGroup {
         }
     }
 
-    fn implicit_fetch_acknowledgements(
-        &self,
-    ) -> BTreeMap<(String, i32), Vec<AcknowledgementBatch>> {
-        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit
-            || self.last_poll_unacked.is_empty()
-        {
+    fn has_pending_acknowledgements(&self) -> bool {
+        !self.pending_acknowledgements.is_empty()
+            || (self.acknowledgement_mode == ShareAcknowledgementMode::Implicit
+                && !self.last_poll_unacked.is_empty())
+    }
+
+    fn pending_ack_records(&self) -> impl Iterator<Item = &ShareRecord> {
+        let implicit = (self.acknowledgement_mode == ShareAcknowledgementMode::Implicit)
+            .then_some(self.last_poll_unacked.iter())
+            .into_iter()
+            .flatten();
+        implicit.chain(self.pending_acknowledgements.values().map(|(rec, _)| rec))
+    }
+
+    fn pending_fetch_acknowledgements(&self) -> BTreeMap<(String, i32), Vec<AcknowledgementBatch>> {
+        if !self.has_pending_acknowledgements() {
             return BTreeMap::new();
         }
-        acknowledgement_batches(&self.last_poll_unacked, ACK_ACCEPT)
+        let mut typed = Vec::new();
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            for rec in &self.last_poll_unacked {
+                typed.push((rec.clone(), ACK_ACCEPT));
+            }
+        }
+        for (rec, ack) in self.pending_acknowledgements.values() {
+            typed.push((rec.clone(), *ack));
+        }
+        acknowledgement_batches_typed(&typed)
             .into_iter()
             .map(|(topic, partition, batches)| ((topic, partition), batches))
             .collect()
     }
 
-    fn complete_implicit_piggyback(&mut self, recs: &[ShareRecord]) {
+    fn complete_poll_piggyback(&mut self, recs: &[ShareRecord]) {
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            let pending = std::mem::take(&mut self.last_poll_unacked);
+            if !pending.is_empty() {
+                self.complete_piggyback(&pending);
+            }
+            self.last_poll_unacked = recs.to_vec();
+        }
+        if !self.pending_acknowledgements.is_empty() {
+            let pending: Vec<ShareRecord> = std::mem::take(&mut self.pending_acknowledgements)
+                .into_values()
+                .map(|(rec, _)| rec)
+                .collect();
+            self.complete_piggyback(&pending);
+        }
+    }
+
+    fn complete_piggyback(&mut self, recs: &[ShareRecord]) {
         if recs.is_empty() {
             return;
         }
@@ -2455,21 +2494,69 @@ impl ShareGroup {
             .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
     }
 
-    async fn implicit_accept_pending(&mut self) -> Result<()> {
-        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
+    fn take_pending_acknowledgements(&mut self) -> (Vec<ShareRecord>, Vec<(ShareRecord, i8)>) {
+        let implicit = if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            std::mem::take(&mut self.last_poll_unacked)
+        } else {
+            Vec::new()
+        };
+        let explicit = std::mem::take(&mut self.pending_acknowledgements)
+            .into_values()
+            .collect();
+        (implicit, explicit)
+    }
+
+    fn restore_pending_acknowledgements(
+        &mut self,
+        implicit: Vec<ShareRecord>,
+        explicit: Vec<(ShareRecord, i8)>,
+    ) {
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            self.last_poll_unacked = implicit
+                .into_iter()
+                .filter(|rec| self.still_acquired(rec))
+                .collect();
+        }
+        for (rec, ack) in explicit {
+            if self.still_acquired(&rec) {
+                let _ = self
+                    .pending_acknowledgements
+                    .insert((rec.topic.clone(), rec.partition, rec.offset), (rec, ack));
+            }
+        }
+    }
+
+    fn still_acquired(&self, rec: &ShareRecord) -> bool {
+        self.acquisitions
+            .get(&(rec.topic.clone(), rec.partition, rec.offset))
+            .is_some_and(|acquired| acquired.delivery_count == rec.delivery_count)
+    }
+
+    async fn flush_pending_acknowledgements(&mut self) -> Result<()> {
+        if !self.has_pending_acknowledgements() {
             return Ok(());
         }
-        if self.last_poll_unacked.is_empty() {
-            return Ok(());
-        }
-        let recs = std::mem::take(&mut self.last_poll_unacked);
-        match self.accept(&recs).await {
+        let (implicit, explicit) = self.take_pending_acknowledgements();
+        let typed = pending_typed(&implicit, &explicit);
+        match self.send_typed_acknowledgements(&typed).await {
             Ok(()) => Ok(()),
             Err(error) => {
-                self.last_poll_unacked = recs;
+                self.restore_pending_acknowledgements(implicit, explicit);
                 Err(error)
             }
         }
+    }
+
+    fn queue_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
+        self.ensure_acquired(recs)?;
+        for rec in recs {
+            let _ = self.pending_acknowledgements.insert(
+                (rec.topic.clone(), rec.partition, rec.offset),
+                (rec.clone(), ack),
+            );
+        }
+        self.drop_last_poll_unacked(recs);
+        Ok(())
     }
 
     fn drop_last_poll_unacked(&mut self, recs: &[ShareRecord]) {
@@ -2482,27 +2569,7 @@ impl ShareGroup {
         });
     }
 
-    async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
-        let outcomes = self.acknowledge_records(recs, ack).await?;
-        if let Some(error) = outcomes.values().find_map(|error| error.as_ref()) {
-            return Err(error.clone());
-        }
-        Ok(())
-    }
-
-    /// ShareAcknowledge with per-partition outcomes.
-    ///
-    /// Broker / leader / unknown-topic failures are [`Ok`] entries with
-    /// `Some(error)` (Java `commitSync` map). Timeout, protocol, closed,
-    /// and stale-before-send failures stay [`Err`].
-    async fn acknowledge_records(
-        &mut self,
-        recs: &[ShareRecord],
-        ack: i8,
-    ) -> Result<BTreeMap<(String, i32), Option<Error>>> {
-        if recs.is_empty() {
-            return Ok(BTreeMap::new());
-        }
+    fn ensure_acquired(&mut self, recs: &[ShareRecord]) -> Result<()> {
         if self.share_epochs.is_empty() {
             return Err(reject_java_acknowledge_before_poll());
         }
@@ -2521,7 +2588,42 @@ impl ShareGroup {
                 ));
             }
         }
-        let mut partitions = acknowledgement_batches(recs, ack);
+        Ok(())
+    }
+
+    async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
+        let typed: Vec<(ShareRecord, i8)> = recs.iter().cloned().map(|rec| (rec, ack)).collect();
+        self.send_typed_acknowledgements(&typed).await
+    }
+
+    async fn send_typed_acknowledgements(&mut self, recs: &[(ShareRecord, i8)]) -> Result<()> {
+        let outcomes = self.acknowledge_typed(recs).await?;
+        if let Some(error) = outcomes.values().find_map(|error| error.as_ref()) {
+            return Err(error.clone());
+        }
+        Ok(())
+    }
+
+    /// ShareAcknowledge with per-partition outcomes.
+    ///
+    /// Broker / leader / unknown-topic failures are [`Ok`] entries with
+    /// `Some(error)` (Java `commitSync` map). Timeout, protocol, closed,
+    /// and stale-before-send failures stay [`Err`].
+    async fn acknowledge_typed(
+        &mut self,
+        recs: &[(ShareRecord, i8)],
+    ) -> Result<BTreeMap<(String, i32), Option<Error>>> {
+        if recs.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let records: Vec<ShareRecord> = recs.iter().map(|(rec, _)| rec.clone()).collect();
+        self.ensure_acquired(&records)?;
+        let ack = if recs.iter().all(|(_, ack)| *ack == ACK_RENEW) {
+            ACK_RENEW
+        } else {
+            recs[0].1
+        };
+        let mut partitions = acknowledgement_batches_typed(recs);
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
         let mut outcomes = BTreeMap::new();
@@ -2533,8 +2635,8 @@ impl ShareGroup {
             .await;
             match outcome.unwrap_or(Err(Error::Timeout)) {
                 Ok(()) => {
-                    self.fire_acknowledgement_commit_callback(recs, None);
-                    for rec in recs {
+                    self.fire_acknowledgement_commit_callback(&records, None);
+                    for rec in &records {
                         let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert(None);
@@ -2543,19 +2645,19 @@ impl ShareGroup {
                 }
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
-                        self.fire_acknowledgement_commit_callback(recs, Some(&Error::Timeout));
+                        self.fire_acknowledgement_commit_callback(&records, Some(&Error::Timeout));
                         return Err(Error::Timeout);
                     }
                     self.consumer.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                 }
                 Err(error) if ack_outcome_is_fatal(&error) => {
-                    self.fire_acknowledgement_commit_callback(recs, Some(&error));
+                    self.fire_acknowledgement_commit_callback(&records, Some(&error));
                     return Err(error);
                 }
                 Err(error) => {
-                    self.fire_acknowledgement_commit_callback(recs, Some(&error));
-                    for rec in recs {
+                    self.fire_acknowledgement_commit_callback(&records, Some(&error));
+                    for rec in &records {
                         let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert_with(|| Some(error.clone()));
@@ -2839,6 +2941,7 @@ impl ShareGroup {
         self.share_conns.clear();
         self.acquisitions.clear();
         self.pending_delivery.clear();
+        self.pending_acknowledgements.clear();
         last
     }
 
@@ -2852,7 +2955,7 @@ impl ShareGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let implicit = self.implicit_accept_pending().await;
+        let implicit = self.flush_pending_acknowledgements().await;
         let close = self.close_share_session().await;
         let out = self.leave_coordinator().await;
         self.consumer.close_interceptors();
@@ -3236,46 +3339,66 @@ fn reject_java_acknowledge_before_poll() -> Error {
     Error::protocol("Acknowledge called before poll.")
 }
 
+fn pending_typed(
+    implicit: &[ShareRecord],
+    explicit: &[(ShareRecord, i8)],
+) -> Vec<(ShareRecord, i8)> {
+    let mut typed = Vec::with_capacity(implicit.len() + explicit.len());
+    for rec in implicit {
+        typed.push((rec.clone(), ACK_ACCEPT));
+    }
+    typed.extend(explicit.iter().cloned());
+    typed
+}
+
 /// Collapse records into KIP-932 acknowledgement batches.
 ///
 /// Contiguous offsets with the same type become one batch with a single
-/// `AcknowledgeType` (applies to the whole range). Gaps start a new batch.
+/// `AcknowledgeType` (applies to the whole range). Gaps or type changes
+/// start a new batch.
 fn acknowledgement_batches(
     recs: &[ShareRecord],
     ack: i8,
 ) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
-    let mut by_part: BTreeMap<(String, i32), Vec<i64>> = BTreeMap::new();
-    for rec in recs {
-        by_part
+    let typed: Vec<(ShareRecord, i8)> = recs.iter().cloned().map(|rec| (rec, ack)).collect();
+    acknowledgement_batches_typed(&typed)
+}
+
+fn acknowledgement_batches_typed(
+    recs: &[(ShareRecord, i8)],
+) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
+    let mut by_part: BTreeMap<(String, i32), BTreeMap<i64, i8>> = BTreeMap::new();
+    for (rec, ack) in recs {
+        let _ = by_part
             .entry((rec.topic.clone(), rec.partition))
             .or_default()
-            .push(rec.offset);
+            .insert(rec.offset, *ack);
     }
     let mut out = Vec::with_capacity(by_part.len());
-    for ((topic, partition), mut offs) in by_part {
-        offs.sort_unstable();
-        offs.dedup();
+    for ((topic, partition), offs) in by_part {
         let mut batches = Vec::new();
-        let mut range: Option<(i64, i64)> = None;
-        for off in offs {
+        let mut range: Option<(i64, i64, i8)> = None;
+        for (off, ack) in offs {
             range = match range {
-                None => Some((off, off)),
-                Some((s, p)) if off == p.saturating_add(1) => Some((s, off)),
-                Some((s, p)) => {
+                None => Some((off, off, ack)),
+                Some((start, prev, typ)) if off == prev.saturating_add(1) && ack == typ => {
+                    Some((start, off, typ))
+                }
+                Some((start, prev, typ)) => {
                     batches.push(AcknowledgementBatch {
-                        first_offset: s,
-                        last_offset: p,
-                        types: vec![ack],
+                        first_offset: start,
+                        last_offset: prev,
+                        types: vec![typ],
                     });
-                    Some((off, off))
+                    Some((off, off, ack))
                 }
             };
         }
-        if let Some((s, p)) = range {
+        if let Some((start, prev, typ)) = range {
             batches.push(AcknowledgementBatch {
-                first_offset: s,
-                last_offset: p,
-                types: vec![ack],
+                first_offset: start,
+                last_offset: prev,
+                types: vec![typ],
             });
         }
         if !batches.is_empty() {
@@ -3561,6 +3684,24 @@ mod tests {
         assert_eq!(got_topics.len(), 1);
         assert_eq!(got_topics[0].partitions[0].partition, 1);
         assert_eq!(got_forgotten, forgotten);
+    }
+
+    #[test]
+    fn acknowledgement_batches_typed_splits_on_type_change() {
+        let recs = [
+            (rec(0, 1), ACK_ACCEPT),
+            (rec(0, 2), ACK_RELEASE),
+            (rec(0, 3), ACK_RELEASE),
+        ];
+        let batches = acknowledgement_batches_typed(&recs);
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].2.len(), 2);
+        assert_eq!(batches[0].2[0].first_offset, 1);
+        assert_eq!(batches[0].2[0].last_offset, 1);
+        assert_eq!(batches[0].2[0].types, vec![ACK_ACCEPT]);
+        assert_eq!(batches[0].2[1].first_offset, 2);
+        assert_eq!(batches[0].2[1].last_offset, 3);
+        assert_eq!(batches[0].2[1].types, vec![ACK_RELEASE]);
     }
 
     #[test]

@@ -110,6 +110,7 @@ async fn share_join_then_produce_against_local_broker() {
         fired_cb.store(true, std::sync::atomic::Ordering::SeqCst);
     });
     g.accept(&recs).await.expect("accept");
+    g.commit().await.expect("commit queued accept");
     assert!(
         fired.load(std::sync::atomic::Ordering::SeqCst),
         "live accept must fire AcknowledgementCommitCallback"
@@ -695,6 +696,7 @@ async fn share_admin_describe_and_list_offsets_against_local_broker() {
     .await
     .expect("poll produced");
     g.accept(&recs).await.expect("accept");
+    g.commit().await.expect("commit queued accept");
     let listed = admin
         .list_share_group_offsets(&[DescribeShareGroupOffsetsGroup::all(&group)])
         .await

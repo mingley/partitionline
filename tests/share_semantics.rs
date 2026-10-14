@@ -261,6 +261,18 @@ async fn explicit_commit_sync_is_empty_until_accept() {
     assert!(group.commit_sync().await.unwrap().is_empty());
     assert_eq!(mock.share_ack_calls(), 0);
     group.accept(&recs).await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit acknowledge is local until commit or poll"
+    );
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert!(
+        results[0].1.is_none(),
+        "Java Optional.empty() on success, got {:?}",
+        results[0].1
+    );
     assert_eq!(mock.share_ack_calls(), 1);
     assert!(group.commit_sync().await.unwrap().is_empty());
     group.leave().await.unwrap();
@@ -324,8 +336,47 @@ async fn explicit_commit_is_noop_until_accept() {
     group.commit().await.unwrap();
     assert_eq!(mock.share_ack_calls(), 0);
     group.accept(&recs).await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit accept must not emit ShareAcknowledge"
+    );
+    group.commit().await.unwrap();
     assert_eq!(mock.share_ack_calls(), 1);
     group.commit_timeout(Duration::from_secs(1)).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn explicit_acknowledge_is_local_until_poll_or_commit() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    let mut group = ShareGroup::join(cfg, "ack-local", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 0);
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    let fetches = mock.share_fetch_calls();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first_off);
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "explicit ACCEPT must ride the next ShareFetch"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit next poll must not emit a standalone ShareAcknowledge"
+    );
+    assert!(group.metrics().records_acknowledged >= 1);
+    group.release(&second).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(mock.share_ack_calls(), 1);
     group.leave().await.unwrap();
 }
@@ -383,6 +434,11 @@ async fn acknowledgement_commit_callback_fires_on_accept() {
         ));
     });
     group.accept(&recs).await.unwrap();
+    assert!(
+        seen.lock().is_empty(),
+        "local accept must not fire the callback until commit or poll"
+    );
+    group.commit().await.unwrap();
     {
         let got = seen.lock();
         assert_eq!(got.len(), 1);
@@ -462,6 +518,8 @@ async fn acknowledgement_commit_handler_trait_fires_on_accept() {
     let fired = Arc::new(AtomicUsize::new(0));
     group.set_acknowledgement_commit_handler(CountingAckCallback(fired.clone()));
     group.accept(&recs).await.unwrap();
+    assert_eq!(fired.load(Ordering::SeqCst), 0);
+    group.commit().await.unwrap();
     assert_eq!(fired.load(Ordering::SeqCst), 1);
     group.leave().await.unwrap();
 }
@@ -483,8 +541,9 @@ async fn acknowledgement_commit_callback_receives_broker_error() {
             .push(exception.as_ref().and_then(|error| error.code()));
     });
     mock.fail_share_ack_once("t", 0, error::INVALID_RECORD_STATE);
+    group.accept(&recs).await.unwrap();
     assert_broker(
-        group.accept(&recs).await.unwrap_err(),
+        group.commit().await.unwrap_err(),
         error::INVALID_RECORD_STATE,
     );
     assert_eq!(*seen.lock(), vec![Some(error::INVALID_RECORD_STATE)]);
@@ -617,6 +676,7 @@ async fn share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isol
     );
     assert_eq!(first.metrics().records_acknowledged, 0);
     second.release(&redelivered).await.unwrap();
+    second.commit().await.unwrap();
     let third = first.poll().await.unwrap();
     assert_eq!(third[0].delivery_count, 3);
     assert_broker(
@@ -624,6 +684,7 @@ async fn share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isol
         error::INVALID_RECORD_STATE,
     );
     first.reject(&third).await.unwrap();
+    first.commit().await.unwrap();
     assert!(second.poll().await.unwrap().is_empty());
     assert!(mock.share_accepted("locks", "t", 0, 0));
     let mut other_group = ShareGroup::join(config(&mock), "isolated", "t")
@@ -662,6 +723,7 @@ async fn renew_v2_extends_only_selected_record_and_preserves_delivery_count() {
         error::INVALID_RECORD_STATE,
     );
     owner.accept(&acquired[..1]).await.unwrap();
+    owner.commit().await.unwrap();
     let mut next = ShareGroup::join(config(&mock), "renew", "t").await.unwrap();
     let available = next.poll().await.unwrap();
     assert_eq!(available.len(), 1);
@@ -683,8 +745,9 @@ async fn partial_terminal_ack_preserves_success_and_unacknowledged_same_partitio
     let acquired = group.poll().await.unwrap();
     assert_eq!(acquired.len(), 3);
     mock.fail_share_ack_once("t", 1, error::INVALID_RECORD_STATE);
+    group.accept(&acquired[..2]).await.unwrap();
     assert_broker(
-        group.accept(&acquired[..2]).await.unwrap_err(),
+        group.commit().await.unwrap_err(),
         error::INVALID_RECORD_STATE,
     );
     assert!(mock.share_accepted("partial-terminal", "t", 0, 0));
@@ -696,6 +759,7 @@ async fn partial_terminal_ack_preserves_success_and_unacknowledged_same_partitio
         "failure invalidates only attempted offsets"
     );
     group.accept(&acquired[2..]).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     assert_eq!(
         mock.share_ack_attempts(),
@@ -720,6 +784,7 @@ async fn partial_retriable_ack_retries_only_failed_partition() {
     let acquired = group.poll().await.unwrap();
     mock.fail_share_ack_once("t", 1, error::REQUEST_TIMED_OUT);
     group.accept(&acquired).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(
         mock.share_ack_attempts(),
         vec![
@@ -748,8 +813,9 @@ async fn leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader() 
     let acquired = group.poll().await.unwrap();
     mock.set_partition_leader("t", 1, 2);
     let calls = mock.share_ack_calls();
+    group.accept(&acquired).await.unwrap();
     assert_broker(
-        group.accept(&acquired).await.unwrap_err(),
+        group.commit().await.unwrap_err(),
         error::NOT_LEADER_OR_FOLLOWER,
     );
     assert_eq!(
@@ -770,6 +836,7 @@ async fn leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader() 
         error::INVALID_RECORD_STATE,
     );
     group.accept(&moved).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
 }
@@ -824,7 +891,8 @@ async fn acknowledge_session_error_clears_old_acquisition_without_replaying_acce
     ] {
         mock.fail_share_ack_session_once(1, code);
         let calls = mock.share_ack_calls();
-        assert_broker(group.accept(&acquired).await.unwrap_err(), code);
+        group.accept(&acquired).await.unwrap();
+        assert_broker(group.commit().await.unwrap_err(), code);
         assert_eq!(mock.share_ack_calls(), calls + 1);
         assert_eq!(group.acquired_record_count(), 0);
         assert_eq!(group.metrics().records_acknowledged, 0);
@@ -836,6 +904,7 @@ async fn acknowledge_session_error_clears_old_acquisition_without_replaying_acce
         assert_eq!(mock.last_share_fetch_epoch(), Some(0));
     }
     group.accept(&acquired).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 1);
     group.leave().await.unwrap();
 }
@@ -930,6 +999,7 @@ async fn acknowledge_top_level_retry_advances_epoch_without_duplicate_accept() {
     let acquired = group.poll().await.unwrap();
     mock.fail_share_top_once(SHARE_ACKNOWLEDGE, 1, error::REQUEST_TIMED_OUT);
     group.accept(&acquired).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(mock.share_ack_history(), [(1, 1), (1, 2)]);
     assert_eq!(mock.share_ack_attempts(), [("t".into(), 0, 0, 0)]);
     assert_eq!(group.metrics().records_acknowledged, 1);
@@ -956,6 +1026,7 @@ async fn fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition() 
     assert_eq!(group.acquired_record_count(), 2);
     let all: Vec<_> = first.iter().chain(second.iter()).cloned().collect();
     group.accept(&all).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
 }
@@ -982,8 +1053,9 @@ async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests()
     assert_eq!(fresh[0].offset, 1);
     assert_eq!(mock.share_fetch_history(), [(1, 0), (1, 0)]);
     mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, Duration::from_millis(180));
+    group.accept(&fresh).await.unwrap();
     assert!(
-        tokio::time::timeout(Duration::from_millis(20), group.accept(&fresh))
+        tokio::time::timeout(Duration::from_millis(20), group.commit())
             .await
             .is_err()
     );
@@ -1005,6 +1077,7 @@ async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests()
     let reclaimed = group.poll().await.unwrap();
     assert_eq!((reclaimed[0].offset, reclaimed[0].delivery_count), (0, 2));
     group.accept(&reclaimed).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 1);
     group.leave().await.unwrap();
 }
@@ -1027,12 +1100,14 @@ async fn coordinator_move_preserves_delivery_and_partition_leader_session() {
     })
     .await;
     group.accept(&before).await.unwrap();
+    group.commit().await.unwrap();
     let after = group.poll().await.unwrap();
     assert_eq!(after[0].value.as_deref(), Some(&b"after"[..]));
     assert_eq!(after[0].delivery_count, 1);
     assert_eq!(mock.last_share_fetch_node(), Some(2));
     assert_eq!(mock.last_share_fetch_epoch(), Some(2));
     group.accept(&after).await.unwrap();
+    group.commit().await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
 }
@@ -1325,12 +1400,14 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
         check_live_record(&expired[0], &topic);
         assert_eq!((expired[0].offset, expired[0].delivery_count), (held[0].offset, 2));
         next.release(&expired).await.unwrap();
+        next.commit().await.unwrap();
         let released = live_poll(&mut owner, "released-record-reacquisition").await;
         check_live_record(&released[0], &topic);
         assert_eq!((released[0].offset, released[0].delivery_count), (held[0].offset, 3));
         assert_broker(owner.accept(&held).await.unwrap_err(), error::INVALID_RECORD_STATE);
         assert!(accepted.insert(released[0].offset));
         owner.accept(&released).await.unwrap();
+        owner.commit().await.unwrap();
         assert_eq!(accepted, [0, 1, 2, 3].into_iter().collect());
         assert!(next.poll().await.unwrap().is_empty(), "accepted records cannot be reacquired");
         owner.leave().await.unwrap();

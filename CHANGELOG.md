@@ -16,7 +16,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   partitions when the assignment shrinks or a topic id is replaced.
   `ShareGroup::subscribe` keeps the share session and heartbeats the
   new topic list instead of closing with FINAL epoch.
-  `ShareGroup::commit` / `commit_timeout` / `commit_async` flush implicit
+  `ShareGroup::accept` / `release` / `reject` are Java `acknowledge`
+  (local until the next `poll`, `commit`, or `leave`; Renew stays an
+  immediate ShareAcknowledge). Implicit ACCEPT and queued explicit
+  acknowledgements piggyback on the next ShareFetch.
+  `ShareGroup::commit` / `commit_timeout` / `commit_async` flush pending
   acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
   `commit_sync_timeout` are Java `ShareConsumer.commitSync` /
   `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`).

@@ -4905,6 +4905,12 @@ async fn share_acknowledge_negotiates_v0_when_broker_caps() {
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-ack0"[..]));
     g.acknowledge(&recs, AcknowledgeType::Accept).await.unwrap();
     assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit acknowledge is local until commit"
+    );
+    g.commit().await.unwrap();
+    assert_eq!(
         mock.last_share_ack_version(),
         Some(0),
         "client must speak ShareAcknowledge v0 when the broker max is 0"
@@ -4945,14 +4951,8 @@ async fn share_fetch_accept_then_release() {
     g.accept(&recs).await.unwrap();
     assert_eq!(
         mock.share_ack_calls(),
-        1,
-        "accept must be one ShareAcknowledge, not one RPC per record"
-    );
-    assert_eq!(mock.last_share_ack_epoch(), Some(1));
-    assert_eq!(
-        mock.last_share_ack_version(),
-        Some(1),
-        "ShareGroup must prefer ShareAcknowledge v1 when the broker advertises it"
+        0,
+        "explicit accept is local; ACCEPT rides the next ShareFetch"
     );
     let again = g.poll().await.unwrap();
     assert!(
@@ -5041,6 +5041,8 @@ async fn share_accept_batches_one_rpc_and_advances_epoch() {
     assert_eq!(mock.last_share_fetch_epoch(), Some(0));
     let offs: Vec<i64> = recs.iter().map(|r| r.offset).collect();
     g.accept(&recs).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 0);
+    g.commit().await.unwrap();
     assert_eq!(mock.share_ack_calls(), 1);
     assert_eq!(mock.last_share_ack_epoch(), Some(1));
     assert_eq!(mock.last_share_ack_partitions(), 1);
@@ -5076,7 +5078,11 @@ async fn share_reject_does_not_redeliver() {
     let recs = g.poll().await.unwrap();
     let off = recs[0].offset;
     g.reject(&recs).await.unwrap();
-    assert_eq!(mock.share_ack_calls(), 1);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit reject is local; REJECT rides the next ShareFetch"
+    );
     let again = g.poll().await.unwrap();
     assert!(
         again.iter().all(|r| r.offset != off),
@@ -5575,6 +5581,7 @@ async fn share_fetch_follows_partition_leader() {
         "ShareGroupHeartbeat must stay on the share coordinator"
     );
     g.accept(&recs).await.unwrap();
+    g.commit().await.unwrap();
     assert_eq!(
         mock.last_share_ack_node(),
         Some(2),
