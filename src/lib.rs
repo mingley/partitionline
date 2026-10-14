@@ -2034,7 +2034,9 @@
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
-//! ShareFetch (Java `ShareConsumeRequestManager`).
+//! ShareFetch (Java `ShareConsumeRequestManager`). Implicit
+//! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll
+//! without ACCEPT (Java `close`).
 //! Explicit mode refuses a later [`ShareGroup::poll`] that would
 //! contact a broker until every previously delivered record is
 //! acknowledged
@@ -3014,7 +3016,9 @@
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
 //! [`ShareGroup::acknowledge`] / [`ShareGroup::commit_async`]
 //! (acknowledge is local until the next poll, commit, or leave;
-//! `commit_async` queues a standalone ShareAcknowledge for the next poll / leave;
+//! `commit_async` snapshots implicit ACCEPT immediately and queues a
+//! standalone ShareAcknowledge for the next poll / leave;
+//! implicit leave/close do not ACCEPT the last poll;
 //! acknowledge before [`ShareGroup::poll`] is
 //! `Acknowledge called before poll.`; implicit mode is
 //! `Implicit acknowledgement of delivery is being used.`;

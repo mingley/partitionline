@@ -66,8 +66,12 @@ pub enum AcknowledgeType {
 /// [`Self::Explicit`] so a missed `accept` cannot silently commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ShareAcknowledgementMode {
-    /// Accept the previous poll's records on the next [`ShareGroup::poll`],
-    /// [`ShareGroup::leave`], or [`ShareGroup::close`] (Java `implicit`).
+    /// Accept the previous poll's records on the next [`ShareGroup::poll`]
+    /// or [`ShareGroup::commit`] (Java `implicit`). [`ShareGroup::leave`] /
+    /// [`ShareGroup::close`] release that last poll without ACCEPT (Java
+    /// `close` "releases any acquired records without acknowledgement").
+    /// [`ShareGroup::commit_async`] snapshots the last poll as ACCEPT
+    /// locally and sends on the next poll / leave.
     Implicit,
     /// The application must [`ShareGroup::accept`] / [`ShareGroup::release`]
     /// / [`ShareGroup::reject`] every delivered record (Java `explicit`).
@@ -649,7 +653,10 @@ pub enum ShareAcquireMode {
 /// [`Self::commit_sync`] is Java `ShareConsumer.commitSync()`
 /// (`Map<TopicIdPartition, Optional<KafkaException>>`).
 /// [`Self::commit_async`] is Java `ShareConsumer.commitAsync()`
-/// (standalone ShareAcknowledge on the next poll / leave).
+/// (`acknowledgeBatchIfImplicitAcknowledgement` then a standalone
+/// ShareAcknowledge on the next poll / leave). Implicit
+/// [`Self::leave`] / [`Self::close`] do not ACCEPT the last poll
+/// (Java `close` releases acquired records without acknowledgement).
 /// Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
 /// partitions when the assignment shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
@@ -1360,6 +1367,7 @@ impl ShareGroup {
         .await
         .map_err(|_| Error::Timeout)??;
         if self.async_commit {
+            self.snapshot_implicit_acknowledgements();
             self.async_commit = false;
             tokio::time::timeout_at(
                 tokio::time::Instant::from_std(deadline),
@@ -1541,12 +1549,17 @@ impl ShareGroup {
 
     /// Java `ShareConsumer.commitAsync()` (`ShareAcknowledgeAsyncEvent`).
     ///
-    /// Does not send now. The next [`Self::poll`] flushes pending
-    /// acknowledgements as a standalone ShareAcknowledge (then fetches).
-    /// [`Self::leave`], [`Self::close`], and [`Self::unsubscribe`] also
-    /// flush. Same callback as [`Self::set_acknowledgement_commit_callback`].
-    /// Does not spawn a task.
+    /// Marks implicit last-poll records as ACCEPT immediately (Java
+    /// `acknowledgeBatchIfImplicitAcknowledgement`) but does not send
+    /// now. The next [`Self::poll`] flushes pending acknowledgements as
+    /// a standalone ShareAcknowledge (then fetches). [`Self::leave`],
+    /// [`Self::close`], and [`Self::unsubscribe`] also flush those queued
+    /// acknowledgements. Implicit last-poll records that were never
+    /// committed are released without ACCEPT on leave. Same callback as
+    /// [`Self::set_acknowledgement_commit_callback`]. Does not spawn a
+    /// task.
     pub fn commit_async(&mut self) {
+        self.snapshot_implicit_acknowledgements();
         self.async_commit = true;
     }
 
@@ -2169,8 +2182,11 @@ impl ShareGroup {
 
     /// Leave the share group and drop the subscription (Java `unsubscribe`).
     ///
-    /// Heartbeats stop and the assignment is cleared. [`Self::subscribe`] joins
-    /// again with a new topic list. [`Self::leave`] after this is a no-op.
+    /// Heartbeats stop and the assignment is cleared. Queued
+    /// acknowledgements flush; implicit last-poll records that were
+    /// never committed are released without ACCEPT. [`Self::subscribe`]
+    /// joins again with a new topic list. [`Self::leave`] after this is
+    /// a no-op.
     pub async fn unsubscribe(&mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.topic_match = None;
@@ -2195,7 +2211,7 @@ impl ShareGroup {
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
-        let implicit = self.flush_pending_acknowledgements().await;
+        let acks = self.flush_close_acknowledgements().await;
         let close = self.close_share_session().await;
         let leave = self.leave_coordinator().await;
         self.assigned.clear();
@@ -2215,7 +2231,7 @@ impl ShareGroup {
         self.pending_acknowledgements.clear();
         self.counted_acknowledgements.clear();
         self.async_commit = false;
-        implicit.and(close).and(leave)
+        acks.and(close).and(leave)
     }
 
     /// Replace the subscription (Java `subscribe`).
@@ -2589,6 +2605,34 @@ impl ShareGroup {
         self.acquisitions
             .get(&(rec.topic.clone(), rec.partition, rec.offset))
             .is_some_and(|acquired| acquired.delivery_count == rec.delivery_count)
+    }
+
+    /// Java `acknowledgeBatchIfImplicitAcknowledgement`: mark the last
+    /// implicit poll as ACCEPT without sending.
+    fn snapshot_implicit_acknowledgements(&mut self) {
+        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
+            return;
+        }
+        let pending = std::mem::take(&mut self.last_poll_unacked);
+        for rec in pending {
+            let key = (rec.topic.clone(), rec.partition, rec.offset);
+            let _ = self
+                .pending_acknowledgements
+                .entry(key)
+                .or_insert((rec, ACK_ACCEPT));
+        }
+    }
+
+    /// Java `close` / `ShareAcknowledgeOnCloseEvent`: flush queued
+    /// acknowledgements (including a prior [`Self::commit_async`]) but
+    /// do not implicit-ACCEPT the last poll.
+    async fn flush_close_acknowledgements(&mut self) -> Result<()> {
+        if self.async_commit {
+            self.snapshot_implicit_acknowledgements();
+            self.async_commit = false;
+        }
+        self.last_poll_unacked.clear();
+        self.flush_pending_acknowledgements().await
     }
 
     async fn flush_pending_acknowledgements(&mut self) -> Result<()> {
@@ -3077,6 +3121,10 @@ impl ShareGroup {
     }
 
     /// Leave the share group ([`ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]).
+    ///
+    /// Flushes queued acknowledgements (including a prior
+    /// [`Self::commit_async`]). Implicit last-poll records that were
+    /// never committed are released without ACCEPT (Java `close`).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
@@ -3086,11 +3134,11 @@ impl ShareGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let implicit = self.flush_pending_acknowledgements().await;
+        let acks = self.flush_close_acknowledgements().await;
         let close = self.close_share_session().await;
         let out = self.leave_coordinator().await;
         self.consumer.close_interceptors();
-        implicit.and(close).and(out)
+        acks.and(close).and(out)
     }
 
     async fn leave_coordinator(&mut self) -> Result<()> {

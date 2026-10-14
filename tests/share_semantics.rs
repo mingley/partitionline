@@ -114,11 +114,77 @@ async fn implicit_mode_accepts_previous_poll_on_next_poll() {
         0,
         "implicit next poll must piggyback ACCEPT on ShareFetch, not ShareAcknowledge"
     );
+    let last_off = second[0].offset;
     group.leave().await.unwrap();
     assert!(
-        mock.share_ack_calls() >= 1,
-        "leave must implicit-accept the last poll on ShareAcknowledge"
+        mock.share_accepted("implicit", "t", 0, first_off),
+        "next-poll implicit ACCEPT must persist after leave"
     );
+    assert!(
+        !mock.share_accepted("implicit", "t", 0, last_off),
+        "leave must not implicit-ACCEPT the last poll"
+    );
+}
+
+#[tokio::test]
+async fn implicit_leave_releases_last_poll_without_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "close-rel", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let off = recs[0].offset;
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.leave().await.unwrap();
+    assert_eq!(
+        mock.share_accepted("close-rel", "t", 0, off),
+        false,
+        "Java implicit close releases without ACCEPT"
+    );
+    assert_eq!(
+        mock.last_share_ack_epoch(),
+        Some(-1),
+        "leave still closes the share session"
+    );
+
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut next = ShareGroup::join(cfg, "close-rel", "t").await.unwrap();
+    let again = next.poll().await.unwrap();
+    assert_eq!(
+        (again[0].offset, again[0].delivery_count),
+        (off, 2),
+        "session close must release the lock for another member"
+    );
+    next.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn implicit_commit_async_then_leave_sends_standalone_ack() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"queued")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "close-async", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let off = recs[0].offset;
+    group.commit_async();
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "commit_async snapshots ACCEPT locally and does not send"
+    );
+    assert!(!mock.share_accepted("close-async", "t", 0, off));
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_accepted("close-async", "t", 0, off),
+        "commit_async then leave must send the snapshotted ACCEPT"
+    );
+    assert!(mock.share_ack_calls() >= 1);
 }
 
 #[tokio::test]
