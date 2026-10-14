@@ -196,8 +196,9 @@ impl Delivery {
 
     /// Lock available records for `member` under `leader_epoch`.
     ///
-    /// Records at the delivery limit are archived instead of locked. Records
-    /// already accepted, rejected, or locked by someone else are skipped.
+    /// A lock whose deadline has already passed is available again. Records at
+    /// the delivery limit are archived instead of locked. Records already
+    /// accepted, rejected, or locked by someone else are skipped.
     pub fn acquire(
         &mut self,
         member: &str,
@@ -218,7 +219,12 @@ impl Delivery {
             let Some(record) = next.records.get_mut(offset) else {
                 continue;
             };
-            if !matches!(record.phase, Phase::Available) {
+            let reusable = match &record.phase {
+                Phase::Available => true,
+                Phase::Locked(lock) => now_ms >= lock.deadline_ms,
+                Phase::Accepted | Phase::Rejected | Phase::Archived => false,
+            };
+            if !reusable {
                 continue;
             }
             if record.deliveries >= self.limits.max_deliveries {
@@ -653,5 +659,53 @@ mod tests {
             .is_empty());
         assert!(!delivery.accepted().contains(&2));
         assert!(delivery.locked().is_empty());
+    }
+
+    #[test]
+    fn acquire_takes_a_lock_whose_deadline_has_passed() {
+        let (mut delivery, _) = open("reclaim");
+        delivery
+            .append(7)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            delivery
+                .acquire("alice", 1, 0, &[7])
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec![7]
+        );
+        assert!(delivery
+            .acquire("bob", 1, 999, &[7])
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_empty());
+        assert_eq!(
+            delivery
+                .acquire("bob", 1, 1_000, &[7])
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec![7]
+        );
+        let late = delivery
+            .acknowledge(
+                "alice",
+                1_000,
+                &[Ack {
+                    offset: 7,
+                    kind: ACK_ACCEPT,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(late[0].error_code, INVALID_REQUEST);
+        assert!(delivery.accepted().is_empty());
+        let accepted = delivery
+            .acknowledge(
+                "bob",
+                1_000,
+                &[Ack {
+                    offset: 7,
+                    kind: ACK_ACCEPT,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(accepted[0].error_code, ACK_OK);
+        assert_eq!(delivery.accepted(), vec![7]);
     }
 }
