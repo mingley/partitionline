@@ -278,13 +278,17 @@ impl Store {
         Ok(stored.object.clone())
     }
 
-    /// Remove published objects whose retention deadline has passed.
+    /// Remove objects whose retention deadline has passed.
+    ///
+    /// Published objects and abandoned partial uploads are both removed, so a
+    /// stage that never finishes does not hold disk after its deadline. The
+    /// local copy stays unreleasable.
     pub fn expire(&mut self, now_ms: i64) -> Result<usize, Error> {
         self.ready()?;
         let due: Vec<Key> = self
             .objects
             .iter()
-            .filter(|(_, stored)| stored.committed && now_ms >= stored.retain_until_ms)
+            .filter(|(_, stored)| now_ms >= stored.retain_until_ms)
             .map(|(key, _)| key.clone())
             .collect();
         let count = due.len();
@@ -672,5 +676,37 @@ mod tests {
         );
         assert!(store.releasable("orders", 0, 10));
         assert!(!store.releasable("orders", 0, 12));
+    }
+
+    #[test]
+    fn an_abandoned_partial_is_dropped_when_its_deadline_passes() {
+        let dir = path("partial-expire");
+        let mut store =
+            Store::open(&dir, limits(1024, 4096)).unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .stage(segment(4, b"k", b"local", 1_000))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let held = store.disk_bytes();
+        assert!(held > 0);
+        assert_eq!(store.expire(999).unwrap_or(99), 0);
+        assert_eq!(store.disk_bytes(), held);
+        assert!(!store.releasable("orders", 0, 4));
+        assert_eq!(store.expire(1_000).unwrap_or(99), 1);
+        assert_eq!(store.disk_bytes(), 0);
+        assert!(matches!(
+            store.finish(segment(4, b"k", b"local", 1_000)),
+            Err(Error::Incomplete)
+        ));
+        store
+            .stage(segment(4, b"k", b"local", 5_000))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .finish(segment(4, b"k", b"local", 5_000))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        drop(store);
+        let store =
+            Store::open(&dir, limits(1024, 4096)).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(store.releasable("orders", 0, 4));
+        assert_eq!(store.disk_bytes(), held);
     }
 }
