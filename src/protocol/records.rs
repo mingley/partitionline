@@ -3036,12 +3036,14 @@ fn try_plain_record(buf: &mut Bytes, base_offset: i64, base_timestamp: i64) -> O
     if index != body_end {
         return None;
     }
+    let offset = record_offset(base_offset, offset_delta)?;
+    let timestamp = record_timestamp(base_timestamp, timestamp_delta)?;
     let key = key_range.map(|(start, end)| buf.slice(start..end));
     let value = value_range.map(|(start, end)| buf.slice(start..end));
     buf.advance(body_end);
     Some(Record {
-        offset: base_offset.wrapping_add(i64::from(offset_delta)),
-        timestamp: base_timestamp.wrapping_add(timestamp_delta),
+        offset,
+        timestamp,
         key,
         value,
         headers: Vec::new(),
@@ -3133,14 +3135,24 @@ fn try_plain_short_key(
     if index != body_end {
         return None;
     }
+    let offset = record_offset(base_offset, offset_delta)?;
+    let timestamp = record_timestamp(base_timestamp, timestamp_delta)?;
     let value = value_range.map(|(start, end)| buf.slice(start..end));
     buf.advance(body_end);
     Some(ShortKeyRecord {
-        offset: base_offset.wrapping_add(i64::from(offset_delta)),
-        timestamp: base_timestamp.wrapping_add(timestamp_delta),
+        offset,
+        timestamp,
         key,
         value,
     })
+}
+
+fn record_offset(base: i64, delta: i32) -> Option<i64> {
+    base.checked_add(i64::from(delta))
+}
+
+fn record_timestamp(base: i64, delta: i64) -> Option<i64> {
+    base.checked_add(delta)
 }
 
 /// Java `DefaultRecord.readFrom` (magic-v2 inner record).
@@ -3197,8 +3209,10 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         )));
     }
     Ok(Record {
-        offset: base_offset.wrapping_add(i64::from(offset_delta)),
-        timestamp: base_timestamp.wrapping_add(timestamp_delta),
+        offset: record_offset(base_offset, offset_delta)
+            .ok_or_else(|| Error::protocol("record offset overflow"))?,
+        timestamp: record_timestamp(base_timestamp, timestamp_delta)
+            .ok_or_else(|| Error::protocol("record timestamp overflow"))?,
         key,
         value,
         headers,
@@ -4554,6 +4568,69 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn decode_record_rejects_offset_and_timestamp_overflow() {
+        assert_eq!(record_offset(10, 3), Some(13));
+        assert_eq!(record_timestamp(1_000, 3), Some(1_003));
+        assert_eq!(record_offset(i64::MAX, 1), None);
+        assert_eq!(record_timestamp(i64::MAX, 1), None);
+
+        let mut offset_body = BytesMut::new();
+        offset_body.put_i8(0);
+        buf::put_varlong(&mut offset_body, 0);
+        buf::put_varint(&mut offset_body, 1);
+        buf::put_varint(&mut offset_body, -1);
+        buf::put_varint(&mut offset_body, -1);
+        buf::put_varint(&mut offset_body, 0);
+        let offset_rec = wrap_record_body(&offset_body);
+        let offset_err = decode_record(&mut &offset_rec[..], i64::MAX, 0)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            offset_err.contains("record offset overflow"),
+            "{offset_err}"
+        );
+
+        let mut timestamp_body = BytesMut::new();
+        timestamp_body.put_i8(0);
+        buf::put_varlong(&mut timestamp_body, 1);
+        buf::put_varint(&mut timestamp_body, 0);
+        buf::put_varint(&mut timestamp_body, -1);
+        buf::put_varint(&mut timestamp_body, -1);
+        buf::put_varint(&mut timestamp_body, 0);
+        let timestamp_rec = wrap_record_body(&timestamp_body);
+        let timestamp_err = decode_record(&mut &timestamp_rec[..], 0, i64::MAX)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            timestamp_err.contains("record timestamp overflow"),
+            "{timestamp_err}"
+        );
+
+        let rec = Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let mut encoded = BytesMut::new();
+        encode_record_batch(
+            &mut encoded,
+            &RecordBatch::from_records(vec![rec.clone(), rec]),
+        )
+        .unwrap();
+        RecordBatch::set_last_offset(&mut encoded, i64::MIN).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_last_offset(&encoded).unwrap(),
+            i64::MIN
+        );
+        let batch_err = decode_record_batch(&mut &encoded[..])
+            .unwrap_err()
+            .to_string();
+        assert!(batch_err.contains("record offset overflow"), "{batch_err}");
     }
 
     #[test]
