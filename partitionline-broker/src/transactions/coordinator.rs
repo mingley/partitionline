@@ -1,7 +1,8 @@
 //! Durable transaction coordinator state and epoch fencing.
 //!
 //! `init` allocates or bumps a producer epoch for a transactional id and fences
-//! the previous epoch. `begin` and `add_partitions` require the current producer
+//! the previous epoch. A transaction that is preparing commit or abort stays in
+//! that state. `begin` and `add_partitions` require the current producer
 //! epoch and an ongoing transaction. `end` only prepares commit or abort.
 //! `finish` records completion. A retry of the same decision is idempotent; the
 //! opposite decision is `INVALID_TXN_STATE`. An older producer epoch and a stale
@@ -220,6 +221,9 @@ impl Coordinator {
     }
 
     /// Allocate or bump the producer epoch for `transactional_id`.
+    ///
+    /// A transaction that is preparing commit or abort is left unchanged. That
+    /// decision has to be finished before the epoch can move.
     pub fn init(
         &mut self,
         transactional_id: &str,
@@ -229,6 +233,9 @@ impl Coordinator {
         self.require_coordinator(coordinator_epoch)?;
         validate_id(transactional_id)?;
         if let Some(existing) = self.transactions.get(transactional_id) {
+            if matches!(existing.state, State::PrepareCommit | State::PrepareAbort) {
+                return Err(Error::Concurrent);
+            }
             if existing.producer_epoch == i16::MAX {
                 return Err(Error::InvalidRequest);
             }
@@ -290,6 +297,9 @@ impl Coordinator {
     }
 
     /// Add one partition to the ongoing transaction.
+    ///
+    /// A partition that is already in the transaction does not consume another
+    /// journal record.
     pub fn add_partition(
         &mut self,
         transactional_id: &str,
@@ -309,7 +319,11 @@ impl Coordinator {
         if txn.state != State::Ongoing {
             return Err(Error::InvalidState);
         }
-        if txn.partitions.len() >= 64 && !txn.partitions.contains(&(topic.to_owned(), partition)) {
+        let key = (topic.to_owned(), partition);
+        if txn.partitions.contains(&key) {
+            return Ok(());
+        }
+        if txn.partitions.len() >= 64 {
             return Err(Error::InvalidRequest);
         }
         self.persist(&encode_add(transactional_id, topic, partition)?)?;
@@ -317,7 +331,7 @@ impl Coordinator {
             .transactions
             .get_mut(transactional_id)
             .ok_or(Error::InvalidState)?;
-        txn.partitions.insert((topic.to_owned(), partition));
+        txn.partitions.insert(key);
         Ok(())
     }
 
@@ -727,6 +741,69 @@ mod tests {
         assert!(matches!(
             coordinator.begin("orders-txn", producer, epoch, 0),
             Err(Error::Concurrent)
+        ));
+        assert_eq!(coordinator.state("orders-txn"), Some(State::Ongoing));
+    }
+
+    #[test]
+    fn init_leaves_a_prepared_transaction_in_place() {
+        let (mut coordinator, path) = open("prepare-init");
+        let (producer, epoch) = coordinator
+            .init("orders-txn", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .begin("orders-txn", producer, epoch, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .end("orders-txn", producer, epoch, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.init("orders-txn", 0),
+            Err(Error::Concurrent)
+        ));
+        assert_eq!(coordinator.state("orders-txn"), Some(State::PrepareCommit));
+        drop(coordinator);
+        let mut restored =
+            Coordinator::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.state("orders-txn"), Some(State::PrepareCommit));
+        assert_eq!(
+            restored
+                .finish("orders-txn", producer, epoch, 0)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            Outcome::Completed { commit: true }
+        );
+    }
+
+    #[test]
+    fn a_repeated_partition_does_not_consume_a_journal_record() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-txn-repeat-{nanos}"));
+        let journal = journal::Limits::new(512, 1 << 20, 32, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        let tight = Limits::new(8, 4, journal).unwrap_or_else(|_| panic!("coordinator limits"));
+        let mut coordinator =
+            Coordinator::open(&path, tight).unwrap_or_else(|error| panic!("{error:?}"));
+        let (producer, epoch) = coordinator
+            .init("orders-txn", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .begin("orders-txn", producer, epoch, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .add_partition("orders-txn", producer, epoch, 0, "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .add_partition("orders-txn", producer, epoch, 0, "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .add_partition("orders-txn", producer, epoch, 0, "orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.add_partition("orders-txn", producer, epoch, 0, "orders", 2),
+            Err(Error::InvalidLimits)
         ));
         assert_eq!(coordinator.state("orders-txn"), Some(State::Ongoing));
     }
