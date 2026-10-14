@@ -4784,16 +4784,9 @@ impl Consumer {
                 {
                     pick_version(min_version, max_version, minimum, 11)
                 } else {
-                    let capabilities = crate::protocol::api::negotiate_api_versions(
-                        self.broker_conn_mut(node)?,
-                        deadline.saturating_duration_since(Instant::now()),
-                    )
-                    .await?;
-                    capabilities
-                        .api_keys
-                        .iter()
-                        .find(|v| v.api_key == LIST_OFFSETS)
-                        .and_then(|v| pick_version(v.min_version, v.max_version, minimum, 11))
+                    // `connect_node` already stored the leader handshake. A missing
+                    // range means that handshake omitted ListOffsets.
+                    None
                 }
                 .ok_or_else(|| {
                     Error::Unsupported(format!(

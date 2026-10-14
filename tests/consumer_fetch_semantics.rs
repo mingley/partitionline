@@ -3511,6 +3511,36 @@ async fn list_offsets_on_another_leader_negotiates_once() {
     consumer.close().await.unwrap();
 }
 
+/// Opening a leader already negotiated ApiVersions. A missing ListOffsets
+/// range means that handshake omitted it, so ListOffsets must not ask again.
+#[tokio::test]
+async fn missing_list_offsets_range_does_not_negotiate_again() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    mock.hide_api(LIST_OFFSETS);
+    let before = mock.api_versions_versions().len();
+    let result = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await;
+    assert!(
+        result.is_err(),
+        "ListOffsets is not in the leader handshake"
+    );
+    assert_eq!(mock.list_offsets_calls(), 0);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        before + 1,
+        "the leader handshake is the only ApiVersions; ListOffsets must not repeat it"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// A metadata reconnect drops dedicated sockets. The next handshake must replace
 /// the cached ListOffsets range, including when the leader no longer offers it.
 #[tokio::test]
