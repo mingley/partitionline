@@ -1138,6 +1138,9 @@ impl ConsumerGroup {
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         let started = Instant::now();
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -1803,6 +1806,9 @@ impl ConsumerGroup {
     /// Flushes queued `commitAsync` work only — does **not** auto-commit
     /// positions when [`ConsumerConfig::enable_auto_commit`] is on (KL-02).
     pub async fn unsubscribe(&mut self) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         if self.member_id.is_empty() {
             self.topics.clear();
             self.topic_match = None;

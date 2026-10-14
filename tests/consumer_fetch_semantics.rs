@@ -3551,6 +3551,46 @@ async fn wakeup_interrupts_group_subscribe_once() {
     group.close().await.unwrap();
 }
 
+/// OffsetFetch and unsubscribe consume one pending wakeup before leaving the group.
+#[tokio::test]
+async fn wakeup_interrupts_group_committed_and_unsubscribe_once() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "g-wake",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    group.wakeup();
+    let interrupted = group.committed().await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "committed must observe a pending wakeup, got {interrupted}"
+    );
+    let committed = group.committed().await.unwrap();
+    assert_eq!(committed.len(), 1);
+    group.wakeup();
+    let interrupted = group.unsubscribe().await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "unsubscribe must observe a pending wakeup, got {interrupted}"
+    );
+    assert_eq!(
+        group
+            .assignment()
+            .iter()
+            .map(|tp| tp.topic.as_str())
+            .collect::<Vec<_>>(),
+        ["t"]
+    );
+    group.unsubscribe().await.unwrap();
+    assert!(group.assignment().is_empty());
+    group.close().await.unwrap();
+}
+
 /// A coordinator that omits Heartbeat cannot keep a classic member silent.
 #[tokio::test]
 async fn missing_heartbeat_api_fails_the_next_poll() {
