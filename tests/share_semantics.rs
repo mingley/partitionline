@@ -278,8 +278,53 @@ async fn implicit_commit_flushes_without_waiting_for_next_poll() {
     let second = group.poll().await.unwrap();
     assert_eq!(second.len(), 1);
     assert_ne!(second[0].offset, first_off);
-    group.commit_async().await.unwrap();
-    assert_eq!(mock.share_ack_calls(), 2);
+    group.commit_async();
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "commit_async must not send until the next poll or leave"
+    );
+    let fetches = mock.share_fetch_calls();
+    let third = group.poll().await.unwrap();
+    assert!(third.iter().all(|r| r.offset != second[0].offset));
+    assert_eq!(
+        mock.share_ack_calls(),
+        2,
+        "next poll must flush commit_async as standalone ShareAcknowledge"
+    );
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "commit_async flush is followed by ShareFetch"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn explicit_commit_async_does_not_send_until_poll() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    let mut group = ShareGroup::join(cfg, "commit-async", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    group.accept(&first).await.unwrap();
+    group.commit_async();
+    assert_eq!(mock.share_ack_calls(), 0);
+    assert_eq!(
+        group.metrics().records_acknowledged,
+        1,
+        "queued accept still counts locally"
+    );
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first[0].offset);
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "explicit commit_async must send standalone ShareAcknowledge on poll"
+    );
+    group.release(&second).await.unwrap();
     group.leave().await.unwrap();
 }
 

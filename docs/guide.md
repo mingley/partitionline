@@ -375,7 +375,9 @@ previously delivered record is acknowledged
 (`All records must be acknowledged in explicit acknowledgement mode.`;
 draining an already-buffered ShareFetch is allowed).
 `ShareGroup::commit` flushes
-pending acknowledgements as `Result<()>`. `ShareGroup::commit_sync` is
+pending acknowledgements as `Result<()>`. `ShareGroup::commit_async` is
+Java `commitAsync` and queues a standalone ShareAcknowledge for the next
+`poll` / `leave`. `ShareGroup::commit_sync` is
 Java `commitSync` (`Map<TopicIdPartition, Optional<KafkaException>>`)
 and flushes without waiting for the next poll.
 `ShareGroup::group_metadata` is Java `groupMetadata()`

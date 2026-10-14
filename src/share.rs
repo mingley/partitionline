@@ -648,6 +648,8 @@ pub enum ShareAcquireMode {
 /// [`crate::ConsumerGroupMetadata::generation_id`] is the share member epoch.
 /// [`Self::commit_sync`] is Java `ShareConsumer.commitSync()`
 /// (`Map<TopicIdPartition, Optional<KafkaException>>`).
+/// [`Self::commit_async`] is Java `ShareConsumer.commitAsync()`
+/// (standalone ShareAcknowledge on the next poll / leave).
 /// Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
 /// partitions when the assignment shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
@@ -682,6 +684,8 @@ pub struct ShareGroup {
     pending_acknowledgements: BTreeMap<(String, i32, i64), (ShareRecord, i8)>,
     /// Offsets already counted in [`Self::records_acknowledged`] at queue time.
     counted_acknowledgements: HashSet<(String, i32, i64)>,
+    /// Java `ShareAcknowledgeAsyncEvent`: flush on the next poll / leave.
+    async_commit: bool,
     ack_commit_callback: Option<AcknowledgementCommitFn>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
@@ -867,6 +871,7 @@ impl ShareGroup {
             last_poll_unacked: Vec::new(),
             pending_acknowledgements: BTreeMap::new(),
             counted_acknowledgements: HashSet::new(),
+            async_commit: false,
             ack_commit_callback: None,
             acquisition_lock_timeout_ms: None,
             hb_err,
@@ -1354,6 +1359,15 @@ impl ShareGroup {
         )
         .await
         .map_err(|_| Error::Timeout)??;
+        if self.async_commit {
+            self.async_commit = false;
+            tokio::time::timeout_at(
+                tokio::time::Instant::from_std(deadline),
+                self.flush_pending_acknowledgements(),
+            )
+            .await
+            .map_err(|_| Error::Timeout)??;
+        }
         let mut attempt = 0u32;
         loop {
             let round = tokio::time::timeout_at(
@@ -1525,12 +1539,15 @@ impl ShareGroup {
         out
     }
 
-    /// Java `ShareConsumer.commitAsync()`.
+    /// Java `ShareConsumer.commitAsync()` (`ShareAcknowledgeAsyncEvent`).
     ///
-    /// Same send path as [`Self::commit`]: flushes queued acknowledgements
-    /// now rather than waiting for the next poll.
-    pub async fn commit_async(&mut self) -> Result<()> {
-        self.commit().await
+    /// Does not send now. The next [`Self::poll`] flushes pending
+    /// acknowledgements as a standalone ShareAcknowledge (then fetches).
+    /// [`Self::leave`], [`Self::close`], and [`Self::unsubscribe`] also
+    /// flush. Same callback as [`Self::set_acknowledgement_commit_callback`].
+    /// Does not spawn a task.
+    pub fn commit_async(&mut self) {
+        self.async_commit = true;
     }
 
     fn decoded_byte_limit(&self) -> usize {
@@ -2168,6 +2185,7 @@ impl ShareGroup {
             self.last_poll_unacked.clear();
             self.pending_acknowledgements.clear();
             self.counted_acknowledgements.clear();
+            self.async_commit = false;
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
@@ -2196,6 +2214,7 @@ impl ShareGroup {
         self.last_poll_unacked.clear();
         self.pending_acknowledgements.clear();
         self.counted_acknowledgements.clear();
+        self.async_commit = false;
         implicit.and(close).and(leave)
     }
 
@@ -3053,6 +3072,7 @@ impl ShareGroup {
         self.pending_delivery.clear();
         self.pending_acknowledgements.clear();
         self.counted_acknowledgements.clear();
+        self.async_commit = false;
         last
     }
 

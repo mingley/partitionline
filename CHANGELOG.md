@@ -26,8 +26,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   draining an already-buffered ShareFetch is allowed).
   Implicit ACCEPT and queued explicit
   acknowledgements piggyback on the next ShareFetch.
-  `ShareGroup::commit` / `commit_timeout` / `commit_async` flush pending
-  acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
+  `ShareGroup::commit` / `commit_timeout` flush pending
+  acknowledgements as `Result<()>`. `ShareGroup::commit_async` is Java
+  `commitAsync` (queued standalone ShareAcknowledge on the next `poll` /
+  `leave`). `ShareGroup::commit_sync` /
   `commit_sync_timeout` are Java `ShareConsumer.commitSync` /
   `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`).
 

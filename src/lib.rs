@@ -2047,9 +2047,10 @@
 //! `ShareSessionHandler.newShareFetchBuilder` (assignment shrink and
 //! topic-id replacement). [`ShareGroup::subscribe`] keeps open share
 //! sessions and heartbeats the new topic list.
-//! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
-//! [`ShareGroup::commit_async`] flush pending acknowledgements
-//! (`Result<()>`). [`ShareGroup::commit_sync`] /
+//! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
+//! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
+//! is Java `ShareConsumer.commitAsync` (queued standalone
+//! ShareAcknowledge on the next poll / leave). [`ShareGroup::commit_sync`] /
 //! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
 //! [`AcknowledgementCommitResults`]).
@@ -3011,7 +3012,9 @@
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
-//! [`ShareGroup::acknowledge`] (local until the next poll, commit, or leave;
+//! [`ShareGroup::acknowledge`] / [`ShareGroup::commit_async`]
+//! (acknowledge is local until the next poll, commit, or leave;
+//! `commit_async` queues a standalone ShareAcknowledge for the next poll / leave;
 //! acknowledge before [`ShareGroup::poll`] is
 //! `Acknowledge called before poll.`; implicit mode is
 //! `Implicit acknowledgement of delivery is being used.`;
