@@ -180,8 +180,9 @@ impl Cluster {
     /// Apply Produce v10+ / Fetch v12+ CurrentLeader when `leader_id` is a
     /// known broker.
     ///
-    /// Unknown brokers need [`Self::apply_node_endpoints`] first. Returns
-    /// `true` when the partition leader cache was updated.
+    /// Unknown brokers need [`Self::apply_node_endpoints`] first. An epoch
+    /// older than the cached leader epoch is ignored. Returns `true` when the
+    /// partition leader cache was updated.
     pub(crate) fn apply_current_leader(
         &mut self,
         topic: &str,
@@ -190,6 +191,10 @@ impl Cluster {
         leader_epoch: i32,
     ) -> bool {
         if leader_id < 0 || !self.brokers.contains_key(&leader_id) {
+            return false;
+        }
+        let known = self.leader_epoch(topic, partition);
+        if known != RecordBatch::NO_PARTITION_LEADER_EPOCH && leader_epoch < known {
             return false;
         }
         let Ok(idx) = usize::try_from(partition) else {
@@ -407,6 +412,15 @@ mod tests {
         assert_eq!(cluster.leader_epoch("t", 0), 8);
         assert!(!cluster.apply_current_leader("t", 0, MetadataResponse::NO_LEADER_ID, 8));
         assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
+        assert!(
+            !cluster.apply_current_leader("t", 0, 1, 3),
+            "an older leader epoch must not replace the cached leader"
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
+        assert_eq!(cluster.leader_epoch("t", 0), 8);
+        assert!(cluster.apply_current_leader("t", 0, 1, 8));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 8);
     }
 
     #[test]
