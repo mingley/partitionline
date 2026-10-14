@@ -1,0 +1,42 @@
+{
+  "task": "KL01-23",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "3360c135b4a9c68a057e8836ce46219430215cf7",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "initial_registered_case_ids": [
+    "broker-cell-historical-apache-3-9-1",
+    "broker-cell-historical-apache-4-1-0",
+    "verifiable-produce-consume-3-9-1"
+  ],
+  "commands": [
+    "python3 tests/conformance/test_historical_ordinary.py -q (4 passed, exit 0)",
+    "python3 tests/conformance/java/generate_historical_ordinary.py --output /tmp/historical-ordinary-gen --install tests/fixtures/historical_ordinary (40 bodies, 0 unsupported receipts, two generations match, 173.329s remaining of 180s)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --test historical_ordinary_conformance -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test historical_ordinary_conformance (5 passed, including 20 live Apache reverse parses)"
+  ],
+  "results": {
+    "generated_bodies": 40,
+    "unsupported_receipts": 0,
+    "independent_generations_match": true,
+    "rust_offline_fixture_bodies": 40,
+    "rust_apache_reverse_parses": 20,
+    "public_consumer_histories": {
+      "delivered_offsets": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "position": 25
+    },
+    "original_dispositions_preserved": true,
+    "cases_json_rows_added": 0
+  },
+  "actual_failures_retained": [],
+  "qualification_limit": "Finite named Produce v9, Fetch v12, ListOffsets v5 and Metadata v9 cells plus Apache-shaped 25-record verifiable events for five pinned client jars. Registered local_consistency rows are not rewritten. KIP-848 and share-group cells stay nonapplicable. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+  "evidence": "docs/evidence/conformance/q-conf-historicalordinary",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false
+}

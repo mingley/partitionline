@@ -1,0 +1,29 @@
+{
+  "task": "KL01-23",
+  "source_sha": "3360c135b4a9c68a057e8836ce46219430215cf7",
+  "date": "2026-10-14",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 173.329,
+  "generator_sha256": "3f76b23aa0c5305c224f1aacfc1e3a12e499441e528cce77eaf0a5b7fc133a5b",
+  "runner_sha256": "f82402f5d93292b079b58aaceb28d48ccfc403f0c0a18e55f8e2beab91fa359c",
+  "independent_generations_match": true,
+  "peers": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "generated_bodies": 40,
+  "unsupported_receipts": 0,
+  "fixture_files": 56,
+  "rust_offline_tests": 5,
+  "rust_apache_reverse_parses": 20,
+  "python_plan_tests": 4,
+  "replay_peers": ["4.1.0", "4.3.1"],
+  "public_consumer_histories": {
+    "delivered_offsets": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "position": 25
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0,
+  "records_rs_edited": false,
+  "buf_rs_edited": false,
+  "qualification_limit": "Finite named Produce v9, Fetch v12, ListOffsets v5 and Metadata v9 cells plus Apache-shaped 25-record verifiable events for five pinned client jars. Registered local_consistency rows are not rewritten. KIP-848 and share-group cells stay nonapplicable. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+}

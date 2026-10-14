@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "task": "KL01-23",
+  "declared_before_qualification": true,
+  "api_scope": [0, 1, 2, 3],
+  "registered_case_ids": [
+    "broker-cell-historical-apache-3-9-1",
+    "broker-cell-historical-apache-4-1-0",
+    "verifiable-produce-consume-3-9-1"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "broker-cell-historical-apache-3-9-1",
+      "broker-cell-historical-apache-4-1-0",
+      "verifiable-produce-consume-3-9-1"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+    "note": "cases.json rows stay local_consistency. The 3.9.1/4.1.0 broker cells were Docker smoke in CI run 33948193731. The verifiable row is the KL01-09 mock-broker 25-record JSON event contract, not ducktape or a live Apache broker."
+  },
+  "parameter_invocations": {
+    "produce_version": 9,
+    "fetch_version": 12,
+    "list_offsets_version": 5,
+    "metadata_version": 9,
+    "topic": "pl-ordinary",
+    "record_count": 25,
+    "cells": [
+      "produce",
+      "fetch",
+      "list-offsets",
+      "metadata",
+      "verifiable-events"
+    ],
+    "nested_counts": {
+      "produce": {
+        "topics": 1,
+        "partitions": 1,
+        "acks": -1,
+        "timeout_ms": 30000,
+        "records": 25,
+        "base_offset": 0
+      },
+      "fetch": {
+        "topics": 1,
+        "partitions": 1,
+        "fetch_offset": 0,
+        "isolation": 0,
+        "high_watermark": 25,
+        "records": 25
+      },
+      "list-offsets": {
+        "topics": 1,
+        "partitions": 1,
+        "timestamp": -1,
+        "offset": 25,
+        "current_leader_epoch": -1
+      },
+      "metadata": {
+        "topics": 1,
+        "partitions": 1,
+        "allow_auto_topic_creation": false,
+        "leader_id": 1,
+        "controller_id": 1
+      },
+      "verifiable-events": {
+        "producer_events": 28,
+        "consumer_events": 31,
+        "producer_send_success": 25,
+        "record_data": 25,
+        "commit_offset": 25,
+        "json_property_order": ["timestamp", "name"]
+      }
+    },
+    "expected_histories": {
+      "delivered_offsets": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "position": 25,
+      "list_offsets_latest": 25,
+      "verifiable_commit_offset": 25
+    },
+    "field_gates": {
+      "Produce_flexible": "9+",
+      "Fetch_flexible": "12+",
+      "Fetch_topic_ids": "13+",
+      "ListOffsets_isolation": "2+",
+      "ListOffsets_current_leader_epoch": "4+",
+      "ListOffsets_flexible": "6+",
+      "Metadata_flexible": "9+",
+      "Metadata_topic_ids": "10+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "Produce v9, Fetch v12, ListOffsets v5 and Metadata v9 are inside 3.9.1 HIGHEST_SUPPORTED_VERSION. GitHub raw of the 3.9.1 commit SHA 404s; sources hashed via tag 3.9.1.",
+      "sources": {
+        "VerifiableProducer.java": "abd0b6cbca72e32d9bd2dde91c7e5010a79b81048b21179ede94292761c675d6",
+        "VerifiableConsumer.java": "9a3c67a574806b12a67a0e09e7ebf0856cd5498590bbe0fed3971128a1e615f6",
+        "ProduceRequest.json": "96b36966cc0fab3b829f6cd81c2cec3b6b6b9781e265099760474b6645a9bf99",
+        "ProduceResponse.json": "b1c01c1cba74b7cc4b32a57c48c8fba54c12e7d64b93781da4431b11ad96bca1",
+        "FetchRequest.json": "556074dc9896bd9fe33a85aa7bd8816bf1c22b9dc56f03a2b2b359560c31e4eb",
+        "FetchResponse.json": "61d3e92615763f6cf0b2482ac48f7cb3e61dbcf71f2978a403ec3a065ae70011",
+        "ListOffsetsRequest.json": "a620b1209703bad380ff8a6e0848aad2bca2c7ca40bd7da4aca6c131e9529ecc",
+        "ListOffsetsResponse.json": "a908f54a1031b6363ba57e1cbd4b6f0ccbab85a7cd36a7e1e57f1792c4a43b22",
+        "MetadataRequest.json": "789e5e00d7ac7c621162bb0e4036dca79005c68d0bb3434091af798ef655b077",
+        "MetadataResponse.json": "e55b72b04ac383894d216cb0dd03dbe3618123e9ce52c7df012735ef236af013"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "Historical broker-cell peer. Wire JSON for Produce/Fetch/ListOffsets/Metadata matches 4.1.2. VerifiableProducer/Consumer match 4.1.2.",
+      "sources": {
+        "VerifiableProducer.java": "ba064d0f0fbcbef1ae720e91af274ac7a1591ebf5dcd84c531644963db180f61",
+        "VerifiableConsumer.java": "fbf331def6db4edb84195734803abab5c2dbea84a49ab79aa2d31872eed5faaa",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "ListOffsetsRequest.json": "85cb56e6a662177f88fb5d126d1485fb93e1f0b727d712b6bfdd782ce6b8a430",
+        "ListOffsetsResponse.json": "0d767cfe74c80d56c6b83fccb3889d6ee2b7279749597579bf5c0d24b1392786",
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Verifiable tools and the eight JSON envelopes match 4.1.0.",
+      "sources": {
+        "VerifiableProducer.java": "ba064d0f0fbcbef1ae720e91af274ac7a1591ebf5dcd84c531644963db180f61",
+        "VerifiableConsumer.java": "fbf331def6db4edb84195734803abab5c2dbea84a49ab79aa2d31872eed5faaa",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "ListOffsetsRequest.json": "85cb56e6a662177f88fb5d126d1485fb93e1f0b727d712b6bfdd782ce6b8a430",
+        "ListOffsetsResponse.json": "0d767cfe74c80d56c6b83fccb3889d6ee2b7279749597579bf5c0d24b1392786",
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "VerifiableProducer/Consumer differ from 4.1.x. Produce and Metadata JSON match 4.1.x. FetchRequest.json and ListOffsets request/response JSON differ from 4.1.x. FetchResponse.json matches 4.1.x.",
+      "sources": {
+        "VerifiableProducer.java": "3a4ec03886f9f6291650cbe30062e39e10cd38e164b89c9aa3c2d9e90507009f",
+        "VerifiableConsumer.java": "cbbd6a48c6d3f562f9ebe6f85d3fa128b2f192d49f3626f0680a3e264b76bd43",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "ListOffsetsRequest.json": "7949a78fdbf56d0436c34239475b04be2db24007b2942aa016f37408aa3ea13b",
+        "ListOffsetsResponse.json": "7ab8384fb66fc588169e15d49d0a098e43186f17bdfefddc7c3cde056f158eeb",
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "Verifiable tools and the eight JSON envelopes match 4.2.1. MemoryRecords used to build the 25-record batches lives under record.internal; the generator reflects both public and internal packages.",
+      "sources": {
+        "VerifiableProducer.java": "3a4ec03886f9f6291650cbe30062e39e10cd38e164b89c9aa3c2d9e90507009f",
+        "VerifiableConsumer.java": "cbbd6a48c6d3f562f9ebe6f85d3fa128b2f192d49f3626f0680a3e264b76bd43",
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "ListOffsetsRequest.json": "7949a78fdbf56d0436c34239475b04be2db24007b2942aa016f37408aa3ea13b",
+        "ListOffsetsResponse.json": "7ab8384fb66fc588169e15d49d0a098e43186f17bdfefddc7c3cde056f158eeb",
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/main/resources/common/message/ProduceRequest.json",
+      "method": "Produce v9",
+      "applicability": "applicable",
+      "reason": "Flexible Produce v9 with topic name, acks=-1, timeout 30000, one partition and 25 MemoryRecords values \"0\"..\"24\". All five peers speak v9 (3.9.1 Produce max is 9)."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/FetchResponse.json",
+      "method": "Fetch v12 Records",
+      "applicability": "applicable",
+      "reason": "Fetch v12 response for pl-ordinary partition 0 carries the same 25-record batch, highWatermark 25, lastStableOffset 25. Topic IDs stay at 13+."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/ListOffsetsRequest.json",
+      "method": "ListOffsets v5 LATEST",
+      "applicability": "applicable",
+      "reason": "ListOffsets v5 (Isolation 2+, CurrentLeaderEpoch 4+, non-flexible) asks LATEST (-1) on pl-ordinary-0. Response offset is 25. 3.9.1 ListOffsets max is 9."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/MetadataRequest.json",
+      "method": "Metadata v9",
+      "applicability": "applicable",
+      "reason": "Flexible Metadata v9 names pl-ordinary with allowAutoTopicCreation false. Response has one broker, controller 1, leader 1. Topic IDs stay at 10+."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "method": "SuccessfulSend / ToolData",
+      "applicability": "applicable",
+      "reason": "Hashed 3.9.1 VerifiableProducer.java @JsonPropertyOrder({\"timestamp\",\"name\"}). Independent events are startup_complete, producer_send_success x25 (key null, value=offset), shutdown_complete, tool_data sent=acked=25."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "method": "RecordsConsumed / RecordData / OffsetsCommitted",
+      "applicability": "applicable",
+      "reason": "Hashed 3.9.1 VerifiableConsumer.java verbose manual-commit contract: records_consumed count 25 minOffset 0 maxOffset 24, record_data x25, offsets_committed success=true offset=25 (maxOffset+1), error omitted."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json local_consistency dispositions",
+      "reason": "The three registered rows stay local_consistency at source pin cb7e97d3b92a8555aea34d59266a2990c206395f. This card does not rewrite historical smoke or mock-contract results."
+    },
+    {
+      "cell": "kip-848-consumer-group-heartbeat",
+      "reason": "api_scope is Produce/Fetch/ListOffsets/Metadata (0,1,2,3). KIP-848 ConsumerGroupHeartbeat is outside that family. The historical 3.9.1 broker cell skipped KIP-848 because 3.9.1 does not implement it. Applicability exclusion, not a generation-unsupported receipt."
+    },
+    {
+      "cell": "share-group-share-fetch",
+      "reason": "Share-group ShareFetch is outside api_scope [0,1,2,3]. The historical 3.9.1 broker cell skipped share groups. Applicability exclusion, not a generation-unsupported receipt."
+    },
+    {
+      "cell": "tests/verifiable_contract.rs mock broker",
+      "reason": "The KL01-09 mock-broker scenario is not the independent oracle. Events are generated from the hashed Apache VerifiableProducer/VerifiableConsumer field contract; the loopback broker serves Apache Fetch bytes."
+    },
+    {
+      "cell": "verifiable-produce-consume-live-4-1-2",
+      "reason": "KL01-17 already registered a live 4.1.2 verifiable row. This card does not rewrite that row or re-run a live Docker historical smoke."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}

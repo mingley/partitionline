@@ -52278,7 +52278,7 @@
       "title": "Qualify the declared historical ordinary broker/record-event cells",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52304,7 +52304,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-23.json",
+        "docs/evidence/conformance/q-conf-historicalordinary/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceHistoricalOrdinary.java",
         "tests/conformance/java/generate_historical_ordinary.py",
@@ -52329,7 +52332,8 @@
         "verifiable-produce-consume-3-9-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "3360c135b4a9c68a057e8836ce46219430215cf7"
     },
     {
       "id": "KL01-24",

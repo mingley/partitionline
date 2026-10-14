@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Ordinary Produce v9, Fetch v12, ListOffsets v5 and Metadata v9 bodies
+  for a 25-record `pl-ordinary` topic are checked against pinned Apache
+  kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
+  parsers. Apache-shaped verifiable events follow the hashed 3.9.1
+  `timestamp`/`name` contract. The original `local_consistency` rows stay
+  frozen; KIP-848 and share-group cells stay nonapplicable (KL01-23).
+
 - The five delivered-position fetch-boundary histories (A01–A05) are
   replayed against pinned Apache kafka-clients 3.9.1, 4.1.0, 4.1.2,
   4.2.1 and 4.3.1 Fetch v12 bodies. OffsetCommit/OffsetFetch v8 bodies
