@@ -275,6 +275,12 @@ impl Producers {
         let next_end = offset
             .checked_add(i64::from(count))
             .ok_or(Error::InvalidRequest)?;
+        // Reject before the journal write. `note` cannot represent a sequence
+        // that overflows `i32`, and a persisted record it cannot apply would
+        // make the next reopen fail.
+        let _ = sequence
+            .checked_add(count)
+            .ok_or(Error::InvalidRequest)?;
         self.persist(&encode_append(
             producer_id,
             epoch,
@@ -545,5 +551,27 @@ mod tests {
         ));
         assert_eq!(producers.epoch(id), Some(i16::MAX));
         assert_eq!(producers.log_end(), 1);
+    }
+
+    #[test]
+    fn a_sequence_that_overflows_is_not_persisted() {
+        let (mut producers, path) = open("overflow");
+        let (id, epoch) = producers
+            .allocate()
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            producers.append(id, epoch, 0, i32::MAX, 1),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(producers.log_end(), 0);
+        let stored = producers
+            .append(id, epoch, 0, 0, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(stored.offset, 0);
+        drop(producers);
+        let restored =
+            Producers::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.log_end(), 1);
+        assert_eq!(restored.epoch(id), Some(epoch));
     }
 }
