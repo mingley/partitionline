@@ -706,6 +706,22 @@ fn validate_batch(
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + 57, Invalid::Length));
     }
+    if plain_enabled()
+        && try_accept_plain(
+            c.remaining(),
+            count,
+            last,
+            base_time,
+            max_time,
+            read,
+            limits,
+        )
+    {
+        #[cfg(test)]
+        RECORD_VISITS.with(|n| n.set(n.get() + count));
+        *total_records += count;
+        return Ok(());
+    }
     let mut observed_max = i64::MIN;
     let mut previous = None;
     for delta in 0..count {
@@ -780,7 +796,20 @@ fn validate_batch(
     Ok(())
 }
 #[cfg(test)]
-thread_local! { static RECORD_VISITS:std::cell::Cell<usize>=const { std::cell::Cell::new(0) }; }
+thread_local! {
+    static RECORD_VISITS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static SKIP_PLAIN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+fn plain_enabled() -> bool {
+    #[cfg(test)]
+    {
+        !SKIP_PLAIN.with(std::cell::Cell::get)
+    }
+    #[cfg(not(test))]
+    {
+        true
+    }
+}
 #[cfg(test)]
 pub(crate) fn reset_record_visits() {
     RECORD_VISITS.with(|n| n.set(0));
@@ -789,6 +818,174 @@ pub(crate) fn reset_record_visits() {
 pub(crate) fn record_visits() -> usize {
     RECORD_VISITS.with(std::cell::Cell::get)
 }
+/// Accept a no-header batch encoded with canonical varints.
+///
+/// Returns false without deciding an error so the generic walk keeps the
+/// existing rejection positions.
+fn try_accept_plain(
+    bytes: &[u8],
+    count: usize,
+    last: i32,
+    base_time: i64,
+    max_time: i64,
+    read: bool,
+    limits: Limits,
+) -> bool {
+    let mut index = 0usize;
+    let mut observed_max = i64::MIN;
+    let mut previous: Option<i32> = None;
+    for delta in 0..count {
+        let Some((body_len, next)) = read_canonical_i32(bytes, index) else {
+            return false;
+        };
+        if body_len < 6 {
+            return false;
+        }
+        let Ok(body_len) = usize::try_from(body_len) else {
+            return false;
+        };
+        let encoded = match next.checked_add(body_len) {
+            Some(end) => end.saturating_sub(index),
+            None => return false,
+        };
+        if encoded > limits.record_bytes {
+            return false;
+        }
+        let Some(body_end) = next.checked_add(body_len) else {
+            return false;
+        };
+        if bytes.len() < body_end || bytes.get(next) != Some(&0) {
+            return false;
+        }
+        let mut cursor = next.saturating_add(1);
+        let Some((timestamp_delta, next)) = read_canonical_i64(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        let Some(timestamp) = base_time.checked_add(timestamp_delta) else {
+            return false;
+        };
+        observed_max = observed_max.max(timestamp);
+        let Some((offset, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        let offset_ok = if read {
+            offset >= 0 && offset <= last && previous.is_none_or(|n| offset > n)
+        } else {
+            i32::try_from(delta).ok() == Some(offset)
+        };
+        if !offset_ok {
+            return false;
+        }
+        previous = Some(offset);
+        let Some((key_len, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, body_end, key_len, limits.field_bytes) {
+            return false;
+        }
+        let Some((value_len, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, body_end, value_len, limits.field_bytes) {
+            return false;
+        }
+        let Some((headers, next)) = read_canonical_i32(bytes, cursor) else {
+            return false;
+        };
+        if headers != 0 || next != body_end {
+            return false;
+        }
+        index = body_end;
+    }
+    index == bytes.len() && (count == 0 || observed_max == max_time)
+}
+
+fn skip_plain_field(
+    bytes: &[u8],
+    cursor: &mut usize,
+    body_end: usize,
+    len: i32,
+    field_bytes: usize,
+) -> bool {
+    if len == -1 {
+        return true;
+    }
+    if len < 0 {
+        return false;
+    }
+    let Ok(len) = usize::try_from(len) else {
+        return false;
+    };
+    if len > field_bytes {
+        return false;
+    }
+    let Some(end) = cursor.checked_add(len) else {
+        return false;
+    };
+    if end > body_end || bytes.len() < end {
+        return false;
+    }
+    *cursor = end;
+    true
+}
+
+fn read_canonical_i32(bytes: &[u8], index: usize) -> Option<(i32, usize)> {
+    let (raw, next) = read_canonical_u64(bytes, index, 5, 15)?;
+    let raw = u32::try_from(raw).ok()?;
+    Some((((raw >> 1) as i32) ^ -((raw & 1) as i32), next))
+}
+
+fn read_canonical_i64(bytes: &[u8], index: usize) -> Option<(i64, usize)> {
+    let (raw, next) = read_canonical_u64(bytes, index, 10, 1)?;
+    Some((((raw >> 1) as i64) ^ -((raw & 1) as i64), next))
+}
+
+fn read_canonical_u64(bytes: &[u8], index: usize, width: usize, last: u8) -> Option<(u64, usize)> {
+    let first = *bytes.get(index)?;
+    if first & 0x80 == 0 {
+        return Some((u64::from(first), index.saturating_add(1)));
+    }
+    let second = *bytes.get(index.saturating_add(1))?;
+    if second & 0x80 == 0 {
+        if second == 0 {
+            return None;
+        }
+        return Some((
+            u64::from(first & 0x7f) | (u64::from(second) << 7),
+            index.saturating_add(2),
+        ));
+    }
+    if width < 3 {
+        return None;
+    }
+    let mut value = u64::from(first & 0x7f) | (u64::from(second & 0x7f) << 7);
+    let mut pos = index.saturating_add(2);
+    for group in 2..width {
+        let byte = *bytes.get(pos)?;
+        pos = pos.checked_add(1)?;
+        let shift = group.saturating_mul(7);
+        if shift >= 64 {
+            return None;
+        }
+        let shift = u32::try_from(shift).ok()?;
+        if group + 1 == width && byte > last {
+            return None;
+        }
+        value |= u64::from(byte & 127) << shift;
+        if byte & 128 == 0 {
+            if byte == 0 {
+                return None;
+            }
+            return Some((value, pos));
+        }
+    }
+    None
+}
+
 fn nullable<'a>(c: &mut Cursor<'a>, limit: usize) -> Result<Option<&'a [u8]>, Error> {
     let at = c.at();
     let size = c.varint()?;
@@ -924,5 +1121,233 @@ impl<'a> Cursor<'a> {
             }
         }
         Err(invalid(at, Invalid::VarintOverflow))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{validate, validate_batch, validate_read, Error, Invalid, Limits, SKIP_PLAIN};
+
+    fn put_i32(out: &mut Vec<u8>, n: i32) {
+        let mut u = ((n as u32) << 1) ^ ((n >> 31) as u32);
+        loop {
+            let mut byte = (u & 0x7f) as u8;
+            u >>= 7;
+            if u == 0 {
+                out.push(byte);
+                return;
+            }
+            byte |= 0x80;
+            out.push(byte);
+        }
+    }
+
+    fn put_i64(out: &mut Vec<u8>, n: i64) {
+        let mut u = ((n as u64) << 1) ^ ((n >> 63) as u64);
+        loop {
+            let mut byte = (u & 0x7f) as u8;
+            u >>= 7;
+            if u == 0 {
+                out.push(byte);
+                return;
+            }
+            byte |= 0x80;
+            out.push(byte);
+        }
+    }
+
+    fn put_field(out: &mut Vec<u8>, field: Option<&[u8]>) {
+        match field {
+            None => put_i32(out, -1),
+            Some(bytes) => {
+                put_i32(out, i32::try_from(bytes.len()).unwrap());
+                out.extend_from_slice(bytes);
+            }
+        }
+    }
+
+    struct Sample {
+        timestamp_delta: i64,
+        offset: i32,
+        key: Option<Vec<u8>>,
+        value: Option<Vec<u8>>,
+        headers: Vec<(Vec<u8>, Option<Vec<u8>>)>,
+        attributes: u8,
+    }
+
+    fn sample(offset: i32, value: &[u8]) -> Sample {
+        Sample {
+            timestamp_delta: i64::from(offset),
+            offset,
+            key: None,
+            value: Some(value.to_vec()),
+            headers: Vec::new(),
+            attributes: 0,
+        }
+    }
+
+    fn encode(records: &[Sample], base_time: i64, max_time: i64, last: i32) -> Vec<u8> {
+        let mut payload = Vec::new();
+        for record in records {
+            let start = payload.len();
+            put_i32(&mut payload, 0);
+            let body = payload.len();
+            payload.push(record.attributes);
+            put_i64(&mut payload, record.timestamp_delta);
+            put_i32(&mut payload, record.offset);
+            put_field(&mut payload, record.key.as_deref());
+            put_field(&mut payload, record.value.as_deref());
+            put_i32(&mut payload, i32::try_from(record.headers.len()).unwrap());
+            for (key, value) in &record.headers {
+                put_i32(&mut payload, i32::try_from(key.len()).unwrap());
+                payload.extend_from_slice(key);
+                put_field(&mut payload, value.as_deref());
+            }
+            let body_len = i32::try_from(payload.len() - body).unwrap();
+            let mut prefix = Vec::new();
+            put_i32(&mut prefix, body_len);
+            for removed in payload.splice(start..start + 1, prefix) {
+                let _ = removed;
+            }
+        }
+        let mut bytes = vec![0_u8; 61];
+        let length = i32::try_from(bytes.len() + payload.len() - 12).unwrap();
+        bytes[8..12].copy_from_slice(&length.to_be_bytes());
+        bytes[16] = 2;
+        bytes[23..27].copy_from_slice(&last.to_be_bytes());
+        bytes[27..35].copy_from_slice(&base_time.to_be_bytes());
+        bytes[35..43].copy_from_slice(&max_time.to_be_bytes());
+        bytes[43..51].copy_from_slice(&(-1_i64).to_be_bytes());
+        bytes[51..53].copy_from_slice(&(-1_i16).to_be_bytes());
+        bytes[53..57].copy_from_slice(&(-1_i32).to_be_bytes());
+        let count = i32::try_from(records.len()).unwrap();
+        bytes[57..61].copy_from_slice(&count.to_be_bytes());
+        bytes.extend_from_slice(&payload);
+        let crc = crc32c::crc32c(&bytes[21..]);
+        bytes[17..21].copy_from_slice(&crc.to_be_bytes());
+        bytes
+    }
+
+    fn both(bytes: &[u8], read: bool) -> (Result<(), Error>, Result<(), Error>) {
+        let limits = Limits::default();
+        let mut records = 0_usize;
+        let mut headers = 0_usize;
+        let fast = validate_batch(bytes, 0, limits, &mut records, &mut headers, read, false);
+        SKIP_PLAIN.with(|flag| flag.set(true));
+        let mut slow_records = 0_usize;
+        let mut slow_headers = 0_usize;
+        let slow = validate_batch(
+            bytes,
+            0,
+            limits,
+            &mut slow_records,
+            &mut slow_headers,
+            read,
+            false,
+        );
+        SKIP_PLAIN.with(|flag| flag.set(false));
+        assert_eq!(fast.is_ok(), slow.is_ok());
+        if fast.is_ok() {
+            assert_eq!(records, slow_records);
+            assert_eq!(headers, slow_headers);
+        }
+        assert_eq!(fast, slow);
+        (fast, slow)
+    }
+
+    #[test]
+    fn plain_batches_match_the_generic_walk() {
+        let records: Vec<_> = (0..4).map(|n| sample(n, b"value-100")).collect();
+        let bytes = encode(&records, 1_000, 1_003, 3);
+        assert!(validate(&bytes, Limits::default()).is_ok());
+        assert!(both(&bytes, false).0.is_ok());
+        assert!(both(&bytes, true).0.is_ok());
+
+        let wide: Vec<_> = (0..9_000).map(|n| sample(n, b"x")).collect();
+        let wide_bytes = encode(&wide, 1_000, 1_000 + 8_999, 8_999);
+        assert_eq!(
+            validate(&wide_bytes, Limits::default())
+                .unwrap()
+                .record_count(),
+            9_000
+        );
+        assert!(both(&wide_bytes, false).0.is_ok());
+
+        let mut with_header = sample(0, b"v");
+        with_header
+            .headers
+            .push((b"k".to_vec(), Some(b"v".to_vec())));
+        let header_bytes = encode(&[with_header], 1_000, 1_000, 0);
+        assert_eq!(
+            validate(&header_bytes, Limits::default())
+                .unwrap()
+                .header_count(),
+            1
+        );
+        assert!(both(&header_bytes, false).0.is_ok());
+
+        let sparse = [sample(0, b"a"), sample(2, b"b"), sample(5, b"c")];
+        let sparse_bytes = encode(&sparse, 50, 55, 5);
+        assert!(both(&sparse_bytes, true).0.is_ok());
+        assert!(matches!(
+            both(&sparse_bytes, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::Offset,
+                ..
+            })
+        ));
+        assert_eq!(
+            validate_read(&sparse_bytes, Limits::default())
+                .unwrap()
+                .record_count(),
+            3
+        );
+
+        let mut bad_time = encode(&records, 1_000, 1_004, 3);
+        let crc = crc32c::crc32c(&bad_time[21..]);
+        bad_time[17..21].copy_from_slice(&crc.to_be_bytes());
+        assert!(matches!(
+            both(&bad_time, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::Timestamp,
+                ..
+            })
+        ));
+
+        for index in 0..bytes.len() {
+            let mut flipped = bytes.clone();
+            flipped[index] ^= 0x5a;
+            let _ = both(&flipped, false);
+            let _ = both(&flipped, true);
+        }
+
+        let mut state = 0x1234_5678_u64;
+        for _ in 0..48 {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            let count = 1 + (state % 5) as usize;
+            let mut garbage = vec![0_u8; 61 + (state % 180) as usize];
+            for (pos, byte) in garbage.iter_mut().enumerate().skip(61) {
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1);
+                *byte = (state >> 33) as u8;
+                let _ = pos;
+            }
+            let length = i32::try_from(garbage.len() - 12).unwrap();
+            garbage[8..12].copy_from_slice(&length.to_be_bytes());
+            garbage[16] = 2;
+            let last = i32::try_from(count - 1).unwrap();
+            garbage[23..27].copy_from_slice(&last.to_be_bytes());
+            garbage[27..35].copy_from_slice(&1_000_i64.to_be_bytes());
+            garbage[35..43].copy_from_slice(&1_000_i64.to_be_bytes());
+            garbage[43..51].copy_from_slice(&(-1_i64).to_be_bytes());
+            garbage[51..53].copy_from_slice(&(-1_i16).to_be_bytes());
+            garbage[53..57].copy_from_slice(&(-1_i32).to_be_bytes());
+            garbage[57..61].copy_from_slice(&(count as i32).to_be_bytes());
+            let _ = both(&garbage, false);
+            let _ = both(&garbage, true);
+        }
     }
 }
