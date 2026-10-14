@@ -278,9 +278,7 @@ impl Producers {
         // Reject before the journal write. `note` cannot represent a sequence
         // that overflows `i32`, and a persisted record it cannot apply would
         // make the next reopen fail.
-        let _ = sequence
-            .checked_add(count)
-            .ok_or(Error::InvalidRequest)?;
+        let _ = sequence.checked_add(count).ok_or(Error::InvalidRequest)?;
         self.persist(&encode_append(
             producer_id,
             epoch,
@@ -370,16 +368,40 @@ impl Producers {
             }
             KIND_APPEND => {
                 let id = take_i64(&mut rest)?;
-                let _epoch = take_i16(&mut rest)?;
+                let epoch = take_i16(&mut rest)?;
                 let partition = take_i32(&mut rest)?;
                 let sequence = take_i32(&mut rest)?;
                 let count = take_i32(&mut rest)?;
                 let offset = take_i64(&mut rest)?;
-                if !rest.is_empty() {
+                if !rest.is_empty() || partition < 0 || sequence < 0 || count <= 0 || offset < 0 {
                     return Err(Error::InvalidRequest);
                 }
+                let end = offset
+                    .checked_add(i64::from(count))
+                    .ok_or(Error::InvalidRequest)?;
+                let producer = self.producers.get(&id).ok_or(Error::UnknownProducer)?;
+                if epoch != producer.epoch {
+                    return Err(Error::InvalidRequest);
+                }
+                if let Some(state) = producer.partitions.get(&partition) {
+                    if let Some(existing) =
+                        state.recent.iter().find(|batch| batch.sequence == sequence)
+                    {
+                        if existing.count != count || existing.offset != offset {
+                            return Err(Error::InvalidRequest);
+                        }
+                        self.log_end = self.log_end.max(end);
+                        return Ok(());
+                    }
+                    if sequence != state.next {
+                        return Err(Error::InvalidRequest);
+                    }
+                } else if sequence != 0 {
+                    return Err(Error::InvalidRequest);
+                }
+                let _ = sequence.checked_add(count).ok_or(Error::InvalidRequest)?;
                 self.note(id, partition, sequence, count, offset)?;
-                self.log_end = self.log_end.max(offset.saturating_add(i64::from(count)));
+                self.log_end = self.log_end.max(end);
             }
             _ => return Err(Error::InvalidRequest),
         }
@@ -559,19 +581,51 @@ mod tests {
         let (id, epoch) = producers
             .allocate()
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let stored = producers
+            .append(id, epoch, 0, 0, i32::MAX)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(stored.offset, 0);
+        assert_eq!(producers.log_end(), i64::from(i32::MAX));
         assert!(matches!(
             producers.append(id, epoch, 0, i32::MAX, 1),
             Err(Error::InvalidRequest)
         ));
-        assert_eq!(producers.log_end(), 0);
-        let stored = producers
+        assert_eq!(producers.log_end(), i64::from(i32::MAX));
+        drop(producers);
+        let restored = Producers::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.log_end(), i64::from(i32::MAX));
+        assert_eq!(restored.epoch(id), Some(epoch));
+    }
+
+    #[test]
+    fn a_replayed_append_with_a_bad_count_or_epoch_is_refused() {
+        let (mut producers, _) = open("replay");
+        let (id, epoch) = producers
+            .allocate()
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        producers
             .append(id, epoch, 0, 0, 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
-        assert_eq!(stored.offset, 0);
-        drop(producers);
-        let restored =
-            Producers::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
-        assert_eq!(restored.log_end(), 1);
-        assert_eq!(restored.epoch(id), Some(epoch));
+        let again =
+            encode_append(id, epoch, 0, 0, 1, 0).unwrap_or_else(|error| panic!("{error:?}"));
+        producers
+            .apply(&again)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(producers.log_end(), 1);
+        let negative =
+            encode_append(id, epoch, 0, 1, -1, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            producers.apply(&negative),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(producers.log_end(), 1);
+        let stale = encode_append(id, epoch.saturating_add(1), 0, 1, 1, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            producers.apply(&stale),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(producers.log_end(), 1);
+        assert_eq!(producers.epoch(id), Some(epoch));
     }
 }
