@@ -2340,6 +2340,7 @@ impl Node {
                 let replica = self.known_voter(decoded.replica_id)?;
                 Ok(protocol::decide_vote_body(
                     &persistent,
+                    &self.config.controller.cluster_id,
                     replica.directory,
                     local.directory,
                     &decoded,
@@ -2350,6 +2351,7 @@ impl Node {
                     protocol::decode_begin_body(body, version).map_err(Error::Controller)?;
                 Ok(protocol::decide_begin_body(
                     &persistent,
+                    &self.config.controller.cluster_id,
                     local.directory,
                     &decoded,
                 ))
@@ -2358,11 +2360,15 @@ impl Node {
                 let decoded =
                     protocol::decode_end_body(body, version).map_err(Error::Controller)?;
                 let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
-                Ok(
-                    protocol::decide_end_body(&persistent, local_id, local.directory, &decoded)
-                        .map_err(Error::Controller)?
-                        .0,
+                Ok(protocol::decide_end_body(
+                    &persistent,
+                    &self.config.controller.cluster_id,
+                    local_id,
+                    local.directory,
+                    &decoded,
                 )
+                .map_err(Error::Controller)?
+                .0)
             }
             55 => {
                 let decoded = protocol::decode_describe_quorum_request(body, version)
