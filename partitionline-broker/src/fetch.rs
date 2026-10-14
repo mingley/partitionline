@@ -505,6 +505,11 @@ fn list_query(timestamp: i64) -> ListQuery {
     }
 }
 
+/// A batch is unstable when it starts at the high watermark or extends past it.
+fn batch_crosses_watermark(base_offset: i64, next_offset: i64, watermark: i64) -> bool {
+    base_offset >= watermark || next_offset > watermark
+}
+
 fn offset_in_log(offset: i64, log_start: i64, watermark: i64) -> bool {
     offset >= log_start && offset < watermark
 }
@@ -554,6 +559,14 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    #[test]
+    fn a_batch_that_crosses_the_high_watermark_is_not_fetched() {
+        assert!(!super::batch_crosses_watermark(0, 2, 2));
+        assert!(super::batch_crosses_watermark(0, 3, 2));
+        assert!(super::batch_crosses_watermark(2, 4, 2));
+        assert!(!super::batch_crosses_watermark(0, 1, 2));
+    }
 
     #[test]
     fn a_listed_offset_must_fall_inside_the_log() {
@@ -851,6 +864,14 @@ pub(crate) fn process(
                                 if batch.next_offset <= cursor {
                                     at = end;
                                     continue;
+                                }
+                                if batch_crosses_watermark(
+                                    batch.base_offset,
+                                    batch.next_offset,
+                                    watermark,
+                                ) {
+                                    stop = true;
+                                    break;
                                 }
                                 let next_part = match part_bytes.checked_add(batch.bytes.len()) {
                                     Some(next_part) => next_part,
