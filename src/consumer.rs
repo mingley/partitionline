@@ -2759,7 +2759,40 @@ impl Consumer {
     }
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
-        self.connect_node_inner(node, false).await
+        self.connect_node_inner(node, true).await
+    }
+
+    /// Connection that speaks to `node`: the dedicated socket, or the bootstrap
+    /// socket when one-node fetch is already using it.
+    fn broker_conn_mut(&mut self, node: i32) -> Result<&mut crate::net::BrokerConn> {
+        if self.conns.contains_key(&node) {
+            return self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing broker conn"));
+        }
+        let same_broker = self
+            .cluster
+            .brokers
+            .get(&node)
+            .is_some_and(|addr| addr == self.conn.addr());
+        if same_broker && !self.conn.is_closed() {
+            return Ok(&mut self.conn);
+        }
+        Err(Error::protocol("missing broker conn"))
+    }
+
+    fn drop_broker_conn(&mut self, node: i32) {
+        let used_bootstrap = !self.conns.contains_key(&node)
+            && self
+                .cluster
+                .brokers
+                .get(&node)
+                .is_some_and(|addr| addr == self.conn.addr());
+        let _ = self.conns.remove(&node);
+        if used_bootstrap {
+            self.conn.close();
+        }
     }
 
     async fn connect_node_inner(&mut self, node: i32, reuse_bootstrap: bool) -> Result<()> {
@@ -2953,10 +2986,7 @@ impl Consumer {
                 let topics = offset_for_leader_epoch_topics(&self.cluster, &parts);
                 let timeout = self.cfg.request_timeout;
                 let body = {
-                    let conn = self
-                        .conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing epoch conn"))?;
+                    let conn = self.broker_conn_mut(node)?;
                     conn.roundtrip(
                         OFFSET_FOR_LEADER_EPOCH,
                         version,
@@ -2968,7 +2998,7 @@ impl Consumer {
                 let body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
+                        self.drop_broker_conn(node);
                         retry.extend(parts);
                         continue;
                     }
@@ -2978,12 +3008,12 @@ impl Consumer {
                     Ok((got, ..)) => {
                         let more = self.apply_epoch_end_offsets(&parts, &got)?;
                         if !more.is_empty() {
-                            let _ = self.conns.remove(&node);
+                            self.drop_broker_conn(node);
                             retry.extend(more);
                         }
                     }
                     Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
+                        self.drop_broker_conn(node);
                         retry.extend(parts);
                     }
                     Err(e) => return Err(e),
@@ -4623,7 +4653,7 @@ impl Consumer {
                 let isolation = self.cfg.isolation_level.as_i8();
                 let minimum = crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
                 let capabilities = crate::protocol::api::negotiate_api_versions(
-                    self.conns.get_mut(&node).ok_or_else(|| Error::protocol("missing list_offsets conn"))?,
+                    self.broker_conn_mut(node)?,
                     deadline.saturating_duration_since(Instant::now()),
                 ).await?;
                 let version = capabilities.api_keys.iter().find(|v| v.api_key == LIST_OFFSETS)
@@ -4632,10 +4662,7 @@ impl Consumer {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
                 let body = {
-                    let conn = self
-                        .conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+                    let conn = self.broker_conn_mut(node)?;
                     conn.roundtrip(
                         LIST_OFFSETS,
                         version,
@@ -4658,7 +4685,7 @@ impl Consumer {
                 let body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
+                        self.drop_broker_conn(node);
                         if Instant::now() >= deadline {
                             return Err(Error::Timeout);
                         }
@@ -4697,7 +4724,7 @@ impl Consumer {
                     Err(e) if e.is_retriable() => {
                         // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
                         self.cluster.invalidate_topic(topic);
-                        let _ = self.conns.remove(&node);
+                        self.drop_broker_conn(node);
                         if Instant::now() >= deadline {
                             return Err(Error::Timeout);
                         }

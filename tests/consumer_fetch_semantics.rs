@@ -3419,6 +3419,40 @@ async fn one_node_close_sends_final_fetch_session_epoch() {
 }
 
 #[tokio::test]
+async fn list_offsets_keeps_the_one_node_fetch_session() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    mock.enable_fetch_sessions([1]);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let before = mock.fetch_session_requests();
+    assert_eq!(before[1].3.epoch(), 1);
+    let latest = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let after = mock.fetch_session_requests();
+    let next = after.last().expect("fetch after ListOffsets");
+    assert_eq!(
+        next.3.session_id(),
+        before[1].3.session_id(),
+        "ListOffsets on the bootstrap leader must not open a new fetch session"
+    );
+    assert_eq!(next.3.epoch(), 2);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets() {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 4);
