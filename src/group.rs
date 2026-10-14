@@ -3149,7 +3149,10 @@ pub(crate) fn filter_matching_topics(
     let mut names = Vec::new();
     for topic in topics {
         let topic = topic.as_ref();
-        if topic.is_empty() || topic.starts_with("__") {
+        // Pattern subscription only keeps names this client can assign.
+        // Empty names and internal topics are already excluded; `.`, `..`,
+        // and other illegal names are excluded here too.
+        if topic.is_empty() || topic.starts_with("__") || Topic::validate(topic).is_err() {
             continue;
         }
         if pred(topic) && !names.iter().any(|n| n == topic) {
@@ -4142,8 +4145,24 @@ mod tests {
     #[test]
     fn filter_matching_topics_skips_internal_and_sorts() {
         let names = filter_matching_topics(
-            ["z-a", "__consumer_offsets", "a-1", "a-1", "", "b-1"],
-            |n| n.starts_with("a-") || n.starts_with("z-"),
+            [
+                "z-a",
+                "__consumer_offsets",
+                "a-1",
+                "a-1",
+                "",
+                "b-1",
+                "bad name",
+                ".",
+                "..",
+            ],
+            |n| {
+                n.starts_with("a-")
+                    || n.starts_with("z-")
+                    || n == "bad name"
+                    || n == "."
+                    || n == ".."
+            },
         );
         assert_eq!(names, vec!["a-1".to_string(), "z-a".to_string()]);
     }
