@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "directory": "/tmp/kl02-10-soak",
+  "mode": "controlled",
+  "report": "progress",
+  "elapsed_ms": 14501647.000009,
+  "startup_ms": 60000,
+  "window_ms": 3600000,
+  "rss_bytes": {
+    "min": 7016448,
+    "median": 7569408,
+    "max": 11812864,
+    "latest": 7020544
+  },
+  "threads_latest": 3,
+  "socket_fds_latest": 7,
+  "first_hour": {
+    "complete": true,
+    "median_rss_bytes": 11759616,
+    "samples": 69861,
+    "remaining_ms": 0.0
+  },
+  "workload": {
+    "elapsed_ms": 14502511,
+    "offered": 23204017,
+    "accepted": 11771640,
+    "completed": 11771624,
+    "failed": 11432377,
+    "ambiguous": 0,
+    "pending": 16,
+    "producer_queue_bytes": 4096,
+    "consumer_buffered_bytes": 2560,
+    "delivered": 552950,
+    "fetch_errors": 0,
+    "runtime_tasks": 5
+  },
+  "passed": false,
+  "complete_24h": false,
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "rss_bound_claimed": false
+}
