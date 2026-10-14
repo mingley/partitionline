@@ -670,8 +670,9 @@ async fn share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isol
         (redelivered[0].offset, redelivered[0].delivery_count),
         (initial[0].offset, 2)
     );
+    first.accept(&initial).await.unwrap();
     assert_broker(
-        first.accept(&initial).await.unwrap_err(),
+        first.commit().await.unwrap_err(),
         error::INVALID_RECORD_STATE,
     );
     assert_eq!(first.metrics().records_acknowledged, 0);
