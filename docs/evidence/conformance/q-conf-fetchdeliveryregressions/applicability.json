@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "task": "KL01-22",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "audit-regression-a01-offset-filter",
+    "audit-regression-a02-abort-interval",
+    "audit-regression-a03-partial-failure",
+    "audit-regression-a04-offset-out-of-range",
+    "audit-regression-a05-cursor-commit"
+  ],
+  "original_dispositions_preserved": {
+    "failed": [
+      "audit-regression-a01-offset-filter",
+      "audit-regression-a02-abort-interval",
+      "audit-regression-a03-partial-failure",
+      "audit-regression-a04-offset-out-of-range",
+      "audit-regression-a05-cursor-commit"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+    "peer_version_pin": "4.1.0",
+    "adapter": "audit-probe",
+    "note": "cases.json rows stay failed. KL03-02..07 repaired the client; this card independently replays the five histories against Apache-built Fetch v12 and OffsetCommit/OffsetFetch v8 bodies."
+  },
+  "parameter_invocations": {
+    "fetch_version": 12,
+    "offset_commit_version": 8,
+    "offset_fetch_version": 8,
+    "cells": [
+      "a01-offset-filter",
+      "a02-abort-interval",
+      "a03-partial-failure",
+      "a04-offset-out-of-range",
+      "a05-cursor-commit",
+      "a05-offset-commit",
+      "a05-offset-fetch"
+    ],
+    "nested_counts": {
+      "a01-offset-filter": {
+        "topics": 1,
+        "partitions": 1,
+        "fetch_offset": 2,
+        "isolation": 0,
+        "batch_base_offset": 0,
+        "records": 3
+      },
+      "a02-abort-interval": {
+        "topics": 1,
+        "partitions": 1,
+        "fetch_offset": 0,
+        "isolation": 1,
+        "producer_id": 7,
+        "aborted_first_offset": 0,
+        "batches": 4
+      },
+      "a03-partial-failure": {
+        "topics": 1,
+        "partitions": 2,
+        "attempt0_p1_error": 6,
+        "attempt1_both_ok": true
+      },
+      "a04-offset-out-of-range": {
+        "error_code": 1,
+        "log_start_offset": 10,
+        "high_watermark": 20
+      },
+      "a05-cursor-commit": {
+        "max_poll_records": 1,
+        "records": 3,
+        "first_poll": [0],
+        "position": 1,
+        "fetch_cursor": 3,
+        "commit_offset": 1
+      }
+    },
+    "expected_histories": {
+      "a01_delivered_offsets": [2],
+      "a02_delivered_offsets": [2],
+      "a03_delivered_partitions": [[0, 0], [1, 0]],
+      "a04_error": 1,
+      "a04_position": 0,
+      "a05_first_poll": [0],
+      "a05_position": 1,
+      "a05_fetch_cursor": 3,
+      "a05_commit_offset": 1
+    },
+    "field_gates": {
+      "Fetch_flexible": "12+",
+      "Fetch_topic_ids": "13+",
+      "OffsetCommit_flexible": "8+",
+      "OffsetFetch_groups": "8+",
+      "IsolationLevel": "Fetch request 4+",
+      "AbortedTransactions": "Fetch response 4+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "Fetch v12 and OffsetCommit/OffsetFetch v8 are inside 3.9.1 HIGHEST_SUPPORTED_VERSION. GitHub raw of the 3.9.1 commit SHA 404s; sources hashed via tag 3.9.1.",
+      "sources": {
+        "CompletedFetch.java": "346419257e4a07d41a324e6fa68b3e71e56d41e50969058c08adb27ac10f6b61",
+        "FetchCollector.java": "0a9644c085f926ed7572e27fbf2838bff355bd968b6bad8e18be3fbe73e8049b",
+        "FetchRequest.json": "556074dc9896bd9fe33a85aa7bd8816bf1c22b9dc56f03a2b2b359560c31e4eb",
+        "FetchResponse.json": "61d3e92615763f6cf0b2482ac48f7cb3e61dbcf71f2978a403ec3a065ae70011",
+        "OffsetCommitRequest.json": "1e4c542910ec4ecd763226d30dc32ab72248b00545b9754eecf79bb085d0bbbf",
+        "OffsetCommitResponse.json": "7bf57ce10cfa0d302d17719d9f4ad8ffd8cdbd0e200ca5b8e426bf9ba08e2763",
+        "OffsetFetchRequest.json": "669787913bb8bbf951e67700e02dcce398b3ce17c96bd300c135e948efff88ee",
+        "OffsetFetchResponse.json": "295d695c71953a993eff0f45d08b706e4d6c68d5551fe23acf690f91b80f9ec0"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "Historical audit peer. CompletedFetch/FetchCollector match 4.1.2 and 4.2.1 byte-for-byte.",
+      "sources": {
+        "CompletedFetch.java": "3638478037e4aeee8b33a69c7a0296e71d1276d56dc4c619676bbd2351e57baf",
+        "FetchCollector.java": "32cbe19bb5263880235633a38ddd6e440b031242baddaf5e64ffe931d6639e55",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "OffsetCommitRequest.json": "8dfb6ab063329873898c284f55c854c713b10b0aaf74c81ea473622fb81b7b74",
+        "OffsetCommitResponse.json": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "OffsetFetchRequest.json": "4d898429626998ea191ce08ad56222be73602c35bdfb867e18ef4965493e9892",
+        "OffsetFetchResponse.json": "a50da1ce96ebb271acb9c8c5677e5a1c90ade8b194d4c8ef18fd7c6da6defb35"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "CompletedFetch, FetchCollector, and the eight JSON envelopes match 4.1.0.",
+      "sources": {
+        "CompletedFetch.java": "3638478037e4aeee8b33a69c7a0296e71d1276d56dc4c619676bbd2351e57baf",
+        "FetchCollector.java": "32cbe19bb5263880235633a38ddd6e440b031242baddaf5e64ffe931d6639e55",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "OffsetCommitRequest.json": "8dfb6ab063329873898c284f55c854c713b10b0aaf74c81ea473622fb81b7b74",
+        "OffsetCommitResponse.json": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "OffsetFetchRequest.json": "4d898429626998ea191ce08ad56222be73602c35bdfb867e18ef4965493e9892",
+        "OffsetFetchResponse.json": "a50da1ce96ebb271acb9c8c5677e5a1c90ade8b194d4c8ef18fd7c6da6defb35"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "CompletedFetch/FetchCollector match 4.1.0. FetchRequest.json and OffsetCommit/OffsetFetch request JSON differ from 4.1.x; FetchResponse.json and OffsetCommitResponse.json match 4.1.x.",
+      "sources": {
+        "CompletedFetch.java": "3638478037e4aeee8b33a69c7a0296e71d1276d56dc4c619676bbd2351e57baf",
+        "FetchCollector.java": "32cbe19bb5263880235633a38ddd6e440b031242baddaf5e64ffe931d6639e55",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "OffsetCommitRequest.json": "9a1748083aef3296bbd8e07069990d98e9195d56b49c0b35747765a90f4aae9d",
+        "OffsetCommitResponse.json": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "OffsetFetchRequest.json": "bacf7b8065ad3763e6837d7e69855065914facc46d880750fc5c7abca8bfefc0",
+        "OffsetFetchResponse.json": "c4a276a54437b094b7bd4b6c795785b419f81d390dea3c8908028439eda65e7c"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "CompletedFetch/FetchCollector differ from 4.1.0/4.2.1 by the record.internal import move. FetchRequest.json and OffsetCommit/OffsetFetch request/response JSON match 4.2.1. FetchResponse.json matches 4.1.x/4.2.1.",
+      "sources": {
+        "CompletedFetch.java": "8cc51989eadb9ce2aa9251d2c9003ca58b0d556522c617ef8d49772b337515a6",
+        "FetchCollector.java": "329453c014a8165baac95ff77b22f9e97afd329880e06409f178256cf7ea24cd",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+        "OffsetCommitRequest.json": "9a1748083aef3296bbd8e07069990d98e9195d56b49c0b35747765a90f4aae9d",
+        "OffsetCommitResponse.json": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "OffsetFetchRequest.json": "bacf7b8065ad3763e6837d7e69855065914facc46d880750fc5c7abca8bfefc0",
+        "OffsetFetchResponse.json": "c4a276a54437b094b7bd4b6c795785b419f81d390dea3c8908028439eda65e7c"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/internals/CompletedFetch.java",
+      "method": "nextFetchedRecord",
+      "applicability": "applicable",
+      "reason": "A01: skip records with offset < nextFetchOffset (4.1.0 L225). A02: READ_COMMITTED clears abortedProducerIds on ABORT marker (L210-L211) and skips aborted transactional batches (L212-L217). Control batches are not returned (L230-L235)."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/internals/CompletedFetch.java",
+      "method": "fetchRecords",
+      "applicability": "applicable",
+      "reason": "A05: maxRecords (max.poll.records) returns a prefix; nextFetchOffset advances only for returned records (4.1.0 L267-L285). Independent expected history is first poll [0], position 1, fetch cursor 3."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/internals/FetchCollector.java",
+      "method": "fetchRecords / OFFSET_OUT_OF_RANGE",
+      "applicability": "applicable",
+      "reason": "A04: when no reset policy is configured, OFFSET_OUT_OF_RANGE is raised and the assigned position is not rewritten (4.1.0 L336-L356)."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/FetchResponse.json",
+      "method": "AbortedTransactions / Records",
+      "applicability": "applicable",
+      "reason": "A02 response includes abortedTransactions (producerId 7, firstOffset 0) plus four MemoryRecords batches built by the pinned kafka-clients jar."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/OffsetCommitRequest.json",
+      "method": "OffsetCommit v8",
+      "applicability": "applicable",
+      "reason": "A05 wire-qualifies an OffsetCommit8 body with committedOffset 1 (delivered position), leftover-empty decode, and typed re-encode. Not a live group coordinator campaign."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/OffsetFetchRequest.json",
+      "method": "OffsetFetch v8 Groups",
+      "applicability": "applicable",
+      "reason": "A05 wire-qualifies batched OffsetFetch8 groups/topics leftover-empty decode and typed re-encode with committedOffset 1."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json failed dispositions",
+      "reason": "The five audit-regression-a0* rows stay failed at source pin cb7e97d3b92a8555aea34d59266a2990c206395f. This card does not rewrite historical audit results."
+    },
+    {
+      "cell": "A05 full group leave/rejoin",
+      "reason": "The original audit committed the fetch cursor after leave/rejoin. This card qualifies the public Consumer max_poll_records=1 / position() / fetch_cursor() split plus independent OffsetCommit/OffsetFetch v8 bodies. A live group coordinator fixture is out of scope."
+    },
+    {
+      "cell": "Fetch v13+ topic IDs",
+      "reason": "The fixture broker advertises FETCH max v12 so Apache v12 bodies match the negotiated version. Topic IDs start at 13."
+    },
+    {
+      "cell": "tests/common/fetch_fixture.rs and tests/consumer_fetch_semantics.rs",
+      "reason": "Local constructions are not the independent oracle. The loopback broker serves Apache-built response bytes and does not call encode_fetch_response."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}
