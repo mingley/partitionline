@@ -1,18 +1,19 @@
 //! Transaction markers and read-committed visibility.
 //!
 //! Data records belong to a producer epoch. A commit or abort marker decides
-//! that epoch. The last stable offset is the first offset of the oldest
-//! undecided transaction, or the log end when every transaction has a marker.
-//! `read_committed` returns only data below that offset whose marker committed.
-//! Aborted and incomplete records stay hidden. A later committed epoch of the
-//! same producer id is visible on its own.
+//! the records written since the previous marker for that epoch. The same
+//! epoch may start another transaction after the marker. The last stable
+//! offset is the first offset of the oldest undecided transaction, or the log
+//! end when every transaction has a marker. `read_committed` returns only data
+//! below that offset whose own marker committed. Aborted and incomplete
+//! records stay hidden. A later committed epoch of the same producer id is
+//! visible on its own.
 //!
 //! A repeated marker returns the original offset and does not append another
 //! control record. Reopen restores the same committed history. This is not a
 //! Fetch response and it does not write Kafka control batches.
 
 use crate::journal::{self, Journal};
-use std::collections::BTreeMap;
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLTXNM01";
@@ -140,13 +141,12 @@ impl MarkerLog {
 
     /// First offset that is not yet stable.
     pub fn last_stable_offset(&self) -> i64 {
-        let markers = self.markers();
         for (index, entry) in self.entries.iter().enumerate() {
             if let Entry::Data {
                 producer_id, epoch, ..
             } = entry
             {
-                if !markers.contains_key(&(*producer_id, *epoch)) {
+                if self.closing_marker(*producer_id, *epoch, index).is_none() {
                     return index as i64;
                 }
             }
@@ -160,7 +160,6 @@ impl MarkerLog {
     /// transactions are omitted. Control markers are not application data.
     pub fn read_committed(&self, from: i64) -> Vec<u64> {
         let stable = self.last_stable_offset();
-        let markers = self.markers();
         let mut ids = Vec::new();
         for (index, entry) in self.entries.iter().enumerate() {
             let offset = index as i64;
@@ -174,7 +173,7 @@ impl MarkerLog {
                 ..
             } = entry
             {
-                if markers.get(&(*producer_id, *epoch)) == Some(&true) {
+                if self.closing_marker(*producer_id, *epoch, index) == Some(true) {
                     ids.push(*id);
                 }
             }
@@ -204,6 +203,11 @@ impl MarkerLog {
     }
 
     /// Append a commit or abort marker, or return the original marker offset.
+    ///
+    /// The marker decides the data written since the previous marker for this
+    /// producer epoch. A retry that adds no new data returns that marker. The
+    /// opposite decision is refused. Data appended after the marker belongs to
+    /// the next transaction and stays hidden until its own marker.
     pub fn append_marker(
         &mut self,
         producer_id: i64,
@@ -214,19 +218,11 @@ impl MarkerLog {
         if producer_id <= 0 || epoch < 0 {
             return Err(Error::InvalidRequest);
         }
-        if let Some(existing) = self.marker_offset(producer_id, epoch) {
-            let Entry::Marker {
-                offset,
-                commit: stored,
-                ..
-            } = &self.entries[existing]
-            else {
-                return Err(Error::InvalidRequest);
-            };
-            if *stored != commit {
+        if let Some((offset, stored)) = self.trailing_marker(producer_id, epoch) {
+            if stored != commit {
                 return Err(Error::ConflictingMarker);
             }
-            return Ok(*offset);
+            return Ok(offset);
         }
         if self.entries.len() >= self.limits.max_records {
             return Err(Error::InvalidLimits);
@@ -243,33 +239,46 @@ impl MarkerLog {
         Ok(offset)
     }
 
-    fn markers(&self) -> BTreeMap<(i64, i16), bool> {
-        let mut markers = BTreeMap::new();
-        for entry in &self.entries {
+    /// Commit flag of the marker that closes the data record at `data_index`.
+    ///
+    /// `None` means that record is still in an open transaction.
+    fn closing_marker(&self, producer_id: i64, epoch: i16, data_index: usize) -> Option<bool> {
+        for entry in self.entries.iter().skip(data_index.saturating_add(1)) {
             if let Entry::Marker {
-                producer_id,
-                epoch,
+                producer_id: id,
+                epoch: stored,
                 commit,
                 ..
             } = entry
             {
-                markers.insert((*producer_id, *epoch), *commit);
+                if *id == producer_id && *stored == epoch {
+                    return Some(*commit);
+                }
             }
         }
-        markers
+        None
     }
 
-    fn marker_offset(&self, producer_id: i64, epoch: i16) -> Option<usize> {
-        self.entries.iter().position(|entry| {
-            matches!(
-                entry,
-                Entry::Marker {
+    /// Marker that already decided this epoch and has no data after it.
+    fn trailing_marker(&self, producer_id: i64, epoch: i16) -> Option<(i64, bool)> {
+        let mut marker = None;
+        for entry in &self.entries {
+            match entry {
+                Entry::Data {
                     producer_id: id,
                     epoch: stored,
                     ..
-                } if *id == producer_id && *stored == epoch
-            )
-        })
+                } if *id == producer_id && *stored == epoch => marker = None,
+                Entry::Marker {
+                    offset,
+                    producer_id: id,
+                    epoch: stored,
+                    commit,
+                } if *id == producer_id && *stored == epoch => marker = Some((*offset, *commit)),
+                _ => {}
+            }
+        }
+        marker
     }
 
     fn ready(&self) -> Result<(), Error> {
@@ -445,5 +454,49 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first, vec![3]);
         assert!(!first.contains(&1) && !first.contains(&2) && !first.contains(&4));
+    }
+
+    #[test]
+    fn a_later_transaction_in_the_same_epoch_waits_for_its_own_marker() {
+        let (mut log, path) = open("same-epoch");
+        log.append_data(7, 0, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let first = log
+            .append_marker(7, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            log.append_marker(7, 0, true)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            first
+        );
+        let second_data = log
+            .append_data(7, 0, 2)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.last_stable_offset(), second_data);
+        assert_eq!(log.read_committed(0), vec![1]);
+        let second = log
+            .append_marker(7, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_ne!(second, first);
+        assert_eq!(log.read_committed(0), vec![1, 2]);
+        assert_eq!(
+            log.append_marker(7, 0, true)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            second
+        );
+        assert!(matches!(
+            log.append_marker(7, 0, false),
+            Err(Error::ConflictingMarker)
+        ));
+        log.append_data(7, 0, 3)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.append_marker(7, 0, false)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.read_committed(0), vec![1, 2]);
+        assert_eq!(log.last_stable_offset(), log.log_end_offset());
+        drop(log);
+        let restored = MarkerLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.read_committed(0), vec![1, 2]);
+        assert!(!restored.read_committed(0).contains(&3));
     }
 }
