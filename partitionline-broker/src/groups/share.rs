@@ -439,20 +439,29 @@ impl Groups {
         }
         let mut next = self.state.clone();
         let counts = next.topics.clone();
-        let Some(group) = next.groups.get_mut(request.group_id) else {
-            return Err(Error::UnknownMember);
+        let (epoch, assignment_epoch, version, empty) = {
+            let Some(group) = next.groups.get_mut(request.group_id) else {
+                return Err(Error::UnknownMember);
+            };
+            if group.members.remove(request.member_id).is_none() {
+                return Err(Error::UnknownMember);
+            }
+            group.epoch = group.epoch.saturating_add(1);
+            let empty = group.members.is_empty();
+            if !empty {
+                reassign(group, &counts);
+            }
+            (group.epoch, group.assignment_epoch, group.version, empty)
         };
-        if group.members.remove(request.member_id).is_none() {
-            return Err(Error::UnknownMember);
+        if empty {
+            next.groups.remove(request.group_id);
         }
-        group.epoch = group.epoch.saturating_add(1);
-        reassign(group, &counts);
         let result = HeartbeatResult {
             member_id: request.member_id.to_owned(),
             member_epoch: LEAVE_GROUP_MEMBER_EPOCH,
-            group_epoch: group.epoch,
-            assignment_epoch: group.assignment_epoch,
-            version: group.version,
+            group_epoch: epoch,
+            assignment_epoch,
+            version,
             heartbeat_interval_ms: self.limits.heartbeat_interval_ms,
             assignment: Some(BTreeMap::new()),
         };
@@ -858,6 +867,28 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
         assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups.describe("g").is_none());
+        let joined = groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+                now_ms: 0,
+                subscribed_topics: Some(&["orders"]),
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: &joined.member_id,
+                member_epoch: LEAVE_GROUP_MEMBER_EPOCH,
+                now_ms: 0,
+                subscribed_topics: None,
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.describe("g").is_none());
     }
 
     #[test]

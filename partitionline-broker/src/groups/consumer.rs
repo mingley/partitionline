@@ -469,20 +469,29 @@ impl Groups {
         }
         let mut next = self.state.clone();
         let topic_counts = next.topics.clone();
-        let Some(group) = next.groups.get_mut(request.group) else {
-            return Err(Error::UnknownMember);
+        let (epoch, version, empty) = {
+            let Some(group) = next.groups.get_mut(request.group) else {
+                return Err(Error::UnknownMember);
+            };
+            let Some(member) = group.members.get(request.member_id) else {
+                return Err(Error::UnknownMember);
+            };
+            if member.instance.as_deref() != request.instance_id {
+                return Err(Error::FencedInstance);
+            }
+            group.members.remove(request.member_id);
+            group.epoch = group.epoch.saturating_add(1);
+            let epoch = group.epoch;
+            let version = group.version;
+            let empty = group.members.is_empty();
+            if !empty {
+                finish_group_with(group, &topic_counts);
+            }
+            (epoch, version, empty)
         };
-        let Some(member) = group.members.get(request.member_id) else {
-            return Err(Error::UnknownMember);
-        };
-        if member.instance.as_deref() != request.instance_id {
-            return Err(Error::FencedInstance);
+        if empty {
+            next.groups.remove(request.group);
         }
-        group.members.remove(request.member_id);
-        group.epoch = group.epoch.saturating_add(1);
-        finish_group_with(group, &topic_counts);
-        let epoch = group.epoch;
-        let version = group.version;
         self.commit(next)?;
         Ok(Assigned {
             member_id: request.member_id.to_owned(),
@@ -934,6 +943,18 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
         assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups.describe("orders-g").is_none());
+        let joined = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat(Heartbeat {
+                member_epoch: -1,
+                member_id: &joined.member_id,
+                ..beat("orders-g", &joined.member_id, -1, 1, &["orders"])
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.describe("orders-g").is_none());
     }
 
     #[test]

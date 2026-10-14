@@ -432,23 +432,32 @@ impl Groups {
 
     fn leave(&mut self, request: Heartbeat<'_>) -> Result<HeartbeatResult, Error> {
         let mut next = self.state.clone();
-        let Some(group) = next.groups.get_mut(request.group_id) else {
-            return Err(Error::UnknownMember);
+        let (epoch, assignment_epoch, empty) = {
+            let Some(group) = next.groups.get_mut(request.group_id) else {
+                return Err(Error::UnknownMember);
+            };
+            let Some(member) = group.members.get(request.member_id) else {
+                return Err(Error::UnknownMember);
+            };
+            if member.instance.as_deref() != request.instance_id {
+                return Err(Error::FencedInstance);
+            }
+            group.members.remove(request.member_id);
+            group.epoch = group.epoch.saturating_add(1);
+            let empty = group.members.is_empty();
+            if !empty {
+                reassign(group);
+            }
+            (group.epoch, group.assignment_epoch, empty)
         };
-        let Some(member) = group.members.get(request.member_id) else {
-            return Err(Error::UnknownMember);
-        };
-        if member.instance.as_deref() != request.instance_id {
-            return Err(Error::FencedInstance);
+        if empty {
+            next.groups.remove(request.group_id);
         }
-        group.members.remove(request.member_id);
-        group.epoch = group.epoch.saturating_add(1);
-        reassign(group);
         let result = HeartbeatResult {
             member_id: request.member_id.to_owned(),
             member_epoch: LEAVE_GROUP_MEMBER_EPOCH,
-            group_epoch: group.epoch,
-            assignment_epoch: group.assignment_epoch,
+            group_epoch: epoch,
+            assignment_epoch,
             endpoint_epoch: request.endpoint_epoch,
             active: Vec::new(),
             standby: Vec::new(),
@@ -861,6 +870,19 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
         assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+        assert!(groups.describe("app").is_none());
+        let joined = groups
+            .heartbeat(join("a", Some("i-1")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat(Heartbeat {
+                member_epoch: LEAVE_GROUP_MEMBER_EPOCH,
+                member_id: &joined.member_id,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(groups.describe("app").is_none());
     }
 
