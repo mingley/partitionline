@@ -1,6 +1,6 @@
 //! Cluster metadata: brokers and per-partition leaders.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
@@ -46,6 +46,9 @@ impl Cluster {
                 .insert(b.node_id, crate::net::format_address(&b.host, b.port));
         }
         let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
+        // A topic named twice in one response is one image. A later copy must
+        // not drop partitions the earlier copy already accepted.
+        let mut seen_topics: HashSet<&str> = HashSet::new();
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
                 continue;
@@ -72,6 +75,7 @@ impl Cluster {
                 (Some(cached), Some(incoming)) => cached != incoming,
                 _ => false,
             };
+            let repeated = seen_topics.contains(name.as_str());
             if recreated {
                 let _removed = self.leaders.remove(name);
                 let _removed = self.leader_epochs.remove(name);
@@ -79,7 +83,7 @@ impl Cluster {
             }
             if version >= 10 && t.topic_id != [0; 16] {
                 let _ = self.topic_ids.insert(name.clone(), t.topic_id);
-            } else {
+            } else if !repeated {
                 let _ = self.topic_ids.remove(name);
             }
             let mut max_idx = -1i32;
@@ -93,17 +97,42 @@ impl Cluster {
             if max_idx < 0 {
                 continue;
             }
-            let len = match usize::try_from(max_idx.saturating_add(1)) {
+            let new_len = match usize::try_from(max_idx.saturating_add(1)) {
                 Ok(n) => n,
                 Err(_) => continue,
             };
             let previous_leaders = self.leaders.get(name).cloned();
             let previous_epochs = self.leader_epochs.get(name).cloned();
+            let previous_len = previous_leaders.as_ref().map(Vec::len).unwrap_or(0);
+            let len = if repeated {
+                previous_len.max(new_len)
+            } else {
+                new_len
+            };
             let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
             let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
             // A repeated partition is one decision. A later copy must not
             // discard a leader this response already accepted.
             let mut decided = vec![false; len];
+            if repeated {
+                if let Some(previous) = &previous_leaders {
+                    for (idx, id) in previous.iter().enumerate() {
+                        if let Some(slot) = leaders.get_mut(idx) {
+                            *slot = *id;
+                        }
+                        if let Some(slot) = decided.get_mut(idx) {
+                            *slot = true;
+                        }
+                    }
+                }
+                if let Some(previous) = &previous_epochs {
+                    for (idx, epoch) in previous.iter().enumerate() {
+                        if let Some(slot) = epochs.get_mut(idx) {
+                            *slot = *epoch;
+                        }
+                    }
+                }
+            }
             for p in &t.partitions {
                 let Ok(idx) = usize::try_from(p.partition_index) else {
                     continue;
@@ -190,6 +219,7 @@ impl Cluster {
             let _prev = self.leaders.insert(name.clone(), leaders);
             let _prev = self.leader_epochs.insert(name.clone(), epochs);
             let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+            let _inserted = seen_topics.insert(name.as_str());
         }
     }
 
@@ -774,6 +804,83 @@ mod tests {
         cluster.apply(&metadata(1, 10), 13);
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 10);
+    }
+
+    #[test]
+    fn a_later_topic_copy_keeps_partitions_from_the_first_image() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let partition = |index: i32, leader: i32, epoch: i32| PartitionMetadata {
+            error_code: 0,
+            partition_index: index,
+            leader_id: leader,
+            leader_epoch: epoch,
+            replica_nodes: vec![leader],
+            isr_nodes: vec![leader],
+            offline_replicas: Vec::new(),
+        };
+        let topic = |topic_id: [u8; 16], parts: Vec<PartitionMetadata>| TopicMetadata {
+            error_code: 0,
+            name: Some("t".into()),
+            topic_id,
+            is_internal: false,
+            partitions: parts,
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        let response = |topics: Vec<TopicMetadata>| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics,
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &response(vec![
+                topic([1u8; 16], vec![partition(0, 1, 5), partition(1, 1, 5)]),
+                topic([1u8; 16], vec![partition(0, 2, 3)]),
+            ]),
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 5);
+        assert_eq!(cluster.leader("t", 1).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 1), 5);
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([1u8; 16]));
+        cluster.apply(
+            &response(vec![
+                topic([1u8; 16], vec![partition(0, 1, 3), partition(1, 1, 3)]),
+                topic([0u8; 16], vec![partition(0, 2, 6)]),
+            ]),
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 6);
+        assert_eq!(cluster.leader("t", 1).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 1), 5);
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([1u8; 16]));
+        cluster.apply(
+            &response(vec![topic([1u8; 16], vec![partition(0, 2, 7)])]),
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 7);
+        assert!(cluster.leader("t", 1).is_err());
     }
 
     #[test]
