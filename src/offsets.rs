@@ -589,6 +589,7 @@ pub(crate) fn collect_bounded_commits(
                 "committed partition and offset must not be negative",
             ));
         }
+        crate::protocol::group::Topic::validate(&tp.topic)?;
         if !seen.insert((tp.topic.clone(), tp.partition)) {
             return Err(Error::protocol("duplicate committed partition"));
         }
@@ -621,6 +622,7 @@ pub(crate) fn collect_bounded_partitions(
                 "offset partition index must not be negative",
             ));
         }
+        crate::protocol::group::Topic::validate(&partition.topic)?;
         if !seen.insert((partition.topic.clone(), partition.partition)) {
             return Err(Error::protocol("duplicate offset partition"));
         }
@@ -835,5 +837,14 @@ mod tests {
             TopicPartition::new("t", 0),
         ])
         .is_err());
+        let invalid = collect_bounded_commits([(
+            TopicPartition::new("bad name", 0),
+            OffsetAndMetadata::new(1),
+        )])
+        .unwrap_err()
+        .to_string();
+        assert!(invalid.contains("Topic name is invalid"), "{invalid}");
+        assert!(collect_bounded_partitions([TopicPartition::new("", 0)]).is_err());
+        assert!(collect_bounded_partitions([TopicPartition::new("orders", 0)]).is_ok());
     }
 }
