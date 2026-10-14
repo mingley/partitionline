@@ -190,7 +190,8 @@ impl Offsets {
     ///
     /// Valid partitions in the batch are written together. Invalid partitions
     /// are returned with `OFFSET_METADATA_TOO_LARGE` or a local non-zero code
-    /// and do not roll back the valid ones. Other groups are unchanged.
+    /// and do not roll back the valid ones. A later copy of the same partition
+    /// is rejected and does not replace the first copy. Other groups are unchanged.
     pub fn commit(
         &mut self,
         group_id: &str,
@@ -215,15 +216,22 @@ impl Offsets {
         }
         let mut results = Vec::with_capacity(batch.len());
         let mut accepted = Vec::new();
+        let mut seen = BTreeSet::new();
         for (topic, partition, offset, metadata) in batch {
-            let error_code =
-                if catalog::validate_topic_name(topic).is_err() || *partition < 0 || *offset < 0 {
-                    42
-                } else if metadata.len() > 4096 {
-                    OFFSET_METADATA_TOO_LARGE
-                } else {
-                    0
-                };
+            // The first copy of a partition is the one that can be stored.
+            // A later copy must not replace it.
+            let duplicate = !seen.insert((*topic, *partition));
+            let error_code = if duplicate
+                || catalog::validate_topic_name(topic).is_err()
+                || *partition < 0
+                || *offset < 0
+            {
+                42
+            } else if metadata.len() > 4096 {
+                OFFSET_METADATA_TOO_LARGE
+            } else {
+                0
+            };
             results.push(PartitionResult {
                 topic: (*topic).to_owned(),
                 partition: *partition,
@@ -466,6 +474,30 @@ mod tests {
     }
 
     #[test]
+    fn a_duplicate_commit_keeps_the_first_offset() {
+        let (mut offsets, path) = open("duplicate");
+        let results = offsets
+            .commit(
+                "orders",
+                "m-1",
+                1,
+                &[("orders", 0, 4, "first"), ("orders", 0, 9, "second")],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].error_code, 0);
+        assert_eq!(results[1].error_code, 42);
+        assert_eq!(
+            offsets
+                .fetch("orders", "orders", 0)
+                .map(|committed| committed.offset),
+            Some(4)
+        );
+        drop(offsets);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn partial_commit_keeps_the_valid_partition_and_the_other_group() {
         let (mut offsets, path) = open("partial");
         offsets
@@ -530,8 +562,7 @@ mod tests {
             .unwrap_or_default()
             .as_nanos();
         let path = std::env::temp_dir().join(format!("pl-goff-replace-{nanos}"));
-        let mut offsets =
-            Offsets::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut offsets = Offsets::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
         offsets
             .commit("orders", "m-1", 1, &[("orders", 0, 4, "")])
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -556,7 +587,12 @@ mod tests {
         assert!(offsets.fetch("orders", "orders", 1).is_none());
         assert_eq!(offsets.describe("orders"), Some((1, 1)));
         assert!(matches!(
-            offsets.commit("payments", "m-1", 1, &[("paid", 0, 1, ""), ("paid", 1, 2, "")]),
+            offsets.commit(
+                "payments",
+                "m-1",
+                1,
+                &[("paid", 0, 1, ""), ("paid", 1, 2, "")]
+            ),
             Err(Error::InvalidLimits)
         ));
         assert!(offsets.describe("payments").is_none());
