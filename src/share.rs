@@ -1014,7 +1014,6 @@ impl ShareGroup {
         if !self.assigned.is_empty() {
             return Ok(());
         }
-        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
         let timeout = self.cfg.request_timeout;
         while self.assigned.is_empty() {
             if Instant::now() >= deadline {
@@ -1036,14 +1035,13 @@ impl ShareGroup {
                 rack_id: self.cfg.rack.clone(),
                 subscribed_topic_names: Some(self.topics.clone()),
             };
-            let body = coord_roundtrip(
+            let (version, body) = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
                 COORDINATOR_GROUP,
                 SHARE_GROUP_HEARTBEAT,
-                version,
-                |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
                 timeout,
             )
             .await?;
@@ -2214,7 +2212,6 @@ impl ShareGroup {
 
     async fn leave_coordinator(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
-        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -2222,14 +2219,13 @@ impl ShareGroup {
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: None,
         };
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             SHARE_GROUP_HEARTBEAT,
-            version,
-            |buf| encode_share_group_heartbeat_request(buf, version, &req),
+            |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
             timeout,
         )
         .await?;

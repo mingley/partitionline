@@ -1175,21 +1175,19 @@ impl ConsumerGroup {
         if self.coord.offset_fetch_version == 10 {
             return self.fetch_offsets_v10(topics, timeout).await;
         }
-        let version = spoken_offset_fetch(self.coord.offset_fetch_version)?;
         let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
         let (member_id, member_epoch) = if self.kip848 {
             (Some(self.member_id.as_str()), self.generation_id)
         } else {
             (None, -1)
         };
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             OFFSET_FETCH,
-            version,
-            |buf| {
+            |version, buf| {
                 encode_offset_fetch_request(
                     buf,
                     version,
@@ -1615,15 +1613,13 @@ impl ConsumerGroup {
         topics: &[OffsetTopic],
         timeout: Duration,
     ) -> Result<()> {
-        let version = spoken_offset_commit(self.coord.offset_commit_version)?;
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             OFFSET_COMMIT,
-            version,
-            |buf| {
+            |version, buf| {
                 encode_offset_commit_request(
                     buf,
                     version,
@@ -1971,8 +1967,6 @@ impl ConsumerGroup {
         let timeout = self.cfg.request_timeout;
         if self.kip848 {
             self.adopt_kip848_member_id();
-            let version =
-                spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
             let req = ConsumerGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
@@ -1987,14 +1981,13 @@ impl ConsumerGroup {
                 server_assignor: None,
                 topic_partitions: None,
             };
-            let body = coord_roundtrip(
+            let (version, body) = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
-                version,
-                |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 timeout,
             )
             .await?;
@@ -2007,20 +2000,20 @@ impl ConsumerGroup {
             }
             return Ok(());
         }
-        let version = spoken_leave_group(self.coord.leave_group_version)?;
         let members = [LeaveGroupMember {
             member_id: self.member_id.clone(),
             group_instance_id: self.cfg.group_instance_id.clone(),
             reason: Some(truncate_group_reason(reason)),
         }];
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             LEAVE_GROUP,
-            version,
-            |buf| encode_leave_group_request_members(buf, version, &self.group_id, &members),
+            |version, buf| {
+                encode_leave_group_request_members(buf, version, &self.group_id, &members)
+            },
             timeout,
         )
         .await?;
@@ -2078,17 +2071,15 @@ impl ConsumerGroup {
             .iter()
             .map(|(n, m)| JoinGroupProtocol::new(n, m))
             .collect();
-        let version = spoken_join_group(self.coord.join_group_version)?;
         let reason = self.rebalance_reason.take();
         let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
-            let body = coord_roundtrip(
+            let (version, body) = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
                 COORDINATOR_GROUP,
                 JOIN_GROUP,
-                version,
-                |buf| {
+                |version, buf| {
                     encode_join_group_protocols_request(
                         buf,
                         version,
@@ -2175,15 +2166,13 @@ impl ConsumerGroup {
             } else {
                 Vec::new()
             };
-        let version = spoken_sync_group(self.coord.sync_group_version)?;
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             SYNC_GROUP,
-            version,
-            |buf| {
+            |version, buf| {
                 encode_sync_group_request(
                     buf,
                     version,
@@ -2247,14 +2236,13 @@ impl ConsumerGroup {
             // (re-)joining"); send an empty array instead of null/unchanged.
             topic_partitions: Some(Vec::new()),
         };
-        let body = coord_roundtrip(
+        let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             CONSUMER_GROUP_HEARTBEAT,
-            version,
-            |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+            |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
             timeout,
         )
         .await?;
@@ -3290,41 +3278,39 @@ async fn open_coord_with_find_version(
     Ok((conn, version))
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "coord roundtrip is one wire call plus rediscovery identity"
-)]
 pub(crate) async fn coord_roundtrip(
     coord: &mut BrokerConn,
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
     api_key: i16,
-    api_version: i16,
-    encode_body: impl Fn(&mut BytesMut) -> Result<()>,
+    mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
     request_timeout: Duration,
-) -> Result<Bytes> {
+) -> Result<(i16, Bytes)> {
     if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
-        return offsets::coord_offsets_legacy(
+        let version = negotiated_coord_version(coord, api_key)?;
+        let body = offsets::coord_offsets_legacy(
             coord,
             cfg,
             group_id,
             key_type,
             api_key,
-            api_version,
-            encode_body,
+            version,
+            |buf| encode_body(version, buf),
             request_timeout,
         )
-        .await;
+        .await?;
+        return Ok((version, body));
     }
     if coord.idle_expired(cfg.connections_max_idle) {
         *coord = open_coord(cfg, coord.addr()).await?;
     }
+    let version = negotiated_coord_version(coord, api_key)?;
     let body = match coord
         .roundtrip(
             api_key,
-            api_version,
-            |buf| encode_body(buf),
+            version,
+            |buf| encode_body(version, buf),
             request_timeout,
         )
         .await
@@ -3332,29 +3318,99 @@ pub(crate) async fn coord_roundtrip(
         Ok(body) => body,
         Err(e) if e.is_retriable() => {
             *coord = open_coord(cfg, coord.addr()).await?;
-            coord
+            let version = negotiated_coord_version(coord, api_key)?;
+            let body = coord
                 .roundtrip(
                     api_key,
-                    api_version,
-                    |buf| encode_body(buf),
+                    version,
+                    |buf| encode_body(version, buf),
                     request_timeout,
                 )
-                .await?
+                .await?;
+            return finish_coord_roundtrip(
+                coord,
+                cfg,
+                group_id,
+                key_type,
+                api_key,
+                version,
+                body,
+                &mut encode_body,
+                request_timeout,
+            )
+            .await;
         }
         Err(e) => return Err(e),
     };
-    if coordinator_error(api_key, api_version, &body).is_some_and(error::coordinator_retriable) {
+    finish_coord_roundtrip(
+        coord,
+        cfg,
+        group_id,
+        key_type,
+        api_key,
+        version,
+        body,
+        &mut encode_body,
+        request_timeout,
+    )
+    .await
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coord roundtrip is one wire call plus rediscovery identity"
+)]
+async fn finish_coord_roundtrip(
+    coord: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    api_key: i16,
+    version: i16,
+    body: Bytes,
+    encode_body: &mut impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    request_timeout: Duration,
+) -> Result<(i16, Bytes)> {
+    if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
         *coord = discover_coord(cfg, group_id, key_type).await?;
-        coord
+        let version = negotiated_coord_version(coord, api_key)?;
+        let body = coord
             .roundtrip(
                 api_key,
-                api_version,
-                |buf| encode_body(buf),
+                version,
+                |buf| encode_body(version, buf),
                 request_timeout,
             )
-            .await
+            .await?;
+        Ok((version, body))
     } else {
-        Ok(body)
+        Ok((version, body))
+    }
+}
+
+pub(crate) fn negotiated_coord_version(coord: &BrokerConn, api_key: i16) -> Result<i16> {
+    match api_key {
+        OFFSET_FETCH => spoken_offset_fetch(coord.offset_fetch_version),
+        OFFSET_COMMIT => spoken_offset_commit(coord.offset_commit_version),
+        JOIN_GROUP => spoken_join_group(coord.join_group_version),
+        SYNC_GROUP => spoken_sync_group(coord.sync_group_version),
+        HEARTBEAT => spoken_heartbeat(coord.heartbeat_version),
+        LEAVE_GROUP => spoken_leave_group(coord.leave_group_version),
+        CONSUMER_GROUP_HEARTBEAT => {
+            spoken_consumer_group_heartbeat(coord.consumer_group_heartbeat_version)
+        }
+        SHARE_GROUP_HEARTBEAT => {
+            if (0..=1).contains(&coord.share_group_heartbeat_version) {
+                Ok(coord.share_group_heartbeat_version)
+            } else {
+                Err(Error::Unsupported(
+                    "broker does not support ShareGroupHeartbeat v0-1".into(),
+                ))
+            }
+        }
+        _ => Err(Error::protocol(format!(
+            "coordinator api {api_key} has no negotiated version"
+        ))),
     }
 }
 

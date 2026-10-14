@@ -283,7 +283,7 @@ pub(super) async fn coord_offsets_legacy(
     key_type: i8,
     api: i16,
     version: i16,
-    encode: impl Fn(&mut bytes::BytesMut) -> Result<()>,
+    mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
     if version >= 10 {
