@@ -2418,6 +2418,21 @@ impl Consumer {
         self.cluster.leader_epoch(topic, partition)
     }
 
+    /// Leader epoch for the next undelivered record, else the fetch cursor's epoch.
+    pub(crate) fn position_epoch(&self, topic: &str, partition: i32) -> i32 {
+        let pending = self
+            .pending
+            .partitions
+            .get(topic, partition)
+            .and_then(|records| records.front())
+            .and_then(|record| record.leader_epoch);
+        crate::group::commit_position_epoch(
+            pending,
+            self.last_fetched_epoch(topic, partition),
+            self.leader_epoch(topic, partition),
+        )
+    }
+
     pub(crate) fn last_fetched_epoch(&self, topic: &str, partition: i32) -> i32 {
         self.last_fetched_epochs
             .get(topic, partition)

@@ -1528,8 +1528,9 @@ impl ConsumerGroup {
     /// consumable offset), not the ahead-of-delivery broker fetch cursor. When
     /// [`ConsumerConfig::max_poll_records`] leaves fetched records buffered in
     /// the consumer, undelivered records remain uncommitted so they are available
-    /// on restart or rejoin. The committed leader epoch is the epoch of the
-    /// fetched records when one is known, and the metadata leader epoch otherwise.
+    /// on restart or rejoin. The committed leader epoch is the epoch of the next
+    /// undelivered record when one is buffered, otherwise the epoch of the
+    /// fetched records, and the metadata leader epoch only when neither is known.
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. To commit only
     /// partitions from the last poll, pass [`ConsumerRecords::next_offsets`]
@@ -1724,10 +1725,7 @@ impl ConsumerGroup {
             .positions()
             .into_iter()
             .map(|(tp, offset)| {
-                let epoch = commit_position_epoch(
-                    self.consumer.last_fetched_epoch(&tp.topic, tp.partition),
-                    self.consumer.leader_epoch(&tp.topic, tp.partition),
-                );
+                let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),
@@ -3176,12 +3174,18 @@ pub(crate) fn committed_offset_map(
     Ok(map)
 }
 
-fn commit_position_epoch(last_fetched: i32, metadata_epoch: i32) -> i32 {
-    if last_fetched >= 0 {
-        last_fetched
-    } else {
-        metadata_epoch
+pub(crate) fn commit_position_epoch(
+    pending: Option<i32>,
+    last_fetched: i32,
+    metadata_epoch: i32,
+) -> i32 {
+    if let Some(epoch) = pending.filter(|epoch| *epoch >= 0) {
+        return epoch;
     }
+    if last_fetched >= 0 {
+        return last_fetched;
+    }
+    metadata_epoch
 }
 
 #[cfg(test)]
@@ -3625,9 +3629,10 @@ mod tests {
 
     #[test]
     fn a_commit_uses_the_fetched_epoch_ahead_of_metadata() {
-        assert_eq!(commit_position_epoch(4, 9), 4);
-        assert_eq!(commit_position_epoch(-1, 9), 9);
-        assert_eq!(commit_position_epoch(-1, -1), -1);
+        assert_eq!(commit_position_epoch(Some(1), 4, 9), 1);
+        assert_eq!(commit_position_epoch(None, 4, 9), 4);
+        assert_eq!(commit_position_epoch(None, -1, 9), 9);
+        assert_eq!(commit_position_epoch(Some(-1), -1, 9), 9);
     }
 
     #[test]
