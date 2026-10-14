@@ -29,6 +29,8 @@ impl Cluster {
     ///
     /// `version` is the negotiated Metadata api version. Leader epochs are
     /// retained only when [`MetadataResponse::has_reliable_leader_epochs`].
+    /// A reliable response does not replace a cached leader with an older
+    /// epoch from a current-leader update.
     pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
@@ -63,6 +65,8 @@ impl Cluster {
                 Ok(n) => n,
                 Err(_) => continue,
             };
+            let previous_leaders = self.leaders.get(name).cloned();
+            let previous_epochs = self.leader_epochs.get(name).cloned();
             let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
             let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
             for p in &t.partitions {
@@ -72,6 +76,25 @@ impl Cluster {
                 let Ok(idx) = usize::try_from(p.partition_index) else {
                     continue;
                 };
+                let cached_epoch = previous_epochs
+                    .as_ref()
+                    .and_then(|cached| cached.get(idx).copied())
+                    .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
+                let keep_cached = retain_epochs
+                    && cached_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH
+                    && p.leader_epoch < cached_epoch;
+                if keep_cached {
+                    if let Some(slot) = leaders.get_mut(idx) {
+                        *slot = previous_leaders
+                            .as_ref()
+                            .and_then(|cached| cached.get(idx).copied())
+                            .unwrap_or(MetadataResponse::NO_LEADER_ID);
+                    }
+                    if let Some(slot) = epochs.get_mut(idx) {
+                        *slot = cached_epoch;
+                    }
+                    continue;
+                }
                 if let Some(slot) = leaders.get_mut(idx) {
                     *slot = p.leader_id;
                 }
@@ -421,6 +444,58 @@ mod tests {
         assert!(cluster.apply_current_leader("t", 0, 1, 8));
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 8);
+    }
+
+    #[test]
+    fn metadata_does_not_roll_a_newer_leader_epoch_backward() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let metadata = |leader: i32, epoch: i32| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: leader,
+                    leader_epoch: epoch,
+                    replica_nodes: vec![1, 2],
+                    isr_nodes: vec![1, 2],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(&metadata(1, 4), 13);
+        assert!(cluster.apply_current_leader("t", 0, 2, 9));
+        cluster.apply(&metadata(1, 4), 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 9);
+        cluster.apply(&metadata(1, 10), 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 10);
     }
 
     #[test]
