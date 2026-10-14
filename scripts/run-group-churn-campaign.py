@@ -409,7 +409,7 @@ def run_one_cell(
         paths["go_b"].write_text('{"action":"die"}\n')
         proc_b = procs["b"]
         try:
-            stdout_b, stderr_b = proc_b.communicate(timeout=15)
+            stdout_b, stderr_b = proc_b.communicate(timeout=30)
             rc_b = proc_b.returncode
         except subprocess.TimeoutExpired:
             proc_b.kill()

@@ -318,7 +318,11 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
         arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
     }
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
-    let action = wait_go_partition(&mut group, &mut seen, &go, Duration::from_secs(40)).await?;
+    let action = if names.member == "b" {
+        go_action(&wait_file(&go, Duration::from_secs(40)).await?)
+    } else {
+        wait_go_partition(&mut group, &mut seen, &go, Duration::from_secs(40)).await?
+    };
     if action == "die" {
         drop(group.leave().await);
         std::process::exit(CRASH_EXIT);
