@@ -5162,11 +5162,12 @@ impl Consumer {
             .await
     }
 
-    /// High watermark minus position (Java `currentLag`).
+    /// High watermark minus the delivered position (Java `currentLag`).
     ///
-    /// `None` when the high watermark is unknown (`-1`). An unassigned
-    /// partition is Java `IllegalStateException` (`No current assignment
-    /// for partition`).
+    /// Buffered records still count as lag. A position past the high
+    /// watermark reports `0`. `None` when the high watermark is unknown
+    /// (`-1`). An unassigned partition is Java `IllegalStateException`
+    /// (`No current assignment for partition`).
     pub async fn current_lag(
         &mut self,
         partition: impl Into<TopicPartition>,
@@ -5185,12 +5186,13 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<Option<i64>> {
         let tp = partition.into();
-        let pos = self
+        let fetch_cursor = self
             .assigned
             .iter()
             .find(|(t, p, _)| t == &tp.topic && *p == tp.partition)
             .map(|(_, _, o)| *o)
             .ok_or_else(|| reject_java_no_current_assignment(&tp.topic, tp.partition))?;
+        let pos = self.delivered_position(&tp.topic, tp.partition, fetch_cursor);
         let hw = self
             .list_offsets_timeout(
                 tp.topic.clone(),
@@ -5199,11 +5201,7 @@ impl Consumer {
                 timeout,
             )
             .await?;
-        if hw < 0 {
-            Ok(None)
-        } else {
-            Ok(Some(hw - pos))
-        }
+        Ok(partition_lag(hw, pos))
     }
 
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
@@ -5530,6 +5528,16 @@ fn fetch_topics(
 ///
 /// [`crate::protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] is not a
 /// log position. A successful lookup with that sentinel must not rewind.
+/// Java `SubscriptionState.partitionLag`: unknown watermark is empty, and a
+/// position past the high watermark is zero rather than negative.
+fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
+    if high_watermark < 0 {
+        None
+    } else {
+        Some(high_watermark.saturating_sub(position).max(0))
+    }
+}
+
 /// A ListOffsets reset position. Offset `-1` means the broker has no offset.
 pub(crate) fn reset_position(offset: i64) -> Option<i64> {
     (offset >= 0).then_some(offset)
@@ -5744,6 +5752,14 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn lag_counts_buffered_records_and_does_not_go_negative() {
+        assert_eq!(partition_lag(5, 2), Some(3));
+        assert_eq!(partition_lag(5, 5), Some(0));
+        assert_eq!(partition_lag(2, 5), Some(0));
+        assert_eq!(partition_lag(-1, 0), None);
     }
 
     #[test]

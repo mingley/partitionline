@@ -5031,3 +5031,43 @@ async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
     consumer.close().await.unwrap();
     broker.shutdown().await;
 }
+
+/// Buffered records are still lag, and a position past the high watermark is zero.
+#[tokio::test]
+async fn current_lag_includes_buffered_records_and_clamps_at_zero() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.max_poll_records = Some(1);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(consumer.position("t", 0).unwrap(), 1);
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 2);
+    assert_eq!(
+        consumer.current_lag(("t", 0)).await.unwrap(),
+        Some(1),
+        "the buffered record must still count as lag"
+    );
+
+    consumer.seek("t", 0, 5).unwrap();
+    assert_eq!(
+        consumer.current_lag(("t", 0)).await.unwrap(),
+        Some(0),
+        "a position past the high watermark is zero lag"
+    );
+    consumer.close().await.unwrap();
+}
