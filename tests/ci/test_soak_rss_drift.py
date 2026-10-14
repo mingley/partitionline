@@ -92,6 +92,46 @@ class SoakRssDrift(unittest.TestCase):
         self.assertIn("short of the", result.stderr)
         self.assertEqual(result.stdout, "")
 
+    def test_progress_reports_incomplete_first_hour(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "early"
+            write_run(directory, [10_000_000] * 20)
+            result = self.run_checker(directory, extra=("--progress",))
+            data = json.loads(result.stdout)
+            self.assertEqual(data["report"], "progress")
+            self.assertFalse(data["passed"])
+            self.assertFalse(data["complete_24h"])
+            self.assertFalse(data["first_hour"]["complete"])
+            self.assertIsNone(data["first_hour"]["median_rss_bytes"])
+            self.assertGreater(data["first_hour"]["remaining_ms"], 0)
+
+    def test_progress_reports_first_hour_when_window_closes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "hour"
+            write_run(directory, series(8_000_000, 10_000_000, 10_200_000, 10_400_000))
+            result = self.run_checker(directory, extra=("--progress",))
+            data = json.loads(result.stdout)
+            self.assertTrue(data["first_hour"]["complete"])
+            self.assertEqual(data["first_hour"]["median_rss_bytes"], 10_000_000)
+            self.assertFalse(data["passed"])
+            self.assertFalse(data["production_qualification"])
+
+    def test_live_kl02_10_progress_is_not_a_pass(self):
+        live = Path("/tmp/kl02-10-soak")
+        if not (live / "frozen.json").is_file():
+            self.skipTest("live KL02-10 output is not on this host")
+        result = subprocess.run(
+            ["python3", "-B", str(SCRIPT), str(live), "--progress"],
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["report"], "progress")
+        self.assertFalse(data["passed"])
+        self.assertFalse(data["complete_24h"])
+        self.assertGreater(data["elapsed_ms"], 0)
+        self.assertGreater(data["rss_bytes"]["latest"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

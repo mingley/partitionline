@@ -65,6 +65,12 @@ The checker skips the first 60 s as startup, takes the next hour and the
 final hour, and fails closed if elapsed time is under 24 h. A 10% median
 RSS rise or fall fails. Passing it is not a performance claim.
 
+Live progress (never a 24 h pass):
+
+```sh
+python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress
+```
+
 ## Host / time approval
 
 This VM is not an approved Lab A / Kernel Integrity host. If that
