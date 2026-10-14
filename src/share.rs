@@ -1104,7 +1104,14 @@ impl ShareGroup {
             self.member_epoch = latest_epoch;
         }
         let hb = self.hb_err.load(Ordering::SeqCst);
-        if hb != 0 {
+        if share_membership_lost(hb) {
+            self.member_epoch = ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
+            self.hb_epoch.store(
+                ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+                Ordering::SeqCst,
+            );
+            self.heartbeat_join().await?;
+        } else if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
         }
         let started = Instant::now();
@@ -2388,9 +2395,14 @@ impl ShareGroup {
                                         if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
-                                        if resp.member_epoch > 0 {
-                                            hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
-                                        }
+                                        hb_epoch.store(
+                                            share_heartbeat_epoch(
+                                                resp.error_code,
+                                                resp.member_epoch,
+                                                hb_epoch.load(Ordering::SeqCst),
+                                            ),
+                                            Ordering::SeqCst,
+                                        );
                                         if let Some(assignment) = resp.assignment {
                                             *hb_assignment.lock() = Some(assignment);
                                         }
@@ -2431,6 +2443,20 @@ impl ShareGroup {
                 }
             }
         }));
+    }
+}
+
+fn share_membership_lost(code: i16) -> bool {
+    matches!(code, error::FENCED_MEMBER_EPOCH | error::UNKNOWN_MEMBER_ID)
+}
+
+fn share_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
+    if share_membership_lost(code) {
+        ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+    } else if response_epoch > 0 {
+        response_epoch
+    } else {
+        current
     }
 }
 
@@ -2616,6 +2642,24 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn fenced_share_member_restarts_at_the_join_epoch() {
+        assert!(share_membership_lost(error::FENCED_MEMBER_EPOCH));
+        assert!(share_membership_lost(error::UNKNOWN_MEMBER_ID));
+        assert!(!share_membership_lost(0));
+        assert!(!share_membership_lost(error::FENCED_INSTANCE_ID));
+        assert_eq!(
+            share_heartbeat_epoch(error::FENCED_MEMBER_EPOCH, 9, 9),
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(
+            share_heartbeat_epoch(error::UNKNOWN_MEMBER_ID, -1, 4),
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(share_heartbeat_epoch(0, 6, 4), 6);
+        assert_eq!(share_heartbeat_epoch(0, 0, 4), 4);
     }
 
     #[test]
