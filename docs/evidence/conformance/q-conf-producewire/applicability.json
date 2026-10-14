@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "task": "KL01-18",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "matrix-cell-produce-3-9-1",
+    "matrix-cell-produce-4-1-0",
+    "proto-produce-v03-local",
+    "proto-produce-v04-local",
+    "proto-produce-v05-local",
+    "proto-produce-v06-local",
+    "proto-produce-v07-local",
+    "proto-produce-v08-local",
+    "proto-produce-v09-local",
+    "proto-produce-v10-local",
+    "proto-produce-v11-local",
+    "proto-produce-v12-local",
+    "proto-diff-produce-v12-apache-3-9-1",
+    "proto-diff-produce-v13-apache-3-9-1",
+    "proto-differential-produce-apache-java"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "matrix-cell-produce-3-9-1",
+      "matrix-cell-produce-4-1-0",
+      "proto-produce-v03-local",
+      "proto-produce-v04-local",
+      "proto-produce-v05-local",
+      "proto-produce-v06-local",
+      "proto-produce-v07-local",
+      "proto-produce-v08-local",
+      "proto-produce-v09-local",
+      "proto-produce-v10-local",
+      "proto-produce-v11-local",
+      "proto-produce-v12-local"
+    ],
+    "unsupported": [
+      "proto-diff-produce-v12-apache-3-9-1",
+      "proto-diff-produce-v13-apache-3-9-1"
+    ],
+    "blocked": [
+      "proto-differential-produce-apache-java"
+    ]
+  },
+  "crate_spoken_versions": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  "parameter_invocations": {
+    "cells": ["empty", "canonical", "txn_errors", "tagged"],
+    "tagged_versions": [9, 10, 11, 12, 13],
+    "nested_counts": {
+      "empty": {"topics": 0, "partitions": 0},
+      "canonical": {"topics": 1, "partitions": 1},
+      "txn_errors": {"topics": 1, "partitions": 2},
+      "tagged": {"topics": 1, "partitions": 1, "unknown_tags": 4}
+    },
+    "field_gates": {
+      "TransactionalId": "3+",
+      "flexible": "9+",
+      "LogStartOffset": "5+",
+      "RecordErrors_ErrorMessage": "8+",
+      "CurrentLeader_NodeEndpoints": "10+",
+      "TopicId": "13+",
+      "Name": "0-12"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "valid_versions": "0-11",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "sources": {
+        "ProduceRequest.json": "96b36966cc0fab3b829f6cd81c2cec3b6b6b9781e265099760474b6645a9bf99",
+        "ProduceResponse.json": "b1c01c1cba74b7cc4b32a57c48c8fba54c12e7d64b93781da4431b11ad96bca1",
+        "ProduceRequest.java": "efddf5bf89ed928ace13939211b84d5c2bd592868371a88abf68698c58e69766",
+        "ProduceResponse.java": "cd31df2123f5bd9bec3e9e5fab6afc530a1abe67a488a491c85f0507e1b0bcac",
+        "ProduceRequestTest.java": "231aa164619d3e6c2e507c0a5a472c1dd196f59ccea5ae62ea00b848a403b16f",
+        "ProduceResponseTest.java": "e6034318ca4e6e89cb04154ec97b4112f516c4bc6da1ea927c7612e88c56caad"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "valid_versions": "3-13",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "sources": {
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "ProduceRequest.java": "d4ba703f2909907e12cde4bda8249e8046f404b1e8ef9df8b89bbfa3ead121ff",
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "ProduceRequestTest.java": "85473e30ec47ad934045933dd8f96b83f537b491694d937f839fcaa9b18c2fce",
+        "ProduceResponseTest.java": "5ff71b28981a088e5503fada574ed9a673f40a7f22150b9002d15a15074b371e"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "valid_versions": "3-13",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Produce request/response sources match 4.1.0 and 4.2.1 byte-for-byte.",
+      "sources": {
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "ProduceRequest.java": "d4ba703f2909907e12cde4bda8249e8046f404b1e8ef9df8b89bbfa3ead121ff",
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "ProduceRequestTest.java": "85473e30ec47ad934045933dd8f96b83f537b491694d937f839fcaa9b18c2fce",
+        "ProduceResponseTest.java": "5ff71b28981a088e5503fada574ed9a673f40a7f22150b9002d15a15074b371e"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "valid_versions": "3-13",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "sources": {
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "ProduceRequest.java": "d4ba703f2909907e12cde4bda8249e8046f404b1e8ef9df8b89bbfa3ead121ff",
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "ProduceRequestTest.java": "85473e30ec47ad934045933dd8f96b83f537b491694d937f839fcaa9b18c2fce",
+        "ProduceResponseTest.java": "5ff71b28981a088e5503fada574ed9a673f40a7f22150b9002d15a15074b371e"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "valid_versions": "3-13",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "JSON schemas match 4.1.0–4.2.1; Java request/response/test files differ.",
+      "sources": {
+        "ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "ProduceRequest.java": "59ef5c83921c7940fe238eca44a683c7b61114fb4bb318a5b53111119fad0d60",
+        "ProduceResponse.java": "f716aa94a3cf28e88cb92fbbb124d8202b63750f230258da724be53152a21ca0",
+        "ProduceRequestTest.java": "ac4aa3746359c3e97d7ee9c411ddd7045bcf7787d443f2e20f51076271161975",
+        "ProduceResponseTest.java": "f9adda96b8bda3be68fdee276fad5f43ddbc21a669a2f993b1a14c791c0add13"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceResponseTest.java",
+      "method": "produceResponseRecordErrorsTest",
+      "invocations": "PRODUCE.allVersions() serialize/parse; recordErrors and errorMessage present on v8+, omitted below",
+      "applicability": "applicable",
+      "reason": "Direct envelope version gate for RecordErrors/ErrorMessage."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceResponseTest.java",
+      "method": "produceResponseVersionTest",
+      "invocations": "v0/v1/v2 constructor throttle plus current data() fields including topicId",
+      "applicability": "applicable",
+      "reason": "ThrottleTimeMs and partition field projection. v0-v2 constructors are historical; crate spoken starts at v3."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceResponseTest.java",
+      "method": "produceResponseV5Test",
+      "releases": ["3.9.1"],
+      "applicability": "applicable",
+      "reason": "LogStartOffset v5+ gate on the historical peer."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "method": "testBuildWithCurrentMessageFormat",
+      "applicability": "applicable",
+      "reason": "Builder oldest/latest allowed versions for current magic."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "method": "testBuildWithCurrentMessageFormatWithoutTopicId",
+      "releases": ["4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+      "applicability": "applicable",
+      "reason": "v13 name-only / ZERO topic ID is an identity rule this crate already rejects before encode."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "method": "testBuilderOldestAndLatestAllowed",
+      "releases": ["4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+      "applicability": "applicable",
+      "reason": "ApiKeys.PRODUCE oldest/latest version cap."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/ProduceRequest.java",
+      "method": "isTransactionV2Requested / LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2",
+      "applicability": "applicable",
+      "reason": "v12 is the same envelope as v11; transaction V2 is a version cap, already crate-local."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "methods": [
+        "shouldBeFlaggedAsTransactionalWhenTransactionalRecords",
+        "shouldNotBeFlaggedAsTransactionalWhenNoRecords",
+        "shouldNotBeFlaggedAsIdempotentWhenRecordsNotIdempotent",
+        "shouldBeFlaggedAsIdempotentWhenIdempotentRecords",
+        "testMixedTransactionalData",
+        "testMixedIdempotentData"
+      ],
+      "applicability": "nonapplicable",
+      "reason": "Record-batch transactional/idempotent flags, not Produce envelope versions."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "methods": [
+        "testV3AndAboveShouldContainOnlyOneRecordBatch",
+        "testV3AndAboveCannotHaveNoRecordBatches",
+        "testV3AndAboveCannotUseMagicV0",
+        "testV3AndAboveCannotUseMagicV1",
+        "testV6AndBelowCannotUseZStdCompression"
+      ],
+      "applicability": "nonapplicable",
+      "reason": "ProduceRequest.validateRecords admission of MemoryRecords magic/compression. Crate already has matching unit tests; this card uses null records so the envelope is independent of records.rs (read-only held)."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ProduceRequestTest.java",
+      "method": "testBuildWithOldMessageFormat",
+      "releases": ["3.9.1"],
+      "applicability": "unsupported",
+      "reason": "Magic v1 builder locked to Produce v2. Crate spoken range is 3–13; Kafka 4.0 removed v0–v2."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/RequestResponseTest.java",
+      "method": "testProduceRequestPartitionSize",
+      "applicability": "nonapplicable",
+      "reason": "Server-side partitionSizes helper, not request/response body layout."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "Produce v0-v2",
+      "reason": "Crate spoken range is 3–13. Apache 4.0+ validVersions is 3-13; 3.9.1 still lists 0-11 but marks 0-2 deprecated. Historical message-set versions stay out of this cohort."
+    },
+    {
+      "cell": "proto-diff-produce-v12-apache-3-9-1",
+      "reason": "3.9.1 ProduceRequest.json validVersions 0-11. Live generator throws UnsupportedVersionException: Can't size version 12 of TopicProduceData."
+    },
+    {
+      "cell": "proto-diff-produce-v13-apache-3-9-1",
+      "reason": "3.9.1 has no TopicId field and rejects v13 the same way."
+    },
+    {
+      "cell": "public KafkaProducer send / broker append",
+      "reason": "This card qualifies builders/parsers of Produce request and response bodies, not live produce public behavior or ReplicaManager append."
+    }
+  ]
+}

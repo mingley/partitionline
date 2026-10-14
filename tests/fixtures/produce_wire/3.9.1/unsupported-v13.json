@@ -1,0 +1,1 @@
+{"version":13,"disposition":"unsupported","exception":"org.apache.kafka.common.errors.UnsupportedVersionException","message":"Can't size version 13 of TopicProduceData","reason":"ProduceRequestData validVersions 0-11 rejects crate-spoken v13"}

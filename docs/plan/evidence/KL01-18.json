@@ -1,0 +1,60 @@
+{
+  "task": "KL01-18",
+  "status": "done",
+  "date": "2026-10-14",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "initial_registered_case_ids": [
+    "matrix-cell-produce-3-9-1",
+    "matrix-cell-produce-4-1-0",
+    "proto-produce-v03-local",
+    "proto-produce-v04-local",
+    "proto-produce-v05-local",
+    "proto-produce-v06-local",
+    "proto-produce-v07-local",
+    "proto-produce-v08-local",
+    "proto-produce-v09-local",
+    "proto-produce-v10-local",
+    "proto-produce-v11-local",
+    "proto-produce-v12-local",
+    "proto-diff-produce-v12-apache-3-9-1",
+    "proto-diff-produce-v13-apache-3-9-1",
+    "proto-differential-produce-apache-java"
+  ],
+  "commands": [
+    "python3 tests/conformance/test_produce_wire.py -q (4 passed, exit 0)",
+    "python3 tests/conformance/java/generate_produce_wire.py --output /tmp/produce-wire-gen --install tests/fixtures/produce_wire (364 bodies, 2 unsupported receipts, two generations match, 173.667s remaining of 180s)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --test produce_wire_conformance -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test produce_wire_conformance (5 passed, including 53 live Apache reverse parses)"
+  ],
+  "results": {
+    "generated_bodies": 364,
+    "unsupported_receipts": 2,
+    "independent_generations_match": true,
+    "rust_offline_fixture_bodies": 364,
+    "rust_apache_reverse_parses": 53,
+    "original_dispositions_preserved": true,
+    "cases_json_rows_added": 0
+  },
+  "actual_failures_retained": [
+    {
+      "attempt": 1,
+      "error": "Apache self-roundtrip failed v3 canonical",
+      "cause": "ProduceResponseData.equals compared in-memory v5+/v8+ fields that version 3 does not serialize. Generator now sets gated fields only when the version writes them and checks re-encoded bytes."
+    },
+    {
+      "attempt": 2,
+      "error": "Produce v13 invalid or ambiguous topic ID for pl-txn",
+      "cause": "Response re-encode passed one identity row per partition. produce_topic_id treats duplicate names as ambiguous. Identities are now unique by topic name."
+    }
+  ],
+  "qualification_limit": "Finite Produce envelope versions 3–13, four named cells, five pinned client jars. Null records only; validateRecords/magic/ZSTD and public KafkaProducer send remain outside this card. Registered local_consistency rows are not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+  "evidence": "docs/evidence/conformance/q-conf-producewire",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false
+}
