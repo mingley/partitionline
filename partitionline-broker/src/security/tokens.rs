@@ -343,6 +343,9 @@ impl Tokens {
 
     /// Accept a token id and secret that are still unexpired.
     pub fn authenticate(&self, token_id: &str, secret: &[u8], now_ms: i64) -> Result<&str, Error> {
+        if now_ms < 0 {
+            return Err(Error::InvalidRequest);
+        }
         let token = self.tokens.get(token_id).ok_or(Error::NotFound)?;
         if now_ms >= token.view.expiry_ms {
             return Err(Error::Expired);
@@ -397,6 +400,12 @@ impl Tokens {
     fn apply(&mut self, payload: &[u8]) -> Result<(), Error> {
         match decode(payload)? {
             Record::Issue { view, secret } => {
+                if view.expiry_ms < view.issued_at_ms
+                    || view.expiry_ms > view.max_timestamp_ms
+                    || self.tokens.contains_key(&view.token_id)
+                {
+                    return Err(Error::InvalidRequest);
+                }
                 let id_number = view
                     .token_id
                     .strip_prefix("t-")
@@ -738,6 +747,30 @@ mod tests {
         assert!(matches!(
             tokens.view(&auth, "User:bob", "*", &issued.view.token_id),
             Err(Error::Unauthorized(_))
+        ));
+        assert_eq!(
+            tokens
+                .authenticate(&issued.view.token_id, issued.secret.expose(), 500)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            "User:alice"
+        );
+        assert!(matches!(
+            tokens.authenticate(&issued.view.token_id, issued.secret.expose(), -1),
+            Err(Error::InvalidRequest)
+        ));
+        let mut replaced = issued.view.clone();
+        replaced.expiry_ms = replaced.max_timestamp_ms.saturating_add(1);
+        assert!(matches!(
+            tokens.apply(
+                &encode_issue(&replaced, &[9; 32]).unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            tokens.apply(
+                &encode_issue(&issued.view, &[9; 32]).unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
         ));
         assert_eq!(
             tokens
