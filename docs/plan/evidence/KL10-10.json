@@ -1,0 +1,36 @@
+{
+  "task": "KL10-10",
+  "status": "done",
+  "date": "2026-10-14",
+  "owner": "cursor-cloud",
+  "kind": "analysis",
+  "production_code_changed": false,
+  "hypothesis": "The dated 1.4 GB consume RSS is decode-then-discard at a large per-partition fetch, not the current default or the KL10-14 cell.",
+  "decision": "Within the documented budget. No P0 bounds card. No default change. Documented in resource-contract.md and gateway-adoption.md section 2 / F8.",
+  "attribution": {
+    "fetched_bytes": "Cell: 1 MiB/partition, 50 MiB request. Dated peak used ~8 MiB/partition.",
+    "decompressed_expansion": "25k json1k ≈ 25 MiB decoded if all held; gzip ~7:1 on the wire.",
+    "pending_records": "buffer_memory 32 MiB; KL10-16/17 keep over-budget batches framed.",
+    "allocator_retention": "Residual ~20-25 MB at the 52 MB peak (runtime, metadata, objects)."
+  },
+  "commands": [
+    "Read docs/evidence/perf/KL10-14/summary.json and docs/evidence/perf/KL10-09/summary.json",
+    "Cross-check docs/resource-contract.md consumer section",
+    "No cargo production build required (docs only)"
+  ],
+  "results": {
+    "dated_rss_mb": {"partitionline": 1426, "librdkafka": 193},
+    "kl10_14_median_rss_mb": {"partitionline": 49.6, "rust_rdkafka": 49.6},
+    "p0_opened": false
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL10-10/README.md",
+    "docs/evidence/perf/KL10-10/summary.json",
+    "docs/plan/gateway-adoption.md",
+    "docs/resource-contract.md"
+  ],
+  "qualification_limit": "Local unsigned analysis. Suite HOLD remains. World-class client objective remains open.",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "world_class_client_complete": false
+}

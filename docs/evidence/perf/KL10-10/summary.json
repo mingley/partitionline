@@ -1,0 +1,49 @@
+{
+  "schema": "kl10-10-summary/1",
+  "task": "KL10-10",
+  "date": "2026-10-14",
+  "kind": "analysis",
+  "production_code_changed": false,
+  "p0_bounds_card_opened": false,
+  "decision": "within_documented_budget",
+  "dated_section2": {
+    "date": "2026-09-30",
+    "source_sha": "290adda5",
+    "partitionline_peak_rss_mb": 1426,
+    "librdkafka_peak_rss_mb": 193,
+    "host": "Apple M4 Pro, 14 cores"
+  },
+  "kl10_16_real_broker": {
+    "before_mb": 1334,
+    "after_decode_on_apply_mb": 308,
+    "note": "8 MiB/partition fetch, default 32 MiB buffer_memory"
+  },
+  "kl10_14_cell": {
+    "source": "docs/evidence/perf/KL10-14/summary.json",
+    "count": 25000,
+    "fetch_max_bytes": 52428800,
+    "max_partition_fetch_bytes": 1048576,
+    "buffer_memory": 33554432,
+    "median_peak_rss_bytes": {
+      "partitionline": 52056064,
+      "rust_rdkafka": 52056064
+    },
+    "partitionline_samples_bytes": [48517120, 51793920, 52056064, 52056064, 52056064]
+  },
+  "kl10_09_parent_raw_consume": {
+    "source": "docs/evidence/perf/KL10-09/summary.json",
+    "note": "same backlog and fetch knobs; no ID/hash verify",
+    "median_peak_rss_bytes": 43962368
+  },
+  "effective_config": {
+    "fetch_min_bytes": 1,
+    "fetch_max_wait_ms": 500,
+    "fetch_max_bytes": 52428800,
+    "max_partition_fetch_bytes": 1048576,
+    "buffer_memory": 33554432,
+    "isolation": "read_uncommitted",
+    "max_poll_records": null,
+    "partitions": 8,
+    "assignment": "manual"
+  }
+}

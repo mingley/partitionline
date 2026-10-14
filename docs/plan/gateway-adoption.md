@@ -117,6 +117,21 @@ the caller's task. `read_bounded` streams `GzDecoder` output through an
 is 36% of samples. The effective inflate rate is about 60 MB/s. The same
 backend reaches about 1 GB/s when it writes into a large buffer.
 
+**RSS (KL10-10):** the 1,426 MB peak is not a property of the current
+defaults. That dated consume used a large per-partition fetch and
+decode-then-discard (KL10-16 at `62561426`: 15.0 µs/rec and ~1.3 GB RSS at
+8 MiB/partition with the default 32 MiB `buffer_memory`). After KL10-16/17,
+batches past the budget stay compressed; at the KL10-14 cell knobs
+(`fetch.max.bytes` 50 MiB, `max.partition.fetch.bytes` 1 MiB,
+`buffer_memory` 32 MiB, COUNT=25000) both clients sit at a median **52 MB**
+(KL10-14). A raw consume of the same backlog on this host is ~43 MB
+(KL10-09 parent). Process RSS is still not bounded by `buffer_memory`;
+see [resource-contract.md](../resource-contract.md). No P0 bounds card:
+52 MB is inside the documented 32 MiB decoded-payload budget plus wire
+frames, object overhead, metadata and the runtime. Knobs that reduce it:
+`max_partition_fetch_bytes`, `fetch.max.bytes`, `buffer_memory`,
+`max_poll_records`.
+
 ### Codec microbenchmark (same payload, 16 KiB and 256 KiB batches, gzip level 6)
 
 | Codec and backend | Compress | Decompress | Ratio |
@@ -213,7 +228,7 @@ Raw timings: [docs/evidence/perf/KL10-04](../evidence/perf/KL10-04/).
 | F5 | miniz deflate is no faster than C zlib; zlib-rs is 1.8× faster | Backend policy decision, then an opt-in backend | KL10-05, KL10-06, KL10-15 |
 | F6 | gzip decode uses 7.8× librdkafka's CPU per record | Decode-then-discard (re-probe 2026-10-01): decompress only applied batches, then keep the rest instead of re-fetching; pre-sized output (rejected) and off-caller decode | KL10-16, KL10-17, **KL09-34**, KL10-09 |
 | F7 | No owned, eagerly admitted per-record completion | Specify, then implement, an additive delivery API | KL10-07, KL10-08 |
-| F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Explain it against the configured budgets; fix the default or the documentation | KL10-10 |
+| F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Dated 8 MiB/partition decode-then-discard; at KL10-14 knobs both clients are ~52 MB. Documented, no default change | **KL10-10** |
 | F9 | The claim gate has no gzip or ~1 KiB cells | Propose a contract amendment adding gateway cells | KL10-11 |
 | F10 | zstd is missing | The existing decision and implementation chain | **KL05-02..05** |
 | F11 | Adopters need a gateway recipe | An example and a migration-guide section | KL10-13 |

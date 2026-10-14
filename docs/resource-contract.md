@@ -48,6 +48,19 @@ Decoded key, value and header bytes reported by `buffered_bytes()` stay within
 object overhead need separate accounting; a byte gauge does not measure these
 allocations.
 
+On the gateway fetch cell (`lb-gateway-fetch-gzip`, KL10-14 knobs:
+`fetch.min.bytes=1`, `fetch.max.wait.ms=500`, `fetch.max.bytes=50 MiB`,
+`max.partition.fetch.bytes=1 MiB`, default `buffer_memory=32 MiB`) a 25k
+json1k gzip backlog shows about 52 MB peak RSS for partitionline and the
+rust-rdkafka peer. That is the decoded-payload budget plus frames, objects,
+metadata and the runtime — not the dated 1.4 GB consume in
+[gateway-adoption.md](plan/gateway-adoption.md) section 2, which fetched
+8 MiB/partition and decompressed batches it then discarded (KL10-16).
+Lower `max_partition_fetch_bytes`, `fetch.max.bytes`, `buffer_memory` or
+`max_poll_records` to cut prefetch. Raising `max_partition_fetch_bytes`
+toward several mebibytes without a matching `buffer_memory` is what
+recreated the 1.4 GB peak.
+
 Pause retains pending records and framed batches. Seek, unassign, leader
 changes and close discard the applicable pending records and framed batches.
 Delivered positions and commits do not advance solely because a record was
