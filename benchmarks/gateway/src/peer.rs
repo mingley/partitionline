@@ -160,7 +160,12 @@ pub fn run_peer_produce(
     })
 }
 
+/// Write `value` once. Emit-config and produce share `peer-input.json`;
+/// a second create_new would fail with EEXIST and skip the live peer run.
 fn write_new(path: &Path, value: &serde_json::Value) -> Result<(), String> {
+    if path.is_file() {
+        return Ok(());
+    }
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -175,4 +180,30 @@ fn write_new(path: &Path, value: &serde_json::Value) -> Result<(), String> {
 #[must_use]
 pub fn peer_ack_mode(cell: Cell) -> AckMode {
     cell.ack_mode
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn emit_and_produce_reuse_the_same_peer_input() {
+        let dir = std::env::temp_dir().join(format!(
+            "gateway-peer-input-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("peer-input.json");
+        let value = json!({"count": 1});
+        write_new(&path, &value).unwrap();
+        write_new(&path, &json!({"count": 2})).unwrap();
+        let stored: serde_json::Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(stored["count"], 1);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }
