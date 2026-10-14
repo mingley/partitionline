@@ -2425,6 +2425,19 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    async fn listed_reset_offset(&mut self, topic: &str, part: i32, timestamp: i64) -> Result<i64> {
+        self.consumer.ensure_topic_metadata(topic).await?;
+        let offset = self
+            .consumer
+            .list_offsets(topic.to_owned(), part, timestamp)
+            .await?;
+        crate::consumer::reset_position(offset).ok_or_else(|| {
+            Error::protocol(format!(
+                "ListOffsets returned no reset offset for {topic}-{part}"
+            ))
+        })
+    }
+
     async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<Vec<(String, i32)>> {
         let identities = self.consumer.topic_name_ids();
         let all_current = self.consumer.assigned_offsets().to_vec();
@@ -2513,18 +2526,13 @@ impl ConsumerGroup {
                 committed
             } else {
                 match reset {
-                    AutoOffsetReset::Earliest => 0,
+                    AutoOffsetReset::Earliest => {
+                        self.listed_reset_offset(topic, *part, crate::EARLIEST_TIMESTAMP)
+                            .await?
+                    }
                     AutoOffsetReset::Latest => {
-                        self.consumer.ensure_topic_metadata(topic).await?;
-                        let offset = self
-                            .consumer
-                            .list_offsets(topic.clone(), *part, crate::LATEST_TIMESTAMP)
-                            .await?;
-                        crate::consumer::reset_position(offset).ok_or_else(|| {
-                            Error::protocol(format!(
-                                "ListOffsets returned no reset offset for {topic}-{part}"
-                            ))
-                        })?
+                        self.listed_reset_offset(topic, *part, crate::LATEST_TIMESTAMP)
+                            .await?
                     }
                     AutoOffsetReset::None => {
                         return Err(Error::protocol(format!(
@@ -3266,10 +3274,9 @@ fn committed_starts(
             committed
         } else {
             match reset {
-                AutoOffsetReset::Earliest => 0,
-                AutoOffsetReset::Latest => {
+                AutoOffsetReset::Earliest | AutoOffsetReset::Latest => {
                     return Err(Error::protocol(
-                        "auto.offset.reset=latest needs ListOffsets at assign",
+                        "auto.offset.reset needs ListOffsets at assign",
                     ));
                 }
                 AutoOffsetReset::None => {
@@ -4136,10 +4143,13 @@ mod tests {
             topic: "t".into(),
             partitions: vec![FetchedOffset::new(0, 5, 0)],
         }];
-        let starts = committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).unwrap();
-        assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);
+        let starts =
+            committed_starts(&[("t".into(), 0)], &fetched, AutoOffsetReset::Earliest).unwrap();
+        assert_eq!(starts, vec![("t".into(), 0, 5)]);
         assert_eq!(OffsetAndMetadata::INVALID_OFFSET, -1);
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
+        assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).is_err());
+        assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Latest).is_err());
     }
 
     #[test]
