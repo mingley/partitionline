@@ -84,6 +84,10 @@ fn coordinator_starting(error: &Error) -> bool {
                 | error::LEADER_NOT_AVAILABLE
                 | error::NOT_LEADER_OR_FOLLOWER
                 | error::NOT_ENOUGH_REPLICAS
+                | error::ILLEGAL_GENERATION
+                | error::STALE_MEMBER_EPOCH
+                | error::UNKNOWN_MEMBER_ID
+                | error::REBALANCE_IN_PROGRESS
         )
     )
 }
@@ -292,13 +296,14 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
     let history = PathBuf::from(
         env::var("GROUP_CHURN_HISTORY").unwrap_or_else(|_| "group-churn-member.json".into()),
     );
+    let mut seen = Vec::new();
+    arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
     let action = go_action(&wait_file(&go, Duration::from_secs(40)).await?);
     if action == "die" {
         drop(group.leave().await);
         std::process::exit(CRASH_EXIT);
     }
-    let mut seen = Vec::new();
     let mut events: Vec<&str> = vec!["joined"];
     if action == "hold" {
         let hold_ms = env_u64("GROUP_CHURN_MAX_POLL_MS", 4_000)?.saturating_add(800);
@@ -332,12 +337,63 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
     }
     collect_partition(&mut group, &mut seen, 6, Duration::from_secs(25)).await?;
     if names.churn != "max_poll_expiry" {
-        group.commit().await?;
-        events.push("committed");
+        match group.commit().await {
+            Ok(()) => events.push("committed"),
+            Err(error)
+                if matches!(
+                    error.broker_code(),
+                    Some(
+                        error::ILLEGAL_GENERATION
+                            | error::STALE_MEMBER_EPOCH
+                            | error::UNKNOWN_MEMBER_ID
+                            | error::REBALANCE_IN_PROGRESS
+                    )
+                ) =>
+            {
+                events.push("commit_retried");
+            }
+            Err(error) => return Err(error),
+        }
     }
     drop(group.leave().await);
     write_path(&history, &render_member(names, &seen, &events, false)).await?;
     Ok(())
+}
+
+async fn arm_partition_poll(
+    group: &mut ConsumerGroup,
+    seen: &mut Vec<Seen>,
+    timeout: Duration,
+) -> partitionline::Result<()> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        match group.poll_timeout(Duration::from_millis(800)).await {
+            Ok(recs) => {
+                for rec in recs.iter() {
+                    push_seen(
+                        seen,
+                        rec_text(rec.value.as_deref()),
+                        rec.partition,
+                        rec.offset,
+                        1,
+                    );
+                }
+                return Ok(());
+            }
+            Err(Error::Timeout) if Instant::now() < deadline => {}
+            Err(error)
+                if (error.is_retriable() || coordinator_starting(&error))
+                    && Instant::now() < deadline =>
+            {
+                tokio::time::sleep(Duration::from_millis(150)).await;
+            }
+            Err(Error::Timeout) => return Ok(()),
+            Err(error) => return Err(error),
+        }
+        if Instant::now() >= deadline {
+            return Ok(());
+        }
+    }
 }
 
 async fn collect_partition(
@@ -388,7 +444,8 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     let history = PathBuf::from(
         env::var("GROUP_CHURN_HISTORY").unwrap_or_else(|_| "group-churn-member.json".into()),
     );
-    write_path(&ready, &render_ready(names, &[])).await?;
+    arm_share_poll(&mut group, Duration::from_secs(12)).await?;
+    write_path(&ready, &render_ready(names, &group.assignment())).await?;
     let action = go_action(&wait_file(&go, Duration::from_secs(40)).await?);
     if action == "die" {
         drop(group.leave().await);
@@ -396,7 +453,7 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     }
     let mut seen = Vec::new();
     let mut events: Vec<&str> = vec!["joined"];
-    if action == "hold" || names.churn == "max_poll_expiry" {
+    if action == "hold" {
         let hold_ms = env_u64("GROUP_CHURN_SHARE_LOCK_MS", 2_000)?;
         let recs = group.poll_timeout(Duration::from_secs(8)).await?;
         for rec in recs.iter() {
@@ -444,6 +501,32 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     drop(group.leave().await);
     write_path(&history, &render_member(names, &seen, &events, false)).await?;
     Ok(())
+}
+
+async fn arm_share_poll(group: &mut ShareGroup, timeout: Duration) -> partitionline::Result<()> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        match group.poll_timeout(Duration::from_millis(800)).await {
+            Ok(recs) => {
+                if !recs.is_empty() {
+                    drop(group.release(recs.as_ref()).await);
+                }
+                return Ok(());
+            }
+            Err(Error::Timeout) if Instant::now() < deadline => {}
+            Err(error)
+                if (error.is_retriable() || coordinator_starting(&error))
+                    && Instant::now() < deadline =>
+            {
+                tokio::time::sleep(Duration::from_millis(150)).await;
+            }
+            Err(Error::Timeout) => return Ok(()),
+            Err(error) => return Err(error),
+        }
+        if Instant::now() >= deadline {
+            return Ok(());
+        }
+    }
 }
 
 async fn collect_share(
