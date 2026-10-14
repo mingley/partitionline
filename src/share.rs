@@ -657,8 +657,11 @@ pub enum ShareAcquireMode {
 /// ShareAcknowledge on the next poll / leave). Implicit
 /// [`Self::leave`] / [`Self::close`] do not ACCEPT the last poll
 /// (Java `close` releases acquired records without acknowledgement).
-/// Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
-/// partitions when the assignment shrinks or a topic id is replaced.
+/// A piggybacked ShareFetch acknowledgement error fires the commit
+/// callback and does not fail [`Self::poll`] (Java
+/// `ShareConsumeRequestManager`). Incremental ShareFetch sends Java
+/// `ShareSessionHandler` forgotten partitions when the assignment
+/// shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -1373,7 +1376,9 @@ impl ShareGroup {
     /// previously delivered record is [`Self::accept`] / [`Self::release`]
     /// / [`Self::reject`] (local; Renew does not count). Draining records
     /// already buffered from the last ShareFetch is allowed without that
-    /// acknowledgement.
+    /// acknowledgement. A ShareFetch `AcknowledgeErrorCode` completes the
+    /// piggybacked acknowledgements (commit callback) and still delivers
+    /// this fetch; [`Self::poll`] does not return that error.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -2099,15 +2104,14 @@ impl ShareGroup {
                         return Err(error);
                     }
                     if part.acknowledge_error_code != 0 {
+                        // Java ShareConsumeRequestManager completes the
+                        // piggybacked acknowledgements and still delivers
+                        // this ShareFetch. poll() does not throw.
                         let error = Error::broker(
                             part.acknowledge_error_code,
                             format!("ShareFetch acknowledgement {name}-{}", part.partition),
                         );
-                        if self.has_pending_acknowledgements() {
-                            let pending = self.pending_ack_records().cloned().collect::<Vec<_>>();
-                            self.fire_acknowledgement_commit_callback(&pending, Some(&error));
-                        }
-                        return Err(error);
+                        self.fail_share_fetch_acknowledgements(&name, part.partition, &error);
                     }
                     let mut acquired = part.acquired;
                     acquired.sort_unstable_by_key(|range| range.first_offset);
@@ -2754,6 +2758,34 @@ impl ShareGroup {
                     && rec.offset == held.offset
             })
         });
+    }
+
+    /// Java `ShareConsumeRequestManager` piggyback acknowledge error:
+    /// fire the commit callback and drop the queued acknowledgements
+    /// for this partition. The ShareFetch records are still delivered.
+    fn fail_share_fetch_acknowledgements(&mut self, topic: &str, partition: i32, error: &Error) {
+        let failed: Vec<ShareRecord> = self
+            .pending_ack_records()
+            .filter(|rec| rec.topic == topic && rec.partition == partition)
+            .cloned()
+            .collect();
+        if failed.is_empty() {
+            return;
+        }
+        self.fire_acknowledgement_commit_callback(&failed, Some(error));
+        let keys: Vec<(String, i32, i64)> = failed
+            .iter()
+            .map(|rec| (rec.topic.clone(), rec.partition, rec.offset))
+            .collect();
+        self.uncount_acknowledgements(keys);
+        self.drop_last_poll_unacked(&failed);
+        for rec in &failed {
+            let _ = self.pending_acknowledgements.remove(&(
+                rec.topic.clone(),
+                rec.partition,
+                rec.offset,
+            ));
+        }
     }
 
     /// Java `ShareConsumerImpl.ensureInFlightAcknowledgedIfExplicitAcknowledgement`.

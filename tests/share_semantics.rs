@@ -21,7 +21,8 @@ use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
-    encode_share_fetch_response_with_acquisition_lock_timeout, AcquiredRange,
+    encode_share_fetch_response, encode_share_fetch_response_with_acquisition_lock_timeout,
+    AcquiredRange, ShareFetchedPartition, ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -793,6 +794,56 @@ async fn implicit_poll_fires_acknowledgement_commit_callback() {
         1,
         "implicit next poll must fire the acknowledgement commit callback"
     );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn implicit_piggyback_ack_error_does_not_fail_poll() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-err", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.acknowledge_error_code = error::INVALID_RECORD_STATE;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let second = group.poll().await.unwrap();
+    assert!(
+        second.is_empty(),
+        "Java poll still delivers the ShareFetch after a piggyback ack error"
+    );
+    assert_eq!(*seen.lock(), vec![Some(error::INVALID_RECORD_STATE)]);
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    assert!(
+        !mock.share_accepted("ack-err", "t", 0, first_off),
+        "injected ack error must not apply the piggybacked ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "implicit piggyback must not send standalone ShareAcknowledge"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_ne!(third[0].offset, first_off);
     group.leave().await.unwrap();
 }
 
