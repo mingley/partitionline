@@ -245,6 +245,9 @@ impl Table {
         self.ready()?;
         self.require_controller(controller_epoch)?;
         catalog::validate_topic_name(&create.topic).map_err(|_| Error::InvalidAssignment)?;
+        if create.partition < 0 {
+            return Err(Error::InvalidAssignment);
+        }
         validate_set(&create.replicas, Some(create.leader), &create.isr)?;
         let key = (create.topic.clone(), create.partition);
         if self.placements.contains_key(&key) {
@@ -756,5 +759,24 @@ mod tests {
         assert_eq!(changed.replicas, vec![1, 3, 4]);
         assert_eq!(changed.isr, vec![1, 3]);
         assert_eq!(changed.leader_epoch, 0);
+    }
+
+    #[test]
+    fn a_negative_partition_is_refused_before_it_is_stored() {
+        let (mut table, path) = table("negative");
+        table
+            .advance_controller(1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut create = create_orders();
+        create.partition = -1;
+        assert!(matches!(
+            table.create(1, &create),
+            Err(Error::InvalidAssignment)
+        ));
+        assert!(table.placement("orders", -1).is_none());
+        drop(table);
+        let restored = Table::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.controller_epoch(), 1);
+        assert!(restored.placement("orders", -1).is_none());
     }
 }
