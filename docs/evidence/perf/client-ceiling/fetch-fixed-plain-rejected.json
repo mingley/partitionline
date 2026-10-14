@@ -1,0 +1,16 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "1e6bc33df69c631976741ee3c90f8e29f4e66868",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. Uncompressed batches whose records share one key and value size, a zero timestamp delta, and no headers were decoded by checking a fixed stride instead of reading each varint. A release microbench of 270 by 500 records was about 9.2 ms for the existing decoder and about 4.5 ms for the stride slices. Twelve interleaved nb-fetch-bulk pairs on one host: before median 488,449.28 records/s, after median 487,422.31, paired mean ratio 0.999, bootstrap 95% CI 0.963 to 1.036. Seven of twelve pairs were slower. Client CPU-nanoseconds per record median ratio was 0.967. Every run verified. The code was not kept. This is not a peer comparison and not a KL09-70 claim.",
+  "before_median": 488449.28,
+  "after_median": 487422.31,
+  "paired_mean_ratio": 0.999,
+  "paired_ratio_ci95": [0.963, 1.036],
+  "pairs": 12,
+  "slower_pairs": 7
+}
