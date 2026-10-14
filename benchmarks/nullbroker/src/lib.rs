@@ -752,6 +752,7 @@ fn record_chunk_len(chunks: &[Arc<[u8]>]) -> usize {
 /// Encode a `Fetch` v15–v17 response: full data, `session_id` 0.
 /// Log start is always 0 and last-stable-offset always equals the high
 /// watermark (everything served is stable; aborts are listed explicitly).
+#[cfg_attr(not(test), allow(dead_code))]
 fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartitionResult>)]) {
     let payload = topics
         .iter()
@@ -801,6 +802,169 @@ fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartit
         out.put_empty_tagged_fields();
     }
     out.put_empty_tagged_fields();
+}
+
+enum Reply {
+    Inline(Vec<u8>),
+    Gather(GatherBody),
+}
+
+struct GatherBody {
+    frame: Vec<u8>,
+    parts: Vec<GatherPart>,
+    body_len: usize,
+}
+
+enum GatherPart {
+    Frame(usize, usize),
+    Records(Arc<[u8]>),
+}
+
+fn seal_frame(frame: &[u8], parts: &mut Vec<GatherPart>, cursor: &mut usize) {
+    if frame.len() > *cursor {
+        parts.push(GatherPart::Frame(*cursor, frame.len()));
+        *cursor = frame.len();
+    }
+}
+
+/// Fetch body that references cached batches instead of copying them.
+fn gather_fetch_body(
+    mut frame: Vec<u8>,
+    topics: &[([u8; 16], Vec<FetchPartitionResult>)],
+) -> GatherBody {
+    let mut parts = Vec::new();
+    let mut cursor = 0usize;
+    let mut record_bytes_total = 0usize;
+    frame.extend_from_slice(&0_i32.to_be_bytes());
+    frame.extend_from_slice(&ERR_NONE.to_be_bytes());
+    frame.extend_from_slice(&0_i32.to_be_bytes());
+    frame.put_compact_array_len(topics.len());
+    for (topic_id, partitions) in topics {
+        frame.extend_from_slice(topic_id);
+        frame.put_compact_array_len(partitions.len());
+        for part in partitions {
+            frame.extend_from_slice(&part.partition.to_be_bytes());
+            frame.extend_from_slice(&part.error_code.to_be_bytes());
+            frame.extend_from_slice(&part.high_watermark.to_be_bytes());
+            frame.extend_from_slice(&part.high_watermark.to_be_bytes());
+            frame.extend_from_slice(&0_i64.to_be_bytes());
+            frame.put_compact_array_len(part.aborted.len());
+            for (pid, first) in &part.aborted {
+                frame.extend_from_slice(&pid.to_be_bytes());
+                frame.extend_from_slice(&first.to_be_bytes());
+                frame.put_empty_tagged_fields();
+            }
+            frame.extend_from_slice(&(-1_i32).to_be_bytes());
+            let record_bytes = record_chunk_len(&part.records);
+            if record_bytes == 0 {
+                frame.put_uvarint(1);
+            } else {
+                frame.put_uvarint(
+                    u32::try_from(record_bytes)
+                        .unwrap_or(u32::MAX)
+                        .saturating_add(1),
+                );
+                seal_frame(&frame, &mut parts, &mut cursor);
+                for chunk in &part.records {
+                    parts.push(GatherPart::Records(Arc::clone(chunk)));
+                }
+                record_bytes_total = record_bytes_total.saturating_add(record_bytes);
+            }
+            frame.put_empty_tagged_fields();
+        }
+        frame.put_empty_tagged_fields();
+    }
+    frame.put_empty_tagged_fields();
+    seal_frame(&frame, &mut parts, &mut cursor);
+    GatherBody {
+        body_len: frame.len().saturating_add(record_bytes_total),
+        frame,
+        parts,
+    }
+}
+
+fn write_gather(stream: &mut TcpStream, body: &GatherBody) -> io::Result<()> {
+    let len_bytes = u32::try_from(body.body_len)
+        .unwrap_or(u32::MAX)
+        .to_be_bytes();
+    let mut pieces: Vec<&[u8]> = Vec::with_capacity(body.parts.len().saturating_add(1));
+    pieces.push(&len_bytes);
+    for part in &body.parts {
+        match part {
+            GatherPart::Frame(start, end) => {
+                if let Some(slice) = body.frame.get(*start..*end).filter(|s| !s.is_empty()) {
+                    pieces.push(slice);
+                }
+            }
+            GatherPart::Records(chunk) => {
+                if !chunk.is_empty() {
+                    pieces.push(chunk);
+                }
+            }
+        }
+    }
+    let total: usize = pieces
+        .iter()
+        .fold(0usize, |sum, piece| sum.saturating_add(piece.len()));
+    let mut index = 0usize;
+    let mut skip = 0usize;
+    let mut sent = 0usize;
+    while sent < total {
+        let mut iov = Vec::new();
+        let mut cursor = index;
+        let mut cursor_skip = skip;
+        while cursor < pieces.len() && iov.len() < 512 {
+            let Some(slice) = pieces.get(cursor) else {
+                break;
+            };
+            if cursor_skip > slice.len() {
+                return Err(io::Error::other("gather cursor passed the slice"));
+            }
+            if cursor_skip == slice.len() {
+                cursor = cursor.saturating_add(1);
+                cursor_skip = 0;
+                continue;
+            }
+            let Some(rest) = slice.get(cursor_skip..) else {
+                return Err(io::Error::other("gather slice is short"));
+            };
+            iov.push(IoSlice::new(rest));
+            cursor = cursor.saturating_add(1);
+            cursor_skip = 0;
+        }
+        if iov.is_empty() {
+            return Err(io::Error::other("gather write made no progress"));
+        }
+        match stream.write_vectored(&iov) {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "broker write returned 0",
+                ));
+            }
+            Ok(n) => {
+                sent = sent.saturating_add(n);
+                let mut left = n;
+                while left > 0 {
+                    let Some(slice) = pieces.get(index) else {
+                        return Err(io::Error::other("gather advanced past the body"));
+                    };
+                    let avail = slice.len().saturating_sub(skip);
+                    if left < avail {
+                        skip = skip.saturating_add(left);
+                        left = 0;
+                    } else {
+                        left = left.saturating_sub(avail);
+                        index = index.saturating_add(1);
+                        skip = 0;
+                    }
+                }
+            }
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
 }
 
 /// One partition in a `ListOffsets` v10 request.
@@ -1866,11 +2030,19 @@ impl Worker {
                 return;
             }
             match self.handle_frame(&frame) {
-                Ok(Some(response)) => {
+                Ok(Some(Reply::Inline(response))) => {
                     if self.slow == Some(self.node_id) && !self.slow_delay.is_zero() {
                         std::thread::sleep(self.slow_delay);
                     }
                     if write_frame(stream, &response).is_err() {
+                        return;
+                    }
+                }
+                Ok(Some(Reply::Gather(body))) => {
+                    if self.slow == Some(self.node_id) && !self.slow_delay.is_zero() {
+                        std::thread::sleep(self.slow_delay);
+                    }
+                    if write_gather(stream, &body).is_err() {
                         return;
                     }
                 }
@@ -2045,7 +2217,7 @@ impl Worker {
         out.put_empty_tagged_fields();
     }
 
-    fn handle_frame(&self, frame: &[u8]) -> Result<Option<Vec<u8>>, ()> {
+    fn handle_frame(&self, frame: &[u8]) -> Result<Option<Reply>, ()> {
         let (api_key, api_version, correlation_id, header_len) =
             decode_request_header(frame).map_err(|_| ())?;
         // An unknown ApiVersions version uses the v0 error response so new
@@ -2061,7 +2233,7 @@ impl Worker {
             let mut out = Vec::new();
             encode_response_header(&mut out, api_key, 0, correlation_id);
             encode_api_versions_response(&mut out, 0, ERR_UNSUPPORTED_VERSION);
-            return Ok(Some(out));
+            return Ok(Some(Reply::Inline(out)));
         }
         // Refuse versions we do not advertise or implement. Never select behavior
         // by client identity; all peers use the same handlers and validation.
@@ -2103,20 +2275,20 @@ impl Worker {
                 drop(state);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 Self::encode_create_topics_response(&mut out, api_version, &results);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_DESCRIBE_CONFIGS if (1..=4).contains(&api_version) => {
                 let resources =
                     Self::decode_describe_configs_request(body, api_version).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 Self::encode_describe_configs_response(&mut out, api_version, &resources);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_API_VERSIONS => {
                 let _ = decode_api_versions_request(body, api_version).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 encode_api_versions_response(&mut out, api_version, ERR_NONE);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_METADATA if (12..=13).contains(&api_version) => {
                 let (topics, _allow_auto) = decode_metadata_request(body).map_err(|_| ())?;
@@ -2156,7 +2328,7 @@ impl Worker {
                     &self.leadership,
                     &self.nodes,
                 );
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_INIT_PRODUCER_ID if (3..=5).contains(&api_version) => {
                 let (transactional_id, _timeout) =
@@ -2172,7 +2344,7 @@ impl Worker {
                     };
                     encode_init_producer_id_response(&mut out, ERR_NONE, pid, 0);
                 }
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_FIND_COORDINATOR if (1..=6).contains(&api_version) => {
                 let (_key_type, keys) =
@@ -2185,7 +2357,7 @@ impl Worker {
                     .map(|n| (n.id, n.host.as_str(), n.port))
                     .unwrap_or((0, "127.0.0.1", 19092));
                 encode_find_coordinator_response(&mut out, api_version, &keys, node_id, host, port);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_PRODUCE if (9..=12).contains(&api_version) => {
                 let (transactional_id, acks, topics) =
@@ -2215,7 +2387,7 @@ impl Worker {
                     }
                     encode_response_header(&mut out, api_key, api_version, correlation_id);
                     encode_produce_response(&mut out, &parts);
-                    return Ok(Some(out));
+                    return Ok(Some(Reply::Inline(out)));
                 }
                 if acks == 0 {
                     // No response, but still validate and count.
@@ -2225,7 +2397,7 @@ impl Worker {
                 let parts = self.append(topics.iter(), transactional_id.is_some());
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 encode_produce_response(&mut out, &parts);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             API_KEY_FETCH if (15..=17).contains(&api_version) => {
                 let (max_bytes, topics) = decode_fetch_request(body).map_err(|_| ())?;
@@ -2257,20 +2429,18 @@ impl Worker {
                         state.injected_requests += 1;
                     }
                     encode_response_header(&mut out, api_key, api_version, correlation_id);
-                    encode_fetch_response(&mut out, &served);
-                    return Ok(Some(out));
+                    return Ok(Some(Reply::Gather(gather_fetch_body(out, &served))));
                 }
                 let served = self.serve_fetch(max_bytes, &topics);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
-                encode_fetch_response(&mut out, &served);
-                Ok(Some(out))
+                Ok(Some(Reply::Gather(gather_fetch_body(out, &served))))
             }
             API_KEY_LIST_OFFSETS if (7..=10).contains(&api_version) => {
                 let topics = decode_list_offsets_request(body, api_version).map_err(|_| ())?;
                 let rows = self.serve_list_offsets(&topics);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 encode_list_offsets_response(&mut out, &rows);
-                Ok(Some(out))
+                Ok(Some(Reply::Inline(out)))
             }
             _ => Err(()),
         }
@@ -2819,6 +2989,54 @@ pub fn write_artifact(path: &Path, report: &RunReport) -> io::Result<()> {
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+
+    fn flatten_gather(body: &GatherBody) -> Vec<u8> {
+        let mut flat = Vec::new();
+        for part in &body.parts {
+            match part {
+                GatherPart::Frame(start, end) => {
+                    flat.extend_from_slice(body.frame.get(*start..*end).unwrap_or(&[]));
+                }
+                GatherPart::Records(chunk) => flat.extend_from_slice(chunk),
+            }
+        }
+        flat
+    }
+
+    #[test]
+    fn gathered_fetch_bytes_match_the_contiguous_encoder() {
+        let topics = [(
+            [9_u8; 16],
+            vec![
+                FetchPartitionResult {
+                    partition: 0,
+                    error_code: 0,
+                    high_watermark: 4,
+                    records: vec![Arc::from(&b"aaaa"[..]), Arc::from(&b"bbbb"[..])],
+                    aborted: vec![(7_i64, 1_i64)],
+                },
+                FetchPartitionResult {
+                    partition: 1,
+                    error_code: 3,
+                    high_watermark: 0,
+                    records: Vec::new(),
+                    aborted: Vec::new(),
+                },
+                FetchPartitionResult {
+                    partition: 2,
+                    error_code: 0,
+                    high_watermark: 1,
+                    records: vec![Arc::from(&b"only-one-chunk"[..])],
+                    aborted: Vec::new(),
+                },
+            ],
+        )];
+        let mut contiguous = Vec::new();
+        encode_fetch_response(&mut contiguous, &topics);
+        let gathered = gather_fetch_body(Vec::new(), &topics);
+        assert_eq!(flatten_gather(&gathered), contiguous);
+        assert_eq!(gathered.body_len, contiguous.len());
+    }
 
     fn put_zigzag32(out: &mut Vec<u8>, value: i32) {
         let mut v = ((value << 1) ^ (value >> 31)) as u32;
