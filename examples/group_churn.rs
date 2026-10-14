@@ -313,13 +313,14 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
     );
     let mut seen = Vec::new();
     let leaving = names.member == "b" && names.churn == "member_loss";
-    if leaving {
+    let holding = names.member == "a" && names.churn == "max_poll_expiry";
+    if leaving || holding {
         drop(group.poll_timeout(Duration::from_millis(800)).await);
     } else {
         arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
     }
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
-    let action = if leaving {
+    let action = if leaving || holding {
         go_action(&wait_file(&go, Duration::from_secs(40)).await?)
     } else {
         wait_go_partition(&mut group, &mut seen, &go, Duration::from_secs(40)).await?
