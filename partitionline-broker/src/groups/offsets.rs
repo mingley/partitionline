@@ -9,7 +9,7 @@
 
 use crate::catalog;
 use crate::journal::{self, Journal};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLGOFF01";
@@ -234,13 +234,22 @@ impl Offsets {
             }
         }
         if !accepted.is_empty() {
+            let mut fresh = BTreeSet::new();
+            let existing = self.groups.get(group_id);
+            for (topic, partition, _, _) in &accepted {
+                let key = ((*topic).to_owned(), *partition);
+                if existing.is_none_or(|group| !group.offsets.contains_key(&key)) {
+                    fresh.insert(key);
+                }
+            }
+            let stored = existing.map(|group| group.offsets.len()).unwrap_or(0);
+            if stored.saturating_add(fresh.len()) > self.limits.max_offsets {
+                return Err(Error::InvalidLimits);
+            }
             let group = self.groups.entry(group_id.to_owned()).or_insert(Group {
                 generation,
                 offsets: BTreeMap::new(),
             });
-            if group.offsets.len() + accepted.len() > self.limits.max_offsets {
-                return Err(Error::InvalidLimits);
-            }
             for (topic, partition, offset, metadata) in accepted {
                 group.offsets.insert(
                     (topic.to_owned(), partition),
@@ -509,5 +518,47 @@ mod tests {
         );
         assert_eq!(restored.describe("payments"), Some((1, 1)));
         assert!(restored.describe("orders").is_none());
+    }
+
+    #[test]
+    fn replacing_an_offset_does_not_consume_another_slot() {
+        let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        let limits = Limits::new(8, 1, 32, journal).unwrap_or_else(|_| panic!("offset limits"));
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-goff-replace-{nanos}"));
+        let mut offsets =
+            Offsets::open(&path, limits).unwrap_or_else(|error| panic!("{error:?}"));
+        offsets
+            .commit("orders", "m-1", 1, &[("orders", 0, 4, "")])
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        offsets
+            .commit(
+                "orders",
+                "m-1",
+                1,
+                &[("orders", 0, 9, "next"), ("orders", 0, 11, "later")],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            offsets
+                .fetch("orders", "orders", 0)
+                .map(|committed| committed.offset),
+            Some(11)
+        );
+        assert!(matches!(
+            offsets.commit("orders", "m-1", 1, &[("orders", 1, 1, "")]),
+            Err(Error::InvalidLimits)
+        ));
+        assert!(offsets.fetch("orders", "orders", 1).is_none());
+        assert_eq!(offsets.describe("orders"), Some((1, 1)));
+        assert!(matches!(
+            offsets.commit("payments", "m-1", 1, &[("paid", 0, 1, ""), ("paid", 1, 2, "")]),
+            Err(Error::InvalidLimits)
+        ));
+        assert!(offsets.describe("payments").is_none());
     }
 }
