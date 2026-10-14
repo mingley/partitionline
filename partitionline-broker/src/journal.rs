@@ -1693,4 +1693,41 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         Ok(())
     }
+
+    #[test]
+    fn length_is_rechecked_after_invalidation() {
+        let dir = std::env::temp_dir().join(format!(
+            "pl-journal-length-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("log");
+        let (mut journal, _) = Journal::open(&path, 0, Limits::default()).unwrap();
+        journal.append(1, b"one").unwrap();
+        journal.append(1, b"two").unwrap();
+        let mut dest = Vec::new();
+        let first = journal.fetch_one_into(0, 4096, &mut dest).unwrap().unwrap();
+        assert_eq!(&dest[..first.len], b"one");
+        let second = journal.fetch_one_into(1, 4096, &mut dest).unwrap().unwrap();
+        assert_eq!(&dest[first.len..first.len + second.len], b"two");
+        let mut external = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap();
+        std::io::Write::write_all(&mut external, b"xxx").unwrap();
+        external.sync_all().unwrap();
+        let cached = journal.fetch_one_into(0, 4096, &mut Vec::new()).unwrap();
+        assert_eq!(cached.unwrap().len, 3);
+        journal.invalidate_length_observation();
+        assert!(matches!(
+            journal.fetch_one_into(0, 4096, &mut Vec::new()),
+            Err(Error::ChangedFile)
+        ));
+        assert!(journal.is_poisoned());
+        drop(journal);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
