@@ -159,7 +159,7 @@ async fn share_group_metadata_matches_join() {
     let mock = common::Mock::start().await;
     let mut cfg = config(&mock);
     cfg.group_instance_id = Some("worker-1".into());
-    let mut group = ShareGroup::join(cfg, "md", "t").await.unwrap();
+    let group = ShareGroup::join(cfg, "md", "t").await.unwrap();
     let md = group.group_metadata();
     assert_eq!(md.group_id(), "md");
     assert_eq!(group.group_id(), "md");
