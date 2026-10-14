@@ -1736,6 +1736,7 @@ impl ConsumerGroup {
         self.consumer
             .positions()
             .into_iter()
+            .filter(|(_, offset)| position_is_committable(*offset))
             .map(|(tp, offset)| {
                 let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
                 (
@@ -1792,8 +1793,9 @@ impl ConsumerGroup {
                 self.consumer.assignment().into_iter().collect();
             let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = positions
                 .iter()
-                .filter(|(tp, _)| {
-                    assigned.contains(tp)
+                .filter(|(tp, offset)| {
+                    position_is_committable(*offset)
+                        && assigned.contains(tp)
                         && self
                             .last_delivered_topic_ids
                             .get(&(tp.topic.clone(), tp.partition))
@@ -3162,6 +3164,12 @@ fn collect_commit_offsets(
         .collect()
 }
 
+/// A negative position is the reset marker after a topic is recreated.
+/// It is not an offset that can be committed.
+fn position_is_committable(offset: i64) -> bool {
+    offset >= 0
+}
+
 pub(crate) fn group_offset_topics(
     items: &[(TopicPartition, OffsetAndMetadata)],
 ) -> Vec<OffsetTopic> {
@@ -3886,6 +3894,13 @@ mod tests {
         assert_eq!(a.len(), 2);
         assert_eq!(b.len(), 2);
         assert!(a.iter().all(|p| !b.contains(p)));
+    }
+
+    #[test]
+    fn a_reset_position_is_not_committed() {
+        assert!(position_is_committable(0));
+        assert!(position_is_committable(4));
+        assert!(!position_is_committable(-1));
     }
 
     #[test]
