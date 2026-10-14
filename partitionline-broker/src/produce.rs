@@ -359,10 +359,31 @@ impl Store {
         index: i32,
         bytes: &mut [u8],
     ) -> Result<partition::Stage, i16> {
+        self.stage_in_place_inner(id, index, bytes, false)
+    }
+    fn stage_in_place_grouped(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        bytes: &mut [u8],
+    ) -> Result<partition::Stage, i16> {
+        self.stage_in_place_inner(id, index, bytes, true)
+    }
+    fn stage_in_place_inner(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        bytes: &mut [u8],
+        grouped: bool,
+    ) -> Result<partition::Stage, i16> {
         let position = self.slot(id, index)?;
         let partition = &mut self.slots[position].partition;
         let poisoned = partition.is_poisoned();
-        let result = partition.stage_in_place(bytes);
+        let result = if grouped {
+            partition.stage_in_place_grouped(bytes)
+        } else {
+            partition.stage_in_place(bytes)
+        };
         self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
         result.map_err(storage_error)
     }
@@ -376,6 +397,14 @@ impl Store {
         let partition = &mut self.slots[position].partition;
         let result = partition.commit_staged(batch_count);
         self.changed = true;
+        result.map_err(storage_error)
+    }
+    fn unstage_last(&mut self, id: TopicId, index: i32) -> Result<(), i16> {
+        let position = self.slot(id, index)?;
+        let partition = &mut self.slots[position].partition;
+        let poisoned = partition.is_poisoned();
+        let result = partition.unstage_last();
+        self.changed |= result.is_err() || poisoned != partition.is_poisoned();
         result.map_err(storage_error)
     }
     fn abort_staged(&mut self, id: TopicId, index: i32) {
@@ -1072,6 +1101,22 @@ fn stamp_leader_epoch(batch: &mut [u8]) {
         batch[12..16].copy_from_slice(&0i32.to_be_bytes());
     }
 }
+struct CapturedProduce {
+    version: i16,
+    correlation_id: i32,
+    body_off: usize,
+    acks: i16,
+    timeout: i32,
+    admitted: Instant,
+    response_bound: usize,
+    results: Vec<ResultTopic>,
+    pending_sync: Vec<PendingSync>,
+}
+enum ProcessOut {
+    Reply(Option<Vec<u8>>),
+    Captured(CapturedProduce),
+}
+
 pub(crate) fn process(
     catalog: &Catalog,
     store: &mut Store,
@@ -1080,6 +1125,161 @@ pub(crate) fn process(
     admitted: Instant,
     active: impl Fn() -> Result<(), Error>,
 ) -> Result<Option<Vec<u8>>, Error> {
+    match process_inner(catalog, store, input, common, admitted, active, false)? {
+        ProcessOut::Reply(body) => Ok(body),
+        ProcessOut::Captured(_) => Err(Error::Canceled),
+    }
+}
+
+/// Stage every already-queued produce, synchronize each partition once, then
+/// reply. A single job uses [`process`]. The first job is not delayed when
+/// nothing else is queued; callers decide that.
+pub(crate) fn process_queued(
+    catalog: &Catalog,
+    store: &mut Store,
+    inputs: &mut [&mut [u8]],
+    admitted: &[Instant],
+    common: &metadata::Config,
+    mut active: impl FnMut(usize) -> Result<(), Error>,
+) -> Vec<Result<Option<Vec<u8>>, Error>> {
+    let mut captured: Vec<Option<CapturedProduce>> = (0..inputs.len()).map(|_| None).collect();
+    let mut replies = Vec::with_capacity(inputs.len());
+    for (index, input) in inputs.iter_mut().enumerate() {
+        let admitted_at = admitted.get(index).copied().unwrap_or_else(Instant::now);
+        match process_inner(
+            catalog,
+            store,
+            input,
+            common,
+            admitted_at,
+            || active(index),
+            true,
+        ) {
+            Ok(ProcessOut::Captured(item)) => {
+                captured[index] = Some(item);
+                replies.push(Ok(None));
+            }
+            Ok(ProcessOut::Reply(body)) => replies.push(Ok(body)),
+            Err(error) => replies.push(Err(error)),
+        }
+    }
+    sync_partition_once(&mut captured);
+    for (index, item) in captured.into_iter().enumerate() {
+        let Some(item) = item else {
+            continue;
+        };
+        let input = &inputs[index];
+        replies[index] = finish_captured(store, item, input);
+    }
+    replies
+}
+
+fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
+    let mut reps: Vec<(usize, usize)> = Vec::new();
+    for (state_index, item) in captured.iter().enumerate() {
+        let Some(item) = item else {
+            continue;
+        };
+        for (local_index, sync) in item.pending_sync.iter().enumerate() {
+            let replaced = reps.iter_mut().find(|(state, local)| {
+                captured[*state].as_ref().is_some_and(|other| {
+                    let previous = &other.pending_sync[*local];
+                    previous.id == sync.id && previous.index == sync.index
+                })
+            });
+            if let Some(slot) = replaced {
+                *slot = (state_index, local_index);
+            } else {
+                reps.push((state_index, local_index));
+            }
+        }
+    }
+    let mut joins = Vec::new();
+    for &(state_index, local_index) in &reps {
+        let cloned = captured
+            .get(state_index)
+            .and_then(|item| item.as_ref())
+            .and_then(|item| item.pending_sync.get(local_index))
+            .and_then(|sync| sync.file.try_clone().ok());
+        joins.push(cloned.map(|file| std::thread::spawn(move || file.sync_data())));
+    }
+    for ((state_index, local_index), join) in reps.into_iter().zip(joins) {
+        let failed = match join {
+            Some(handle) => handle.join().ok().is_none_or(|result| result.is_err()),
+            None => true,
+        };
+        let Some(sync) = captured
+            .get_mut(state_index)
+            .and_then(|item| item.as_mut())
+            .and_then(|item| item.pending_sync.get_mut(local_index))
+        else {
+            continue;
+        };
+        sync.failed = failed;
+        if !failed {
+            continue;
+        }
+        let id = sync.id;
+        let index = sync.index;
+        for other in captured.iter_mut().flatten() {
+            for pending in &mut other.pending_sync {
+                if pending.id == id && pending.index == index {
+                    pending.failed = true;
+                }
+            }
+        }
+    }
+}
+
+fn finish_captured(
+    store: &mut Store,
+    mut item: CapturedProduce,
+    input: &[u8],
+) -> Result<Option<Vec<u8>>, Error> {
+    for sync in item.pending_sync {
+        let Some(part) = item
+            .results
+            .get_mut(sync.topic_at)
+            .and_then(|topic| topic.parts.get_mut(sync.part_at))
+        else {
+            store.abort_staged(sync.id, sync.index);
+            continue;
+        };
+        if sync.failed {
+            store.abort_staged(sync.id, sync.index);
+            part.error = 56;
+            part.base = -1;
+            continue;
+        }
+        match store.commit_staged(sync.id, sync.index, sync.batch_count) {
+            Ok(result) => note_append(part, sync.id, result, store, item.admitted, item.timeout),
+            Err(error) => {
+                part.error = error;
+                part.base = -1;
+            }
+        }
+    }
+    let mut writer = Writer::new(item.response_bound)?;
+    write_produce_response(
+        &mut writer,
+        item.version,
+        item.correlation_id,
+        item.body_off,
+        item.acks,
+        &item.results,
+        input,
+    )
+}
+
+fn process_inner(
+    catalog: &Catalog,
+    store: &mut Store,
+    input: &mut [u8],
+    common: &metadata::Config,
+    admitted: Instant,
+    mut active: impl FnMut() -> Result<(), Error>,
+    grouped: bool,
+) -> Result<ProcessOut, Error> {
     let version = i16::from_be_bytes(
         input
             .get(2..4)
@@ -1232,7 +1432,12 @@ pub(crate) fn process(
     let mut pending_sync: Vec<PendingSync> = Vec::new();
     for (topic_at, topic) in results.iter_mut().enumerate() {
         for (part_at, part) in topic.parts.iter_mut().enumerate() {
-            active()?;
+            if let Err(error) = active() {
+                if grouped {
+                    rollback_pending(store, &mut pending_sync);
+                }
+                return Err(error);
+            }
             if part.error == 0 {
                 if timed_out(admitted, parsed.timeout) {
                     part.error = 7;
@@ -1244,6 +1449,14 @@ pub(crate) fn process(
                     } else {
                         None
                     };
+                    let partition_index = part.index;
+                    let stage = |store: &mut Store, buf: &mut [u8]| {
+                        if grouped {
+                            store.stage_in_place_grouped(id, partition_index, buf)
+                        } else {
+                            store.stage_in_place(id, partition_index, buf)
+                        }
+                    };
                     let staged = if let Some((start, end)) = shared {
                         let abs_start = body_off.saturating_add(start);
                         let abs_end = body_off.saturating_add(end);
@@ -1251,9 +1464,9 @@ pub(crate) fn process(
                             part.error = 87;
                             continue;
                         };
-                        store.stage_in_place(id, part.index, buf)
+                        stage(store, buf)
                     } else if let Held::Owned(buf) = &mut part.bytes {
-                        store.stage_in_place(id, part.index, buf)
+                        stage(store, buf)
                     } else {
                         Err(87)
                     };
@@ -1278,6 +1491,19 @@ pub(crate) fn process(
             }
         }
     }
+    if grouped {
+        return Ok(ProcessOut::Captured(CapturedProduce {
+            version,
+            correlation_id,
+            body_off,
+            acks: parsed.acks,
+            timeout: parsed.timeout,
+            admitted,
+            response_bound,
+            results,
+            pending_sync,
+        }));
+    }
     sync_staged(&mut pending_sync);
     for item in pending_sync {
         let Some(part) = results
@@ -1301,7 +1527,29 @@ pub(crate) fn process(
             }
         }
     }
-    if parsed.acks == 0 {
+    write_produce_response(
+        &mut writer,
+        version,
+        correlation_id,
+        body_off,
+        parsed.acks,
+        &results,
+        input,
+    )
+    .map(ProcessOut::Reply)
+}
+
+fn write_produce_response(
+    writer: &mut Writer,
+    version: i16,
+    correlation_id: i32,
+    body_off: usize,
+    acks: i16,
+    results: &[ResultTopic],
+    input: &[u8],
+) -> Result<Option<Vec<u8>>, Error> {
+    let flex = version >= 9;
+    if acks == 0 {
         if results.iter().any(|t| t.parts.iter().any(|p| p.error != 0)) {
             return Err(Error::AcksZeroError);
         }
@@ -1325,7 +1573,7 @@ pub(crate) fn process(
             )?;
         }
         writer.count(topic.parts.len(), flex)?;
-        for part in topic.parts {
+        for part in &topic.parts {
             writer.i32(part.index)?;
             writer.i16(part.error)?;
             writer.i64(part.base)?;
@@ -1349,7 +1597,15 @@ pub(crate) fn process(
     if flex {
         writer.byte(0)?;
     }
-    Ok(Some(writer.bytes))
+    Ok(Some(std::mem::take(&mut writer.bytes)))
+}
+
+fn rollback_pending(store: &mut Store, pending: &mut Vec<PendingSync>) {
+    while let Some(sync) = pending.pop() {
+        if store.unstage_last(sync.id, sync.index).is_err() {
+            store.abort_staged(sync.id, sync.index);
+        }
+    }
 }
 struct Writer {
     bytes: Vec<u8>,

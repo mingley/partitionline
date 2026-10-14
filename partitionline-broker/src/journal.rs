@@ -455,13 +455,41 @@ impl Journal {
     /// sync succeeds. [`Self::abort_staged`] poisons the handle instead.
     /// A crash after the write and before commit recovers the entry on reopen,
     /// the same window as a crash during [`Self::append`]'s sync.
+    /// A second call while an entry is already staged poisons the handle.
+    /// [`Self::append_staged_grouped`] is the only way to queue another entry
+    /// behind the first and cover both with one sync.
     pub(crate) fn append_staged(
         &mut self,
         record_count: u32,
         payload: &[u8],
         checksum: u32,
     ) -> Result<File, Error> {
-        self.inner.stage(record_count, payload, checksum)?;
+        self.append_staged_inner(record_count, payload, checksum, false)
+    }
+
+    /// Queue another entry behind one already staged on this handle.
+    ///
+    /// Writes stay in order. One `sync_data` on the last cloned descriptor
+    /// covers every earlier write. [`Self::commit_staged`] must then run once
+    /// per entry, oldest first. A crash before that sync recovers whatever
+    /// complete entries reached disk, the same window as one staged append.
+    pub(crate) fn append_staged_grouped(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+    ) -> Result<File, Error> {
+        self.append_staged_inner(record_count, payload, checksum, true)
+    }
+
+    fn append_staged_inner(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+        extend: bool,
+    ) -> Result<File, Error> {
+        self.inner.stage(record_count, payload, checksum, extend)?;
         match self.inner.storage.try_clone() {
             Ok(file) => Ok(file),
             Err(error) => {
@@ -474,6 +502,15 @@ impl Journal {
     /// Publish the staged entry after its cloned descriptor has been synchronized.
     pub(crate) fn commit_staged(&mut self) -> Result<Append, Error> {
         self.inner.commit_staged()
+    }
+
+    /// Drop the newest staged entry and truncate the file back to its start.
+    ///
+    /// Returns that entry's first offset. Used when a later grouped produce
+    /// is rejected before sync. Earlier staged entries stay queued. A
+    /// truncate failure poisons the handle.
+    pub(crate) fn unstage_last(&mut self) -> Result<u64, Error> {
+        self.inner.unstage_last()
     }
 
     /// Drop a staged entry from memory and require reopen.
@@ -584,7 +621,7 @@ struct Engine<S> {
     file_bytes: u64,
     index: Vec<Index>,
     poisoned: bool,
-    staged: Option<Staged>,
+    staged: Vec<Staged>,
     /// File position after the last successful read or append. The next
     /// contiguous read skips `seek`.
     read_pos: Option<u64>,
@@ -936,7 +973,7 @@ impl<S: Storage> Engine<S> {
             file_bytes: FILE_HEADER as u64,
             index: Vec::new(),
             poisoned: false,
-            staged: None,
+            staged: Vec::new(),
             read_pos: None,
             length_ok: false,
         };
@@ -1026,9 +1063,10 @@ impl<S: Storage> Engine<S> {
         record_count: u32,
         payload: &[u8],
         checksum: u32,
+        extend: bool,
     ) -> Result<(Index, u64), Error> {
         self.check_alive()?;
-        if self.staged.is_some() {
+        if !self.staged.is_empty() && !extend {
             self.poisoned = true;
             return Err(Error::Poisoned);
         }
@@ -1038,16 +1076,18 @@ impl<S: Storage> Engine<S> {
         if payload.len() > self.limits.max_entry_bytes {
             return Err(Error::EntryTooLarge);
         }
-        if self.index.len() >= self.limits.max_index_entries {
+        if self.index.len().saturating_add(self.staged.len()) >= self.limits.max_index_entries {
             return Err(Error::IndexBudgetExceeded);
         }
-        let next_offset = self
-            .next_offset
+        let (origin_offset, origin_bytes) = match self.staged.last() {
+            Some(staged) => (staged.index.next_offset, staged.file_bytes),
+            None => (self.next_offset, self.file_bytes),
+        };
+        let next_offset = origin_offset
             .checked_add(u64::from(record_count))
             .ok_or(Error::OffsetOverflow)?;
         let total = ENTRY_HEADER as u64 + payload.len() as u64;
-        let file_bytes = self
-            .file_bytes
+        let file_bytes = origin_bytes
             .checked_add(total)
             .ok_or(Error::FileBudgetExceeded)?;
         if file_bytes > self.limits.max_file_bytes {
@@ -1055,9 +1095,9 @@ impl<S: Storage> Engine<S> {
         }
         reserve_index(&mut self.index, self.limits.max_index_entries)?;
         let index = Index {
-            first_offset: self.next_offset,
+            first_offset: origin_offset,
             next_offset,
-            position: self.file_bytes,
+            position: origin_bytes,
             payload_len: payload.len() as u32,
             record_count,
             checksum,
@@ -1075,12 +1115,15 @@ impl<S: Storage> Engine<S> {
         Ok(())
     }
     fn write_planned(&mut self, index: Index, payload: &[u8]) -> Result<(), Error> {
-        if self.storage.byte_len()? != self.file_bytes {
+        // `index.position` is the committed end, or the end of an earlier
+        // grouped write that is not published yet. Either way it is the
+        // length this handle last left on disk.
+        if self.storage.byte_len()? != index.position {
             return Err(Error::ChangedFile);
         }
         self.read_pos = None;
         self.length_ok = false;
-        self.storage.seek(SeekFrom::Start(self.file_bytes))?;
+        self.storage.seek(SeekFrom::Start(index.position))?;
         let header = entry_header(index);
         write_two(&mut self.storage, &header, payload)?;
         self.read_pos = self
@@ -1107,7 +1150,7 @@ impl<S: Storage> Engine<S> {
         payload: &[u8],
         checksum: u32,
     ) -> Result<Append, Error> {
-        let (index, file_bytes) = self.plan(record_count, payload, checksum)?;
+        let (index, file_bytes) = self.plan(record_count, payload, checksum, false)?;
         let result = (|| {
             self.write_planned(index, payload)?;
             self.storage.synchronize()?;
@@ -1122,26 +1165,47 @@ impl<S: Storage> Engine<S> {
     fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
         self.append_checksummed(record_count, payload, crc32c::crc32c(payload))
     }
-    fn stage(&mut self, record_count: u32, payload: &[u8], checksum: u32) -> Result<(), Error> {
-        let (index, file_bytes) = self.plan(record_count, payload, checksum)?;
+    fn stage(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+        checksum: u32,
+        extend: bool,
+    ) -> Result<(), Error> {
+        let (index, file_bytes) = self.plan(record_count, payload, checksum, extend)?;
         if let Err(error) = self.write_planned(index, payload) {
             self.poisoned = true;
             return Err(error);
         }
-        self.staged = Some(Staged { index, file_bytes });
+        self.staged.push(Staged { index, file_bytes });
         Ok(())
     }
     fn commit_staged(&mut self) -> Result<Append, Error> {
-        let Some(staged) = self.staged.take() else {
+        if self.staged.is_empty() {
             self.poisoned = true;
             return Err(Error::Poisoned);
-        };
+        }
+        let staged = self.staged.remove(0);
         Ok(self.publish(staged.index, staged.file_bytes))
     }
     fn abort_staged(&mut self) {
-        if self.staged.take().is_some() {
+        if !self.staged.is_empty() {
+            self.staged.clear();
             self.poisoned = true;
         }
+    }
+    fn unstage_last(&mut self) -> Result<u64, Error> {
+        let Some(staged) = self.staged.pop() else {
+            self.poisoned = true;
+            return Err(Error::Poisoned);
+        };
+        if let Err(error) = self.storage.truncate_to(staged.index.position) {
+            self.poisoned = true;
+            return Err(error.into());
+        }
+        self.read_pos = None;
+        self.length_ok = false;
+        Ok(staged.index.first_offset)
     }
 
     fn fetch(
@@ -1150,7 +1214,7 @@ impl<S: Storage> Engine<S> {
         max_entries: usize,
         max_bytes: usize,
     ) -> Result<Vec<Entry>, Error> {
-        if self.staged.is_some() {
+        if !self.staged.is_empty() {
             self.abort_staged();
             return Err(Error::Poisoned);
         }
@@ -1222,7 +1286,7 @@ impl<S: Storage> Engine<S> {
         max_bytes: usize,
         dest: &mut Vec<u8>,
     ) -> Result<Option<PayloadView>, Error> {
-        if self.staged.is_some() {
+        if !self.staged.is_empty() {
             self.abort_staged();
             return Err(Error::Poisoned);
         }
@@ -1690,6 +1754,67 @@ mod tests {
         assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"gone");
         drop(reopened);
         drop(recovered);
+        let _ = std::fs::remove_dir_all(&dir);
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_stages_share_one_sync_and_commit_in_order() -> Result<(), Error> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!(
+            "partitionline-group-stage-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(dir.join("log"), 0, limits)?;
+        let first = log.append_staged(1, b"one", crc32c::crc32c(b"one"))?;
+        let second = log.append_staged_grouped(2, b"two", crc32c::crc32c(b"two"))?;
+        drop(first);
+        second.sync_data()?;
+        let committed = log.commit_staged()?;
+        assert_eq!(committed.first_offset, 0);
+        assert_eq!(committed.record_count, 1);
+        let committed = log.commit_staged()?;
+        assert_eq!(committed.first_offset, 1);
+        assert_eq!(committed.record_count, 2);
+        assert_eq!(log.next_offset(), 3);
+        let fetched = log.fetch(0, 2, 4096)?;
+        assert_eq!(fetched.len(), 2);
+        assert_eq!(fetched[0].payload, b"one");
+        assert_eq!(fetched[1].payload, b"two");
+        drop(log);
+        let (mut reopened, recovery) = Journal::open(dir.join("log"), 0, limits)?;
+        assert_eq!(recovery.recovered_entries, 2);
+        assert_eq!(reopened.next_offset(), 3);
+        let fetched = reopened.fetch(0, 2, 4096)?;
+        assert_eq!(fetched[0].payload, b"one");
+        assert_eq!(fetched[1].payload, b"two");
+        drop(reopened);
+
+        let (mut undone, _) = Journal::open(dir.join("undo"), 0, limits)?;
+        let kept = undone.append_staged(1, b"keep", crc32c::crc32c(b"keep"))?;
+        let _dropped = undone.append_staged_grouped(1, b"drop", crc32c::crc32c(b"drop"))?;
+        assert_eq!(undone.unstage_last()?, 1);
+        kept.sync_data()?;
+        let committed = undone.commit_staged()?;
+        assert_eq!(committed.first_offset, 0);
+        assert_eq!(committed.next_offset, 1);
+        let fetched = undone.fetch(0, 2, 4096)?;
+        assert_eq!(fetched.len(), 1);
+        assert_eq!(fetched[0].payload, b"keep");
+        drop(undone);
+
+        let (mut guarded, _) = Journal::open(dir.join("guard"), 0, limits)?;
+        let _held = guarded.append_staged(1, b"a", crc32c::crc32c(b"a"))?;
+        assert!(guarded
+            .append_staged(1, b"b", crc32c::crc32c(b"b"))
+            .is_err());
+        assert!(guarded.is_poisoned());
+        drop(guarded);
         let _ = std::fs::remove_dir_all(&dir);
         Ok(())
     }

@@ -801,7 +801,8 @@ fn actor(
     options: DataOptions,
     changes: &watch::Sender<()>,
 ) {
-    while let Some(command) = receiver.blocking_recv() {
+    let mut pending: Option<Command> = None;
+    while let Some(command) = pending.take().or_else(|| receiver.blocking_recv()) {
         if stopping.load(Ordering::Acquire) {
             receiver.close();
             reject(command);
@@ -858,10 +859,35 @@ fn actor(
                 if job.reply.is_closed() {
                     continue;
                 }
+                let produce_key = job.request.get(..2) == Some(&[0, 0]);
+                let mut grouped: Vec<DataJob> = Vec::new();
+                if produce_key {
+                    while grouped.len() < 7 {
+                        match receiver.try_recv() {
+                            Ok(Command::Data(next))
+                                if next.request.get(..2) == Some(&[0, 0])
+                                    && next.request.len() <= 64 * 1024 =>
+                            {
+                                if next.reply.is_closed() {
+                                    continue;
+                                }
+                                grouped.push(next);
+                            }
+                            Ok(other) => {
+                                pending = Some(other);
+                                break;
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                }
                 let result = if catalog.is_poisoned() {
+                    for extra in grouped.drain(..) {
+                        let _ = extra.reply.send(Err(Error::StoragePoisoned));
+                    }
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
-                    if job.request.get(..2) == Some(&[0, 0]) {
+                    if produce_key && grouped.is_empty() {
                         produce::process(
                             &catalog,
                             store,
@@ -878,6 +904,43 @@ fn actor(
                         )
                         .map(DataReply::Produce)
                         .map_err(Into::into)
+                    } else if produce_key {
+                        let mut jobs = Vec::with_capacity(grouped.len() + 1);
+                        jobs.push(job);
+                        jobs.append(&mut grouped);
+                        let mut bodies = Vec::with_capacity(jobs.len());
+                        let mut admitted = Vec::with_capacity(jobs.len());
+                        let mut senders = Vec::with_capacity(jobs.len());
+                        for mut queued in jobs {
+                            bodies.push(std::mem::take(&mut queued.request));
+                            admitted.push(queued.admitted);
+                            senders.push(queued.reply);
+                        }
+                        let mut inputs: Vec<&mut [u8]> =
+                            bodies.iter_mut().map(Vec::as_mut_slice).collect();
+                        let results = produce::process_queued(
+                            &catalog,
+                            store,
+                            inputs.as_mut_slice(),
+                            &admitted,
+                            config,
+                            |index| {
+                                let closed =
+                                    senders.get(index).is_none_or(|sender| sender.is_closed());
+                                if closed || stopping.load(Ordering::Acquire) {
+                                    Err(produce::Error::Canceled)
+                                } else {
+                                    Ok(())
+                                }
+                            },
+                        );
+                        if store.take_changed() {
+                            changes.send_replace(());
+                        }
+                        for (sender, result) in senders.into_iter().zip(results) {
+                            let _ = sender.send(result.map(DataReply::Produce).map_err(Into::into));
+                        }
+                        continue;
                     } else if job.request.get(..2) == Some(&[0, 21]) {
                         if let Some(retention) = options.retention {
                             retention::process(
@@ -916,6 +979,11 @@ fn actor(
                         Err(protocol::Error::UnimplementedApi(1).into())
                     }
                 } else {
+                    for extra in grouped.drain(..) {
+                        let _ = extra
+                            .reply
+                            .send(Err(protocol::Error::UnimplementedApi(0).into()));
+                    }
                     Err(protocol::Error::UnimplementedApi(0).into())
                 };
                 if store.as_mut().is_some_and(produce::Store::take_changed) {

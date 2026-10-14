@@ -90,8 +90,12 @@ impl Backend {
         count: u32,
         payload: &[u8],
         checksum: u32,
+        grouped: bool,
     ) -> Result<std::fs::File, Error> {
         match self {
+            Self::Journal(log) if grouped => {
+                Ok(log.append_staged_grouped(count, payload, checksum)?)
+            }
             Self::Journal(log) => Ok(log.append_staged(count, payload, checksum)?),
             Self::Segments(_) => Err(Error::InvalidLimits),
         }
@@ -105,6 +109,12 @@ impl Backend {
     fn abort_staged(&mut self) {
         if let Self::Journal(log) = self {
             log.abort_staged();
+        }
+    }
+    fn unstage_last(&mut self) -> Result<u64, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.unstage_last()?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
         }
     }
     fn is_journal(&self) -> bool {
@@ -408,13 +418,32 @@ impl Partition {
     /// [`Self::abort_staged`]. Rolling storage returns [`Stage::Done`] because
     /// its append already synchronized.
     pub(crate) fn stage_in_place(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
+        self.stage_in_place_inner(bytes, false)
+    }
+
+    /// Like [`Self::stage_in_place`], and a second call may queue another
+    /// entry on the same monolithic journal before either one is committed.
+    ///
+    /// The logical end advances when the write succeeds so the next grouped
+    /// call assigns the following offsets. One sync of the last descriptor
+    /// covers every queued entry. Commits stay in order.
+    pub(crate) fn stage_in_place_grouped(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
+        self.stage_in_place_inner(bytes, true)
+    }
+
+    fn stage_in_place_inner(&mut self, bytes: &mut [u8], grouped: bool) -> Result<Stage, Error> {
         if !self.journal.is_journal() {
             return Ok(Stage::Done(self.append_trusted(bytes)?));
         }
-        let (record_count, _base_offset, _next_offset, batch_count) =
+        let (record_count, _base_offset, next_offset, batch_count) =
             self.assign_offsets(bytes, true)?;
         let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
-        let file = self.journal.append_staged(record_count, bytes, checksum)?;
+        let file = self
+            .journal
+            .append_staged(record_count, bytes, checksum, grouped)?;
+        if grouped {
+            self.next_offset = next_offset;
+        }
         Ok(Stage::Sync(StagedWrite { file, batch_count }))
     }
 
@@ -435,6 +464,16 @@ impl Partition {
     pub(crate) fn abort_staged(&mut self) {
         self.journal.abort_staged();
         self.poisoned = true;
+    }
+
+    /// Remove the newest unsynced staged entry without poisoning on success.
+    ///
+    /// The logical end returns to that entry's base offset.
+    pub(crate) fn unstage_last(&mut self) -> Result<(), Error> {
+        self.check_alive()?;
+        let first = self.journal.unstage_last()?;
+        self.next_offset = i64::try_from(first).map_err(|_| Error::OffsetOverflow)?;
+        Ok(())
     }
 
     /// Fetch bounded whole atomic inputs containing/following the supplied offset.
