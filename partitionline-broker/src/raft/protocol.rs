@@ -66,6 +66,7 @@ const MAX_TERM: u64 = i32::MAX as u64 + 1;
 const INVALID_REQUEST: i16 = 42;
 const FENCED_EPOCH: i16 = 74;
 const CLUSTER_MISMATCH: i16 = 104;
+const UNSUPPORTED_VERSION: i16 = 35;
 const MAX_SUCCESSORS: usize = 31;
 const MAX_ARRAY: usize = 64;
 
@@ -1069,6 +1070,11 @@ pub enum VoteDisposition {
     DurableV0,
     /// Pre-vote granted. The caller must not write a term or vote.
     PreVoteGranted,
+    /// A prospective vote was rejected as an unsupported version.
+    ///
+    /// Apache starts a standard election immediately. This disposition does
+    /// not persist a term or a vote, and it is not a grant.
+    FallBackToStandardVote,
     /// Refused. The caller must not write a term or vote.
     Refused(PreVoteRefusal),
     /// Directory-qualified durable vote. Parsed, not advertised, not persisted here.
@@ -1412,9 +1418,13 @@ pub fn decode_vote_response(bytes: &[u8], version: i16) -> Result<VoteResponseBo
 /// `NotAdvertised`, and any other endpoint list is refused.
 pub fn decide_vote_response(
     persistent: &election::PersistentState,
+    prospective: bool,
     body: &VoteResponseBody,
 ) -> VoteDisposition {
     let _ = persistent;
+    if prospective && body.error_code == UNSUPPORTED_VERSION {
+        return VoteDisposition::FallBackToStandardVote;
+    }
     if body.version == 0 {
         return if body.endpoints.is_empty() {
             VoteDisposition::DurableV0
@@ -4462,13 +4472,39 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_vote_response(&persistent, &decoded),
+            decide_vote_response(&persistent, false, &decoded),
             VoteDisposition::NotAdvertised
+        );
+        assert_eq!(
+            decide_vote_response(&persistent, true, &decoded),
+            VoteDisposition::NotAdvertised
+        );
+        let mut unsupported = decoded.clone();
+        unsupported.error_code = UNSUPPORTED_VERSION;
+        assert_eq!(
+            decide_vote_response(&persistent, true, &unsupported),
+            VoteDisposition::FallBackToStandardVote
+        );
+        assert_eq!(
+            decide_vote_response(&persistent, false, &unsupported),
+            VoteDisposition::NotAdvertised
+        );
+        let mut classic_unsupported = decoded.clone();
+        classic_unsupported.version = 0;
+        classic_unsupported.error_code = UNSUPPORTED_VERSION;
+        classic_unsupported.endpoints.clear();
+        assert_eq!(
+            decide_vote_response(&persistent, true, &classic_unsupported),
+            VoteDisposition::FallBackToStandardVote
+        );
+        assert_eq!(
+            decide_vote_response(&persistent, false, &classic_unsupported),
+            VoteDisposition::DurableV0
         );
         let mut stale = decoded;
         stale.endpoints[0].node_id = 9;
         assert_eq!(
-            decide_vote_response(&persistent, &stale),
+            decide_vote_response(&persistent, false, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         assert_eq!(persistent, before);
