@@ -44387,8 +44387,8 @@
       "title": "Complete modern KRaft directory identity and pre-vote profiles",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL11-13",
         "KL11-14",
@@ -44397,6 +44397,16 @@
       "files": [
         "partitionline-broker/src/raft/protocol.rs",
         "partitionline-broker/src/raft/replication.rs"
+      ],
+      "write_set": [
+        "partitionline-broker/src/raft/protocol.rs",
+        "partitionline-broker/src/raft/replication.rs",
+        "partitionline-broker/tests/raft_protocol.rs",
+        "partitionline-broker/tests/raft_directory.rs",
+        "partitionline-broker/tests/fixtures/raft-directory/",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL11-70.json",
+        "docs/evidence/broker/KL11-70/"
       ],
       "deliverable": "Current upstream KRaft directory identities/endpoints, pre-vote and supported successor/membership semantics beyond the initial fixedv0 controller profile.",
       "acceptance": [
