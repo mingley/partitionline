@@ -2334,30 +2334,32 @@ impl Consumer {
         self.reject_pending_wakeup()?;
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
-        let (error_code, parts): (i16, Vec<i32>) = {
-            let tmd = self
-                .metadata
-                .as_ref()
-                .and_then(|md| {
-                    md.topics
-                        .iter()
-                        .find(|t| t.name.as_deref() == Some(topic.as_str()))
-                })
-                .ok_or_else(|| Error::UnknownTopic(topic.clone()))?;
-            (
-                tmd.error_code,
-                tmd.partitions.iter().map(|p| p.partition_index).collect(),
-            )
-        };
-        if error_code != 0 {
-            return Err(Error::broker(error_code, topic));
-        }
-        if parts.is_empty() {
+        let Some(md) = self.metadata.as_ref() else {
             return Err(Error::UnknownTopic(topic));
-        }
-        for partition in &parts {
-            require_partition(*partition)?;
-        }
+        };
+        let entries: Vec<(i16, Vec<i32>)> = md
+            .topics
+            .iter()
+            .filter(|tmd| tmd.name.as_deref() == Some(topic.as_str()))
+            .map(|tmd| {
+                (
+                    tmd.error_code,
+                    tmd.partitions
+                        .iter()
+                        .map(|partition| partition.partition_index)
+                        .collect(),
+                )
+            })
+            .collect();
+        let parts = match listed_partition_indexes(
+            entries.iter().map(|(error, ids)| (*error, ids.as_slice())),
+        ) {
+            ListedPartitions::Indexes(indexes) if !indexes.is_empty() => indexes,
+            ListedPartitions::Indexes(_) | ListedPartitions::Missing => {
+                return Err(Error::UnknownTopic(topic));
+            }
+            ListedPartitions::Error(code) => return Err(Error::broker(code, topic)),
+        };
         self.assigned.retain(|(t, _, _)| t != &topic);
         self.assigned_topic_ids
             .retain(|(name, _), _| name != &topic);
