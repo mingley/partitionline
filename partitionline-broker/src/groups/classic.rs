@@ -266,11 +266,16 @@ impl Groups {
                 member.joined_generation = 0;
             }
         }
+        let last_seen_ms = group
+            .members
+            .get(&member_id)
+            .map(|member| later_seen(member.last_seen_ms, now_ms))
+            .unwrap_or(now_ms);
         group.members.insert(
             member_id.clone(),
             Member {
                 joined_generation: group.generation,
-                last_seen_ms: now_ms,
+                last_seen_ms,
                 assignment: Vec::new(),
                 synced: false,
             },
@@ -349,7 +354,7 @@ impl Groups {
             .get_mut(member_id)
             .ok_or(Error::UnknownMember)?;
         member.synced = true;
-        member.last_seen_ms = now_ms;
+        member.last_seen_ms = later_seen(member.last_seen_ms, now_ms);
         let owned = member.assignment.clone();
         self.persist_all()?;
         Ok(owned)
@@ -381,7 +386,7 @@ impl Groups {
             return Err(Error::IllegalGeneration);
         }
         let stable = member.joined_generation == group.generation;
-        member.last_seen_ms = now_ms;
+        member.last_seen_ms = later_seen(member.last_seen_ms, now_ms);
         self.persist_all()?;
         if stable {
             Ok(())
@@ -508,6 +513,10 @@ impl Groups {
         self.groups = groups;
         Ok(())
     }
+}
+
+fn later_seen(current: u64, now_ms: u64) -> u64 {
+    current.max(now_ms)
 }
 
 fn validate_name(name: &str) -> Result<(), Error> {
@@ -912,6 +921,23 @@ mod tests {
             groups.heartbeat("orders", "gone", leader.generation, 0, 1_500),
             Err(Error::UnknownMember)
         ));
+    }
+
+    #[test]
+    fn an_older_clock_does_not_shorten_the_session() {
+        let (mut groups, _) = open("clock");
+        let leader = groups
+            .join("orders", "", "range", 0, 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .heartbeat("orders", &leader.member_id, leader.generation, 0, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(5_001).unwrap_or(99), 0);
+        groups
+            .join("orders", &leader.member_id, "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(5_001).unwrap_or(99), 0);
+        assert_eq!(groups.expire(6_001).unwrap_or(99), 1);
     }
 
     #[test]
