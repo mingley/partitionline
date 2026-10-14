@@ -552,6 +552,9 @@ pub enum ShareAcquireMode {
 }
 
 /// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v2 / ShareAcknowledge v0–v2).
+///
+/// [`Self::group_metadata`] is Java `ShareConsumer.groupMetadata()`;
+/// [`crate::ConsumerGroupMetadata::generation_id`] is the share member epoch.
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -823,6 +826,36 @@ impl ShareGroup {
     #[must_use]
     pub fn group_id(&self) -> &str {
         &self.group_id
+    }
+
+    /// Share member epoch (Java `ConsumerGroupMetadata.generationId` for
+    /// share groups). Heartbeat-updated epoch wins when it is positive.
+    #[must_use]
+    pub fn member_epoch(&self) -> i32 {
+        let latest = self.hb_epoch.load(Ordering::SeqCst);
+        if latest > 0 {
+            latest
+        } else {
+            self.member_epoch
+        }
+    }
+
+    /// Same as [`Self::member_epoch`] (Java `generationId`).
+    #[must_use]
+    pub fn generation_id(&self) -> i32 {
+        self.member_epoch()
+    }
+
+    /// Snapshot of group id, member id, member epoch, and instance id
+    /// (Java `ShareConsumer.groupMetadata()`).
+    #[must_use]
+    pub fn group_metadata(&self) -> crate::ConsumerGroupMetadata {
+        crate::ConsumerGroupMetadata {
+            group_id: self.group_id.clone(),
+            generation_id: self.member_epoch(),
+            member_id: self.member_id.clone(),
+            group_instance_id: self.cfg.group_instance_id.clone(),
+        }
     }
 
     /// Returns the broker-directed heartbeat interval.

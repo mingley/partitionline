@@ -44,9 +44,21 @@ async fn share_join_then_produce_against_local_broker() {
     tokio::time::sleep(Duration::from_secs(1)).await;
     let group = format!("pl-share-live-{suffix}");
     let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(500);
-    let mut g = ShareGroup::join(cfg, group, topic.clone())
+    let mut g = ShareGroup::join(cfg, group.clone(), topic.clone())
         .await
         .expect("share join");
+    let md = g.group_metadata();
+    assert_eq!(md.group_id(), group);
+    assert_eq!(md.member_id(), g.member_id());
+    assert!(!md.member_id().is_empty());
+    assert_eq!(md.generation_id(), g.member_epoch());
+    assert_eq!(g.generation_id(), g.member_epoch());
+    assert!(
+        md.generation_id() >= 1,
+        "share member epoch must be assigned, got {}",
+        md.generation_id()
+    );
+    assert!(md.group_instance_id().is_none());
     let assigned_deadline = Instant::now() + Duration::from_secs(15);
     loop {
         let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();

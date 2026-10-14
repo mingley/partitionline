@@ -155,6 +155,34 @@ async fn explicit_commit_is_noop_until_accept() {
 }
 
 #[tokio::test]
+async fn share_group_metadata_matches_join() {
+    let mock = common::Mock::start().await;
+    let mut cfg = config(&mock);
+    cfg.group_instance_id = Some("worker-1".into());
+    let mut group = ShareGroup::join(cfg, "md", "t").await.unwrap();
+    let md = group.group_metadata();
+    assert_eq!(md.group_id(), "md");
+    assert_eq!(group.group_id(), "md");
+    assert_eq!(md.member_id(), group.member_id());
+    assert!(!md.member_id().is_empty());
+    assert_eq!(md.generation_id(), group.member_epoch());
+    assert_eq!(group.generation_id(), group.member_epoch());
+    assert!(md.generation_id() >= 1);
+    assert_eq!(md.group_instance_id(), Some("worker-1"));
+    assert_eq!(
+        md.to_string(),
+        format!(
+            "GroupMetadata(groupId = {}, generationId = {}, memberId = {}, groupInstanceId = {})",
+            md.group_id(),
+            md.generation_id(),
+            md.member_id(),
+            "worker-1"
+        )
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_overlaps_two_leaders() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

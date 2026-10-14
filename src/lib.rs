@@ -2036,6 +2036,8 @@
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
 //! [`ShareGroup::commit_async`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` / `commitAsync`.
+//! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
+//! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareRequestMetadata`] `Display` is Java `ShareRequestMetadata.toString`
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.

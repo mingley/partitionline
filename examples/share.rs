@@ -23,6 +23,13 @@ async fn main() -> partitionline::Result<()> {
         topics,
     )
     .await?;
+    let md = group.group_metadata();
+    println!(
+        "share group {} member {} epoch {}",
+        md.group_id(),
+        md.member_id(),
+        md.generation_id()
+    );
     loop {
         let recs = group.poll().await?;
         if recs.is_empty() {
