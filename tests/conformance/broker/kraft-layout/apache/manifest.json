@@ -3,5 +3,5 @@
   "library": "org.apache.kafka:kafka-clients:4.3.1",
   "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
   "advertised": false,
-  "note": "Request and response bodies from the pinned Apache serializer. Controller ApiVersions still advertises Vote, BeginQuorumEpoch and EndQuorumEpoch at version 0 only. FetchSnapshot, DescribeQuorum, AddRaftVoter, RemoveRaftVoter and UpdateRaftVoter stay absent."
+  "note": "Request and response bodies from the pinned Apache serializer, including empty and null error strings and a two-partition DescribeQuorum request. Controller ApiVersions still advertises Vote, BeginQuorumEpoch and EndQuorumEpoch at version 0 only. FetchSnapshot, DescribeQuorum, AddRaftVoter, RemoveRaftVoter and UpdateRaftVoter stay absent."
 }
