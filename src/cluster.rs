@@ -109,22 +109,35 @@ impl Cluster {
                     }
                     continue;
                 }
-                let cached_epoch = previous_epochs
+                let in_response = epochs
+                    .get(idx)
+                    .copied()
+                    .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
+                let prior = previous_epochs
                     .as_ref()
                     .and_then(|cached| cached.get(idx).copied())
                     .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
+                // A repeated partition in this response is part of the cache
+                // being built. An older copy must not replace the newer one.
+                let cached_epoch = if in_response != RecordBatch::NO_PARTITION_LEADER_EPOCH {
+                    in_response
+                } else {
+                    prior
+                };
                 let keep_cached = retain_epochs
                     && cached_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH
                     && p.leader_epoch < cached_epoch;
                 if keep_cached {
-                    if let Some(slot) = leaders.get_mut(idx) {
-                        *slot = previous_leaders
-                            .as_ref()
-                            .and_then(|cached| cached.get(idx).copied())
-                            .unwrap_or(MetadataResponse::NO_LEADER_ID);
-                    }
-                    if let Some(slot) = epochs.get_mut(idx) {
-                        *slot = cached_epoch;
+                    if in_response == RecordBatch::NO_PARTITION_LEADER_EPOCH {
+                        if let Some(slot) = leaders.get_mut(idx) {
+                            *slot = previous_leaders
+                                .as_ref()
+                                .and_then(|cached| cached.get(idx).copied())
+                                .unwrap_or(MetadataResponse::NO_LEADER_ID);
+                        }
+                        if let Some(slot) = epochs.get_mut(idx) {
+                            *slot = cached_epoch;
+                        }
                     }
                     continue;
                 }
@@ -409,6 +422,68 @@ mod tests {
         );
         cluster.invalidate_topic("t");
         assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn a_repeated_partition_keeps_the_newer_leader_epoch() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let response = |first_epoch: i32, second_epoch: i32| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![
+                    PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: first_epoch,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    },
+                    PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 2,
+                        leader_epoch: second_epoch,
+                        replica_nodes: vec![2],
+                        isr_nodes: vec![2],
+                        offline_replicas: Vec::new(),
+                    },
+                ],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut older_second = Cluster::default();
+        older_second.apply(&response(5, 3), 13);
+        assert_eq!(older_second.leader("t", 0).unwrap().0, 1);
+        assert_eq!(older_second.leader_epoch("t", 0), 5);
+        let mut newer_second = Cluster::default();
+        newer_second.apply(&response(3, 5), 13);
+        assert_eq!(newer_second.leader("t", 0).unwrap().0, 2);
+        assert_eq!(newer_second.leader_epoch("t", 0), 5);
     }
 
     #[test]
