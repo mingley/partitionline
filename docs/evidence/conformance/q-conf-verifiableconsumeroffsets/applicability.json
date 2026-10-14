@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "task": "KL01-27",
+  "declared_before_qualification": true,
+  "api_scope": [1, 2, 8, 9],
+  "registered_case_ids": [
+    "verifiable-consumer-reset-policies-3-9-1",
+    "verifiable-consumer-autocommit-3-9-1"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "verifiable-consumer-reset-policies-3-9-1",
+      "verifiable-consumer-autocommit-3-9-1"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+    "peer_version_pin": "3.9.1",
+    "adapter": "verifiable-scenario",
+    "note": "cases.json rows stay local_consistency. The audit recorded mock-broker latest/none reset and autocommit runs. This card independently qualifies Apache Fetch/ListOffsets/OffsetCommit/OffsetFetch bodies and public Consumer histories without rewriting those pins."
+  },
+  "parameter_invocations": {
+    "fetch_version": 12,
+    "list_offsets_version": 5,
+    "offset_commit_version": 8,
+    "offset_fetch_version": 8,
+    "topic": "pl-offsets",
+    "group_id": "pl-offsets",
+    "cells": [
+      "r01-latest-list-offsets",
+      "r02-offset-fetch-empty",
+      "r03-offset-fetch-stored",
+      "r04-latest-fetch-new",
+      "r05-none-resume-fetch",
+      "a01-autocommit-fetch-first",
+      "r06-latest-commit-next-2",
+      "a02-autocommit-interval-commit-1",
+      "e01-events"
+    ],
+    "nested_counts": {
+      "r01-latest-list-offsets": {
+        "timestamp": -1,
+        "offset": 1
+      },
+      "r02-offset-fetch-empty": {
+        "committed_offset": -1
+      },
+      "r03-offset-fetch-stored": {
+        "committed_offset": 2
+      },
+      "r04-latest-fetch-new": {
+        "fetch_offset": 1,
+        "value": "new",
+        "high_watermark": 2
+      },
+      "r05-none-resume-fetch": {
+        "fetch_offset": 2,
+        "value": "after-commit",
+        "high_watermark": 3
+      },
+      "a01-autocommit-fetch-first": {
+        "fetch_offset": 0,
+        "value": "first",
+        "high_watermark": 2
+      },
+      "r06-latest-commit-next-2": {
+        "committed_offset": 2
+      },
+      "a02-autocommit-interval-commit-1": {
+        "committed_offset": 1
+      },
+      "e01-events": {
+        "json_property_order": ["timestamp", "name"],
+        "record_data_property_order": ["timestamp", "name", "key", "value", "topic", "partition", "offset"],
+        "latest_commit_offset": 2,
+        "none_missing_offsets_committed": 0,
+        "none_resume_commit_offset": 3,
+        "autocommit_offsets_committed": 0
+      }
+    },
+    "reset_and_autocommit_profile": {
+      "reset_policies": ["earliest", "latest", "none"],
+      "default_reset_policy": "earliest",
+      "enable_autocommit_default": false,
+      "manual_commit_next_offset": true,
+      "autocommit_omits_offsets_committed": true,
+      "close_does_not_autocommit_final_poll": true
+    },
+    "field_gates": {
+      "Fetch_flexible": "12+",
+      "Fetch_sessions": "7+",
+      "ListOffsets_Isolation": "2+",
+      "ListOffsets_CurrentLeaderEpoch": "4+",
+      "ListOffsets_flexible": "6+",
+      "OffsetCommit_flexible": "8+",
+      "OffsetFetch_groups": "8+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "GitHub raw of the 3.9.1 commit SHA 404s; VerifiableConsumer.java hashed via tag 3.9.1. --reset-policy and --enable-autocommit match later pins for this profile.",
+      "sources": {
+        "VerifiableConsumer.java": "9a3c67a574806b12a67a0e09e7ebf0856cd5498590bbe0fed3971128a1e615f6"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "VerifiableConsumer.java matches 4.1.2. Reset/autocommit CLI and event suppression are unchanged for this profile.",
+      "sources": {
+        "VerifiableConsumer.java": "fbf331def6db4edb84195734803abab5c2dbea84a49ab79aa2d31872eed5faaa"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "VerifiableConsumer matches 4.1.0.",
+      "sources": {
+        "VerifiableConsumer.java": "fbf331def6db4edb84195734803abab5c2dbea84a49ab79aa2d31872eed5faaa"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "VerifiableConsumer.java differs around group-protocol/--command-config. --reset-policy, --enable-autocommit, and offsets_committed suppression stay the same.",
+      "sources": {
+        "VerifiableConsumer.java": "cbbd6a48c6d3f562f9ebe6f85d3fa128b2f192d49f3626f0680a3e264b76bd43"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "VerifiableConsumer.java matches 4.2.1. MemoryRecords used for Fetch record batches lives under record.internal; the generator reflects both packages.",
+      "sources": {
+        "VerifiableConsumer.java": "cbbd6a48c6d3f562f9ebe6f85d3fa128b2f192d49f3626f0680a3e264b76bd43"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "method": "argParser --reset-policy",
+      "applicability": "applicable",
+      "reason": "Hashed on all five pins. Default earliest. ValidString earliest|latest|none, stored as AUTO_OFFSET_RESET_CONFIG."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "method": "argParser --enable-autocommit",
+      "applicability": "applicable",
+      "reason": "storeTrue dest useAutoCommit. Puts ENABLE_AUTO_COMMIT_CONFIG. Default false."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "method": "run / onRecordsReceived",
+      "applicability": "applicable",
+      "reason": "Verbose record_data then records_consumed. Manual path commitSync stores maxOffset+1 and prints offsets_committed. Auto path skips commitSync/commitAsync and therefore emits no offsets_committed."
+    },
+    {
+      "path": "tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "method": "ConsumerEvent / RecordData @JsonPropertyOrder",
+      "applicability": "applicable",
+      "reason": "ConsumerEvent is {timestamp,name}. RecordData is {timestamp,name,key,value,topic,partition,offset}. OffsetsCommitted omits null error."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/KafkaConsumer.java",
+      "method": "auto.offset.reset=none with no committed offset",
+      "applicability": "applicable",
+      "reason": "OffsetFetch committedOffset -1 plus reset none is NoOffsetForPartitionException. Public Consumer assign_partitions(None) errors locally; group subscribe uses OffsetFetch empty then the same none policy."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json local_consistency dispositions",
+      "reason": "Both registered rows stay local_consistency at source pin 3e1803560e081d44f8e5ae4a3e4b449f69ff0a54. This card does not rewrite the historical mock-broker results."
+    },
+    {
+      "cell": "earliest-reset-default-only",
+      "reason": "Hashed default is earliest. The registered cohort is latest/none. Earliest delivery is already mixed into the local KL01-16 contract and is not this card's finite cell."
+    },
+    {
+      "cell": "message-create-time-elapsed-runtime",
+      "reason": "Producer create-time accumulation is KL01-26 / VerifiableProducer, not this Consumer offset card."
+    },
+    {
+      "cell": "command-config-4-2-plus",
+      "reason": "4.2.1/4.3.1 add --command-config. Not part of the registered 3.9.1 reset/autocommit profiles."
+    },
+    {
+      "cell": "broker-list-removed-4-2",
+      "reason": "3.9.1/4.1.x accept --broker-list. 4.2.1 removes it. The registered profiles use --bootstrap-server."
+    },
+    {
+      "cell": "kip-848-consumer-protocol",
+      "reason": "Hashed --group-protocol consumer / KIP-848 is outside api_scope [1,2,8,9] and the registered classic reset/autocommit cells."
+    },
+    {
+      "cell": "share-group",
+      "reason": "Share-group consume is outside this VerifiableConsumer offset cohort."
+    },
+    {
+      "cell": "verifiable-producer-options",
+      "reason": "Producer option mapping is KL01-26."
+    },
+    {
+      "cell": "ducktape-live-broker",
+      "reason": "No live Apache broker or ducktape suite. Independent leftover-empty and public Consumer replay only."
+    },
+    {
+      "cell": "tests/verifiable_contract.rs mock",
+      "reason": "The existing mock-broker reset/autocommit scenario is not this card's independent leftover-empty / public Consumer oracle."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}

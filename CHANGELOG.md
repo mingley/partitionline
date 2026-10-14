@@ -7,6 +7,16 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Finite VerifiableConsumer reset and autocommit profiles (`latest`
+  delivers only the new offset and stores the next offset, `none`
+  without a stored offset errors, `none` with a stored offset resumes,
+  and `--enable-autocommit` suppresses `offsets_committed` while close
+  does not auto-commit the final poll) are checked against pinned Apache
+  kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 Fetch v12,
+  ListOffsets v5, OffsetCommit v8 and OffsetFetch v8 builders and
+  parsers. Public Consumer replay uses those Apache bodies. The original
+  `local_consistency` rows stay frozen (KL01-27).
+
 - The finite VerifiableProducer option profile (six records, throughput
   5, value-prefix 42, repeating-keys 2, create-time 1650000000000) is
   checked against pinned Apache kafka-clients 3.9.1, 4.1.0, 4.1.2,
