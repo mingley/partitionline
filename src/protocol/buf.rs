@@ -81,6 +81,16 @@ fn zigzag_i32(v: i32) -> u32 {
     u32::from_ne_bytes((v.wrapping_shl(1) ^ (v >> 31)).to_ne_bytes())
 }
 
+#[inline]
+pub(crate) fn unzigzag_varint(n: u32) -> i32 {
+    unzigzag_i32(n)
+}
+
+#[inline]
+pub(crate) fn unzigzag_varlong(n: u64) -> i64 {
+    unzigzag_i64(n)
+}
+
 fn unzigzag_i32(n: u32) -> i32 {
     let hi = i32::from_ne_bytes((n >> 1).to_ne_bytes());
     let lo = if n & 1 == 0 { 0 } else { -1 };

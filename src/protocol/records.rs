@@ -2829,7 +2829,7 @@ fn decode_checked_batch(
                 "Incorrect declared batch size, premature EOF reached",
             ));
         }
-        records.push(decode_record(
+        records.push(decode_record_from_bytes(
             &mut records_cur,
             base_offset,
             base_timestamp,
@@ -2850,6 +2850,126 @@ fn decode_checked_batch(
         producer_epoch,
         base_sequence,
         records,
+    })
+}
+
+fn decode_record_from_bytes(
+    buf: &mut Bytes,
+    base_offset: i64,
+    base_timestamp: i64,
+) -> Result<Record> {
+    if let Some(record) = try_plain_record(buf, base_offset, base_timestamp) {
+        return Ok(record);
+    }
+    decode_record(buf, base_offset, base_timestamp)
+}
+
+/// One- or two-byte zigzag varint. Longer encodings return `None` so the
+/// generic reader can handle them.
+fn read_short_zigzag_i32(chunk: &[u8], index: usize) -> Option<(i32, usize)> {
+    let first = *chunk.get(index)?;
+    if first & 0x80 == 0 {
+        return Some((
+            buf::unzigzag_varint(u32::from(first)),
+            index.saturating_add(1),
+        ));
+    }
+    let second = *chunk.get(index.saturating_add(1))?;
+    if second & 0x80 != 0 {
+        return None;
+    }
+    let raw = u32::from(first & 0x7f) | (u32::from(second) << 7);
+    Some((buf::unzigzag_varint(raw), index.saturating_add(2)))
+}
+
+fn read_short_zigzag_i64(chunk: &[u8], index: usize) -> Option<(i64, usize)> {
+    let first = *chunk.get(index)?;
+    if first & 0x80 == 0 {
+        return Some((
+            buf::unzigzag_varlong(u64::from(first)),
+            index.saturating_add(1),
+        ));
+    }
+    let second = *chunk.get(index.saturating_add(1))?;
+    if second & 0x80 != 0 {
+        return None;
+    }
+    let raw = u64::from(first & 0x7f) | (u64::from(second) << 7);
+    Some((buf::unzigzag_varlong(raw), index.saturating_add(2)))
+}
+
+/// Uncompressed record with no headers and one- or two-byte lengths.
+///
+/// Leaves `buf` unchanged when the shape does not match, so the generic
+/// decoder still reports the Java error text.
+fn try_plain_record(buf: &mut Bytes, base_offset: i64, base_timestamp: i64) -> Option<Record> {
+    let chunk = buf.chunk();
+    let (body_len, mut index) = read_short_zigzag_i32(chunk, 0)?;
+    if body_len < 0 {
+        return None;
+    }
+    let body_len = usize::try_from(body_len).ok()?;
+    let body_end = index.checked_add(body_len)?;
+    if chunk.len() < body_end {
+        return None;
+    }
+    let _attributes = *chunk.get(index)?;
+    index = index.saturating_add(1);
+    let (timestamp_delta, next) = read_short_zigzag_i64(chunk, index)?;
+    index = next;
+    let (offset_delta, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let (key_len, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let key_range = if key_len < 0 {
+        if key_len != -1 {
+            return None;
+        }
+        None
+    } else {
+        let len = usize::try_from(key_len).ok()?;
+        let end = index.checked_add(len)?;
+        if end > body_end {
+            return None;
+        }
+        let range = (index, end);
+        index = end;
+        Some(range)
+    };
+    let (value_len, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let value_range = if value_len < 0 {
+        if value_len != -1 {
+            return None;
+        }
+        None
+    } else {
+        let len = usize::try_from(value_len).ok()?;
+        let end = index.checked_add(len)?;
+        if end > body_end {
+            return None;
+        }
+        let range = (index, end);
+        index = end;
+        Some(range)
+    };
+    let (header_count, next) = read_short_zigzag_i32(chunk, index)?;
+    if header_count != 0 {
+        return None;
+    }
+    index = next;
+    if index != body_end {
+        return None;
+    }
+    let key = key_range.map(|(start, end)| buf.slice(start..end));
+    let value = value_range.map(|(start, end)| buf.slice(start..end));
+    buf.advance(body_end);
+    Some(Record {
+        offset: base_offset.wrapping_add(i64::from(offset_delta)),
+        timestamp: base_timestamp.wrapping_add(timestamp_delta),
+        key,
+        value,
+        headers: Vec::new(),
     })
 }
 
