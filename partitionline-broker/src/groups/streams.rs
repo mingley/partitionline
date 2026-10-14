@@ -332,7 +332,7 @@ impl Groups {
             if group.members.is_empty() {
                 next.groups.remove(&id);
             } else if let Some(group) = next.groups.get_mut(&id) {
-                reassign(group);
+                reassign(group)?;
             }
         }
         if removed > 0 {
@@ -379,8 +379,8 @@ impl Groups {
                 standby: Vec::new(),
             },
         );
-        group.epoch = group.epoch.saturating_add(1);
-        reassign(group);
+        group.epoch = advance_epoch(group.epoch)?;
+        reassign(group)?;
         if let Some(member) = group.members.get_mut(request.member_id) {
             member.acked = true;
             member.epoch = 0;
@@ -421,10 +421,10 @@ impl Groups {
         if request.endpoint_epoch > member.endpoint_epoch {
             member.endpoint_epoch = request.endpoint_epoch;
         }
-        reassign(group);
+        reassign(group)?;
         if let Some(member) = group.members.get_mut(request.member_id) {
             if !member.acked {
-                member.epoch = member.epoch.saturating_add(1);
+                member.epoch = advance_epoch(member.epoch)?;
                 member.acked = true;
             }
         }
@@ -446,10 +446,10 @@ impl Groups {
                 return Err(Error::FencedInstance);
             }
             group.members.remove(request.member_id);
-            group.epoch = group.epoch.saturating_add(1);
+            group.epoch = advance_epoch(group.epoch)?;
             let empty = group.members.is_empty();
             if !empty {
-                reassign(group);
+                reassign(group)?;
             }
             (group.epoch, group.assignment_epoch, empty)
         };
@@ -507,8 +507,8 @@ impl Groups {
                 standby: Vec::new(),
             },
         );
-        group.epoch = group.epoch.saturating_add(1);
-        reassign(group);
+        group.epoch = advance_epoch(group.epoch)?;
+        reassign(group)?;
         if let Some(member) = group.members.get_mut(request.member_id) {
             member.acked = true;
             member.epoch = 0;
@@ -574,7 +574,11 @@ fn valid_name(text: &str) -> bool {
     !text.is_empty() && text.len() <= 249 && !text.chars().any(char::is_control)
 }
 
-fn reassign(group: &mut Group) {
+fn advance_epoch(epoch: i32) -> Result<i32, Error> {
+    epoch.checked_add(1).ok_or(Error::InvalidRequest)
+}
+
+fn reassign(group: &mut Group) -> Result<(), Error> {
     let previous: BTreeMap<String, (Vec<i32>, Vec<i32>)> = group
         .members
         .iter()
@@ -618,8 +622,9 @@ fn reassign(group: &mut Group) {
         }
     }
     if changed {
-        group.assignment_epoch = group.assignment_epoch.saturating_add(1);
+        group.assignment_epoch = advance_epoch(group.assignment_epoch)?;
     }
+    Ok(())
 }
 
 fn later_seen(current: u64, now_ms: u64) -> u64 {
@@ -1092,5 +1097,27 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(echoed.endpoint_epoch, 9);
+    }
+
+    #[test]
+    fn a_group_epoch_at_i32_max_does_not_accept_another_member() {
+        let (mut groups, _) = open("epoch-max");
+        let joined = groups
+            .heartbeat(join("a", Some("i-1")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .state
+            .groups
+            .get_mut("app")
+            .unwrap_or_else(|| panic!("group"))
+            .epoch = i32::MAX;
+        assert!(matches!(
+            groups.heartbeat(join("b", Some("i-2"))),
+            Err(Error::InvalidRequest)
+        ));
+        let described = groups.describe("app").unwrap_or_else(|| panic!("describe"));
+        assert_eq!(described.group_epoch, i32::MAX);
+        assert_eq!(described.members.len(), 1);
+        assert_eq!(described.members[0].member_id, joined.member_id);
     }
 }

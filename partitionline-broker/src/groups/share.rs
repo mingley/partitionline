@@ -249,7 +249,7 @@ impl Groups {
         next.topics.insert(topic.to_owned(), partitions);
         let counts = next.topics.clone();
         for group in next.groups.values_mut() {
-            reassign(group, &counts);
+            reassign(group, &counts)?;
         }
         self.commit(next)
     }
@@ -328,7 +328,7 @@ impl Groups {
             if group.members.is_empty() {
                 next.groups.remove(&id);
             } else if let Some(group) = next.groups.get_mut(&id) {
-                reassign(group, &counts);
+                reassign(group, &counts)?;
             }
         }
         if removed > 0 {
@@ -378,8 +378,8 @@ impl Groups {
                 assignment: BTreeMap::new(),
             },
         );
-        group.epoch = group.epoch.saturating_add(1);
-        reassign(group, &counts);
+        group.epoch = advance_epoch(group.epoch)?;
+        reassign(group, &counts)?;
         if let Some(member) = group.members.get_mut(&member_id) {
             member.acked = true;
             member.epoch = 0;
@@ -409,18 +409,18 @@ impl Groups {
             let topics = topic_set(names, &counts)?;
             if member.topics != topics {
                 member.topics = topics;
-                group.epoch = group.epoch.saturating_add(1);
+                group.epoch = advance_epoch(group.epoch)?;
             }
         }
         if member.version != request.version {
-            group.epoch = group.epoch.saturating_add(1);
+            group.epoch = advance_epoch(group.epoch)?;
         }
         member.version = request.version;
-        reassign(group, &counts);
+        reassign(group, &counts)?;
         let changed = if let Some(member) = group.members.get_mut(request.member_id) {
             let changed = !member.acked;
             if changed {
-                member.epoch = member.epoch.saturating_add(1);
+                member.epoch = advance_epoch(member.epoch)?;
                 member.acked = true;
             }
             changed
@@ -450,10 +450,10 @@ impl Groups {
             if group.members.remove(request.member_id).is_none() {
                 return Err(Error::UnknownMember);
             }
-            group.epoch = group.epoch.saturating_add(1);
+            group.epoch = advance_epoch(group.epoch)?;
             let empty = group.members.is_empty();
             if !empty {
-                reassign(group, &counts);
+                reassign(group, &counts)?;
             }
             (group.epoch, group.assignment_epoch, group.version, empty)
         };
@@ -508,7 +508,11 @@ impl Groups {
     }
 }
 
-fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) {
+fn advance_epoch(epoch: i32) -> Result<i32, Error> {
+    epoch.checked_add(1).ok_or(Error::InvalidRequest)
+}
+
+fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Error> {
     let previous: BTreeMap<String, BTreeMap<String, Vec<i32>>> = group
         .members
         .iter()
@@ -542,7 +546,7 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) {
         }
     }
     if changed {
-        group.assignment_epoch = group.assignment_epoch.saturating_add(1);
+        group.assignment_epoch = advance_epoch(group.assignment_epoch)?;
     }
     group.version = group
         .members
@@ -550,6 +554,7 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) {
         .map(|member| member.version)
         .min()
         .unwrap_or(0);
+    Ok(())
 }
 
 fn assign(group: &mut Group, topic: &str, count: i32, subscribers: &[String]) {
@@ -1048,5 +1053,44 @@ mod tests {
         let described = restored.describe("g").unwrap_or_else(|| panic!("describe"));
         assert_eq!(described.version, 0);
         assert_eq!(described.group_epoch, lowered.group_epoch);
+    }
+
+    #[test]
+    fn a_group_epoch_at_i32_max_does_not_accept_another_member() {
+        let (mut groups, _) = open("epoch-max");
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let joined = groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+                now_ms: 0,
+                subscribed_topics: Some(&["orders"]),
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .state
+            .groups
+            .get_mut("g")
+            .unwrap_or_else(|| panic!("group"))
+            .epoch = i32::MAX;
+        assert!(matches!(
+            groups.heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "bob",
+                member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+                now_ms: 1,
+                subscribed_topics: Some(&["orders"]),
+            }),
+            Err(Error::InvalidRequest)
+        ));
+        let described = groups.describe("g").unwrap_or_else(|| panic!("describe"));
+        assert_eq!(described.group_epoch, i32::MAX);
+        assert_eq!(described.members.len(), 1);
+        assert_eq!(described.members[0].member_id, joined.member_id);
     }
 }

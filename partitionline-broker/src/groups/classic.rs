@@ -263,7 +263,7 @@ impl Groups {
         }
         let known = group.members.contains_key(&member_id);
         if !known || group.members.values().any(|member| member.synced) {
-            group.generation = group.generation.saturating_add(1);
+            group.generation = advance_epoch(group.generation)?;
             group.generation_started_ms = now_ms;
             for member in group.members.values_mut() {
                 member.assignment.clear();
@@ -428,8 +428,9 @@ impl Groups {
             if member.joined_generation == group.generation && generation != group.generation {
                 return Err(Error::IllegalGeneration);
             }
+            let generation = advance_epoch(group.generation)?;
             group.members.remove(member_id);
-            group.generation = group.generation.saturating_add(1);
+            group.generation = generation;
             group.generation_started_ms = now_ms;
             for member in group.members.values_mut() {
                 member.assignment.clear();
@@ -454,24 +455,21 @@ impl Groups {
         let timeout = self.limits.session_timeout_ms;
         let mut removed = 0usize;
         let ids: Vec<String> = self.groups.keys().cloned().collect();
+        for id in &ids {
+            let Some(group) = self.groups.get(id) else {
+                continue;
+            };
+            let stale = stale_member_ids(group, now_ms, timeout);
+            if !stale.is_empty() && stale.len() != group.members.len() {
+                let _generation = advance_epoch(group.generation)?;
+            }
+        }
         for id in ids {
             let empty = {
                 let Some(group) = self.groups.get_mut(&id) else {
                     continue;
                 };
-                let started = group.generation_started_ms;
-                let generation = group.generation;
-                let stale: Vec<String> = group
-                    .members
-                    .iter()
-                    .filter(|(_, member)| {
-                        let session = now_ms.saturating_sub(member.last_seen_ms) > timeout;
-                        let rebalance = member.joined_generation != generation
-                            && now_ms.saturating_sub(started) > timeout;
-                        session || rebalance
-                    })
-                    .map(|(member_id, _)| member_id.clone())
-                    .collect();
+                let stale = stale_member_ids(group, now_ms, timeout);
                 if stale.is_empty() {
                     false
                 } else {
@@ -480,7 +478,7 @@ impl Groups {
                         removed = removed.saturating_add(1);
                     }
                     if !group.members.is_empty() {
-                        group.generation = group.generation.saturating_add(1);
+                        group.generation = advance_epoch(group.generation)?;
                         group.generation_started_ms = now_ms;
                         for member in group.members.values_mut() {
                             member.assignment.clear();
@@ -547,6 +545,26 @@ impl Groups {
         self.groups = groups;
         Ok(())
     }
+}
+
+fn advance_epoch(epoch: i32) -> Result<i32, Error> {
+    epoch.checked_add(1).ok_or(Error::InvalidRequest)
+}
+
+fn stale_member_ids(group: &Group, now_ms: u64, timeout: u64) -> Vec<String> {
+    let started = group.generation_started_ms;
+    let generation = group.generation;
+    group
+        .members
+        .iter()
+        .filter(|(_, member)| {
+            let session = now_ms.saturating_sub(member.last_seen_ms) > timeout;
+            let rebalance =
+                member.joined_generation != generation && now_ms.saturating_sub(started) > timeout;
+            session || rebalance
+        })
+        .map(|(member_id, _)| member_id.clone())
+        .collect()
 }
 
 fn later_seen(current: u64, now_ms: u64) -> u64 {
@@ -1028,5 +1046,29 @@ mod tests {
             groups.join("orders", "ghost", "range", 0, 2_000),
             Err(Error::UnknownMember)
         ));
+    }
+
+    #[test]
+    fn a_generation_at_i32_max_does_not_accept_another_member() {
+        let (mut groups, _) = open("generation-max");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .groups
+            .get_mut("orders")
+            .unwrap_or_else(|| panic!("group"))
+            .generation = i32::MAX;
+        assert!(matches!(
+            groups.join("orders", "", "range", 0, 1),
+            Err(Error::InvalidRequest)
+        ));
+        let group = groups
+            .groups
+            .get("orders")
+            .unwrap_or_else(|| panic!("group"));
+        assert_eq!(group.generation, i32::MAX);
+        assert_eq!(group.members.len(), 1);
+        assert!(group.members.contains_key(&leader.member_id));
     }
 }

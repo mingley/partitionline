@@ -407,7 +407,7 @@ impl Groups {
                 assignment: BTreeMap::new(),
             },
         );
-        group.epoch = group.epoch.saturating_add(1);
+        group.epoch = advance_epoch(group.epoch)?;
         finish_group_with(group, &topic_counts);
         let assigned = assigned_from(group, &member_id)?;
         self.commit(next)?;
@@ -447,7 +447,7 @@ impl Groups {
         }
         member.version = request.version;
         if changed {
-            group.epoch = group.epoch.saturating_add(1);
+            group.epoch = advance_epoch(group.epoch)?;
         }
         finish_group_with(group, &topic_counts);
         let member = group
@@ -455,7 +455,7 @@ impl Groups {
             .get_mut(request.member_id)
             .ok_or(Error::UnknownMember)?;
         if !member.acked {
-            member.epoch = member.epoch.saturating_add(1);
+            member.epoch = advance_epoch(member.epoch)?;
             member.acked = true;
         }
         let assigned = assigned_from(group, request.member_id)?;
@@ -480,7 +480,7 @@ impl Groups {
                 return Err(Error::FencedInstance);
             }
             group.members.remove(request.member_id);
-            group.epoch = group.epoch.saturating_add(1);
+            group.epoch = advance_epoch(group.epoch)?;
             let epoch = group.epoch;
             let version = group.version;
             let empty = group.members.is_empty();
@@ -596,6 +596,10 @@ fn assign_topic(group: &mut Group, topic: &str, count: i32, subscribers: &[Strin
             member.assignment.insert(topic.to_owned(), owned);
         }
     }
+}
+
+fn advance_epoch(epoch: i32) -> Result<i32, Error> {
+    epoch.checked_add(1).ok_or(Error::InvalidRequest)
 }
 
 fn finish_group_with(group: &mut Group, topics: &BTreeMap<String, i32>) {
@@ -1182,5 +1186,32 @@ mod tests {
                 .iter()
                 .all(|member| member.member_id != second.member_id)
         }));
+    }
+
+    #[test]
+    fn a_group_epoch_at_i32_max_does_not_accept_another_member() {
+        let (mut groups, _) = open("epoch-max");
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let joined = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        groups
+            .state
+            .groups
+            .get_mut("orders-g")
+            .unwrap_or_else(|| panic!("group"))
+            .epoch = i32::MAX;
+        assert!(matches!(
+            groups.heartbeat(beat("orders-g", "", 0, 1, &["orders"])),
+            Err(Error::InvalidRequest)
+        ));
+        let view = groups
+            .describe("orders-g")
+            .unwrap_or_else(|| panic!("describe"));
+        assert_eq!(view.epoch, i32::MAX);
+        assert_eq!(view.members.len(), 1);
+        assert_eq!(view.members[0].member_id, joined.member_id);
     }
 }
