@@ -237,7 +237,7 @@ impl Groups {
     /// Declare a topic's partition count and reassign subscribers.
     pub fn set_topic(&mut self, topic: &str, partitions: i32) -> Result<(), Error> {
         self.ready()?;
-        if !valid_name(topic) || !(1..=1024).contains(&partitions) {
+        if !valid_topic(topic) || !(1..=1024).contains(&partitions) {
             return Err(Error::InvalidRequest);
         }
         if !self.state.topics.contains_key(topic)
@@ -603,7 +603,7 @@ fn later_seen(current: u64, now_ms: u64) -> u64 {
 fn topic_set(topics: &[&str], known: &BTreeMap<String, i32>) -> Result<BTreeSet<String>, Error> {
     let mut set = BTreeSet::new();
     for topic in topics {
-        if !valid_name(topic) || !known.contains_key(*topic) || !set.insert((*topic).to_owned()) {
+        if !valid_topic(topic) || !known.contains_key(*topic) || !set.insert((*topic).to_owned()) {
             return Err(Error::InvalidRequest);
         }
     }
@@ -612,6 +612,10 @@ fn topic_set(topics: &[&str], known: &BTreeMap<String, i32>) -> Result<BTreeSet<
 
 fn valid_name(text: &str) -> bool {
     !text.is_empty() && text.len() <= 249 && !text.chars().any(char::is_control)
+}
+
+fn valid_topic(topic: &str) -> bool {
+    crate::catalog::validate_topic_name(topic).is_ok()
 }
 
 fn encode(state: &State) -> Result<Vec<u8>, Error> {
@@ -1092,5 +1096,34 @@ mod tests {
         assert_eq!(described.group_epoch, i32::MAX);
         assert_eq!(described.members.len(), 1);
         assert_eq!(described.members[0].member_id, joined.member_id);
+    }
+
+    #[test]
+    fn an_illegal_topic_name_is_not_declared() {
+        let (mut groups, _) = open("bad-topic");
+        assert!(matches!(
+            groups.set_topic("bad name", 1),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            groups.set_topic(".", 1),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(groups.state.topics.is_empty());
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.state.topics.contains_key("orders"));
+        assert!(matches!(
+            groups.heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: JOIN_GROUP_MEMBER_EPOCH,
+                now_ms: 0,
+                subscribed_topics: Some(&["bad name"]),
+            }),
+            Err(Error::InvalidRequest)
+        ));
     }
 }
