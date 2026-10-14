@@ -4720,18 +4720,8 @@ impl Consumer {
                                         .insert(name.clone(), (added_records, added_bytes));
                                 }
                             }
-                            let count_i64 = i64::try_from(meta.count)
-                                .map_err(|_| Error::protocol("fetch cursor overflow"))?;
-                            let next_off = meta
-                                .base_offset
-                                .checked_add(count_i64)
-                                .ok_or_else(|| Error::protocol("fetch cursor overflow"))?;
-                            let batch_next = match last_record_off {
-                                Some(offset) => exclusive_fetch_offset(offset)
-                                    .ok_or_else(|| Error::protocol("fetch cursor overflow"))?
-                                    .max(next_off),
-                                None => next_off,
-                            };
+                            let batch_next =
+                                fetch_end_after(meta.base_offset, meta.count, last_record_off)?;
                             if let Some(advanced) = included_next {
                                 let advanced = cap_fetch_cursor(advanced, part.high_watermark);
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
@@ -5769,28 +5759,38 @@ fn exclusive_fetch_offset(offset: i64) -> Option<i64> {
     offset.checked_add(1)
 }
 
-/// Fetch cursor after a decoded batch.
+/// Fetch cursor after a batch.
 ///
 /// The end is the later of the last record's exclusive offset and
-/// `base + count` when that sum fits. A saturated count must not jump the
-/// cursor to [`i64::MAX`].
-fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
-    let from_record = match batch.records.last() {
-        Some(record) => Some(
-            exclusive_fetch_offset(record.offset)
+/// `base + count` when that sum fits. A count that does not fit must not
+/// fail the fetch or jump the cursor to [`i64::MAX`] when the last record
+/// still has an end.
+fn fetch_end_after(base: i64, count: usize, last_record: Option<i64>) -> Result<i64> {
+    let from_record = match last_record {
+        Some(offset) => Some(
+            exclusive_fetch_offset(offset)
                 .ok_or_else(|| Error::protocol("fetch cursor overflow"))?,
         ),
         None => None,
     };
-    let from_count = i64::try_from(batch.records.len())
+    let from_count = i64::try_from(count)
         .ok()
-        .and_then(|count| batch.base_offset.checked_add(count));
+        .and_then(|count| base.checked_add(count));
     match (from_record, from_count) {
         (Some(record_end), Some(count_end)) => Ok(record_end.max(count_end)),
         (Some(record_end), None) => Ok(record_end),
         (None, Some(count_end)) => Ok(count_end),
         (None, None) => Err(Error::protocol("fetch cursor overflow")),
     }
+}
+
+/// Fetch cursor after a decoded batch.
+fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
+    fetch_end_after(
+        batch.base_offset,
+        batch.records.len(),
+        batch.records.last().map(|record| record.offset),
+    )
 }
 
 fn partition_is_assigned(assigned: &[(String, i32, i64)], topic: &str, partition: i32) -> bool {
@@ -6656,6 +6656,10 @@ mod tests {
             item.offset = i64::MAX - 2;
         }
         assert_eq!(batch_fetch_end(&batch).unwrap(), i64::MAX - 1);
+        assert_eq!(
+            fetch_end_after(i64::MAX - 1, 3, Some(i64::MAX - 2)).unwrap(),
+            i64::MAX - 1
+        );
         let mut normal = crate::RecordBatch::from_records(vec![record(0), record(0)]);
         normal.records[0].offset = 0;
         normal.records[1].offset = 4;
