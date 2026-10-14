@@ -2,6 +2,7 @@
 //! records. Requires a broker that speaks ConsumerGroupHeartbeat (Kafka 4.x).
 //!
 //! `KAFKA_TOPIC` may be a single name or a comma-separated list.
+//! `KAFKA_REMOTE_ASSIGNOR` sets `group.remote.assignor` (optional).
 
 use partitionline::{ConsumerConfig, ConsumerGroup};
 
@@ -16,12 +17,15 @@ async fn main() -> partitionline::Result<()> {
         .filter(|s| !s.is_empty())
         .map(str::to_string)
         .collect();
-    let mut group = ConsumerGroup::join_consumer_topics(
-        ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500),
-        group_id,
-        topics,
-    )
-    .await?;
+    let mut cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
+    if let Ok(assignor) = std::env::var("KAFKA_REMOTE_ASSIGNOR") {
+        if !assignor.is_empty() {
+            cfg = cfg.group_remote_assignor(assignor);
+        }
+    }
+    let mut group =
+        ConsumerGroup::join_consumer_topics(cfg, group_id.clone(), topics.clone()).await?;
+    println!("joined group={group_id} topics={topics:?}");
     loop {
         let recs = group.poll().await?;
         if recs.is_empty() {

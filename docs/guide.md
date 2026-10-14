@@ -354,7 +354,9 @@ Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
 
 KIP-848 (Kafka **4.x** ConsumerGroupHeartbeat) join sends an **empty**
 `TopicPartitions` array — brokers reject `null` with
-`INVALID_REQUEST` (“must be empty when (re-)joining”). Live smoke:
+`INVALID_REQUEST` (“must be empty when (re-)joining”). Set
+`ConsumerConfig::group_remote_assignor` for `group.remote.assignor`
+(`uniform`, `range`, …); later heartbeats send unchanged. Live smoke:
 `examples/kip848.rs` (`REQUIRE_KIP848=1` on 4.x broker smoke).
 
 Share groups (KIP-932) need Kafka **4.1+** with finalized

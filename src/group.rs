@@ -762,8 +762,10 @@ impl ConsumerGroup {
 
     /// KIP-848 `group.protocol=consumer`. One topic.
     ///
-    /// An empty `group_id` uses the same Java `InvalidGroupIdException` as
-    /// [`Self::join`].
+    /// [`ConsumerConfig::group_remote_assignor`] is sent on the join
+    /// heartbeat (`group.remote.assignor`). Later heartbeats send null
+    /// (unchanged). An empty `group_id` uses the same Java
+    /// `InvalidGroupIdException` as [`Self::join`].
     pub async fn join_consumer(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -2248,7 +2250,7 @@ impl ConsumerGroup {
             },
             subscribed_topic_names: Some(self.topics.clone()),
             subscribed_topic_regex: None,
-            server_assignor: None,
+            server_assignor: self.cfg.group_remote_assignor.clone(),
             // Broker rejects null TopicPartitions on join ("must be empty when
             // (re-)joining"); send an empty array instead of null/unchanged.
             topic_partitions: Some(Vec::new()),

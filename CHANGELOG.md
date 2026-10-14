@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- KIP-848 join sends `ConsumerConfig::group_remote_assignor` as
+  ConsumerGroupHeartbeat `ServerAssignor` (`group.remote.assignor`).
+  Later heartbeats still send null (unchanged). An unknown name is
+  broker `UNSUPPORTED_ASSIGNOR` (112). Classic JoinGroup ignores the
+  field.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a

@@ -602,7 +602,9 @@
 //! `rebalance_timeout_ms`; JSON default `-1` means unchanged; join sends
 //! `max.poll.interval.ms`);
 //! ServerAssignor is JSON `0+` (decode returns it; encode writes
-//! `server_assignor`; JSON default null means unused or unchanged);
+//! `server_assignor`; JSON default null means unused or unchanged;
+//! [`ConsumerConfig::group_remote_assignor`] is sent on the KIP-848 join
+//! heartbeat and later heartbeats send null);
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /

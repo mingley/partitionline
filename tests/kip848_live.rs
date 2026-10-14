@@ -3,7 +3,7 @@
 //! Ignored by default. Run with:
 //! `RUN_LIVE=1 KAFKA_BOOTSTRAP=127.0.0.1:9092 cargo test --test kip848_live -- --ignored --nocapture`
 
-use partitionline::{ConsumerConfig, ConsumerGroup};
+use partitionline::{error, ConsumerConfig, ConsumerGroup};
 
 #[tokio::test]
 #[ignore = "needs a live Kafka 4.x broker with ConsumerGroupHeartbeat"]
@@ -22,4 +22,42 @@ async fn kip848_join_against_local_broker() {
     let recs = g.poll().await.expect("poll");
     // Seeded topic may be empty if another run consumed; join success is the bar.
     eprintln!("kip848 live: join+poll ok (n={})", recs.len());
+}
+
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.x broker with ConsumerGroupHeartbeat"]
+async fn kip848_join_honors_group_remote_assignor() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "pl-kip848-smoke".into());
+    let ok = ConsumerGroup::join_consumer(
+        ConsumerConfig::bootstrap([bootstrap.clone()])
+            .max_wait_ms(500)
+            .group_remote_assignor("uniform"),
+        format!("pl-kip848-uniform-{}", std::process::id()),
+        topic.clone(),
+    )
+    .await;
+    let g = ok.expect("uniform assignor must join");
+    drop(g.leave().await);
+
+    let bad = ConsumerGroup::join_consumer(
+        ConsumerConfig::bootstrap([bootstrap])
+            .max_wait_ms(500)
+            .group_remote_assignor("not-a-real-assignor"),
+        format!("pl-kip848-bad-{}", std::process::id()),
+        topic,
+    )
+    .await;
+    match bad {
+        Ok(_) => panic!("unknown assignor must fail"),
+        Err(err) => assert_eq!(
+            err.broker_code(),
+            Some(error::UNSUPPORTED_ASSIGNOR),
+            "unknown assignor: {err}"
+        ),
+    }
 }

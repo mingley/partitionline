@@ -4773,6 +4773,24 @@ async fn kip848_join_fetch_leave_without_classic_join() {
 }
 
 #[tokio::test]
+async fn kip848_join_sends_group_remote_assignor_and_still_joins() {
+    let mock = common::Mock::start().await;
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()])
+        .max_wait_ms(10)
+        .group_remote_assignor("range");
+    assert_eq!(cfg.group_remote_assignor.as_deref(), Some("range"));
+    let group = ConsumerGroup::join_consumer(cfg, "cgh-assignor", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Consumer);
+    assert!(
+        mock.cg_heartbeat_calls() >= 1,
+        "must speak ConsumerGroupHeartbeat"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn consumer_group_heartbeat_negotiates_v1_when_broker_advertises() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

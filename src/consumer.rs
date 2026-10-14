@@ -120,6 +120,10 @@ pub struct ConsumerConfig {
     /// `JoinGroupRequest.Builder.build` / `UnsupportedVersionException`).
     /// v2–v4 still omit the field and join.
     pub group_instance_id: Option<String>,
+    /// Kafka `group.remote.assignor` for KIP-848 (`ConsumerGroupHeartbeat`
+    /// ServerAssignor). `None` (default) lets the broker pick. Sent on join;
+    /// later heartbeats send null (unchanged). Classic JoinGroup ignores it.
+    pub group_remote_assignor: Option<String>,
     /// Kafka `auto.offset.reset` for group members with no committed offset.
     pub auto_offset_reset: crate::AutoOffsetReset,
     /// Cap on records returned from one [`Consumer::fetch`] / [`crate::ConsumerGroup::poll`].
@@ -218,6 +222,7 @@ impl fmt::Debug for ConsumerConfig {
             .field("isolation_level", &self.isolation_level)
             .field("rack", &self.rack)
             .field("group_instance_id", &self.group_instance_id)
+            .field("group_remote_assignor", &self.group_remote_assignor)
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
             .field("buffer_memory", &self.buffer_memory)
@@ -259,6 +264,7 @@ impl Default for ConsumerConfig {
             isolation_level: crate::IsolationLevel::ReadUncommitted,
             rack: None,
             group_instance_id: None,
+            group_remote_assignor: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
             buffer_memory: 32 * 1024 * 1024,
@@ -357,6 +363,18 @@ impl ConsumerConfig {
     #[must_use]
     pub fn group_instance_id(mut self, id: impl Into<String>) -> Self {
         self.group_instance_id = Some(id.into());
+        self
+    }
+
+    /// Kafka `group.remote.assignor` (KIP-848 server-side assignor).
+    ///
+    /// [`crate::ConsumerGroup::join_consumer`] sends this as
+    /// ConsumerGroupHeartbeat `ServerAssignor`. Subsequent heartbeats send
+    /// null (unchanged). Classic JoinGroup ignores it. An unknown name is
+    /// broker [`crate::error::UNSUPPORTED_ASSIGNOR`] (112).
+    #[must_use]
+    pub fn group_remote_assignor(mut self, name: impl Into<String>) -> Self {
+        self.group_remote_assignor = Some(name.into());
         self
     }
 
