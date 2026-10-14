@@ -322,6 +322,7 @@ fn producer_config(
     let cfg = ProducerConfig::bootstrap(bootstrap.iter().cloned())
         .client_id(format!("runtime-{}", cell.id))
         .acks(acks)
+        .connections(1)
         .max_in_flight(max_in_flight)
         .idempotent(cell.idempotent);
     let cfg = match cell.linger_override_ms {
@@ -421,6 +422,7 @@ fn produce_effective(
         "batch_size_bytes": batch_size_bytes,
         "batch_records": batch_records,
         "max_in_flight": max_in_flight,
+        "connections_per_broker": 1,
         "idempotence": cell.idempotent,
         "compression": "none",
         "drive_mode": format!("{:?}", cell.mode).to_lowercase(),
