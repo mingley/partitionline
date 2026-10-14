@@ -277,7 +277,8 @@ async fn share_release_then_reject_against_local_broker() {
         recs.iter()
             .any(|r| r.topic == topic && r.offset == first_md.offset)
     })
-    .await;
+    .await
+    .expect("poll released record");
     let first_delivery = recs
         .iter()
         .find(|r| r.offset == first_md.offset)
@@ -288,7 +289,8 @@ async fn share_release_then_reject_against_local_broker() {
         recs.iter()
             .any(|r| r.offset == first_md.offset && r.delivery_count > first_delivery)
     })
-    .await;
+    .await
+    .expect("poll redelivery");
     let again_delivery = recs
         .iter()
         .find(|r| r.offset == first_md.offset)
@@ -304,7 +306,8 @@ async fn share_release_then_reject_against_local_broker() {
         recs.iter()
             .any(|r| r.topic == topic && r.offset == second_md.offset)
     })
-    .await;
+    .await
+    .expect("poll successor");
     assert!(
         recs.iter().all(|r| r.offset != first_md.offset),
         "rejected {}-{}@{} must not redeliver, got {:?}",
@@ -333,17 +336,18 @@ async fn poll_until(
     g: &mut ShareGroup,
     deadline: Instant,
     ok: impl Fn(&ShareRecords) -> bool,
-) -> ShareRecords {
+) -> partitionline::Result<ShareRecords> {
     loop {
-        let recs = g.poll().await.expect("share poll");
+        let recs = g.poll().await?;
         if ok(&recs) {
-            return recs;
+            return Ok(recs);
         }
-        assert!(
-            Instant::now() < deadline,
-            "share poll deadline, last n={}",
-            recs.count()
-        );
+        if Instant::now() >= deadline {
+            return Err(partitionline::Error::protocol(format!(
+                "share poll deadline, last n={}",
+                recs.count()
+            )));
+        }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 }
