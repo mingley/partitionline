@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Classic and KIP-848 group join keep token I/O and join/rejoin bodies
+  off the caller poll frame (`Box::pin` at the OIDC token helpers and
+  `ConsumerGroup` join/rejoin boundaries). Debug `cargo test` workers
+  on the default 2 MiB stack can join and honor broker
+  `heartbeat_interval_ms` without `RUST_MIN_STACK`.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a

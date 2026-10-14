@@ -598,7 +598,14 @@ impl ConsumerGroup {
         let group_id = group_id.into();
         reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
-        Self::join_with_protocol_list(cfg, group_id, topics, vec![protocol.to_string()], None).await
+        Box::pin(Self::join_with_protocol_list(
+            cfg,
+            group_id,
+            topics,
+            vec![protocol.to_string()],
+            None,
+        ))
+        .await
     }
 
     /// Join with several assignors (Java `partition.assignment.strategy`).
@@ -629,7 +636,14 @@ impl ConsumerGroup {
         if names.is_empty() {
             return Err(reject_java_no_assignors());
         }
-        Self::join_with_protocol_list(cfg, group_id, collect_topics(topics)?, names, None).await
+        Box::pin(Self::join_with_protocol_list(
+            cfg,
+            group_id,
+            collect_topics(topics)?,
+            names,
+            None,
+        ))
+        .await
     }
 
     async fn join_with_protocol_list(
@@ -701,7 +715,7 @@ impl ConsumerGroup {
             g.topics = g.matching_topic_names().await?;
             g.last_match_refresh = Instant::now();
         }
-        g.rejoin().await?;
+        Box::pin(g.rejoin()).await?;
         g.spawn_heartbeat(hb_rx);
         Ok(g)
     }
@@ -717,13 +731,13 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_with_protocol_list(
+        Box::pin(Self::join_with_protocol_list(
             cfg,
             group_id.into(),
             Vec::new(),
             vec!["range".into()],
             Some(Arc::new(matches)),
-        )
+        ))
         .await
     }
 
@@ -733,13 +747,13 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_with_protocol_list(
+        Box::pin(Self::join_with_protocol_list(
             cfg,
             group_id.into(),
             Vec::new(),
             vec!["sticky".into()],
             Some(Arc::new(matches)),
-        )
+        ))
         .await
     }
 
@@ -750,13 +764,13 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_with_protocol_list(
+        Box::pin(Self::join_with_protocol_list(
             cfg,
             group_id.into(),
             Vec::new(),
             vec!["cooperative-sticky".into()],
             Some(Arc::new(matches)),
-        )
+        ))
         .await
     }
 
@@ -781,7 +795,7 @@ impl ConsumerGroup {
         let group_id = group_id.into();
         reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
-        Self::join_consumer_list(cfg, group_id, topics, None).await
+        Box::pin(Self::join_consumer_list(cfg, group_id, topics, None)).await
     }
 
     /// [`Self::join_consumer`] with a topic predicate (Java `subscribe(Pattern)`).
@@ -790,7 +804,13 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_consumer_list(cfg, group_id.into(), Vec::new(), Some(Arc::new(matches))).await
+        Box::pin(Self::join_consumer_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            Some(Arc::new(matches)),
+        ))
+        .await
     }
 
     async fn join_consumer_list(
@@ -858,7 +878,7 @@ impl ConsumerGroup {
             g.topics = g.matching_topic_names().await?;
             g.last_match_refresh = Instant::now();
         }
-        g.heartbeat_join().await?;
+        Box::pin(g.heartbeat_join()).await?;
         g.spawn_heartbeat_consumer(hb_rx);
         Ok(g)
     }
@@ -2038,6 +2058,10 @@ impl ConsumerGroup {
 
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self), fields(protocol = %self.protocol)))]
     async fn rejoin(&mut self) -> Result<()> {
+        Box::pin(self.rejoin_body()).await
+    }
+
+    async fn rejoin_body(&mut self) -> Result<()> {
         let rejoining = !self.member_id.is_empty();
         for _ in 0..8 {
             let revoked = self.rejoin_once().await?;
@@ -2227,6 +2251,10 @@ impl ConsumerGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
+        Box::pin(self.heartbeat_join_body()).await
+    }
+
+    async fn heartbeat_join_body(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let version = spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;

@@ -5377,6 +5377,37 @@ async fn kip848_follows_moved_coordinator() {
     g.leave().await.unwrap();
 }
 
+/// Debug poll frames for KIP-848 join used to overflow the default 2 MiB
+/// `cargo test` worker stack. This thread is that stack size, not a raised
+/// `RUST_MIN_STACK`.
+#[test]
+fn kip848_join_fits_default_2mib_stack() {
+    let handle = std::thread::Builder::new()
+        .name("kip848-join-2mib".into())
+        .stack_size(2 * 1024 * 1024)
+        .spawn(|| {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("current-thread runtime");
+            rt.block_on(async {
+                let mock = common::Mock::start().await;
+                let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+                ccfg.max_wait_ms = 10;
+                mock.set_cg_heartbeat_interval_ms(5000);
+                let g = ConsumerGroup::join_consumer(ccfg, "kip848-2mib", "t")
+                    .await
+                    .expect("join_consumer");
+                assert_eq!(g.heartbeat_interval(), Duration::from_millis(5000));
+                g.leave().await.expect("leave");
+            });
+        })
+        .expect("spawn 2 MiB join thread");
+    handle
+        .join()
+        .expect("KIP-848 join overflowed the default 2 MiB stack");
+}
+
 #[tokio::test]
 async fn kip848_broker_heartbeat_interval_scheduling() {
     let mock = common::Mock::start().await;
