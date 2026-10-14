@@ -5442,6 +5442,11 @@ impl Consumer {
                 )));
             }
         }
+        require_unique_offset_partitions(
+            queries
+                .iter()
+                .map(|(tp, _)| (tp.topic.as_str(), tp.partition)),
+        )?;
         let mut out = Vec::new();
         for (tp, timestamp) in queries {
             let (offset, ts, epoch) = self
@@ -5467,9 +5472,14 @@ impl Consumer {
         timestamp: i64,
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, i64)>> {
+        let partitions: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
+        require_unique_offset_partitions(
+            partitions
+                .iter()
+                .map(|tp| (tp.topic.as_str(), tp.partition)),
+        )?;
         let mut out = Vec::new();
-        for p in partitions {
-            let tp = p.into();
+        for tp in partitions {
             let offset = self
                 .list_offsets_timeout(tp.topic.clone(), tp.partition, timestamp, timeout)
                 .await?;
@@ -5891,6 +5901,19 @@ fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
 fn require_list_offset_target(topic: &str, partition: i32) -> Result<()> {
     Topic::validate(topic)?;
     require_partition(partition)
+}
+
+fn require_unique_offset_partitions<'a>(
+    partitions: impl IntoIterator<Item = (&'a str, i32)>,
+) -> Result<()> {
+    let mut seen = HashSet::new();
+    for (topic, partition) in partitions {
+        require_list_offset_target(topic, partition)?;
+        if !seen.insert((topic.to_owned(), partition)) {
+            return Err(Error::protocol("duplicate offset partition"));
+        }
+    }
+    Ok(())
 }
 
 fn require_partition(partition: i32) -> Result<()> {
@@ -6584,6 +6607,14 @@ mod tests {
         assert!(require_list_offset_target("", 0).is_err());
         assert!(require_list_offset_target("orders", -1).is_err());
         assert!(require_list_offset_target("orders", 0).is_ok());
+        assert!(require_unique_offset_partitions([("orders", 0), ("orders", 1)]).is_ok());
+        let duplicate = require_unique_offset_partitions([("orders", 0), ("orders", 0)])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            duplicate.contains("duplicate offset partition"),
+            "{duplicate}"
+        );
     }
 
     #[test]
