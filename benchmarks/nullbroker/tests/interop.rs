@@ -562,7 +562,7 @@ fn count_fetched_records(records: &[u8]) -> (u32, usize) {
     (count, batches)
 }
 
-fn list_offsets_body(topic: &str, partition: i32, timestamp: i64) -> Vec<u8> {
+fn list_offsets_body(topic: &str, partition: i32, timestamp: i64, version: i16) -> Vec<u8> {
     let mut body = Vec::new();
     body.extend_from_slice(&(-1i32).to_be_bytes());
     body.push(0);
@@ -574,7 +574,9 @@ fn list_offsets_body(topic: &str, partition: i32, timestamp: i64) -> Vec<u8> {
     body.extend_from_slice(&timestamp.to_be_bytes());
     put_uvarint(&mut body, 0);
     put_uvarint(&mut body, 0);
-    body.extend_from_slice(&5000i32.to_be_bytes());
+    if version >= 8 {
+        body.extend_from_slice(&5000i32.to_be_bytes());
+    }
     put_uvarint(&mut body, 0);
     body
 }
@@ -636,15 +638,15 @@ fn fetch_and_list_offsets_roundtrip() {
 
     // ListOffsets: earliest, latest, explicit timestamp.
     let (error, _, offset) =
-        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -2)));
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -2, 10)));
     assert_eq!((error, offset), (0, 0));
     let (error, _, offset) =
-        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -1)));
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -1, 10)));
     assert_eq!((error, offset), (0, 2500));
     let (error, _, offset) = parse_list_offsets_response(&rpc.call(
         2,
         10,
-        &list_offsets_body("ft", 0, 1_700_000_000_042),
+        &list_offsets_body("ft", 0, 1_700_000_000_042, 10),
     ));
     assert_eq!((error, offset), (0, 42));
 
@@ -1138,7 +1140,11 @@ fn all_advertised_flexible_versions_accept_validated_records() {
     }
     for version in 7..=10 {
         for (timestamp, expected) in [(-2, 0), (-1, 3)] {
-            let response = rpc.call(2, version, &list_offsets_body("versions", 0, timestamp));
+            let response = rpc.call(
+                2,
+                version,
+                &list_offsets_body("versions", 0, timestamp, version),
+            );
             let (error, _, offset) = parse_list_offsets_response(&response);
             assert_eq!((error, offset), (0, expected));
         }
@@ -1320,13 +1326,13 @@ fn empty_synthetic_log_lists_offsets_assigned_by_produce() {
         corr: &mut corr,
     };
     let (error, _, offset) =
-        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1)));
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1, 10)));
     assert_eq!((error, offset), (0, 0));
     let batch = build_batch(-1, -1, 0, 1, b'x');
     let response = rpc.call(0, 12, &produce_body(-1, &[("orders", &[(0, &batch)])]));
     assert_eq!(parse_produce_response(&response)[0].2, 0);
     let (error, _, offset) =
-        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1)));
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1, 10)));
     assert_eq!((error, offset), (0, 1));
     let _ = rpc.call(3, 13, &metadata_body("orders"));
     let client_base = 99i64;

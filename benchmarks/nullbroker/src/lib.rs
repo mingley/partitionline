@@ -416,7 +416,7 @@ pub const fn advertised_apis() -> [(i16, i16, i16); 9] {
         (API_KEY_FETCH, 15, 17),
         (API_KEY_LIST_OFFSETS, 7, 10),
         (API_KEY_CREATE_TOPICS, 5, 7),
-        (API_KEY_DESCRIBE_CONFIGS, 4, 4),
+        (API_KEY_DESCRIBE_CONFIGS, 1, 4),
     ]
 }
 
@@ -790,8 +790,14 @@ struct ListOffsetsTopicData {
     partitions: Vec<ListOffsetsPartitionData>,
 }
 
-/// Decode a `ListOffsets` v10 request.
-fn decode_list_offsets_request(body: &[u8]) -> Result<Vec<ListOffsetsTopicData>, DecodeError> {
+/// Decode a `ListOffsets` v7–v10 request.
+///
+/// `TimeoutMs` is present only on version 8 and newer. Version 7 is what
+/// librdkafka 2.15 negotiates.
+fn decode_list_offsets_request(
+    body: &[u8],
+    version: i16,
+) -> Result<Vec<ListOffsetsTopicData>, DecodeError> {
     let mut cur = Cursor::new(body);
     let _replica_id = cur.get_i32()?;
     let _isolation = cur.get_u8()?;
@@ -814,7 +820,9 @@ fn decode_list_offsets_request(body: &[u8]) -> Result<Vec<ListOffsetsTopicData>,
         cur.skip_tagged_fields()?;
         topics.push(ListOffsetsTopicData { name, partitions });
     }
-    let _timeout_ms = cur.get_i32()?;
+    if version >= 8 {
+        let _timeout_ms = cur.get_i32()?;
+    }
     cur.skip_tagged_fields()?;
     Ok(topics)
 }
@@ -1626,6 +1634,111 @@ struct Worker {
     synth: synth::SynthConfig,
 }
 
+fn classic_string(cur: &mut Cursor<'_>) -> Result<Option<String>, DecodeError> {
+    let len = cur.get_i16()?;
+    if len < 0 {
+        return Ok(None);
+    }
+    let bytes =
+        cur.take(usize::try_from(len).map_err(|_| DecodeError::Invalid("string length"))?)?;
+    std::str::from_utf8(bytes)
+        .map(|text| Some(text.to_owned()))
+        .map_err(|_| DecodeError::Invalid("string is not UTF-8"))
+}
+
+fn put_classic_string(out: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        None => out.extend_from_slice(&(-1i16).to_be_bytes()),
+        Some(text) => {
+            let len = i16::try_from(text.len()).unwrap_or(i16::MAX);
+            out.extend_from_slice(&len.to_be_bytes());
+            out.extend_from_slice(&text.as_bytes()[..usize::from(len as u16)]);
+        }
+    }
+}
+
+fn decode_describe_configs_classic(
+    cur: &mut Cursor<'_>,
+    version: i16,
+) -> Result<Vec<DescribeConfigsQuery>, DecodeError> {
+    let n = cur.get_i32()?;
+    if n < 0 {
+        return Err(DecodeError::Invalid("negative describe configs resources"));
+    }
+    let mut resources = Vec::with_capacity(usize::try_from(n).unwrap_or(0));
+    for _ in 0..n {
+        let resource_type = cur.get_u8()? as i8;
+        let name =
+            classic_string(cur)?.ok_or(DecodeError::Invalid("null describe configs name"))?;
+        let key_count = cur.get_i32()?;
+        let keys = if key_count < 0 {
+            None
+        } else {
+            let mut keys = Vec::with_capacity(usize::try_from(key_count).unwrap_or(0));
+            for _ in 0..key_count {
+                keys.push(
+                    classic_string(cur)?.ok_or(DecodeError::Invalid("null configuration key"))?,
+                );
+            }
+            Some(keys)
+        };
+        resources.push(DescribeConfigsQuery {
+            resource_type,
+            name,
+            keys,
+        });
+    }
+    if version >= 1 {
+        let _include_synonyms = cur.get_u8()?;
+    }
+    if version >= 3 {
+        let _include_documentation = cur.get_u8()?;
+    }
+    if !cur.is_empty() {
+        return Err(DecodeError::Invalid("describe configs trailing bytes"));
+    }
+    Ok(resources)
+}
+
+fn encode_describe_configs_classic(
+    out: &mut Vec<u8>,
+    version: i16,
+    resources: &[DescribeConfigsQuery],
+) {
+    const TOPIC: i8 = 2;
+    out.extend_from_slice(&0i32.to_be_bytes());
+    let count = i32::try_from(resources.len()).unwrap_or(i32::MAX);
+    out.extend_from_slice(&count.to_be_bytes());
+    for resource in resources {
+        let topic = resource.resource_type == TOPIC;
+        let include = topic
+            && match &resource.keys {
+                None => true,
+                Some(keys) => keys.iter().any(|key| key == "min.insync.replicas"),
+            };
+        let error = if topic { ERR_NONE } else { ERR_INVALID_REQUEST };
+        out.extend_from_slice(&error.to_be_bytes());
+        put_classic_string(out, None);
+        out.push(resource.resource_type as u8);
+        put_classic_string(out, Some(&resource.name));
+        if include {
+            out.extend_from_slice(&1i32.to_be_bytes());
+            put_classic_string(out, Some("min.insync.replicas"));
+            put_classic_string(out, Some("1"));
+            out.push(0);
+            out.push(5);
+            out.push(0);
+            out.extend_from_slice(&0i32.to_be_bytes());
+            if version >= 3 {
+                out.push(3);
+                put_classic_string(out, None);
+            }
+        } else {
+            out.extend_from_slice(&0i32.to_be_bytes());
+        }
+    }
+}
+
 /// One DescribeConfigs resource and the keys the caller named.
 struct DescribeConfigsQuery {
     resource_type: i8,
@@ -1759,8 +1872,12 @@ impl Worker {
     /// minimum ISR.
     pub(crate) fn decode_describe_configs_request(
         body: &[u8],
+        version: i16,
     ) -> Result<Vec<DescribeConfigsQuery>, DecodeError> {
         let mut cur = Cursor::new(body);
+        if version < 4 {
+            return decode_describe_configs_classic(&mut cur, version);
+        }
         let n = cur
             .get_array_len(true)?
             .ok_or(DecodeError::Invalid("null describe configs resources"))?;
@@ -1806,8 +1923,13 @@ impl Worker {
     /// `INVALID_REQUEST` and carry no configs.
     pub(crate) fn encode_describe_configs_response(
         out: &mut Vec<u8>,
+        version: i16,
         resources: &[DescribeConfigsQuery],
     ) {
+        if version < 4 {
+            encode_describe_configs_classic(out, version, resources);
+            return;
+        }
         const TOPIC: i8 = 2;
         out.extend_from_slice(&0i32.to_be_bytes());
         out.put_compact_array_len(resources.len());
@@ -1902,10 +2024,11 @@ impl Worker {
                 Self::encode_create_topics_response(&mut out, api_version, &results);
                 Ok(Some(out))
             }
-            API_KEY_DESCRIBE_CONFIGS if api_version == 4 => {
-                let resources = Self::decode_describe_configs_request(body).map_err(|_| ())?;
+            API_KEY_DESCRIBE_CONFIGS if (1..=4).contains(&api_version) => {
+                let resources =
+                    Self::decode_describe_configs_request(body, api_version).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
-                Self::encode_describe_configs_response(&mut out, &resources);
+                Self::encode_describe_configs_response(&mut out, api_version, &resources);
                 Ok(Some(out))
             }
             API_KEY_API_VERSIONS => {
@@ -2062,7 +2185,7 @@ impl Worker {
                 Ok(Some(out))
             }
             API_KEY_LIST_OFFSETS if (7..=10).contains(&api_version) => {
-                let topics = decode_list_offsets_request(body).map_err(|_| ())?;
+                let topics = decode_list_offsets_request(body, api_version).map_err(|_| ())?;
                 let rows = self.serve_list_offsets(&topics);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 encode_list_offsets_response(&mut out, &rows);
@@ -2974,21 +3097,36 @@ mod tests {
     #[test]
     fn describe_configs_v4_matches_the_apache_topic_response() {
         let request = hex_bytes("0202076f72646572730000000000");
-        let resources = super::Worker::decode_describe_configs_request(&request).unwrap();
+        let resources = super::Worker::decode_describe_configs_request(&request, 4).unwrap();
         assert_eq!(resources[0].resource_type, 2);
         assert_eq!(resources[0].name, "orders");
         assert!(resources[0].keys.is_none());
         let mut response = Vec::new();
-        super::Worker::encode_describe_configs_response(&mut response, &resources);
+        super::Worker::encode_describe_configs_response(&mut response, 4, &resources);
         assert_eq!(
             response,
             hex_bytes("000000000200000002076f726465727302146d696e2e696e73796e632e7265706c696361730231000500010300000000")
         );
+        let mut classic = Vec::new();
+        classic.extend_from_slice(&1i32.to_be_bytes());
+        classic.push(2);
+        classic.extend_from_slice(&6i16.to_be_bytes());
+        classic.extend_from_slice(b"orders");
+        classic.extend_from_slice(&(-1i32).to_be_bytes());
+        classic.push(1);
+        let resources = super::Worker::decode_describe_configs_request(&classic, 1).unwrap();
+        assert!(resources[0].keys.is_none());
+        let mut response = Vec::new();
+        super::Worker::encode_describe_configs_response(&mut response, 1, &resources);
+        assert_eq!(
+            response,
+            hex_bytes("00000000000000010000ffff0200066f72646572730000000100136d696e2e696e73796e632e7265706c6963617300013100050000000000")
+        );
         let empty_keys = hex_bytes("0202076f72646572730100000000");
-        let resources = super::Worker::decode_describe_configs_request(&empty_keys).unwrap();
+        let resources = super::Worker::decode_describe_configs_request(&empty_keys, 4).unwrap();
         assert_eq!(resources[0].keys.as_ref().map(Vec::len), Some(0));
         let mut response = Vec::new();
-        super::Worker::encode_describe_configs_response(&mut response, &resources);
+        super::Worker::encode_describe_configs_response(&mut response, 4, &resources);
         assert!(!response
             .windows(19)
             .any(|window| window == b"min.insync.replicas"));

@@ -129,7 +129,8 @@ static int durability(rd_kafka_t *rk,const char *topic,int partitions,int *rf,in
             if(!*rf) { *rf=replicas; }
             if(*rf!=replicas) found=0;
         }
-    } rd_kafka_metadata_destroy(m);
+    }
+    rd_kafka_metadata_destroy(m);
     rd_kafka_queue_t *q=rd_kafka_queue_new(rk);
     rd_kafka_ConfigResource_t *res=rd_kafka_ConfigResource_new(RD_KAFKA_RESOURCE_TOPIC,topic);
     rd_kafka_AdminOptions_t *opts=rd_kafka_AdminOptions_new(rk,RD_KAFKA_ADMIN_OP_DESCRIBECONFIGS);
@@ -184,7 +185,8 @@ static void phase(FILE *f,phase_t *p) {
     fprintf(f,"{\"offered\":%"PRIu64",\"accepted\":%"PRIu64",\"acknowledged\":%"PRIu64",\"rejected\":%"PRIu64",\"timed_out\":%"PRIu64",\"unknown\":%"PRIu64",\"callback_failures\":%"PRIu64",\"queue_full_retries\":%"PRIu64",\"elapsed_s\":%.9f,\"errors\":[",p->offered,p->accepted,p->acked,p->rejected,p->timed_out,p->unknown,p->callback_failures,p->queue_full,p->elapsed);
     int comma=0; for(int i=0;i<1024;i++) if(p->errors[i]) {
         if(comma++) { fputc(',',f); } fprintf(f,"{\"code\":%d,\"name\":",i-512); string(f,rd_kafka_err2name((rd_kafka_resp_err_t)(i-512))); fprintf(f,",\"count\":%"PRIu64"}",p->errors[i]);
-    } fprintf(f,"]}");
+    }
+    fprintf(f,"]}");
 }
 int main(int argc,char **argv) {
     if(argc!=2 || (strcmp(argv[1],"produce") && strcmp(argv[1],"roundtrip") && strcmp(argv[1],"emit-config"))) { fprintf(stderr,"usage: c-peer produce|roundtrip|emit-config\n"); return 2; }
