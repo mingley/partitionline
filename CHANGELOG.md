@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- ListOffsets v1–v11 request and response bodies are checked against pinned
+  Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
+  parsers. Kafka 3.9.1 v10/v11 and 4.1.x v11 stay unsupported receipts.
+  The original registered local-consistency rows are not rewritten
+  (KL01-21).
+
 - Metadata v1–v13 request and response bodies are checked against pinned
   Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
   parsers. Kafka 3.9.1 v13 stays an unsupported receipt. The original
