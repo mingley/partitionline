@@ -42,20 +42,21 @@ async fn share_join_then_produce_against_local_broker() {
     let mut g = ShareGroup::join(cfg, group, topic.clone())
         .await
         .expect("share join");
-    let producer = Producer::new(
-        ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO),
-    )
-    .await
-    .expect("producer");
+    let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO))
+        .await
+        .expect("producer");
     let md = producer
-        .send(ProduceRecord::to(&topic).value(&b"share-live"[..]))
+        .send(ProduceRecord::to(topic.as_str()).value(&b"share-live"[..]))
         .await
         .expect("produce after join");
     producer.close().await.expect("producer close");
     let deadline = Instant::now() + Duration::from_secs(15);
     let recs = loop {
         let recs = g.poll().await.expect("share poll");
-        if recs.iter().any(|r| r.topic == topic && r.offset == md.offset) {
+        if recs
+            .iter()
+            .any(|r| r.topic == topic && r.offset == md.offset)
+        {
             break recs;
         }
         assert!(
@@ -121,8 +122,7 @@ async fn share_join_topics_against_local_broker() {
     } else {
         loop {
             let _recs = g.poll().await.expect("share poll");
-            let names: HashSet<String> =
-                g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+            let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
             if names.contains(&a) && names.contains(&b) {
                 break names;
             }
