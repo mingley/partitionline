@@ -2042,6 +2042,9 @@
 //! error completes in-flight piggybacked acknowledgements (Java
 //! `ShareSessionHandler.handleResponse` false); the initial share
 //! session does not piggyback (Java `maybeAddAcknowledgements`).
+//! A successful ShareFetch that omits a piggybacked partition completes
+//! those acknowledgements with `INVALID_RECORD_STATE` (Java
+//! `InvalidRecordStateException` / `INVALID_RESPONSE`).
 //! Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 //! refresh topic metadata (Java `metadata.requestUpdate`). Implicit
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll

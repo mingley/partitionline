@@ -928,6 +928,45 @@ async fn implicit_piggyback_session_error_completes_acks() {
 }
 
 #[tokio::test]
+async fn implicit_piggyback_missing_partition_is_invalid_response() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "miss-ack", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &[]).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(group.poll().await.unwrap().is_empty());
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::INVALID_RECORD_STATE),
+            "Acknowledgement not successful due to invalid response from broker".into()
+        ))]
+    );
+    assert!(
+        !mock.share_accepted("miss-ack", "t", 0, first_off),
+        "omitted-partition piggyback must not ACCEPT"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_overlaps_two_leaders() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

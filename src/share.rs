@@ -671,6 +671,9 @@ pub enum ShareAcquireMode {
 /// ShareFetch error completes in-flight piggybacked acknowledgements
 /// with that code (Java `handleResponse` false). Piggyback is refused
 /// on the initial share session (Java `maybeAddAcknowledgements`).
+/// A successful ShareFetch that omits a piggybacked partition completes
+/// those acknowledgements with `INVALID_RECORD_STATE` (Java
+/// `InvalidRecordStateException` / `INVALID_RESPONSE`).
 /// Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 /// invalidate topic metadata so the next poll uses the refreshed id
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
@@ -769,8 +772,13 @@ struct PreparedShareFetch {
     node: i32,
     version: i16,
     by_id: BTreeMap<[u8; 16], Vec<i32>>,
+    ack_tps: Vec<(String, i32)>,
     request: BytesMut,
 }
+
+/// Java `ShareConsumeRequestManager.INVALID_RESPONSE`.
+const SHARE_ACK_INVALID_RESPONSE: &str =
+    "Acknowledgement not successful due to invalid response from broker";
 
 impl ShareGroup {
     /// Join a share group. One topic.
@@ -2005,6 +2013,17 @@ impl ShareGroup {
                     }
                 })
                 .collect();
+            let mut ack_tps = Vec::new();
+            if piggyback {
+                for (topic, part) in &tps {
+                    if pending_acks
+                        .get(&(topic.clone(), *part))
+                        .is_some_and(|batches| !batches.is_empty())
+                    {
+                        ack_tps.push((topic.clone(), *part));
+                    }
+                }
+            }
             let max_records =
                 i32::try_from(self.cfg.max_poll_records.unwrap_or(16).max(1)).unwrap_or(i32::MAX);
             let mut request = BytesMut::new();
@@ -2030,6 +2049,7 @@ impl ShareGroup {
                 node,
                 version,
                 by_id,
+                ack_tps,
                 request,
             });
         }
@@ -2043,6 +2063,7 @@ impl ShareGroup {
             node,
             version,
             by_id,
+            ack_tps,
             request,
         } in prepared
         {
@@ -2141,6 +2162,7 @@ impl ShareGroup {
             };
             let mut incoming = Vec::new();
             let mut incoming_keys = HashSet::new();
+            let mut seen_ack_tps = HashSet::new();
             for topic in fetched {
                 let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
                     Error::protocol("ShareFetch returned an unrequested topic id")
@@ -2152,6 +2174,7 @@ impl ShareGroup {
                             "ShareFetch returned an unrequested partition",
                         ));
                     }
+                    let _ = seen_ack_tps.insert((name.clone(), part.partition));
                     if part.error_code != 0 {
                         if share_ack_ownership_lost(part.error_code) {
                             self.consumer.invalidate_topic(&name);
@@ -2237,6 +2260,17 @@ impl ShareGroup {
                         }
                     }
                 }
+            }
+            // Java handleShareFetchSuccess: piggybacked acknowledgements
+            // missing from the response complete with
+            // InvalidRecordStateException(INVALID_RESPONSE).
+            let missing: Vec<(String, i32)> = ack_tps
+                .into_iter()
+                .filter(|tp| !seen_ack_tps.contains(tp))
+                .collect();
+            if !missing.is_empty() {
+                let error = Error::broker(error::INVALID_RECORD_STATE, SHARE_ACK_INVALID_RESPONSE);
+                self.fail_node_share_fetch_acknowledgements(&missing, &error);
             }
             let incoming_bytes = incoming
                 .iter()
