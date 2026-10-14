@@ -2200,6 +2200,7 @@ impl Consumer {
     ) -> Result<()> {
         let topic = topic.into();
         Topic::validate(&topic)?;
+        self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
@@ -2294,6 +2295,7 @@ impl Consumer {
     pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
         let topic = topic.into();
         Topic::validate(&topic)?;
+        self.reject_pending_wakeup()?;
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
         let (error_code, parts): (i16, Vec<i32>) = {
@@ -2489,6 +2491,7 @@ impl Consumer {
 
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
+        self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
@@ -3328,6 +3331,7 @@ impl Consumer {
         if let Some(id) = self.client_instance_id {
             return Ok(crate::Uuid::from_bytes(id));
         }
+        self.reject_pending_wakeup()?;
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
@@ -3466,6 +3470,14 @@ impl Consumer {
             let _previous = self.wakeup_tx.send_replace(false);
         }
         was
+    }
+
+    fn reject_pending_wakeup(&self) -> Result<()> {
+        if self.take_wakeup() {
+            Err(Error::Wakeup)
+        } else {
+            Ok(())
+        }
     }
 
     fn woken(&self) -> bool {
@@ -4752,9 +4764,7 @@ impl Consumer {
         timestamp: i64,
         timeout: Duration,
     ) -> Result<(i64, i64, i32)> {
-        if self.take_wakeup() {
-            return Err(Error::Wakeup);
-        }
+        self.reject_pending_wakeup()?;
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
@@ -5019,6 +5029,7 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<Vec<PartitionInfo>> {
         let topic = topic.into();
+        self.reject_pending_wakeup()?;
         self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
             .await?;
         let infos = self.partition_infos(Some(topic.as_str()))?;
@@ -5039,6 +5050,7 @@ impl Consumer {
 
     /// [`Self::list_topics`] with a one-shot timeout (Java `listTopics(Duration)`).
     pub async fn list_topics_timeout(&mut self, timeout: Duration) -> Result<Vec<PartitionInfo>> {
+        self.reject_pending_wakeup()?;
         self.refresh_metadata_timeout(None, timeout).await?;
         self.partition_infos(None)
     }

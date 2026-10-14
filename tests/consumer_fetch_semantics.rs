@@ -3511,6 +3511,33 @@ async fn list_offsets_on_another_leader_negotiates_once() {
     consumer.close().await.unwrap();
 }
 
+/// `wakeup` fails the next blocking metadata or offset call once, then later calls proceed.
+#[tokio::test]
+async fn wakeup_interrupts_assign_and_partitions_for_once() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.wakeup();
+    let interrupted = consumer.assign("t", 0, 0).await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "assign must observe a pending wakeup, got {interrupted}"
+    );
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.wakeup();
+    let interrupted = consumer.partitions_for("t").await.unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "partitions_for must observe a pending wakeup, got {interrupted}"
+    );
+    let infos = consumer.partitions_for("t").await.unwrap();
+    assert_eq!(infos.len(), 1);
+    consumer.close().await.unwrap();
+}
+
 /// `wakeup` fails the in-flight or next blocking call once, then later calls proceed.
 #[tokio::test]
 async fn wakeup_interrupts_list_offsets_once() {
