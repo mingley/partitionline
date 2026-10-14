@@ -15,8 +15,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response, encode_metadata_request, ApiVersion, MetadataResponse,
-    PartitionMetadata,
+    decode_metadata_response, encode_metadata_request, ApiVersion, ApiVersionsResponse,
+    MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -1719,6 +1719,8 @@ pub struct Consumer {
     metadata: Option<MetadataResponse>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
+    /// ListOffsets min/max negotiated for each dedicated leader socket.
+    list_offsets_ranges: HashMap<i32, (i16, i16)>,
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
@@ -2152,6 +2154,7 @@ impl Consumer {
             metadata: None,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            list_offsets_ranges: HashMap::new(),
             fetch_throttles: HashMap::new(),
             fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
@@ -2820,6 +2823,7 @@ impl Consumer {
                 .get(&node)
                 .is_some_and(|addr| addr == self.conn.addr());
         let _ = self.conns.remove(&node);
+        let _ = self.list_offsets_ranges.remove(&node);
         if used_bootstrap {
             self.conn.close();
         }
@@ -2832,6 +2836,7 @@ impl Consumer {
             .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
         {
             let _ = self.conns.remove(&node);
+            let _ = self.list_offsets_ranges.remove(&node);
             if let Some(session) = self.fetch_sessions.get_mut(&node) {
                 session.reset();
             }
@@ -2853,7 +2858,13 @@ impl Consumer {
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
                     session.reset();
                 }
-                self.conn = self.open_node_conn(&addr).await?;
+                let (conn, versions) = self.open_node_conn(&addr).await?;
+                self.versions = versions
+                    .api_keys
+                    .into_iter()
+                    .map(|api| (api.api_key, api))
+                    .collect();
+                self.conn = conn;
             }
             return Ok(());
         }
@@ -2871,9 +2882,9 @@ impl Consumer {
                 return Err(Error::Timeout);
             }
             match self.open_node_conn(&addr).await {
-                Ok(conn) => {
+                Ok((conn, versions)) => {
                     let _ = self.reconnect_fails.remove(&node);
-                    let _prev = self.conns.insert(node, conn);
+                    self.remember_opened_conn(node, conn, &versions);
                     return Ok(());
                 }
                 Err(e) if e.is_retriable() => {
@@ -2890,7 +2901,7 @@ impl Consumer {
         }
     }
 
-    async fn open_node_conn(&self, addr: &str) -> Result<crate::net::BrokerConn> {
+    async fn open_node_conn(&self, addr: &str) -> Result<(BrokerConn, ApiVersionsResponse)> {
         let mut conn = BrokerConn::connect_tls(
             addr,
             &self.cfg.client_id,
@@ -2918,7 +2929,21 @@ impl Consumer {
             self.cfg.request_timeout,
         )
         .await?;
-        Ok(conn)
+        Ok((conn, versions_resp))
+    }
+
+    fn remember_opened_conn(
+        &mut self,
+        node: i32,
+        conn: BrokerConn,
+        versions: &ApiVersionsResponse,
+    ) {
+        if let Some(range) = versions.api_version(LIST_OFFSETS) {
+            let _previous = self
+                .list_offsets_ranges
+                .insert(node, (range.min_version, range.max_version));
+        }
+        let _previous = self.conns.insert(node, conn);
     }
 
     fn note_reconnect_failure(&mut self, node: i32) {
@@ -3265,7 +3290,13 @@ impl Consumer {
         })?;
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
-            self.conn = self.open_node_conn(&addr).await?;
+            let (conn, versions) = self.open_node_conn(&addr).await?;
+            self.versions = versions
+                .api_keys
+                .into_iter()
+                .map(|api| (api.api_key, api))
+                .collect();
+            self.conn = conn;
             // The new socket does not own the previous connection's fetch session.
             self.reset_fetch_sessions_using_bootstrap();
         }
@@ -4705,6 +4736,10 @@ impl Consumer {
                     self.versions.get(&LIST_OFFSETS).and_then(|v| {
                         pick_version(v.min_version, v.max_version, minimum, 11)
                     })
+                } else if let Some((min_version, max_version)) =
+                    self.list_offsets_ranges.get(&node).copied()
+                {
+                    pick_version(min_version, max_version, minimum, 11)
                 } else {
                     let capabilities = crate::protocol::api::negotiate_api_versions(
                         self.broker_conn_mut(node)?,

@@ -3486,6 +3486,30 @@ async fn one_node_close_sends_final_fetch_session_epoch() {
 }
 
 #[tokio::test]
+async fn list_offsets_on_another_leader_negotiates_once() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let before = mock.api_versions_versions().len();
+    let latest = consumer
+        .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        before + 1,
+        "opening the leader socket negotiates ApiVersions once; ListOffsets must not repeat it"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_keeps_the_one_node_fetch_session() {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 2);
