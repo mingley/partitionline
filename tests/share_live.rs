@@ -37,11 +37,29 @@ async fn share_join_then_produce_against_local_broker() {
             result.error_message
         );
     }
+    // Metadata + first ShareFetch must land before produce. Default
+    // share.auto.offset.reset=latest initializes the share partition at
+    // high watermark on the first fetch; producing first skips offset 0.
+    tokio::time::sleep(Duration::from_secs(1)).await;
     let group = format!("pl-share-live-{suffix}");
     let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(500);
     let mut g = ShareGroup::join(cfg, group, topic.clone())
         .await
         .expect("share join");
+    let assigned_deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+        if names.contains(&topic) {
+            let _warmup = g.poll().await.expect("share warmup poll");
+            break;
+        }
+        let _recs = g.poll().await.expect("share poll for assignment");
+        assert!(
+            Instant::now() < assigned_deadline,
+            "share assignment never included {topic}"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
     let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO))
         .await
         .expect("producer");
