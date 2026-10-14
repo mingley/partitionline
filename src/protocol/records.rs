@@ -2177,6 +2177,7 @@ where
     let original = buf.len();
     let encoded = (|| {
         let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+        let mut written = 0usize;
         match compression {
             Compression::None => {
                 for (i, rec) in records.enumerate() {
@@ -2186,6 +2187,7 @@ where
                         absolute_offset_delta(header.base_offset, i)?,
                         timestamp_delta(header.base_timestamp, rec.timestamp)?,
                     )?;
+                    written = i.saturating_add(1);
                 }
             }
             Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
@@ -2202,6 +2204,7 @@ where
                         absolute_offset_delta(header.base_offset, i)?,
                         timestamp_delta(header.base_timestamp, rec.timestamp)?,
                     )?;
+                    written = i.saturating_add(1);
                 }
                 let packed = &mut scratch.packed;
                 match compression {
@@ -2227,6 +2230,9 @@ where
                     "internal: zstd after non-zstd encoder branch".into(),
                 ))
             }
+        }
+        if header.count != buf::i32_from_usize(written)? {
+            return Err(Error::protocol("record count differs from header"));
         }
         finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
     })();
@@ -4713,6 +4719,32 @@ mod tests {
             "{encode_err}"
         );
         assert_eq!(&buf[..], b"prefix");
+
+        let one = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        let mut mismatched = BytesMut::from(&b"keep"[..]);
+        let count_err = write_record_batch(
+            &mut mismatched,
+            &BatchHeader {
+                count: 2,
+                base_timestamp: 1,
+                max_timestamp: 1,
+                ..BatchHeader::default()
+            },
+            std::iter::once(EncodeRecord::from_record(&one)),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            count_err.contains("record count differs from header"),
+            "{count_err}"
+        );
+        assert_eq!(&mismatched[..], b"keep");
         let batch_err = decode_record_batch(&mut &encoded[..])
             .unwrap_err()
             .to_string();
