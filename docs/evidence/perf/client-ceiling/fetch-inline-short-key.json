@@ -1,0 +1,22 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "pending",
+  "baseline_sha": "eb3edb2e",
+  "cell": "nb-fetch-bulk",
+  "disposition": "accepted",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Eight interleaved pairs on one host, alternating which runtime ran first. The parent shares every key with Bytes::slice. The candidate copies keys of at most 24 bytes into the record and still shares the value. Every run verified 20,000 records, including the 16-byte synth key, and validation_failures stayed 0. Allocation count fell from 629 to 359 on every run. Before median 595,377.63 records/s, after median 627,525.69. Paired mean ratio 1.061, bootstrap 95% CI 0.996 to 1.149. The interval includes 1, so this is not claimed on the wall-clock route. Client CPU-nanoseconds per record mean ratio was 0.941. Two of eight pairs were slower. Not a fetch comparison against other clients and not a fastest-client result.",
+  "before_median": 595377.63,
+  "after_median": 627525.69,
+  "paired_mean_ratio": 1.061,
+  "paired_ratio_ci95": [0.996, 1.149],
+  "pairs": 8,
+  "slower_pairs": 2,
+  "before_allocation_count": 629,
+  "after_allocation_count": 359,
+  "cpu_mean_ratio": 0.941,
+  "before_records_per_second": [632686, 593130, 677404, 579277, 574423, 597626, 639740, 482119],
+  "after_records_per_second": [601213, 635426, 642364, 590866, 606487, 619625, 680830, 645450]
+}

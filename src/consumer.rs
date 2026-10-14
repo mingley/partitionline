@@ -687,6 +687,80 @@ impl PartialEq<TopicName> for String {
     }
 }
 
+/// Key or value bytes. Values up to 24 bytes live in the record.
+const RECORD_BYTES_INLINE: usize = 24;
+
+/// Bytes stored inline when they fit in 24 bytes, otherwise a shared buffer.
+#[derive(Clone, Debug)]
+pub enum RecordBytes {
+    /// Inline payload and its length.
+    Short([u8; RECORD_BYTES_INLINE], u8),
+    /// Longer payload, shared with the fetched batch.
+    Long(Bytes),
+}
+
+impl RecordBytes {
+    /// Borrow the bytes.
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        match self {
+            Self::Short(buf, len) => buf.get(..usize::from(*len)).unwrap_or(&[]),
+            Self::Long(bytes) => bytes.as_ref(),
+        }
+    }
+}
+
+impl std::ops::Deref for RecordBytes {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl From<&[u8]> for RecordBytes {
+    fn from(value: &[u8]) -> Self {
+        if value.len() <= RECORD_BYTES_INLINE {
+            let mut buf = [0u8; RECORD_BYTES_INLINE];
+            if let Some(slot) = buf.get_mut(..value.len()) {
+                slot.copy_from_slice(value);
+            }
+            Self::Short(buf, u8::try_from(value.len()).unwrap_or(0))
+        } else {
+            Self::Long(Bytes::copy_from_slice(value))
+        }
+    }
+}
+
+impl From<Bytes> for RecordBytes {
+    fn from(value: Bytes) -> Self {
+        if value.len() <= RECORD_BYTES_INLINE {
+            Self::from(value.as_ref())
+        } else {
+            Self::Long(value)
+        }
+    }
+}
+
+impl PartialEq for RecordBytes {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
+
+impl Eq for RecordBytes {}
+
+impl PartialEq<Bytes> for RecordBytes {
+    fn eq(&self, other: &Bytes) -> bool {
+        self.as_slice() == other.as_ref()
+    }
+}
+
+impl PartialEq<RecordBytes> for Bytes {
+    fn eq(&self, other: &RecordBytes) -> bool {
+        self.as_ref() == other.as_slice()
+    }
+}
+
 /// One record from Fetch.
 #[derive(Debug, Clone)]
 pub struct FetchedRecord {
@@ -701,7 +775,7 @@ pub struct FetchedRecord {
     /// Java `ConsumerRecord.timestampType`.
     pub timestamp_type: TimestampType,
     /// Optional key.
-    pub key: Option<Bytes>,
+    pub key: Option<RecordBytes>,
     /// Optional value.
     pub value: Option<Bytes>,
     /// Record headers.
@@ -729,14 +803,14 @@ impl FetchedRecord {
     /// (Java `serializedKeySize`).
     #[must_use]
     pub fn serialized_key_size(&self) -> i32 {
-        serialized_bytes_size(self.key.as_ref())
+        serialized_bytes_size(self.key.as_ref().map(|key| key.len()))
     }
 
     /// Serialized value size in bytes, or [`Self::NULL_SIZE`] if there is no value
     /// (Java `serializedValueSize`).
     #[must_use]
     pub fn serialized_value_size(&self) -> i32 {
-        serialized_bytes_size(self.value.as_ref())
+        serialized_bytes_size(self.value.as_ref().map(Bytes::len))
     }
 
     /// Java `ConsumerRecord.topic`.
@@ -831,9 +905,8 @@ impl fmt::Display for FetchedRecord {
     }
 }
 
-fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
-    bytes
-        .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+fn serialized_bytes_size(len: Option<usize>) -> i32 {
+    len.map(|n| i32::try_from(n).unwrap_or(i32::MAX))
         .unwrap_or(FetchedRecord::NULL_SIZE)
 }
 
@@ -4131,6 +4204,85 @@ impl Consumer {
                         *budget_reached = true;
                         break;
                     }
+                    if !is_control
+                        && !encoded.is_transactional()
+                        && isolation != crate::IsolationLevel::ReadCommitted
+                    {
+                        let mark = out.len();
+                        let mark_bytes = *out_bytes;
+                        let mut added = 0usize;
+                        let mut added_records = 0u64;
+                        let mut last_off = None;
+                        let visited = encoded.try_visit_short_keys(|rec| {
+                            if rec.offset < req_offset {
+                                return;
+                            }
+                            let key_len = rec.key.as_ref().map_or(0, |(_, len)| usize::from(*len));
+                            let val_len = rec.value.as_ref().map_or(0, Bytes::len);
+                            added = added.saturating_add(key_len.saturating_add(val_len));
+                            added_records = added_records.saturating_add(1);
+                            last_off = Some(rec.offset);
+                            out.push(FetchedRecord {
+                                topic: TopicName::from(name.as_str()),
+                                partition: part.partition,
+                                offset: rec.offset,
+                                timestamp: rec.timestamp,
+                                timestamp_type: TimestampType::CreateTime,
+                                key: rec.key.map(|(bytes, len)| RecordBytes::Short(bytes, len)),
+                                value: rec.value,
+                                headers: Vec::new(),
+                                leader_epoch: None,
+                            });
+                        })?;
+                        if let Some(meta) = visited {
+                            let over_budget = budget > 0
+                                && !is_first_batch
+                                && mark_bytes.saturating_add(added) > budget;
+                            if over_budget {
+                                out.truncate(mark);
+                                *out_bytes = mark_bytes;
+                                self.retain_held(
+                                    &name,
+                                    part.partition,
+                                    part.last_stable_offset,
+                                    std::iter::once(encoded).chain(encoded_iter),
+                                );
+                                *budget_reached = true;
+                                break;
+                            }
+                            let timestamp_type = TimestampType::from_attributes(meta.attributes);
+                            let epoch = (meta.partition_leader_epoch >= 0)
+                                .then_some(meta.partition_leader_epoch);
+                            if let Some(tail) = out.get_mut(mark..) {
+                                for record in tail {
+                                    record.timestamp_type = timestamp_type;
+                                    record.leader_epoch = epoch;
+                                }
+                            }
+                            *out_bytes = mark_bytes.saturating_add(added);
+                            if added_records > 0 {
+                                let totals = self
+                                    .fetch_return_totals
+                                    .entry(name.clone())
+                                    .or_insert((0, 0));
+                                totals.0 = totals.0.saturating_add(added_records);
+                                totals.1 = totals
+                                    .1
+                                    .saturating_add(u64::try_from(added).unwrap_or(u64::MAX));
+                            }
+                            let count_i64 = i64::try_from(meta.count).unwrap_or(i64::MAX);
+                            let next_off = meta.base_offset.saturating_add(count_i64);
+                            let batch_next =
+                                last_off.map_or(next_off, |offset| (offset + 1).max(next_off));
+                            if batch_next >= req_offset {
+                                next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                last_epoch = meta.partition_leader_epoch;
+                            }
+                            continue;
+                        }
+                        out.truncate(mark);
+                        *out_bytes = mark_bytes;
+                    }
                     let batch = encoded.decode_shared()?;
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
@@ -4243,7 +4395,7 @@ impl Consumer {
                             offset,
                             timestamp: rec.timestamp,
                             timestamp_type,
-                            key: rec.key,
+                            key: rec.key.map(RecordBytes::from),
                             value: rec.value,
                             headers: rec.headers,
                             leader_epoch: (batch.partition_leader_epoch >= 0)
@@ -5083,7 +5235,7 @@ fn offset_for_leader_epoch_topics(
 }
 
 fn record_bytes(rec: &FetchedRecord) -> usize {
-    let k = rec.key.as_ref().map_or(0, Bytes::len);
+    let k = rec.key.as_ref().map_or(0, |key| key.len());
     let v = rec.value.as_ref().map_or(0, Bytes::len);
     let h: usize = rec
         .headers
@@ -5120,7 +5272,7 @@ fn batch_records_bytes(records: &[crate::protocol::records::Record]) -> usize {
 }
 
 fn fetched_bytes(rec: &FetchedRecord) -> u64 {
-    let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
+    let k = rec.key.as_ref().map(|key| key.len()).unwrap_or(0);
     let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }

@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `FetchedRecord.key` stores keys of at most 24 bytes inside the record.
+  Longer keys stay in a shared buffer. The null-broker bulk fetch still
+  verifies every key; allocation count on that cell fell from 629 to 359.
+
 - `ShareRecord.topic` and share-acquisition keys use the same inline `TopicName`
   as fetched records, so a short topic is not allocated again for every
   shared record.

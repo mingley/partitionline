@@ -121,7 +121,7 @@ fn synth_record(seed: u64, partition: i32, offset: u64) -> FetchedRecord {
         offset: offset as i64,
         timestamp: 0,
         timestamp_type: partitionline::protocol::records::TimestampType::CreateTime,
-        key: Some(Bytes::from(key)),
+        key: Some(Bytes::from(key).into()),
         value: Some(Bytes::from(value)),
         headers: Vec::new(),
         leader_epoch: None,

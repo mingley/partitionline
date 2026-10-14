@@ -2634,6 +2634,78 @@ impl EncodedBatch {
         )
     }
 
+    /// Visit uncompressed records whose keys are at most 24 bytes.
+    ///
+    /// Returns [`None`] when the batch is not that shape. The callback may
+    /// already have run; the caller discards those records and uses
+    /// [`Self::decode_shared`].
+    pub(crate) fn try_visit_short_keys(
+        &self,
+        mut on_record: impl FnMut(ShortKeyRecord),
+    ) -> Result<Option<ShortKeyBatch>> {
+        let mut body = self.body.clone();
+        if body.remaining() < 49 {
+            return Ok(None);
+        }
+        let Ok(partition_leader_epoch) = buf::get_i32(&mut body) else {
+            return Ok(None);
+        };
+        let Ok(magic) = buf::get_i8(&mut body) else {
+            return Ok(None);
+        };
+        if magic != MAGIC_V2 {
+            return Ok(None);
+        }
+        if buf::get_u32(&mut body).is_err() {
+            return Ok(None);
+        }
+        let Ok(attributes) = buf::get_i16(&mut body) else {
+            return Ok(None);
+        };
+        if Compression::from_attributes(attributes).ok() != Some(Compression::None) {
+            return Ok(None);
+        }
+        if buf::get_i32(&mut body).is_err() {
+            return Ok(None);
+        }
+        let Ok(base_timestamp) = buf::get_i64(&mut body) else {
+            return Ok(None);
+        };
+        if buf::get_i64(&mut body).is_err()
+            || buf::get_i64(&mut body).is_err()
+            || buf::get_i16(&mut body).is_err()
+            || buf::get_i32(&mut body).is_err()
+        {
+            return Ok(None);
+        }
+        let Ok(count) = buf::get_i32(&mut body) else {
+            return Ok(None);
+        };
+        if count < 0 {
+            return Ok(None);
+        }
+        let count_usize = usize::try_from(count).unwrap_or(usize::MAX);
+        if count_usize > body.remaining() {
+            return Ok(None);
+        }
+        for _ in 0..count_usize {
+            let Some(record) = try_plain_short_key(&mut body, self.base_offset, base_timestamp)
+            else {
+                return Ok(None);
+            };
+            on_record(record);
+        }
+        if count > 0 && body.has_remaining() {
+            return Ok(None);
+        }
+        Ok(Some(ShortKeyBatch {
+            partition_leader_epoch,
+            attributes,
+            base_offset: self.base_offset,
+            count: count_usize,
+        }))
+    }
+
     /// Offset prefix plus the framed body. Used to cap retained fetch bytes.
     pub(crate) fn framed_len(&self) -> usize {
         self.body.len().saturating_add(12)
@@ -2970,6 +3042,100 @@ fn try_plain_record(buf: &mut Bytes, base_offset: i64, base_timestamp: i64) -> O
         key,
         value,
         headers: Vec::new(),
+    })
+}
+
+/// Like [`try_plain_record`], but copies a key of at most 24 bytes instead of
+/// sharing it. Longer keys and every other mismatch leave `buf` unchanged.
+pub(crate) struct ShortKeyRecord {
+    pub(crate) offset: i64,
+    pub(crate) timestamp: i64,
+    pub(crate) key: Option<([u8; 24], u8)>,
+    pub(crate) value: Option<Bytes>,
+}
+
+pub(crate) struct ShortKeyBatch {
+    pub(crate) partition_leader_epoch: i32,
+    pub(crate) attributes: i16,
+    pub(crate) base_offset: i64,
+    pub(crate) count: usize,
+}
+
+fn try_plain_short_key(
+    buf: &mut Bytes,
+    base_offset: i64,
+    base_timestamp: i64,
+) -> Option<ShortKeyRecord> {
+    let chunk = buf.chunk();
+    let (body_len, mut index) = read_short_zigzag_i32(chunk, 0)?;
+    if body_len < 0 {
+        return None;
+    }
+    let body_len = usize::try_from(body_len).ok()?;
+    let body_end = index.checked_add(body_len)?;
+    if chunk.len() < body_end {
+        return None;
+    }
+    let _attributes = *chunk.get(index)?;
+    index = index.saturating_add(1);
+    let (timestamp_delta, next) = read_short_zigzag_i64(chunk, index)?;
+    index = next;
+    let (offset_delta, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let (key_len, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let key = if key_len < 0 {
+        if key_len != -1 {
+            return None;
+        }
+        None
+    } else {
+        let len = usize::try_from(key_len).ok()?;
+        if len > 24 {
+            return None;
+        }
+        let end = index.checked_add(len)?;
+        if end > body_end {
+            return None;
+        }
+        let bytes = chunk.get(index..end)?;
+        let mut copied = [0u8; 24];
+        copied.get_mut(..len)?.copy_from_slice(bytes);
+        index = end;
+        Some((copied, u8::try_from(len).ok()?))
+    };
+    let (value_len, next) = read_short_zigzag_i32(chunk, index)?;
+    index = next;
+    let value_range = if value_len < 0 {
+        if value_len != -1 {
+            return None;
+        }
+        None
+    } else {
+        let len = usize::try_from(value_len).ok()?;
+        let end = index.checked_add(len)?;
+        if end > body_end {
+            return None;
+        }
+        let range = (index, end);
+        index = end;
+        Some(range)
+    };
+    let (header_count, next) = read_short_zigzag_i32(chunk, index)?;
+    if header_count != 0 {
+        return None;
+    }
+    index = next;
+    if index != body_end {
+        return None;
+    }
+    let value = value_range.map(|(start, end)| buf.slice(start..end));
+    buf.advance(body_end);
+    Some(ShortKeyRecord {
+        offset: base_offset.wrapping_add(i64::from(offset_delta)),
+        timestamp: base_timestamp.wrapping_add(timestamp_delta),
+        key,
+        value,
     })
 }
 
