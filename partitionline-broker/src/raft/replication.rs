@@ -2333,6 +2333,11 @@ impl Node {
         }
         let local = self.local_voter()?;
         let persistent = self.controller.state().persistent;
+        let metadata = protocol::MetadataLog {
+            cluster_id: &self.config.controller.cluster_id,
+            topic: &self.config.controller.topic,
+            partition: self.config.controller.partition,
+        };
         match key {
             52 => {
                 let decoded =
@@ -2340,7 +2345,7 @@ impl Node {
                 let replica = self.known_voter(decoded.replica_id)?;
                 Ok(protocol::decide_vote_body(
                     &persistent,
-                    &self.config.controller.cluster_id,
+                    metadata,
                     replica.directory,
                     local.directory,
                     &decoded,
@@ -2351,7 +2356,7 @@ impl Node {
                     protocol::decode_begin_body(body, version).map_err(Error::Controller)?;
                 Ok(protocol::decide_begin_body(
                     &persistent,
-                    &self.config.controller.cluster_id,
+                    metadata,
                     local.directory,
                     &decoded,
                 ))
@@ -2362,7 +2367,7 @@ impl Node {
                 let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_end_body(
                     &persistent,
-                    &self.config.controller.cluster_id,
+                    metadata,
                     local_id,
                     local.directory,
                     &decoded,
@@ -2386,6 +2391,7 @@ impl Node {
                 let follower = self.known_voter(decoded.replica_id)?;
                 Ok(protocol::decide_fetch_snapshot_body(
                     &persistent,
+                    metadata,
                     follower.directory,
                     &decoded,
                 ))

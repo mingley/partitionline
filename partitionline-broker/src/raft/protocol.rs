@@ -1160,6 +1160,17 @@ pub fn decode_vote_body(bytes: &[u8], version: i16) -> Result<VoteBody, Error> {
     })
 }
 
+/// The one metadata log a KRaft request is allowed to name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MetadataLog<'a> {
+    /// Stable cluster id. A request may omit its cluster id.
+    pub cluster_id: &'a str,
+    /// Metadata topic.
+    pub topic: &'a str,
+    /// Metadata partition.
+    pub partition: i32,
+}
+
 /// Apply a decoded Vote body without persisting a pre-vote.
 ///
 /// `expected_replica` and `expected_voter` are the directory ids that must
@@ -1167,7 +1178,7 @@ pub fn decode_vote_body(bytes: &[u8], version: i16) -> Result<VoteBody, Error> {
 /// to write `persistent`.
 pub fn decide_vote_body(
     persistent: &election::PersistentState,
-    expected_cluster: &str,
+    metadata: MetadataLog<'_>,
     expected_replica: [u8; 16],
     expected_voter: [u8; 16],
     body: &VoteBody,
@@ -1175,7 +1186,12 @@ pub fn decide_vote_body(
     if body.version == 0 {
         return VoteDisposition::DurableV0;
     }
-    if let Some(refusal) = inconsistent_cluster(expected_cluster, body.cluster_id.as_deref()) {
+    if let Some(refusal) = metadata_refusal(
+        metadata,
+        body.cluster_id.as_deref(),
+        &body.topic,
+        body.partition,
+    ) {
         return VoteDisposition::Refused(refusal);
     }
     let Some(replica_directory) = body.replica_directory else {
@@ -2748,14 +2764,19 @@ pub fn decode_begin_body(bytes: &[u8], version: i16) -> Result<BeginEpochBody, E
 /// directory is refused. A matching version 1 body is parsed and not advertised.
 pub fn decide_begin_body(
     persistent: &election::PersistentState,
-    expected_cluster: &str,
+    metadata: MetadataLog<'_>,
     expected_directory: [u8; 16],
     body: &BeginEpochBody,
 ) -> VoteDisposition {
     if body.version == 0 {
         return VoteDisposition::DurableV0;
     }
-    if let Some(refusal) = inconsistent_cluster(expected_cluster, body.cluster_id.as_deref()) {
+    if let Some(refusal) = metadata_refusal(
+        metadata,
+        body.cluster_id.as_deref(),
+        &body.topic,
+        body.partition,
+    ) {
         return VoteDisposition::Refused(refusal);
     }
     // Apache `validateVoterOnlyRequest` fences an older epoch before the
@@ -2935,13 +2956,18 @@ pub fn decode_end_body(bytes: &[u8], version: i16) -> Result<EndEpochBody, Error
 /// the directory matches and is not advertised.
 pub fn decide_end_body(
     persistent: &election::PersistentState,
-    expected_cluster: &str,
+    metadata: MetadataLog<'_>,
     local_id: i32,
     local_directory: [u8; 16],
     body: &EndEpochBody,
 ) -> Result<(VoteDisposition, Option<usize>), Error> {
     if body.version != 0 {
-        if let Some(refusal) = inconsistent_cluster(expected_cluster, body.cluster_id.as_deref()) {
+        if let Some(refusal) = metadata_refusal(
+            metadata,
+            body.cluster_id.as_deref(),
+            &body.topic,
+            body.partition,
+        ) {
             return Ok((VoteDisposition::Refused(refusal), None));
         }
     }
@@ -3093,9 +3119,18 @@ pub fn decode_fetch_snapshot_body(bytes: &[u8], version: i16) -> Result<FetchSna
 /// is advertised on the controller listener.
 pub fn decide_fetch_snapshot_body(
     persistent: &election::PersistentState,
+    metadata: MetadataLog<'_>,
     expected_directory: [u8; 16],
     body: &FetchSnapshotBody,
 ) -> VoteDisposition {
+    if let Some(refusal) = metadata_refusal(
+        metadata,
+        body.cluster_id.as_deref(),
+        &body.topic,
+        body.partition,
+    ) {
+        return VoteDisposition::Refused(refusal);
+    }
     // Apache `validateLeaderOnlyRequest` requires the follower's leader epoch
     // to equal the local epoch. An older epoch is fenced and a newer one is
     // unknown. Neither result installs snapshot bytes.
@@ -3517,6 +3552,12 @@ pub enum PreVoteRefusal {
     ///
     /// A missing cluster id is accepted, matching Apache `hasValidClusterId`.
     InconsistentCluster,
+    /// The request names a topic or partition other than this metadata log.
+    ///
+    /// Apache returns `INVALID_REQUEST` for Vote, BeginQuorumEpoch, and
+    /// EndQuorumEpoch. The check runs after the cluster id and before the
+    /// directory.
+    InvalidTopic,
     /// The candidate term is older than the stable term.
     StaleTerm,
     /// The candidate log is behind the stable log.
@@ -3558,6 +3599,21 @@ fn leader_epoch_refusal(
     }
     if wire_epoch(persistent.term).is_ok_and(|current| epoch > current) {
         return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    None
+}
+
+fn metadata_refusal(
+    metadata: MetadataLog<'_>,
+    cluster_id: Option<&str>,
+    topic: &str,
+    partition: i32,
+) -> Option<PreVoteRefusal> {
+    if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, cluster_id) {
+        return Some(refusal);
+    }
+    if topic != metadata.topic || partition != metadata.partition {
+        return Some(PreVoteRefusal::InvalidTopic);
     }
     None
 }
@@ -3652,6 +3708,14 @@ pub fn evaluate_prevote(
 #[cfg(test)]
 mod prevote_tests {
     use super::*;
+
+    fn metadata_log() -> MetadataLog<'static> {
+        MetadataLog {
+            cluster_id: "cluster-1",
+            topic: "__cluster_metadata",
+            partition: 0,
+        }
+    }
 
     fn state(term: u64) -> election::PersistentState {
         election::PersistentState {
@@ -3792,21 +3856,21 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &decoded),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &decoded),
             VoteDisposition::PreVoteGranted
         );
         assert_eq!(persistent, before);
         let mut stale = decoded.clone();
         stale.replica_directory = Some([1u8; 16]);
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &stale),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         assert_eq!(persistent, before);
         assert_eq!(
             decide_vote_body(
                 &persistent,
-                "cluster-1",
+                metadata_log(),
                 replica,
                 voter,
                 &sample_body(1, replica, voter, false)
@@ -3817,19 +3881,19 @@ mod prevote_tests {
         let mut ahead = decoded;
         ahead.last_offset_epoch = ahead.replica_epoch.saturating_add(1);
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &ahead),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &ahead),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut negative = sample_body(2, replica, voter, true);
         negative.last_offset = -1;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &negative),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut same_epoch = sample_body(1, replica, voter, false);
         same_epoch.last_offset_epoch = same_epoch.replica_epoch;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &same_epoch),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &same_epoch),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
@@ -3846,7 +3910,7 @@ mod prevote_tests {
         body.last_offset = 0;
         body.last_offset_epoch = 3;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &body),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &body),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
@@ -3861,13 +3925,13 @@ mod prevote_tests {
         let mut older = sample_body(1, replica, voter, false);
         older.replica_epoch = 2;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &older),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         let mut negative_id = sample_body(2, replica, voter, true);
         negative_id.replica_id = -1;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &negative_id),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative_id),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut negative_epoch = sample_body(2, replica, voter, true);
@@ -3875,27 +3939,27 @@ mod prevote_tests {
         negative_epoch.last_offset_epoch = 0;
         negative_epoch.last_offset = 0;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &negative_epoch),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &negative_epoch),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut behind = sample_body(1, replica, voter, false);
         behind.last_offset_epoch = 0;
         behind.last_offset = 0;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &behind),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &behind),
             VoteDisposition::Refused(PreVoteRefusal::StaleLog)
         );
         let mut same_epoch = sample_body(1, replica, voter, false);
         same_epoch.replica_epoch = 3;
         same_epoch.last_offset_epoch = 1;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &same_epoch),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &same_epoch),
             VoteDisposition::Refused(PreVoteRefusal::AlreadyVoted)
         );
         let mut repeat = same_epoch;
         repeat.replica_id = 7;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &repeat),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &repeat),
             VoteDisposition::NotAdvertised
         );
         assert_eq!(persistent, before);
@@ -3913,13 +3977,13 @@ mod prevote_tests {
         foreign.replica_directory = Some([1u8; 16]);
         foreign.replica_epoch = 1;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &foreign),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &foreign),
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         let mut absent = sample_body(2, replica, voter, true);
         absent.cluster_id = None;
         assert_eq!(
-            decide_vote_body(&persistent, "cluster-1", replica, voter, &absent),
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &absent),
             VoteDisposition::PreVoteGranted
         );
         let begin = BeginEpochBody {
@@ -3934,7 +3998,7 @@ mod prevote_tests {
             leader_endpoints: Vec::new(),
         };
         assert_eq!(
-            decide_begin_body(&persistent, "cluster-1", voter, &begin),
+            decide_begin_body(&persistent, metadata_log(), voter, &begin),
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         let end = EndEpochBody {
@@ -3947,13 +4011,52 @@ mod prevote_tests {
             preferred: Vec::new(),
             leader_endpoints: Vec::new(),
         };
-        let (disposition, rank) = decide_end_body(&persistent, "cluster-1", 7, voter, &end)
+        let (disposition, rank) = decide_end_body(&persistent, metadata_log(), 7, voter, &end)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(
             disposition,
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         assert_eq!(rank, None);
+        let mut wrong_topic = sample_body(2, replica, voter, true);
+        wrong_topic.topic = "orders".to_owned();
+        wrong_topic.replica_directory = Some([1u8; 16]);
+        assert_eq!(
+            decide_vote_body(&persistent, metadata_log(), replica, voter, &wrong_topic),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidTopic)
+        );
+        let mut wrong_partition = begin;
+        wrong_partition.cluster_id = Some("cluster-1".to_owned());
+        wrong_partition.voter_directory = Some(voter);
+        wrong_partition.partition = 4;
+        wrong_partition.leader_epoch = 2;
+        assert_eq!(
+            decide_begin_body(&persistent, metadata_log(), voter, &wrong_partition),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidTopic)
+        );
+        let mut snapshot = FetchSnapshotBody {
+            version: 1,
+            cluster_id: Some("cluster-1".to_owned()),
+            replica_id: 3,
+            max_bytes: 1024,
+            topic: "orders".to_owned(),
+            partition: 0,
+            current_leader_epoch: 3,
+            end_offset: 10,
+            epoch: 2,
+            position: 0,
+            replica_directory: Some(voter),
+        };
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, metadata_log(), voter, &snapshot),
+            VoteDisposition::Refused(PreVoteRefusal::InvalidTopic)
+        );
+        snapshot.topic = "__cluster_metadata".to_owned();
+        snapshot.cluster_id = Some("other".to_owned());
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, metadata_log(), voter, &snapshot),
+            VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
+        );
         assert_eq!(persistent, before);
     }
 
@@ -4039,20 +4142,20 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_begin_body(&persistent, "cluster-1", directory, &decoded),
+            decide_begin_body(&persistent, metadata_log(), directory, &decoded),
             VoteDisposition::NotAdvertised
         );
         let mut stale = decoded.clone();
         stale.voter_directory = Some([2u8; 16]);
         assert_eq!(
-            decide_begin_body(&persistent, "cluster-1", directory, &stale),
+            decide_begin_body(&persistent, metadata_log(), directory, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         assert_eq!(persistent, before);
         let mut older = decoded;
         older.leader_epoch = 2;
         assert_eq!(
-            decide_begin_body(&persistent, "cluster-1", directory, &older),
+            decide_begin_body(&persistent, metadata_log(), directory, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         assert_eq!(persistent, before);
@@ -4108,8 +4211,9 @@ mod prevote_tests {
         let decoded = decode_end_body(&encoded, 1).unwrap_or_else(|error| panic!("{error:?}"));
         let persistent = state(4);
         let before = persistent;
-        let (disposition, rank) = decide_end_body(&persistent, "cluster-1", 7, directory, &decoded)
-            .unwrap_or_else(|error| panic!("{error:?}"));
+        let (disposition, rank) =
+            decide_end_body(&persistent, metadata_log(), 7, directory, &decoded)
+                .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(
             disposition,
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
@@ -4117,8 +4221,9 @@ mod prevote_tests {
         assert_eq!(rank, None);
         let mut older = decoded;
         older.leader_epoch = 2;
-        let (disposition, rank) = decide_end_body(&persistent, "cluster-1", 7, directory, &older)
-            .unwrap_or_else(|error| panic!("{error:?}"));
+        let (disposition, rank) =
+            decide_end_body(&persistent, metadata_log(), 7, directory, &older)
+                .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(
             disposition,
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
@@ -4153,25 +4258,25 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_fetch_snapshot_body(&persistent, directory, &decoded),
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &decoded),
             VoteDisposition::NotAdvertised
         );
         let mut stale = decoded.clone();
         stale.replica_directory = Some([1u8; 16]);
         assert_eq!(
-            decide_fetch_snapshot_body(&persistent, directory, &stale),
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         let mut older = decoded.clone();
         older.current_leader_epoch = 2;
         assert_eq!(
-            decide_fetch_snapshot_body(&persistent, directory, &older),
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         let mut newer = decoded;
         newer.current_leader_epoch = 4;
         assert_eq!(
-            decide_fetch_snapshot_body(&persistent, directory, &newer),
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &newer),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
