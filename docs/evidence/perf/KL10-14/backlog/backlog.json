@@ -1,0 +1,28 @@
+{
+  "codec": "gzip",
+  "count": 25000,
+  "end_offsets": [
+    3125,
+    3125,
+    3125,
+    3125,
+    3125,
+    3125,
+    3125,
+    3125
+  ],
+  "reused": true,
+  "seed": 789996,
+  "start_offsets": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "topic": "pl-gateway-fetch",
+  "writer": "rust-rdkafka"
+}

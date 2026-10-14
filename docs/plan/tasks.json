@@ -19287,13 +19287,13 @@
     {
       "id": "KL10-14",
       "title": "Build the gateway fetch cell with a same-settings librdkafka peer",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL04-05", "KL04-07", "KL09-01"],
       "files": ["benchmarks/gateway/", "benchmarks/scenarios.json", "benchmarks/peers/rust/", "docs/plan/performance-leadership.md"],
       "deliverable": "The exploratory lb-gateway-fetch-gzip cell defined in gateway-adoption.md section 0 (manual assignment from an explicit offset over a seeded gzip backlog written by another client), run for partitionline and the KL04-05 rust-rdkafka peer, and registered as a row in performance-leadership.md section 4.",
       "acceptance": ["The backlog is written once by a pinned peer with recorded settings and reused unchanged by both clients; every consumed record's ID/hash is verified against the KL04-07 history.", "Both clients use matched fetch sizes, wait times and TLS settings, emit their effective configuration, and report records/s, CPU per record and peak RSS.", "The baseline is measured on a harness-only commit (library unchanged) with the section 4 protocol (>=5 interleaved repetitions, medians with 95% CIs); differences from gateway-adoption.md section 2 are recorded and explained, not gated."],
       "validation": ["cargo test --locked --manifest-path benchmarks/gateway/Cargo.toml", "python3 scripts/benchmark-report.py <gateway result files>"],
-      "evidence": [],
+      "evidence": ["docs/plan/evidence/KL10-14.json"],
       "write_set": [
         "docs/plan/tasks.json",
         "benchmarks/gateway/",

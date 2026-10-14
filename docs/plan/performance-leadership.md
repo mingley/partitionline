@@ -274,9 +274,9 @@ KL10-02 recorded a local unsigned `COUNT=25000` A-B baseline for the three
 produce cells (`docs/evidence/perf/KL10-02`). Suite HOLD remains. Those
 numbers are not a performance claim.
 
-KL10-14 registers `lb-gateway-fetch-gzip`. A local unsigned baseline is
-recorded in `docs/evidence/perf/KL10-14` when the campaign executes.
-Suite HOLD remains. Those numbers are not a performance claim.
+KL10-14 registers `lb-gateway-fetch-gzip` and recorded a local unsigned
+`COUNT=25000` A-B baseline (`docs/evidence/perf/KL10-14`). Suite HOLD
+remains. Those numbers are not a performance claim.
 
 ## 5. Strategy and waves
 

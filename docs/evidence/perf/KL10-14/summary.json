@@ -1,0 +1,281 @@
+{
+  "schema": "kl10-14-summary/1",
+  "task": "KL10-14",
+  "date": "2026-10-14",
+  "suite_hold": "active",
+  "performance_claims_valid": false,
+  "feeds_claims": false,
+  "host": {
+    "os": "linux",
+    "arch": "x86_64",
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "logical_cores": 4,
+    "broker": "native Kafka 4.1.0 KRaft PLAINTEXT 127.0.0.1:9092 RF=1",
+    "security": "PLAINTEXT (mTLS preferred; not configured on this host)"
+  },
+  "workload": {
+    "count": 25000,
+    "warmup": 0,
+    "repetitions": 5,
+    "pairing": "A-B-B-A",
+    "payload": "json1k 1024 bytes seed 0xC0DEC plus gw8 header, gzip stored",
+    "partitions": 8,
+    "assignment": "manual from explicit start offsets of a backlog written once by rust-rdkafka",
+    "fetch_min_bytes": 1,
+    "fetch_max_wait_ms": 500,
+    "fetch_max_bytes": 52428800,
+    "max_partition_fetch_bytes": 1048576,
+    "isolation": "read_uncommitted",
+    "limitation": "COUNT=25000 is a short seeded backlog (~0.13-0.22 s consume), not the unpublished dated section 2 consume wall."
+  },
+  "peer": {
+    "wrapper": "rust-rdkafka 0.39.0",
+    "bindings": "rdkafka-sys 4.10.0+2.12.1",
+    "native": "librdkafka 2.15.0",
+    "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "library_sha256": "a4a43bb95a0ddd16951e81e734deb8e92b3333fd60c91e81a3fe8dfc7aa92ca3",
+    "consume_api": "KL04-05 BaseConsumer with manual assign, not a group member"
+  },
+  "integrity": {
+    "result_files": 10,
+    "executed": 10,
+    "verified": 10,
+    "benchmark_report_py": "all 10 passed",
+    "throughput_definition": "verified consumed / elapsed",
+    "cpu_source": "partitionline: getrusage self delta per run; rust-rdkafka: wait4 child",
+    "backlog_history_sha256": "a2d5975789713a280972d35a42913212d8a8153dfc46c57ffa0ae7538eb62ce5",
+    "backlog_reused": true
+  },
+  "section2_differences": [
+    "Host is this Linux 4-core Xeon VM, not the 2026-09-30 Apple M4 Pro laptop.",
+    "PLAINTEXT on RF=1; mTLS was not configured.",
+    "Both clients used matched Java/librdkafka fetch knobs (1 byte min, 500 ms wait, 50 MiB fetch.max.bytes, 1 MiB max.partition.fetch.bytes).",
+    "gzip uses the repository default zlib-rs backend.",
+    "COUNT=25000 is a short backlog; section 2 did not publish the consume wall or backlog size.",
+    "Every consumed ID/hash was verified against the KL04-07 produce history.",
+    "Dated partitionline peak RSS of 1,426 MB is not reproduced at these matched fetch sizes (median ~52 MB)."
+  ],
+  "cells": {
+    "lb-gateway-fetch-gzip/backlog/partitionline": {
+      "cell": "lb-gateway-fetch-gzip",
+      "load": "backlog",
+      "client": "partitionline",
+      "verified_rps": {
+        "n": 5,
+        "median": 183117.1469387508,
+        "ci95_low": 113213.85621487939,
+        "ci95_high": 185838.83543276085,
+        "min": 113213.85621487939,
+        "max": 185838.83543276085,
+        "samples": [
+          113213.85621487939,
+          182036.17245151653,
+          185838.83543276085,
+          183429.9992309147,
+          183117.1469387508
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 5.4092,
+        "ci95_low": 5.339360000000002,
+        "ci95_high": 5.790839999999999,
+        "min": 5.339360000000002,
+        "max": 5.790839999999999,
+        "samples": [
+          5.790839999999999,
+          5.4092,
+          5.339360000000002,
+          5.4194400000000025,
+          5.382800000000003
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 52056064,
+        "ci95_low": 48517120,
+        "ci95_high": 52056064,
+        "min": 48517120,
+        "max": 52056064,
+        "samples": [
+          48517120,
+          51793920,
+          52056064,
+          52056064,
+          52056064
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 113213.85621487939,
+          "cpu_s": 0.14477099999999998,
+          "cpu_us_per_record": 5.790839999999999,
+          "peak_rss_bytes": 48517120,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.220821027
+        },
+        {
+          "rep": 2,
+          "rps": 182036.17245151653,
+          "cpu_s": 0.13523000000000002,
+          "cpu_us_per_record": 5.4092,
+          "peak_rss_bytes": 51793920,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.137335342
+        },
+        {
+          "rep": 3,
+          "rps": 185838.83543276085,
+          "cpu_s": 0.13348400000000005,
+          "cpu_us_per_record": 5.339360000000002,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.134525165
+        },
+        {
+          "rep": 4,
+          "rps": 183429.9992309147,
+          "cpu_s": 0.13548600000000005,
+          "cpu_us_per_record": 5.4194400000000025,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.136291774
+        },
+        {
+          "rep": 5,
+          "rps": 183117.1469387508,
+          "cpu_s": 0.13457000000000008,
+          "cpu_us_per_record": 5.382800000000003,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.136524626
+        }
+      ]
+    },
+    "lb-gateway-fetch-gzip/backlog/rust-rdkafka": {
+      "cell": "lb-gateway-fetch-gzip",
+      "load": "backlog",
+      "client": "rust-rdkafka",
+      "verified_rps": {
+        "n": 5,
+        "median": 167772.03833362908,
+        "ci95_low": 161843.95420256312,
+        "ci95_high": 169255.49949031076,
+        "min": 161843.95420256312,
+        "max": 169255.49949031076,
+        "samples": [
+          163343.34077000717,
+          167772.03833362908,
+          168092.54191007646,
+          161843.95420256312,
+          169255.49949031076
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 10.993519999999998,
+        "ci95_low": 10.92064,
+        "ci95_high": 11.380239999999999,
+        "min": 10.92064,
+        "max": 11.380239999999999,
+        "samples": [
+          11.215000000000002,
+          10.92064,
+          10.993519999999998,
+          11.380239999999999,
+          10.987279999999998
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 52056064,
+        "ci95_low": 48910336,
+        "ci95_high": 52056064,
+        "min": 48910336,
+        "max": 52056064,
+        "samples": [
+          48910336,
+          49434624,
+          52056064,
+          52056064,
+          52056064
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 163343.34077000717,
+          "cpu_s": 0.28037500000000004,
+          "cpu_us_per_record": 11.215000000000002,
+          "peak_rss_bytes": 48910336,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.153051847
+        },
+        {
+          "rep": 2,
+          "rps": 167772.03833362908,
+          "cpu_s": 0.27301600000000004,
+          "cpu_us_per_record": 10.92064,
+          "peak_rss_bytes": 49434624,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.14901172
+        },
+        {
+          "rep": 3,
+          "rps": 168092.54191007646,
+          "cpu_s": 0.27483799999999997,
+          "cpu_us_per_record": 10.993519999999998,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.148727598
+        },
+        {
+          "rep": 4,
+          "rps": 161843.95420256312,
+          "cpu_s": 0.284506,
+          "cpu_us_per_record": 11.380239999999999,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.15446978
+        },
+        {
+          "rep": 5,
+          "rps": 169255.49949031076,
+          "cpu_s": 0.274682,
+          "cpu_us_per_record": 10.987279999999998,
+          "peak_rss_bytes": 52056064,
+          "consumed": 25000,
+          "hwm_delta": 25000,
+          "verified": true,
+          "elapsed_s": 0.147705688
+        }
+      ]
+    }
+  },
+  "paired_ratios": {
+    "verified_rps_partitionline_over_rust_rdkafka": 1.0914640410734395,
+    "cpu_us_per_record_partitionline_over_rust_rdkafka": 0.4920353080723918,
+    "peak_rss_partitionline_over_rust_rdkafka": 1.0,
+    "note": "Ratios are local unsigned medians. Not a performance claim."
+  },
+  "note": "Suite HOLD remains. These numbers are not a performance claim and do not feed KL09/KL04 claims."
+}

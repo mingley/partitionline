@@ -1,0 +1,60 @@
+{
+  "task": "KL10-14",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "04567eac3bde03fe5e84e432975ffd37a52e185d",
+  "tested_base_sha": "53119db32c3e75c46128d382133f5ef7a47e2ed6",
+  "claim_sha": "eae4aa00ad6763b9f6416c876f4d4d28f8979eab",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "commands": [
+    "cargo +stable test --locked --manifest-path benchmarks/gateway/Cargo.toml (fetch + produce harness tests)",
+    "cargo +stable clippy --locked --manifest-path benchmarks/gateway/Cargo.toml --all-targets -- -D warnings",
+    "cargo +stable test --locked --manifest-path benchmarks/peers/rust/Cargo.toml",
+    "cargo +stable clippy --locked --manifest-path benchmarks/peers/rust/Cargo.toml --all-targets -- -D warnings",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (workspace client)",
+    "python3 scripts/benchmark-report.py on each of 10 executed results (all passed)",
+    "KAFKA_BOOTSTRAP=127.0.0.1:9092 COUNT=25000 TOTAL_REPETITIONS=5 gateway-fetch campaign --out /tmp/gateway-kl10-14-live (10 executed, 10 verified)",
+    "cargo tree -p partitionline --edges normal (no rdkafka, no librdkafka)"
+  ],
+  "results": {
+    "cell_registered": "lb-gateway-fetch-gzip",
+    "config_gate": "refuses fetch_min_bytes, max_wait_ms, fetch_max_bytes, max_partition_fetch_bytes, tls, isolation",
+    "throughput_definition": "verified consumed / elapsed",
+    "cpu_source": "partitionline getrusage self delta; rust-rdkafka wait4 child",
+    "backlog_writer": "rust-rdkafka BaseProducer, reused unchanged",
+    "backlog_history_sha256": "a2d5975789713a280972d35a42913212d8a8153dfc46c57ffa0ae7538eb62ce5",
+    "librdkafka_in_partitionline_tree": false,
+    "live_campaign": "executed",
+    "result_files": 10,
+    "executed": 10,
+    "verified": 10,
+    "count": 25000,
+    "repetitions": 5,
+    "pairing": "A-B-B-A",
+    "broker": "native Kafka 4.1.0 KRaft PLAINTEXT RF=1",
+    "peer": "rust-rdkafka 0.39.0 / librdkafka 2.15.0 9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "library_sha256": "a4a43bb95a0ddd16951e81e734deb8e92b3333fd60c91e81a3fe8dfc7aa92ca3",
+    "security": "PLAINTEXT",
+    "summary": "docs/evidence/perf/KL10-14/summary.json",
+    "median_verified_rps": {
+      "partitionline": 183117.1469387508,
+      "rust_rdkafka": 167772.03833362908
+    },
+    "median_cpu_us_per_record": {
+      "partitionline": 5.4092,
+      "rust_rdkafka": 10.993519999999998
+    }
+  },
+  "actual_failures_retained": [
+    "First gateway-fetch release binary was written to a leftover CARGO_TARGET_DIR from the rust-peer rebuild; reran with the crate target."
+  ],
+  "qualification_limit": "Local unsigned COUNT=25000 fetch baseline (short seeded backlog, not a dated consume wall). RF=1 PLAINTEXT on a 4-core Linux VM. Matched Java/librdkafka fetch sizes. Suite HOLD remains. No performance claim. The world-class client objective remains open.",
+  "evidence": "docs/evidence/perf/KL10-14",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}
