@@ -2061,7 +2061,9 @@
 //! Renew is sent immediately).
 //! Incremental ShareFetch forgotten topics follow Java
 //! `ShareSessionHandler.newShareFetchBuilder` (assignment shrink and
-//! topic-id replacement). [`ShareGroup::subscribe`] keeps open share
+//! topic-id replacement). [`ShareAcquireMode::RecordLimit`] fetches
+//! records from one leader per poll (Java `canSkipIfRequestEmpty`).
+//! [`ShareGroup::subscribe`] keeps open share
 //! sessions and heartbeats the new topic list.
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]

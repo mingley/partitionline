@@ -1000,6 +1000,51 @@ async fn share_fetch_overlaps_two_leaders() {
 }
 
 #[tokio::test]
+async fn record_limit_fetches_one_leader_per_poll() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    let mut group = ShareGroup::join(cfg, "rec-limit", "t").await.unwrap();
+    group.set_acquire_mode(ShareAcquireMode::RecordLimit);
+    let start = mock.share_fetch_calls();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1, "RecordLimit acquires from one leader");
+    assert_eq!(
+        mock.share_fetch_calls() - start,
+        2,
+        "the other leader still opens a share session"
+    );
+    let first_part = first[0].partition;
+    group.accept(&first).await.unwrap();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(
+        second[0].partition, first_part,
+        "the next poll fetches the rotated leader"
+    );
+    assert_eq!(
+        mock.share_fetch_calls() - start,
+        4,
+        "ack-only ShareFetch still goes to the previous fetch leader"
+    );
+    group.accept(&second).await.unwrap();
+    group.commit().await.unwrap();
+    let third = group.poll().await.unwrap();
+    assert!(third.is_empty());
+    assert_eq!(
+        mock.share_fetch_calls() - start,
+        5,
+        "idle incremental RecordLimit leader is skipped"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     let mock = common::Mock::start().await;
     v2(&mock);

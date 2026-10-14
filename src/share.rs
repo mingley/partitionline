@@ -650,6 +650,11 @@ pub enum ShareAcquireMode {
     #[default]
     BatchOptimized = 0,
     /// Acquire at most the requested number of records. Requires ShareFetch v2.
+    ///
+    /// Java `ShareAcquireMode.RECORD_LIMIT`: one partition leader fetches
+    /// records per poll. Other leaders still open or adjust the share
+    /// session and piggyback acknowledgements, with wait/byte/record
+    /// limits set to zero (Java `canSkipIfRequestEmpty`).
     RecordLimit = 1,
 }
 
@@ -679,6 +684,9 @@ pub enum ShareAcquireMode {
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced.
+/// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
+/// per poll; other leaders send a zero-limit session/ack ShareFetch
+/// (Java `canSkipIfRequestEmpty`).
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -944,6 +952,8 @@ impl ShareGroup {
 
     /// Set the share acquisition mode. Each partition leader is negotiated
     /// before fetching; RecordLimit fails on a peer older than v2 before its RPC.
+    /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
+    /// per poll (Java `fetchRecordsNodeId`).
     pub fn set_acquire_mode(&mut self, mode: ShareAcquireMode) {
         self.acquire_mode = mode;
     }
@@ -1850,6 +1860,37 @@ impl ShareGroup {
         Ok(by_leader)
     }
 
+    /// Java `fetchRecordsNodeId` / `subscriptions.movePartitionToEnd`.
+    ///
+    /// [`ShareAcquireMode::RecordLimit`] fetches records from the first
+    /// assigned partition whose leader is in this poll, then rotates that
+    /// partition so the next poll starts on a different leader.
+    fn record_limit_fetch_node(&mut self, nodes: &[(i32, Vec<(String, i32)>)]) -> Option<i32> {
+        if self.acquire_mode != ShareAcquireMode::RecordLimit {
+            return None;
+        }
+        let present: HashSet<i32> = nodes.iter().map(|(node, _)| *node).collect();
+        let assigned = self.assigned.clone();
+        for (topic, part) in assigned {
+            let Ok((node, _)) = self.consumer.leader_of(&topic, part) else {
+                continue;
+            };
+            if !present.contains(&node) {
+                continue;
+            }
+            if let Some(idx) = self
+                .assigned
+                .iter()
+                .position(|(name, partition)| *name == topic && *partition == part)
+            {
+                let tp = self.assigned.remove(idx);
+                self.assigned.push(tp);
+            }
+            return Some(node);
+        }
+        None
+    }
+
     async fn overlap_share_fetches(
         &mut self,
         prepared: &[PreparedShareFetch],
@@ -1925,6 +1966,7 @@ impl ShareGroup {
         let mut pending_acks = self.pending_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
+        let record_limit_fetch_node = self.record_limit_fetch_node(&nodes);
         let metadata_bytes = self
             .acquisitions
             .keys()
@@ -1983,6 +2025,23 @@ impl ShareGroup {
             if by_id.is_empty() && forgotten.is_empty() {
                 continue;
             }
+            let ack_only =
+                record_limit_fetch_node.is_some() && Some(node) != record_limit_fetch_node;
+            let has_acks = piggyback
+                && tps.iter().any(|(topic, part)| {
+                    pending_acks
+                        .get(&(topic.clone(), *part))
+                        .is_some_and(|batches| !batches.is_empty())
+                });
+            // Java newShareFetchBuilder(canSkipIfRequestEmpty): skip an
+            // incremental ShareFetch with no added/removed/acks.
+            if ack_only
+                && epoch > ShareRequestMetadata::INITIAL_EPOCH
+                && forgotten.is_empty()
+                && !has_acks
+            {
+                continue;
+            }
             let topics: Vec<_> = by_id
                 .iter()
                 .map(|(topic_id, partitions)| {
@@ -2024,8 +2083,20 @@ impl ShareGroup {
                     }
                 }
             }
-            let max_records =
+            let configured_records =
                 i32::try_from(self.cfg.max_poll_records.unwrap_or(16).max(1)).unwrap_or(i32::MAX);
+            // Java canSkipIfRequestEmpty: wait/byte/record limits are zero
+            // on the non-fetch RecordLimit leader.
+            let (max_wait_ms, min_bytes, max_bytes, max_records) = if ack_only {
+                (0, 0, 0, 0)
+            } else {
+                (
+                    self.cfg.max_wait_ms,
+                    self.cfg.min_bytes,
+                    self.cfg.max_bytes,
+                    configured_records,
+                )
+            };
             let mut request = BytesMut::new();
             encode_share_fetch_request_with_options(
                 &mut request,
@@ -2033,9 +2104,9 @@ impl ShareGroup {
                 &self.group_id,
                 &self.member_id,
                 epoch,
-                self.cfg.max_wait_ms,
-                self.cfg.min_bytes,
-                self.cfg.max_bytes,
+                max_wait_ms,
+                min_bytes,
+                max_bytes,
                 max_records,
                 &topics,
                 &forgotten,
