@@ -566,7 +566,7 @@ mod tests {
         offsets
             .commit("orders", "m-1", 1, &[("orders", 0, 4, "")])
             .unwrap_or_else(|error| panic!("{error:?}"));
-        offsets
+        let replaced = offsets
             .commit(
                 "orders",
                 "m-1",
@@ -574,11 +574,13 @@ mod tests {
                 &[("orders", 0, 9, "next"), ("orders", 0, 11, "later")],
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(replaced[0].error_code, 0);
+        assert_eq!(replaced[1].error_code, 42);
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
                 .map(|committed| committed.offset),
-            Some(11)
+            Some(9)
         );
         assert!(matches!(
             offsets.commit("orders", "m-1", 1, &[("orders", 1, 1, "")]),
