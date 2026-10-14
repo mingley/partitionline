@@ -1,0 +1,19 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "258bad3823c44dbc38f0f4ff981c2ccafb81e665",
+  "cell": "nb-fetch-bulk",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Five interleaved pairs on one host. Both sides used the same nb-serve that materializes the synthetic log before READY. The parent runtime is the client before this reserve. Every run verified 20,000 records and validation_failures stayed 0. Allocation count fell by 16. Allocated bytes fell from 107,706,107 to 51,649,211. The paired mean records/s ratio is 1.273 and the bootstrap 95% CI is 1.226 to 1.330. Not a fetch comparison against other clients and not a fastest-client result.",
+  "before_records_per_second": [222498.94, 215643.0, 260914.77, 241720.81, 264054.98],
+  "before_median": 241720.81,
+  "after_records_per_second": [286978.65, 271759.74, 313512.04, 332672.6, 326510.75],
+  "after_median": 313512.04,
+  "before_allocated_bytes": 107706107,
+  "after_allocated_bytes": 51649211,
+  "before_allocation_count": 135386,
+  "after_allocation_count": 135370,
+  "paired_mean_ratio": 1.273,
+  "paired_ratio_ci95": [1.226, 1.330]
+}
