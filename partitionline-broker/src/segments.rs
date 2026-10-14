@@ -1032,6 +1032,34 @@ fn summarize_kind(
         kind,
     )
 }
+/// Fetch-time check for a sealed payload whose checksum already matched.
+///
+/// Dense generations use the header-only assignment, the same check as an
+/// active journal fetch. Sparse generations still walk retained records.
+fn check_sealed_payload(
+    first_offset: u64,
+    record_count: u32,
+    payload: &[u8],
+    limits: records::Limits,
+    kind: u32,
+) -> Result<(), Error> {
+    if kind != 0 {
+        summarize_kind_payload(first_offset, record_count, payload, limits, kind)?;
+        return Ok(());
+    }
+    let framed = records::framed_assignment(payload, limits).map_err(|_| Error::CorruptData)?;
+    if framed.record_count() != record_count as usize {
+        return Err(Error::CorruptData);
+    }
+    let offset = i64::try_from(first_offset).map_err(|_| Error::CorruptData)?;
+    let next = first_offset
+        .checked_add(u64::from(record_count))
+        .ok_or(Error::CorruptData)?;
+    if framed.first_offset() != offset || u64::try_from(framed.next_offset()).ok() != Some(next) {
+        return Err(Error::CorruptData);
+    }
+    Ok(())
+}
 fn summarize_kind_payload(
     first_offset: u64,
     record_count: u32,
@@ -1952,7 +1980,7 @@ impl Log {
                 if payload.len() != view.len {
                     return Err(Error::CorruptData);
                 }
-                summarize_kind_payload(
+                check_sealed_payload(
                     view.first_offset,
                     view.record_count,
                     payload,
