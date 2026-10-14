@@ -4270,13 +4270,16 @@ fn admin_offset_debug_future_sizes() {
         .unwrap()
         .join()
         .unwrap();
-    eprintln!(
-        "Mock::start={mock} Admin::new={new} alter={alter} list={list} test_shaped={test}",
-        mock = sizes.0,
-        new = sizes.1,
-        alter = sizes.2,
-        list = sizes.3,
-        test = test_shaped
+    assert!(
+        sizes.1 < 32 * 1024
+            && sizes.2 < 64 * 1024
+            && sizes.3 < 128 * 1024
+            && test_shaped < 128 * 1024,
+        "debug futures grew: new={} alter={} list={} test_shaped={}",
+        sizes.1,
+        sizes.2,
+        sizes.3,
+        test_shaped
     );
 }
 
@@ -4298,7 +4301,11 @@ fn admin_list_offsets_runs_on_2mib_thread() {
         .unwrap();
 }
 
-/// Debug future layout overflows the default 2 MiB worker stack; `.cargo/config.toml` sets `RUST_MIN_STACK`.
+/// Boxed OffsetClient/OIDC I/O keeps this debug future on the default 2 MiB stack.
+#[expect(
+    clippy::unwrap_used,
+    reason = "same assertions as the other full_surface admin tests"
+)]
 async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator_body() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
