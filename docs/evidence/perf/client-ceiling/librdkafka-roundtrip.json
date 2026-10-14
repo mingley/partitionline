@@ -1,0 +1,53 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "peer": "librdkafka",
+  "library_release": "2.15.0",
+  "source_sha": "602b8a6512d62de1508395605fb0e6750560bb2f",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "benchmark_report_exit": 0,
+  "note": "Five fresh-broker round trips per cell. librdkafka 2.15.0 produced 20,000 records after CreateTopics and verified every id against batches retained from that produce. benchmark-report.py exited 0 on each result. Runs were not interleaved with partitionline, Java, or franz-go. max.in.flight is 5. This is not the synthetic nb-fetch-bulk cell and not a fastest-client result.",
+  "cells": {
+    "nb-produce-bulk": {
+      "repetitions": 5,
+      "records_per_second": [
+        204216.83,
+        208338.45,
+        201869.15,
+        193978.41,
+        211244.28
+      ],
+      "median": 204216.83,
+      "acknowledged": 20000,
+      "verified_ids": 20000
+    },
+    "nb-produce-idem": {
+      "repetitions": 5,
+      "records_per_second": [
+        140503.88,
+        140701.51,
+        140161.79,
+        132905.86,
+        136704.25
+      ],
+      "median": 140161.79,
+      "acknowledged": 20000,
+      "verified_ids": 20000
+    }
+  },
+  "settings": {
+    "acks_bulk": 1,
+    "acks_idem": -1,
+    "idempotence_bulk": false,
+    "idempotence_idem": true,
+    "linger_ms": 5,
+    "batch_size_bytes": 1000000,
+    "max_in_flight": 5,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "count": 20000,
+    "warmup": 0,
+    "compression": "none"
+  }
+}
