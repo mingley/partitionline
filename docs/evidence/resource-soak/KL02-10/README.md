@@ -82,6 +82,18 @@ RSS is 6.90 MiB over 69 836 host samples (`ambiguous=0`,
 `fetch_errors=0`). Latest RSS at capture was 6.77 MiB. Still not a
 24 h pass.
 
+T+4h (startup + 240 min) is recorded in
+[progress/t-plus-4h.json](progress/t-plus-4h.json). Fourth-hour median
+RSS is 6.70 MiB over 69 863 host samples (`ambiguous=0`,
+`fetch_errors=0`). Latest RSS at capture was 6.70 MiB. Still not a
+24 h pass.
+
+T+5h (startup + 300 min) is recorded in
+[progress/t-plus-5h.json](progress/t-plus-5h.json). Fifth-hour median
+RSS is 6.70 MiB over 69 931 host samples (`ambiguous=0`,
+`fetch_errors=0`). Latest RSS at capture was 6.70 MiB. Still not a
+24 h pass.
+
 Live progress (never a 24 h pass):
 
 ```sh

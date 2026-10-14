@@ -1,0 +1,74 @@
+{
+  "captured_utc": "2026-10-14T16:02:10.974276+00:00",
+  "driver_pid": 901849,
+  "child_pid": 901851,
+  "attempt_status": "running",
+  "kafka_listen": "127.0.0.1:9092",
+  "first_hour_median_rss_bytes": 11759616,
+  "first_hour_samples": 69861,
+  "second_hour": {
+    "complete": true,
+    "samples": 69859,
+    "min_rss_bytes": 7569408,
+    "median_rss_bytes": 10891264,
+    "max_rss_bytes": 11812864
+  },
+  "third_hour": {
+    "complete": true,
+    "samples": 69836,
+    "min_rss_bytes": 7036928,
+    "median_rss_bytes": 7237632,
+    "max_rss_bytes": 7630848
+  },
+  "fourth_hour": {
+    "complete": true,
+    "samples": 69863,
+    "min_rss_bytes": 7016448,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7102464
+  },
+  "fifth_hour": {
+    "complete": true,
+    "samples": 69931,
+    "min_rss_bytes": 7020544,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7020544
+  },
+  "rss_bytes": {
+    "min": 7016448,
+    "median": 7237632,
+    "max": 11812864,
+    "latest": 7020544
+  },
+  "last_sample": {
+    "kind": "sample",
+    "utc_ms": 1791993730950,
+    "elapsed_ms": 18133601,
+    "offered": 29013761,
+    "accepted": 14713423,
+    "completed": 14713407,
+    "failed": 14300338,
+    "ambiguous": 0,
+    "pending": 16,
+    "producer_queue_bytes": 4096,
+    "consumer_buffered_bytes": 2304,
+    "application_decoded_bytes": 256,
+    "delivered": 691431,
+    "delivered_bytes": 177006336,
+    "fetch_errors": 0,
+    "runtime_tasks": 5,
+    "peer_connections": 0,
+    "final": false
+  },
+  "last_host": {
+    "utc": "2026-10-14T16:02:09.788802+00:00",
+    "monotonic_ns": 61717296923377,
+    "pid": 901851,
+    "rss_bytes": 7020544,
+    "threads": 3,
+    "socket_fds": 7
+  },
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "launched_job_is_not_a_pass": true
+}
