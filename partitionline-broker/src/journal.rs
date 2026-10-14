@@ -1126,8 +1126,11 @@ impl<S: Storage> Engine<S> {
         self.storage.seek(SeekFrom::Start(index.position))?;
         let header = entry_header(index);
         write_two(&mut self.storage, &header, payload)?;
-        self.read_pos = self
-            .file_bytes
+        // `file_bytes` stays at the last commit while grouped writes extend
+        // the staged tail. The cursor has to follow this write, or the next
+        // read of a later entry skips the seek and reads past EOF.
+        self.read_pos = index
+            .position
             .checked_add(ENTRY_HEADER as u64)
             .and_then(|n| n.checked_add(payload.len() as u64));
         Ok(())
@@ -1782,6 +1785,9 @@ mod tests {
         assert_eq!(committed.first_offset, 1);
         assert_eq!(committed.record_count, 2);
         assert_eq!(log.next_offset(), 3);
+        let only_second = log.fetch(1, 1, 4096)?;
+        assert_eq!(only_second.len(), 1);
+        assert_eq!(only_second[0].payload, b"two");
         let fetched = log.fetch(0, 2, 4096)?;
         assert_eq!(fetched.len(), 2);
         assert_eq!(fetched[0].payload, b"one");
