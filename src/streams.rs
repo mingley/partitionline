@@ -264,13 +264,8 @@ impl StreamsClient {
         if coord.error_code != 0 {
             return Err(Error::broker(coord.error_code, "FindCoordinator"));
         }
-        if !(1..=65535).contains(&coord.port) || coord.host.is_empty() {
+        let Some(address) = crate::cluster::dial_address(&coord.host, coord.port) else {
             return Err(Error::protocol("invalid Streams coordinator address"));
-        }
-        let address = if coord.host.contains(':') {
-            format!("[{}]:{}", coord.host, coord.port)
-        } else {
-            format!("{}:{}", coord.host, coord.port)
         };
         if address == bootstrap.addr() {
             Ok(bootstrap)

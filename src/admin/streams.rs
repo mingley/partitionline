@@ -235,14 +235,8 @@ impl Admin {
         if coordinator.error_code != 0 {
             return Err(Error::broker(coordinator.error_code, "FindCoordinator"));
         }
-        if coordinator.host.is_empty() || !(1..=65535).contains(&coordinator.port) {
-            return Err(Error::protocol("invalid Streams coordinator address"));
-        }
-        Ok(if coordinator.host.contains(':') {
-            format!("[{}]:{}", coordinator.host, coordinator.port)
-        } else {
-            format!("{}:{}", coordinator.host, coordinator.port)
-        })
+        crate::cluster::dial_address(&coordinator.host, coordinator.port)
+            .ok_or_else(|| Error::protocol("invalid Streams coordinator address"))
     }
 
     async fn describe_streams_until(
