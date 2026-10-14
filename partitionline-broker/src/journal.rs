@@ -1785,6 +1785,13 @@ mod tests {
         assert_eq!(committed.first_offset, 1);
         assert_eq!(committed.record_count, 2);
         assert_eq!(log.next_offset(), 3);
+        let mut dest = Vec::new();
+        let view = log
+            .fetch_one_into(1, 4096, &mut dest)?
+            .expect("second grouped entry");
+        assert_eq!(view.first_offset, 1);
+        assert_eq!(view.record_count, 2);
+        assert_eq!(&dest[..view.len], b"two");
         let only_second = log.fetch(1, 1, 4096)?;
         assert_eq!(only_second.len(), 1);
         assert_eq!(only_second[0].payload, b"two");
