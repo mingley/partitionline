@@ -2451,14 +2451,21 @@ impl Node {
                 }
                 let known = self.known_voter(decoded.voter_id)?;
                 let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
-                Ok(protocol::decide_remove_voter(
+                let decided = protocol::decide_remove_voter(
                     &persistent,
                     election.role,
                     metadata,
                     known_id,
                     known.directory,
                     &decoded,
-                ))
+                );
+                if decided != protocol::VoteDisposition::NotAdvertised {
+                    return Ok(decided);
+                }
+                if let Some(refusal) = protocol::last_voter_refusal(self.voters()?.voters().len()) {
+                    return Ok(protocol::VoteDisposition::Refused(refusal));
+                }
+                Ok(decided)
             }
             82 if version == 0 => {
                 let decoded = protocol::decode_update_voter(body).map_err(Error::Controller)?;

@@ -1133,3 +1133,51 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     assert_eq!(dynamic.voters()?, &voters_before);
     Ok(())
 }
+
+#[test]
+fn a_leader_cannot_remove_the_only_voter() -> Result {
+    use partitionline_broker::raft::{
+        membership::{Bootstrap, Endpoint, Key, Voter, Voters},
+        protocol::{RemoveVoterBody, VoteDisposition},
+        replication::{self, Node},
+    };
+    let t = Temp::new()?;
+    let local = Voter::new(
+        Key::new(1, [1u8; 16])?,
+        vec![Endpoint::new(
+            "CONTROLLER".into(),
+            "localhost".into(),
+            9001,
+        )?],
+        0,
+        1,
+    )?;
+    let genesis = Voters::new(0, election::LogPosition::default(), 1, vec![local.clone()])?;
+    let mut dynamic = Node::open_dynamic(
+        t.path("solo-content"),
+        t.path("solo-election"),
+        replication::Config::new(config(1)?),
+        Bootstrap::new(local, genesis, "CONTROLLER".into())?,
+        None,
+        0,
+    )?;
+    assert!(dynamic.campaign_dynamic(10)?.is_empty());
+    assert_eq!(dynamic.state().election.role, Role::Leader);
+    let before = dynamic.state();
+    let voters_before = dynamic.voters()?.clone();
+    let remove = RemoveVoterBody {
+        cluster_id: Some("cluster-fixed".into()),
+        voter_id: 1,
+        voter_directory: [1u8; 16],
+    };
+    assert_eq!(
+        dynamic.inspect_unadvertised(81, 0, &protocol::encode_remove_voter(&remove)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::LastVoter)
+    );
+    assert_eq!(
+        dynamic.state().election.persistent,
+        before.election.persistent
+    );
+    assert_eq!(dynamic.voters()?, &voters_before);
+    Ok(())
+}

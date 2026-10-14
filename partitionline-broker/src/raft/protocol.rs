@@ -2122,6 +2122,15 @@ pub fn decide_update_voter_response(
 /// Apache accepts an add or update only when the default listener is present.
 ///
 /// Listener names are compared without case, matching `ListenerName.normalised`.
+/// Refuse a removal that would leave no voter.
+pub fn last_voter_refusal(voter_count: usize) -> Option<PreVoteRefusal> {
+    if voter_count <= 1 {
+        Some(PreVoteRefusal::LastVoter)
+    } else {
+        None
+    }
+}
+
 fn serves_listener(listeners: &[LeaderEndpoint], required: &str) -> bool {
     if required.is_empty() {
         return false;
@@ -3748,6 +3757,11 @@ pub enum PreVoteRefusal {
     /// after the epoch matches. DescribeQuorum uses the same check after the
     /// topic matches. The refusal does not change membership or serve bytes.
     NotLeader,
+    /// Removing this voter would leave the quorum empty.
+    ///
+    /// Apache `VoterSet.removeVoter` keeps a one-voter set. The membership
+    /// record is unchanged.
+    LastVoter,
     /// The candidate's last offset epoch or end offset is illegal.
     ///
     /// A negative end is refused. Offset 0 is legal only at epoch 0. A
@@ -5521,5 +5535,8 @@ mod prevote_tests {
         assert!(CONTROLLER_API_VERSIONS
             .iter()
             .all(|api| !matches!(api.api_key, 80..=82)));
+        assert_eq!(last_voter_refusal(1), Some(PreVoteRefusal::LastVoter));
+        assert_eq!(last_voter_refusal(0), Some(PreVoteRefusal::LastVoter));
+        assert_eq!(last_voter_refusal(2), None);
     }
 }
