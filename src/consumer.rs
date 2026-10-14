@@ -5259,6 +5259,11 @@ impl Consumer {
     }
 
     async fn seek_listed(&mut self, timestamp: i64, partitions: Vec<(String, i32)>) -> Result<()> {
+        require_unique_offset_partitions(
+            partitions
+                .iter()
+                .map(|(topic, partition)| (topic.as_str(), *partition)),
+        )?;
         for (topic, partition) in partitions {
             let offset = self
                 .list_offsets(topic.clone(), partition, timestamp)
