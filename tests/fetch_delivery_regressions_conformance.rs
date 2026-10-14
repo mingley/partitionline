@@ -260,7 +260,9 @@ impl RawBroker {
 
     async fn shutdown(&mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
-            drop(tx.send(()));
+            if tx.send(()).is_err() {
+                // Listener already gone.
+            }
         }
         if let Some(task) = self.task.take() {
             drop(task.await);
@@ -271,7 +273,9 @@ impl RawBroker {
 impl Drop for RawBroker {
     fn drop(&mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
-            drop(tx.send(()));
+            if tx.send(()).is_err() {
+                // Listener already gone.
+            }
         }
         if let Some(task) = self.task.take() {
             task.abort();
