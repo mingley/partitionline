@@ -1,7 +1,7 @@
 {
   "task": "KL09-67",
   "status": "incomplete",
-  "source_sha": "4f879cb9",
+  "source_sha": "4f879cb9dca6bedda1e67bfc4a12844f02b6c5c6",
   "cell": "nb-fetch-bulk",
   "disposition": "rejected-no-gain",
   "feeds_claims": false,
