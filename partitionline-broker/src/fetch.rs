@@ -459,6 +459,17 @@ fn selected<'a>(
     }
     Ok(target)
 }
+/// High watermark, last stable offset, and log start written on a Fetch
+/// partition. Offset-out-of-range still carries the boundaries so the
+/// consumer can reset without another lookup. Other errors clear them.
+fn fetch_boundary(error: i16, watermark: i64, log_start: i64) -> (i64, i64, i64) {
+    if error == 0 || error == 1 {
+        (watermark, watermark, log_start)
+    } else {
+        (-1, -1, -1)
+    }
+}
+
 fn storage_code(error: i16, key: i16, version: i16) -> i16 {
     if key == 1 && version <= 5 && error == 56 {
         6
@@ -528,6 +539,13 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    #[test]
+    fn out_of_range_keeps_the_log_boundaries() {
+        assert_eq!(super::fetch_boundary(0, 4, 1), (4, 4, 1));
+        assert_eq!(super::fetch_boundary(1, 4, 1), (4, 4, 1));
+        assert_eq!(super::fetch_boundary(3, 4, 1), (-1, -1, -1));
+    }
 
     #[test]
     fn a_pre_epoch_timestamp_is_searched() {
@@ -709,12 +727,13 @@ pub(crate) fn process(
                 error = 42;
             }
             let part_start = out.bytes.len();
+            let (high_watermark, stable, start) = fetch_boundary(error, watermark, log_start);
             out.i32(part.index)?;
             out.i16(error)?;
-            out.i64(if error == 0 { watermark } else { -1 })?;
-            out.i64(if error == 0 { watermark } else { -1 })?;
+            out.i64(high_watermark)?;
+            out.i64(stable)?;
             if version >= 5 {
-                out.i64(if error == 0 { log_start } else { -1 })?;
+                out.i64(start)?;
             }
             out.i32(if error == 0 && request.isolation == 1 {
                 0
