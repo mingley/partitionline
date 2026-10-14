@@ -456,41 +456,11 @@ async fn join_share(names: &Names) -> partitionline::Result<ShareGroup> {
     .await
 }
 
-async fn recover_share_after_loss(
-    mut group: ShareGroup,
+async fn rejoin_share_after_loss(
+    group: ShareGroup,
     names: &Names,
-    seen: &mut Vec<Seen>,
     events: &mut Vec<&str>,
 ) -> partitionline::Result<ShareGroup> {
-    let deadline = Instant::now() + Duration::from_secs(8);
-    while group.assignment().len() < 3 && Instant::now() < deadline {
-        match group.poll_timeout(Duration::from_millis(400)).await {
-            Ok(recs) => {
-                if recs.is_empty() {
-                    continue;
-                }
-                for rec in recs.iter() {
-                    push_seen(
-                        seen,
-                        rec_text(rec.value.as_deref()),
-                        rec.partition,
-                        rec.offset,
-                        rec.delivery_count,
-                    );
-                }
-                group.accept(recs.as_ref()).await?;
-            }
-            Err(Error::Timeout) => {}
-            Err(error) if error.is_retriable() || coordinator_starting(&error) => {
-                tokio::time::sleep(Duration::from_millis(150)).await;
-            }
-            Err(error) => return Err(error),
-        }
-    }
-    if group.assignment().len() >= 3 {
-        events.push("reassigned");
-        return Ok(group);
-    }
     events.push("rejoined");
     drop(group.leave().await);
     let mut group = join_share(names).await?;
@@ -507,13 +477,21 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     );
     arm_share_poll(&mut group, Duration::from_secs(12)).await?;
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
+    let mut events: Vec<&str> = vec!["joined"];
+    if names.churn == "member_loss" && names.member == "a" {
+        let lost = PathBuf::from(env::var("GROUP_CHURN_LOST").unwrap_or_else(|_| "lost".into()));
+        drop(wait_file(&lost, Duration::from_secs(40)).await?);
+        group = rejoin_share_after_loss(group, names, &mut events).await?;
+        let recovered =
+            PathBuf::from(env::var("GROUP_CHURN_RECOVERED").unwrap_or_else(|_| "recovered".into()));
+        write_path(&recovered, "recovered\n").await?;
+    }
     let action = go_action(&wait_file(&go, Duration::from_secs(40)).await?);
     if action == "die" {
         drop(group.leave().await);
         std::process::exit(CRASH_EXIT);
     }
     let mut seen = Vec::new();
-    let mut events: Vec<&str> = vec!["joined"];
     if action == "hold" {
         let hold_ms = env_u64("GROUP_CHURN_SHARE_LOCK_MS", 2_000)?;
         let recs = group.poll_timeout(Duration::from_secs(8)).await?;
@@ -556,9 +534,6 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
         drop(wait_file(&resume, Duration::from_secs(20)).await?);
         group.accept(recs.as_ref()).await?;
         events.push("accepted");
-    }
-    if names.churn == "member_loss" {
-        group = recover_share_after_loss(group, names, &mut seen, &mut events).await?;
     }
     collect_share(&mut group, &mut seen, 6, Duration::from_secs(25)).await?;
     events.push("accepted");

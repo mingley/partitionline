@@ -220,6 +220,8 @@ def start_member(binary: Path, env: Dict[str, str], member: str, paths: Dict[str
     trial["GROUP_CHURN_HISTORY"] = str(paths[f"hist_{member}"])
     trial["GROUP_CHURN_PAUSED"] = str(paths["paused"])
     trial["GROUP_CHURN_RESUME"] = str(paths["resume"])
+    trial["GROUP_CHURN_LOST"] = str(paths["lost"])
+    trial["GROUP_CHURN_RECOVERED"] = str(paths["recovered"])
     return subprocess.Popen(
         [str(binary)],
         cwd=str(REPO_ROOT),
@@ -316,6 +318,8 @@ def run_one_cell(
         "hist_b": histories / f"{slug}-b.member.json",
         "paused": control / f"{slug}.paused",
         "resume": control / f"{slug}.resume",
+        "lost": control / f"{slug}.lost",
+        "recovered": control / f"{slug}.recovered",
         "history": histories / f"{slug}.json",
     }
     for path in paths.values():
@@ -352,7 +356,7 @@ def run_one_cell(
             result["error"] = f"ready_timeout_{member}"
             return result
 
-    if cell["protocol"] == "share":
+    if cell["protocol"] == "share" and cell["churn"] != "member_loss":
         produced = run_phase(binary, trial, "produce", trial_s)
         result["produce_exit"] = produced.returncode
         if produced.returncode != 0:
@@ -385,6 +389,25 @@ def run_one_cell(
             result["stdout"] = (stdout_b or "")[-1500:]
             return result
         finished["b"] = True
+        if cell["protocol"] == "share":
+            paths["lost"].write_text("lost\n")
+            if not wait_for(paths["recovered"], 25):
+                for proc in procs.values():
+                    if proc.poll() is None:
+                        proc.kill()
+                result["ok"] = False
+                result["error"] = "recover_timeout_a"
+                return result
+            produced = run_phase(binary, trial, "produce", trial_s)
+            result["produce_exit"] = produced.returncode
+            if produced.returncode != 0:
+                for proc in procs.values():
+                    if proc.poll() is None:
+                        proc.kill()
+                result["ok"] = False
+                result["error"] = "produce_failed"
+                result["stderr"] = (produced.stderr or "")[-2000:]
+                return result
         paths["go_a"].write_text('{"action":"continue"}\n')
     elif cell["churn"] == "max_poll_expiry":
         paths["go_a"].write_text('{"action":"hold"}\n')
