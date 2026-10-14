@@ -182,6 +182,9 @@ impl Lifecycle {
                 .map(|(id, member)| (id.clone(), member.clone()));
             if let Some((old_id, mut replacement)) = previous {
                 if old_id != member_id {
+                    if self.members.contains_key(member_id) {
+                        return Err(Error::InvalidRequest);
+                    }
                     if now_ms >= replacement.last_heartbeat_ms {
                         replacement.last_heartbeat_ms = now_ms;
                         replacement.rebalance_deadline_ms = None;
@@ -561,6 +564,17 @@ mod tests {
         let (mut life, path) = open("static");
         life.join("old", Some("instance-a"), &[0, 1], 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        life.join("other", Some("instance-b"), &[2], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            life.join("other", Some("instance-a"), &[], 5),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(
+            life.owned("other").map(|set| set.contains(&2)),
+            Some(true)
+        );
+        assert!(life.owned("old").is_some());
         life.mark_delivered("old", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(life.commit("old", 1), Err(Error::Undelivered)));
