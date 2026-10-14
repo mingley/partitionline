@@ -671,7 +671,9 @@ pub enum ShareAcquireMode {
 /// ShareFetch error completes in-flight piggybacked acknowledgements
 /// with that code (Java `handleResponse` false). Piggyback is refused
 /// on the initial share session (Java `maybeAddAcknowledgements`).
-/// Incremental ShareFetch sends Java
+/// Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
+/// invalidate topic metadata so the next poll uses the refreshed id
+/// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
@@ -1823,6 +1825,15 @@ impl ShareGroup {
         for (topic, _) in tps {
             self.consumer.ensure_topic_metadata(topic).await?;
         }
+        // Metadata is the source of topic ids (Java UNKNOWN_TOPIC_ID /
+        // INCONSISTENT_TOPIC_ID refresh). Assignment may still hold the
+        // id from join.
+        let name_to_id = self.consumer.topic_name_ids();
+        for (topic, _) in tps {
+            if let Some(id) = name_to_id.get(topic).copied().filter(|id| *id != [0; 16]) {
+                let _ = self.topic_ids.insert(topic.clone(), id);
+            }
+        }
         let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
         for (topic, p) in tps {
             let (node, _) = self.consumer.leader_of(topic, *p)?;
@@ -2085,6 +2096,16 @@ impl ShareGroup {
                     })
                     .collect();
                 self.fail_node_share_fetch_acknowledgements(&failed, &error);
+                if share_topic_id_refresh(error_code) {
+                    // Java handleShareFetchSuccess: UNKNOWN_TOPIC_ID
+                    // metadata.requestUpdate(false).
+                    let mut seen = HashSet::new();
+                    for (topic, _) in &failed {
+                        if seen.insert(topic.clone()) {
+                            self.consumer.invalidate_topic(topic);
+                        }
+                    }
+                }
                 if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
                     self.reset_node_session(node);
                 } else {
@@ -3621,6 +3642,10 @@ fn share_leader_retriable(e: &Error) -> bool {
     }
 }
 
+fn share_topic_id_refresh(code: i16) -> bool {
+    matches!(code, error::UNKNOWN_TOPIC_ID | error::INCONSISTENT_TOPIC_ID)
+}
+
 fn share_ack_ownership_lost(code: i16) -> bool {
     matches!(
         code,
@@ -3628,6 +3653,7 @@ fn share_ack_ownership_lost(code: i16) -> bool {
             | error::FENCED_LEADER_EPOCH
             | error::UNKNOWN_TOPIC_OR_PARTITION
             | error::UNKNOWN_TOPIC_ID
+            | error::INCONSISTENT_TOPIC_ID
     )
 }
 

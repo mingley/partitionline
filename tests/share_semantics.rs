@@ -46,13 +46,17 @@ fn v2(mock: &common::Mock) {
 }
 
 async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
+    produce_topic(mock, "t", entries).await;
+}
+
+async fn produce_topic(mock: &common::Mock, topic: &str, entries: &[(i32, &[u8])]) {
     let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     cfg.linger = Duration::ZERO;
     let producer = Producer::new(cfg).await.unwrap();
     for (partition, value) in entries {
         producer
             .send(
-                ProduceRecord::to("t")
+                ProduceRecord::to(topic)
                     .partition(*partition)
                     .value(value.to_vec()),
             )
@@ -1399,6 +1403,37 @@ async fn fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition() 
         !mock.share_accepted("fetch-top", "t", 0, first[0].offset),
         "failed piggyback must not ACCEPT the first record"
     );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn unknown_topic_id_refreshes_topic_id_for_next_poll() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    // Mock `topic_name_for_id` falls back to "t" for an unknown id. Topic
+    // "u" makes a stale ShareFetch id resolve to the wrong name until
+    // metadata refresh replaces the join id.
+    mock.set_topic_partitions("u", 1);
+    produce_topic(&mock, "u", &[(0, b"first")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    let mut group = ShareGroup::join(cfg, "tid-refresh", "u").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].topic, "u");
+    group.accept(&first).await.unwrap();
+    group.commit().await.unwrap();
+    let stale = mock.topic_id("u");
+    mock.recreate_topic_id("u", [0xAB; 16]);
+    produce_topic(&mock, "u", &[(0, b"second")]).await;
+    mock.fail_share_top_once(SHARE_FETCH, 1, error::UNKNOWN_TOPIC_ID);
+    assert_broker(group.poll().await.unwrap_err(), error::UNKNOWN_TOPIC_ID);
+    assert_ne!(mock.topic_id("u"), stale, "broker topic id must change");
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].topic, "u");
+    assert_eq!(second[0].value.as_deref(), Some(&b"second"[..]));
+    group.accept(&second).await.unwrap();
     group.leave().await.unwrap();
 }
 
