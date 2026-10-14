@@ -128,6 +128,9 @@ struct Member {
 struct Group {
     protocol: String,
     generation: i32,
+    /// Clock when `generation` last changed. Members who have not joined it
+    /// are removed once a session timeout has passed from this time.
+    generation_started_ms: u64,
     leader: String,
     members: BTreeMap<String, Member>,
 }
@@ -244,6 +247,7 @@ impl Groups {
         let group = self.groups.entry(group_id.to_owned()).or_insert(Group {
             protocol: protocol.to_owned(),
             generation: 0,
+            generation_started_ms: now_ms,
             leader: String::new(),
             members: BTreeMap::new(),
         });
@@ -260,6 +264,7 @@ impl Groups {
         let known = group.members.contains_key(&member_id);
         if !known || group.members.values().any(|member| member.synced) {
             group.generation = group.generation.saturating_add(1);
+            group.generation_started_ms = now_ms;
             for member in group.members.values_mut() {
                 member.assignment.clear();
                 member.synced = false;
@@ -406,6 +411,7 @@ impl Groups {
         member_id: &str,
         generation: i32,
         coordinator_epoch: i64,
+        now_ms: u64,
     ) -> Result<(), Error> {
         self.ready()?;
         self.require_coordinator(coordinator_epoch)?;
@@ -423,6 +429,7 @@ impl Groups {
         }
         group.members.remove(member_id);
         group.generation = group.generation.saturating_add(1);
+        group.generation_started_ms = now_ms;
         for member in group.members.values_mut() {
             member.assignment.clear();
             member.synced = false;
@@ -441,10 +448,17 @@ impl Groups {
         let timeout = self.limits.session_timeout_ms;
         let mut removed = 0usize;
         for group in self.groups.values_mut() {
+            let started = group.generation_started_ms;
+            let generation = group.generation;
             let stale: Vec<String> = group
                 .members
                 .iter()
-                .filter(|(_, member)| now_ms.saturating_sub(member.last_seen_ms) > timeout)
+                .filter(|(_, member)| {
+                    let session = now_ms.saturating_sub(member.last_seen_ms) > timeout;
+                    let rebalance = member.joined_generation != generation
+                        && now_ms.saturating_sub(started) > timeout;
+                    session || rebalance
+                })
                 .map(|(id, _)| id.clone())
                 .collect();
             if stale.is_empty() {
@@ -455,6 +469,7 @@ impl Groups {
                 removed = removed.saturating_add(1);
             }
             group.generation = group.generation.saturating_add(1);
+            group.generation_started_ms = now_ms;
             for member in group.members.values_mut() {
                 member.assignment.clear();
                 member.synced = false;
@@ -562,6 +577,7 @@ fn encode(
         put_str(&mut bytes, id)?;
         put_str(&mut bytes, &group.protocol)?;
         bytes.extend_from_slice(&group.generation.to_be_bytes());
+        bytes.extend_from_slice(&group.generation_started_ms.to_be_bytes());
         put_str(&mut bytes, &group.leader)?;
         put_u16(&mut bytes, group.members.len())?;
         for (member_id, member) in &group.members {
@@ -591,6 +607,7 @@ fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error
         let id = take_str(&mut bytes)?;
         let protocol = take_str(&mut bytes)?;
         let generation = take_i32(&mut bytes)?;
+        let generation_started_ms = take_u64(&mut bytes)?;
         let leader = take_str(&mut bytes)?;
         let member_count = take_u16(&mut bytes)?;
         let mut members = BTreeMap::new();
@@ -619,6 +636,7 @@ fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error
             Group {
                 protocol,
                 generation,
+                generation_started_ms,
                 leader,
                 members,
             },
@@ -840,7 +858,7 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(
-            groups.leave("orders", &follower.member_id, leader.generation + 1, 0),
+            groups.leave("orders", &follower.member_id, leader.generation + 1, 0, 0),
             Err(Error::IllegalGeneration)
         ));
         let followed = groups
@@ -859,7 +877,7 @@ mod tests {
             Some(&[1][..])
         );
         groups
-            .leave("orders", &follower.member_id, leader.generation, 0)
+            .leave("orders", &follower.member_id, leader.generation, 0, 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(groups.assignment("orders", &follower.member_id).is_none());
         assert_eq!(groups.generation("orders"), Some(leader.generation + 1));
@@ -909,13 +927,14 @@ mod tests {
             .join("orders", "", "range", 0, 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(
-            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 1_000),
+            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 400),
             Err(Error::RebalanceInProgress)
         ));
-        assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
+        assert_eq!(groups.expire(500).unwrap_or(99), 0);
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 2);
         assert!(matches!(
             groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 1_500),
-            Err(Error::RebalanceInProgress)
+            Err(Error::UnknownMember)
         ));
         assert!(matches!(
             groups.heartbeat("orders", "gone", leader.generation, 0, 1_500),
