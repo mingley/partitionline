@@ -13,4 +13,5 @@ not the Apache oracle.
 
 v2–v9 cooperative and static behavior is unchanged. Commit and fetch
 gaps stay on their own cards. This does not close the old-client campaign
-or the world-class client objective.
+or the world-class client objective. See
+[qualification/README.md](qualification/README.md).

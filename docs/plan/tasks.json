@@ -51840,7 +51840,7 @@
       "title": "Implement current-valid JoinGroup0/1 classic membership and bounded fallback policy",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL05-41",
@@ -51871,7 +51871,10 @@
         "Successful old group lifecycle is not inferred from a JoinGroup field roundtrip.",
         "Actual source-bound latest-stable Rust default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-42.json",
+        "docs/evidence/client/legacy-join-group/"
+      ],
       "write_set": [
         "src/protocol/group.rs",
         "src/group.rs",
@@ -51906,7 +51909,8 @@
       ],
       "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
       "proposal_key": "Q-CAP-LegacyJoin0_1",
-      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+      "completion_source": "34936d099236d1c73bdffeafcb1cb3996c6c0beb"
     },
     {
       "id": "KL01-18",

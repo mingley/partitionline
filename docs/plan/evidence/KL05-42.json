@@ -1,0 +1,47 @@
+{
+  "task": "KL05-42",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "34936d099236d1c73bdffeafcb1cb3996c6c0beb",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "commands": [
+    "python3 tests/fixtures/legacy-join-group/generate_legacy_join_group.py --fetch --output /tmp/legacy-join-group-gen --install tests/fixtures/legacy-join-group (30 bodies, 10 unsupported receipts, independent generations match, 172.098s remaining of 180s)",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo +stable test --locked --lib join_group (26 passed)",
+    "cargo +stable test --locked --lib (1123 passed)",
+    "cargo +stable test --locked --all-features --lib (1123 passed)",
+    "cargo +stable test --locked --test legacy_join_group (8 passed, including 30 Apache reverse parses and labeled local Mock public join)",
+    "cargo +stable test --locked --test full_surface join_group_negotiates (1 passed; v2-v8 caps unchanged)",
+    "cargo +stable test --locked --test client_api classic_join_sends_group_instance_id (1 passed)",
+    "python3 scripts/check-protocol-coverage.py (JoinGroup v0-v9, v0/v1 legacy_spoken, 0 unclassified)"
+  ],
+  "results": {
+    "generated_bodies": 30,
+    "unsupported_receipts": 10,
+    "independent_generations_match": true,
+    "rust_apache_reverse_parses": 30,
+    "local_mock_public_joins": {
+      "v0_only_calls": 1,
+      "v1_only_calls": 1,
+      "static_v0_v1_join_frames": 0,
+      "hidden_join_frames": 0,
+      "disjoint_join_frames": 0
+    },
+    "v2_v9_caps_unchanged": true,
+    "cases_json_rows_added": 0
+  },
+  "actual_failures_retained": [
+    "All five pins refuse Builder.build with group.instance.id on JoinGroup v0/v1 (UnsupportedVersionException)."
+  ],
+  "qualification_limit": "Finite named JoinGroup v0/v1 request/response layouts, static-membership refusal, and labeled local Mock public ConsumerGroup::join on 0-only/1-only/hidden/disjoint peers. Apache leftover-empty parse is an independent wire check, not live old-broker qualification. tests/common Mock is not the oracle. v2-v9 cooperative/static behavior is unchanged. Commit/fetch gaps stay on their own cards. This does not close the old-client campaign, KL01-14, or the world-class client objective.",
+  "evidence": "docs/evidence/client/legacy-join-group",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}
