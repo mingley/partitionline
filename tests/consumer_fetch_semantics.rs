@@ -38,7 +38,7 @@ use partitionline::protocol::api::{
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
+    API_VERSIONS, FETCH, HEARTBEAT, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchPartition, FetchTopic, FetchedPartition,
@@ -3547,6 +3547,47 @@ async fn wakeup_interrupts_group_subscribe_once() {
             .map(|tp| tp.topic.as_str())
             .collect::<Vec<_>>(),
         ["u"]
+    );
+    group.close().await.unwrap();
+}
+
+/// A coordinator that omits Heartbeat cannot keep a classic member silent.
+#[tokio::test]
+async fn missing_heartbeat_api_fails_the_next_poll() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.hide_api(HEARTBEAT);
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .heartbeat_interval(Duration::from_millis(20)),
+        "g-hb",
+        "t",
+    )
+    .await
+    .unwrap();
+    let mut interrupted = None;
+    for _ in 0..20 {
+        match group.poll().await {
+            Err(error)
+                if error.broker_code() == Some(partitionline::error::UNSUPPORTED_VERSION) =>
+            {
+                interrupted = Some(error);
+                break;
+            }
+            Ok(_) => tokio::time::sleep(Duration::from_millis(50)).await,
+            Err(error) => panic!("poll failed before the heartbeat miss was visible: {error}"),
+        }
+    }
+    let interrupted = interrupted.expect("Heartbeat must surface UNSUPPORTED_VERSION");
+    assert_eq!(
+        interrupted.broker_code(),
+        Some(partitionline::error::UNSUPPORTED_VERSION)
+    );
+    let again = group.poll().await.unwrap_err();
+    assert_eq!(
+        again.broker_code(),
+        Some(partitionline::error::UNSUPPORTED_VERSION)
     );
     group.close().await.unwrap();
 }

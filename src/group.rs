@@ -1246,6 +1246,7 @@ impl ConsumerGroup {
             return Err(crate::consumer::reject_java_no_subscription_or_assignment());
         }
         self.maybe_refresh_matching().await?;
+        self.reject_unsupported_heartbeat()?;
         let force = std::mem::replace(&mut self.rebalance_needed, false);
         if self.kip848 {
             self.check_kip848_membership().await?;
@@ -1526,6 +1527,7 @@ impl ConsumerGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        self.reject_unsupported_heartbeat()?;
         let started = Instant::now();
         if self.kip848 {
             self.check_kip848_membership().await?;
@@ -2303,6 +2305,13 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    fn reject_unsupported_heartbeat(&self) -> Result<()> {
+        if !self.kip848 && self.hb_err.load(Ordering::SeqCst) == error::UNSUPPORTED_VERSION {
+            return Err(Error::broker(error::UNSUPPORTED_VERSION, "Heartbeat"));
+        }
+        Ok(())
+    }
+
     /// Reconcile the poll path with the KIP-848 heartbeat loop (KL03-15).
     ///
     /// A fenced epoch or unknown member id means this membership is dead:
@@ -2584,6 +2593,7 @@ impl ConsumerGroup {
                         let version = c.consumer_group_heartbeat_version;
                         if spoken_consumer_group_heartbeat(version).is_err() {
                             conn = None;
+                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
                             *hb_deadline.lock() = Some(next_hb_deadline);
@@ -2735,6 +2745,12 @@ impl ConsumerGroup {
                         let instance = cfg.group_instance_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
                         let Ok(version) = spoken_heartbeat(c.heartbeat_version) else {
+                            // A coordinator that joined us and then omits Heartbeat
+                            // cannot keep the member alive. Drop the socket and
+                            // surface the miss; the next successful heartbeat
+                            // stores error 0 and clears it.
+                            conn = None;
+                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                             continue;
                         };
                         let res = c

@@ -2353,6 +2353,7 @@ impl ShareGroup {
                             spoken_share_group_heartbeat(c.share_group_heartbeat_version)
                         else {
                             conn = None;
+                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
                             if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
