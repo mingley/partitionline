@@ -2387,6 +2387,7 @@ impl Node {
                     .map_err(Error::Controller)?;
                 Ok(protocol::decide_describe_quorum_request(
                     &persistent,
+                    election.role,
                     &self.config.controller.topic,
                     self.config.controller.partition,
                     &decoded,
@@ -2395,37 +2396,58 @@ impl Node {
             59 => {
                 let decoded = protocol::decode_fetch_snapshot_body(body, version)
                     .map_err(Error::Controller)?;
-                let follower = self.known_voter(decoded.replica_id)?;
+                let directory = if election.role == election::Role::Leader {
+                    self.known_voter(decoded.replica_id)?.directory
+                } else {
+                    decoded.replica_directory.unwrap_or([0; 16])
+                };
                 Ok(protocol::decide_fetch_snapshot_body(
                     &persistent,
+                    election.role,
                     metadata,
-                    follower.directory,
+                    directory,
                     &decoded,
                 ))
             }
             80 => {
                 let decoded =
                     protocol::decode_add_voter(body, version).map_err(Error::Controller)?;
+                let decided = protocol::decide_add_voter(
+                    &persistent,
+                    election.role,
+                    metadata,
+                    decoded.voter_id,
+                    decoded.voter_directory,
+                    &decoded,
+                );
+                if decided != protocol::VoteDisposition::NotAdvertised {
+                    return Ok(decided);
+                }
                 let id = u32::try_from(decoded.voter_id).map_err(|_| Error::InvalidConfig)?;
                 if self.voters()?.by_id(id).is_some() {
                     return Ok(protocol::VoteDisposition::Refused(
                         protocol::PreVoteRefusal::StaleDirectory,
                     ));
                 }
-                Ok(protocol::decide_add_voter(
-                    &persistent,
-                    metadata,
-                    decoded.voter_id,
-                    decoded.voter_directory,
-                    &decoded,
-                ))
+                Ok(decided)
             }
             81 if version == 0 => {
                 let decoded = protocol::decode_remove_voter(body).map_err(Error::Controller)?;
+                if election.role != election::Role::Leader {
+                    return Ok(protocol::decide_remove_voter(
+                        &persistent,
+                        election.role,
+                        metadata,
+                        decoded.voter_id,
+                        decoded.voter_directory,
+                        &decoded,
+                    ));
+                }
                 let known = self.known_voter(decoded.voter_id)?;
                 let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_remove_voter(
                     &persistent,
+                    election.role,
                     metadata,
                     known_id,
                     known.directory,
@@ -2434,10 +2456,21 @@ impl Node {
             }
             82 if version == 0 => {
                 let decoded = protocol::decode_update_voter(body).map_err(Error::Controller)?;
+                if election.role != election::Role::Leader {
+                    return Ok(protocol::decide_update_voter(
+                        &persistent,
+                        election.role,
+                        metadata,
+                        decoded.voter_id,
+                        decoded.voter_directory,
+                        &decoded,
+                    ));
+                }
                 let known = self.known_voter(decoded.voter_id)?;
                 let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_update_voter(
                     &persistent,
+                    election.role,
                     metadata,
                     known_id,
                     known.directory,

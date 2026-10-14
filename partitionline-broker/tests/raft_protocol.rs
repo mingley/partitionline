@@ -881,14 +881,14 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     };
     assert_eq!(
         dynamic.inspect_unadvertised(80, 1, &protocol::encode_add_voter(&add)?)?,
-        VoteDisposition::NotAdvertised
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let mut duplicate = add;
     duplicate.voter_id = 2;
     duplicate.voter_directory = [2u8; 16];
     assert_eq!(
         dynamic.inspect_unadvertised(80, 1, &protocol::encode_add_voter(&duplicate)?)?,
-        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let remove = RemoveVoterBody {
         cluster_id: Some("cluster-fixed".into()),
@@ -897,13 +897,13 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     };
     assert_eq!(
         dynamic.inspect_unadvertised(81, 0, &protocol::encode_remove_voter(&remove)?)?,
-        VoteDisposition::NotAdvertised
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let mut stale_remove = remove;
     stale_remove.voter_directory = [8u8; 16];
     assert_eq!(
         dynamic.inspect_unadvertised(81, 0, &protocol::encode_remove_voter(&stale_remove)?)?,
-        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let update = UpdateVoterBody {
         cluster_id: Some("cluster-fixed".into()),
@@ -916,7 +916,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     };
     assert_eq!(
         dynamic.inspect_unadvertised(82, 0, &protocol::encode_update_voter(&update)?)?,
-        VoteDisposition::NotAdvertised
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let mut ahead = update.clone();
     ahead.current_leader_epoch = 1;
@@ -939,7 +939,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     };
     assert_eq!(
         dynamic.inspect_unadvertised(59, 1, &protocol::encode_fetch_snapshot_body(&fetch)?)?,
-        VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let mut ahead = fetch;
     ahead.current_leader_epoch = 1;
@@ -959,7 +959,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     );
     assert_eq!(
         dynamic.inspect_unadvertised(55, 2, &describe_bytes)?,
-        VoteDisposition::NotAdvertised
+        VoteDisposition::Refused(protocol::PreVoteRefusal::NotLeader)
     );
     let other = protocol::DescribeQuorumRequestBody {
         version: 0,
