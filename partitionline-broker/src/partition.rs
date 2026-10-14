@@ -353,6 +353,10 @@ impl Partition {
             return Err(Error::CorruptPayload);
         }
         let record_count = u32::try_from(count).map_err(|_| Error::OffsetOverflow)?;
+        let body = bytes.len().saturating_sub(61);
+        if usize::try_from(record_count).unwrap_or(usize::MAX) > body / 7 {
+            return Err(Error::CorruptPayload);
+        }
         let base_offset = self.next_offset();
         let next_offset = base_offset
             .checked_add(i64::from(record_count))
@@ -685,6 +689,35 @@ mod tests {
         let (entry, _) = part.read_with_work(0, 1024 * 1024, 1024 * 1024, 4)?;
         assert!(entry.is_some());
         assert_eq!(records::record_visits(), 0);
+        drop(part);
+        let _ = std::fs::remove_file(path);
+        Ok(())
+    }
+
+    #[test]
+    fn trusted_assign_rejects_a_count_the_body_cannot_hold(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let path = std::env::temp_dir().join(format!(
+            "pl-trusted-count-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| std::io::Error::other(e))?
+                .as_nanos()
+        ));
+        let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
+        let (mut part, _) = Partition::open(&path, 0, journal_limits, records::Limits::default())?;
+        let mut bytes = vec![0u8; 80];
+        let length = i32::try_from(bytes.len() - 12)?;
+        bytes[8..12].copy_from_slice(&length.to_be_bytes());
+        bytes[16] = 2;
+        bytes[57..61].copy_from_slice(&100_000i32.to_be_bytes());
+        let error = match part.stage_in_place(&mut bytes) {
+            Err(error) => error,
+            Ok(_) => return Err("trusted assign accepted an impossible count".into()),
+        };
+        assert!(matches!(error, Error::CorruptPayload));
+        assert_eq!(part.next_offset(), 0);
+        assert!(!part.is_poisoned());
         drop(part);
         let _ = std::fs::remove_file(path);
         Ok(())
