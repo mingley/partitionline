@@ -60,6 +60,23 @@ impl Cluster {
                 }
                 continue;
             }
+            // A new topic id is a deleted-and-recreated topic. Its epochs
+            // start over, so the previous generation's leader must not stick.
+            let cached_topic_id = self
+                .topic_ids
+                .get(name)
+                .copied()
+                .filter(|id| *id != [0; 16]);
+            let incoming_topic_id = (version >= 10 && t.topic_id != [0; 16]).then_some(t.topic_id);
+            let recreated = match (cached_topic_id, incoming_topic_id) {
+                (Some(cached), Some(incoming)) => cached != incoming,
+                _ => false,
+            };
+            if recreated {
+                let _removed = self.leaders.remove(name);
+                let _removed = self.leader_epochs.remove(name);
+                let _removed = self.topic_fetched_at.remove(name);
+            }
             if version >= 10 && t.topic_id != [0; 16] {
                 let _ = self.topic_ids.insert(name.clone(), t.topic_id);
             } else {
@@ -757,6 +774,77 @@ mod tests {
         cluster.apply(&metadata(1, 10), 13);
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 10);
+    }
+
+    #[test]
+    fn a_recreated_topic_replaces_its_cached_leader() {
+        use crate::error;
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let response = |topic_id: [u8; 16], parts: Vec<PartitionMetadata>| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id,
+                is_internal: false,
+                partitions: parts,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let partition = |index: i32, leader: i32, epoch: i32, error_code: i16| PartitionMetadata {
+            error_code,
+            partition_index: index,
+            leader_id: leader,
+            leader_epoch: epoch,
+            replica_nodes: vec![1, 2],
+            isr_nodes: vec![1, 2],
+            offline_replicas: Vec::new(),
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &response(
+                [1u8; 16],
+                vec![partition(0, 1, 5, 0), partition(1, 1, 5, 0)],
+            ),
+            13,
+        );
+        cluster.apply(&response([1u8; 16], vec![partition(0, 2, 1, 0)]), 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 5);
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([1u8; 16]));
+        cluster.apply(&response([2u8; 16], vec![partition(0, 2, 0, 0)]), 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 0);
+        assert!(cluster.leader("t", 1).is_err());
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([2u8; 16]));
+        cluster.apply(
+            &response(
+                [3u8; 16],
+                vec![partition(0, -1, -1, error::LEADER_NOT_AVAILABLE)],
+            ),
+            13,
+        );
+        assert!(cluster.leader("t", 0).is_err());
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([3u8; 16]));
     }
 
     #[test]
