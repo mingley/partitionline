@@ -294,6 +294,10 @@ impl Window {
                 .saturating_add(refill)
                 .min(self.limits.replication_bytes_per_sec);
             self.replication_updated_ms = now_ms;
+        } else {
+            self.replication_tokens = self
+                .replication_tokens
+                .min(self.limits.replication_bytes_per_sec);
         }
         if self.replication_tokens >= bytes {
             self.replication_tokens -= bytes;
@@ -330,6 +334,11 @@ impl Window {
 
 fn refill(client: &mut Client, kind: Kind, rate: u64, now_ms: u64) {
     if now_ms < client.updated_ms {
+        match kind {
+            Kind::Produce => client.produce_tokens = client.produce_tokens.min(rate),
+            Kind::Fetch => client.fetch_tokens = client.fetch_tokens.min(rate),
+            Kind::Replication => {}
+        }
         return;
     }
     let elapsed = now_ms.saturating_sub(client.updated_ms);
@@ -449,5 +458,32 @@ mod tests {
             .admit(None, Kind::Replication, 50, 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(older_replication.throttle_ms > 0);
+        window
+            .set_rates(10, 10, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            window.admit(Some("a"), Kind::Produce, 50, 0),
+            Err(Error::Throttled)
+        ));
+        let mut replication_window = Window::new(limits(), 1_000);
+        replication_window
+            .set_rates(10, 10, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            replication_window.admit(None, Kind::Replication, 40, 0),
+            Err(Error::Throttled)
+        ));
+        let mut produce = Window::new(limits(), 1_000);
+        let kept = produce
+            .admit(Some("a"), Kind::Produce, 40, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(kept.throttle_ms, 0);
+        produce
+            .set_rates(10, 10, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            produce.admit(Some("a"), Kind::Produce, 40, 0),
+            Err(Error::Throttled)
+        ));
     }
 }
