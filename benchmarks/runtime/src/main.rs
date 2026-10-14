@@ -482,6 +482,13 @@ fn run_produce(
         .map_err(|e| format!("producer connect: {e}"))?,
     );
     let mut records = generate(cell);
+    // Metadata and the leader route are not part of the timed produce.
+    // Peers finish topic discovery before their measured phase. Doing it
+    // here keeps the first `try_send` calls from sleeping on QueueFull.
+    for topic in &cell.topics {
+        rt.block_on(producer.partitions_for(topic.name))
+            .map_err(|e| format!("producer metadata {}: {e}", topic.name))?;
+    }
     // Pre-reserve drive bookkeeping outside the census.
     let mut outcome = runtime::drive::DriveOutcome::default();
     outcome.latencies_us.reserve(records.len());
