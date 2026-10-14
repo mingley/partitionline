@@ -2731,9 +2731,16 @@ pub fn decide_begin_body(
     expected_directory: [u8; 16],
     body: &BeginEpochBody,
 ) -> VoteDisposition {
-    let _ = persistent;
     if body.version == 0 {
         return VoteDisposition::DurableV0;
+    }
+    // Apache `validateVoterOnlyRequest` fences an older epoch before the
+    // voter-key check, and does not write the new leader.
+    if quorum_epoch_fenced(persistent, body.leader_epoch) {
+        return VoteDisposition::Refused(PreVoteRefusal::StaleTerm);
+    }
+    if body.leader_epoch < 0 || body.leader_id < 0 {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
     }
     match body.voter_directory {
         Some(directory) if directory == expected_directory && directory != [0; 16] => {
@@ -2908,7 +2915,12 @@ pub fn decide_end_body(
     local_directory: [u8; 16],
     body: &EndEpochBody,
 ) -> Result<(VoteDisposition, Option<usize>), Error> {
-    let _ = persistent;
+    if body.version != 0 && quorum_epoch_fenced(persistent, body.leader_epoch) {
+        return Ok((VoteDisposition::Refused(PreVoteRefusal::StaleTerm), None));
+    }
+    if body.version != 0 && (body.leader_epoch < 0 || body.leader_id < 0) {
+        return Ok((VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch), None));
+    }
     let rank = preferred_rank(&body.preferred, local_id, local_directory)?;
     let disposition = if body.version == 0 {
         VoteDisposition::DurableV0
@@ -3479,6 +3491,13 @@ pub enum PreVoteRefusal {
 }
 
 /// Whether Apache would reject this Vote body as `INVALID_REQUEST`.
+/// Apache fences a Begin/End epoch older than the local quorum epoch.
+///
+/// Internal term 0 has no wire epoch yet, so nothing is older than it.
+fn quorum_epoch_fenced(persistent: &election::PersistentState, leader_epoch: i32) -> bool {
+    wire_epoch(persistent.term).is_ok_and(|current| leader_epoch < current)
+}
+
 fn vote_offset_epoch_illegal(body: &VoteBody) -> bool {
     if body.last_offset < 0 || body.last_offset_epoch < 0 {
         return true;
@@ -3804,11 +3823,18 @@ mod prevote_tests {
             decide_begin_body(&persistent, directory, &decoded),
             VoteDisposition::NotAdvertised
         );
-        let mut stale = decoded;
+        let mut stale = decoded.clone();
         stale.voter_directory = Some([2u8; 16]);
         assert_eq!(
             decide_begin_body(&persistent, directory, &stale),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(persistent, before);
+        let mut older = decoded;
+        older.leader_epoch = 2;
+        assert_eq!(
+            decide_begin_body(&persistent, directory, &older),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         assert_eq!(persistent, before);
         assert_eq!(CONTROLLER_API_VERSIONS[2].api_key, 53);
@@ -3845,7 +3871,7 @@ mod prevote_tests {
         assert_eq!(parsed.successor_count, 2);
         assert_eq!(parsed.successors[1], 7);
         let directory = [8u8; 16];
-        let modern = EndEpochBody {
+        let mut modern = EndEpochBody {
             version: 1,
             preferred: vec![PreferredCandidate {
                 id: 7,
@@ -3858,6 +3884,7 @@ mod prevote_tests {
             }],
             ..classic
         };
+        modern.leader_epoch = 3;
         let encoded = encode_end_body(&modern).unwrap_or_else(|error| panic!("{error:?}"));
         let decoded = decode_end_body(&encoded, 1).unwrap_or_else(|error| panic!("{error:?}"));
         let persistent = state(4);
@@ -3867,6 +3894,15 @@ mod prevote_tests {
         assert_eq!(
             disposition,
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        assert_eq!(rank, None);
+        let mut older = decoded;
+        older.leader_epoch = 2;
+        let (disposition, rank) = decide_end_body(&persistent, 7, directory, &older)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            disposition,
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         assert_eq!(rank, None);
         assert_eq!(persistent, before);
