@@ -315,9 +315,12 @@ impl PutExt for Vec<u8> {
     }
 }
 
-/// CRC32-C (Castagnoli, polynomial `0x1EDC6F41` reflected) table.
-fn crc32c_table() -> [u32; 256] {
-    let mut table = [0u32; 256];
+/// CRC32-C (Castagnoli, polynomial `0x1EDC6F41` reflected) slice-by-8 tables.
+///
+/// Table 0 is the byte table. Table `n` advances that residue by `n` more
+/// bytes so eight input bytes fold in one step.
+fn crc32c_tables() -> [[u32; 256]; 8] {
+    let mut byte = [0u32; 256];
     let mut i = 0;
     while i < 256 {
         let mut crc = i as u32;
@@ -327,21 +330,46 @@ fn crc32c_table() -> [u32; 256] {
             crc = (crc >> 1) ^ (0x82f6_3b78 & mask);
             bit += 1;
         }
-        table[i] = crc;
+        byte[i] = crc;
         i += 1;
     }
-    table
+    let mut tables = [byte; 8];
+    let mut n = 1;
+    while n < 8 {
+        let mut entry = 0;
+        while entry < 256 {
+            let prev = tables[n - 1][entry];
+            tables[n][entry] = (prev >> 8) ^ byte[(prev & 0xff) as usize];
+            entry += 1;
+        }
+        n += 1;
+    }
+    tables
 }
 
 /// CRC32-C (Castagnoli) over `data`, table-driven and dependency-free.
 #[must_use]
 pub fn crc32c(data: &[u8]) -> u32 {
-    static TABLE: std::sync::OnceLock<[u32; 256]> = std::sync::OnceLock::new();
-    let table = TABLE.get_or_init(crc32c_table);
+    static TABLES: std::sync::OnceLock<[[u32; 256]; 8]> = std::sync::OnceLock::new();
+    let tables = TABLES.get_or_init(crc32c_tables);
     let mut crc: u32 = 0xffff_ffff;
-    for &byte in data {
+    let (chunks, rest) = data.as_chunks::<8>();
+    for chunk in chunks {
+        let mixed = u64::from_le_bytes(*chunk) ^ u64::from(crc);
+        let low = mixed as u32;
+        let high = (mixed >> 32) as u32;
+        crc = tables[7][(low & 0xff) as usize]
+            ^ tables[6][((low >> 8) & 0xff) as usize]
+            ^ tables[5][((low >> 16) & 0xff) as usize]
+            ^ tables[4][((low >> 24) & 0xff) as usize]
+            ^ tables[3][(high & 0xff) as usize]
+            ^ tables[2][((high >> 8) & 0xff) as usize]
+            ^ tables[1][((high >> 16) & 0xff) as usize]
+            ^ tables[0][((high >> 24) & 0xff) as usize];
+    }
+    for &byte in rest {
         let index = ((crc ^ u32::from(byte)) & 0xff) as usize;
-        crc = table[index] ^ (crc >> 8);
+        crc = tables[0][index] ^ (crc >> 8);
     }
     !crc
 }
@@ -3169,10 +3197,43 @@ mod tests {
         ]
     }
 
+    fn crc32c_byte(data: &[u8]) -> u32 {
+        let mut table = [0u32; 256];
+        let mut i = 0;
+        while i < 256 {
+            let mut crc = i as u32;
+            let mut bit = 0;
+            while bit < 8 {
+                let mask = (crc & 1).wrapping_neg();
+                crc = (crc >> 1) ^ (0x82f6_3b78 & mask);
+                bit += 1;
+            }
+            table[i] = crc;
+            i += 1;
+        }
+        let mut crc: u32 = 0xffff_ffff;
+        for &byte in data {
+            let index = ((crc ^ u32::from(byte)) & 0xff) as usize;
+            crc = table[index] ^ (crc >> 8);
+        }
+        !crc
+    }
+
     #[test]
     fn crc32c_known_vector() {
         assert_eq!(crc32c(b"123456789"), 0xE306_9283);
         assert_eq!(crc32c(b""), 0);
+    }
+
+    #[test]
+    fn crc32c_matches_the_byte_table_on_every_width() {
+        let mut data = [0u8; 300];
+        for (i, byte) in data.iter_mut().enumerate() {
+            *byte = (i as u8).wrapping_mul(17).wrapping_add(3);
+        }
+        for len in 0..=data.len() {
+            assert_eq!(crc32c(&data[..len]), crc32c_byte(&data[..len]));
+        }
     }
 
     #[test]
