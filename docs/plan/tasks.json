@@ -52400,8 +52400,8 @@
       "title": "Qualify Producer/Consumer quota throttle runtime histories",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
       ],
