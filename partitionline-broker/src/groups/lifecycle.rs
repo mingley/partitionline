@@ -192,6 +192,13 @@ impl Lifecycle {
                     self.members.remove(&old_id);
                     self.members.insert(member_id.to_owned(), replacement);
                     self.persist()?;
+                } else if now_ms >= replacement.last_heartbeat_ms {
+                    let Some(member) = self.members.get_mut(&old_id) else {
+                        return Err(Error::UnknownMember);
+                    };
+                    member.last_heartbeat_ms = now_ms;
+                    member.rebalance_deadline_ms = None;
+                    self.persist()?;
                 }
                 return Ok(());
             }
@@ -600,6 +607,37 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{error:?}")),
             vec!["a".to_owned()]
         );
+    }
+
+    #[test]
+    fn a_same_id_static_rejoin_refreshes_a_newer_session() {
+        let (mut life, _) = open("static-clock");
+        life.join("a", Some("i-1"), &[0, 1], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.heartbeat("a", 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.revoke("a", &[1], 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.join("a", Some("i-1"), &[], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            life.expire(5_501)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec!["a".to_owned()]
+        );
+        life.join("b", Some("i-2"), &[0, 1], 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.heartbeat("b", 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.revoke("b", &[1], 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.join("b", Some("i-2"), &[], 5_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(life
+            .expire(5_501)
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_empty());
+        assert_eq!(life.owned("b").map(|set| set.contains(&0)), Some(true));
     }
 
     #[test]
