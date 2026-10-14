@@ -4488,8 +4488,9 @@ impl Consumer {
                             added = added.saturating_add(key_len.saturating_add(val_len));
                             added_records = added_records.saturating_add(1);
                             included_next = Some(
-                                included_next
-                                    .map_or(rec.offset + 1, |current| current.max(rec.offset + 1)),
+                                included_next.map_or(rec.offset.saturating_add(1), |current| {
+                                    current.max(rec.offset.saturating_add(1))
+                                }),
                             );
                             out.push(FetchedRecord {
                                 topic: TopicName::from(name.as_str()),
@@ -4548,7 +4549,7 @@ impl Consumer {
                             let count_i64 = i64::try_from(meta.count).unwrap_or(i64::MAX);
                             let next_off = meta.base_offset.saturating_add(count_i64);
                             let batch_next = last_record_off
-                                .map_or(next_off, |offset| (offset + 1).max(next_off));
+                                .map_or(next_off, |offset| offset.saturating_add(1).max(next_off));
                             if let Some(advanced) = included_next {
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
                                 last_epoch = meta.partition_leader_epoch;
@@ -4588,7 +4589,7 @@ impl Consumer {
                     let batch_last = batch.last_offset();
                     let batch_next = batch.records.last().map_or_else(
                         || batch.next_offset(),
-                        |r| (r.offset + 1).max(batch.next_offset()),
+                        |r| r.offset.saturating_add(1).max(batch.next_offset()),
                     );
 
                     if let Some(state) = aborted.as_deref_mut() {
@@ -4648,7 +4649,9 @@ impl Consumer {
                             break;
                         }
                         if offset >= req_offset {
-                            next = Some(next.map_or(offset + 1, |c| c.max(offset + 1)));
+                            next = Some(next.map_or(offset.saturating_add(1), |c| {
+                                c.max(offset.saturating_add(1))
+                            }));
                             last_epoch = batch.partition_leader_epoch;
                         } else {
                             continue;
