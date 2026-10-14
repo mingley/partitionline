@@ -1,0 +1,1 @@
+{"version":13,"disposition":"unsupported","exception":"org.apache.kafka.common.errors.UnsupportedVersionException","message":"Can't size version 13 of MetadataRequestTopic","reason":"MetadataRequestData validVersions 0-12 rejects crate-spoken v13"}
