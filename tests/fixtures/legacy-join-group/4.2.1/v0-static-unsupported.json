@@ -1,0 +1,5 @@
+{
+  "disposition": "unsupported",
+  "version": 0,
+  "reason": "org.apache.kafka.common.errors.UnsupportedVersionException: The broker join group protocol version 0 does not support usage of config group.instance.id."
+}

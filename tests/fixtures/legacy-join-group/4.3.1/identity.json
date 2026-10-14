@@ -1,0 +1,8 @@
+{
+  "release": "4.3.1",
+  "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+  "lowest_supported": 0,
+  "highest_supported": 9,
+  "generated_bodies": 6,
+  "unsupported_receipts": 2
+}

@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
+  and fills it from session timeout; v1 matches v2 on the request and
+  omits response ThrottleTimeMs. A present `group.instance.id` on a
+  v0/v1 peer is refused before any JoinGroup frame. v2–v9 cooperative
+  and static behavior is unchanged (KL05-42).
+
 - Public AlterShareGroupOffsets and DeleteShareGroupOffsets v0 bodies
   (start-offset 7, `INVALID_REQUEST` 42, topic-name-only delete, and
   `GROUP_ID_NOT_FOUND` 69) are checked against pinned Apache

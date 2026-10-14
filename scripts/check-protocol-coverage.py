@@ -129,7 +129,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     8: list(range(2, 11)),   # OffsetCommit: legacy names and v10 UUIDs
     9: list(range(1, 11)),   # OffsetFetch: legacy names and v10 UUIDs
     10: list(range(0, 7)),   # FindCoordinator: 0-6 (GROUP-only at 0)
-    11: list(range(2, 10)),  # JoinGroup: 2-9
+    11: list(range(0, 10)),  # JoinGroup: 0-9
     12: list(range(0, 5)),   # Heartbeat: 0-4
     13: list(range(0, 6)),   # LeaveGroup: 0-5
     14: list(range(0, 6)),   # SyncGroup: 0-5
@@ -281,8 +281,8 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (8, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v0 removed in Kafka 4.0; client speaks 2-10"},
     (8, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v1 removed in Kafka 4.0; client speaks 2-10"},
     (9, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetFetch v0 removed in Kafka 4.0; client speaks 1-10"},
-    (11, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "JoinGroup v0 removed in Kafka 4.0; client speaks 2-9"},
-    (11, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "JoinGroup v1 removed in Kafka 4.0; client speaks 2-9"},
+    (11, 0): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "JoinGroup v0 removed in Kafka 4.0; client still supports legacy v0"},
+    (11, 1): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "JoinGroup v1 removed in Kafka 4.0; client still supports legacy v1"},
     (19, 0): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "CreateTopics v0 removed in Kafka 4.0; client still supports legacy v0"},
     (19, 1): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "CreateTopics v1 removed in Kafka 4.0; client still supports legacy v1"},
     (20, 0): {"pin": "4.1.0+", "direction": "legacy_spoken", "reason": "DeleteTopics v0 removed in Kafka 4.0; client still supports legacy v0"},

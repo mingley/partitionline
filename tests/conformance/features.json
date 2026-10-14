@@ -597,7 +597,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::group::ConsumerGroup::join_topics",
     "evidence": "tests/full_surface.rs:test_classic_group",
-    "notes": "Classic consumer group membership via JoinGroup v2-v9 and SyncGroup v0-v5.",
+    "notes": "Classic consumer group membership via JoinGroup v0-v9 and SyncGroup v0-v5.",
     "qualification_backlog_tasks": [
       "KL01-14"
     ],

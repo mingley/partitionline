@@ -2079,6 +2079,12 @@ impl ConsumerGroup {
             .map(|(n, m)| JoinGroupProtocol::new(n, m))
             .collect();
         let version = spoken_join_group(self.coord.join_group_version)?;
+        // Java Builder.build rejects a present group.instance.id below v5.
+        // v2–v4 still omit the field and join (unchanged). v0/v1 refuse
+        // static membership before any JoinGroup frame.
+        if version < 2 {
+            JoinGroupRequest::build(version, self.cfg.group_instance_id.as_deref())?;
+        }
         let reason = self.rebalance_reason.take();
         let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
             let body = coord_roundtrip(
@@ -2870,11 +2876,11 @@ fn spoken_offset_commit(version: i16) -> Result<i16> {
 }
 
 fn spoken_join_group(version: i16) -> Result<i16> {
-    if (2..=9).contains(&version) {
+    if (0..=9).contains(&version) {
         Ok(version)
     } else {
         Err(Error::Unsupported(
-            "broker does not support JoinGroup v2-9".into(),
+            "broker does not support JoinGroup v0-9".into(),
         ))
     }
 }
@@ -3262,8 +3268,8 @@ async fn open_coord_with_find_version(
         .unwrap_or(-1);
     conn.join_group_version = resp
         .api_version(JOIN_GROUP)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
-        .unwrap_or(0);
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 9))
+        .unwrap_or(-1);
     conn.leave_group_version = resp
         .api_version(LEAVE_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))

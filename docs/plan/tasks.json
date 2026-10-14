@@ -51840,8 +51840,8 @@
       "title": "Implement current-valid JoinGroup0/1 classic membership and bounded fallback policy",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL05-41",
         "KL01-03",

@@ -114,6 +114,11 @@ pub struct ConsumerConfig {
     /// (ConsumerGroupHeartbeat / ShareGroupHeartbeat RackId). Empty means leader only.
     pub rack: Option<String>,
     /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
+    ///
+    /// Classic JoinGroup sends the field on v5+. A present value on a v0/v1
+    /// peer is refused before any JoinGroup frame (Java
+    /// `JoinGroupRequest.Builder.build` / `UnsupportedVersionException`).
+    /// v2–v4 still omit the field and join.
     pub group_instance_id: Option<String>,
     /// Kafka `auto.offset.reset` for group members with no committed offset.
     pub auto_offset_reset: crate::AutoOffsetReset,
@@ -346,6 +351,9 @@ impl ConsumerConfig {
     }
 
     /// `group.instance.id` (static membership).
+    ///
+    /// Refused before any JoinGroup frame when the negotiated classic
+    /// version is v0 or v1.
     #[must_use]
     pub fn group_instance_id(mut self, id: impl Into<String>) -> Self {
         self.group_instance_id = Some(id.into());

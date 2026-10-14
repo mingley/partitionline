@@ -1130,16 +1130,16 @@ pub fn decode_find_coordinator_response_coordinators<B: Buf>(
 
 /// `true` when JoinGroup `version` is flexible (v6+).
 ///
-/// v2–v5 are classic. v6 is compact strings/bytes/arrays plus tagged
-/// fields (Apache JSON `flexibleVersions: "6+"`). Official JSON: v2 and
-/// v3 match v1 (RebalanceTimeoutMs). v4 second join with assigned id.
-/// v5 GroupInstanceId. v7 response ProtocolType / nullable ProtocolName
-/// (KIP-559). v8 Reason (KIP-800). v9 SkipAssignment. Kafka 4.0
-/// `validVersions` is `2-9` (v0–v1 removed). This crate speaks 2–9.
-/// v0–v1 and v10+ are not spoken.
+/// v0–v5 are classic. v6 is compact strings/bytes/arrays plus tagged
+/// fields (Apache JSON `flexibleVersions: "6+"`). Official JSON: v0 has
+/// no RebalanceTimeoutMs; v1 adds it; v2 and v3 match v1. v4 second
+/// join with assigned id. v5 GroupInstanceId. v7 response ProtocolType /
+/// nullable ProtocolName (KIP-559). v8 Reason (KIP-800). v9
+/// SkipAssignment. Corrected current schemas retain `0-9`. This crate
+/// speaks 0–9. v10+ is not spoken.
 fn join_group_flexible(version: i16) -> Result<bool> {
     match version {
-        2..=5 => Ok(false),
+        0..=5 => Ok(false),
         6..=9 => Ok(true),
         other => Err(Error::protocol(format!(
             "JoinGroup version {other} is not implemented"
@@ -1147,7 +1147,7 @@ fn join_group_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// JoinGroup request (classic v2–v5 or flexible v6–v9).
+/// JoinGroup request (classic v0–v5 or flexible v6–v9).
 #[derive(Debug, Clone, Copy)]
 pub struct JoinGroupRequest<'a> {
     /// Group id.
@@ -1156,9 +1156,11 @@ pub struct JoinGroupRequest<'a> {
     pub session_timeout_ms: i32,
     /// Rebalance timeout (JSON `1+`).
     ///
-    /// Spoken v2–v9 always write the field. Official Java
+    /// Spoken v1–v9 write the field. v0 omits it; official Java
+    /// `maybeOverrideRebalanceTimeout` copies `sessionTimeoutMs` into
+    /// this field in memory. Official Java
     /// `JoinGroupRequestData.rebalanceTimeoutMs`. Classic Java
-    /// `ClassicKafkaConsumer` sends `max.poll.interval.ms`.
+    /// `ClassicKafkaConsumer` sends `max.poll.interval.ms` on v1+.
     pub rebalance_timeout_ms: i32,
     /// Member id ([`Self::UNKNOWN_MEMBER_ID`] on first join).
     pub member_id: &'a str,
@@ -1227,7 +1229,7 @@ impl JoinGroupRequest<'_> {
     ///
     /// Dynamic members on JoinGroup v4+ with [`Self::UNKNOWN_MEMBER_ID`] must
     /// rejoin after `MEMBER_ID_REQUIRED`. Static members (`group.instance.id`)
-    /// and JoinGroup v2–v3 join in one RPC.
+    /// and JoinGroup v0–v3 join in one RPC.
     #[must_use]
     pub fn requires_known_member_id_for(
         member_id: &str,
@@ -1253,9 +1255,9 @@ impl JoinGroupRequest<'_> {
     /// ProtocolType stays the JSON default (`null`) on v7+. SkipAssignment
     /// stays the JSON default (`false`) on v9+; official Java
     /// `getErrorResponse` does not set it. ThrottleTimeMs is written on
-    /// every spoken version from `throttle_time_ms` (JSON `2+`; this
-    /// crate does not speak v0–v1). Convenience encode still writes `0`.
-    /// This crate speaks 2–9. This is not [`Self::build`] leftover /
+    /// every spoken version from `throttle_time_ms` (JSON `2+`; v0–v1
+    /// omit ThrottleTimeMs). Convenience encode still writes `0`.
+    /// This crate speaks 0–9. This is not [`Self::build`] leftover /
     /// ProtocolType leftover / SkipAssignment leftover / ThrottleTimeMs
     /// leftover.
     pub fn error_response(
@@ -1282,7 +1284,7 @@ impl JoinGroupRequest<'_> {
     /// A present `group.instance.id` below v5 is
     /// `UnsupportedVersionException` (Java `!= null`, so empty is still
     /// present). Encode still omits the field on those versions; this is
-    /// the Builder check. This crate speaks JoinGroup v2–v9.
+    /// the Builder check. This crate speaks JoinGroup v0–v9.
     pub fn build(version: i16, group_instance_id: Option<&str>) -> Result<()> {
         if group_instance_id.is_some() && version < 5 {
             return Err(Error::Unsupported(format!(
@@ -1488,13 +1490,13 @@ pub struct JoinGroupProtocolsRequest<'a> {
     pub reason: Option<&'a str>,
 }
 
-/// Encode JoinGroup v2–v9.
+/// Encode JoinGroup v0–v9.
 ///
-/// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "6+"`.
-/// v2–v4 are GroupId, SessionTimeoutMs, RebalanceTimeoutMs, MemberId,
-/// ProtocolType, and Protocols (v2 and v3 match). v5 GroupInstanceId.
-/// v6 flexible. v8 Reason. This crate speaks 2–9. v0–v1 and v10+ are
-/// not spoken. Protocols of 1.
+/// Corrected current schemas: `validVersions: "0-9"`,
+/// `flexibleVersions: "6+"`. v0 is GroupId, SessionTimeoutMs, MemberId,
+/// ProtocolType, and Protocols. v1 adds RebalanceTimeoutMs after
+/// SessionTimeoutMs. v2–v4 match v1. v5 GroupInstanceId. v6 flexible.
+/// v8 Reason. This crate speaks 0–9. v10+ is not spoken. Protocols of 1.
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1516,7 +1518,7 @@ pub fn encode_join_group_request(
     )
 }
 
-/// Encode JoinGroup with Protocols of N (v2–v9).
+/// Encode JoinGroup with Protocols of N (v0–v9).
 pub fn encode_join_group_protocols_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1525,7 +1527,9 @@ pub fn encode_join_group_protocols_request(
     let flexible = join_group_flexible(version)?;
     buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.session_timeout_ms);
-    buf.put_i32(req.rebalance_timeout_ms);
+    if version >= 1 {
+        buf.put_i32(req.rebalance_timeout_ms);
+    }
     buf::put_string(buf, flexible, Some(req.member_id))?;
     if version >= 5 {
         buf::put_string(buf, flexible, req.group_instance_id)?;
@@ -1569,16 +1573,17 @@ pub fn decode_join_group_request<B: Buf>(
     Ok((group_id, member_id, instance, metadata, reason))
 }
 
-/// Decode JoinGroup Protocols of N (v2–v9).
+/// Decode JoinGroup Protocols of N (v0–v9).
 ///
 /// Returns `(group_id, member_id, instance_id, protocols, reason,
 /// session_timeout_ms, rebalance_timeout_ms, protocol_type)`. SessionTimeoutMs
 /// is JSON `0+` (INT32 after GroupId; official Java
 /// `JoinGroupRequestData.sessionTimeoutMs`). RebalanceTimeoutMs is JSON
-/// `1+` (INT32 after SessionTimeoutMs; spoken v2–v9 always on the wire;
-/// official Java `JoinGroupRequestData.rebalanceTimeoutMs`). ProtocolType
-/// is JSON `0+` (STRING after GroupInstanceId on v5+ / after MemberId
-/// below v5; official Java `JoinGroupRequestData.protocolType`).
+/// `1+` (INT32 after SessionTimeoutMs; omitted on v0). Official Java
+/// `maybeOverrideRebalanceTimeout` copies session timeout into the
+/// in-memory field on v0; decode fills the same. ProtocolType is JSON
+/// `0+` (STRING after GroupInstanceId on v5+ / after MemberId below v5;
+/// official Java `JoinGroupRequestData.protocolType`).
 #[expect(
     clippy::type_complexity,
     reason = "decoded JoinGroup is group, member, instance, protocols, reason, session timeout, rebalance timeout, and protocol type together"
@@ -1599,7 +1604,11 @@ pub fn decode_join_group_request_protocols<B: Buf>(
     let flexible = join_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let session_timeout_ms = buf::get_i32(buf)?;
-    let rebalance_timeout_ms = buf::get_i32(buf)?;
+    let rebalance_timeout_ms = if version >= 1 {
+        buf::get_i32(buf)?
+    } else {
+        session_timeout_ms
+    };
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let instance = if version >= 5 {
         buf::get_string(buf, flexible)?
@@ -1680,13 +1689,13 @@ pub fn encode_join_group_response(
     )
 }
 
-/// Encode JoinGroup v2–v9 with ProtocolType.
+/// Encode JoinGroup v0–v9 with ProtocolType.
 ///
 /// Below v7 ProtocolType is omitted even when the body has a value.
 /// Decode fills `None`. Empty string is still present (Java `!= null`).
 /// [`encode_join_group_response`] still writes null. ProtocolName empty
 /// still becomes null on v7+. ThrottleTimeMs is the JSON default (`0`)
-/// (JSON `2+`).
+/// on v2+ (JSON `2+`); v0–v1 omit it.
 #[expect(
     clippy::too_many_arguments,
     reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType"
@@ -1717,20 +1726,20 @@ pub fn encode_join_group_response_with_protocol_type(
     )
 }
 
-/// Encode JoinGroup v2–v9 with ThrottleTimeMs.
+/// Encode JoinGroup v0–v9 with ThrottleTimeMs.
 ///
-/// ThrottleTimeMs is JSON `2+`: written on every spoken version (this
-/// crate does not speak v0–v1). v2–v5 are classic. v6–v9 are flexible.
-/// v5 GroupInstanceId is on members (`JoinMember.group_instance_id`;
-/// below v5 omitted even when Some; decode fills `None`). v7 ProtocolType / nullable
-/// ProtocolName. v8 is the same layout as v7 (Reason is on the request).
-/// v9 SkipAssignment. Kafka 4.0 `validVersions` is `2-9` (v0–v1
-/// removed). This crate speaks 2–9. v0–v1 and v10+ are not spoken.
-/// Official Java `getErrorResponse` sets `throttleTimeMs` from the
-/// argument. ProtocolType stays the JSON default (`null`). SkipAssignment
-/// stays the JSON default (`false`)
-/// ([`encode_join_group_response_with_skip_assignment`]). Top-level
-/// ErrorCode is at bytes 4–5.
+/// ThrottleTimeMs is JSON `2+`: written on v2–v9. v0–v1 omit it, so
+/// top-level ErrorCode is at bytes 0–1. v2–v5 are classic. v6–v9 are
+/// flexible. v5 GroupInstanceId is on members
+/// (`JoinMember.group_instance_id`; below v5 omitted even when Some;
+/// decode fills `None`). v7 ProtocolType / nullable ProtocolName. v8 is
+/// the same layout as v7 (Reason is on the request). v9 SkipAssignment.
+/// Corrected current schemas retain `0-9`. This crate speaks 0–9. v10+
+/// is not spoken. Official Java `getErrorResponse` sets
+/// `throttleTimeMs` from the argument on v2+. ProtocolType stays the
+/// JSON default (`null`). SkipAssignment stays the JSON default
+/// (`false`) ([`encode_join_group_response_with_skip_assignment`]).
+/// Top-level ErrorCode is at bytes 4–5 on v2+.
 #[expect(
     clippy::too_many_arguments,
     reason = "JoinGroup response fields match the Apache JSON layout plus ThrottleTimeMs"
@@ -1816,7 +1825,9 @@ fn encode_join_group_response_fields(
     skip_assignment: bool,
 ) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
-    buf.put_i32(throttle_time_ms);
+    if version >= 2 {
+        buf.put_i32(throttle_time_ms);
+    }
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
     if version >= 7 {
@@ -1853,8 +1864,8 @@ fn encode_join_group_response_fields(
 /// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members, protocol_type, throttle_time_ms)`.
 ///
 /// Below v7 ProtocolType is omitted; decode fills `None`. ThrottleTimeMs
-/// is JSON `2+` (always on the wire for spoken versions). Top-level
-/// ErrorCode is at bytes 4–5.
+/// is JSON `2+` (on the wire for v2–v9; v0–v1 fill `0`). Top-level
+/// ErrorCode is at bytes 4–5 on v2+ and bytes 0–1 on v0–v1.
 #[expect(
     clippy::type_complexity,
     reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members, protocol type, throttle"
@@ -1874,7 +1885,7 @@ pub fn decode_join_group_response<B: Buf>(
     i32,
 )> {
     let flexible = join_group_flexible(version)?;
-    let throttle_time_ms = buf::get_i32(buf)?;
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let error = buf::get_i16(buf)?;
     let generation = buf::get_i32(buf)?;
     let protocol_type = if version >= 7 {
@@ -9042,22 +9053,74 @@ mod tests {
         assert_eq!(got[0].metadata, vec![1, 2, 3]);
         assert!(cur.is_empty(), "v2 response leftover-empty");
 
+        // Official JSON: "Version 2 and 3 are the same as version 1."
+        let mut v1 = BytesMut::new();
+        encode_join_group_request(&mut v1, 1, &req).unwrap();
+        assert_eq!(v1.as_ref(), REQ, "v1 request matches v2");
+        let mut cur = v1.as_ref();
+        let (_, _, _, _, _, session, rebalance, _) =
+            decode_join_group_request_protocols(&mut cur, 1).unwrap();
+        assert!(cur.is_empty(), "v1 request leftover-empty");
+        assert_eq!((session, rebalance), (10_000, 10_000));
+
+        // v0 omits RebalanceTimeoutMs. Java copies session timeout in memory.
+        const REQ_V0: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x27, 0x10, 0x00, 0x02, 0x6d, 0x31, 0x00, 0x08, 0x63,
+            0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x00, 0x00, 0x00, 0x01, 0x00, 0x05, 0x72,
+            0x61, 0x6e, 0x67, 0x65, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03,
+        ];
         v2.clear();
-        let err = encode_join_group_request(&mut v2, 0, &req).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "v0 is not spoken, got {err}"
-        );
+        encode_join_group_request(&mut v2, 0, &req).unwrap();
+        assert_eq!(&v2[..], REQ_V0);
+        let mut cur = v2.as_ref();
+        let (_, _, _, _, _, session, rebalance, _) =
+            decode_join_group_request_protocols(&mut cur, 0).unwrap();
+        assert!(cur.is_empty(), "v0 request leftover-empty");
+        assert_eq!(session, 10_000);
+        assert_eq!(rebalance, session, "v0 fills rebalance from session");
+
+        v1.clear();
+        encode_join_group_response(&mut v1, 1, 0, 7, "range", "l", "m1", &members).unwrap();
         v2.clear();
-        let err = encode_join_group_request(&mut v2, 1, &req).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "v1 is not spoken, got {err}"
+        encode_join_group_response(&mut v2, 2, 0, 7, "range", "l", "m1", &members).unwrap();
+        assert_eq!(
+            &v2[4..],
+            v1.as_ref(),
+            "v2 response is v1 plus leading ThrottleTimeMs"
         );
-        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 2, 9), Some(2));
-        assert_eq!(crate::protocol::api_keys::pick_version(2, 9, 2, 9), Some(9));
+        assert_eq!(v1[0..2], 0i16.to_be_bytes(), "v1 ErrorCode at bytes 0-1");
+        assert_eq!(v2[4..6], 0i16.to_be_bytes(), "v2 ErrorCode at bytes 4-5");
+        let mut cur = v1.as_ref();
+        let (err, gen, proto, leader, mid, skip, got, _, throttle) =
+            decode_join_group_response(&mut cur, 1).unwrap();
+        assert!(cur.is_empty(), "v1 response leftover-empty");
+        assert_eq!(
+            (err, gen, proto.as_str(), leader.as_str(), mid.as_str(), skip, throttle),
+            (0, 7, "range", "l", "m1", false, 0)
+        );
+        assert_eq!(got[0].member_id, "m1");
+
+        v2.clear();
+        encode_join_group_response(&mut v2, 0, 0, 7, "range", "l", "m1", &members).unwrap();
+        assert_eq!(v2.as_ref(), v1.as_ref(), "v0 response matches v1");
+        let mut cur = v2.as_ref();
+        let (err, gen, proto, leader, mid, skip, got, _, throttle) =
+            decode_join_group_response(&mut cur, 0).unwrap();
+        assert!(cur.is_empty(), "v0 response leftover-empty");
+        assert_eq!(
+            (err, gen, proto.as_str(), leader.as_str(), mid.as_str(), skip, throttle),
+            (0, 7, "range", "l", "m1", false, 0)
+        );
+        assert_eq!(got[0].member_id, "m1");
+
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 9), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 9), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 9, 0, 9), Some(9));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 2, 9), None);
-        assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 2, 9), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 0, 9), None);
+        assert!(JoinGroupRequest::build(0, Some("static")).is_err());
+        assert!(JoinGroupRequest::build(1, Some("static")).is_err());
+        assert!(JoinGroupRequest::build(0, None).is_ok());
     }
 
     #[test]
@@ -9165,10 +9228,8 @@ mod tests {
         let mut v5 = BytesMut::new();
         encode_join_group_request(&mut v5, 5, &join_req(&[1, 2, 3])).unwrap();
         assert_ne!(&buf[..], &v5[..], "JoinGroup v6 must not be classic v5");
-        assert!(
-            encode_join_group_request(&mut BytesMut::new(), 1, &join_req(&[1, 2, 3])).is_err(),
-            "JoinGroup v0–v1 are not spoken"
-        );
+        encode_join_group_request(&mut BytesMut::new(), 0, &join_req(&[1, 2, 3])).unwrap();
+        encode_join_group_request(&mut BytesMut::new(), 1, &join_req(&[1, 2, 3])).unwrap();
         assert!(
             encode_join_group_request(&mut BytesMut::new(), 10, &join_req(&[1, 2, 3])).is_err(),
             "JoinGroup v10+ is not spoken"
@@ -9242,7 +9303,7 @@ mod tests {
                 cur.remaining()
             );
         }
-        for version in [2_i16, 4, 5, 9] {
+        for version in [0_i16, 1, 2, 4, 5, 9] {
             JoinGroupRequest::build(version, None).unwrap();
             let mut buf = BytesMut::new();
             encode_join_group_request(&mut buf, version, &join_req(&[1, 2, 3])).unwrap();
@@ -10061,12 +10122,12 @@ mod tests {
         // and empty below. ProtocolType stays JSON-null. SkipAssignment
         // stays JSON-false on v9+. Official Java
         // JoinGroupRequest.getErrorResponse. Convenience encode still
-        // writes ThrottleTimeMs 0. This crate speaks 2–9. This is not
+        // writes ThrottleTimeMs 0. This crate speaks 0–9. This is not
         // Builder.build leftover / ProtocolType leftover /
         // SkipAssignment leftover / ThrottleTimeMs leftover / sentinel
-        // leftover.
+        // leftover. v0–v1 omit ThrottleTimeMs (JSON `2+`).
         let code = 16_i16;
-        for version in [2_i16, 6, 7, 9] {
+        for version in [0_i16, 1, 2, 6, 7, 9] {
             let mut buf = BytesMut::new();
             JoinGroupRequest::error_response(&mut buf, version, code, 3_600_000).unwrap();
             let mut cur = buf.as_ref();
@@ -10080,7 +10141,11 @@ mod tests {
             assert!(!skip, "v{version} SkipAssignment JSON default is false");
             assert!(members.is_empty());
             assert!(ptype.is_none(), "v{version} ProtocolType stays JSON-null");
-            assert_eq!(throttle, 3_600_000);
+            assert_eq!(
+                throttle,
+                if version >= 2 { 3_600_000 } else { 0 },
+                "v{version} ThrottleTimeMs is JSON 2+"
+            );
             leftover_join_group_error_response(version, cur);
 
             let mut expected = BytesMut::new();
@@ -10155,7 +10220,7 @@ mod tests {
             JoinGroupResponse::error_counts(crate::error::REBALANCE_IN_PROGRESS),
             HashMap::from([(crate::error::REBALANCE_IN_PROGRESS, 1)])
         );
-        for version in 2..=9_i16 {
+        for version in 0..=9_i16 {
             let mut resp = BytesMut::new();
             encode_join_group_response(
                 &mut resp,

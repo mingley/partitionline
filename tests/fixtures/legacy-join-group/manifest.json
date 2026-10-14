@@ -1,0 +1,53 @@
+{
+  "task": "KL05-42",
+  "crate_spoken_versions": [
+    0,
+    1
+  ],
+  "peers": {
+    "3.9.1": {
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "lowest_supported": 0,
+      "highest_supported": 9,
+      "generated_bodies": 6,
+      "unsupported_receipts": 2
+    },
+    "4.1.0": {
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "lowest_supported": 0,
+      "highest_supported": 9,
+      "generated_bodies": 6,
+      "unsupported_receipts": 2
+    },
+    "4.1.2": {
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "lowest_supported": 0,
+      "highest_supported": 9,
+      "generated_bodies": 6,
+      "unsupported_receipts": 2
+    },
+    "4.2.1": {
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "lowest_supported": 0,
+      "highest_supported": 9,
+      "generated_bodies": 6,
+      "unsupported_receipts": 2
+    },
+    "4.3.1": {
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "lowest_supported": 0,
+      "highest_supported": 9,
+      "generated_bodies": 6,
+      "unsupported_receipts": 2
+    }
+  },
+  "total_bodies": 30,
+  "total_unsupported_receipts": 10,
+  "independent_generations_match": true,
+  "local_mock_labeled": true
+}

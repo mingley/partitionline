@@ -412,17 +412,18 @@
 //! [`protocol::group::SyncGroupResponse::error_counts`] is Java
 //! `SyncGroupResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`)),
-//! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment
+//! JoinGroup v0–v9 (v0 omits RebalanceTimeoutMs; v1 adds it; v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment
 //! JSON `9+` ([`protocol::group::encode_join_group_response_with_skip_assignment`];
 //! encode previously always wrote `false`; below v9 omit even when true and
 //! decode fills `false`; convenience encode still writes `false`; official Java
 //! `JoinGroupResponseData.skipAssignment`);
 //! SessionTimeoutMs is JSON `0+` (decode returns it; encode already takes
 //! `session_timeout_ms`);
-//! RebalanceTimeoutMs is JSON `1+` (spoken v2–v9 always on the wire; decode
-//! returns it; encode writes `rebalance_timeout_ms`; official Java
-//! `JoinGroupRequestData.rebalanceTimeoutMs`; classic consumer sends
-//! `max.poll.interval.ms`);
+//! RebalanceTimeoutMs is JSON `1+` (spoken v1–v9 on the wire; v0 omits it
+//! and decode fills session timeout, matching Java
+//! `maybeOverrideRebalanceTimeout`; encode writes `rebalance_timeout_ms`
+//! on v1+; official Java `JoinGroupRequestData.rebalanceTimeoutMs`;
+//! classic consumer sends `max.poll.interval.ms`);
 //! request ProtocolType is JSON `0+` (decode returns it last; encode already
 //! takes `protocol_type`; official Java `JoinGroupRequestData.protocolType`);
 //! response member GroupInstanceId is JSON `5+` (nullable STRING after member
@@ -460,7 +461,8 @@
 //! v7+ round-trips ProtocolType; below v7 encode omits it even when
 //! the body has a value and decode fills `None`;
 //! [`protocol::group::encode_join_group_response`] still writes null;
-//! ThrottleTimeMs is JSON `2+` on spoken v2–v9;
+//! ThrottleTimeMs is JSON `2+` on spoken v2–v9 (v0–v1 omit it; ErrorCode
+//! is at bytes 0–1 on v0–v1 and bytes 4–5 on v2+);
 //! [`protocol::group::encode_join_group_response_with_throttle`];
 //! encode previously always wrote `0` and decode discarded; convenience
 //! encode still writes `0`;
@@ -3035,8 +3037,9 @@
 //! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
 //! `supportsSkippingAssignment` / `Builder.build`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;
-//! JoinGroup v4+ without `group.instance.id`). JoinGroup v2–v3 and static
-//! members join in one RPC. JoinGroup v7+ encodes empty ProtocolName as null
+//! JoinGroup v4+ without `group.instance.id`). JoinGroup v0–v3 and static
+//! members join in one RPC. A present `group.instance.id` on v0/v1 is
+//! refused before any JoinGroup frame. JoinGroup v7+ encodes empty ProtocolName as null
 //! (Java `JoinGroupResponse`).
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
