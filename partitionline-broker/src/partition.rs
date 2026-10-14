@@ -578,8 +578,9 @@ impl Partition {
 
     /// Like [`Self::read_with_work`], appending the payload onto `dest`.
     ///
-    /// The monolithic journal reads into `dest` directly. Rolling storage still
-    /// validates an owned entry, then copies it. On failure `dest` is restored.
+    /// Monolithic logs and the active rolling generation read into `dest`.
+    /// Sealed generations still validate an owned entry, then copy it. On
+    /// failure `dest` is restored.
     pub(crate) fn read_into(
         &mut self,
         offset: i64,
@@ -598,27 +599,13 @@ impl Partition {
                     bytes: view.len,
                     entries: 1,
                 });
-                (view, work, None)
+                (view, work)
             }
             Backend::Segments(log) => {
-                let (entry, work) = log.read_one(offset, maximum, scan_bytes, scan_entries)?;
-                let view = entry.as_ref().map(|entry| journal::PayloadView {
-                    first_offset: entry.first_offset,
-                    record_count: entry.record_count,
-                    len: entry.payload.len(),
-                });
-                (view, work, entry)
+                log.read_one_into(offset, maximum, scan_bytes, scan_entries, dest)?
             }
         };
-        if let Some(entry) = loaded.2.as_ref() {
-            if let Err(error) = self.check_for_read(entry) {
-                self.poisoned = true;
-                return Err(error);
-            }
-            dest.try_reserve_exact(entry.payload.len())
-                .map_err(|_| Error::AllocationFailed)?;
-            dest.extend_from_slice(&entry.payload);
-        } else if let Some(view) = loaded.0 {
+        if let Some(view) = loaded.0 {
             let payload = match dest.get(mark..) {
                 Some(payload) if payload.len() == view.len => payload,
                 _ => {
@@ -627,15 +614,55 @@ impl Partition {
                     return Err(Error::CorruptPayload);
                 }
             };
-            if let Err(error) =
-                self.check_fetched_slice(view.first_offset, view.record_count, payload)
-            {
+            if let Err(error) = self.check_view(view.first_offset, view.record_count, payload) {
                 dest.truncate(mark);
                 self.poisoned = true;
                 return Err(error);
             }
         }
-        Ok((loaded.0, loaded.1))
+        Ok(loaded)
+    }
+
+    fn check_view(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(first_offset)) {
+            self.check_sparse_slice(first_offset, record_count, payload)
+        } else {
+            self.check_fetched_slice(first_offset, record_count, payload)
+        }
+    }
+
+    fn check_sparse_slice(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        let checked = records::validate_read(payload, self.record_limits)
+            .map_err(|_| Error::CorruptPayload)?;
+        let next = first_offset
+            .checked_add(u64::from(record_count))
+            .ok_or(Error::CorruptPayload)?;
+        if record_count == 0 {
+            return Err(Error::CorruptPayload);
+        }
+        for batch in checked.batches() {
+            let batch = batch.map_err(|_| Error::CorruptPayload)?;
+            if u64::try_from(batch.base_offset)
+                .ok()
+                .is_none_or(|n| n < first_offset)
+                || u64::try_from(batch.next_offset)
+                    .ok()
+                    .is_none_or(|n| n > next)
+            {
+                return Err(Error::CorruptPayload);
+            }
+        }
+        Ok(next)
     }
 
     fn check_for_read(&self, entry: &journal::Entry) -> Result<u64, Error> {

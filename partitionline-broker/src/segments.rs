@@ -1787,6 +1787,76 @@ impl Log {
         }
         result
     }
+
+    /// Like [`Self::read_one`], appending a kept payload onto `dest`.
+    ///
+    /// The active generation is read straight into `dest`. A sealed generation
+    /// is still checked as an owned entry and then copied. On failure `dest`
+    /// is restored to its incoming length.
+    pub(crate) fn read_one_into(
+        &mut self,
+        offset: u64,
+        maximum: usize,
+        scan_bytes: usize,
+        scan_entries: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<(Option<journal::PayloadView>, Work), Error> {
+        self.alive()?;
+        if offset < self.base_offset() {
+            return Err(journal::Error::OffsetBeforeBase.into());
+        }
+        if offset >= self.next_offset() {
+            return Ok((None, Work::default()));
+        }
+        if offset >= self.manifest.active_base {
+            let mark = dest.len();
+            let result = (|| {
+                let view = self.active_mut()?.fetch_one_into(offset, maximum, dest)?;
+                let work = view.map_or(Work::default(), |view| Work {
+                    bytes: view.len,
+                    entries: 1,
+                });
+                if work.bytes > scan_bytes || work.entries > scan_entries {
+                    dest.truncate(mark);
+                    return Err(Error::ScanBudget);
+                }
+                Ok((view, work))
+            })();
+            if let Err(error) = &result {
+                if !matches!(
+                    error,
+                    Error::ScanBudget
+                        | Error::Storage(
+                            journal::Error::FetchBudgetExceeded
+                                | journal::Error::InvalidFetchLimits
+                                | journal::Error::OffsetBeforeBase
+                        )
+                ) {
+                    self.poisoned = true;
+                }
+            }
+            return result;
+        }
+        let mark = dest.len();
+        let (entry, work) = self.read_one(offset, maximum, scan_bytes, scan_entries)?;
+        let Some(entry) = entry else {
+            return Ok((None, work));
+        };
+        if dest.try_reserve_exact(entry.payload.len()).is_err() {
+            dest.truncate(mark);
+            return Err(Error::AllocationFailed);
+        }
+        dest.extend_from_slice(&entry.payload);
+        Ok((
+            Some(journal::PayloadView {
+                first_offset: entry.first_offset,
+                record_count: entry.record_count,
+                len: entry.payload.len(),
+            }),
+            work,
+        ))
+    }
+
     /// Fetch bounded containing/following whole atomic inputs across generations.
     /// Output charges Entry plus payload, as Journal does. Hidden checkpoint
     /// scans are also bounded; exhaustion is an error, never a successful miss.
