@@ -333,6 +333,7 @@ impl Delivery {
     }
 
     /// Release locks whose deadline has passed. Accepted records stay accepted.
+    /// A lock that already used its delivery limit is archived.
     pub fn expire(&mut self, now_ms: i64) -> Result<usize, Error> {
         self.ready()?;
         if now_ms < 0 {
@@ -343,7 +344,7 @@ impl Delivery {
         for record in next.records.values_mut() {
             if let Phase::Locked(lock) = &record.phase {
                 if now_ms >= lock.deadline_ms {
-                    record.phase = Phase::Available;
+                    release_lock(record, self.limits.max_deliveries);
                     released = released.saturating_add(1);
                 }
             }
@@ -365,7 +366,7 @@ impl Delivery {
         for record in next.records.values_mut() {
             if let Phase::Locked(lock) = &record.phase {
                 if lock.leader_epoch == leader_epoch {
-                    record.phase = Phase::Available;
+                    release_lock(record, self.limits.max_deliveries);
                     released = released.saturating_add(1);
                 }
             }
@@ -379,6 +380,11 @@ impl Delivery {
     /// Offsets that were accepted.
     pub fn accepted(&self) -> Vec<i64> {
         self.offsets_in(|phase| matches!(phase, Phase::Accepted))
+    }
+
+    /// Offsets that reached the delivery limit.
+    pub fn archived(&self) -> Vec<i64> {
+        self.offsets_in(|phase| matches!(phase, Phase::Archived))
     }
 
     /// Offsets that are currently locked.
@@ -493,6 +499,14 @@ fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
     bytes.extend_from_slice(&len.to_be_bytes());
     bytes.extend_from_slice(value.as_bytes());
     Ok(())
+}
+
+fn release_lock(record: &mut Record, max_deliveries: u32) {
+    record.phase = if record.deliveries >= max_deliveries {
+        Phase::Archived
+    } else {
+        Phase::Available
+    };
 }
 
 fn take<'a>(input: &mut &'a [u8], len: usize) -> Result<&'a [u8], Error> {
@@ -707,5 +721,48 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(accepted[0].error_code, ACK_OK);
         assert_eq!(delivery.accepted(), vec![7]);
+    }
+
+    #[test]
+    fn expiry_at_the_delivery_limit_archives_the_record() {
+        let (mut delivery, _) = open("archive");
+        delivery
+            .append(8)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            delivery
+                .acquire("alice", 1, 0, &[8])
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec![8]
+        );
+        delivery
+            .acknowledge(
+                "alice",
+                0,
+                &[Ack {
+                    offset: 8,
+                    kind: ACK_RELEASE,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            delivery
+                .acquire("alice", 1, 0, &[8])
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            vec![8]
+        );
+        assert_eq!(
+            delivery
+                .expire(1_000)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            1
+        );
+        assert_eq!(delivery.archived(), vec![8]);
+        assert!(delivery.locked().is_empty());
+        assert!(delivery
+            .acquire("bob", 1, 1_000, &[8])
+            .unwrap_or_else(|error| panic!("{error:?}"))
+            .is_empty());
+        assert!(delivery.accepted().is_empty());
     }
 }
