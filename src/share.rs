@@ -623,9 +623,10 @@ impl ShareGroup {
     /// Join a share group with a topic predicate (Java `subscribe(Pattern)`).
     ///
     /// Cluster topics for which `matches` is true become the subscription.
-    /// Names starting with `__` are skipped. [`Self::poll`] re-lists Metadata
-    /// when [`ConsumerConfig::metadata_max_age`] has elapsed (every poll when
-    /// that age is zero).
+    /// Names starting with `__` are skipped. An empty match still joins: the
+    /// member is in the group with no assignment, and [`Self::poll`] re-lists
+    /// Metadata when [`ConsumerConfig::metadata_max_age`] has elapsed (every
+    /// poll when that age is zero).
     pub async fn join_matching(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -941,6 +942,11 @@ impl ShareGroup {
             if !self.assigned.is_empty() {
                 return Ok(());
             }
+            if self.topics.is_empty() {
+                // Pattern subscribe with no current matches: join succeeded.
+                // [`Self::poll`] re-lists Metadata and (re)joins when names appear.
+                return Ok(());
+            }
             if Instant::now() >= deadline {
                 // Join succeeded; poll waits for assignment (Java ShareConsumer).
                 return Ok(());
@@ -1091,7 +1097,8 @@ impl ShareGroup {
     /// `max_partition_fetch_bytes` are the request byte limits.
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
-    /// subscribed to any topics.`).
+    /// subscribed to any topics.`). A pattern subscription with no current
+    /// matches returns empty records instead of waiting for an assignment.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -1108,6 +1115,11 @@ impl ShareGroup {
         let hb = self.hb_err.load(Ordering::SeqCst);
         if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
+        }
+        if self.topics.is_empty() {
+            // Pattern subscribe, no matching topics yet. Do not wait the
+            // request timeout for an assignment that cannot exist.
+            return Ok(ShareRecords::empty());
         }
         let started = Instant::now();
         let deadline = started + self.cfg.request_timeout;

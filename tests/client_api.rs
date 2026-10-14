@@ -2692,6 +2692,7 @@ async fn share_join_matching_picks_up_new_topic_on_poll() {
     let mut group = ShareGroup::join_matching(
         ConsumerConfig::bootstrap([mock.addr.clone()])
             .max_wait_ms(10)
+            .request_timeout(Duration::from_secs(3))
             .metadata_max_age(Duration::ZERO),
         "sg-pat",
         |n: &str| n.starts_with("sh-"),
