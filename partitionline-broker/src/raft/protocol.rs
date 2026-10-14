@@ -681,6 +681,31 @@ pub struct PreferredCandidate {
     pub directory: Option<[u8; 16]>,
 }
 
+/// Reject an EndQuorum successor list the classic handler would not apply.
+///
+/// The resigning leader cannot be the local voter. A negative or repeated
+/// successor id is illegal. No rank is returned with the refusal.
+fn successor_list_refusal(
+    leader_id: i32,
+    local_id: i32,
+    preferred: &[PreferredCandidate],
+) -> Option<PreVoteRefusal> {
+    if leader_id == local_id {
+        return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    for (index, candidate) in preferred.iter().enumerate() {
+        if candidate.id < 0
+            || preferred
+                .iter()
+                .take(index)
+                .any(|earlier| earlier.id == candidate.id)
+        {
+            return Some(PreVoteRefusal::IllegalEpoch);
+        }
+    }
+    None
+}
+
 /// Rank of the local voter in a preferred-candidate list.
 ///
 /// A version 1 entry whose directory does not match is not this voter, even
@@ -3006,6 +3031,11 @@ pub fn decide_end_body(
     if body.version != 0 && (body.leader_epoch < 0 || body.leader_id < 0) {
         return Ok((VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch), None));
     }
+    if body.version != 0 {
+        if let Some(refusal) = successor_list_refusal(body.leader_id, local_id, &body.preferred) {
+            return Ok((VoteDisposition::Refused(refusal), None));
+        }
+    }
     let rank = preferred_rank(&body.preferred, local_id, local_directory)?;
     let disposition = if body.version == 0 {
         VoteDisposition::DurableV0
@@ -4087,6 +4117,72 @@ mod prevote_tests {
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
         );
         assert_eq!(persistent, before);
+    }
+
+    #[test]
+    fn end_rejects_a_self_or_duplicate_successor_list() {
+        let persistent = state(4);
+        let before = persistent;
+        let directory = [8u8; 16];
+        let mut body = EndEpochBody {
+            version: 1,
+            cluster_id: Some("cluster-1".to_owned()),
+            topic: "__cluster_metadata".to_owned(),
+            partition: 0,
+            leader_id: 7,
+            leader_epoch: 3,
+            preferred: vec![PreferredCandidate {
+                id: 7,
+                directory: Some(directory),
+            }],
+            leader_endpoints: Vec::new(),
+        };
+        let (disposition, rank) = decide_end_body(&persistent, metadata_log(), 7, directory, &body)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            disposition,
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(rank, None);
+        body.leader_id = 4;
+        body.preferred = vec![
+            PreferredCandidate {
+                id: 4,
+                directory: None,
+            },
+            PreferredCandidate {
+                id: 4,
+                directory: Some(directory),
+            },
+        ];
+        let (disposition, rank) = decide_end_body(&persistent, metadata_log(), 7, directory, &body)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            disposition,
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(rank, None);
+        body.preferred = vec![PreferredCandidate {
+            id: -1,
+            directory: None,
+        }];
+        let (disposition, rank) = decide_end_body(&persistent, metadata_log(), 7, directory, &body)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            disposition,
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(rank, None);
+        body.preferred = vec![PreferredCandidate {
+            id: 7,
+            directory: Some(directory),
+        }];
+        let (disposition, rank) = decide_end_body(&persistent, metadata_log(), 7, directory, &body)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(disposition, VoteDisposition::NotAdvertised);
+        assert_eq!(rank, Some(0));
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[3].max_version, 0);
     }
 
     #[test]
