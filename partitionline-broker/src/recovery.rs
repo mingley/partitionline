@@ -150,7 +150,7 @@ impl EpochLog {
     pub fn log_end_offset(&self) -> i64 {
         self.records
             .last()
-            .map(|record| record.offset + 1)
+            .map(|record| record.offset.saturating_add(1))
             .unwrap_or(0)
     }
 
@@ -187,7 +187,16 @@ impl EpochLog {
         if self.records.len() >= self.limits.max_records {
             return Err(Error::InvalidLimits);
         }
-        let offset = self.log_end_offset();
+        // The exclusive end must fit in `i64`. An offset of `i64::MAX` would
+        // make that end wrap and hide the record from the high watermark.
+        let offset = match self.records.last() {
+            Some(last) => last
+                .offset
+                .checked_add(1)
+                .filter(|next| next.checked_add(1).is_some())
+                .ok_or(Error::OffsetOutOfRange)?,
+            None => 0,
+        };
         let record = Record {
             offset,
             leader_epoch,
@@ -433,6 +442,20 @@ mod tests {
             restored.offset_for_leader_epoch(2),
             Err(Error::UnknownEpoch)
         ));
+    }
+
+    #[test]
+    fn an_offset_at_the_end_of_i64_is_not_appended() {
+        let (mut log, _) = log("end");
+        log.append(1, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        log.records[0].offset = i64::MAX - 1;
+        assert_eq!(log.log_end_offset(), i64::MAX);
+        assert!(matches!(log.append(1, 2), Err(Error::OffsetOutOfRange)));
+        assert_eq!(log.records().len(), 1);
+        assert_eq!(log.log_end_offset(), i64::MAX);
+        log.advance_high_watermark(i64::MAX)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.committed_ids(), vec![1]);
     }
 
     #[test]
