@@ -2974,8 +2974,11 @@
 //! `GroupProtocol.of`). [`ConsumerGroup::join_matching`] /
 //! [`ConsumerGroup::join_sticky_matching`] /
 //! [`ConsumerGroup::join_cooperative_sticky_matching`] /
-//! [`ConsumerGroup::join_consumer_matching`] are Java `subscribe(Pattern)`
-//! at join (range, sticky, cooperative-sticky, KIP-848).
+//! [`ConsumerGroup::join_consumer_matching`] /
+//! [`ConsumerGroup::join_consumer_regex`] are Java `subscribe(Pattern)`
+//! at join (range, sticky, cooperative-sticky, KIP-848 names, KIP-848
+//! broker-resolved regex). [`ConsumerGroup::subscribe_regex`] is the
+//! same regex after join.
 //! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /

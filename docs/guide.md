@@ -348,9 +348,9 @@ group.leave().await?;
 ```
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
-`join_consumer_topics`), share groups (`ShareGroup::join` / `poll` /
-`accept` / `release` / `reject`). Examples: `group`, `cooperative`,
-`kip848`, `share`.
+`join_consumer_topics` / `join_consumer_regex`), share groups
+(`ShareGroup::join` / `poll` / `accept` / `release` / `reject`).
+Examples: `group`, `cooperative`, `kip848`, `share`.
 
 KIP-848 (Kafka **4.x** ConsumerGroupHeartbeat) join sends an **empty**
 `TopicPartitions` array — brokers reject `null` with

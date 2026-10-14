@@ -4820,6 +4820,75 @@ async fn consumer_group_heartbeat_negotiates_v0_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn join_consumer_regex_refuses_empty() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let err = ConsumerGroup::join_consumer_regex(ccfg, "rx-empty", "")
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("must not be empty"),
+        "{err}"
+    );
+    assert_eq!(mock.cg_heartbeat_calls(), 0);
+}
+
+#[tokio::test]
+async fn join_consumer_regex_refuses_v0() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CONSUMER_GROUP_HEARTBEAT, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let err = ConsumerGroup::join_consumer_regex(ccfg, "rx-v0", "t.*")
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("regular expressions resolution"),
+        "{err}"
+    );
+}
+
+#[tokio::test]
+async fn join_consumer_regex_speaks_kip848() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join_consumer_regex(ccfg, "rx-ok", "t.*")
+        .await
+        .unwrap();
+    assert_eq!(group.topic_regex(), Some("t.*"));
+    assert!(group.subscription().is_empty());
+    assert_eq!(mock.join_group_calls(), 0);
+    assert!(
+        mock.cg_heartbeat_calls() >= 1,
+        "regex join must speak ConsumerGroupHeartbeat"
+    );
+    assert!(
+        !group.assignment().is_empty(),
+        "assignment UUIDs must resolve via Metadata when names are empty"
+    );
+    group.poll().await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn subscribe_regex_on_classic_is_unsupported() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg, "rx-classic", "t")
+        .await
+        .unwrap();
+    let err = group.subscribe_regex("t.*").await.unwrap_err();
+    assert!(
+        err.to_string().contains("regular expressions resolution"),
+        "{err}"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_group_join_leave_without_classic_or_kip848() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

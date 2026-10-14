@@ -491,6 +491,8 @@ pub struct ConsumerGroup {
     topics: Vec<String>,
     /// Java `subscribe(Pattern)`: re-list cluster topics on poll.
     topic_match: Option<TopicMatch>,
+    /// KIP-848 `SubscribedTopicRegex` (broker-resolved; ConsumerGroupHeartbeat v1+).
+    topic_regex: Option<String>,
     last_match_refresh: Instant,
     protocol: String,
     /// Assignors advertised on JoinGroup (Java `partition.assignment.strategy`).
@@ -672,6 +674,7 @@ impl ConsumerGroup {
             generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
             topics,
             topic_match,
+            topic_regex: None,
             last_match_refresh: Instant::now(),
             protocol,
             assignors,
@@ -781,7 +784,7 @@ impl ConsumerGroup {
         let group_id = group_id.into();
         reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
-        Self::join_consumer_list(cfg, group_id, topics, None).await
+        Self::join_consumer_list(cfg, group_id, topics, None, None).await
     }
 
     /// [`Self::join_consumer`] with a topic predicate (Java `subscribe(Pattern)`).
@@ -790,7 +793,32 @@ impl ConsumerGroup {
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
-        Self::join_consumer_list(cfg, group_id.into(), Vec::new(), Some(Arc::new(matches))).await
+        Self::join_consumer_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            Some(Arc::new(matches)),
+            None,
+        )
+        .await
+    }
+
+    /// Join a KIP-848 group with a broker-resolved topic regex
+    /// (`ConsumerGroupHeartbeat` `SubscribedTopicRegex`).
+    ///
+    /// Java `subscribe(Pattern)` on `group.protocol=consumer`. Requires
+    /// ConsumerGroupHeartbeat v1+. Version 0 is
+    /// [`ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`].
+    /// An empty regex is refused before any RPC.
+    pub async fn join_consumer_regex(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        regex: impl Into<String>,
+    ) -> Result<Self> {
+        let group_id = group_id.into();
+        reject_java_empty_group_id(&group_id)?;
+        let regex = reject_empty_topic_regex(regex.into())?;
+        Self::join_consumer_list(cfg, group_id, Vec::new(), None, Some(regex)).await
     }
 
     async fn join_consumer_list(
@@ -798,6 +826,7 @@ impl ConsumerGroup {
         group_id: String,
         topics: Vec<String>,
         topic_match: Option<TopicMatch>,
+        topic_regex: Option<String>,
     ) -> Result<Self> {
         reject_java_empty_group_id(&group_id)?;
         let mut cfg = cfg;
@@ -829,6 +858,7 @@ impl ConsumerGroup {
             generation_id: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             topics,
             topic_match,
+            topic_regex,
             last_match_refresh: Instant::now(),
             protocol: "consumer".into(),
             assignors: Vec::new(),
@@ -869,9 +899,19 @@ impl ConsumerGroup {
     }
 
     /// Subscribed topic names. Same as [`Self::topics`] (Java `subscription`).
+    ///
+    /// Empty when this member joined with [`Self::join_consumer_regex`]
+    /// (the broker resolves names).
     #[must_use]
     pub fn subscription(&self) -> &[String] {
         self.topics()
+    }
+
+    /// KIP-848 `SubscribedTopicRegex`, if this member joined or subscribed
+    /// with a broker-resolved pattern.
+    #[must_use]
+    pub fn topic_regex(&self) -> Option<&str> {
+        self.topic_regex.as_deref()
     }
 
     /// Java `group.protocol` in effect ([`GroupProtocol`]).
@@ -1241,7 +1281,7 @@ impl ConsumerGroup {
             return Err(Error::MaxPollInterval);
         }
         self.check_max_poll_interval()?;
-        if self.topics.is_empty() && self.topic_match.is_none() {
+        if self.topics.is_empty() && self.topic_match.is_none() && self.topic_regex.is_none() {
             return Err(crate::consumer::reject_java_no_subscription_or_assignment());
         }
         self.maybe_refresh_matching().await?;
@@ -1799,6 +1839,7 @@ impl ConsumerGroup {
         if self.member_id.is_empty() {
             self.topics.clear();
             self.topic_match = None;
+            self.topic_regex = None;
             self.consumer.clear_assignment();
             return Ok(());
         }
@@ -1816,6 +1857,7 @@ impl ConsumerGroup {
         self.consumer.clear_assignment();
         self.topics.clear();
         self.topic_match = None;
+        self.topic_regex = None;
         self.member_id.clear();
         self.generation_id = 0;
         self.hb_generation.store(0, Ordering::SeqCst);
@@ -1837,6 +1879,7 @@ impl ConsumerGroup {
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<()> {
         self.topic_match = None;
+        self.topic_regex = None;
         let topics = collect_topics(topics)?;
         self.apply_subscription(topics).await
     }
@@ -1852,14 +1895,38 @@ impl ConsumerGroup {
         &mut self,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<()> {
+        self.topic_regex = None;
         self.topic_match = Some(Arc::new(matches));
         let topics = self.matching_topic_names().await?;
         self.last_match_refresh = Instant::now();
         self.apply_subscription(topics).await
     }
 
+    /// Replace the subscription with a broker-resolved topic regex
+    /// (KIP-848 `SubscribedTopicRegex`; Java `subscribe(Pattern)` on
+    /// `group.protocol=consumer`).
+    ///
+    /// Requires ConsumerGroupHeartbeat v1+. Classic members and v0 brokers
+    /// refuse with
+    /// [`ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`].
+    /// [`Self::subscribe`] / [`Self::subscribe_matching`] drop the regex.
+    pub async fn subscribe_regex(&mut self, regex: impl Into<String>) -> Result<()> {
+        let regex = reject_empty_topic_regex(regex.into())?;
+        if self.topic_regex.as_deref() == Some(regex.as_str()) && !self.member_id.is_empty() {
+            return Ok(());
+        }
+        if !self.kip848 {
+            return Err(Error::Unsupported(
+                ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG.into(),
+            ));
+        }
+        self.topic_match = None;
+        self.topic_regex = Some(regex);
+        self.apply_subscription(Vec::new()).await
+    }
+
     async fn apply_subscription(&mut self, topics: Vec<String>) -> Result<()> {
-        if topics == self.topics && !self.member_id.is_empty() {
+        if topics == self.topics && self.topic_regex.is_none() && !self.member_id.is_empty() {
             return Ok(());
         }
         let rejoining = !self.member_id.is_empty();
@@ -2246,8 +2313,12 @@ impl ConsumerGroup {
             } else {
                 duration_millis_i32(self.cfg.max_poll_interval)
             },
-            subscribed_topic_names: Some(self.topics.clone()),
-            subscribed_topic_regex: None,
+            subscribed_topic_names: if self.topic_regex.is_some() {
+                None
+            } else {
+                Some(self.topics.clone())
+            },
+            subscribed_topic_regex: self.topic_regex.clone(),
             server_assignor: None,
             // Broker rejects null TopicPartitions on join ("must be empty when
             // (re-)joining"); send an empty array instead of null/unchanged.
@@ -2290,17 +2361,7 @@ impl ConsumerGroup {
         let _ = self.hb_assignment.lock().take();
         self.generation_id = resp.member_epoch;
         let assignment = resp.assignment.unwrap_or_default();
-        let names = self.consumer.topic_id_names();
-        if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
-            && assignment
-                .iter()
-                .any(|topic| !names.contains_key(&topic.topic_id))
-        {
-            return Err(Error::protocol(
-                "group assignment contains an unknown topic UUID",
-            ));
-        }
-        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
+        let wanted = self.resolve_kip848_assignment(&assignment).await?;
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
@@ -2335,14 +2396,18 @@ impl ConsumerGroup {
         }
     }
 
-    async fn apply_pending_assignment(&mut self) -> Result<()> {
-        self.adopt_kip848_member_id();
-        let pending = self.hb_assignment.lock().take();
-        let Some(assignment) = pending else {
-            return Ok(());
-        };
+    async fn resolve_kip848_assignment(
+        &mut self,
+        assignment: &[TopicPartitions],
+    ) -> Result<Vec<(String, i32)>> {
         self.consumer.refresh_topics(&self.topics).await?;
-        let names = self.consumer.topic_id_names();
+        let mut names = self.consumer.topic_id_names();
+        if assignment.iter().any(|topic| {
+            topic.topic_id != [0u8; 16] && !names.contains_key(&topic.topic_id)
+        }) {
+            let _ = self.consumer.list_topics().await?;
+            names = self.consumer.topic_id_names();
+        }
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
             && assignment
                 .iter()
@@ -2352,7 +2417,16 @@ impl ConsumerGroup {
                 "group assignment contains an unknown topic UUID",
             ));
         }
-        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
+        Ok(wanted_from_kip848(&self.topics, &names, assignment))
+    }
+
+    async fn apply_pending_assignment(&mut self) -> Result<()> {
+        self.adopt_kip848_member_id();
+        let pending = self.hb_assignment.lock().take();
+        let Some(assignment) = pending else {
+            return Ok(());
+        };
+        let wanted = self.resolve_kip848_assignment(&assignment).await?;
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.generation_id = self.hb_generation.load(Ordering::SeqCst);
@@ -2967,6 +3041,15 @@ fn reject_java_empty_group_id(group_id: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+fn reject_empty_topic_regex(regex: String) -> Result<String> {
+    if regex.is_empty() {
+        return Err(Error::protocol(
+            "subscribed topic regex must not be empty",
+        ));
+    }
+    Ok(regex)
 }
 
 /// Java `ClassicKafkaConsumer.throwIfNoAssignorsConfigured`.

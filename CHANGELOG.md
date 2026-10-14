@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- KIP-848 `ConsumerGroup::join_consumer_regex` / `subscribe_regex` send
+  `SubscribedTopicRegex` on ConsumerGroupHeartbeat v1+ (Java
+  `subscribe(Pattern)` on `group.protocol=consumer`). Version 0 is
+  refused with the Java regex-resolution message. Assignment topic
+  UUIDs are resolved via cluster Metadata when the name list is empty.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a
