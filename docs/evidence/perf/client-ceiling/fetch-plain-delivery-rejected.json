@@ -1,0 +1,18 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "39741cba56230e14a70b991d54d6c91be6e61ed5",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. Uncompressed non-transactional batches were classified without building Record, then each record was pushed straight into FetchedRecord. Ten interleaved pairs against the parent runtime and the same null broker: paired mean records/s ratio 0.991, bootstrap 95% CI 0.958 to 1.026. Allocation count fell from 135,370 to 135,100. The code was not kept.",
+  "paired_mean_ratio": 0.991,
+  "paired_ratio_ci95": [0.958, 1.026],
+  "before_median": 390765.77,
+  "after_median": 386852.75,
+  "before_records_per_second": [385849.06, 395190.01, 373565.86, 401440.69, 374547.33, 403324.12, 366418.01, 386341.54, 418551.54, 411593.49],
+  "after_records_per_second": [368496.46, 379993.52, 393873.11, 381570.91, 390457.92, 383247.59, 393495.75, 352008.25, 401104.13, 433264.54],
+  "before_allocation_count": 135370,
+  "after_allocation_count": 135100
+}
