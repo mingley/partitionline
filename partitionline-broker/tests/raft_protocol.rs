@@ -844,6 +844,14 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
         dynamic.inspect_unadvertised(53, 1, &protocol::encode_begin_body(&begin)?)?,
         VoteDisposition::Refused(protocol::PreVoteRefusal::InvalidVoterKey)
     );
+    let mut unknown_leader = begin.clone();
+    unknown_leader.voter_directory = Some([1u8; 16]);
+    unknown_leader.leader_id = 9;
+    unknown_leader.leader_epoch = 0;
+    assert_eq!(
+        dynamic.inspect_unadvertised(53, 1, &protocol::encode_begin_body(&unknown_leader)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::IllegalEpoch)
+    );
     let end = EndEpochBody {
         version: 1,
         cluster_id: Some("cluster-fixed".into()),
@@ -860,6 +868,16 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     assert_eq!(
         dynamic.inspect_unadvertised(54, 1, &protocol::encode_end_body(&end)?)?,
         VoteDisposition::Refused(protocol::PreVoteRefusal::StaleDirectory)
+    );
+    let mut unknown_successor = end.clone();
+    unknown_successor.leader_epoch = 0;
+    unknown_successor.preferred = vec![PreferredCandidate {
+        id: 9,
+        directory: Some([9u8; 16]),
+    }];
+    assert_eq!(
+        dynamic.inspect_unadvertised(54, 1, &protocol::encode_end_body(&unknown_successor)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::IllegalEpoch)
     );
     assert!(matches!(
         dynamic.inspect_unadvertised(52, 0, &[]),

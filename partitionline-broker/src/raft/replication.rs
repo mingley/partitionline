@@ -2366,18 +2366,26 @@ impl Node {
             53 => {
                 let decoded =
                     protocol::decode_begin_body(body, version).map_err(Error::Controller)?;
-                Ok(protocol::decide_begin_body(
+                let decided = protocol::decide_begin_body(
                     &persistent,
                     metadata,
                     local_id,
                     local.directory,
                     &decoded,
-                ))
+                );
+                if decided == protocol::VoteDisposition::NotAdvertised
+                    && !self.voter_known(decoded.leader_id)?
+                {
+                    return Ok(protocol::VoteDisposition::Refused(
+                        protocol::PreVoteRefusal::IllegalEpoch,
+                    ));
+                }
+                Ok(decided)
             }
             54 => {
                 let decoded =
                     protocol::decode_end_body(body, version).map_err(Error::Controller)?;
-                Ok(protocol::decide_end_body(
+                let decided = protocol::decide_end_body(
                     &persistent,
                     metadata,
                     local_id,
@@ -2385,7 +2393,19 @@ impl Node {
                     &decoded,
                 )
                 .map_err(Error::Controller)?
-                .0)
+                .0;
+                if decided == protocol::VoteDisposition::NotAdvertised {
+                    let mut known = self.voter_known(decoded.leader_id)?;
+                    for candidate in &decoded.preferred {
+                        known &= self.voter_known(candidate.id)?;
+                    }
+                    if !known {
+                        return Ok(protocol::VoteDisposition::Refused(
+                            protocol::PreVoteRefusal::IllegalEpoch,
+                        ));
+                    }
+                }
+                Ok(decided)
             }
             55 => {
                 let decoded = protocol::decode_describe_quorum_request(body, version)
@@ -2499,6 +2519,10 @@ impl Node {
         self.known_voter(
             i32::try_from(self.config.controller.local_id).map_err(|_| Error::InvalidConfig)?,
         )
+    }
+    fn voter_known(&self, id: i32) -> Result<bool, Error> {
+        let id = u32::try_from(id).map_err(|_| Error::InvalidConfig)?;
+        Ok(self.voters()?.by_id(id).is_some())
     }
     fn known_voter(&self, id: i32) -> Result<membership::Key, Error> {
         let id = u32::try_from(id).map_err(|_| Error::InvalidConfig)?;
