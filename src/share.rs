@@ -688,7 +688,10 @@ pub enum ShareAcquireMode {
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
 /// or partition is skipped (Java `lookupTopicId` /
-/// `testShareFetchInvalidResponse`).
+/// `testShareFetchInvalidResponse`). A partition-level ShareFetch
+/// error does not discard sibling partitions in the same response
+/// (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
+/// `ShareFetchCollector.collect`).
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -715,7 +718,9 @@ pub struct ShareGroup {
     share_conns: HashMap<i32, ShareNodeConnection>,
     share_addresses: HashMap<i32, String>,
     acquisitions: HashMap<AcquisitionKey, Acquisition>,
-    pending_delivery: VecDeque<ShareRecord>,
+    /// Java `ShareFetchBuffer`: successful partitions and collectable
+    /// partition errors, in ShareFetch response order.
+    pending_completed: VecDeque<ShareCompletedFetch>,
     acquire_mode: ShareAcquireMode,
     acknowledgement_mode: ShareAcknowledgementMode,
     last_poll_unacked: Vec<ShareRecord>,
@@ -784,6 +789,12 @@ struct PreparedShareFetch {
     by_id: BTreeMap<[u8; 16], Vec<i32>>,
     ack_tps: Vec<(String, i32)>,
     request: BytesMut,
+}
+
+/// One Java `ShareCompletedFetch` (records or a collectable partition error).
+enum ShareCompletedFetch {
+    Records(VecDeque<ShareRecord>),
+    Error(Error),
 }
 
 /// Java `ShareConsumeRequestManager.INVALID_RESPONSE`.
@@ -915,7 +926,7 @@ impl ShareGroup {
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
             acquisitions: HashMap::new(),
-            pending_delivery: VecDeque::new(),
+            pending_completed: VecDeque::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
             acknowledgement_mode: cfg.share_acknowledgement_mode,
             last_poll_unacked: Vec::new(),
@@ -1271,7 +1282,7 @@ impl ShareGroup {
         self.topic_ids.clear();
         if assigned.is_empty() {
             self.acquisitions.clear();
-            self.pending_delivery.clear();
+            self.pending_completed.clear();
             self.pending_acknowledgements.clear();
             self.counted_acknowledgements.clear();
             return;
@@ -1306,7 +1317,7 @@ impl ShareGroup {
         self.acquisitions.retain(|(topic, part, _), _| {
             self.assigned.iter().any(|(t, p)| t == topic && p == part)
         });
-        self.pending_delivery.retain(|r| {
+        retain_completed_records(&mut self.pending_completed, |r| {
             self.acquisitions
                 .contains_key(&(r.topic.clone(), r.partition, r.offset))
         });
@@ -1413,6 +1424,10 @@ impl ShareGroup {
     /// acknowledgement. A ShareFetch `AcknowledgeErrorCode` completes the
     /// piggybacked acknowledgements (commit callback) and still delivers
     /// this fetch; [`Self::poll`] does not return that error.
+    /// A partition-level error (Java `ShareFetchCollector.collect` /
+    /// `testMultipleTopicsFetch`) leaves successful sibling partitions
+    /// deliverable. The error is returned on this poll when it is first
+    /// in the completed-fetch buffer, otherwise on a later poll.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -1662,20 +1677,49 @@ impl ShareGroup {
         let now = Instant::now();
         self.acquisitions
             .retain(|_, acquisition| acquisition.expires_at.is_none_or(|expiry| expiry > now));
-        self.pending_delivery.retain(|r| {
+        retain_completed_records(&mut self.pending_completed, |r| {
             self.acquisitions
                 .get(&(r.topic.clone(), r.partition, r.offset))
                 .is_some_and(|a| a.delivery_count == r.delivery_count)
         });
     }
 
-    fn drain_pending_delivery(&mut self) -> Vec<ShareRecord> {
-        let count = self
-            .cfg
-            .max_poll_records
-            .unwrap_or(usize::MAX)
-            .min(self.pending_delivery.len());
-        self.pending_delivery.drain(..count).collect()
+    /// Java `ShareFetchCollector.collect`: drain records until
+    /// `max_poll_records`. A collectable partition error at the front
+    /// is returned when no records have been taken yet; otherwise it
+    /// stays for the next poll (Java `testMultipleTopicsFetch`).
+    fn collect_completed_fetches(&mut self) -> Result<Vec<ShareRecord>> {
+        let limit = self.cfg.max_poll_records.unwrap_or(usize::MAX);
+        let mut out = Vec::new();
+        loop {
+            if out.len() >= limit {
+                break;
+            }
+            match self.pending_completed.front() {
+                None => break,
+                Some(ShareCompletedFetch::Error(_)) if out.is_empty() => {
+                    let error = match self.pending_completed.pop_front() {
+                        Some(ShareCompletedFetch::Error(error)) => error,
+                        _ => break,
+                    };
+                    return Err(error);
+                }
+                Some(ShareCompletedFetch::Error(_)) => break,
+                Some(ShareCompletedFetch::Records(_)) => {
+                    let Some(ShareCompletedFetch::Records(recs)) =
+                        self.pending_completed.front_mut()
+                    else {
+                        break;
+                    };
+                    let take = limit.saturating_sub(out.len()).min(recs.len());
+                    out.extend(recs.drain(..take));
+                    if recs.is_empty() {
+                        let _ = self.pending_completed.pop_front();
+                    }
+                }
+            }
+        }
+        Ok(out)
     }
 
     async fn node_share_version(&mut self, node: i32, api: i16) -> Result<i16> {
@@ -1823,7 +1867,7 @@ impl ShareGroup {
         let _ = self.share_conns.remove(&node);
         self.acquisitions
             .retain(|_, acquisition| acquisition.node != node);
-        self.pending_delivery.retain(|r| {
+        retain_completed_records(&mut self.pending_completed, |r| {
             self.acquisitions
                 .contains_key(&(r.topic.clone(), r.partition, r.offset))
         });
@@ -1934,11 +1978,12 @@ impl ShareGroup {
     }
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
-        if !self.pending_delivery.is_empty() {
+        if !self.pending_completed.is_empty() {
             // Java returns the completed-fetch buffer without a ShareFetch.
             // Queued acknowledgements stay local until the next ShareFetch
-            // piggyback, commit, or leave.
-            return Ok(self.drain_pending_delivery());
+            // piggyback, commit, or leave. A leftover partition error is
+            // collected here (Java `testMultipleTopicsFetch`).
+            return self.collect_completed_fetches();
         }
         let assigned = self.assigned.clone();
         let mut fetch_tps = assigned.clone();
@@ -2132,6 +2177,7 @@ impl ShareGroup {
             HashMap::new()
         };
         let multi = prepared.len() > 1;
+        let mut first_retriable: Option<Error> = None;
         for PreparedShareFetch {
             node,
             version,
@@ -2236,6 +2282,8 @@ impl ShareGroup {
             let mut incoming = Vec::new();
             let mut incoming_keys = HashSet::new();
             let mut seen_ack_tps = HashSet::new();
+            let mut completed = Vec::new();
+            let mut node_retriable: Option<Error> = None;
             for topic in fetched {
                 // Java lookupTopicId: unknown topic id / partition is
                 // skipped (testShareFetchInvalidResponse). poll does not
@@ -2251,17 +2299,30 @@ impl ShareGroup {
                     }
                     let _ = seen_ack_tps.insert((name.clone(), part.partition));
                     if part.error_code != 0 {
-                        if share_ack_ownership_lost(part.error_code) {
+                        if share_ack_ownership_lost(part.error_code)
+                            || share_fetch_partition_skipped(part.error_code)
+                        {
                             self.consumer.invalidate_topic(&name);
                         }
                         let error = Error::broker(
                             part.error_code,
                             format!("ShareFetch {name}-{}", part.partition),
                         );
-                        if share_session_reset(&error) || share_leader_retriable(&error) {
+                        if share_session_reset(&error) {
                             self.reset_node_session(node);
                         }
-                        return Err(error);
+                        // Java ShareFetchCollector.handleInitializeErrors:
+                        // NOT_LEADER / UNKNOWN_TOPIC_ID / … request a
+                        // metadata update and do not throw. Sibling
+                        // partitions stay collectable.
+                        if share_fetch_partition_skipped(part.error_code) {
+                            if node_retriable.is_none() && share_leader_retriable(&error) {
+                                node_retriable = Some(error);
+                            }
+                            continue;
+                        }
+                        completed.push(ShareCompletedFetch::Error(error));
+                        continue;
                     }
                     if part.acknowledge_error_code != 0 {
                         // Java ShareConsumeRequestManager completes the
@@ -2297,6 +2358,7 @@ impl ShareGroup {
                         return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
                     }
                     let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
+                    let mut part_records = Vec::new();
                     for batch in part.records {
                         let timestamp_type = batch.timestamp_type();
                         let leader_epoch = (batch.partition_leader_epoch >= 0)
@@ -2320,7 +2382,7 @@ impl ShareGroup {
                                     continue;
                                 }
                             }
-                            incoming.push(ShareRecord {
+                            part_records.push(ShareRecord {
                                 topic: name.clone(),
                                 partition: part.partition,
                                 offset: record.offset,
@@ -2333,6 +2395,10 @@ impl ShareGroup {
                                 leader_epoch,
                             });
                         }
+                    }
+                    incoming.extend(part_records.iter().cloned());
+                    if !part_records.is_empty() {
+                        completed.push(ShareCompletedFetch::Records(part_records.into()));
                     }
                 }
             }
@@ -2381,10 +2447,20 @@ impl ShareGroup {
                         expires_at: expiry,
                     },
                 );
-                self.pending_delivery.push_back(record);
+            }
+            for item in completed {
+                self.pending_completed.push_back(item);
+            }
+            if first_retriable.is_none() {
+                first_retriable = node_retriable;
             }
         }
-        Ok(self.drain_pending_delivery())
+        if let Some(error) = first_retriable {
+            if self.pending_completed.is_empty() {
+                return Err(error);
+            }
+        }
+        self.collect_completed_fetches()
     }
 
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
@@ -2416,7 +2492,7 @@ impl ShareGroup {
             self.session_partitions.clear();
             self.share_conns.clear();
             self.acquisitions.clear();
-            self.pending_delivery.clear();
+            self.pending_completed.clear();
             self.last_poll_unacked.clear();
             self.pending_acknowledgements.clear();
             self.counted_acknowledgements.clear();
@@ -2973,13 +3049,13 @@ impl ShareGroup {
 
     /// Java `ShareConsumerImpl.ensureInFlightAcknowledgedIfExplicitAcknowledgement`.
     ///
-    /// Buffered leftover from the last ShareFetch (`pending_delivery`) can
-    /// still be drained; the check applies when the next poll would
+    /// Buffered leftover from the last ShareFetch (`pending_completed`)
+    /// can still be drained; the check applies when the next poll would
     /// contact a broker.
     fn ensure_explicit_in_flight_acknowledged(&self) -> Result<()> {
         if self.acknowledgement_mode == ShareAcknowledgementMode::Explicit
             && !self.last_poll_unacked.is_empty()
-            && self.pending_delivery.is_empty()
+            && self.pending_completed.is_empty()
         {
             return Err(reject_java_explicit_in_flight());
         }
@@ -3374,7 +3450,7 @@ impl ShareGroup {
         self.session_partitions.clear();
         self.share_conns.clear();
         self.acquisitions.clear();
-        self.pending_delivery.clear();
+        self.pending_completed.clear();
         self.pending_acknowledgements.clear();
         self.counted_acknowledgements.clear();
         self.async_commit = false;
@@ -3766,6 +3842,24 @@ fn share_ack_ownership_lost(code: i16) -> bool {
     )
 }
 
+/// Java `ShareFetchCollector.handleInitializeErrors` codes that request
+/// a metadata update (or are logged) and do not throw from `collect`.
+fn share_fetch_partition_skipped(code: i16) -> bool {
+    matches!(
+        code,
+        error::NOT_LEADER_OR_FOLLOWER
+            | error::REPLICA_NOT_AVAILABLE
+            | error::KAFKA_STORAGE_ERROR
+            | error::FENCED_LEADER_EPOCH
+            | error::OFFSET_NOT_AVAILABLE
+            | error::UNKNOWN_TOPIC_OR_PARTITION
+            | error::UNKNOWN_TOPIC_ID
+            | error::INCONSISTENT_TOPIC_ID
+            | error::UNKNOWN_LEADER_EPOCH
+            | error::UNKNOWN_SERVER_ERROR
+    )
+}
+
 fn share_ack_retriable(error: &Error) -> bool {
     error.broker_code().is_some_and(|code| {
         !share_ack_ownership_lost(code)
@@ -3795,6 +3889,25 @@ fn share_session_reset(e: &Error) -> bool {
             ..
         }
     )
+}
+
+fn retain_completed_records(
+    pending: &mut VecDeque<ShareCompletedFetch>,
+    keep: impl Fn(&ShareRecord) -> bool,
+) {
+    let mut kept = VecDeque::new();
+    for item in std::mem::take(pending) {
+        match item {
+            ShareCompletedFetch::Records(recs) => {
+                let recs: VecDeque<_> = recs.into_iter().filter(&keep).collect();
+                if !recs.is_empty() {
+                    kept.push_back(ShareCompletedFetch::Records(recs));
+                }
+            }
+            other => kept.push_back(other),
+        }
+    }
+    *pending = kept;
 }
 
 /// Topic-id + partition keys currently in a node's ShareFetch body.
@@ -3981,6 +4094,19 @@ mod tests {
             error::INVALID_SHARE_SESSION_EPOCH,
             "x"
         )));
+    }
+
+    #[test]
+    fn share_fetch_partition_skipped_matches_java_collect() {
+        assert!(share_fetch_partition_skipped(error::NOT_LEADER_OR_FOLLOWER));
+        assert!(share_fetch_partition_skipped(error::UNKNOWN_TOPIC_ID));
+        assert!(share_fetch_partition_skipped(error::INCONSISTENT_TOPIC_ID));
+        assert!(share_fetch_partition_skipped(error::UNKNOWN_SERVER_ERROR));
+        assert!(!share_fetch_partition_skipped(
+            error::TOPIC_AUTHORIZATION_FAILED
+        ));
+        assert!(!share_fetch_partition_skipped(error::CORRUPT_MESSAGE));
+        assert!(!share_fetch_partition_skipped(error::INVALID_RECORD_STATE));
     }
 
     #[test]

@@ -19,6 +19,7 @@ use parking_lot::Mutex;
 
 use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
+use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
     encode_share_fetch_response, encode_share_fetch_response_with_acquisition_lock_timeout,
@@ -71,6 +72,24 @@ fn assert_broker(error: Error, expected: i16) {
         matches!(error, Error::Broker { code, .. } if code == expected),
         "{error:?}"
     );
+}
+
+fn injected_share_success(value: &'static [u8]) -> ShareFetchedPartition {
+    let rec = Record {
+        offset: 0,
+        timestamp: 0,
+        key: None,
+        value: Some(Bytes::from_static(value)),
+        headers: Vec::new(),
+    };
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![RecordBatch::from_records(vec![rec])];
+    part.acquired = vec![AcquiredRange {
+        first_offset: 0,
+        last_offset: 0,
+        delivery_count: 1,
+    }];
+    part
 }
 
 #[tokio::test]
@@ -1545,6 +1564,82 @@ async fn share_fetch_unrequested_topic_id_is_skipped() {
     assert_eq!(got.len(), 1);
     assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
     group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_sibling_partition_error_still_delivers() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join_topics(cfg, "multi-ok", ["t", "u"])
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![
+        ShareFetchedTopic {
+            topic_id: mock.topic_id("t"),
+            partitions: vec![injected_share_success(b"keep")],
+        },
+        ShareFetchedTopic {
+            topic_id: mock.topic_id("u"),
+            partitions: vec![ShareFetchedPartition::partition_response(
+                0,
+                error::TOPIC_AUTHORIZATION_FAILED,
+            )],
+        },
+    ];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].topic, "t");
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_broker(
+        group.poll().await.unwrap_err(),
+        error::TOPIC_AUTHORIZATION_FAILED,
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_sibling_partition_error_before_records() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join_topics(cfg, "multi-err", ["t", "u"])
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![
+        ShareFetchedTopic {
+            topic_id: mock.topic_id("u"),
+            partitions: vec![ShareFetchedPartition::partition_response(
+                0,
+                error::TOPIC_AUTHORIZATION_FAILED,
+            )],
+        },
+        ShareFetchedTopic {
+            topic_id: mock.topic_id("t"),
+            partitions: vec![injected_share_success(b"keep")],
+        },
+    ];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert_broker(
+        group.poll().await.unwrap_err(),
+        error::TOPIC_AUTHORIZATION_FAILED,
+    );
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].topic, "t");
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
     group.leave().await.unwrap();
 }
 
