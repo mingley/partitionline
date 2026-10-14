@@ -3195,6 +3195,7 @@ impl Consumer {
                         if let Some(next) = truncated_fetch_offset(off, p.end_offset) {
                             self.advance(&t.topic, p.partition, next);
                             self.set_last_fetched_epoch(&t.topic, p.partition, p.leader_epoch);
+                            self.drop_pending_for(&t.topic, p.partition);
                         }
                     }
                     continue;
@@ -3847,6 +3848,11 @@ impl Consumer {
                 fenced.sort();
                 fenced.dedup();
                 self.recover_leader_epochs(&fenced).await?;
+                for (topic, partition) in &fenced {
+                    if let Ok(cursor) = self.fetch_cursor(topic, *partition) {
+                        drop_records_at_or_after(&mut out, topic, *partition, cursor);
+                    }
+                }
                 retry = retry.merge(FetchRetry::Backoff);
             }
             if budget_reached {
@@ -5519,6 +5525,17 @@ fn fetch_topics(
 ///
 /// [`crate::protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] is not a
 /// log position. A successful lookup with that sentinel must not rewind.
+fn drop_records_at_or_after(
+    records: &mut Vec<FetchedRecord>,
+    topic: &str,
+    partition: i32,
+    cursor: i64,
+) {
+    records.retain(|record| {
+        record.topic.as_str() != topic || record.partition != partition || record.offset < cursor
+    });
+}
+
 fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
     if end_offset >= 0 && position > end_offset {
         Some(end_offset)
@@ -5703,6 +5720,35 @@ mod tests {
         bytes.extend_from_slice(&code.to_be_bytes());
         bytes.extend_from_slice(&id.to_be_bytes());
         Bytes::from(bytes)
+    }
+
+    fn fetched_at(topic: &str, partition: i32, offset: i64) -> FetchedRecord {
+        FetchedRecord {
+            topic: TopicName::from(topic),
+            partition,
+            offset,
+            timestamp: 0,
+            timestamp_type: TimestampType::CreateTime,
+            key: None,
+            value: None,
+            headers: Vec::new(),
+            leader_epoch: None,
+        }
+    }
+
+    #[test]
+    fn truncation_drops_records_at_the_new_cursor() {
+        let mut records = vec![
+            fetched_at("t", 0, 1),
+            fetched_at("t", 0, 4),
+            fetched_at("u", 0, 4),
+        ];
+        drop_records_at_or_after(&mut records, "t", 0, 4);
+        let kept: Vec<_> = records
+            .iter()
+            .map(|record| (record.topic.as_str(), record.offset))
+            .collect();
+        assert_eq!(kept, vec![("t", 1), ("u", 4)]);
     }
 
     #[test]
