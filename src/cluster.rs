@@ -14,12 +14,12 @@ use crate::protocol::records::RecordBatch;
 /// billions of slots.
 const MAX_CACHED_PARTITIONS: i32 = 1_000_000;
 
-/// A broker that can be dialed. Empty hosts, non-positive ids, and ports
-/// outside `1..=65535` are not addresses.
-fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> {
+/// Host and port that can be dialed.
+///
+/// An IPv6 host already wrapped in brackets is unwrapped before formatting,
+/// so `[::1]` becomes `[::1]:port` rather than `[[::1]]:port`.
+pub(crate) fn dial_address(host: &str, port: i32) -> Option<String> {
     let host = host.trim();
-    // Metadata sometimes sends an IPv6 host already wrapped in brackets.
-    // Formatting that again would dial `[[::1]]:port`.
     let host = match host
         .strip_prefix('[')
         .and_then(|rest| rest.strip_suffix(']'))
@@ -27,10 +27,20 @@ fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> 
         Some(inner) => inner.trim(),
         None => host,
     };
-    if node_id < 0 || host.is_empty() || !(1..=i32::from(u16::MAX)).contains(&port) {
+    if host.is_empty() || !(1..=i32::from(u16::MAX)).contains(&port) {
         None
     } else {
         Some(crate::net::format_address(host, port))
+    }
+}
+
+/// A broker that can be dialed. Empty hosts, non-positive ids, and ports
+/// outside `1..=65535` are not addresses.
+fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> {
+    if node_id < 0 {
+        None
+    } else {
+        dial_address(host, port)
     }
 }
 
@@ -508,6 +518,19 @@ mod tests {
         );
         cluster.apply(&metadata(vec![broker(6, "[]", 9092)]), 13);
         assert!(!cluster.brokers.contains_key(&6));
+        assert_eq!(dial_address("[::1]", 9092).as_deref(), Some("[::1]:9092"));
+        assert_eq!(
+            dial_address("  [::1]  ", 9092).as_deref(),
+            Some("[::1]:9092")
+        );
+        assert_eq!(dial_address("::1", 9092).as_deref(), Some("[::1]:9092"));
+        assert_eq!(
+            dial_address("coordinator.example", 9092).as_deref(),
+            Some("coordinator.example:9092")
+        );
+        assert!(dial_address("[]", 9092).is_none());
+        assert!(dial_address("::1", 0).is_none());
+        assert!(dial_address("", 9092).is_none());
     }
 
     #[test]

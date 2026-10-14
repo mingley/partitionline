@@ -3392,10 +3392,9 @@ async fn discover_coord_once(
             }
             continue;
         }
-        if host.is_empty() || !(1..=65535).contains(&port) {
+        let Some(coord_addr) = crate::cluster::dial_address(&host, port) else {
             return Err(Error::protocol("invalid coordinator address"));
-        }
-        let coord_addr = crate::net::format_address(&host, port);
+        };
         if coord_addr == hop.addr() {
             return Ok((hop, versions));
         }
