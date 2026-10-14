@@ -5993,21 +5993,59 @@ pub(crate) fn partition_infos_from(
     md: &MetadataResponse,
     only: Option<&str>,
 ) -> Result<Vec<PartitionInfo>> {
-    let mut out = Vec::new();
+    let mut order = Vec::new();
+    let mut parts: HashMap<String, Vec<PartitionMetadata>> = HashMap::new();
+    let mut topic_error: HashMap<String, i16> = HashMap::new();
+    let mut first_error: Option<(String, i16)> = None;
     for tmd in &md.topics {
         let Some(name) = tmd.name.as_ref() else {
             continue;
         };
-        if let Some(only) = only {
-            if name != only {
-                continue;
-            }
+        if only.is_some_and(|wanted| name != wanted) {
+            continue;
         }
         if tmd.error_code != 0 {
-            return Err(Error::broker(tmd.error_code, name.clone()));
+            if first_error.is_none() {
+                first_error = Some((name.clone(), tmd.error_code));
+            }
+            let _ = topic_error.entry(name.clone()).or_insert(tmd.error_code);
+            continue;
         }
-        for p in &tmd.partitions {
-            out.push(PartitionInfo::from_partition_metadata(name.as_str(), p));
+        if !parts.contains_key(name) {
+            order.push(name.clone());
+        }
+        let slot = parts.entry(name.clone()).or_default();
+        for partition in &tmd.partitions {
+            if partition.partition_index < 0 {
+                continue;
+            }
+            if slot
+                .iter()
+                .any(|existing| existing.partition_index == partition.partition_index)
+            {
+                continue;
+            }
+            slot.push(partition.clone());
+        }
+    }
+    if let Some(wanted) = only {
+        if !parts.contains_key(wanted) {
+            if let Some(code) = topic_error.get(wanted) {
+                return Err(Error::broker(*code, wanted.to_string()));
+            }
+            return Ok(Vec::new());
+        }
+    } else if parts.is_empty() {
+        if let Some((name, code)) = first_error {
+            return Err(Error::broker(code, name));
+        }
+    }
+    let mut out = Vec::new();
+    for name in order {
+        if let Some(partitions) = parts.get(&name) {
+            for partition in partitions {
+                out.push(PartitionInfo::from_partition_metadata(&name, partition));
+            }
         }
     }
     Ok(out)
@@ -6053,6 +6091,58 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_later_topic_copy_is_listed_when_the_first_has_an_error() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let partition = |index: i32, leader: i32| PartitionMetadata {
+            error_code: 0,
+            partition_index: index,
+            leader_id: leader,
+            leader_epoch: 1,
+            replica_nodes: vec![leader],
+            isr_nodes: vec![leader],
+            offline_replicas: Vec::new(),
+        };
+        let topic = |name: &str, error_code: i16, parts: Vec<PartitionMetadata>| TopicMetadata {
+            error_code,
+            name: Some(name.into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: parts,
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics: vec![
+                topic("t", 5, Vec::new()),
+                topic(
+                    "t",
+                    0,
+                    vec![partition(1, 2), partition(0, 1), partition(0, 9)],
+                ),
+                topic("u", 3, Vec::new()),
+                topic("v", 0, vec![partition(0, 1)]),
+            ],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let listed = partition_infos_from(&md, None).unwrap();
+        let topics: Vec<_> = listed.iter().map(|info| info.partition()).collect();
+        assert_eq!(topics, vec![1, 0, 0]);
+        assert_eq!(listed[0].topic(), "t");
+        assert_eq!(listed[1].topic(), "t");
+        assert_eq!(listed[1].leader(), 1);
+        assert_eq!(listed[2].topic(), "v");
+        assert!(partition_infos_from(&md, Some("u")).is_err());
+        assert!(partition_infos_from(&md, Some("missing"))
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
