@@ -1587,6 +1587,38 @@ impl PendingRecords {
         self.order.clear();
     }
 
+    fn prepend(&mut self, records: Vec<FetchedRecord>) {
+        if records.is_empty() {
+            return;
+        }
+        let mut runs: VecDeque<PendingRun> = VecDeque::new();
+        for rec in records.into_iter().rev() {
+            if let Some(run) = runs
+                .front_mut()
+                .filter(|run| run.topic == rec.topic.as_str() && run.partition == rec.partition)
+            {
+                run.count += 1;
+            } else {
+                runs.push_front(PendingRun {
+                    topic: rec.topic.as_str().to_owned(),
+                    partition: rec.partition,
+                    count: 1,
+                });
+            }
+            if let Some(queue) = self.partitions.get_mut(&rec.topic, rec.partition) {
+                queue.push_front(rec);
+            } else {
+                let topic = rec.topic.clone();
+                let _previous =
+                    self.partitions
+                        .insert(&topic, rec.partition, VecDeque::from([rec]));
+            }
+        }
+        while let Some(run) = runs.pop_back() {
+            self.order.push_front(run);
+        }
+    }
+
     fn extend(&mut self, records: Vec<FetchedRecord>) {
         for rec in records {
             if let Some(run) = self
@@ -3336,19 +3368,23 @@ impl Consumer {
     /// the Fetch stay buffered and are returned on the next call.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn fetch(&mut self) -> Result<ConsumerRecords> {
-        self.fetch_records(true, self.cfg.max_wait_ms).await
+        self.fetch_records(true, self.cfg.max_wait_ms, true).await
     }
 
     /// [`Self::fetch`] for a subscribed [`crate::ConsumerGroup`] (assignment
     /// may still be empty while the coordinator is joining).
+    ///
+    /// Fetch interceptors run when the group returns the records, after a
+    /// zero-interval auto-commit has succeeded.
     pub(crate) async fn fetch_allow_unassigned(&mut self) -> Result<ConsumerRecords> {
-        self.fetch_records(false, self.cfg.max_wait_ms).await
+        self.fetch_records(false, self.cfg.max_wait_ms, false).await
     }
 
     async fn fetch_records(
         &mut self,
         require_assignment: bool,
         max_wait_ms: i32,
+        intercept: bool,
     ) -> Result<ConsumerRecords> {
         if self.take_wakeup() {
             return Err(Error::Wakeup);
@@ -3389,9 +3425,12 @@ impl Consumer {
                     bytes
                 };
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
-                Ok(ConsumerRecords::from(
-                    self.cfg.interceptors.on_consume(recs),
-                ))
+                let recs = if intercept {
+                    self.cfg.interceptors.on_consume(recs)
+                } else {
+                    recs
+                };
+                Ok(ConsumerRecords::from(recs))
             }
             Err(Error::Wakeup) => {
                 let _ = self.take_wakeup();
@@ -3409,7 +3448,7 @@ impl Consumer {
     /// A cancelled one-shot future leaves [`ConsumerConfig::max_wait_ms`] intact. Nothing
     /// assigned is the same Java `IllegalStateException` as [`Self::fetch`].
     pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
-        self.fetch_records_timeout(timeout, true).await
+        self.fetch_records_timeout(timeout, true, true).await
     }
 
     /// [`Self::fetch_timeout`] for a subscribed [`crate::ConsumerGroup`].
@@ -3417,17 +3456,18 @@ impl Consumer {
         &mut self,
         timeout: Duration,
     ) -> Result<ConsumerRecords> {
-        self.fetch_records_timeout(timeout, false).await
+        self.fetch_records_timeout(timeout, false, false).await
     }
 
     async fn fetch_records_timeout(
         &mut self,
         timeout: Duration,
         require_assignment: bool,
+        intercept: bool,
     ) -> Result<ConsumerRecords> {
         // Carry the one-shot value through the future instead of mutating cfg:
         // cancellation during a quota wait must not change later poll settings.
-        self.fetch_records(require_assignment, duration_millis_i32(timeout))
+        self.fetch_records(require_assignment, duration_millis_i32(timeout), intercept)
             .await
     }
 
@@ -3601,6 +3641,27 @@ impl Consumer {
 
     pub(crate) fn close_interceptors(&self) {
         self.cfg.interceptors.close();
+    }
+
+    /// Run fetch interceptors once, when a group poll actually returns records.
+    pub(crate) fn deliver_consumed(&self, records: ConsumerRecords) -> ConsumerRecords {
+        ConsumerRecords::from(
+            self.cfg
+                .interceptors
+                .on_consume(records.into_iter().collect()),
+        )
+    }
+
+    /// Put a poll batch back in front of any records still buffered.
+    ///
+    /// Used when a zero-interval auto-commit fails after the fetch cursor has
+    /// already moved. The next poll returns this batch again.
+    pub(crate) fn restore_fetched(&mut self, records: ConsumerRecords) {
+        let records: Vec<FetchedRecord> = records.into_iter().collect();
+        for rec in &records {
+            self.buffered_bytes = self.buffered_bytes.saturating_add(record_bytes(rec));
+        }
+        self.pending.prepend(records);
     }
 
     pub(crate) fn take_wakeup(&self) -> bool {
@@ -6219,6 +6280,22 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn pending_prepend_keeps_returned_records_ahead_of_the_buffer() {
+        let mut pending = PendingRecords::new();
+        pending.extend(vec![fetched_at("t", 0, 1), fetched_at("t", 1, 4)]);
+        pending.prepend(vec![fetched_at("t", 0, 0), fetched_at("t", 1, 3)]);
+        let mut bytes = 0usize;
+        let drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        assert_eq!(
+            drained
+                .iter()
+                .map(|record| (record.partition, record.offset))
+                .collect::<Vec<_>>(),
+            vec![(0, 0), (1, 3), (0, 1), (1, 4)]
+        );
     }
 
     #[test]

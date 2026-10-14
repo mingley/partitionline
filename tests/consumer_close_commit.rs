@@ -158,6 +158,51 @@ async fn auto_commit_on_poll_interval_still_commits() {
     group.leave().await.unwrap();
 }
 
+/// A failed zero-interval commit must not drop records the caller never received.
+#[tokio::test]
+async fn failed_zero_interval_commit_keeps_the_fetched_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"one"[..]),
+            ProduceRecord::to("t").value(&b"two"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(true)
+            .auto_commit_interval(Duration::ZERO),
+        "commit-keeps",
+        "t",
+    )
+    .await
+    .unwrap();
+    mock.set_offset_commit_error(error::INVALID_REQUEST);
+    let failed = group.poll().await.unwrap_err();
+    assert!(
+        matches!(failed, Error::Broker { code, .. } if code == error::INVALID_REQUEST),
+        "poll must surface the commit failure, got {failed}"
+    );
+    assert!(
+        group.metrics().records_fetched >= 2,
+        "the fetch already returned both records"
+    );
+    assert_eq!(
+        group.position("t", 0).unwrap(),
+        0,
+        "the uncommitted batch stays at the delivered position"
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn zero_interval_does_not_commit_before_first_application_delivery() {
     let mock = common::Mock::start().await;

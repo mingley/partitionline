@@ -1291,13 +1291,19 @@ impl ConsumerGroup {
             Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
             None => self.consumer.fetch_allow_unassigned().await?,
         };
-        if !recs.is_empty() {
-            self.record_delivered_positions(self.consumer.positions());
-            if self.cfg.enable_auto_commit && self.cfg.auto_commit_interval.is_zero() {
-                self.commit().await?;
+        if !recs.is_empty()
+            && self.cfg.enable_auto_commit
+            && self.cfg.auto_commit_interval.is_zero()
+        {
+            if let Err(error) = self.commit().await {
+                self.consumer.restore_fetched(recs);
+                return Err(error);
             }
         }
-        Ok(recs)
+        if !recs.is_empty() {
+            self.record_delivered_positions(self.consumer.positions());
+        }
+        Ok(self.consumer.deliver_consumed(recs))
     }
 
     /// Fetch counters for the underlying consumer.
