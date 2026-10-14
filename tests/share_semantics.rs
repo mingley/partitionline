@@ -275,10 +275,7 @@ async fn acknowledgement_commit_callback_receives_broker_error() {
         seen_cb
             .lock()
             .unwrap()
-            .push(exception.map(|error| match error {
-                Error::Broker { code, .. } => *code,
-                other => panic!("expected broker error, got {other:?}"),
-            }));
+            .push(exception.as_ref().and_then(|error| error.code()));
     });
     mock.fail_share_ack_once("t", 0, error::INVALID_RECORD_STATE);
     assert_broker(

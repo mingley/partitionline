@@ -92,6 +92,44 @@ impl fmt::Display for ShareAcknowledgementMode {
     }
 }
 
+/// Java `AcknowledgementCommitCallback` exception argument (owned).
+///
+/// `code` is the Kafka `error_code` when the failure is a broker error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AcknowledgementCommitError {
+    /// Kafka `error_code`, or `None` for timeout / client-side RPC failure.
+    pub code: Option<i16>,
+    /// [`Error`] display text.
+    pub message: String,
+}
+
+impl AcknowledgementCommitError {
+    fn from_error(error: &Error) -> Self {
+        Self {
+            code: error.broker_code(),
+            message: error.to_string(),
+        }
+    }
+
+    /// Kafka `error_code` when this is a broker failure.
+    #[must_use]
+    pub fn code(&self) -> Option<i16> {
+        self.code
+    }
+
+    /// [`Error`] display text.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+impl fmt::Display for AcknowledgementCommitError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
 /// Java `AcknowledgementCommitCallback` for share acknowledgement outcomes.
 ///
 /// `onComplete(Map<TopicIdPartition, Set<OffsetAndMetadata>>, Exception)`.
@@ -102,19 +140,22 @@ pub trait AcknowledgementCommitCallback: Send {
     /// `exception` is `None` when the ShareAcknowledge RPC succeeded.
     fn on_complete(
         &mut self,
-        offsets: &[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)],
-        exception: Option<&Error>,
+        offsets: Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+        exception: Option<AcknowledgementCommitError>,
     );
 }
 
 impl<F> AcknowledgementCommitCallback for F
 where
-    F: FnMut(&[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)], Option<&Error>) + Send,
+    F: FnMut(
+            Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+            Option<AcknowledgementCommitError>,
+        ) + Send,
 {
     fn on_complete(
         &mut self,
-        offsets: &[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)],
-        exception: Option<&Error>,
+        offsets: Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+        exception: Option<AcknowledgementCommitError>,
     ) {
         self(offsets, exception);
     }
@@ -2087,8 +2128,9 @@ impl ShareGroup {
             return;
         }
         let offsets = self.acknowledgement_commit_offsets(recs);
+        let exception = exception.map(AcknowledgementCommitError::from_error);
         if let Some(callback) = self.ack_commit_callback.as_mut() {
-            callback.on_complete(&offsets, exception);
+            callback.on_complete(offsets, exception);
         }
     }
 
@@ -2936,6 +2978,19 @@ mod tests {
             ShareAcknowledgementMode::default(),
             ShareAcknowledgementMode::Explicit
         );
+    }
+
+    #[test]
+    fn acknowledgement_commit_error_carries_broker_code() {
+        let error = AcknowledgementCommitError::from_error(&Error::broker(
+            error::INVALID_RECORD_STATE,
+            "x",
+        ));
+        assert_eq!(error.code(), Some(error::INVALID_RECORD_STATE));
+        assert_eq!(error.to_string(), error.message());
+        assert!(AcknowledgementCommitError::from_error(&Error::Timeout)
+            .code()
+            .is_none());
     }
 
     #[test]
