@@ -2607,12 +2607,23 @@ impl Consumer {
             .api_version(METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        if let Some(version) = resp
+            .api_version(FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
+        {
+            conn.set_fetch_version(version);
+        }
         self.versions = resp
             .api_keys
             .into_iter()
             .map(|range| (range.api_key, range))
             .collect();
         self.conn = conn;
+        // Dedicated sockets were dropped above, and this bootstrap socket is new.
+        // An incremental fetch session belongs to the previous connection.
+        for session in self.fetch_sessions.values_mut() {
+            session.reset();
+        }
         Ok(())
     }
 
