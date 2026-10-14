@@ -64,6 +64,16 @@ impl OffsetClient {
         deadline: Deadline,
         limits: OffsetLimits,
     ) -> Result<HashMap<String, [u8; 16]>> {
+        Box::pin(self.resolve_names_io(names, api, deadline, limits)).await
+    }
+
+    async fn resolve_names_io(
+        &self,
+        names: Option<&[String]>,
+        api: i16,
+        deadline: Deadline,
+        limits: OffsetLimits,
+    ) -> Result<HashMap<String, [u8; 16]>> {
         // Preflight the borrowed names before any discovery or metadata I/O.
         drop(encode_offset_metadata_names(names, 10, limits)?);
         let mut last = Error::Timeout;
@@ -158,9 +168,7 @@ impl OffsetClient {
         if request.topics.is_empty() {
             return Ok(OffsetCommitResponseData::default());
         }
-        deadline
-            .run(self.commit_until(request, options, deadline))
-            .await
+        Box::pin(deadline.run(self.commit_until(request, options, deadline))).await
     }
 
     /// Fetch one or more groups, preserving null/all-topic versus empty topic
@@ -183,9 +191,7 @@ impl OffsetClient {
         if request.groups.is_empty() {
             return Ok(OffsetFetchResponseData::default());
         }
-        deadline
-            .run(self.fetch_until(request, options, deadline))
-            .await
+        Box::pin(deadline.run(self.fetch_until(request, options, deadline))).await
     }
 
     async fn backoff(&self, err: &Error, attempt: u32, deadline: Deadline) -> Result<()> {
@@ -277,6 +283,17 @@ impl OffsetClient {
     }
 
     async fn open(
+        &self,
+        address: &str,
+        api: i16,
+        ids: bool,
+        member: bool,
+        deadline: Deadline,
+    ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
+        Box::pin(self.open_io(address, api, ids, member, deadline)).await
+    }
+
+    async fn open_io(
         &self,
         address: &str,
         api: i16,
