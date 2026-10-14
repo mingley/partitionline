@@ -327,7 +327,12 @@ def run_one_cell(
     started = time.monotonic()
     result: Dict[str, Any] = {"id": cell["id"], "protocol": cell["protocol"], "churn": cell["churn"]}
 
-    seed = run_phase(binary, trial, "seed", trial_s)
+    seed_trial = trial.copy()
+    if cell["protocol"] == "share":
+        # Default share.auto.offset.reset is latest. Create the topic, join so
+        # the first fetch initializes at log-start, then produce.
+        seed_trial["GROUP_CHURN_SKIP_PRODUCE"] = "1"
+    seed = run_phase(binary, seed_trial, "seed", trial_s)
     result["seed_exit"] = seed.returncode
     if seed.returncode != 0:
         result["ok"] = False
@@ -345,6 +350,17 @@ def run_one_cell(
                 proc.kill()
             result["ok"] = False
             result["error"] = f"ready_timeout_{member}"
+            return result
+
+    if cell["protocol"] == "share":
+        produced = run_phase(binary, trial, "produce", trial_s)
+        result["produce_exit"] = produced.returncode
+        if produced.returncode != 0:
+            for proc in procs.values():
+                proc.kill()
+            result["ok"] = False
+            result["error"] = "produce_failed"
+            result["stderr"] = (produced.stderr or "")[-2000:]
             return result
 
     if cell["churn"] == "member_loss":

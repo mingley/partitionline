@@ -1,6 +1,6 @@
 //! One group-protocol churn cell (KL03-21).
 //!
-//! `GROUP_CHURN_PHASE` is `seed`, `member`, or `verify`. Profile and churn
+//! `GROUP_CHURN_PHASE` is `seed`, `produce`, `member`, or `verify`. Profile and churn
 //! come from `GROUP_CHURN_PROFILE` / `GROUP_CHURN_CHURN`. Session, heartbeat,
 //! max-poll and share-lock budgets are separate env values.
 
@@ -9,9 +9,9 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use partitionline::{
-    error, Admin, AdminConfig, AlterConfig, AutoOffsetReset, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, IsolationLevel, NewTopic, ProduceRecord, Producer,
-    ProducerConfig, Sasl, ShareGroup, TopicPartition,
+    error, Admin, AdminConfig, AutoOffsetReset, Consumer, ConsumerConfig, ConsumerGroup, Error,
+    IsolationLevel, NewTopic, ProduceRecord, Producer, ProducerConfig, Sasl, ShareGroup,
+    TopicPartition,
 };
 
 const CRASH_EXIT: i32 = 77;
@@ -21,6 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let phase = env::var("GROUP_CHURN_PHASE").unwrap_or_else(|_| "member".into());
     match phase.as_str() {
         "seed" => seed().await?,
+        "produce" => produce_records(&Names::from_env()).await?,
         "member" => member().await?,
         "verify" => verify().await?,
         other => return Err(Error::protocol(format!("unknown GROUP_CHURN_PHASE {other}")).into()),
@@ -159,45 +160,23 @@ async fn ensure_topic(names: &Names) -> partitionline::Result<()> {
     .await
 }
 
-/// Broker default `share.auto.offset.reset` is latest, so a seed-then-join
-/// cell would otherwise fetch nothing. Lock duration matches the frozen budget.
-async fn configure_share_group(names: &Names) -> partitionline::Result<()> {
-    if names.profile != "share" {
-        return Ok(());
-    }
-    let lock_ms = env_u64("GROUP_CHURN_SHARE_LOCK_MS", 2_000)?;
-    retry(Duration::from_secs(20), || {
-        let names = names.clone();
-        async move {
-            let mut acfg = AdminConfig::bootstrap(names.servers());
-            if let Some(sasl) = sasl_from_env() {
-                acfg = acfg.sasl(sasl);
-            }
-            let mut admin = Admin::new(acfg).await?;
-            let code = admin
-                .incremental_alter_configs(
-                    &ConfigResource::group(names.group.clone()),
-                    &[
-                        AlterConfig::set("share.auto.offset.reset", "earliest"),
-                        AlterConfig::set("share.record.lock.duration.ms", lock_ms.to_string()),
-                    ],
-                    false,
-                )
-                .await?;
-            admin.close().await?;
-            if code != 0 {
-                return Err(Error::broker(code, names.group));
-            }
-            Ok(())
-        }
-    })
-    .await
-}
-
 async fn seed() -> partitionline::Result<()> {
     let names = Names::from_env();
     ensure_topic(&names).await?;
-    configure_share_group(&names).await?;
+    if env_flag("GROUP_CHURN_SKIP_PRODUCE") {
+        return Ok(());
+    }
+    produce_records(&names).await
+}
+
+fn env_flag(name: &str) -> bool {
+    matches!(
+        env::var(name).ok().as_deref(),
+        Some("1" | "true" | "yes" | "TRUE" | "YES")
+    )
+}
+
+async fn produce_records(names: &Names) -> partitionline::Result<()> {
     let mut pcfg = ProducerConfig::bootstrap(names.servers())
         .acks(partitionline::Acks::All)
         .idempotent(true)
