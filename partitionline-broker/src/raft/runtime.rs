@@ -16,7 +16,8 @@ use super::{
 #[cfg(test)]
 use std::path::Path;
 use std::{
-    fmt, io,
+    fmt,
+    io::{self, IoSlice},
     net::{IpAddr, SocketAddr},
     path::PathBuf,
     sync::{
@@ -1808,9 +1809,20 @@ async fn write_frame(
     deadline: Instant,
 ) -> Result<()> {
     let bytes = peer_codec::encode(frame, limit)?;
+    let len = u32::try_from(bytes.len())
+        .map_err(|_| Error::Peer)?
+        .to_be_bytes();
     tokio::time::timeout_at(deadline, async {
-        socket.write_u32(bytes.len() as u32).await?;
-        socket.write_all(&bytes).await?;
+        // One vectored send so the length prefix is not a separate packet.
+        let mut slices = [IoSlice::new(&len), IoSlice::new(&bytes)];
+        let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+        while !bufs.is_empty() {
+            let n = socket.write_vectored(bufs).await?;
+            if n == 0 {
+                return Err(Error::Peer);
+            }
+            IoSlice::advance_slices(&mut bufs, n);
+        }
         Ok::<_, Error>(())
     })
     .await
