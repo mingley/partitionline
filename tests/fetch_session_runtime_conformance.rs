@@ -17,8 +17,10 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+
+use parking_lot::Mutex;
 
 use bytes::BytesMut;
 use partitionline::error::{FETCH_SESSION_ID_NOT_FOUND, INVALID_FETCH_SESSION_EPOCH};
@@ -27,9 +29,7 @@ use partitionline::protocol::api::{
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA};
-use partitionline::protocol::fetch::{
-    decode_fetch_request, decode_fetch_response, FetchMetadata,
-};
+use partitionline::protocol::fetch::{decode_fetch_request, decode_fetch_response, FetchMetadata};
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::Consumer;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -209,7 +209,7 @@ impl RawBroker {
                                             Ok((_, _, topics, _, session, forgotten, ..)) => {
                                                 let partitions = topics.iter().map(|t| t.partitions.len()).sum();
                                                 let forgotten = forgotten.iter().map(|t| t.partitions.len()).sum();
-                                                sessions.lock().unwrap().push(SessionHit {
+                                                sessions.lock().push(SessionHit {
                                                     session_id: session.session_id(),
                                                     epoch: session.epoch(),
                                                     partitions,
@@ -271,7 +271,7 @@ impl RawBroker {
     }
 
     fn sessions(&self) -> Vec<SessionHit> {
-        self.sessions.lock().unwrap().clone()
+        self.sessions.lock().clone()
     }
 
     async fn shutdown(&mut self) {
@@ -344,7 +344,8 @@ async fn apache_session_bodies_decode_leftover_empty() {
         assert_eq!(topics[0].partitions.len(), 2);
         assert!(forgotten.is_empty());
         let mut cur = s01_resp.as_slice();
-        let (topics, _, error, session_id, _) = decode_fetch_response(&mut cur, FETCH_VERSION).unwrap();
+        let (topics, _, error, session_id, _) =
+            decode_fetch_response(&mut cur, FETCH_VERSION).unwrap();
         leftover(cur, &format!("{peer} s01 response"));
         assert_eq!(error, 0);
         assert_eq!(session_id, SESSION_ID);
@@ -361,7 +362,8 @@ async fn apache_session_bodies_decode_leftover_empty() {
         assert!(topics.is_empty());
         assert!(forgotten.is_empty());
         let mut cur = s02_resp.as_slice();
-        let (topics, _, error, session_id, _) = decode_fetch_response(&mut cur, FETCH_VERSION).unwrap();
+        let (topics, _, error, session_id, _) =
+            decode_fetch_response(&mut cur, FETCH_VERSION).unwrap();
         leftover(cur, &format!("{peer} s02 response"));
         assert_eq!(error, 0);
         assert_eq!(session_id, SESSION_ID);
@@ -413,7 +415,10 @@ async fn apache_session_bodies_decode_leftover_empty() {
         let mut cur = s07.as_slice();
         let (_, _, topics, _, session, ..) = decode_fetch_request(&mut cur, FETCH_VERSION).unwrap();
         leftover(cur, &format!("{peer} s07 request"));
-        assert_eq!(session, FetchMetadata::new(SESSION_ID, FetchMetadata::INITIAL_EPOCH));
+        assert_eq!(
+            session,
+            FetchMetadata::new(SESSION_ID, FetchMetadata::INITIAL_EPOCH)
+        );
         assert!(session.is_full());
         assert_eq!(topics[0].partitions.len(), 2);
         bodies += 1;
@@ -438,12 +443,16 @@ async fn apache_session_bodies_replay_public_consumer_histories() {
         let first = broker.sessions();
         assert!(
             first.iter().any(|hit| {
-                hit.session_id == 0 && hit.epoch == FetchMetadata::INITIAL_EPOCH && hit.partitions == 2
+                hit.session_id == 0
+                    && hit.epoch == FetchMetadata::INITIAL_EPOCH
+                    && hit.partitions == 2
             }),
             "{peer} first request must be INITIAL, not LEGACY: {first:?}"
         );
         assert!(
-            first.iter().all(|hit| hit.epoch != FetchMetadata::FINAL_EPOCH),
+            first
+                .iter()
+                .all(|hit| hit.epoch != FetchMetadata::FINAL_EPOCH),
             "{peer} must not send LEGACY epoch: {first:?}"
         );
         assert_eq!(broker.last_fetch_version(), Some(FETCH_VERSION));
