@@ -1195,18 +1195,33 @@ fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
         }
     }
     let mut joins = Vec::new();
+    let parallel = reps.len() > 1;
     for &(state_index, local_index) in &reps {
+        if !parallel {
+            joins.push(None);
+            continue;
+        }
         let cloned = captured
             .get(state_index)
             .and_then(|item| item.as_ref())
             .and_then(|item| item.pending_sync.get(local_index))
             .and_then(|sync| sync.file.try_clone().ok());
-        joins.push(cloned.map(|file| std::thread::spawn(move || file.sync_data())));
+        joins.push(Some(
+            cloned.map(|file| std::thread::spawn(move || file.sync_data())),
+        ));
     }
     for ((state_index, local_index), join) in reps.into_iter().zip(joins) {
-        let failed = match join {
-            Some(handle) => handle.join().ok().is_none_or(|result| result.is_err()),
-            None => true,
+        let failed = if let Some(join) = join {
+            match join {
+                Some(handle) => handle.join().ok().is_none_or(|result| result.is_err()),
+                None => true,
+            }
+        } else {
+            captured
+                .get(state_index)
+                .and_then(|item| item.as_ref())
+                .and_then(|item| item.pending_sync.get(local_index))
+                .is_none_or(|sync| sync.file.sync_data().is_err())
         };
         let Some(sync) = captured
             .get_mut(state_index)
