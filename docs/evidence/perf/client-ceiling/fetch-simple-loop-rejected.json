@@ -1,0 +1,16 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "b3fe8c771929f2d37ddc17ebbe3cd6f1d81fd0b6",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The uncommitted read path used a separate loop without read-committed or abort checks. Twenty interleaved pairs: paired mean records/s ratio 1.014, bootstrap 95% CI 0.960 to 1.072. Eight of twenty pairs were slower. Every run verified 20,000 records. The code was not kept.",
+  "paired_mean_ratio": 1.014,
+  "paired_ratio_ci95": [0.96, 1.072],
+  "before_median": 452350.94,
+  "after_median": 459464.81,
+  "slower_pairs": 8,
+  "pairs": 20
+}
