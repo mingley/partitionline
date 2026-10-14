@@ -854,7 +854,7 @@ fn actor(
                 }
                 let _ = job.reply.send(result);
             }
-            Command::Data(job) => {
+            Command::Data(mut job) => {
                 if job.reply.is_closed() {
                     continue;
                 }
@@ -865,7 +865,7 @@ fn actor(
                         produce::process(
                             &catalog,
                             store,
-                            &job.request,
+                            &mut job.request,
                             config,
                             job.admitted,
                             || {
@@ -2181,9 +2181,10 @@ mod tests {
                             || produce::process(
                                 &catalog,
                                 &mut store,
-                                include_bytes!(
+                                &mut include_bytes!(
                                     "../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin"
-                                ),
+                                )
+                                .to_vec(),
                                 &worker_config,
                                 Instant::now(),
                                 || Ok(()),
@@ -2476,13 +2477,18 @@ mod tests {
                 .map_err(Error::Catalog)?;
             let store_config = produce::Config::new(path.with_extension("parts"));
             let mut store = produce::Store::open(store_config.clone(), &catalog)?;
-            let input =
-                include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin");
+            let mut input =
+                include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin")
+                    .to_vec();
             let (reply, receiver) = oneshot::channel::<Result<Option<Vec<u8>>, Error>>();
-            let result =
-                produce::process(&catalog, &mut store, input, &config, Instant::now(), || {
-                    Ok(())
-                })?;
+            let result = produce::process(
+                &catalog,
+                &mut store,
+                &mut input,
+                &config,
+                Instant::now(),
+                || Ok(()),
+            )?;
             drop(receiver);
             assert!(reply.send(Ok(result)).is_err());
             drop(store);
@@ -2490,7 +2496,7 @@ mod tests {
             let result = produce::process(
                 &catalog,
                 &mut recovered,
-                input,
+                &mut input,
                 &config,
                 Instant::now(),
                 || Ok(()),

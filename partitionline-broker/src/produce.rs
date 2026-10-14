@@ -609,13 +609,21 @@ fn parse_filename(name: &str) -> Result<(TopicId, i32), Error> {
 
 struct Reader<'a> {
     bytes: &'a [u8],
+    pos: usize,
     count: usize,
     tags: usize,
 }
 impl<'a> Reader<'a> {
+    fn remaining(&self) -> usize {
+        self.bytes.len().saturating_sub(self.pos)
+    }
     fn take(&mut self, n: usize) -> Result<&'a [u8], Error> {
-        let result = self.bytes.get(..n).ok_or(protocol::Error::Truncated)?;
-        self.bytes = &self.bytes[n..];
+        let end = self.pos.checked_add(n).ok_or(protocol::Error::Truncated)?;
+        let result = self
+            .bytes
+            .get(self.pos..end)
+            .ok_or(protocol::Error::Truncated)?;
+        self.pos = end;
         Ok(result)
     }
     fn i16(&mut self) -> Result<i16, Error> {
@@ -664,10 +672,19 @@ impl<'a> Reader<'a> {
             .map(Some)
             .map_err(|_| protocol::Error::InvalidLength.into())
     }
-    fn string(&mut self, flex: bool, nullable: bool) -> Result<Option<&'a str>, Error> {
+    fn string_range(
+        &mut self,
+        flex: bool,
+        nullable: bool,
+    ) -> Result<Option<(usize, usize)>, Error> {
         self.length(flex, nullable, true)?
             .map(|n| {
-                std::str::from_utf8(self.take(n)?).map_err(|_| protocol::Error::InvalidUtf8.into())
+                let start = self.pos;
+                let bytes = self.take(n)?;
+                if std::str::from_utf8(bytes).is_err() {
+                    return Err(protocol::Error::InvalidUtf8.into());
+                }
+                Ok((start, self.pos))
             })
             .transpose()
     }
@@ -675,7 +692,7 @@ impl<'a> Reader<'a> {
         let n = self
             .length(flex, false, false)?
             .ok_or(Error::RequestCount)?;
-        if n > self.count || n > self.bytes.len() / minimum.max(1) {
+        if n > self.count || n > self.remaining() / minimum.max(1) {
             return Err(Error::RequestCount);
         }
         Ok(n)
@@ -705,34 +722,35 @@ fn reserved<T>(count: usize) -> Result<Vec<T>, Error> {
         .map_err(|_| Error::ResourceLimit)?;
     Ok(result)
 }
-struct Topic<'a> {
-    name: Option<&'a str>,
+struct Topic {
+    name: Option<(usize, usize)>,
     id: [u8; 16],
-    partitions: Vec<Part<'a>>,
+    partitions: Vec<Part>,
 }
-struct Part<'a> {
+struct Part {
     index: i32,
-    bytes: Option<&'a [u8]>,
+    bytes: Option<(usize, usize)>,
 }
-struct Request<'a> {
-    tx: Option<&'a str>,
+struct Request {
+    tx: Option<(usize, usize)>,
     acks: i16,
     timeout: i32,
-    topics: Vec<Topic<'a>>,
+    topics: Vec<Topic>,
 }
-fn parse<'a>(
-    body: &'a [u8],
+fn parse(
+    body: &[u8],
     flex: bool,
     version: i16,
     common: &metadata::Config,
     limits: &Config,
-) -> Result<Request<'a>, Error> {
+) -> Result<Request, Error> {
     let mut reader = Reader {
         bytes: body,
+        pos: 0,
         count: common.max_topics.max(limits.max_partitions),
         tags: common.protocol_limits.max_tagged_fields(),
     };
-    let tx = reader.string(flex, true)?;
+    let tx = reader.string_range(flex, true)?;
     let acks = reader.i16()?;
     let timeout = reader.i32()?;
     let count = reader.array(flex, if version >= 13 { 17 } else { 3 })?;
@@ -751,7 +769,7 @@ fn parse<'a>(
                     .map_err(|_| protocol::Error::Truncated)?,
             )
         } else {
-            (reader.string(flex, false)?, [0; 16])
+            (reader.string_range(flex, false)?, [0; 16])
         };
         let count = reader.array(flex, if flex { 6 } else { 8 })?;
         total = total.checked_add(count).ok_or(Error::RequestCount)?;
@@ -761,10 +779,14 @@ fn parse<'a>(
         let mut partitions = reserved(count)?;
         for _ in 0..count {
             let index = reader.i32()?;
-            let bytes = reader
-                .length(flex, true, false)?
-                .map(|n| reader.take(n))
-                .transpose()?;
+            let bytes = match reader.length(flex, true, false)? {
+                None => None,
+                Some(n) => {
+                    let start = reader.pos;
+                    reader.take(n)?;
+                    Some((start, reader.pos))
+                }
+            };
             if flex {
                 reader.tags()?;
             }
@@ -782,7 +804,7 @@ fn parse<'a>(
     if flex {
         reader.tags()?;
     }
-    if !reader.bytes.is_empty() {
+    if reader.remaining() != 0 {
         return Err(protocol::Error::TrailingBytes.into());
     }
     Ok(Request {
@@ -876,8 +898,8 @@ fn normalize<'a>(
         if input.len() > config.journal_limits.max_entry_bytes() {
             return Err(10);
         }
-        // Clients send leader epoch 0. Keep the request bytes instead of
-        // copying them only to write that same zero.
+        // `process` stamps leader epoch 0 before this check. Other callers
+        // still borrow when the bytes are already zero.
         if input.get(12..16) == Some(&[0, 0, 0, 0]) {
             return Ok(Cow::Borrowed(input));
         }
@@ -906,10 +928,30 @@ fn timed_out(admitted: Instant, timeout: i32) -> bool {
     timeout <= 0 || admitted.elapsed() >= Duration::from_millis(timeout as u64)
 }
 
+fn ranged(buf: &[u8], range: Option<(usize, usize)>) -> Result<Option<&[u8]>, Error> {
+    let Some((start, end)) = range else {
+        return Ok(None);
+    };
+    buf.get(start..end)
+        .map(Some)
+        .ok_or_else(|| protocol::Error::Truncated.into())
+}
+fn ranged_str(buf: &[u8], range: Option<(usize, usize)>) -> Result<Option<&str>, Error> {
+    ranged(buf, range)?
+        .map(|bytes| std::str::from_utf8(bytes).map_err(|_| protocol::Error::InvalidUtf8.into()))
+        .transpose()
+}
+/// Leader epoch is outside the batch CRC. The single-node log stores epoch 0,
+/// so write that into the request buffer instead of copying the payload.
+fn stamp_leader_epoch(batch: &mut [u8]) {
+    if batch.len() >= 17 && batch[16] == 2 {
+        batch[12..16].copy_from_slice(&0i32.to_be_bytes());
+    }
+}
 pub(crate) fn process(
     catalog: &Catalog,
     store: &mut Store,
-    input: &[u8],
+    input: &mut [u8],
     common: &metadata::Config,
     admitted: Instant,
     active: impl Fn() -> Result<(), Error>,
@@ -925,9 +967,30 @@ pub(crate) fn process(
         return Err(protocol::Error::UnsupportedHeaderVersion.into());
     }
     let flex = version >= 9;
-    let (header, body) =
-        protocol::RequestHeader::parse(input, if flex { 2 } else { 1 }, common.protocol_limits)?;
-    let parsed = parse(body, flex, version, common, &store.config)?;
+    let (correlation_id, body_off, parsed) = {
+        let (header, body) = protocol::RequestHeader::parse(
+            input,
+            if flex { 2 } else { 1 },
+            common.protocol_limits,
+        )?;
+        let correlation_id = header.correlation_id;
+        let body_off = input.len().saturating_sub(body.len());
+        let parsed = parse(body, flex, version, common, &store.config)?;
+        (correlation_id, body_off, parsed)
+    };
+    for topic in &parsed.topics {
+        for part in &topic.partitions {
+            let Some((start, end)) = part.bytes else {
+                continue;
+            };
+            let abs_start = body_off.saturating_add(start);
+            let abs_end = body_off.saturating_add(end);
+            if let Some(batch) = input.get_mut(abs_start..abs_end) {
+                stamp_leader_epoch(batch);
+            }
+        }
+    }
+    let body = input.get(body_off..).ok_or(protocol::Error::Truncated)?;
     let count = parsed
         .topics
         .iter()
@@ -937,7 +1000,7 @@ pub(crate) fn process(
         .topics
         .iter()
         .try_fold(16usize, |n, t| {
-            n.checked_add(t.name.map_or(16, str::len) + 16)
+            n.checked_add(t.name.map_or(16, |(start, end)| end.saturating_sub(start)) + 16)
                 .ok_or(Error::ResourceLimit)
         })?
         .checked_add(count.checked_mul(40).ok_or(Error::ResourceLimit)?)
@@ -950,16 +1013,17 @@ pub(crate) fn process(
     let mut normalized = 0usize;
     for (topic_position, topic) in parsed.topics.iter().enumerate() {
         active()?;
+        let topic_name = ranged_str(body, topic.name)?;
         let target = if version >= 13 {
             TopicId::new(topic.id).ok().and_then(|id| catalog.by_id(id))
         } else {
-            topic.name.and_then(|name| catalog.by_name(name))
+            topic_name.and_then(|name| catalog.by_name(name))
         };
-        let same_topic = |other: &Topic<'_>| {
+        let same_topic = |other: &Topic| {
             if version >= 13 {
                 topic.id == other.id
             } else {
-                topic.name == other.name
+                ranged(body, topic.name).ok().flatten() == ranged(body, other.name).ok().flatten()
             }
         };
         if parsed.topics[..topic_position].iter().any(same_topic) {
@@ -1001,7 +1065,7 @@ pub(crate) fn process(
             };
             let mut bytes = Cow::Owned(Vec::new());
             if error == 0 {
-                match normalize(part.bytes, version, &store.config) {
+                match normalize(ranged(body, part.bytes)?, version, &store.config) {
                     Ok(value) => {
                         normalized = normalized
                             .checked_add(value.len())
@@ -1024,7 +1088,7 @@ pub(crate) fn process(
             });
         }
         results.push(ResultTopic {
-            name: topic.name,
+            name: topic_name,
             id: topic.id,
             parts,
         });
@@ -1068,7 +1132,7 @@ pub(crate) fn process(
         }
         return Ok(None);
     }
-    writer.i32(header.correlation_id)?;
+    writer.i32(correlation_id)?;
     if flex {
         writer.byte(0)?;
     }
