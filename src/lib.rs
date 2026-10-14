@@ -2051,8 +2051,9 @@
 //! sessions and heartbeats the new topic list.
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
-//! is Java `ShareConsumer.commitAsync` (queued standalone
-//! ShareAcknowledge on the next poll / leave). [`ShareGroup::commit_sync`] /
+//! is Java `ShareConsumer.commitAsync` (implicit last-poll ACCEPT is
+//! snapshotted immediately; standalone ShareAcknowledge on the next
+//! poll / leave). [`ShareGroup::commit_sync`] /
 //! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
 //! [`AcknowledgementCommitResults`]).
