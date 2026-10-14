@@ -52340,8 +52340,8 @@
       "title": "Qualify incremental Fetch session runtime and bounded reset histories",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
       ],
