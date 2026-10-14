@@ -2979,6 +2979,14 @@ enum ClassicHeartbeat {
 fn kip848_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
     if matches!(code, error::FENCED_MEMBER_EPOCH | error::UNKNOWN_MEMBER_ID) {
         ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+    } else if code == error::STALE_MEMBER_EPOCH {
+        // The coordinator's epoch, including 0. A negative response epoch
+        // cannot be applied, so the next heartbeat rejoins.
+        if response_epoch >= 0 {
+            response_epoch
+        } else {
+            ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        }
     } else if response_epoch > 0 {
         response_epoch
     } else {
@@ -3841,6 +3849,12 @@ mod tests {
         );
         assert_eq!(kip848_heartbeat_epoch(0, 6, 4), 6);
         assert_eq!(kip848_heartbeat_epoch(0, 0, 4), 4);
+        assert_eq!(kip848_heartbeat_epoch(error::STALE_MEMBER_EPOCH, 2, 5), 2);
+        assert_eq!(kip848_heartbeat_epoch(error::STALE_MEMBER_EPOCH, 0, 5), 0);
+        assert_eq!(
+            kip848_heartbeat_epoch(error::STALE_MEMBER_EPOCH, -1, 5),
+            ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
     }
 
     #[test]
