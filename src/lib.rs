@@ -2971,7 +2971,11 @@
 //! `You must provide a valid group.id in the consumer configuration.`. Each has a
 //! `_topics` variant for several topics. [`ConsumerGroup::group_protocol`] is
 //! Java `GroupProtocol` (`CLASSIC` / `CONSUMER`; [`GroupProtocol::of`] is Java
-//! `GroupProtocol.of`). [`ConsumerGroup::join_matching`] /
+//! `GroupProtocol.of`). [`ConsumerConfig::group_protocol`] is Java
+//! `group.protocol`; [`ConsumerGroup::join`] / [`ConsumerGroup::join_topics`] /
+//! [`ConsumerGroup::join_matching`] honor it. [`ConsumerGroup::join_consumer`]
+//! is always KIP-848. Explicit assignor joins stay classic.
+//! [`ConsumerGroup::join_matching`] /
 //! [`ConsumerGroup::join_sticky_matching`] /
 //! [`ConsumerGroup::join_cooperative_sticky_matching`] /
 //! [`ConsumerGroup::join_consumer_matching`] are Java `subscribe(Pattern)`

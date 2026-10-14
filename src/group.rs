@@ -443,9 +443,10 @@ impl fmt::Display for ConsumerGroupMetadata {
 ///
 /// [`std::fmt::Display`] is Java `GroupProtocol.toString` (`CLASSIC`). [`Self::of`] is
 /// Java `GroupProtocol.of` (unknown is `None`; Java throws).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GroupProtocol {
-    /// Java `CLASSIC` (JoinGroup / SyncGroup).
+    /// Java `CLASSIC` (JoinGroup / SyncGroup). Default [`ConsumerConfig::group_protocol`].
+    #[default]
     Classic,
     /// Java `CONSUMER` (KIP-848 ConsumerGroupHeartbeat).
     Consumer,
@@ -533,6 +534,8 @@ impl ConsumerGroup {
     ///
     /// An empty `group_id` is Java `InvalidGroupIdException`
     /// (`The configured group.id should not be an empty string or whitespace.`).
+    /// [`ConsumerConfig::group_protocol`] [`GroupProtocol::Consumer`] uses
+    /// KIP-848 ([`Self::join_consumer`]) instead of classic range.
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -542,11 +545,17 @@ impl ConsumerGroup {
     }
 
     /// Join with the Java range assignor. Several topics, assigned independently.
+    ///
+    /// [`ConsumerConfig::group_protocol`] [`GroupProtocol::Consumer`] uses
+    /// KIP-848 ([`Self::join_consumer_topics`]) instead of classic range.
     pub async fn join_topics(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<Self> {
+        if cfg.group_protocol == GroupProtocol::Consumer {
+            return Self::join_consumer_topics(cfg, group_id, topics).await;
+        }
         Self::join_with_protocol(cfg, group_id, topics, "range").await
     }
 
@@ -712,11 +721,16 @@ impl ConsumerGroup {
     /// Names starting with `__` are skipped (Java `exclude.internal.topics`).
     /// [`Self::poll`] re-lists Metadata when [`ConsumerConfig::metadata_max_age`]
     /// has elapsed (every poll when that age is zero).
+    /// [`ConsumerConfig::group_protocol`] [`GroupProtocol::Consumer`] uses
+    /// KIP-848 ([`Self::join_consumer_matching`]).
     pub async fn join_matching(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<Self> {
+        if cfg.group_protocol == GroupProtocol::Consumer {
+            return Self::join_consumer_matching(cfg, group_id, matches).await;
+        }
         Self::join_with_protocol_list(
             cfg,
             group_id.into(),
@@ -877,7 +891,9 @@ impl ConsumerGroup {
     /// Java `group.protocol` in effect ([`GroupProtocol`]).
     ///
     /// Classic JoinGroup members are [`GroupProtocol::Classic`].
-    /// [`Self::join_consumer`] members are [`GroupProtocol::Consumer`].
+    /// [`Self::join_consumer`] members, and [`Self::join`] when
+    /// [`ConsumerConfig::group_protocol`] is [`GroupProtocol::Consumer`],
+    /// are [`GroupProtocol::Consumer`].
     #[must_use]
     pub fn group_protocol(&self) -> GroupProtocol {
         if self.kip848 {
@@ -3457,6 +3473,7 @@ mod tests {
         assert_eq!(GroupProtocol::Consumer.to_string(), "CONSUMER");
         assert_eq!(GroupProtocol::of("classic"), Some(GroupProtocol::Classic));
         assert_eq!(GroupProtocol::of("CONSUMER"), Some(GroupProtocol::Consumer));
+        assert_eq!(GroupProtocol::default(), GroupProtocol::Classic);
         assert!(GroupProtocol::of("share").is_none());
         assert!(GroupProtocol::of("nope").is_none());
     }

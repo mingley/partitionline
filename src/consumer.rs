@@ -113,6 +113,12 @@ pub struct ConsumerConfig {
     /// Kafka `client.rack`. Fetch-from-follower (KIP-392) and group heartbeats
     /// (ConsumerGroupHeartbeat / ShareGroupHeartbeat RackId). Empty means leader only.
     pub rack: Option<String>,
+    /// Kafka `group.protocol`. [`crate::GroupProtocol::Classic`] (default)
+    /// uses JoinGroup on [`crate::ConsumerGroup::join`].
+    /// [`crate::GroupProtocol::Consumer`] uses KIP-848
+    /// ConsumerGroupHeartbeat. Explicit [`crate::ConsumerGroup::join_consumer`]
+    /// / [`crate::ConsumerGroup::join_sticky`] ignore this and pick their path.
+    pub group_protocol: crate::GroupProtocol,
     /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
     ///
     /// Classic JoinGroup sends the field on v5+. A present value on a v0/v1
@@ -217,6 +223,7 @@ impl fmt::Debug for ConsumerConfig {
             .field("max_partition_fetch_bytes", &self.max_partition_fetch_bytes)
             .field("isolation_level", &self.isolation_level)
             .field("rack", &self.rack)
+            .field("group_protocol", &self.group_protocol)
             .field("group_instance_id", &self.group_instance_id)
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
@@ -258,6 +265,7 @@ impl Default for ConsumerConfig {
             max_partition_fetch_bytes: 16_777_216,
             isolation_level: crate::IsolationLevel::ReadUncommitted,
             rack: None,
+            group_protocol: crate::GroupProtocol::Classic,
             group_instance_id: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
@@ -347,6 +355,19 @@ impl ConsumerConfig {
     #[must_use]
     pub fn rack(mut self, rack: impl Into<String>) -> Self {
         self.rack = Some(rack.into());
+        self
+    }
+
+    /// Kafka `group.protocol` (`CLASSIC` / `CONSUMER`).
+    ///
+    /// [`crate::ConsumerGroup::join`] / [`crate::ConsumerGroup::join_topics`] /
+    /// [`crate::ConsumerGroup::join_matching`] honor this.
+    /// [`crate::ConsumerGroup::join_consumer`] is always KIP-848.
+    /// [`crate::ConsumerGroup::join_sticky`] and other assignor joins stay
+    /// classic.
+    #[must_use]
+    pub fn group_protocol(mut self, protocol: crate::GroupProtocol) -> Self {
+        self.group_protocol = protocol;
         self
     }
 

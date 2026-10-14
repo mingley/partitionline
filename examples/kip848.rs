@@ -3,7 +3,7 @@
 //!
 //! `KAFKA_TOPIC` may be a single name or a comma-separated list.
 
-use partitionline::{ConsumerConfig, ConsumerGroup};
+use partitionline::{ConsumerConfig, ConsumerGroup, GroupProtocol};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -16,8 +16,10 @@ async fn main() -> partitionline::Result<()> {
         .filter(|s| !s.is_empty())
         .map(str::to_string)
         .collect();
-    let mut group = ConsumerGroup::join_consumer_topics(
-        ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500),
+    let mut group = ConsumerGroup::join_topics(
+        ConsumerConfig::bootstrap([bootstrap])
+            .max_wait_ms(500)
+            .group_protocol(GroupProtocol::Consumer),
         group_id,
         topics,
     )

@@ -4820,6 +4820,70 @@ async fn consumer_group_heartbeat_negotiates_v0_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn join_honors_group_protocol_consumer() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_protocol = GroupProtocol::Consumer;
+    let group = ConsumerGroup::join(ccfg.clone(), "gp-consumer", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Consumer);
+    assert_eq!(
+        mock.join_group_calls(),
+        0,
+        "group.protocol=consumer must not use JoinGroup"
+    );
+    assert!(
+        mock.cg_heartbeat_calls() >= 1,
+        "group.protocol=consumer must speak ConsumerGroupHeartbeat"
+    );
+    group.leave().await.unwrap();
+
+    let classic = ConsumerGroup::join(ccfg.group_protocol(GroupProtocol::Classic), "gp-classic", "t")
+        .await
+        .unwrap();
+    assert_eq!(classic.group_protocol(), GroupProtocol::Classic);
+    assert!(
+        mock.join_group_calls() >= 1,
+        "group.protocol=classic must use JoinGroup"
+    );
+    classic.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn join_matching_honors_group_protocol_consumer() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_protocol = GroupProtocol::Consumer;
+    let group = ConsumerGroup::join_matching(ccfg, "gp-match", |n: &str| n == "t")
+        .await
+        .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Consumer);
+    assert_eq!(mock.join_group_calls(), 0);
+    assert!(mock.cg_heartbeat_calls() >= 1);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn join_sticky_stays_classic_when_group_protocol_is_consumer() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_protocol = GroupProtocol::Consumer;
+    let group = ConsumerGroup::join_sticky(ccfg, "gp-sticky", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Classic);
+    assert!(
+        mock.join_group_calls() >= 1,
+        "join_sticky stays on classic JoinGroup"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_group_join_leave_without_classic_or_kip848() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

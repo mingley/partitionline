@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ConsumerConfig::group_protocol` is Java `group.protocol`. Default
+  `CLASSIC` keeps `ConsumerGroup::join` / `join_topics` / `join_matching`
+  on JoinGroup. `CONSUMER` uses KIP-848 ConsumerGroupHeartbeat on those
+  entry points. `join_consumer` is still always KIP-848; sticky /
+  cooperative / `join_with_assignors` stay classic.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a
