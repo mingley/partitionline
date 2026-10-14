@@ -51913,8 +51913,8 @@
       "title": "Qualify complete registered Produce wire versions and unsupported historical peers",
       "priority": "P1",
       "kind": "evidence",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
       ],
