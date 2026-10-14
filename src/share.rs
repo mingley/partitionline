@@ -602,6 +602,70 @@ struct PreparedShareFetch {
     request: BytesMut,
 }
 
+struct ShareAssignmentUpdate {
+    assigned: Vec<(String, i32)>,
+    topic_ids: HashMap<String, [u8; 16]>,
+}
+
+/// Resolve a share-group assignment.
+///
+/// `None` means the topic ids could not be named, so the caller keeps its
+/// current partitions. An empty input is an explicit revoke. Negative
+/// partition indexes are omitted, and a repeated partition is stored once.
+fn next_share_assignment(
+    incoming: &[ShareTopicPartitions],
+    id_to_name: &HashMap<[u8; 16], String>,
+    name_to_id: &HashMap<String, [u8; 16]>,
+    subscribed: &[String],
+) -> Option<ShareAssignmentUpdate> {
+    if incoming.is_empty() {
+        return Some(ShareAssignmentUpdate {
+            assigned: Vec::new(),
+            topic_ids: HashMap::new(),
+        });
+    }
+    let mut assigned = Vec::new();
+    let mut topic_ids = HashMap::new();
+    let mut seen = HashSet::new();
+    let mut resolved_topic = false;
+    for tp in incoming {
+        if tp.topic_id == [0u8; 16] {
+            continue;
+        }
+        let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
+            // Single-topic subscribe: map the only name when metadata
+            // has not yet indexed this id.
+            if subscribed.len() == 1 {
+                subscribed.first().cloned()
+            } else {
+                None
+            }
+        });
+        let Some(name) = name else {
+            continue;
+        };
+        let topic_id = name_to_id.get(&name).copied().unwrap_or(tp.topic_id);
+        if topic_id == [0u8; 16] {
+            continue;
+        }
+        resolved_topic = true;
+        let _ = topic_ids.insert(name.clone(), topic_id);
+        for partition in &tp.partitions {
+            if *partition < 0 || !seen.insert((name.clone(), *partition)) {
+                continue;
+            }
+            assigned.push((name.clone(), *partition));
+        }
+    }
+    if !resolved_topic {
+        return None;
+    }
+    Some(ShareAssignmentUpdate {
+        assigned,
+        topic_ids,
+    })
+}
+
 impl ShareGroup {
     /// Join a share group. One topic.
     ///
@@ -987,40 +1051,18 @@ impl ShareGroup {
         let Some(assigned) = assignment else {
             return;
         };
-        // Empty assignment vector means "no partitions right now" — clear.
-        self.assigned.clear();
-        self.topic_ids.clear();
-        if assigned.is_empty() {
+        let id_to_name = self.consumer.topic_id_names();
+        let name_to_id = self.consumer.topic_name_ids();
+        let Some(update) = next_share_assignment(assigned, &id_to_name, &name_to_id, &self.topics)
+        else {
+            return;
+        };
+        self.assigned = update.assigned;
+        self.topic_ids = update.topic_ids;
+        if self.assigned.is_empty() {
             self.acquisitions.clear();
             self.pending_delivery.clear();
             return;
-        }
-        let id_to_name = self.consumer.topic_id_names();
-        let name_to_id = self.consumer.topic_name_ids();
-        for tp in assigned {
-            if tp.topic_id == [0u8; 16] {
-                continue;
-            }
-            let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
-                // Single-topic subscribe: map the only name when metadata
-                // has not yet indexed this id.
-                if self.topics.len() == 1 {
-                    self.topics.first().cloned()
-                } else {
-                    None
-                }
-            });
-            let Some(name) = name else {
-                continue;
-            };
-            let topic_id = name_to_id.get(&name).copied().unwrap_or(tp.topic_id);
-            if topic_id == [0u8; 16] {
-                continue;
-            }
-            let _ = self.topic_ids.insert(name.clone(), topic_id);
-            for p in &tp.partitions {
-                self.assigned.push((name.clone(), *p));
-            }
         }
         self.acquisitions.retain(|(topic, part, _), _| {
             self.assigned.iter().any(|(t, p)| t == topic && p == part)
@@ -2749,6 +2791,73 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn an_unresolved_share_assignment_keeps_the_previous_one() {
+        let orders = [1u8; 16];
+        let unknown = [9u8; 16];
+        let mut id_to_name = HashMap::new();
+        let _ = id_to_name.insert(orders, "orders".to_owned());
+        let mut name_to_id = HashMap::new();
+        let _ = name_to_id.insert("orders".to_owned(), orders);
+        let subscribed = vec!["orders".to_owned(), "payments".to_owned()];
+        assert!(next_share_assignment(
+            &[ShareTopicPartitions {
+                topic_id: unknown,
+                partitions: vec![0, 1],
+            }],
+            &id_to_name,
+            &name_to_id,
+            &subscribed,
+        )
+        .is_none());
+        assert!(next_share_assignment(
+            &[ShareTopicPartitions {
+                topic_id: [0u8; 16],
+                partitions: vec![0],
+            }],
+            &id_to_name,
+            &name_to_id,
+            &subscribed,
+        )
+        .is_none());
+        let resolved = next_share_assignment(
+            &[
+                ShareTopicPartitions {
+                    topic_id: orders,
+                    partitions: vec![1, -1, 1, 0],
+                },
+                ShareTopicPartitions {
+                    topic_id: unknown,
+                    partitions: vec![3],
+                },
+            ],
+            &id_to_name,
+            &name_to_id,
+            &subscribed,
+        )
+        .expect("known topic replaces the assignment");
+        assert_eq!(
+            resolved.assigned,
+            vec![("orders".to_owned(), 1), ("orders".to_owned(), 0)]
+        );
+        let only = vec!["orders".to_owned()];
+        let mapped = next_share_assignment(
+            &[ShareTopicPartitions {
+                topic_id: unknown,
+                partitions: vec![2],
+            }],
+            &HashMap::new(),
+            &HashMap::new(),
+            &only,
+        )
+        .expect("one subscription names the only topic");
+        assert_eq!(mapped.assigned, vec![("orders".to_owned(), 2)]);
+        assert_eq!(mapped.topic_ids.get("orders").copied(), Some(unknown));
+        let cleared = next_share_assignment(&[], &id_to_name, &name_to_id, &subscribed)
+            .expect("empty assignment revokes");
+        assert!(cleared.assigned.is_empty());
     }
 
     #[test]
