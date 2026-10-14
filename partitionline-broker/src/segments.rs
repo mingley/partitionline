@@ -473,6 +473,21 @@ fn buffer(size: usize) -> Result<Vec<u8>, Error> {
         .map_err(|_| Error::AllocationFailed)?;
     Ok(v)
 }
+
+/// Read exactly `len` bytes without zero-filling them first.
+fn read_exact_vec(reader: &mut impl std::io::Read, len: usize) -> Result<Vec<u8>, Error> {
+    let mut payload = buffer(len)?;
+    let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
+    let read = reader.take(limit).read_to_end(&mut payload)?;
+    if read != len {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "segment changed during read",
+        )
+        .into());
+    }
+    Ok(payload)
+}
 fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
     let mut out = buffer(manifest_size(m))?;
     if m.retention || m.compacted {
@@ -548,9 +563,7 @@ fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>, Error> {
     if len > maximum {
         return Err(Error::InvalidIndex);
     }
-    let mut out = buffer(len)?;
-    out.resize(len, 0);
-    file.read_exact(&mut out)?;
+    let out = read_exact_vec(&mut file, len)?;
     if file.metadata()?.len() != len as u64 {
         return Err(Error::InvalidLayout);
     }
@@ -780,9 +793,7 @@ impl SparseCursor {
         if charged > maximum || charged > self.limits.max_fetch_bytes() {
             return Err(journal::Error::FetchBudgetExceeded.into());
         }
-        let mut payload = buffer(length)?;
-        payload.resize(length, 0);
-        self.file.read_exact(&mut payload)?;
+        let payload = read_exact_vec(&mut self.file, length)?;
         if crc32c::crc32c(&payload) != count(&header, 24)?
             || self.file.metadata()?.len() != self.bytes
         {

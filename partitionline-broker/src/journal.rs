@@ -322,12 +322,7 @@ impl CheckedCursor {
         if charged > max_bytes || charged > self.limits.max_fetch_bytes {
             return Err(Error::FetchBudgetExceeded);
         }
-        let mut payload = Vec::new();
-        payload
-            .try_reserve_exact(index.payload_len as usize)
-            .map_err(|_| Error::AllocationFailed)?;
-        payload.resize(index.payload_len as usize, 0);
-        require_read(&mut self.file, &mut payload)?;
+        let payload = read_exact_vec(&mut self.file, index.payload_len as usize)?;
         if crc32c::crc32c(&payload) != index.checksum {
             return Err(corrupt(position, Corruption::PayloadChecksum));
         }
@@ -600,6 +595,27 @@ fn require_read(reader: &mut impl Read, output: &mut [u8]) -> io::Result<()> {
         ));
     }
     Ok(())
+}
+
+/// Read exactly `len` bytes without zero-filling them first.
+///
+/// `Read::read_to_end` fills reserved capacity directly. A short read is the
+/// same interrupted-tail failure as [`require_read`].
+fn read_exact_vec(reader: &mut impl Read, len: usize) -> Result<Vec<u8>, Error> {
+    let mut payload = Vec::new();
+    payload
+        .try_reserve_exact(len)
+        .map_err(|_| Error::AllocationFailed)?;
+    let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
+    let read = reader.take(limit).read_to_end(&mut payload)?;
+    if read != len {
+        return Err(io::Error::new(
+            io::ErrorKind::UnexpectedEof,
+            "journal changed during read",
+        )
+        .into());
+    }
+    Ok(payload)
 }
 fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
     let mut header = [0; FILE_HEADER];
@@ -1113,12 +1129,7 @@ impl<S: Storage> Engine<S> {
                 {
                     return Err(corrupt(index.position, Corruption::EntryHeader));
                 }
-                let mut payload = Vec::new();
-                payload
-                    .try_reserve_exact(index.payload_len as usize)
-                    .map_err(|_| Error::AllocationFailed)?;
-                payload.resize(index.payload_len as usize, 0);
-                require_read(&mut self.storage, &mut payload)?;
+                let payload = read_exact_vec(&mut self.storage, index.payload_len as usize)?;
                 if crc32c::crc32c(&payload) != index.checksum {
                     return Err(corrupt(index.position, Corruption::PayloadChecksum));
                 }
