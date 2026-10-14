@@ -4141,6 +4141,7 @@ async fn admin_list_consumer_group_offsets_for_groups_falls_back_below_v8() {
     admin.close().await.unwrap();
 }
 
+/// Debug future layout overflows the default 2 MiB worker stack; `.cargo/config.toml` sets `RUST_MIN_STACK`.
 #[tokio::test]
 async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator() {
     let mock = common::Mock::start().await;

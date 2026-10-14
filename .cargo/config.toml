@@ -1,0 +1,6 @@
+# Debug async Admin offset-list futures overflow the default 2 MiB thread stack
+# used by `cargo test` worker threads. `admin_list_consumer_group_offsets_for_groups_batches_find_coordinator`
+# aborts with SIGABRT without this. Release layouts are smaller. Not a
+# performance claim and not a soak/source hash input.
+[env]
+RUST_MIN_STACK = "8388608"
