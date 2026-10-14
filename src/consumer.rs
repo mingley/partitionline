@@ -27,15 +27,14 @@ use crate::protocol::epoch::{
     OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response_batches, encode_fetch_request_with_forgotten, FetchMetadata,
-    FetchPartition, FetchTopic, FetchedTopic, ForgottenTopic, FETCH_CRATE_MAX_VERSION,
-    INVALID_LOG_START_OFFSET,
+    decode_fetch_response_raw, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
+    FetchTopic, FetchedTopic, ForgottenTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
 use crate::protocol::records::{
-    write_java_optional, write_java_optional_bytes, write_java_record_headers, EncodedBatch,
-    Header, RecordBatch, TimestampType,
+    split_record_batches, write_java_optional, write_java_optional_bytes,
+    write_java_record_headers, EncodedBatch, Header, TimestampType,
 };
 use crate::protocol::sasl;
 
@@ -136,12 +135,6 @@ pub struct ConsumerConfig {
     ///
     /// Default 32 MiB (matching producer `buffer_memory`). Zero means no aggregate cap.
     pub buffer_memory: usize,
-    /// Bounded workers that decompress and decode fetched batches.
-    ///
-    /// `0` (the default) uses the host's available parallelism, capped at 32, so
-    /// a fetch of several compressed partitions can use more than one core.
-    /// `1` keeps decompression on the caller's fetch/poll task.
-    pub fetch_decode_workers: usize,
     /// Kafka `session.timeout.ms` on classic JoinGroup. Default 10 seconds.
     pub session_timeout_ms: i32,
     /// How often the group member heartbeats. Default 150 ms (faster than Java's 3 s).
@@ -228,7 +221,6 @@ impl fmt::Debug for ConsumerConfig {
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
             .field("buffer_memory", &self.buffer_memory)
-            .field("fetch_decode_workers", &self.fetch_decode_workers)
             .field("session_timeout_ms", &self.session_timeout_ms)
             .field("heartbeat_interval", &self.heartbeat_interval)
             .field("rebalance", &self.rebalance)
@@ -270,7 +262,6 @@ impl Default for ConsumerConfig {
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
             buffer_memory: 32 * 1024 * 1024,
-            fetch_decode_workers: 0,
             session_timeout_ms: 10_000,
             heartbeat_interval: Duration::from_millis(150),
             rebalance: RebalanceListener::default(),
@@ -405,17 +396,6 @@ impl ConsumerConfig {
     #[must_use]
     pub fn fetch_buffer_memory(mut self, bytes: usize) -> Self {
         self.buffer_memory = bytes;
-        self
-    }
-
-    /// Bounded workers for decompressing and decoding fetched batches.
-    ///
-    /// `0` (the default) uses [`std::thread::available_parallelism`], capped at
-    /// 32. `1` decodes on the caller's fetch/poll task. Values above 32 are
-    /// capped.
-    #[must_use]
-    pub fn fetch_decode_workers(mut self, workers: usize) -> Self {
-        self.fetch_decode_workers = workers;
         self
     }
 
@@ -1587,8 +1567,6 @@ pub struct Consumer {
 /// After one leader in a multi-leader round has responded, wait this long for
 /// the others. A slower leader stays in flight and is applied on a later fetch.
 const MULTI_LEADER_COLLECTION_WINDOW: Duration = Duration::from_millis(10);
-/// Upper bound on [`ConsumerConfig::fetch_decode_workers`], including auto.
-const FETCH_DECODE_WORKERS_CAP: usize = 32;
 
 /// Preserve each peer's completion clock while collecting a concurrent round.
 struct FetchReply {
@@ -3148,18 +3126,16 @@ impl Consumer {
                 let mut fenced = Vec::new();
                 let mut need_offsets = Vec::new();
                 let mut budget_reached = false;
-                let _retry = self
-                    .apply_fetch_body(
-                        -1,
-                        body,
-                        &mut out,
-                        &mut out_bytes,
-                        &mut fenced,
-                        &mut need_offsets,
-                        &mut completed,
-                        &mut budget_reached,
-                    )
-                    .await?;
+                let _retry = self.apply_fetch_body(
+                    -1,
+                    body,
+                    &mut out,
+                    &mut out_bytes,
+                    &mut fenced,
+                    &mut need_offsets,
+                    &mut completed,
+                    &mut budget_reached,
+                )?;
                 if budget_reached {
                     return Ok(self.finish_fetch(out));
                 }
@@ -3350,18 +3326,16 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                let applied = self
-                    .apply_fetch_body(
-                        node,
-                        body,
-                        &mut out,
-                        &mut out_bytes,
-                        &mut fenced,
-                        &mut need_offsets,
-                        &mut completed,
-                        &mut budget_reached,
-                    )
-                    .await;
+                let applied = self.apply_fetch_body(
+                    node,
+                    body,
+                    &mut out,
+                    &mut out_bytes,
+                    &mut fenced,
+                    &mut need_offsets,
+                    &mut completed,
+                    &mut budget_reached,
+                );
                 if applied.is_err() {
                     if let Some(session) = self.fetch_sessions.get_mut(&node) {
                         session.reset();
@@ -3717,8 +3691,17 @@ impl Consumer {
                     return Err(error);
                 }
             }
-            let (topics, batches, endpoints, _, _, throttle) =
-                decode_fetch_response_batches(&mut bytes, reply.version)?;
+            let (topics, raw, endpoints, _, _, throttle) =
+                decode_fetch_response_raw(&mut bytes, reply.version)?;
+            let batches = raw
+                .into_iter()
+                .map(|partitions| {
+                    partitions
+                        .into_iter()
+                        .map(split_record_batches)
+                        .collect::<Result<Vec<_>>>()
+                })
+                .collect::<Result<Vec<_>>>()?;
             if reply.version >= 7 {
                 if let Some(session) = session.as_mut() {
                     // Apache treats an empty throttled full response as a
@@ -3754,60 +3737,11 @@ impl Consumer {
         }
     }
 
-    fn decode_worker_limit(&self) -> usize {
-        match self.cfg.fetch_decode_workers {
-            0 => std::thread::available_parallelism()
-                .map(|n| n.get().min(FETCH_DECODE_WORKERS_CAP))
-                .unwrap_or(1),
-            n => n.min(FETCH_DECODE_WORKERS_CAP),
-        }
-    }
-
-    async fn fill_decode_slots(
-        &self,
-        jobs: Vec<(usize, usize, usize, EncodedBatch)>,
-        slots: &mut [Vec<Vec<Option<Result<RecordBatch>>>>],
-    ) {
-        if jobs.is_empty() {
-            return;
-        }
-        let limit = self.decode_worker_limit();
-        if limit <= 1 || jobs.len() == 1 {
-            for (topic, partition, batch, encoded) in jobs {
-                store_decoded_batch(slots, topic, partition, batch, encoded.decode_shared());
-            }
-            return;
-        }
-        let sem = Arc::new(tokio::sync::Semaphore::new(limit));
-        let mut set = tokio::task::JoinSet::new();
-        for (topic, partition, batch, encoded) in jobs {
-            let sem = Arc::clone(&sem);
-            let _decode = set.spawn(async move {
-                let decoded = match sem.acquire_owned().await {
-                    Ok(permit) => {
-                        let decoded = tokio::task::spawn_blocking(move || encoded.decode_shared())
-                            .await
-                            .unwrap_or_else(|e| Err(Error::protocol(format!("decode task: {e}"))));
-                        drop(permit);
-                        decoded
-                    }
-                    Err(_) => Err(Error::protocol("decode worker semaphore closed")),
-                };
-                (topic, partition, batch, decoded)
-            });
-        }
-        while let Some(joined) = set.join_next().await {
-            if let Ok((topic, partition, batch, decoded)) = joined {
-                store_decoded_batch(slots, topic, partition, batch, decoded);
-            }
-        }
-    }
-
     #[expect(
         clippy::too_many_arguments,
         reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
     )]
-    async fn apply_fetch_body(
+    fn apply_fetch_body(
         &mut self,
         node: i32,
         body: FetchBody,
@@ -3824,17 +3758,9 @@ impl Consumer {
             endpoints,
         } = body;
         self.cluster.apply_node_endpoints(&endpoints);
-        let workers = self.decode_worker_limit();
-        let mut slots = empty_decode_slots(&batches);
-        let mut remaining_filled = workers <= 1;
-        if workers > 1 {
-            self.fill_decode_slots(first_batch_jobs(&fetched, &batches), &mut slots)
-                .await;
-        }
-        let batch_snapshot = batches.clone();
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
-        for (ti, (topic, topic_batches)) in fetched.into_iter().zip(batches).enumerate() {
+        for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
                 let name = if !topic.topic.is_empty() {
                     topic.topic
@@ -3862,9 +3788,7 @@ impl Consumer {
             } else {
                 continue;
             };
-            for (pi, (part, part_batches)) in
-                topic.partitions.into_iter().zip(topic_batches).enumerate()
-            {
+            for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if *budget_reached {
                     if part.error_code == 0 {
                         self.retain_held(
@@ -4011,8 +3935,8 @@ impl Consumer {
                 let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 let mut reached_lso = false;
 
-                let mut encoded_iter = part_batches.into_iter().enumerate();
-                while let Some((bi, encoded)) = encoded_iter.next() {
+                let mut encoded_iter = part_batches.into_iter();
+                while let Some(encoded) = encoded_iter.next() {
                     let is_control = encoded.is_control_batch();
                     let is_first_batch = out.is_empty() && self.pending.is_empty();
                     let budget = self.cfg.buffer_memory;
@@ -4027,12 +3951,12 @@ impl Consumer {
                             &name,
                             part.partition,
                             part.last_stable_offset,
-                            std::iter::once(encoded).chain(encoded_iter.map(|(_, e)| e)),
+                            std::iter::once(encoded).chain(encoded_iter),
                         );
                         *budget_reached = true;
                         break;
                     }
-                    let batch = take_decoded_batch(&mut slots, ti, pi, bi, &encoded)?;
+                    let batch = encoded.decode_shared()?;
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
                         let current_total = self.buffered_bytes.saturating_add(*out_bytes);
@@ -4041,7 +3965,7 @@ impl Consumer {
                                 &name,
                                 part.partition,
                                 part.last_stable_offset,
-                                std::iter::once(encoded).chain(encoded_iter.map(|(_, e)| e)),
+                                std::iter::once(encoded).chain(encoded_iter),
                             );
                             *budget_reached = true;
                             break;
@@ -4145,25 +4069,6 @@ impl Consumer {
                     if batch_next >= req_offset {
                         next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
                         last_epoch = batch.partition_leader_epoch;
-                    }
-                    if !remaining_filled {
-                        let over = self.cfg.buffer_memory > 0
-                            && self.buffered_bytes.saturating_add(*out_bytes)
-                                > self.cfg.buffer_memory;
-                        remaining_filled = true;
-                        if !over {
-                            let _release = aborted.take();
-                            self.fill_decode_slots(
-                                remaining_batch_jobs(&batch_snapshot, &slots),
-                                &mut slots,
-                            )
-                            .await;
-                            aborted = if isolation == crate::IsolationLevel::ReadCommitted {
-                                self.aborted.get_mut(&name, part.partition)
-                            } else {
-                                None
-                            };
-                        }
                     }
                 }
                 if let Some(n) = next {
@@ -4939,99 +4844,6 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
             crate::protocol::records::ControlRecordType::parse(k)
                 .is_ok_and(|t| t == crate::protocol::records::ControlRecordType::Abort)
         })
-}
-
-fn empty_decode_slots(
-    batches: &[Vec<Vec<EncodedBatch>>],
-) -> Vec<Vec<Vec<Option<Result<RecordBatch>>>>> {
-    batches
-        .iter()
-        .map(|topic| {
-            topic
-                .iter()
-                .map(|part| part.iter().map(|_| None).collect())
-                .collect()
-        })
-        .collect()
-}
-
-fn first_batch_jobs(
-    fetched: &[FetchedTopic],
-    batches: &[Vec<Vec<EncodedBatch>>],
-) -> Vec<(usize, usize, usize, EncodedBatch)> {
-    let mut jobs = Vec::new();
-    for (ti, topic) in fetched.iter().enumerate() {
-        for (pi, part) in topic.partitions.iter().enumerate() {
-            if part.error_code != 0 {
-                continue;
-            }
-            if let Some(encoded) = batches
-                .get(ti)
-                .and_then(|topic| topic.get(pi))
-                .and_then(|part| part.first())
-            {
-                jobs.push((ti, pi, 0, encoded.clone()));
-            }
-        }
-    }
-    jobs
-}
-
-fn remaining_batch_jobs(
-    batches: &[Vec<Vec<EncodedBatch>>],
-    slots: &[Vec<Vec<Option<Result<RecordBatch>>>>],
-) -> Vec<(usize, usize, usize, EncodedBatch)> {
-    let mut jobs = Vec::new();
-    for (ti, topic) in batches.iter().enumerate() {
-        for (pi, part) in topic.iter().enumerate() {
-            for (bi, encoded) in part.iter().enumerate() {
-                let filled = slots
-                    .get(ti)
-                    .and_then(|topic| topic.get(pi))
-                    .and_then(|part| part.get(bi))
-                    .and_then(Option::as_ref)
-                    .is_some();
-                if !filled {
-                    jobs.push((ti, pi, bi, encoded.clone()));
-                }
-            }
-        }
-    }
-    jobs
-}
-
-fn store_decoded_batch(
-    slots: &mut [Vec<Vec<Option<Result<RecordBatch>>>>],
-    topic: usize,
-    partition: usize,
-    batch: usize,
-    decoded: Result<RecordBatch>,
-) {
-    if let Some(slot) = slots
-        .get_mut(topic)
-        .and_then(|topics| topics.get_mut(partition))
-        .and_then(|parts| parts.get_mut(batch))
-    {
-        *slot = Some(decoded);
-    }
-}
-
-fn take_decoded_batch(
-    slots: &mut [Vec<Vec<Option<Result<RecordBatch>>>>],
-    topic: usize,
-    partition: usize,
-    batch: usize,
-    encoded: &EncodedBatch,
-) -> Result<RecordBatch> {
-    match slots
-        .get_mut(topic)
-        .and_then(|topics| topics.get_mut(partition))
-        .and_then(|parts| parts.get_mut(batch))
-        .and_then(Option::take)
-    {
-        Some(decoded) => decoded,
-        None => encoded.decode_shared(),
-    }
 }
 
 fn fetch_topics(

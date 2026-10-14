@@ -2605,7 +2605,7 @@ pub fn decode_record_batches_with_limit<B: Buf>(
 
 /// One framed, CRC-checked magic-v2 batch whose records are decoded (and
 /// decompressed) only when [`EncodedBatch::decode`] is called.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EncodedBatch {
     base_offset: i64,
     attributes: i16,

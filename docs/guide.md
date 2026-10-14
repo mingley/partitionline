@@ -838,14 +838,6 @@ partition queues and brokers (KL02-08):
 
 Mock coverage: `tests/fetch_buffer_budget.rs`.
 
-`ConsumerConfig::fetch_decode_workers` (default `0`) runs decompression and
-record decode of fetched batches on bounded blocking workers instead of inline
-on the caller's fetch/poll task (KL10-09). `0` uses the host's available
-parallelism, capped at 32. `1` keeps decode on the caller. Per-partition order,
-the `buffer_memory` budget, seek, pause, rebalance and `read_committed`
-filtering are unchanged; a batch past the budget is still not decompressed.
-Decode errors surface on the same `fetch` / `poll` that applies the batch.
-
 
 ### Fetch version 18
 
