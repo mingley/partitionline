@@ -7,6 +7,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `FetchedRecord.topic` is a `TopicName`. Names of at most 23 bytes are stored
+  in the record and clone without a heap allocation. Longer names still use a
+  `String`. `as_str()`, `Deref<Target = str>`, and equality with `str` and
+  `String` cover the previous field uses. On the null-broker bulk fetch cell
+  this removed the per-record topic allocation (135,629 allocations to 629)
+  and raised verified records/s by about 21% (paired mean ratio 1.215, 95% CI
+  1.129–1.315).
+
 - Development and CI use the latest stable Rust only. Package manifests now
   require Rust 1.99; Rust 1.85 is no longer supported.
 - The schema companion checks a bounded Apache Avro Rust 0.22.0 codec against

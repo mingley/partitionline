@@ -560,11 +560,126 @@ impl ConsumerConfig {
     }
 }
 
+/// Topic name stored beside the record when it fits in 23 bytes.
+///
+/// Kafka topic names are at most 249 bytes. Names that fit inline clone
+/// without a heap allocation. Longer names stay on the heap.
+#[derive(Clone, Debug)]
+pub enum TopicName {
+    /// UTF-8 bytes and their length, at most 23.
+    Inline([u8; 23], u8),
+    /// Topic longer than 23 bytes.
+    Heap(String),
+}
+
+impl TopicName {
+    /// Borrow the topic as UTF-8.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Inline(buf, len) => {
+                let end = usize::from(*len);
+                buf.get(..end)
+                    .and_then(|bytes| std::str::from_utf8(bytes).ok())
+                    .unwrap_or("")
+            }
+            Self::Heap(topic) => topic.as_str(),
+        }
+    }
+}
+
+impl From<&str> for TopicName {
+    fn from(value: &str) -> Self {
+        let bytes = value.as_bytes();
+        if let Some(len) = u8::try_from(bytes.len()).ok().filter(|len| *len <= 23) {
+            let mut buf = [0u8; 23];
+            if let Some(slot) = buf.get_mut(..bytes.len()) {
+                slot.copy_from_slice(bytes);
+            }
+            Self::Inline(buf, len)
+        } else {
+            Self::Heap(value.to_owned())
+        }
+    }
+}
+
+impl From<String> for TopicName {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl From<&String> for TopicName {
+    fn from(value: &String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl From<TopicName> for String {
+    fn from(value: TopicName) -> Self {
+        match value {
+            TopicName::Heap(topic) => topic,
+            inline => inline.as_str().to_owned(),
+        }
+    }
+}
+
+impl std::ops::Deref for TopicName {
+    type Target = str;
+    fn deref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl fmt::Display for TopicName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl PartialEq for TopicName {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl Eq for TopicName {}
+
+impl std::hash::Hash for TopicName {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
+impl PartialEq<str> for TopicName {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PartialEq<&str> for TopicName {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl PartialEq<String> for TopicName {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PartialEq<TopicName> for String {
+    fn eq(&self, other: &TopicName) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
 /// One record from Fetch.
 #[derive(Debug, Clone)]
 pub struct FetchedRecord {
     /// Topic name.
-    pub topic: String,
+    pub topic: TopicName,
     /// Partition index.
     pub partition: i32,
     /// Record offset.
@@ -1384,7 +1499,7 @@ impl PendingRecords {
                 run.count += 1;
             } else {
                 self.order.push_back(PendingRun {
-                    topic: rec.topic.clone(),
+                    topic: rec.topic.as_str().to_owned(),
                     partition: rec.partition,
                     count: 1,
                 });
@@ -4111,7 +4226,7 @@ impl Consumer {
                             .unwrap_or(u64::MAX),
                         );
                         out.push(FetchedRecord {
-                            topic: name.clone(),
+                            topic: TopicName::from(name.as_str()),
                             partition: part.partition,
                             offset,
                             timestamp: rec.timestamp,
@@ -5155,6 +5270,22 @@ mod tests {
         assert_eq!(legacy.metadata, FetchMetadata::LEGACY);
         assert_eq!(legacy.topics.len(), 1);
         assert!(session.partitions.is_empty());
+    }
+
+    #[test]
+    fn topic_name_inlines_short_names_and_heaps_long_ones() {
+        let short = TopicName::from("nb-fetch");
+        assert_eq!(short.as_str(), "nb-fetch");
+        assert!(matches!(short, TopicName::Inline(_, _)));
+        let cloned = short.clone();
+        assert_eq!(cloned, short);
+        assert_eq!(cloned, "nb-fetch");
+        assert_eq!(String::from("nb-fetch"), cloned);
+        let long = "topic-name-longer-than-twenty-three";
+        let heaped = TopicName::from(long);
+        assert!(matches!(heaped, TopicName::Heap(_)));
+        assert_eq!(heaped.as_str(), long);
+        assert_eq!(String::from(heaped.as_str()), long);
     }
 
     fn rec(topic: &str, partition: i32, offset: i64) -> FetchedRecord {

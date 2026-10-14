@@ -116,7 +116,7 @@ fn synth_record(seed: u64, partition: i32, offset: u64) -> FetchedRecord {
     key.extend_from_slice(&offset.to_be_bytes());
     key.extend_from_slice(&(hash as u32).to_be_bytes());
     FetchedRecord {
-        topic: "t".to_owned(),
+        topic: "t".into(),
         partition,
         offset: offset as i64,
         timestamp: 0,

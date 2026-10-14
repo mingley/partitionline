@@ -3236,8 +3236,8 @@ pub use config::{
 };
 pub use consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
-    OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
-    WakeupHandle,
+    OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicName,
+    TopicPartition, WakeupHandle,
 };
 pub use error::{ApiError, Error, Result};
 pub use group::{
