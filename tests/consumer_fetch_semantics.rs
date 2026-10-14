@@ -3502,10 +3502,16 @@ async fn list_offsets_keeps_the_one_node_fetch_session() {
     assert!(consumer.fetch().await.unwrap().is_empty());
     let before = mock.fetch_session_requests();
     assert_eq!(before[1].3.epoch(), 1);
+    let versions_before = mock.api_versions_versions().len();
     let latest = consumer
         .list_offsets("t", 0, partitionline::LATEST_TIMESTAMP)
         .await
         .unwrap();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "ListOffsets on the already negotiated bootstrap socket must not send ApiVersions again"
+    );
     assert_eq!(latest, 0);
     assert!(consumer.fetch().await.unwrap().is_empty());
     let after = mock.fetch_session_requests();

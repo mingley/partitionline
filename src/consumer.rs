@@ -4695,13 +4695,33 @@ impl Consumer {
                 self.connect_node(node).await?;
                 let isolation = self.cfg.isolation_level.as_i8();
                 let minimum = crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
-                let capabilities = crate::protocol::api::negotiate_api_versions(
-                    self.broker_conn_mut(node)?,
-                    deadline.saturating_duration_since(Instant::now()),
-                ).await?;
-                let version = capabilities.api_keys.iter().find(|v| v.api_key == LIST_OFFSETS)
-                    .and_then(|v| pick_version(v.min_version, v.max_version, minimum, 11))
-                    .ok_or_else(|| Error::Unsupported(format!("broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)")))?;
+                let uses_bootstrap = !self.conns.contains_key(&node)
+                    && self
+                        .cluster
+                        .brokers
+                        .get(&node)
+                        .is_some_and(|addr| addr == self.conn.addr());
+                let version = if uses_bootstrap {
+                    self.versions.get(&LIST_OFFSETS).and_then(|v| {
+                        pick_version(v.min_version, v.max_version, minimum, 11)
+                    })
+                } else {
+                    let capabilities = crate::protocol::api::negotiate_api_versions(
+                        self.broker_conn_mut(node)?,
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await?;
+                    capabilities
+                        .api_keys
+                        .iter()
+                        .find(|v| v.api_key == LIST_OFFSETS)
+                        .and_then(|v| pick_version(v.min_version, v.max_version, minimum, 11))
+                }
+                .ok_or_else(|| {
+                    Error::Unsupported(format!(
+                        "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
+                    ))
+                })?;
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
                 let body = {
