@@ -3834,6 +3834,11 @@ impl Consumer {
                     let offset = self
                         .list_offsets(topic.clone(), partition, timestamp)
                         .await?;
+                    let Some(offset) = reset_position(offset) else {
+                        return Err(Error::protocol(format!(
+                            "ListOffsets returned no reset offset for {topic}-{partition}"
+                        )));
+                    };
                     self.advance(&topic, partition, offset);
                     self.set_last_fetched_epoch(
                         &topic,
@@ -5525,6 +5530,11 @@ fn fetch_topics(
 ///
 /// [`crate::protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] is not a
 /// log position. A successful lookup with that sentinel must not rewind.
+/// A ListOffsets reset position. Offset `-1` means the broker has no offset.
+pub(crate) fn reset_position(offset: i64) -> Option<i64> {
+    (offset >= 0).then_some(offset)
+}
+
 fn drop_records_at_or_after(
     records: &mut Vec<FetchedRecord>,
     topic: &str,
@@ -5734,6 +5744,13 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn an_unknown_list_offset_is_not_a_reset_position() {
+        assert_eq!(reset_position(0), Some(0));
+        assert_eq!(reset_position(4), Some(4));
+        assert_eq!(reset_position(-1), None);
     }
 
     #[test]

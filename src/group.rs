@@ -2501,9 +2501,15 @@ impl ConsumerGroup {
                     AutoOffsetReset::Earliest => 0,
                     AutoOffsetReset::Latest => {
                         self.consumer.ensure_topic_metadata(topic).await?;
-                        self.consumer
+                        let offset = self
+                            .consumer
                             .list_offsets(topic.clone(), *part, crate::LATEST_TIMESTAMP)
-                            .await?
+                            .await?;
+                        crate::consumer::reset_position(offset).ok_or_else(|| {
+                            Error::protocol(format!(
+                                "ListOffsets returned no reset offset for {topic}-{part}"
+                            ))
+                        })?
                     }
                     AutoOffsetReset::None => {
                         return Err(Error::protocol(format!(
