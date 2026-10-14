@@ -301,7 +301,17 @@ async fn run_fence(names: &Names) -> partitionline::Result<()> {
         )
         .await;
     match fenced {
-        Err(error) if error.broker_code() == Some(error::PRODUCER_FENCED) => {}
+        Err(error)
+            if matches!(
+                error.broker_code(),
+                Some(error::PRODUCER_FENCED | error::INVALID_PRODUCER_EPOCH)
+            ) =>
+        {
+            eprintln!(
+                "stale producer fenced: {}",
+                error.broker_code().unwrap_or(-1)
+            );
+        }
         Err(error) => return Err(error),
         Ok(_) => return Err(Error::protocol("stale producer was not fenced")),
     }
