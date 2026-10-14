@@ -299,8 +299,7 @@ pub(super) async fn coord_offsets_legacy(
         .run(async {
             if coord.idle_expired(cfg.connections_max_idle) {
                 let bounded = bounded_consumer_config(cfg, deadline)?;
-                *coord = super::open_coord(&bounded, coord.addr()).await?;
-                verify_version(coord, api, version, deadline).await?;
+                *coord = super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
             }
             let body = match coord
                 .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
@@ -309,8 +308,8 @@ pub(super) async fn coord_offsets_legacy(
                 Ok(body) => body,
                 Err(Error::Io(_) | Error::Timeout) => {
                     let bounded = bounded_consumer_config(cfg, deadline)?;
-                    *coord = super::open_coord(&bounded, coord.addr()).await?;
-                    verify_version(coord, api, version, deadline).await?;
+                    *coord =
+                        super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
                     coord
                         .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
                         .await?
@@ -321,8 +320,9 @@ pub(super) async fn coord_offsets_legacy(
                 .is_some_and(crate::error::coordinator_retriable)
             {
                 let bounded = bounded_consumer_config(cfg, deadline)?;
-                *coord = super::discover_coord(&bounded, group_id, key_type).await?;
-                verify_version(coord, api, version, deadline).await?;
+                *coord =
+                    super::discover_coord_supporting(&bounded, group_id, key_type, api, version)
+                        .await?;
                 coord
                     .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
                     .await
@@ -341,23 +341,4 @@ fn bounded_consumer_config(
     bounded.request_timeout = deadline.remaining()?;
     bounded.connect_timeout = bounded.connect_timeout.min(bounded.request_timeout);
     Ok(bounded)
-}
-
-async fn verify_version(
-    conn: &mut BrokerConn,
-    api: i16,
-    version: i16,
-    deadline: Deadline,
-) -> Result<()> {
-    let versions =
-        crate::protocol::api::negotiate_api_versions(conn, deadline.remaining()?).await?;
-    if !versions
-        .api_version(api)
-        .is_some_and(|range| range.min_version <= version && range.max_version >= version)
-    {
-        return Err(Error::Unsupported(
-            "moved coordinator cannot represent the name-based offset request".into(),
-        ));
-    }
-    Ok(())
 }

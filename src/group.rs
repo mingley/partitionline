@@ -3120,6 +3120,16 @@ pub(crate) async fn discover_coord(
     group_id: &str,
     key_type: i8,
 ) -> Result<BrokerConn> {
+    discover_coord_with_versions(cfg, group_id, key_type)
+        .await
+        .map(|(conn, _)| conn)
+}
+
+async fn discover_coord_with_versions(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     if cfg.bootstrap.len() > 16 || group_id.len() > i16::MAX as usize {
         return Err(Error::protocol(
             "bootstrap/group key exceeds discovery limit",
@@ -3169,11 +3179,11 @@ async fn discover_coord_once(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
-) -> Result<BrokerConn> {
+) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
-        let (mut hop, version) = match open_coord_with_find_version(cfg, addr).await {
+        let (mut hop, version, versions) = match open_coord_with_find_version(cfg, addr).await {
             Ok(v) => v,
             Err(e) => {
                 last = e;
@@ -3209,9 +3219,10 @@ async fn discover_coord_once(
         }
         let coord_addr = crate::net::format_address(&host, port);
         if coord_addr == hop.addr() {
-            return Ok(hop);
+            return Ok((hop, versions));
         }
-        return open_coord(cfg, &coord_addr).await;
+        let (conn, _, versions) = open_coord_with_find_version(cfg, &coord_addr).await?;
+        return Ok((conn, versions));
     }
     Err(last)
 }
@@ -3220,10 +3231,50 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
     Ok(open_coord_with_find_version(cfg, addr).await?.0)
 }
 
+pub(super) async fn open_coord_supporting(
+    cfg: &ConsumerConfig,
+    addr: &str,
+    api_key: i16,
+    version: i16,
+) -> Result<BrokerConn> {
+    let (conn, _, versions) = open_coord_with_find_version(cfg, addr).await?;
+    version_supported(&versions, api_key, version)?;
+    Ok(conn)
+}
+
+pub(super) async fn discover_coord_supporting(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    api_key: i16,
+    version: i16,
+) -> Result<BrokerConn> {
+    let (conn, versions) = discover_coord_with_versions(cfg, group_id, key_type).await?;
+    version_supported(&versions, api_key, version)?;
+    Ok(conn)
+}
+
+fn version_supported(
+    versions: &crate::protocol::api::ApiVersionsResponse,
+    api_key: i16,
+    version: i16,
+) -> Result<()> {
+    if versions
+        .api_version(api_key)
+        .is_some_and(|range| range.min_version <= version && range.max_version >= version)
+    {
+        Ok(())
+    } else {
+        Err(Error::Unsupported(
+            "moved coordinator cannot represent the name-based offset request".into(),
+        ))
+    }
+}
+
 async fn open_coord_with_find_version(
     cfg: &ConsumerConfig,
     addr: &str,
-) -> Result<(BrokerConn, i16)> {
+) -> Result<(BrokerConn, i16, crate::protocol::api::ApiVersionsResponse)> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
@@ -3275,7 +3326,7 @@ async fn open_coord_with_find_version(
         cfg.request_timeout,
     )
     .await?;
-    Ok((conn, version))
+    Ok((conn, version, resp))
 }
 
 pub(crate) async fn coord_roundtrip(
