@@ -360,7 +360,11 @@ async fn explicit_acknowledge_is_local_until_poll_or_commit() {
     let first_off = first[0].offset;
     group.accept(&first).await.unwrap();
     assert_eq!(mock.share_ack_calls(), 0);
-    assert_eq!(group.metrics().records_acknowledged, 0);
+    assert_eq!(
+        group.metrics().records_acknowledged,
+        1,
+        "queued explicit acknowledge counts locally"
+    );
     let fetches = mock.share_fetch_calls();
     let second = group.poll().await.unwrap();
     assert_eq!(second.len(), 1);

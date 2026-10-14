@@ -673,6 +673,8 @@ pub struct ShareGroup {
     last_poll_unacked: Vec<ShareRecord>,
     /// Java `ShareConsumer.acknowledge` queue (Accept/Release/Reject).
     pending_acknowledgements: BTreeMap<(String, i32, i64), (ShareRecord, i8)>,
+    /// Offsets already counted in [`Self::records_acknowledged`] at queue time.
+    counted_acknowledgements: HashSet<(String, i32, i64)>,
     ack_commit_callback: Option<AcknowledgementCommitFn>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
@@ -857,6 +859,7 @@ impl ShareGroup {
             acknowledgement_mode: cfg.share_acknowledgement_mode,
             last_poll_unacked: Vec::new(),
             pending_acknowledgements: BTreeMap::new(),
+            counted_acknowledgements: HashSet::new(),
             ack_commit_callback: None,
             acquisition_lock_timeout_ms: None,
             hb_err,
@@ -1182,6 +1185,7 @@ impl ShareGroup {
             self.acquisitions.clear();
             self.pending_delivery.clear();
             self.pending_acknowledgements.clear();
+            self.counted_acknowledgements.clear();
             return;
         }
         let id_to_name = self.consumer.topic_id_names();
@@ -2141,6 +2145,7 @@ impl ShareGroup {
             self.pending_delivery.clear();
             self.last_poll_unacked.clear();
             self.pending_acknowledgements.clear();
+            self.counted_acknowledgements.clear();
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
@@ -2168,6 +2173,7 @@ impl ShareGroup {
         self.hb_err.store(0, Ordering::SeqCst);
         self.last_poll_unacked.clear();
         self.pending_acknowledgements.clear();
+        self.counted_acknowledgements.clear();
         implicit.and(close).and(leave)
     }
 
@@ -2479,7 +2485,6 @@ impl ShareGroup {
             return;
         }
         self.fire_acknowledgement_commit_callback(recs, None);
-        let count = recs.len();
         self.acquisitions
             .retain(|(topic, partition, offset), acquired| {
                 !recs.iter().any(|rec| {
@@ -2489,9 +2494,10 @@ impl ShareGroup {
                         && rec.delivery_count == acquired.delivery_count
                 })
             });
-        self.records_acknowledged = self
-            .records_acknowledged
-            .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
+        self.finish_acknowledgement_metrics(
+            recs.iter()
+                .map(|rec| (rec.topic.clone(), rec.partition, rec.offset)),
+        );
     }
 
     fn take_pending_acknowledgements(&mut self) -> (Vec<ShareRecord>, Vec<(ShareRecord, i8)>) {
@@ -2541,6 +2547,16 @@ impl ShareGroup {
         match self.send_typed_acknowledgements(&typed).await {
             Ok(()) => Ok(()),
             Err(error) => {
+                let keys: Vec<(String, i32, i64)> = typed
+                    .iter()
+                    .filter(|(rec, _)| {
+                        matches!(error, Error::Timeout)
+                            || ack_outcome_is_fatal(&error)
+                            || !self.still_acquired(rec)
+                    })
+                    .map(|(rec, _)| (rec.topic.clone(), rec.partition, rec.offset))
+                    .collect();
+                self.uncount_acknowledgements(keys);
                 self.restore_pending_acknowledgements(implicit, explicit);
                 Err(error)
             }
@@ -2550,13 +2566,37 @@ impl ShareGroup {
     fn queue_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
         self.ensure_acquired(recs)?;
         for rec in recs {
-            let _ = self.pending_acknowledgements.insert(
-                (rec.topic.clone(), rec.partition, rec.offset),
-                (rec.clone(), ack),
-            );
+            let key = (rec.topic.clone(), rec.partition, rec.offset);
+            let _ = self
+                .pending_acknowledgements
+                .insert(key.clone(), (rec.clone(), ack));
+            if self.counted_acknowledgements.insert(key) {
+                self.records_acknowledged = self.records_acknowledged.saturating_add(1);
+            }
         }
         self.drop_last_poll_unacked(recs);
         Ok(())
+    }
+
+    fn finish_acknowledgement_metrics(
+        &mut self,
+        keys: impl IntoIterator<Item = (String, i32, i64)>,
+    ) {
+        let mut added = 0u64;
+        for key in keys {
+            if !self.counted_acknowledgements.remove(&key) {
+                added = added.saturating_add(1);
+            }
+        }
+        self.records_acknowledged = self.records_acknowledged.saturating_add(added);
+    }
+
+    fn uncount_acknowledgements(&mut self, keys: impl IntoIterator<Item = (String, i32, i64)>) {
+        for key in keys {
+            if self.counted_acknowledgements.remove(&key) {
+                self.records_acknowledged = self.records_acknowledged.saturating_sub(1);
+            }
+        }
     }
 
     fn drop_last_poll_unacked(&mut self, recs: &[ShareRecord]) {
@@ -2787,10 +2827,10 @@ impl ShareGroup {
                 for part in topic.partitions {
                     if part.error_code == 0 {
                         let _ = outcomes.insert((name.clone(), part.partition), None);
-                        let count = self
+                        let matched: Vec<(String, i32, i64)> = self
                             .acquisitions
-                            .iter()
-                            .filter(|((t, p, offset), _)| {
+                            .keys()
+                            .filter(|(t, p, offset)| {
                                 t == &name
                                     && *p == part.partition
                                     && partitions.iter().any(|(topic, partition, batches)| {
@@ -2802,7 +2842,8 @@ impl ShareGroup {
                                             })
                                     })
                             })
-                            .count();
+                            .cloned()
+                            .collect();
                         if ack == ACK_RENEW {
                             if lock_timeout <= 0 {
                                 return Err(Error::protocol(
@@ -2840,15 +2881,31 @@ impl ShareGroup {
                                             })
                                     }))
                             });
-                            self.records_acknowledged = self
-                                .records_acknowledged
-                                .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
+                            self.finish_acknowledgement_metrics(matched);
                         }
                         partitions.retain(|(t, p, _)| t != &name || *p != part.partition);
                     } else {
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
+                            let matched: Vec<(String, i32, i64)> = self
+                                .acquisitions
+                                .keys()
+                                .filter(|(t, p, offset)| {
+                                    t == &name
+                                        && *p == part.partition
+                                        && partitions.iter().any(|(topic, partition, batches)| {
+                                            topic == t
+                                                && partition == p
+                                                && batches.iter().any(|b| {
+                                                    *offset >= b.first_offset
+                                                        && *offset <= b.last_offset
+                                                })
+                                        })
+                                })
+                                .cloned()
+                                .collect();
+                            self.uncount_acknowledgements(matched);
                             self.acquisitions.retain(|(t, p, offset), _| {
                                 !(t == &name
                                     && *p == part.partition
@@ -2942,6 +2999,7 @@ impl ShareGroup {
         self.acquisitions.clear();
         self.pending_delivery.clear();
         self.pending_acknowledgements.clear();
+        self.counted_acknowledgements.clear();
         last
     }
 
