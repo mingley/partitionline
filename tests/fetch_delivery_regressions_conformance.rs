@@ -384,8 +384,12 @@ async fn apache_offset_commit_fetch_bodies_reencode() {
         let fetch_resp = read(&dir.join("a05-offset-fetch-response.bin")).await;
         for prefix in 0..commit_req.len() {
             assert!(
-                decode_offset_commit_request_data(&commit_req[..prefix], OFFSET_COMMIT_VERSION, limits)
-                    .is_err(),
+                decode_offset_commit_request_data(
+                    &commit_req[..prefix],
+                    OFFSET_COMMIT_VERSION,
+                    limits
+                )
+                .is_err(),
                 "{peer} OffsetCommit request prefix {prefix}"
             );
         }
@@ -394,14 +398,19 @@ async fn apache_offset_commit_fetch_bodies_reencode() {
         assert_eq!(decoded_commit.group_id, "pl-delivery");
         assert_eq!(decoded_commit.member_id, "member-a");
         assert_eq!(decoded_commit.generation_id_or_member_epoch, 1);
-        assert_eq!(decoded_commit.topics[0].identity, OffsetTopicIdentity::Name("t".into()));
+        assert_eq!(
+            decoded_commit.topics[0].identity,
+            OffsetTopicIdentity::Name("t".into())
+        );
         assert_eq!(decoded_commit.topics[0].partitions[0].committed_offset, 1);
         assert_eq!(
-            encode_offset_commit_request_data(&decoded_commit, OFFSET_COMMIT_VERSION, limits).unwrap(),
+            encode_offset_commit_request_data(&decoded_commit, OFFSET_COMMIT_VERSION, limits)
+                .unwrap(),
             commit_req
         );
         let decoded_commit_resp =
-            decode_offset_commit_response_data(&commit_resp, OFFSET_COMMIT_VERSION, limits).unwrap();
+            decode_offset_commit_response_data(&commit_resp, OFFSET_COMMIT_VERSION, limits)
+                .unwrap();
         assert_eq!(decoded_commit_resp.topics[0].partitions[0].error_code, 0);
         assert_eq!(
             encode_offset_commit_response_data(&decoded_commit_resp, OFFSET_COMMIT_VERSION, limits)
@@ -427,7 +436,8 @@ async fn apache_offset_commit_fetch_bodies_reencode() {
             1
         );
         assert_eq!(
-            encode_offset_fetch_response_data(&decoded_fetch_resp, OFFSET_FETCH_VERSION, limits).unwrap(),
+            encode_offset_fetch_response_data(&decoded_fetch_resp, OFFSET_FETCH_VERSION, limits)
+                .unwrap(),
             fetch_resp
         );
     }
@@ -509,18 +519,16 @@ async fn apache_fetch_bodies_replay_public_consumer_histories() {
         consumer.assign("t", 0, 0).await.unwrap();
         let error = consumer.fetch().await.expect_err("{peer} A04 must fail");
         assert_eq!(error.broker_code(), Some(OFFSET_OUT_OF_RANGE), "{peer} A04");
-        assert_eq!(
-            consumer.position("t", 0).unwrap(),
-            0,
-            "{peer} A04 position"
-        );
+        assert_eq!(consumer.position("t", 0).unwrap(), 0, "{peer} A04 position");
         assert_eq!(broker.last_fetch_version(), Some(FETCH_VERSION));
         consumer.close().await.unwrap();
         broker.shutdown().await;
 
         let a05 = read(&dir.join("a05-cursor-commit-response.bin")).await;
         let mut broker = RawBroker::start("t", 1, vec![a05]).await;
-        let mut consumer = Consumer::new(broker.config().max_poll_records(1)).await.unwrap();
+        let mut consumer = Consumer::new(broker.config().max_poll_records(1))
+            .await
+            .unwrap();
         consumer.assign("t", 0, 0).await.unwrap();
         let records = consumer.fetch().await.unwrap();
         assert_eq!(
@@ -534,10 +542,7 @@ async fn apache_fetch_bodies_replay_public_consumer_histories() {
             3,
             "{peer} A05 fetch_cursor"
         );
-        assert_eq!(
-            consumer.positions(),
-            vec![(TopicPartition::new("t", 0), 1)]
-        );
+        assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 1)]);
         assert_eq!(broker.last_fetch_version(), Some(FETCH_VERSION));
         consumer.close().await.unwrap();
         broker.shutdown().await;
@@ -632,7 +637,12 @@ fn rust_fetch_and_offset_output_decodes_with_pinned_apache_when_jars_present() {
                 continue;
             }
             let bytes = std::fs::read(&path).unwrap();
-            let run_cp = format!("{}:{}:{}", classes.display(), jar.display(), slf4j.display());
+            let run_cp = format!(
+                "{}:{}:{}",
+                classes.display(),
+                jar.display(),
+                slf4j.display()
+            );
             let out = std::process::Command::new("java")
                 .args([
                     "-cp",
