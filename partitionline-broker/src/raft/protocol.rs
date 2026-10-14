@@ -1,8 +1,9 @@
-//! Fixed trusted-member controller RPCs: Vote52/0, Begin53/0 and End54/0.
+//! Fixed trusted-member controller RPCs: Vote52, Begin53 and End54.
 //!
-//! This is one configured metadata partition, not replication or full KRaft.
-//! Directory-aware pre-vote is evaluated locally and is not advertised.
-//! Dynamic membership stays unadvertised.
+//! The default profile advertises only version0. Configuring per-voter
+//! directory UUIDs enables Vote0–2, Begin0–1 and End0–1 after those layouts
+//! parse, fence stale directories and grant pre-votes without persisting a
+//! term or vote. Dynamic membership stays unadvertised.
 //! A controller listener must be restricted to trusted peers: node IDs and
 //! client IDs are not authentication. Its operator-owned election journal path
 //! must remain bound to the same cluster/topic and this epoch representation.
@@ -62,19 +63,62 @@ pub const CONTROLLER_API_VERSIONS: [ApiVersion; 4] = [
         max_version: 0,
     },
 ];
+/// Directory-configured controller advertisement. Vote v1/v2 and Begin/End v1
+/// are selected only when [`Config`] carries matching nonzero voter directories.
+pub const DIRECTORY_CONTROLLER_API_VERSIONS: [ApiVersion; 4] = [
+    ApiVersion {
+        api_key: 18,
+        min_version: 0,
+        max_version: 4,
+    },
+    ApiVersion {
+        api_key: 52,
+        min_version: 0,
+        max_version: 2,
+    },
+    ApiVersion {
+        api_key: 53,
+        min_version: 0,
+        max_version: 1,
+    },
+    ApiVersion {
+        api_key: 54,
+        min_version: 0,
+        max_version: 1,
+    },
+];
 const MAX_TERM: u64 = i32::MAX as u64 + 1;
 const INVALID_REQUEST: i16 = 42;
 const FENCED_EPOCH: i16 = 74;
 const CLUSTER_MISMATCH: i16 = 104;
+const INVALID_VOTER_KEY: i16 = 125;
 const MAX_SUCCESSORS: usize = 31;
 const MAX_ARRAY: usize = 64;
 
 /// Select a tested controller version from a bounded, consistent peer inventory.
 ///
 /// Unknown keys do not confer support; duplicate/reversed/negative ranges fail
-/// closed. At most128 peer ranges are inspected. No higher directory/pre-vote
-/// version can be selected even if a current Apache peer advertises it.
+/// closed. At most128 peer ranges are inspected. The default profile cannot
+/// select a directory/pre-vote version even if a current Apache peer advertises
+/// it. [`negotiate_directory`] is the matching helper for the directory profile.
 pub fn negotiate(peer: &[ApiVersion], api_key: i16) -> Option<i16> {
+    negotiate_with(&CONTROLLER_API_VERSIONS, peer, api_key)
+}
+
+/// Select a directory-profile controller version from a bounded peer inventory.
+///
+/// A v0-only peer still falls back to version0. Higher versions require an
+/// overlapping advertised range on both sides.
+pub fn negotiate_directory(peer: &[ApiVersion], api_key: i16) -> Option<i16> {
+    negotiate_with(&DIRECTORY_CONTROLLER_API_VERSIONS, peer, api_key)
+}
+
+/// Intersect one local advertisement with a bounded, consistent peer inventory.
+pub fn negotiate_with(
+    local: &[ApiVersion],
+    peer: &[ApiVersion],
+    api_key: i16,
+) -> Option<i16> {
     if peer.len() > 128
         || peer.iter().enumerate().any(|(i, a)| {
             a.api_key < 0
@@ -85,9 +129,7 @@ pub fn negotiate(peer: &[ApiVersion], api_key: i16) -> Option<i16> {
     {
         return None;
     }
-    let local = CONTROLLER_API_VERSIONS
-        .iter()
-        .find(|a| a.api_key == api_key)?;
+    let local = local.iter().find(|a| a.api_key == api_key)?;
     let remote = peer.iter().find(|a| a.api_key == api_key)?;
     let maximum = local.max_version.min(remote.max_version);
     (maximum >= local.min_version.max(remote.min_version)).then_some(maximum)
@@ -100,6 +142,11 @@ pub struct Config {
     pub local_id: u32,
     /// One to64 distinct fixed voters including local.
     pub voters: Vec<u32>,
+    /// Optional per-voter directory UUIDs, the same length as [`Self::voters`].
+    ///
+    /// Empty keeps the version0 advertisement. Nonempty nonzero identities
+    /// enable Vote0–2 / Begin0–1 / End0–1 and fence stale directories.
+    pub directories: Vec<[u8; 16]>,
     /// Stable configured cluster ID; null request IDs follow Apache's acceptance.
     pub cluster_id: String,
     /// Single configured metadata topic, strict UTF8 and at most249 bytes.
@@ -125,6 +172,7 @@ impl Config {
         let config = Self {
             local_id,
             voters,
+            directories: Vec::new(),
             cluster_id,
             topic: "__cluster_metadata".into(),
             partition: 0,
@@ -152,10 +200,44 @@ impl Config {
                 .is_none_or(|n| n > 512 * 1024 * 1024)
             || !(1..=600_000).contains(&self.election_backoff_max_ms)
             || !(2..=65_536).contains(&self.max_states)
+            || (!self.directories.is_empty()
+                && (self.directories.len() != self.voters.len()
+                    || self.directories.contains(&[0; 16])
+                    || self.directories.iter().enumerate().any(|(i, d)| {
+                        self.directories[..i].iter().any(|other| other == d)
+                    })))
         {
             return Err(Error::InvalidConfig);
         }
         Membership::new(self.local_id, self.voters.clone()).map_err(Error::Election)
+    }
+    /// True when this owner advertises Vote v1/v2 and Begin/End v1.
+    pub fn directory_profile(&self) -> bool {
+        !self.directories.is_empty()
+    }
+    /// Advertised controller keys for this configured profile.
+    pub fn advertised_versions(&self) -> &'static [ApiVersion] {
+        if self.directory_profile() {
+            &DIRECTORY_CONTROLLER_API_VERSIONS
+        } else {
+            &CONTROLLER_API_VERSIONS
+        }
+    }
+    /// Highest implemented version of one controller key on this profile.
+    pub fn max_controller_version(&self, key: i16) -> i16 {
+        self.advertised_versions()
+            .iter()
+            .find(|a| a.api_key == key)
+            .map_or(-1, |a| a.max_version)
+    }
+    fn local_directory(&self) -> Option<[u8; 16]> {
+        self.directory_of(self.local_id)
+    }
+    fn directory_of(&self, id: u32) -> Option<[u8; 16]> {
+        self.voters
+            .iter()
+            .position(|voter| *voter == id)
+            .and_then(|i| self.directories.get(i).copied())
     }
 }
 
@@ -166,7 +248,7 @@ pub enum Error {
     InvalidConfig,
     /// Header/body is malformed or violates its positive bounded schema.
     Protocol(protocol::Error),
-    /// Only version0 of the three controller RPCs is implemented; close the
+    /// A controller version outside this profile's advertisement; close the
     /// connection rather than inventing a generic response schema.
     UnsupportedVersion,
     /// Durable election failed; no successful response is returned.
@@ -382,7 +464,7 @@ impl Controller {
         if key == 18 {
             return Ok(ApiVersionsHandler::with_advertised(
                 self.config.protocol_limits,
-                &CONTROLLER_API_VERSIONS,
+                self.config.advertised_versions(),
             )
             .respond(input)?);
         }
@@ -399,13 +481,14 @@ impl Controller {
         let header_version = if key == 52 || version >= 1 { 2 } else { 1 };
         let (header, body) =
             RequestHeader::parse(input, header_version, self.config.protocol_limits)?;
-        if version != 0 {
+        if version < 0 || version > self.config.max_controller_version(key) {
             return Err(Error::UnsupportedVersion);
         }
-        let request = parse_request(key, body, &self.config)?;
+        let request = parse_request(key, version, body, &self.config)?;
         if request.cluster.is_some_and(|c| c != self.config.cluster_id) {
             return response(
                 key,
+                version,
                 header.correlation_id,
                 CLUSTER_MISMATCH,
                 None,
@@ -416,6 +499,7 @@ impl Controller {
         if !request.partition_matches {
             return response(
                 key,
+                version,
                 header.correlation_id,
                 INVALID_REQUEST,
                 None,
@@ -423,9 +507,10 @@ impl Controller {
                 self.state(),
             );
         }
-        let error = self.apply(key, &request, now_ms)?;
+        let error = self.apply(key, version, &request, now_ms)?;
         response(
             key,
+            version,
             header.correlation_id,
             0,
             Some(error),
@@ -433,13 +518,37 @@ impl Controller {
             self.state(),
         )
     }
-    fn apply(&mut self, key: i16, r: &Request<'_>, now: u64) -> Result<(i16, bool), Error> {
+    fn apply(
+        &mut self,
+        key: i16,
+        version: i16,
+        r: &Request<'_>,
+        now: u64,
+    ) -> Result<(i16, bool), Error> {
         let current = wire_epoch(self.state().persistent.term)?;
+        if version >= 1 {
+            if r.voter_id >= 0
+                && u32::try_from(r.voter_id).ok() != Some(self.config.local_id)
+            {
+                return Ok((INVALID_VOTER_KEY, false));
+            }
+            if r.voter_directory != [0; 16]
+                && self.config.local_directory() != Some(r.voter_directory)
+            {
+                return Ok((INVALID_VOTER_KEY, false));
+            }
+        }
         // Apache validates the log coordinates before stale-epoch fencing.
+        // PreVote may share the current epoch; a standard vote may not.
+        let illegal_log_epoch = if r.pre_vote {
+            r.last_epoch > r.epoch
+        } else {
+            r.last_epoch >= r.epoch
+        };
         if key == 52
             && (r.last_epoch < 0
                 || r.last_offset < 0
-                || r.last_epoch >= r.epoch
+                || illegal_log_epoch
                 || (r.last_offset == 0 && r.last_epoch != 0))
         {
             return Ok((INVALID_REQUEST, false));
@@ -459,6 +568,24 @@ impl Controller {
         let node = u32::try_from(r.node).map_err(|_| Error::UnexpectedResponse)?;
         let term = core_term(r.epoch)?;
         if key == 52 {
+            if version >= 1 && self.config.directory_of(node) != Some(r.replica_directory) {
+                return Ok((0, false));
+            }
+            if r.pre_vote {
+                let expected = self.config.directory_of(node).unwrap_or([0; 16]);
+                let granted = evaluate_prevote(
+                    &self.state().persistent,
+                    expected,
+                    DirectoryPreVote {
+                        term,
+                        candidate: node,
+                        directory: r.replica_directory,
+                        log: log_position(r.last_epoch, r.last_offset)?,
+                    },
+                )
+                .unwrap_or(false);
+                return Ok((0, granted));
+            }
             let reply = self.election.request_vote(
                 election::VoteRequest {
                     term,
@@ -482,6 +609,13 @@ impl Controller {
                     || r.successors[..i].contains(id)
                 {
                     return Ok((INVALID_REQUEST, false));
+                }
+                if version >= 1 {
+                    let successor = u32::try_from(*id).map_err(|_| Error::UnexpectedResponse)?;
+                    match self.config.directory_of(successor) {
+                        Some(expected) if r.successor_directories[i] == expected => {}
+                        _ => return Ok((INVALID_REQUEST, false)),
+                    }
                 }
             }
         }
@@ -673,26 +807,44 @@ pub fn successor_backoff(maximum_ms: u32, count: usize, rank: Option<usize>) -> 
 struct Request<'a> {
     cluster: Option<&'a str>,
     partition_matches: bool,
+    voter_id: i32,
+    voter_directory: [u8; 16],
+    replica_directory: [u8; 16],
     node: i32,
     epoch: i32,
     last_epoch: i32,
     last_offset: i64,
+    pre_vote: bool,
     successors: [i32; MAX_SUCCESSORS],
+    successor_directories: [[u8; 16]; MAX_SUCCESSORS],
     successor_count: usize,
 }
-fn parse_request<'a>(key: i16, body: &'a [u8], config: &Config) -> Result<Request<'a>, Error> {
-    let flexible = key == 52;
+fn parse_request<'a>(
+    key: i16,
+    version: i16,
+    body: &'a [u8],
+    config: &Config,
+) -> Result<Request<'a>, Error> {
+    let flexible = key == 52 || version >= 1;
     let mut reader = Reader::new(body, flexible, config.protocol_limits);
     let mut result = Request {
         cluster: reader.nullable_string()?,
         partition_matches: true,
+        voter_id: -1,
+        voter_directory: [0; 16],
+        replica_directory: [0; 16],
         node: -1,
         epoch: -1,
         last_epoch: 0,
         last_offset: 0,
+        pre_vote: false,
         successors: [0; MAX_SUCCESSORS],
+        successor_directories: [[0; 16]; MAX_SUCCESSORS],
         successor_count: 0,
     };
+    if version >= 1 && key != 54 {
+        result.voter_id = reader.i32()?;
+    }
     let topics = reader.count()?;
     result.partition_matches &= topics == 1;
     for _ in 0..topics {
@@ -704,8 +856,25 @@ fn parse_request<'a>(key: i16, body: &'a [u8], config: &Config) -> Result<Reques
             if key == 52 {
                 result.epoch = reader.i32()?;
                 result.node = reader.i32()?;
+                if version >= 1 {
+                    result.replica_directory = reader.uuid()?;
+                    result.voter_directory = reader.uuid()?;
+                }
                 result.last_epoch = reader.i32()?;
                 result.last_offset = reader.i64()?;
+                if version >= 2 {
+                    result.pre_vote = match reader.byte()? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(protocol::Error::InvalidLength.into()),
+                    };
+                }
+            } else if key == 53 {
+                if version >= 1 {
+                    result.voter_directory = reader.uuid()?;
+                }
+                result.node = reader.i32()?;
+                result.epoch = reader.i32()?;
             } else {
                 result.node = reader.i32()?;
                 result.epoch = reader.i32()?;
@@ -715,8 +884,12 @@ fn parse_request<'a>(key: i16, body: &'a [u8], config: &Config) -> Result<Reques
                 if result.successor_count > MAX_SUCCESSORS {
                     return Err(protocol::Error::InvalidLength.into());
                 }
-                for id in &mut result.successors[..result.successor_count] {
-                    *id = reader.i32()?;
+                for i in 0..result.successor_count {
+                    result.successors[i] = reader.i32()?;
+                    if version >= 1 {
+                        result.successor_directories[i] = reader.uuid()?;
+                        reader.tags()?;
+                    }
                 }
             }
             if flexible {
@@ -727,11 +900,24 @@ fn parse_request<'a>(key: i16, body: &'a [u8], config: &Config) -> Result<Reques
             reader.tags()?;
         }
     }
+    if version >= 1 && matches!(key, 53 | 54) {
+        skip_endpoints(&mut reader)?;
+    }
     if flexible {
         reader.tags()?;
     }
     reader.finish()?;
     Ok(result)
+}
+fn skip_endpoints(reader: &mut Reader<'_>) -> Result<(), Error> {
+    let count = reader.count()?;
+    for _ in 0..count {
+        let _ = reader.string()?;
+        let _ = reader.string()?;
+        let _ = reader.u16()?;
+        reader.tags()?;
+    }
+    Ok(())
 }
 
 struct Reader<'a> {
@@ -761,6 +947,18 @@ impl<'a> Reader<'a> {
                 .try_into()
                 .map_err(|_| protocol::Error::Truncated)?,
         ))
+    }
+    fn u16(&mut self) -> Result<u16, Error> {
+        Ok(u16::from_be_bytes(
+            self.take(2)?
+                .try_into()
+                .map_err(|_| protocol::Error::Truncated)?,
+        ))
+    }
+    fn uuid(&mut self) -> Result<[u8; 16], Error> {
+        self.take(16)?
+            .try_into()
+            .map_err(|_| protocol::Error::Truncated.into())
     }
     fn i32(&mut self) -> Result<i32, Error> {
         Ok(i32::from_be_bytes(
@@ -884,13 +1082,14 @@ fn string(out: &mut Vec<u8>, value: &str, flexible: bool) -> Result<(), Error> {
 }
 fn response(
     key: i16,
+    version: i16,
     correlation: i32,
     top: i16,
     partition_error: Option<(i16, bool)>,
     config: &Config,
     state: State,
 ) -> Result<Vec<u8>, Error> {
-    let flexible = key == 52;
+    let flexible = key == 52 || version >= 1;
     let mut out = allocate(config.topic.len() + 64)?;
     out.extend_from_slice(&correlation.to_be_bytes());
     if flexible {
@@ -920,8 +1119,10 @@ fn response(
             .unwrap_or(-1);
         out.extend_from_slice(&leader.to_be_bytes());
         out.extend_from_slice(&wire_epoch(state.persistent.term)?.to_be_bytes());
-        if flexible {
+        if key == 52 {
             out.push(u8::from(granted));
+        }
+        if flexible {
             out.extend_from_slice(&[0, 0]);
         }
     }
@@ -935,34 +1136,82 @@ fn vote_request(
     vote: election::VoteRequest,
     correlation: i32,
 ) -> Result<Vec<u8>, Error> {
-    let mut out = allocate(config.cluster_id.len() + config.topic.len() + 64)?;
+    encode_vote_request(
+        config,
+        &VoteEncode {
+            vote,
+            correlation,
+            version: 0,
+            voter_id: -1,
+            replica_directory: [0; 16],
+            voter_directory: [0; 16],
+            pre_vote: false,
+        },
+    )
+}
+
+/// Fields for [`encode_vote_request`]. Version0 omits directory/pre-vote.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VoteEncode {
+    /// Candidacy and log summary.
+    pub vote: election::VoteRequest,
+    /// Caller-chosen correlation.
+    pub correlation: i32,
+    /// Vote0–2.
+    pub version: i16,
+    /// Destination voter id; ignored on version0.
+    pub voter_id: i32,
+    /// Candidate directory; omitted on version0.
+    pub replica_directory: [u8; 16],
+    /// Destination directory; omitted on version0.
+    pub voter_directory: [u8; 16],
+    /// PreVote flag; omitted below version2.
+    pub pre_vote: bool,
+}
+
+/// Encode Vote0–2 for a known destination. Version0 omits directory/pre-vote.
+pub fn encode_vote_request(config: &Config, spec: &VoteEncode) -> Result<Vec<u8>, Error> {
+    if spec.version < 0 || spec.version > 2 {
+        return Err(Error::UnsupportedVersion);
+    }
+    let mut out = allocate(config.cluster_id.len() + config.topic.len() + 96)?;
     out.extend_from_slice(&52_i16.to_be_bytes());
-    out.extend_from_slice(&0_i16.to_be_bytes());
-    out.extend_from_slice(&correlation.to_be_bytes());
+    out.extend_from_slice(&spec.version.to_be_bytes());
+    out.extend_from_slice(&spec.correlation.to_be_bytes());
     out.extend_from_slice(&(-1_i16).to_be_bytes());
     out.push(0);
     string(&mut out, &config.cluster_id, true)?;
+    if spec.version >= 1 {
+        out.extend_from_slice(&spec.voter_id.to_be_bytes());
+    }
     out.push(2);
     string(&mut out, &config.topic, true)?;
     out.push(2);
     out.extend_from_slice(&config.partition.to_be_bytes());
-    out.extend_from_slice(&wire_epoch(vote.term)?.to_be_bytes());
+    out.extend_from_slice(&wire_epoch(spec.vote.term)?.to_be_bytes());
     out.extend_from_slice(
-        &i32::try_from(vote.candidate)
+        &i32::try_from(spec.vote.candidate)
             .map_err(|_| Error::EpochOverflow)?
             .to_be_bytes(),
     );
-    let log_epoch = if vote.log.index == 0 {
+    if spec.version >= 1 {
+        out.extend_from_slice(&spec.replica_directory);
+        out.extend_from_slice(&spec.voter_directory);
+    }
+    let log_epoch = if spec.vote.log.index == 0 {
         0
     } else {
-        wire_epoch(vote.log.term)?
+        wire_epoch(spec.vote.log.term)?
     };
     out.extend_from_slice(&log_epoch.to_be_bytes());
     out.extend_from_slice(
-        &i64::try_from(vote.log.index)
+        &i64::try_from(spec.vote.log.index)
             .map_err(|_| Error::EpochOverflow)?
             .to_be_bytes(),
     );
+    if spec.version >= 2 {
+        out.push(u8::from(spec.pre_vote));
+    }
     out.extend_from_slice(&[0, 0, 0]);
     Ok(out)
 }
@@ -1086,8 +1335,9 @@ pub enum PreVoteRefusal {
 
 /// Decide a pre-vote without changing `persistent`.
 ///
-/// The stable term and vote stay with the caller. Wire versions above the
-/// advertised Vote v0 profile are not selected by [`negotiate`].
+/// The stable term and vote stay with the caller. The default profile still
+/// cannot select Vote v1/v2 through [`negotiate`]; [`negotiate_directory`]
+/// selects those versions only for a directory-configured advertisement.
 pub fn evaluate_prevote(
     persistent: &election::PersistentState,
     expected_directory: [u8; 16],
@@ -1141,6 +1391,28 @@ mod prevote_tests {
                     api_key: 52,
                     min_version: 0,
                     max_version: 2,
+                }],
+                52,
+            ),
+            Some(0)
+        );
+        assert_eq!(
+            negotiate_directory(
+                &[ApiVersion {
+                    api_key: 52,
+                    min_version: 0,
+                    max_version: 2,
+                }],
+                52,
+            ),
+            Some(2)
+        );
+        assert_eq!(
+            negotiate_directory(
+                &[ApiVersion {
+                    api_key: 52,
+                    min_version: 0,
+                    max_version: 0,
                 }],
                 52,
             ),

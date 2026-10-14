@@ -11,8 +11,10 @@
 //! one-at-a-time Voters records and the new set's durable majority. A receiving
 //! owner must already know a sending leader's directory/configuration; a laggard
 //! rejects an unknown added leader before term or content mutation. Trusted
-//! discovery/continuous autonomous catch-up and native modern KRaft wire remain
-//! separate contracts. [`evaluate_prevote`](crate::raft::protocol::evaluate_prevote)
+//! discovery/continuous autonomous catch-up remain separate contracts. A
+//! directory-configured controller may advertise Vote v1/v2 and Begin/End v1;
+//! this owner still uses typed directory exchanges and does not append
+//! pre-votes to the WAL. [`evaluate_prevote`](crate::raft::protocol::evaluate_prevote)
 //! does not append to this WAL and does not advance the committed end. Self-supplied membership never grants an unknown peer
 //! authority.
 //! Defaults bound records to1MiB, chunks/fetches to2MiB (4MiB configurable
@@ -3830,7 +3832,8 @@ impl Node {
     /// have the same full genesis descriptors, excluding local replica identity.
     /// A laggard must learn a newly added directory from a known leader before
     /// that directory leads its catch-up; unknown leaders fail before mutation.
-    /// No Kafka directory wire version or autonomous network loop is enabled.
+    /// Native Vote v1/v2 frames are encoded only from known directory keys;
+    /// this owner does not advertise an autonomous Kafka controller loop.
     pub fn open_dynamic(
         wal_path: impl AsRef<Path>,
         election_path: impl AsRef<Path>,
@@ -3844,6 +3847,7 @@ impl Node {
         }
         // Only fixed local-inclusion is replaced; all original bounds revalidate.
         config.controller.voters = vec![config.controller.local_id];
+        config.controller.directories.clear();
         config.validate()?;
         let genesis_bytes = bootstrap.genesis().encode()?;
         let required_chunk = config
@@ -4110,6 +4114,62 @@ impl Node {
         }
         self.dynamic.as_mut().ok_or(Error::Corrupt)?.votes = requests.clone();
         Ok(requests)
+    }
+    /// Grant a directory-qualified pre-vote without persisting term or vote.
+    ///
+    /// The WAL committed end and election journal stay unchanged. Zero or stale
+    /// candidate directories fail closed.
+    pub fn receive_dynamic_prevote(
+        &self,
+        request: DynamicVoteRequest,
+    ) -> Result<bool, protocol::PreVoteRefusal> {
+        if request.context.leader.id != request.request.candidate
+            || request.context.leader.directory == [0; 16]
+        {
+            return Err(protocol::PreVoteRefusal::StaleDirectory);
+        }
+        let expected = self
+            .voters()
+            .ok()
+            .and_then(|voters| {
+                voters
+                    .by_id(request.request.candidate)
+                    .map(|voter| voter.key().directory)
+            })
+            .ok_or(protocol::PreVoteRefusal::StaleDirectory)?;
+        protocol::evaluate_prevote(
+            &self.controller.state().persistent,
+            expected,
+            protocol::DirectoryPreVote {
+                term: request.request.term,
+                candidate: request.request.candidate,
+                directory: request.context.leader.directory,
+                log: request.request.log,
+            },
+        )
+    }
+    /// Encode Vote0–2 from an exact directory-qualified candidacy.
+    pub fn encode_native_vote(
+        &self,
+        request: &DynamicVoteRequest,
+        version: i16,
+        correlation: i32,
+        pre_vote: bool,
+    ) -> Result<Vec<u8>, Error> {
+        protocol::encode_vote_request(
+            &self.config.controller,
+            &protocol::VoteEncode {
+                vote: request.request,
+                correlation,
+                version,
+                voter_id: i32::try_from(request.context.peer.id)
+                    .map_err(|_| Error::InvalidConfig)?,
+                replica_directory: request.context.leader.directory,
+                voter_directory: request.context.peer.directory,
+                pre_vote,
+            },
+        )
+        .map_err(Error::Controller)
     }
     /// Persist a vote only for a known exact candidate directory and fresh log.
     /// Configurations may differ during a pending change; source-side correlation

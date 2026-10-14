@@ -1,0 +1,13 @@
+name	key	version	request_file	disposition	response_file
+vote-v1-positive	52	1	vote-v1-positive.request.bin	response	-
+vote-v1-stale-replica	52	1	vote-v1-stale-replica.request.bin	deny	-
+vote-v1-zero-replica	52	1	vote-v1-zero-replica.request.bin	deny	-
+vote-v1-wrong-voter	52	1	vote-v1-wrong-voter.request.bin	deny	-
+vote-v2-prevote	52	2	vote-v2-prevote.request.bin	prevote	-
+vote-v2-prevote-stale	52	2	vote-v2-prevote-stale.request.bin	deny	-
+vote-v2-binding	52	2	vote-v2-binding.request.bin	response	-
+begin-v1-positive	53	1	begin-v1-positive.request.bin	response	-
+begin-v1-stale-voter	53	1	begin-v1-stale-voter.request.bin	unchanged	-
+end-v1-positive	54	1	end-v1-positive.request.bin	response	-
+end-v1-stale-candidate	54	1	end-v1-stale-candidate.request.bin	unchanged	-
+vote-v1-truncated-uuid	52	1	vote-v1-truncated-uuid.request.bin	close	-
