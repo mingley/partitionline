@@ -2186,13 +2186,22 @@
     {
       "id": "KL03-21",
       "title": "Record group-protocol churn and recovery evidence",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL03-14", "KL03-15", "KL03-16", "KL03-17", "KL03-18"],
       "files": ["tests/cluster/", "new: docs/evidence/groups/"],
       "deliverable": "A result matrix with separate classic/cooperative, KIP-848 and share-group histories.",
       "acceptance": ["Run one protocol/profile cell per resumable job; report assignment, delivered/committed offsets, lock/redelivery and recovery invariants.", "Include member/coordinator loss, pause, max-poll expiry and secure reconnect; unsupported older brokers stay explicit.", "Do not substitute a classic-group pass for KIP-848/share evidence or merge all timer budgets into one threshold."],
       "validation": ["Validate each profile artifact separately with the history and conformance checkers.", "Reproduce a chosen churn seed independently before closing the matrix."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "examples/group_churn.rs",
+        "scripts/group_churn_cases.py",
+        "scripts/run-group-churn-campaign.py",
+        "scripts/sasl-plain-node.sh",
+        "tests/history/test_group_churn_plan.py",
+        "docs/evidence/groups/",
+        "docs/plan/evidence/KL03-21.json"
+      ]
     },
     {
       "id": "KL03-22",

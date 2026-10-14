@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "card": "KL03-21",
+  "profile": "group-protocol-churn",
+  "frozen": true,
+  "frozen_note": "Four protocol profiles and five churn kinds are frozen before the live run. Timer budgets stay separate. A classic-group pass is not evidence for KIP-848 or share. Older brokers stay explicit.",
+  "peer": {
+    "identity": "native:4.1.0",
+    "kafka_home": "/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2,
+    "secure_peer": {
+      "identity": "native:4.1.0-sasl-plaintext",
+      "bootstrap": "127.0.0.1:19192",
+      "mechanism": "PLAIN",
+      "username": "pl-group",
+      "password": "pl-group-secret",
+      "replication_factor": 1
+    }
+  },
+  "replay_cell": "classic/member_loss",
+  "records": 6,
+  "partitions": 3,
+  "profiles": ["classic", "cooperative", "kip848", "share"],
+  "churns": [
+    "member_loss",
+    "coordinator_loss",
+    "pause",
+    "max_poll_expiry",
+    "secure_reconnect"
+  ],
+  "budgets": {
+    "session_timeout_ms": 10000,
+    "heartbeat_interval_ms": 150,
+    "max_poll_interval_ms": 4000,
+    "share_lock_hold_ms": 2000,
+    "pause_ms": 1500,
+    "coordinator_recovery_ms": 20000,
+    "member_rebalance_ms": 8000,
+    "secure_reconnect_ms": 15000,
+    "trial_deadline_ms": 45000,
+    "verify_wait_ms": 4000,
+    "cluster_ready_timeout_ms": 180000
+  },
+  "share_analogues": {
+    "pause": "ShareGroup has no pause API; the share/pause cell holds acquired records without acknowledge for pause_ms, then accepts.",
+    "max_poll_expiry": "ShareGroup does not leave on max.poll.interval.ms; the share/max_poll_expiry cell uses share lock timeout / redelivery as the distinct budget."
+  },
+  "older_brokers": {
+    "3.9.1": {
+      "classic": "supported; not scheduled in this 4.1.0 job",
+      "cooperative": "supported; not scheduled in this 4.1.0 job",
+      "kip848": "unsupported: ConsumerGroupHeartbeat requires Kafka 4.x",
+      "share": "unsupported: KIP-932 share groups require Kafka 4.x"
+    }
+  }
+}

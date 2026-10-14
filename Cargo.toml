@@ -152,6 +152,9 @@ name = "data_plane_fault"
 name = "txn_crash"
 
 [[example]]
+name = "group_churn"
+
+[[example]]
 name = "tls"
 
 [[example]]

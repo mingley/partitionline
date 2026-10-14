@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- A frozen group-protocol churn campaign records separate classic,
+  cooperative, KIP-848 and share-group histories for member loss,
+  coordinator loss, pause, max-poll expiry and SASL reconnect. Timer
+  budgets stay distinct; Kafka 3.9.1 KIP-848/share cells stay explicitly
+  unsupported (KL03-21).
+
 - A frozen consume-transform-produce crash and fencing campaign records
   named crash boundaries, replacement-producer fencing, and explicit abort
   on native Kafka 4.1.0. Independent `read_committed` partitionline and
