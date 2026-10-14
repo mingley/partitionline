@@ -4558,7 +4558,9 @@ impl Consumer {
                         let mut included_next: Option<i64> = None;
                         let visited = encoded.try_visit_short_keys(|rec| {
                             last_record_off = Some(rec.offset);
-                            if rec.offset < req_offset {
+                            if rec.offset < req_offset
+                                || !record_is_visible(rec.offset, part.high_watermark)
+                            {
                                 return;
                             }
                             let key_len = rec.key.as_ref().map_or(0, |(_, len)| usize::from(*len));
@@ -4629,11 +4631,15 @@ impl Consumer {
                             let batch_next = last_record_off
                                 .map_or(next_off, |offset| offset.saturating_add(1).max(next_off));
                             if let Some(advanced) = included_next {
+                                let advanced = cap_fetch_cursor(advanced, part.high_watermark);
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
                                 last_epoch = meta.partition_leader_epoch;
                             }
                             if batch_next >= req_offset {
-                                next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                next = Some(next.map_or(
+                                    cap_fetch_cursor(batch_next, part.high_watermark),
+                                    |c| c.max(cap_fetch_cursor(batch_next, part.high_watermark)),
+                                ));
                                 last_epoch = meta.partition_leader_epoch;
                             }
                             continue;
@@ -4678,7 +4684,10 @@ impl Consumer {
                                 state.abort(batch.producer_id);
                             }
                             if batch_next >= req_offset {
-                                next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                next = Some(next.map_or(
+                                    cap_fetch_cursor(batch_next, part.high_watermark),
+                                    |c| c.max(cap_fetch_cursor(batch_next, part.high_watermark)),
+                                ));
                                 last_epoch = batch.partition_leader_epoch;
                             }
                             continue;
@@ -4688,7 +4697,15 @@ impl Consumer {
                             if let Some(&first) = state.active.get(&batch.producer_id) {
                                 if batch.base_offset >= first {
                                     if batch_next >= req_offset {
-                                        next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                        next = Some(next.map_or(
+                                            cap_fetch_cursor(batch_next, part.high_watermark),
+                                            |c| {
+                                                c.max(cap_fetch_cursor(
+                                                    batch_next,
+                                                    part.high_watermark,
+                                                ))
+                                            },
+                                        ));
                                         last_epoch = batch.partition_leader_epoch;
                                     }
                                     continue;
@@ -4697,7 +4714,11 @@ impl Consumer {
                         }
                     } else if batch.is_control_batch() {
                         if batch_next >= req_offset {
-                            next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                            next =
+                                Some(next.map_or(
+                                    cap_fetch_cursor(batch_next, part.high_watermark),
+                                    |c| c.max(cap_fetch_cursor(batch_next, part.high_watermark)),
+                                ));
                             last_epoch = batch.partition_leader_epoch;
                         }
                         continue;
@@ -4726,10 +4747,13 @@ impl Consumer {
                             reached_lso = true;
                             break;
                         }
+                        if !record_is_visible(offset, part.high_watermark) {
+                            break;
+                        }
                         if offset >= req_offset {
-                            next = Some(next.map_or(offset.saturating_add(1), |c| {
-                                c.max(offset.saturating_add(1))
-                            }));
+                            let advanced =
+                                cap_fetch_cursor(offset.saturating_add(1), part.high_watermark);
+                            next = Some(next.map_or(advanced, |c| c.max(advanced)));
                             last_epoch = batch.partition_leader_epoch;
                         } else {
                             continue;
@@ -4779,7 +4803,11 @@ impl Consumer {
                         break;
                     }
                     if batch_next >= req_offset {
-                        next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                        next = Some(
+                            next.map_or(cap_fetch_cursor(batch_next, part.high_watermark), |c| {
+                                c.max(cap_fetch_cursor(batch_next, part.high_watermark))
+                            }),
+                        );
                         last_epoch = batch.partition_leader_epoch;
                     }
                 }
@@ -5593,6 +5621,20 @@ fn position_past_high_watermark(position: i64, high_watermark: i64) -> bool {
     high_watermark >= 0 && position > high_watermark
 }
 
+/// A record is visible when it is strictly below a known high watermark.
+fn record_is_visible(offset: i64, high_watermark: i64) -> bool {
+    high_watermark < 0 || offset < high_watermark
+}
+
+/// Do not advance a fetch cursor to or past a known high watermark.
+fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
+    if high_watermark >= 0 {
+        next.min(high_watermark)
+    } else {
+        next
+    }
+}
+
 fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     if high_watermark < 0 {
         None
@@ -5836,6 +5878,12 @@ mod tests {
         assert!(!position_past_high_watermark(2, 2));
         assert!(position_past_high_watermark(3, 2));
         assert!(!position_past_high_watermark(3, -1));
+        assert!(record_is_visible(1, 2));
+        assert!(!record_is_visible(2, 2));
+        assert!(record_is_visible(9, -1));
+        assert_eq!(cap_fetch_cursor(5, 2), 2);
+        assert_eq!(cap_fetch_cursor(1, 2), 1);
+        assert_eq!(cap_fetch_cursor(5, -1), 5);
     }
 
     #[test]
