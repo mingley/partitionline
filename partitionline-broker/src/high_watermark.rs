@@ -230,11 +230,15 @@ impl Durability {
     }
 
     /// Remove a follower. The leader cannot be removed except by [`Self::fail_over`].
+    ///
+    /// The high watermark is the minimum end offset of the replicas that remain,
+    /// so dropping a lagging follower lets it advance.
     pub fn remove_isr(&mut self, replica: i32) -> Result<(), Error> {
         self.ready()?;
         if replica == self.leader || !self.isr.remove(&replica) {
             return Err(Error::IneligibleLeader);
         }
+        self.advance_watermark();
         Ok(())
     }
 
@@ -250,6 +254,7 @@ impl Durability {
         }
         self.isr.remove(&self.leader);
         self.leader = new_leader;
+        self.advance_watermark();
         Ok(())
     }
 
@@ -507,5 +512,35 @@ mod tests {
             state.acknowledge(2, base, 1),
             Err(Error::InvalidAcks)
         ));
+    }
+
+    #[test]
+    fn removing_a_lagging_replica_advances_the_high_watermark() {
+        let (mut state, _) = open("shrink", 1);
+        state.add_isr(2).unwrap_or_else(|error| panic!("{error:?}"));
+        let base = state
+            .append(&[1, 2, 3])
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .replicate_to(2, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 1);
+        assert_eq!(
+            state
+                .acknowledge(-1, base, 3)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            None
+        );
+        state
+            .remove_isr(2)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 3);
+        assert_eq!(
+            state
+                .acknowledge(-1, base, 3)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            Some(Ack::Committed)
+        );
+        assert!(state.is_committed(1) && state.is_committed(2) && state.is_committed(3));
     }
 }
