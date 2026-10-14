@@ -5020,6 +5020,7 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<(i64, i64, i32)> {
         self.reject_pending_wakeup()?;
+        require_list_offset_target(topic, partition)?;
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
@@ -5886,6 +5887,11 @@ fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     }
 }
 
+fn require_list_offset_target(topic: &str, partition: i32) -> Result<()> {
+    Topic::validate(topic)?;
+    require_partition(partition)
+}
+
 fn require_partition(partition: i32) -> Result<()> {
     if partition < 0 {
         Err(Error::protocol(
@@ -6566,6 +6572,17 @@ mod tests {
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
             ]
         );
+    }
+
+    #[test]
+    fn list_offsets_rejects_an_invalid_topic_before_a_request() {
+        let err = require_list_offset_target("bad name", 0)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Topic name is invalid"), "{err}");
+        assert!(require_list_offset_target("", 0).is_err());
+        assert!(require_list_offset_target("orders", -1).is_err());
+        assert!(require_list_offset_target("orders", 0).is_ok());
     }
 
     #[test]
