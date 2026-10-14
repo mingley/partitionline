@@ -376,21 +376,23 @@ def run_one_cell(
     members = ["a"]
     if cell["two_members"]:
         members.append("b")
-    # Start A first so the survivor has an assignment before B joins.
-    procs = {"a": start_member(binary, trial, "a", paths)}
-    if not wait_for(paths["ready_a"], 25):
+    # Start the surviving member first so it holds an assignment.
+    survivor = "b" if cell["churn"] == "max_poll_expiry" and cell["two_members"] else "a"
+    other = "a" if survivor == "b" else "b"
+    procs = {survivor: start_member(binary, trial, survivor, paths)}
+    if not wait_for(paths[f"ready_{survivor}"], 25):
         for proc in procs.values():
             proc.kill()
         result["ok"] = False
-        result["error"] = "ready_timeout_a"
+        result["error"] = f"ready_timeout_{survivor}"
         return result
-    if "b" in members:
-        procs["b"] = start_member(binary, trial, "b", paths)
-        if not wait_for(paths["ready_b"], 25):
+    if cell["two_members"]:
+        procs[other] = start_member(binary, trial, other, paths)
+        if not wait_for(paths[f"ready_{other}"], 25):
             for proc in procs.values():
                 proc.kill()
             result["ok"] = False
-            result["error"] = "ready_timeout_b"
+            result["error"] = f"ready_timeout_{other}"
             return result
 
     if cell["protocol"] == "share" and cell["churn"] in ("pause", "max_poll_expiry"):

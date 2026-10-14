@@ -312,13 +312,14 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
         env::var("GROUP_CHURN_HISTORY").unwrap_or_else(|_| "group-churn-member.json".into()),
     );
     let mut seen = Vec::new();
-    if names.member == "b" {
+    let leaving = names.member == "b" && names.churn == "member_loss";
+    if leaving {
         drop(group.poll_timeout(Duration::from_millis(800)).await);
     } else {
         arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
     }
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
-    let action = if names.member == "b" {
+    let action = if leaving {
         go_action(&wait_file(&go, Duration::from_secs(40)).await?)
     } else {
         wait_go_partition(&mut group, &mut seen, &go, Duration::from_secs(40)).await?
