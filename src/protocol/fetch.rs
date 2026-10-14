@@ -782,11 +782,10 @@ impl FetchedPartition {
     }
 
     /// Java `FetchResponse.preferredReadReplica` (`None` is empty
-    /// `Optional`).
+    /// `Optional`). A negative broker id is not a replica.
     #[must_use]
     pub fn preferred_read_replica(&self) -> Option<i32> {
-        (self.preferred_read_replica != Self::INVALID_PREFERRED_REPLICA_ID)
-            .then_some(self.preferred_read_replica)
+        (self.preferred_read_replica >= 0).then_some(self.preferred_read_replica)
     }
 
     /// Java `FetchResponse.isPreferredReplica`.
@@ -2413,6 +2412,9 @@ mod tests {
         pref.preferred_read_replica = 2;
         assert_eq!(pref.preferred_read_replica(), Some(2));
         assert!(pref.is_preferred_replica());
+        pref.preferred_read_replica = -2;
+        assert_eq!(pref.preferred_read_replica(), None);
+        assert!(!pref.is_preferred_replica());
         pref.diverging_epoch = 3;
         pref.diverging_end_offset = 12;
         assert_eq!(pref.diverging_epoch(), Some((3, 12)));
