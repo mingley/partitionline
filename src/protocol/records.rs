@@ -2638,6 +2638,48 @@ impl EncodedBatch {
     pub(crate) fn framed_len(&self) -> usize {
         self.body.len().saturating_add(12)
     }
+
+    /// Declared record count from the batch header, or zero when the header
+    /// is short or the count is negative. Does not decode records.
+    pub(crate) fn declared_count(&self) -> usize {
+        // partitionLeaderEpoch(4) magic(1) crc(4) attributes(2)
+        // lastOffsetDelta(4) baseTimestamp(8) maxTimestamp(8)
+        // producerId(8) producerEpoch(2) baseSequence(4) = 45.
+        let Some(raw) = self.body.get(45..49) else {
+            return 0;
+        };
+        let Ok(bytes) = <[u8; 4]>::try_from(raw) else {
+            return 0;
+        };
+        let count = i32::from_be_bytes(bytes);
+        usize::try_from(count).unwrap_or(0)
+    }
+
+    /// How many `FetchedRecord` slots a caller can reserve without trusting
+    /// a count the decoder would reject.
+    ///
+    /// Compressed batches return zero (the inflated count is only known after
+    /// decompression). An uncompressed count larger than the records section
+    /// returns zero so a hostile header cannot reserve more slots than a
+    /// successful decode would allocate.
+    pub(crate) fn reserve_hint(&self) -> usize {
+        let Some(raw) = self.body.get(9..11) else {
+            return 0;
+        };
+        let Ok(bytes) = <[u8; 2]>::try_from(raw) else {
+            return 0;
+        };
+        if i16::from_be_bytes(bytes) & 0x07 != 0 {
+            return 0;
+        }
+        let count = self.declared_count();
+        let section = self.body.len().saturating_sub(49);
+        if count > section {
+            0
+        } else {
+            count
+        }
+    }
 }
 
 /// Split consecutive magic-v2 batches like [`decode_record_batches`] (a
@@ -3550,6 +3592,36 @@ mod tests {
             ptr_in_bytes(value.as_ptr(), &frozen),
             "value must be a view into the fetch frame"
         );
+    }
+
+    #[test]
+    fn encoded_batch_declared_count_matches_header() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"n")),
+            headers: vec![],
+        };
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &RecordBatch::from_records(vec![rec.clone(), rec])).unwrap();
+        let batches = split_record_batches(buf.freeze()).unwrap();
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].declared_count(), 2);
+        assert_eq!(batches[0].reserve_hint(), 2);
+    }
+
+    #[test]
+    fn reserve_hint_ignores_a_count_larger_than_the_section() {
+        let mut body = vec![0u8; 45];
+        body.extend_from_slice(&i32::MAX.to_be_bytes());
+        let batch = EncodedBatch {
+            base_offset: 0,
+            attributes: 0,
+            body: Bytes::from(body),
+        };
+        assert_eq!(batch.declared_count(), usize::try_from(i32::MAX).unwrap());
+        assert_eq!(batch.reserve_hint(), 0);
     }
 
     fn wrap_record_body(inner: &[u8]) -> BytesMut {

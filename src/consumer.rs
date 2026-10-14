@@ -3746,6 +3746,14 @@ impl Consumer {
             batches,
             endpoints,
         } = body;
+        let declared = batches
+            .iter()
+            .flatten()
+            .flatten()
+            .fold(0usize, |sum, batch| {
+                sum.saturating_add(batch.reserve_hint())
+            });
+        out.reserve(declared);
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
