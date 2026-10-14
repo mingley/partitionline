@@ -84,16 +84,29 @@ impl Cluster {
             let previous_epochs = self.leader_epochs.get(name).cloned();
             let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
             let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
+            // A repeated partition is one decision. A later copy must not
+            // discard a leader this response already accepted.
+            let mut decided = vec![false; len];
             for p in &t.partitions {
                 let Ok(idx) = usize::try_from(p.partition_index) else {
                     continue;
                 };
+                let already = decided.get(idx).copied().unwrap_or(false);
                 if p.error_code != 0 {
-                    // An unknown partition drops its leader. A transient
-                    // partition error keeps the last good leader and epoch.
+                    // An unknown partition drops its leader, including one
+                    // chosen earlier in this response. A transient error keeps
+                    // that choice, or the previous cache when this response
+                    // has not chosen yet.
                     let unknown = p.error_code == crate::error::UNKNOWN_TOPIC_OR_PARTITION
                         || p.error_code == crate::error::UNKNOWN_TOPIC_ID;
-                    if !unknown {
+                    if unknown {
+                        if let Some(slot) = leaders.get_mut(idx) {
+                            *slot = MetadataResponse::NO_LEADER_ID;
+                        }
+                        if let Some(slot) = epochs.get_mut(idx) {
+                            *slot = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+                        }
+                    } else if !already {
                         if let Some(slot) = leaders.get_mut(idx) {
                             *slot = previous_leaders
                                 .as_ref()
@@ -107,6 +120,9 @@ impl Cluster {
                                 .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
                         }
                     }
+                    if let Some(slot) = decided.get_mut(idx) {
+                        *slot = true;
+                    }
                     continue;
                 }
                 let in_response = epochs
@@ -119,16 +135,12 @@ impl Cluster {
                     .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
                 // A repeated partition in this response is part of the cache
                 // being built. An older copy must not replace the newer one.
-                let cached_epoch = if in_response != RecordBatch::NO_PARTITION_LEADER_EPOCH {
-                    in_response
-                } else {
-                    prior
-                };
+                let cached_epoch = if already { in_response } else { prior };
                 let keep_cached = retain_epochs
                     && cached_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH
                     && p.leader_epoch < cached_epoch;
                 if keep_cached {
-                    if in_response == RecordBatch::NO_PARTITION_LEADER_EPOCH {
+                    if !already {
                         if let Some(slot) = leaders.get_mut(idx) {
                             *slot = previous_leaders
                                 .as_ref()
@@ -138,6 +150,9 @@ impl Cluster {
                         if let Some(slot) = epochs.get_mut(idx) {
                             *slot = cached_epoch;
                         }
+                    }
+                    if let Some(slot) = decided.get_mut(idx) {
+                        *slot = true;
                     }
                     continue;
                 }
@@ -150,6 +165,9 @@ impl Cluster {
                     } else {
                         RecordBatch::NO_PARTITION_LEADER_EPOCH
                     };
+                }
+                if let Some(slot) = decided.get_mut(idx) {
+                    *slot = true;
                 }
             }
             let _prev = self.leaders.insert(name.clone(), leaders);
@@ -484,6 +502,70 @@ mod tests {
         newer_second.apply(&response(3, 5), 13);
         assert_eq!(newer_second.leader("t", 0).unwrap().0, 2);
         assert_eq!(newer_second.leader_epoch("t", 0), 5);
+    }
+
+    #[test]
+    fn a_later_transient_error_keeps_the_leader_chosen_in_this_response() {
+        use crate::error;
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let response = |parts: Vec<PartitionMetadata>| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: parts,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let partition = |leader: i32, epoch: i32, error_code: i16| PartitionMetadata {
+            error_code,
+            partition_index: 0,
+            leader_id: leader,
+            leader_epoch: epoch,
+            replica_nodes: vec![leader],
+            isr_nodes: vec![leader],
+            offline_replicas: Vec::new(),
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(&response(vec![partition(1, 4, 0)]), 13);
+        cluster.apply(
+            &response(vec![
+                partition(2, 5, 0),
+                partition(-1, -1, error::LEADER_NOT_AVAILABLE),
+            ]),
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 5);
+        cluster.apply(
+            &response(vec![
+                partition(2, 6, 0),
+                partition(-1, -1, error::UNKNOWN_TOPIC_OR_PARTITION),
+            ]),
+            13,
+        );
+        assert!(cluster.leader("t", 0).is_err());
     }
 
     #[test]
