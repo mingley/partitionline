@@ -1,0 +1,27 @@
+{
+  "task": "KL01-29",
+  "date": "2026-10-14",
+  "releases": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "total_bodies": 32,
+  "total_unsupported_receipts": 8,
+  "independent_generations_match": true,
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 174.057,
+  "rust_offline_fixture_bodies": 32,
+  "rust_apache_reverse_parses": 16,
+  "public_histories": {
+    "alter_ok_error": 0,
+    "alter_ok_topic": "pl-share",
+    "alter_ok_topic_id": "01010101010101010101010101010101",
+    "alter_ok_partition": 0,
+    "alter_start_offset": 7,
+    "find_coordinator_version": 0,
+    "find_coordinator_key_type": 0,
+    "delete_ok_error": 0,
+    "delete_topics_are_names_only": true,
+    "alter_invalid_error": 42,
+    "delete_unknown_error": 69
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0
+}

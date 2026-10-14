@@ -52658,7 +52658,7 @@
       "title": "Qualify public share offset alter/delete behavior",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52684,7 +52684,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-29.json",
+        "docs/evidence/conformance/q-conf-shareoffsetmutations/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceShareOffsetMutations.java",
         "tests/conformance/java/generate_share_offset_mutations.py",
@@ -52712,7 +52715,8 @@
         "current-public-api-092-v0-4-3-1"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "66ccc796ca32898322a7c04d08c22d4891144a33"
     },
     {
       "id": "KL01-30",
