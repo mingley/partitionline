@@ -104,6 +104,7 @@ pub async fn drive_partitionline(req: &DriveRequest) -> Result<DriveOutcome, Str
         batch_size_bytes: req.cell.batch_size_bytes,
         tls: tls_mode,
     };
+    let cpu_origin = ProcessRusage::current();
     let producer = Producer::new(cfg)
         .await
         .map_err(|e| format!("producer: {e}"))?;
@@ -222,7 +223,7 @@ pub async fn drive_partitionline(req: &DriveRequest) -> Result<DriveOutcome, Str
         watermark_delta,
         watermarks_queried,
         settings,
-        rusage: ProcessRusage::current(),
+        rusage: ProcessRusage::current().since(cpu_origin),
         queue_full_retries: phase.queue_full_retries,
     })
 }

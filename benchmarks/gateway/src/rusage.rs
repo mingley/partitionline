@@ -60,6 +60,17 @@ impl ProcessRusage {
         ))
     }
 
+    /// CPU used since `earlier`. Peak RSS stays the later snapshot (not a delta).
+    #[must_use]
+    pub fn since(self, earlier: Self) -> Self {
+        Self {
+            user_cpu_seconds: (self.user_cpu_seconds - earlier.user_cpu_seconds).max(0.0),
+            system_cpu_seconds: (self.system_cpu_seconds - earlier.system_cpu_seconds).max(0.0),
+            peak_rss_bytes: self.peak_rss_bytes.max(earlier.peak_rss_bytes),
+            threads_count: self.threads_count,
+        }
+    }
+
     /// CPU seconds per acknowledged record. Never uses enqueue counts.
     #[must_use]
     pub fn cpu_seconds_per_record(self, acknowledged: u64) -> Option<f64> {
@@ -91,4 +102,31 @@ fn thread_count() -> u64 {
                 .and_then(|s| s.trim().parse().ok())
         })
         .unwrap_or(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ProcessRusage;
+
+    #[test]
+    fn since_subtracts_cpu_and_keeps_peak_rss() {
+        let earlier = ProcessRusage {
+            user_cpu_seconds: 1.5,
+            system_cpu_seconds: 0.5,
+            peak_rss_bytes: 4_000,
+            threads_count: 2,
+        };
+        let later = ProcessRusage {
+            user_cpu_seconds: 2.0,
+            system_cpu_seconds: 0.75,
+            peak_rss_bytes: 8_000,
+            threads_count: 5,
+        };
+        let delta = later.since(earlier);
+        assert!((delta.user_cpu_seconds - 0.5).abs() < 1e-12);
+        assert!((delta.system_cpu_seconds - 0.25).abs() < 1e-12);
+        assert_eq!(delta.peak_rss_bytes, 8_000);
+        assert_eq!(delta.threads_count, 5);
+        assert!((delta.cpu_seconds_per_record(100).unwrap() - 0.0075).abs() < 1e-12);
+    }
 }
