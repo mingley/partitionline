@@ -305,15 +305,19 @@ impl Authorizer {
     fn apply(&mut self, payload: &[u8]) -> Result<(), Error> {
         match decode(payload)? {
             Record::Grant(entry) => {
+                validate_entry(&entry)?;
                 self.entries.insert(key_from(&entry), entry.permission);
             }
             Record::Revoke(entry) => {
+                validate_entry(&entry)?;
                 self.entries.remove(&key_from(&entry));
             }
             Record::Super(principal) => {
+                validate_principal(&principal)?;
                 self.superusers.insert(principal);
             }
             Record::Unsuper(principal) => {
+                validate_principal(&principal)?;
                 self.superusers.remove(&principal);
             }
         }
@@ -636,6 +640,31 @@ mod tests {
     #[test]
     fn deny_beats_allow_superuser_bypasses_and_reopen_restores() {
         let (mut authorizer, path) = open("authz");
+        assert!(matches!(
+            authorizer.apply(
+                &encode_principal(KIND_SUPER, "").unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            authorizer.apply(
+                &encode_grant(&entry(
+                    Resource::Topic,
+                    Pattern::Literal,
+                    "",
+                    Operation::All,
+                    "User:eve",
+                    "*",
+                    Permission::Allow,
+                ))
+                .unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            authorizer.authorize("", "*", Resource::Topic, "other", Operation::Write),
+            Err(Error::Denied(Resource::Topic))
+        ));
         assert!(matches!(
             authorizer.authorize(
                 "User:alice",
