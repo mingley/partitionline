@@ -30,6 +30,8 @@ pub const UNKNOWN_MEMBER_ID: i16 = 25;
 pub const INCONSISTENT_GROUP_PROTOCOL: i16 = 23;
 /// Kafka `FENCED_MEMBER_EPOCH`.
 pub const FENCED_MEMBER_EPOCH: i16 = 110;
+/// Kafka `FENCED_INSTANCE_ID`.
+pub const FENCED_INSTANCE_ID: i16 = 82;
 /// Kafka `STALE_MEMBER_EPOCH`.
 pub const STALE_MEMBER_EPOCH: i16 = 113;
 
@@ -110,6 +112,8 @@ pub enum Error {
     UnknownMember,
     /// The member epoch is older than the issued epoch.
     Fenced,
+    /// The static instance id does not match the joined member.
+    FencedInstance,
     /// The member epoch skipped ahead of the issued epoch.
     Stale,
     /// The group, version, or topology is not usable.
@@ -129,6 +133,7 @@ impl Error {
             Self::Inconsistent => Some(INCONSISTENT_GROUP_PROTOCOL),
             Self::UnknownMember => Some(UNKNOWN_MEMBER_ID),
             Self::Fenced => Some(FENCED_MEMBER_EPOCH),
+            Self::FencedInstance => Some(FENCED_INSTANCE_ID),
             Self::Stale => Some(STALE_MEMBER_EPOCH),
             Self::InvalidRequest | Self::Poisoned | Self::InvalidLimits | Self::Storage(_) => None,
         }
@@ -363,6 +368,9 @@ impl Groups {
         if request.member_epoch > member.epoch {
             return Err(Error::Stale);
         }
+        if member.instance.as_deref() != request.instance_id {
+            return Err(Error::FencedInstance);
+        }
         member.endpoint_epoch = request.endpoint_epoch;
         reassign(group);
         if let Some(member) = group.members.get_mut(request.member_id) {
@@ -381,9 +389,13 @@ impl Groups {
         let Some(group) = next.groups.get_mut(request.group_id) else {
             return Err(Error::UnknownMember);
         };
-        if group.members.remove(request.member_id).is_none() {
+        let Some(member) = group.members.get(request.member_id) else {
             return Err(Error::UnknownMember);
+        };
+        if member.instance.as_deref() != request.instance_id {
+            return Err(Error::FencedInstance);
         }
+        group.members.remove(request.member_id);
         group.epoch = group.epoch.saturating_add(1);
         reassign(group);
         let result = HeartbeatResult {
@@ -807,6 +819,29 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(refreshed.member_epoch, 1);
+        assert!(matches!(
+            groups.heartbeat(Heartbeat {
+                member_epoch: refreshed.member_epoch,
+                instance_id: Some("i-2"),
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-2"))
+            }),
+            Err(Error::FencedInstance)
+        ));
+        assert!(matches!(
+            groups.heartbeat(Heartbeat {
+                member_epoch: LEAVE_GROUP_MEMBER_EPOCH,
+                instance_id: Some("i-2"),
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-2"))
+            }),
+            Err(Error::FencedInstance)
+        ));
+        assert!(groups
+            .describe("app")
+            .is_some_and(|view| { view.members.iter().any(|member| member.member_id == "a") }));
         assert!(matches!(
             groups.heartbeat(Heartbeat {
                 member_epoch: 0,
