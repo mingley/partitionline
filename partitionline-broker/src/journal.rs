@@ -582,6 +582,9 @@ struct Engine<S> {
     index: Vec<Index>,
     poisoned: bool,
     staged: Option<Staged>,
+    /// File position after the last successful read or append. The next
+    /// contiguous read skips `seek`.
+    read_pos: Option<u64>,
 }
 
 /// Journal checksum of `payload`.
@@ -928,6 +931,7 @@ impl<S: Storage> Engine<S> {
             index: Vec::new(),
             poisoned: false,
             staged: None,
+            read_pos: None,
         };
         let mut truncated = 0;
         while engine.file_bytes < observed {
@@ -1057,9 +1061,14 @@ impl<S: Storage> Engine<S> {
         if self.storage.byte_len()? != self.file_bytes {
             return Err(Error::ChangedFile);
         }
+        self.read_pos = None;
         self.storage.seek(SeekFrom::Start(self.file_bytes))?;
         let header = entry_header(index);
         write_two(&mut self.storage, &header, payload)?;
+        self.read_pos = self
+            .file_bytes
+            .checked_add(ENTRY_HEADER as u64)
+            .and_then(|n| n.checked_add(payload.len() as u64));
         Ok(())
     }
     fn publish(&mut self, index: Index, file_bytes: u64) -> Append {
@@ -1244,7 +1253,10 @@ impl<S: Storage> Engine<S> {
     fn read_indexed(&mut self, index: &Index, dest: &mut Vec<u8>) -> Result<(), Error> {
         let mark = dest.len();
         let result = (|| {
-            self.storage.seek(SeekFrom::Start(index.position))?;
+            if self.read_pos != Some(index.position) {
+                self.storage.seek(SeekFrom::Start(index.position))?;
+                self.read_pos = Some(index.position);
+            }
             let mut header = [0; ENTRY_HEADER];
             require_read(&mut self.storage, &mut header)?;
             let parsed = parse_header(&header, index.first_offset, index.position, self.limits)?;
@@ -1261,10 +1273,15 @@ impl<S: Storage> Engine<S> {
             if crc32c::crc32c(payload) != index.checksum {
                 return Err(corrupt(index.position, Corruption::PayloadChecksum));
             }
+            self.read_pos = index
+                .position
+                .checked_add(ENTRY_HEADER as u64)
+                .and_then(|n| n.checked_add(u64::from(index.payload_len)));
             Ok(())
         })();
         if result.is_err() {
             dest.truncate(mark);
+            self.read_pos = None;
         }
         result
     }
