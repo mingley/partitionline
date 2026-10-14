@@ -286,6 +286,20 @@ async fn run_live_campaign_async(
                                     .unwrap_or(1e-9)
                                     .max(1e-9);
                                 draft.rusage = run.rusage;
+                                let history = work.join("peer.attempts.jsonl");
+                                let raw_path = work.join("peer.raw.json");
+                                let samples = work.join("peer.samples.csv");
+                                draft.verified_ids = crate::peer::count_acked_history(&history);
+                                if step.cell.ack_mode == crate::cells::AckMode::PerRecordCompletion
+                                {
+                                    draft.latencies_us =
+                                        crate::peer::read_latency_samples(&samples);
+                                }
+                                draft.artifacts = vec![
+                                    ("history".into(), history),
+                                    ("raw".into(), raw_path),
+                                    ("samples".into(), samples),
+                                ];
                                 draft.watermark_delta = hw
                                     .get("total_offset_delta")
                                     .and_then(|v| v.as_i64())

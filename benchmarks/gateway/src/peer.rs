@@ -176,6 +176,42 @@ fn write_new(path: &Path, value: &serde_json::Value) -> Result<(), String> {
     file.write_all(b"\n").map_err(|e| e.to_string())
 }
 
+/// Count unique acked record ids in a KL04-07 rust-peer attempts file.
+pub fn count_acked_history(path: &Path) -> u64 {
+    let Ok(text) = fs::read_to_string(path) else {
+        return 0;
+    };
+    let mut ids = std::collections::BTreeSet::new();
+    for line in text.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let Ok(row) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        if row.get("status").and_then(serde_json::Value::as_str) != Some("acked") {
+            continue;
+        }
+        if let Some(id) = row.get("id").and_then(serde_json::Value::as_str) {
+            ids.insert(id.to_string());
+        } else if let Some(id) = row.get("id").and_then(serde_json::Value::as_u64) {
+            ids.insert(id.to_string());
+        }
+    }
+    ids.len() as u64
+}
+
+/// Load rust-peer `record_id,latency_us` samples for per-record cells.
+pub fn read_latency_samples(path: &Path) -> Vec<f64> {
+    let Ok(text) = fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    text.lines()
+        .skip(1)
+        .filter_map(|line| line.split(',').nth(1)?.parse().ok())
+        .collect()
+}
+
 /// Acknowledgment mode the rust peer used for this cell.
 #[must_use]
 pub fn peer_ack_mode(cell: Cell) -> AckMode {
@@ -186,6 +222,30 @@ pub fn peer_ack_mode(cell: Cell) -> AckMode {
 mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn acked_history_counts_unique_ids() {
+        let dir = std::env::temp_dir().join(format!(
+            "gateway-peer-hist-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let history = dir.join("peer.attempts.jsonl");
+        std::fs::write(
+            &history,
+            "{\"id\":\"0\",\"status\":\"acked\"}\n{\"id\":\"1\",\"status\":\"failed\"}\n{\"id\":\"0\",\"status\":\"acked\"}\n{\"id\":\"2\",\"status\":\"acked\"}\n",
+        )
+        .unwrap();
+        assert_eq!(count_acked_history(&history), 2);
+        let samples = dir.join("peer.samples.csv");
+        std::fs::write(&samples, "record_id,latency_us\n0,12.5\n1,8\n").unwrap();
+        assert_eq!(read_latency_samples(&samples), vec![12.5, 8.0]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn emit_and_produce_reuse_the_same_peer_input() {
