@@ -11,8 +11,11 @@
 
 mod common;
 
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+use parking_lot::Mutex;
 
 use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
@@ -193,7 +196,7 @@ async fn acknowledgement_commit_callback_fires_on_accept() {
     let seen = Arc::new(Mutex::new(Vec::new()));
     let seen_cb = seen.clone();
     group.set_acknowledgement_commit_callback(move |offsets, exception| {
-        seen_cb.lock().unwrap().push((
+        seen_cb.lock().push((
             offsets
                 .iter()
                 .map(|(tp, offs)| {
@@ -209,7 +212,7 @@ async fn acknowledgement_commit_callback_fires_on_accept() {
     });
     group.accept(&recs).await.unwrap();
     {
-        let got = seen.lock().unwrap();
+        let got = seen.lock();
         assert_eq!(got.len(), 1);
         assert!(!got[0].1, "success must pass a null exception");
         assert_eq!(got[0].0[0].0, "t");
@@ -222,7 +225,7 @@ async fn acknowledgement_commit_callback_fires_on_accept() {
     group.clear_acknowledgement_commit_callback();
     group.leave().await.unwrap();
     assert_eq!(
-        seen.lock().unwrap().len(),
+        seen.lock().len(),
         1,
         "clear must stop further callback invocations"
     );
@@ -234,10 +237,10 @@ async fn acknowledgement_commit_callback_skips_before_poll() {
     let mut group = ShareGroup::join(config(&mock), "cb-pre", "t")
         .await
         .unwrap();
-    let fired = Arc::new(Mutex::new(0usize));
+    let fired = Arc::new(AtomicUsize::new(0));
     let fired_cb = fired.clone();
     group.set_acknowledgement_commit_callback(move |_, _| {
-        *fired_cb.lock().unwrap() += 1;
+        fired_cb.fetch_add(1, Ordering::SeqCst);
     });
     let rec = ShareRecord {
         topic: "t".into(),
@@ -253,14 +256,14 @@ async fn acknowledgement_commit_callback_skips_before_poll() {
     };
     assert!(group.accept(std::slice::from_ref(&rec)).await.is_err());
     assert_eq!(
-        *fired.lock().unwrap(),
+        fired.load(Ordering::SeqCst),
         0,
         "Acknowledge called before poll must not invoke the callback"
     );
     group.leave().await.unwrap();
 }
 
-struct CountingAckCallback(Arc<Mutex<usize>>);
+struct CountingAckCallback(Arc<AtomicUsize>);
 
 impl AcknowledgementCommitCallback for CountingAckCallback {
     fn on_complete(
@@ -271,7 +274,7 @@ impl AcknowledgementCommitCallback for CountingAckCallback {
         )>,
         _exception: Option<AcknowledgementCommitError>,
     ) {
-        *self.0.lock().unwrap() += 1;
+        self.0.fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -284,10 +287,10 @@ async fn acknowledgement_commit_handler_trait_fires_on_accept() {
         .unwrap();
     let recs = group.poll().await.unwrap();
     assert!(!recs.is_empty());
-    let fired = Arc::new(Mutex::new(0usize));
+    let fired = Arc::new(AtomicUsize::new(0));
     group.set_acknowledgement_commit_handler(CountingAckCallback(fired.clone()));
     group.accept(&recs).await.unwrap();
-    assert_eq!(*fired.lock().unwrap(), 1);
+    assert_eq!(fired.load(Ordering::SeqCst), 1);
     group.leave().await.unwrap();
 }
 
@@ -305,7 +308,6 @@ async fn acknowledgement_commit_callback_receives_broker_error() {
     group.set_acknowledgement_commit_callback(move |_, exception| {
         seen_cb
             .lock()
-            .unwrap()
             .push(exception.as_ref().and_then(|error| error.code()));
     });
     mock.fail_share_ack_once("t", 0, error::INVALID_RECORD_STATE);
@@ -313,10 +315,7 @@ async fn acknowledgement_commit_callback_receives_broker_error() {
         group.accept(&recs).await.unwrap_err(),
         error::INVALID_RECORD_STATE,
     );
-    assert_eq!(
-        *seen.lock().unwrap(),
-        vec![Some(error::INVALID_RECORD_STATE)]
-    );
+    assert_eq!(*seen.lock(), vec![Some(error::INVALID_RECORD_STATE)]);
     group.leave().await.unwrap();
 }
 
@@ -330,16 +329,16 @@ async fn implicit_poll_fires_acknowledgement_commit_callback() {
     let mut group = ShareGroup::join(cfg, "cb-implicit", "t").await.unwrap();
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
-    let fired = Arc::new(Mutex::new(0usize));
+    let fired = Arc::new(AtomicUsize::new(0));
     let fired_cb = fired.clone();
     group.set_acknowledgement_commit_callback(move |offsets, exception| {
         assert!(exception.is_none());
         assert!(!offsets.is_empty());
-        *fired_cb.lock().unwrap() += 1;
+        fired_cb.fetch_add(1, Ordering::SeqCst);
     });
     let _second = group.poll().await.unwrap();
     assert_eq!(
-        *fired.lock().unwrap(),
+        fired.load(Ordering::SeqCst),
         1,
         "implicit next poll must fire the acknowledgement commit callback"
     );
