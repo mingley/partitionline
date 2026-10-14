@@ -32,7 +32,13 @@ uses an independent SDK parser. See the [qualification record](evidence/conforma
 A 1,000-seed nontransactional data-plane fault campaign passed on native
 Kafka 4.1.0 RF=3/min-ISR=2, covering leader moves, lost acks, stale
 metadata, disconnects and restarts. Seed 7 replayed on a fresh topology.
-Transactional fencing and group/share churn remain separate cards.
+A consume-transform-produce crash and fencing campaign on the same fixture
+passed eight frozen cases: crashes before/after produce ack, after offset
+staging, before and during EndTxn, explicit abort, and replacement-producer
+fencing. Independent `read_committed` partitionline and Java consumers
+agreed. Transaction timeout (15s) stays distinct from leader recovery (20s).
+`fence_replacement` replayed on a fresh topology. Group/share churn remains
+KL03-21.
 
 Current gaps include prepared transaction initialization. Mixed-version
 behavior still needs further implementation or independent checks.

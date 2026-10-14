@@ -1,0 +1,1 @@
+{"id":"abort_hides","case":"abort_hides","input_topic":"pl-txn-abort-hides-in","committed_offset":-1,"consumed":[{"id":"anchor","topic":"pl-txn-abort-hides-out","partition":0,"offset":0,"key":"anchor","payload":"anchor","status":"acked"}]}

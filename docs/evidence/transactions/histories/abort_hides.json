@@ -1,0 +1,57 @@
+{
+  "id": "abort_hides",
+  "config": {
+    "acks": -1,
+    "idempotent": true,
+    "transactional": true,
+    "isolation_level": "read_committed",
+    "delivery": "partition"
+  },
+  "attempted": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-abort-hides-out",
+      "partition": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked",
+      "offset": 0
+    },
+    {
+      "id": "out-in-0",
+      "topic": "pl-txn-abort-hides-out",
+      "partition": 0,
+      "key": "in-0",
+      "payload": "out-in-0",
+      "status": "acked",
+      "txn_id": "pl-txn-abort-hides-t"
+    },
+    {
+      "id": "out-in-1",
+      "topic": "pl-txn-abort-hides-out",
+      "partition": 0,
+      "key": "in-1",
+      "payload": "out-in-1",
+      "status": "acked",
+      "txn_id": "pl-txn-abort-hides-t"
+    }
+  ],
+  "consumed": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-abort-hides-out",
+      "partition": 0,
+      "offset": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked"
+    }
+  ],
+  "transactions": [
+    {
+      "txn_id": "pl-txn-abort-hides-t",
+      "status": "aborted"
+    }
+  ],
+  "offset_commits": []
+}

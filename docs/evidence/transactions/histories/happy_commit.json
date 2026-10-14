@@ -1,0 +1,87 @@
+{
+  "id": "happy_commit",
+  "config": {
+    "acks": -1,
+    "idempotent": true,
+    "transactional": true,
+    "isolation_level": "read_committed",
+    "delivery": "partition"
+  },
+  "attempted": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked",
+      "offset": 0
+    },
+    {
+      "id": "out-in-0",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "key": "in-0",
+      "payload": "out-in-0",
+      "status": "acked",
+      "txn_id": "pl-txn-happy-commit-t"
+    },
+    {
+      "id": "out-in-1",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "key": "in-1",
+      "payload": "out-in-1",
+      "status": "acked",
+      "txn_id": "pl-txn-happy-commit-t"
+    }
+  ],
+  "consumed": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "offset": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked"
+    },
+    {
+      "id": "out-in-0",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "offset": 1,
+      "key": "in-0",
+      "payload": "out-in-0",
+      "status": "acked",
+      "txn_id": "pl-txn-happy-commit-t"
+    },
+    {
+      "id": "out-in-1",
+      "topic": "pl-txn-happy-commit-out",
+      "partition": 0,
+      "offset": 2,
+      "key": "in-1",
+      "payload": "out-in-1",
+      "status": "acked",
+      "txn_id": "pl-txn-happy-commit-t"
+    }
+  ],
+  "transactions": [
+    {
+      "txn_id": "pl-txn-happy-commit-t",
+      "status": "committed",
+      "committed_offsets": {
+        "pl-txn-happy-commit-in-0": 2
+      }
+    }
+  ],
+  "offset_commits": [
+    {
+      "topic": "pl-txn-happy-commit-in",
+      "partition": 0,
+      "offset": 2,
+      "txn_id": "pl-txn-happy-commit-t"
+    }
+  ]
+}

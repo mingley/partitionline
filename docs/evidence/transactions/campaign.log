@@ -1,0 +1,15 @@
+happy_commit ok elapsed_ms=12530
+crash_before_produce_ack ok elapsed_ms=15156
+crash_after_produce_ack ok elapsed_ms=10989
+crash_after_offset_stage ok elapsed_ms=11063
+crash_before_endtxn ok elapsed_ms=11110
+crash_during_endtxn ok elapsed_ms=14071
+fence_replacement ok elapsed_ms=11320
+abort_hides ok elapsed_ms=11077
+{
+  "card": "KL03-20",
+  "profile": "transactional-crash-fencing",
+  "ok_count": 8,
+  "failed_count": 0,
+  "case_count": 8
+}

@@ -1,0 +1,46 @@
+{
+  "id": "fence_replacement",
+  "crash": null,
+  "fence": true,
+  "names": {
+    "input": "pl-txn-fence-replacement-in",
+    "output": "pl-txn-fence-replacement-out",
+    "group": "pl-txn-fence-replacement-g",
+    "txn_id": "pl-txn-fence-replacement-t"
+  },
+  "seed_exit": 0,
+  "run_exit": 0,
+  "run_stderr": "stale producer fenced: 47\n",
+  "verify_exit": 0,
+  "partitionline_payloads": [
+    "anchor",
+    "fence-out"
+  ],
+  "java_payloads": [
+    "anchor",
+    "fence-out"
+  ],
+  "partitionline_offset": -1,
+  "java_offset": -1,
+  "verdict": {
+    "ok": true,
+    "errors": [],
+    "payloads": [
+      "anchor",
+      "fence-out"
+    ],
+    "committed_offset": -1,
+    "copies_visible": false,
+    "offsets_advanced": false
+  },
+  "history_path": "/workspace/docs/evidence/transactions/replay/histories/fence_replacement.json",
+  "checker": {
+    "valid": true,
+    "exit": 0,
+    "summary": null,
+    "violations": null,
+    "minimal_counterexample": null
+  },
+  "elapsed_ms": 12553,
+  "ok": true
+}

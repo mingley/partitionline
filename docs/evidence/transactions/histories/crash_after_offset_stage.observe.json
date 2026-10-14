@@ -1,0 +1,1 @@
+{"id":"crash_after_offset_stage","case":"crash_after_offset_stage","input_topic":"pl-txn-crash-after-offset-stage-in","committed_offset":-1,"consumed":[{"id":"anchor","topic":"pl-txn-crash-after-offset-stage-out","partition":0,"offset":0,"key":"anchor","payload":"anchor","status":"acked"}]}

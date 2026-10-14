@@ -1,0 +1,116 @@
+{
+  "card": "KL03-20",
+  "profile": "transactional-crash-fencing",
+  "source_sha": "0f350cc59665dc60dc680d5c1213bf6129d5c197",
+  "peer": "native:4.1.0 path=/tmp/kafka_4.1.0",
+  "ok_count": 8,
+  "failed_count": 0,
+  "case_count": 8,
+  "transaction_timeout_ms": 15000,
+  "leader_recovery_ms": 20000,
+  "java_agree": true,
+  "cases": {
+    "happy_commit": {
+      "payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "committed_offset": 2,
+      "copies_visible": true,
+      "offsets_advanced": true,
+      "elapsed_ms": 12530,
+      "run_exit": 0
+    },
+    "crash_before_produce_ack": {
+      "payloads": [
+        "anchor"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 15156,
+      "run_exit": 77
+    },
+    "crash_after_produce_ack": {
+      "payloads": [
+        "anchor"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 10989,
+      "run_exit": 77
+    },
+    "crash_after_offset_stage": {
+      "payloads": [
+        "anchor"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 11063,
+      "run_exit": 77
+    },
+    "crash_before_endtxn": {
+      "payloads": [
+        "anchor"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 11110,
+      "run_exit": 77
+    },
+    "crash_during_endtxn": {
+      "payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "committed_offset": 2,
+      "copies_visible": true,
+      "offsets_advanced": true,
+      "elapsed_ms": 14071,
+      "run_exit": 77
+    },
+    "fence_replacement": {
+      "payloads": [
+        "anchor",
+        "fence-out"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 11320,
+      "run_exit": 0
+    },
+    "abort_hides": {
+      "payloads": [
+        "anchor"
+      ],
+      "committed_offset": -1,
+      "copies_visible": false,
+      "offsets_advanced": false,
+      "elapsed_ms": 11077,
+      "run_exit": 0
+    }
+  },
+  "crash_during_endtxn": "committed",
+  "fence_error": "INVALID_PRODUCER_EPOCH 47",
+  "replay": {
+    "case": "fence_replacement",
+    "ok": true,
+    "fresh_topology": true,
+    "fence_error": "INVALID_PRODUCER_EPOCH 47",
+    "payloads": [
+      "anchor",
+      "fence-out"
+    ]
+  },
+  "checker_batches": {
+    "size": 8,
+    "failures": 0
+  },
+  "no_eos_for_external_effects": true
+}

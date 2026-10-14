@@ -1,0 +1,71 @@
+{
+  "id": "fence_replacement",
+  "config": {
+    "acks": -1,
+    "idempotent": true,
+    "transactional": true,
+    "isolation_level": "read_committed",
+    "delivery": "partition"
+  },
+  "attempted": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-fence-replacement-out",
+      "partition": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked",
+      "offset": 0
+    },
+    {
+      "id": "out-fenced",
+      "topic": "pl-txn-fence-replacement-out",
+      "partition": 0,
+      "key": "fenced",
+      "payload": "out-fenced",
+      "status": "acked",
+      "txn_id": "pl-txn-fence-replacement-t-stale"
+    },
+    {
+      "id": "fence-out",
+      "topic": "pl-txn-fence-replacement-out",
+      "partition": 0,
+      "key": "fence-out",
+      "payload": "fence-out",
+      "status": "acked",
+      "txn_id": "pl-txn-fence-replacement-t"
+    }
+  ],
+  "consumed": [
+    {
+      "id": "anchor",
+      "topic": "pl-txn-fence-replacement-out",
+      "partition": 0,
+      "offset": 0,
+      "key": "anchor",
+      "payload": "anchor",
+      "status": "acked"
+    },
+    {
+      "id": "fence-out",
+      "topic": "pl-txn-fence-replacement-out",
+      "partition": 0,
+      "offset": 3,
+      "key": "fence-out",
+      "payload": "fence-out",
+      "status": "acked",
+      "txn_id": "pl-txn-fence-replacement-t"
+    }
+  ],
+  "transactions": [
+    {
+      "txn_id": "pl-txn-fence-replacement-t-stale",
+      "status": "aborted"
+    },
+    {
+      "txn_id": "pl-txn-fence-replacement-t",
+      "status": "committed"
+    }
+  ],
+  "offset_commits": []
+}

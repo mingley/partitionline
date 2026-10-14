@@ -1,0 +1,87 @@
+{
+  "id": "KL03-20",
+  "status": "done",
+  "acceptance_met": true,
+  "owner": "cursor-cloud",
+  "source_sha": "0f350cc59665dc60dc680d5c1213bf6129d5c197",
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "peer": {
+    "identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2,
+    "java_consumer": "bin/kafka-console-consumer.sh --isolation-level read_committed"
+  },
+  "commands": [
+    "python3 -m unittest tests.history.test_txn_crash_plan tests.history.test_checker tests.cluster.test_fixture -q (65 passed, exit 0)",
+    "python3 scripts/run-txn-crash-campaign.py --self-test (exit 0; 8 cases, abort leak rejected)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-txn-crash-campaign.py --run --cases happy_commit,crash_before_produce_ack,fence_replacement (2/3; fence required INVALID_PRODUCER_EPOCH)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-txn-crash-campaign.py --run (first full run 0/8, INVALID_REPLICATION_FACTOR 38)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-txn-crash-campaign.py --run (8/8 ok, exit 0)",
+    "python3 scripts/check-record-history.py on 8 histories (all_valid, 0 failures)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-txn-crash-campaign.py --replay fence_replacement (ok, INVALID_PRODUCER_EPOCH 47, fresh topology)"
+  ],
+  "results": {
+    "deliverable": "A pinned-Java differential campaign for consume-transform-produce crash boundaries.",
+    "acceptance_validation": {
+      "cases_frozen_before_run": true,
+      "case_count": 8,
+      "cases": [
+        "happy_commit",
+        "crash_before_produce_ack",
+        "crash_after_produce_ack",
+        "crash_after_offset_stage",
+        "crash_before_endtxn",
+        "crash_during_endtxn",
+        "fence_replacement",
+        "abort_hides"
+      ],
+      "java_agree": true,
+      "history_discrepancies": 0,
+      "crash_during_endtxn": "committed (output and offsets together)",
+      "fence_error": "INVALID_PRODUCER_EPOCH 47",
+      "transaction_timeout_ms": 15000,
+      "leader_recovery_ms": 20000,
+      "replay_case": "fence_replacement",
+      "replay_ok": true
+    }
+  },
+  "artifacts": [
+    "examples/txn_crash.rs",
+    "scripts/txn_crash_cases.py",
+    "scripts/run-txn-crash-campaign.py",
+    "tests/history/test_txn_crash_plan.py",
+    "docs/evidence/transactions/campaign-freeze.json",
+    "docs/evidence/transactions/campaign-report.json",
+    "docs/evidence/transactions/summary.json",
+    "docs/evidence/transactions/histories/",
+    "docs/evidence/transactions/replay/replay-report.json",
+    "docs/plan/evidence/KL03-20.json"
+  ],
+  "limits": [
+    "Kafka transactions cover output records and committed input offsets only. External application effects are out of scope and are not exactly-once.",
+    "Native Apache Kafka 4.1.0 on loopback, not Docker and not a mixed-version topology.",
+    "Replacement fencing on Produce was INVALID_PRODUCER_EPOCH (47), not PRODUCER_FENCED (90).",
+    "crash_during_endtxn is atomic: this run committed. An abort of the same crash remains a valid outcome.",
+    "Transaction timeout (15s) is not a leader-recovery or request-timeout promise.",
+    "No cases.json rows were added (KL01-14 holds that write set)."
+  ],
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "error": "CreateTopics INVALID_REPLICATION_FACTOR (38) on every seed",
+      "cause": "kafka-topics --list succeeded before three brokers were registered, so RF=3 topic create failed closed.",
+      "log": "docs/evidence/transactions/failed-attempts/01-seed-invalid-replication-factor.json"
+    },
+    {
+      "attempt": 2,
+      "error": "fence_replacement run_failed with Broker code 47",
+      "cause": "The first worker only accepted PRODUCER_FENCED (90). Kafka 4.1 Produce on a stale transactional epoch returns INVALID_PRODUCER_EPOCH (47).",
+      "log": "docs/evidence/transactions/failed-attempts/02-fence-only-producer-fenced.json"
+    }
+  ]
+}

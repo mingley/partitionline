@@ -1,0 +1,1 @@
+{"id":"crash_before_endtxn","case":"crash_before_endtxn","input_topic":"pl-txn-crash-before-endtxn-in","committed_offset":-1,"consumed":[{"id":"anchor","topic":"pl-txn-crash-before-endtxn-out","partition":0,"offset":0,"key":"anchor","payload":"anchor","status":"acked"}]}

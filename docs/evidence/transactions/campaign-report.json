@@ -1,0 +1,380 @@
+{
+  "card": "KL03-20",
+  "profile": "transactional-crash-fencing",
+  "peer": {
+    "identity": "native:4.1.0",
+    "kafka_home": "/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "java_consumer": "bin/kafka-console-consumer.sh --isolation-level read_committed",
+    "replication_factor": 3,
+    "min_insync_replicas": 2
+  },
+  "freeze": "/workspace/docs/evidence/transactions/campaign-freeze.json",
+  "case_count": 8,
+  "ok_count": 8,
+  "failed_count": 0,
+  "transaction_timeout_ms": 15000,
+  "leader_recovery_ms": 20000,
+  "outcomes": [
+    {
+      "id": "happy_commit",
+      "crash": null,
+      "fence": false,
+      "names": {
+        "input": "pl-txn-happy-commit-in",
+        "output": "pl-txn-happy-commit-out",
+        "group": "pl-txn-happy-commit-g",
+        "txn_id": "pl-txn-happy-commit-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 0,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "java_payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "partitionline_offset": 2,
+      "java_offset": 2,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor",
+          "out-in-0",
+          "out-in-1"
+        ],
+        "committed_offset": 2,
+        "copies_visible": true,
+        "offsets_advanced": true
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/happy_commit.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 12530,
+      "ok": true
+    },
+    {
+      "id": "crash_before_produce_ack",
+      "crash": "before_produce_ack",
+      "fence": false,
+      "names": {
+        "input": "pl-txn-crash-before-produce-ack-in",
+        "output": "pl-txn-crash-before-produce-ack-out",
+        "group": "pl-txn-crash-before-produce-ack-g",
+        "txn_id": "pl-txn-crash-before-produce-ack-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 77,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor"
+      ],
+      "java_payloads": [
+        "anchor"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/crash_before_produce_ack.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 15156,
+      "ok": true
+    },
+    {
+      "id": "crash_after_produce_ack",
+      "crash": "after_produce_ack",
+      "fence": false,
+      "names": {
+        "input": "pl-txn-crash-after-produce-ack-in",
+        "output": "pl-txn-crash-after-produce-ack-out",
+        "group": "pl-txn-crash-after-produce-ack-g",
+        "txn_id": "pl-txn-crash-after-produce-ack-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 77,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor"
+      ],
+      "java_payloads": [
+        "anchor"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/crash_after_produce_ack.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 10989,
+      "ok": true
+    },
+    {
+      "id": "crash_after_offset_stage",
+      "crash": "after_offset_stage",
+      "fence": false,
+      "names": {
+        "input": "pl-txn-crash-after-offset-stage-in",
+        "output": "pl-txn-crash-after-offset-stage-out",
+        "group": "pl-txn-crash-after-offset-stage-g",
+        "txn_id": "pl-txn-crash-after-offset-stage-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 77,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor"
+      ],
+      "java_payloads": [
+        "anchor"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/crash_after_offset_stage.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 11063,
+      "ok": true
+    },
+    {
+      "id": "crash_before_endtxn",
+      "crash": "before_endtxn",
+      "fence": false,
+      "names": {
+        "input": "pl-txn-crash-before-endtxn-in",
+        "output": "pl-txn-crash-before-endtxn-out",
+        "group": "pl-txn-crash-before-endtxn-g",
+        "txn_id": "pl-txn-crash-before-endtxn-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 77,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor"
+      ],
+      "java_payloads": [
+        "anchor"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/crash_before_endtxn.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 11110,
+      "ok": true
+    },
+    {
+      "id": "crash_during_endtxn",
+      "crash": "during_endtxn",
+      "fence": false,
+      "names": {
+        "input": "pl-txn-crash-during-endtxn-in",
+        "output": "pl-txn-crash-during-endtxn-out",
+        "group": "pl-txn-crash-during-endtxn-g",
+        "txn_id": "pl-txn-crash-during-endtxn-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 77,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "java_payloads": [
+        "anchor",
+        "out-in-0",
+        "out-in-1"
+      ],
+      "partitionline_offset": 2,
+      "java_offset": 2,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor",
+          "out-in-0",
+          "out-in-1"
+        ],
+        "committed_offset": 2,
+        "copies_visible": true,
+        "offsets_advanced": true
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/crash_during_endtxn.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 14071,
+      "ok": true
+    },
+    {
+      "id": "fence_replacement",
+      "crash": null,
+      "fence": true,
+      "names": {
+        "input": "pl-txn-fence-replacement-in",
+        "output": "pl-txn-fence-replacement-out",
+        "group": "pl-txn-fence-replacement-g",
+        "txn_id": "pl-txn-fence-replacement-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 0,
+      "run_stderr": "stale producer fenced: 47\n",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor",
+        "fence-out"
+      ],
+      "java_payloads": [
+        "anchor",
+        "fence-out"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor",
+          "fence-out"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/fence_replacement.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 11320,
+      "ok": true
+    },
+    {
+      "id": "abort_hides",
+      "crash": null,
+      "fence": false,
+      "names": {
+        "input": "pl-txn-abort-hides-in",
+        "output": "pl-txn-abort-hides-out",
+        "group": "pl-txn-abort-hides-g",
+        "txn_id": "pl-txn-abort-hides-t"
+      },
+      "seed_exit": 0,
+      "run_exit": 0,
+      "run_stderr": "",
+      "verify_exit": 0,
+      "partitionline_payloads": [
+        "anchor"
+      ],
+      "java_payloads": [
+        "anchor"
+      ],
+      "partitionline_offset": -1,
+      "java_offset": -1,
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "payloads": [
+          "anchor"
+        ],
+        "committed_offset": -1,
+        "copies_visible": false,
+        "offsets_advanced": false
+      },
+      "history_path": "/workspace/docs/evidence/transactions/histories/abort_hides.json",
+      "checker": {
+        "valid": true,
+        "exit": 0,
+        "summary": null,
+        "violations": null,
+        "minimal_counterexample": null
+      },
+      "elapsed_ms": 11077,
+      "ok": true
+    }
+  ],
+  "failed": []
+}

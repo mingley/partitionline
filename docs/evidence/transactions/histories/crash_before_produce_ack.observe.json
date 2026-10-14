@@ -1,0 +1,1 @@
+{"id":"crash_before_produce_ack","case":"crash_before_produce_ack","input_topic":"pl-txn-crash-before-produce-ack-in","committed_offset":-1,"consumed":[{"id":"anchor","topic":"pl-txn-crash-before-produce-ack-out","partition":0,"offset":0,"key":"anchor","payload":"anchor","status":"acked"}]}

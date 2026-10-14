@@ -1,0 +1,16 @@
+{
+  "id": "fence_replacement",
+  "crash": null,
+  "fence": true,
+  "names": {
+    "input": "pl-txn-fence-replacement-in",
+    "output": "pl-txn-fence-replacement-out",
+    "group": "pl-txn-fence-replacement-g",
+    "txn_id": "pl-txn-fence-replacement-t"
+  },
+  "seed_exit": 0,
+  "run_exit": 1,
+  "run_stderr": "Error: Broker { code: 47, message: \"pl-txn-fence-replacement-out-0\" }\n",
+  "ok": false,
+  "error": "run_failed"
+}
