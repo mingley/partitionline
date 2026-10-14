@@ -1629,7 +1629,21 @@ impl ConsumerGroup {
 
     /// [`Self::commit_with_metadata`] with a one-shot timeout
     /// (Java `commitSync(Map, Duration)`).
+    ///
+    /// A pending [`crate::Consumer::wakeup`] fails this call once, before any
+    /// OffsetCommit is sent.
     pub async fn commit_with_metadata_timeout(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+        timeout: Duration,
+    ) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
+        self.commit_metadata_offsets(offsets, timeout).await
+    }
+
+    async fn commit_metadata_offsets(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
         timeout: Duration,
@@ -1772,7 +1786,7 @@ impl ConsumerGroup {
                     "queued offset identity differs from the current assignment",
                 ))
             } else {
-                self.commit_with_metadata_timeout(offsets.clone(), self.cfg.request_timeout)
+                self.commit_metadata_offsets(offsets.clone(), self.cfg.request_timeout)
                     .await
             };
             if let Some(callback) = callback {
@@ -2488,8 +2502,7 @@ impl ConsumerGroup {
                 .collect();
             if !to_commit.is_empty() {
                 let timeout = self.cfg.request_timeout;
-                self.commit_with_metadata_timeout(to_commit, timeout)
-                    .await?;
+                self.commit_metadata_offsets(to_commit, timeout).await?;
             }
         }
         let kept_epochs: HashMap<(String, i32), i32> = wanted

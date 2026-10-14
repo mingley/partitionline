@@ -3939,7 +3939,7 @@ async fn missing_heartbeat_api_fails_the_next_poll() {
     group.close().await.unwrap();
 }
 
-/// Group poll and commit consume one pending wakeup before joining or sending offsets.
+/// Group poll, commit, and commit_with_metadata each consume one pending wakeup.
 #[tokio::test]
 async fn wakeup_interrupts_group_poll_and_commit_once() {
     let mock = common::Mock::start().await;
@@ -3965,6 +3965,26 @@ async fn wakeup_interrupts_group_poll_and_commit_once() {
         "group commit must observe a pending wakeup, got {interrupted}"
     );
     group.commit().await.unwrap();
+    let calls_before_metadata = mock.offset_commit_calls();
+    group.wakeup();
+    let interrupted = group
+        .commit_with_metadata([(("t", 0), OffsetAndMetadata::new(1))])
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(interrupted, partitionline::Error::Wakeup),
+        "commit_with_metadata must observe a pending wakeup, got {interrupted}"
+    );
+    assert_eq!(
+        mock.offset_commit_calls(),
+        calls_before_metadata,
+        "a woken commit_with_metadata must not send OffsetCommit"
+    );
+    group
+        .commit_with_metadata([(("t", 0), OffsetAndMetadata::new(1))])
+        .await
+        .unwrap();
+    assert!(mock.offset_commit_calls() > calls_before_metadata);
     group.close().await.unwrap();
 }
 
