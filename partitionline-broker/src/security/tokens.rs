@@ -290,7 +290,7 @@ impl Tokens {
             .now_ms
             .checked_add(extension)
             .ok_or(Error::InvalidRequest)?;
-        let expiry = requested.min(max_timestamp_ms);
+        let expiry = requested.min(max_timestamp_ms).max(expiry_ms);
         if expiry == expiry_ms {
             return Ok(expiry);
         }
@@ -759,6 +759,25 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(expiry, 2_500);
+        let kept = tokens
+            .renew(
+                &auth,
+                RenewRequest {
+                    requester: "User:carol",
+                    host: "*",
+                    token_id: &issued.view.token_id,
+                    now_ms: 600,
+                    renew_ms: 100,
+                },
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(kept, 2_500);
+        assert_eq!(
+            tokens
+                .authenticate(&issued.view.token_id, issued.secret.expose(), 2_000)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            "User:alice"
+        );
         assert!(matches!(
             tokens.renew(
                 &auth,
