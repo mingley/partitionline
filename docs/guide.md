@@ -365,7 +365,8 @@ while the share member is already polling. Java
 `share.acknowledgement.mode` defaults to implicit; this client defaults to
 **explicit** so a missed `accept` cannot silently commit. Opt in with
 `ConsumerConfig::share_acknowledgement_mode(ShareAcknowledgementMode::Implicit)`
-or `ShareGroup::set_acknowledgement_mode`. `ShareGroup::commit` flushes
+or `ShareGroup::set_acknowledgement_mode`. Implicit ACCEPT on the next
+`poll` is piggybacked on ShareFetch. `ShareGroup::commit` flushes
 implicit acknowledgements as `Result<()>`. `ShareGroup::commit_sync` is
 Java `commitSync` (`Map<TopicIdPartition, Optional<KafkaException>>`)
 and flushes without waiting for the next poll.

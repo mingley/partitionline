@@ -2033,6 +2033,8 @@
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
+//! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
+//! ShareFetch (Java `ShareConsumeRequestManager`).
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
 //! [`ShareGroup::commit_async`] flush implicit acknowledgements
 //! (`Result<()>`). [`ShareGroup::commit_sync`] /

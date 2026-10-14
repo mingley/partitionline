@@ -109,12 +109,43 @@ async fn implicit_mode_accepts_previous_poll_on_next_poll() {
         group.metrics().records_acknowledged >= 1,
         "next poll must implicit-accept the previous poll"
     );
-    assert_eq!(mock.share_ack_calls(), 1);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "implicit next poll must piggyback ACCEPT on ShareFetch, not ShareAcknowledge"
+    );
     group.leave().await.unwrap();
     assert!(
-        mock.share_ack_calls() >= 2,
-        "leave must implicit-accept the last poll"
+        mock.share_ack_calls() >= 1,
+        "leave must implicit-accept the last poll on ShareAcknowledge"
     );
+}
+
+#[tokio::test]
+async fn implicit_next_poll_piggybacks_acks_on_share_fetch() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "piggyback", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let fetches = mock.share_fetch_calls();
+    let acks = mock.share_ack_calls();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first[0].offset);
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "implicit ACCEPT must ride the next ShareFetch"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "implicit next poll must not emit a standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

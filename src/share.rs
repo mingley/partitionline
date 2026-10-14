@@ -1304,7 +1304,6 @@ impl ShareGroup {
         if self.topics.is_empty() && self.topic_match.is_none() {
             return Err(reject_java_share_not_subscribed());
         }
-        self.implicit_accept_pending().await?;
         self.maybe_refresh_matching().await?;
         self.prune_expired_acquisitions();
         let latest_epoch = self.hb_epoch.load(Ordering::SeqCst);
@@ -1349,6 +1348,10 @@ impl ShareGroup {
                         elapsed,
                     );
                     if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+                        let pending = std::mem::take(&mut self.last_poll_unacked);
+                        if !pending.is_empty() {
+                            self.complete_implicit_piggyback(&pending);
+                        }
                         self.last_poll_unacked = recs.clone();
                     }
                     return Ok(ShareRecords::from(recs));
@@ -1739,10 +1742,26 @@ impl ShareGroup {
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
         if !self.pending_delivery.is_empty() {
+            // Buffered records skip ShareFetch; flush implicit acks now so
+            // they are not delayed until the next broker round-trip.
+            self.implicit_accept_pending().await?;
             return Ok(self.drain_pending_delivery());
         }
         let assigned = self.assigned.clone();
-        let by_leader = self.leaders_of(&assigned).await?;
+        let mut fetch_tps = assigned.clone();
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            for rec in &self.last_poll_unacked {
+                if !fetch_tps
+                    .iter()
+                    .any(|(topic, part)| topic == &rec.topic && *part == rec.partition)
+                {
+                    fetch_tps.push((rec.topic.clone(), rec.partition));
+                }
+            }
+        }
+        let by_leader = self.leaders_of(&fetch_tps).await?;
+        let assigned_set: HashSet<(String, i32)> = assigned.into_iter().collect();
+        let pending_acks = self.implicit_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
@@ -1777,16 +1796,28 @@ impl ShareGroup {
             }
             let topics: Vec<_> = by_id
                 .iter()
-                .map(|(topic_id, partitions)| ShareFetchTopic {
-                    topic_id: *topic_id,
-                    partitions: partitions
-                        .iter()
-                        .map(|part| ShareFetchPartition {
-                            partition: *part,
-                            partition_max_bytes: self.cfg.max_partition_fetch_bytes,
-                            acknowledgements: Vec::new(),
-                        })
-                        .collect(),
+                .map(|(topic_id, partitions)| {
+                    let name = self.name_for_topic_id(*topic_id);
+                    ShareFetchTopic {
+                        topic_id: *topic_id,
+                        partitions: partitions
+                            .iter()
+                            .map(|part| ShareFetchPartition {
+                                partition: *part,
+                                partition_max_bytes: if assigned_set
+                                    .contains(&(name.clone(), *part))
+                                {
+                                    self.cfg.max_partition_fetch_bytes
+                                } else {
+                                    0
+                                },
+                                acknowledgements: pending_acks
+                                    .get(&(name.clone(), *part))
+                                    .cloned()
+                                    .unwrap_or_default(),
+                            })
+                            .collect(),
+                    }
                 })
                 .collect();
             let max_records =
@@ -1927,10 +1958,17 @@ impl ShareGroup {
                         return Err(error);
                     }
                     if part.acknowledge_error_code != 0 {
-                        return Err(Error::broker(
+                        let error = Error::broker(
                             part.acknowledge_error_code,
                             format!("ShareFetch acknowledgement {name}-{}", part.partition),
-                        ));
+                        );
+                        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit
+                            && !self.last_poll_unacked.is_empty()
+                        {
+                            let pending = self.last_poll_unacked.clone();
+                            self.fire_acknowledgement_commit_callback(&pending, Some(&error));
+                        }
+                        return Err(error);
                     }
                     let mut acquired = part.acquired;
                     acquired.sort_unstable_by_key(|range| range.first_offset);
@@ -2243,6 +2281,40 @@ impl ShareGroup {
         if let Some(callback) = self.ack_commit_callback.as_mut() {
             callback(offsets, exception);
         }
+    }
+
+    fn implicit_fetch_acknowledgements(
+        &self,
+    ) -> BTreeMap<(String, i32), Vec<AcknowledgementBatch>> {
+        if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit
+            || self.last_poll_unacked.is_empty()
+        {
+            return BTreeMap::new();
+        }
+        acknowledgement_batches(&self.last_poll_unacked, ACK_ACCEPT)
+            .into_iter()
+            .map(|(topic, partition, batches)| ((topic, partition), batches))
+            .collect()
+    }
+
+    fn complete_implicit_piggyback(&mut self, recs: &[ShareRecord]) {
+        if recs.is_empty() {
+            return;
+        }
+        self.fire_acknowledgement_commit_callback(recs, None);
+        let count = recs.len();
+        self.acquisitions
+            .retain(|(topic, partition, offset), acquired| {
+                !recs.iter().any(|rec| {
+                    rec.topic == *topic
+                        && rec.partition == *partition
+                        && rec.offset == *offset
+                        && rec.delivery_count == acquired.delivery_count
+                })
+            });
+        self.records_acknowledged = self
+            .records_acknowledged
+            .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
     }
 
     async fn implicit_accept_pending(&mut self) -> Result<()> {

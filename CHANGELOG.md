@@ -10,6 +10,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `ShareAcknowledgementMode` implements Java `share.acknowledgement.mode`.
   Implicit accepts the previous poll on the next `poll` / `leave` / `close`.
   The client default stays **explicit** (Java defaults to implicit).
+  Implicit ACCEPT on the next `poll` is piggybacked on ShareFetch
+  (standalone ShareAcknowledge is still used for `commit` / `leave`).
   `ShareGroup::commit` / `commit_timeout` / `commit_async` flush implicit
   acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
   `commit_sync_timeout` are Java `ShareConsumer.commitSync` /
