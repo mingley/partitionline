@@ -392,8 +392,11 @@ fn validate_batches(batches: &[Batch], max_batches: usize, start_offset: i64) ->
     }
     let mut previous_last = -1i64;
     for batch in batches {
+        // The offset after `last_offset` is the next delivery position. It
+        // must fit in `i64`, or an acknowledgement would stay on this span.
         if batch.first_offset < start_offset
             || batch.last_offset < batch.first_offset
+            || batch.last_offset.checked_add(1).is_none()
             || batch.first_offset <= previous_last
         {
             return Err(Error::InvalidRequest);
@@ -410,7 +413,7 @@ fn acknowledged_offset(batches: &[Batch]) -> Option<i64> {
     batches
         .iter()
         .filter(|batch| batch.state == DeliveryState::Acknowledged)
-        .map(|batch| batch.last_offset.saturating_add(1))
+        .filter_map(|batch| batch.last_offset.checked_add(1))
         .max()
 }
 
@@ -466,7 +469,7 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<Key, Partition>, Error> {
         let batch_count = take_u32(&mut bytes)?;
         let mut batches = Vec::new();
         for _ in 0..batch_count {
-            batches.push(Batch {
+            let batch = Batch {
                 first_offset: take_i64(&mut bytes)?,
                 last_offset: take_i64(&mut bytes)?,
                 delivery_count: take_u16(&mut bytes)?,
@@ -477,7 +480,12 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<Key, Partition>, Error> {
                     4 => DeliveryState::Archived,
                     _ => return Err(Error::InvalidRequest),
                 },
-            });
+            };
+            if batch.last_offset < batch.first_offset || batch.last_offset.checked_add(1).is_none()
+            {
+                return Err(Error::InvalidRequest);
+            }
+            batches.push(batch);
         }
         partitions.insert(
             key,
@@ -769,5 +777,96 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(restored.start_offset, 10);
         assert_eq!(restored.batches[0].last_offset, 11);
+    }
+
+    #[test]
+    fn an_acknowledged_span_at_i64_max_is_refused() {
+        let (mut store, _) = open("max-span");
+        store
+            .init("share", "orders", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            store.write(
+                "share",
+                "orders",
+                0,
+                Write {
+                    state_epoch: 0,
+                    leader_epoch: 1,
+                    start_offset: 0,
+                    batches: vec![Batch {
+                        first_offset: i64::MAX,
+                        last_offset: i64::MAX,
+                        delivery_count: 1,
+                        state: DeliveryState::Acknowledged,
+                    }],
+                },
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        let kept = store
+            .read("share", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(kept.batches.is_empty());
+        assert_eq!(
+            store
+                .summary("share", "orders", 0)
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .acknowledged_offset,
+            None
+        );
+
+        let mut partitions = BTreeMap::new();
+        partitions.insert(
+            Key {
+                group: "share".into(),
+                topic: "orders".into(),
+                partition: 0,
+            },
+            Partition {
+                state_epoch: 1,
+                leader_epoch: 1,
+                start_offset: 0,
+                batches: vec![Batch {
+                    first_offset: i64::MAX - 1,
+                    last_offset: i64::MAX,
+                    delivery_count: 1,
+                    state: DeliveryState::Acknowledged,
+                }],
+            },
+        );
+        let encoded = encode(&partitions).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+
+        partitions.insert(
+            Key {
+                group: "share".into(),
+                topic: "orders".into(),
+                partition: 0,
+            },
+            Partition {
+                state_epoch: 1,
+                leader_epoch: 1,
+                start_offset: 0,
+                batches: vec![Batch {
+                    first_offset: i64::MAX - 1,
+                    last_offset: i64::MAX - 1,
+                    delivery_count: 1,
+                    state: DeliveryState::Acknowledged,
+                }],
+            },
+        );
+        let encoded = encode(&partitions).unwrap_or_else(|error| panic!("{error:?}"));
+        let restored = decode(&encoded).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            acknowledged_offset(
+                &restored
+                    .values()
+                    .next()
+                    .unwrap_or_else(|| panic!("partition"))
+                    .batches
+            ),
+            Some(i64::MAX)
+        );
     }
 }

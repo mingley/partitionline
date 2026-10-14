@@ -385,9 +385,17 @@ impl Durability {
                     .try_into()
                     .map_err(|_| Error::InvalidLimits)?,
             );
+            // The committed prefix is exclusive. An offset of `i64::MAX` has
+            // no end, so replay must not mark that id committed.
+            let Some(end) = offset.checked_add(1) else {
+                return Err(Error::InvalidLimits);
+            };
+            if offset < 0 {
+                return Err(Error::InvalidLimits);
+            }
             self.ids.insert(offset, id);
             self.committed.insert(id);
-            self.high_watermark = self.high_watermark.max(offset.saturating_add(1));
+            self.high_watermark = self.high_watermark.max(end);
         }
         if !rest.is_empty() {
             return Err(Error::InvalidLimits);
@@ -594,5 +602,15 @@ mod tests {
         assert!(!state.ids.contains_key(&i64::MAX));
         assert_eq!(state.end_offset.get(&state.leader).copied(), Some(i64::MAX));
         assert_eq!(state.high_watermark(), 1);
+    }
+
+    #[test]
+    fn a_commit_at_i64_max_is_not_recovered() {
+        let (mut state, _) = open("max-commit", 1);
+        let encoded = encode_commit(&[(i64::MAX, 9)]).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(state.apply(&encoded), Err(Error::InvalidLimits)));
+        assert!(!state.is_committed(9));
+        assert_eq!(state.high_watermark(), 0);
+        assert!(!state.ids.contains_key(&i64::MAX));
     }
 }
