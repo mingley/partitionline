@@ -410,6 +410,37 @@ impl Journal {
         self.inner.append(record_count, payload)
     }
 
+    /// Write one entry and return a cloned descriptor for a later `sync_data`.
+    ///
+    /// The offset index advances only in [`Self::commit_staged`], after that
+    /// sync succeeds. [`Self::abort_staged`] poisons the handle instead.
+    /// A crash after the write and before commit recovers the entry on reopen,
+    /// the same window as a crash during [`Self::append`]'s sync.
+    pub(crate) fn append_staged(
+        &mut self,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<File, Error> {
+        self.inner.stage(record_count, payload)?;
+        match self.inner.storage.try_clone() {
+            Ok(file) => Ok(file),
+            Err(error) => {
+                self.inner.abort_staged();
+                Err(error.into())
+            }
+        }
+    }
+
+    /// Publish the staged entry after its cloned descriptor has been synchronized.
+    pub(crate) fn commit_staged(&mut self) -> Result<Append, Error> {
+        self.inner.commit_staged()
+    }
+
+    /// Drop a staged entry from memory and require reopen.
+    pub(crate) fn abort_staged(&mut self) {
+        self.inner.abort_staged();
+    }
+
     /// Fetch bounded whole entries containing/following `first_offset`.
     ///
     /// An offset within an entry returns that whole entry. Offsets at/beyond the
@@ -479,6 +510,10 @@ struct Index {
     record_count: u32,
     checksum: u32,
 }
+struct Staged {
+    index: Index,
+    file_bytes: u64,
+}
 struct Engine<S> {
     storage: S,
     limits: Limits,
@@ -487,6 +522,7 @@ struct Engine<S> {
     file_bytes: u64,
     index: Vec<Index>,
     poisoned: bool,
+    staged: Option<Staged>,
 }
 
 fn corrupt(position: u64, kind: Corruption) -> Error {
@@ -795,6 +831,7 @@ impl<S: Storage> Engine<S> {
             file_bytes: FILE_HEADER as u64,
             index: Vec::new(),
             poisoned: false,
+            staged: None,
         };
         let mut truncated = 0;
         while engine.file_bytes < observed {
@@ -877,8 +914,12 @@ impl<S: Storage> Engine<S> {
             Ok(())
         }
     }
-    fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
+    fn plan(&mut self, record_count: u32, payload: &[u8]) -> Result<(Index, u64), Error> {
         self.check_alive()?;
+        if self.staged.is_some() {
+            self.poisoned = true;
+            return Err(Error::Poisoned);
+        }
         if record_count == 0 || payload.is_empty() {
             return Err(Error::InvalidEntry);
         }
@@ -909,13 +950,33 @@ impl<S: Storage> Engine<S> {
             record_count,
             checksum: crc32c::crc32c(payload),
         };
+        Ok((index, file_bytes))
+    }
+    fn write_planned(&mut self, index: Index, payload: &[u8]) -> Result<(), Error> {
+        if self.storage.byte_len()? != self.file_bytes {
+            return Err(Error::ChangedFile);
+        }
+        self.storage.seek(SeekFrom::Start(self.file_bytes))?;
+        let header = entry_header(index);
+        write_two(&mut self.storage, &header, payload)?;
+        Ok(())
+    }
+    fn publish(&mut self, index: Index, file_bytes: u64) -> Append {
+        let appended = Append {
+            first_offset: index.first_offset,
+            record_count: index.record_count,
+            next_offset: index.next_offset,
+            file_bytes,
+        };
+        self.index.push(index);
+        self.next_offset = index.next_offset;
+        self.file_bytes = file_bytes;
+        appended
+    }
+    fn append(&mut self, record_count: u32, payload: &[u8]) -> Result<Append, Error> {
+        let (index, file_bytes) = self.plan(record_count, payload)?;
         let result = (|| {
-            if self.storage.byte_len()? != self.file_bytes {
-                return Err(Error::ChangedFile);
-            }
-            self.storage.seek(SeekFrom::Start(self.file_bytes))?;
-            let header = entry_header(index);
-            write_two(&mut self.storage, &header, payload)?;
+            self.write_planned(index, payload)?;
             self.storage.synchronize()?;
             Ok(())
         })();
@@ -923,15 +984,28 @@ impl<S: Storage> Engine<S> {
             self.poisoned = true;
             return Err(error);
         }
-        self.index.push(index);
-        self.next_offset = next_offset;
-        self.file_bytes = file_bytes;
-        Ok(Append {
-            first_offset: index.first_offset,
-            record_count,
-            next_offset,
-            file_bytes,
-        })
+        Ok(self.publish(index, file_bytes))
+    }
+    fn stage(&mut self, record_count: u32, payload: &[u8]) -> Result<(), Error> {
+        let (index, file_bytes) = self.plan(record_count, payload)?;
+        if let Err(error) = self.write_planned(index, payload) {
+            self.poisoned = true;
+            return Err(error);
+        }
+        self.staged = Some(Staged { index, file_bytes });
+        Ok(())
+    }
+    fn commit_staged(&mut self) -> Result<Append, Error> {
+        let Some(staged) = self.staged.take() else {
+            self.poisoned = true;
+            return Err(Error::Poisoned);
+        };
+        Ok(self.publish(staged.index, staged.file_bytes))
+    }
+    fn abort_staged(&mut self) {
+        if self.staged.take().is_some() {
+            self.poisoned = true;
+        }
     }
 
     fn fetch(
@@ -940,6 +1014,10 @@ impl<S: Storage> Engine<S> {
         max_entries: usize,
         max_bytes: usize,
     ) -> Result<Vec<Entry>, Error> {
+        if self.staged.is_some() {
+            self.abort_staged();
+            return Err(Error::Poisoned);
+        }
         self.check_alive()?;
         if max_entries == 0
             || max_entries > self.limits.max_index_entries
@@ -1343,5 +1421,52 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn staged_sync_commits_and_abort_poisons() -> Result<(), Error> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!(
+            "partitionline-stage-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        let limits = Limits::default();
+        let (mut first, _) = Journal::open(dir.join("a"), 0, limits)?;
+        let (mut second, _) = Journal::open(dir.join("b"), 0, limits)?;
+        let left = first.append_staged(1, b"left")?;
+        let right = second.append_staged(1, b"right")?;
+        let joined = std::thread::spawn(move || left.sync_data());
+        right.sync_data()?;
+        joined
+            .join()
+            .map_err(|_| std::io::Error::other("sync thread"))??;
+        let committed = first.commit_staged()?;
+        assert_eq!(committed.first_offset, 0);
+        second.commit_staged()?;
+        let fetched = first.fetch(0, 1, 1024)?;
+        assert_eq!(fetched.len(), 1);
+        assert_eq!(fetched[0].payload, b"left");
+        drop(first);
+        drop(second);
+        let (mut reopened, _) = Journal::open(dir.join("a"), 0, limits)?;
+        let fetched = reopened.fetch(0, 1, 1024)?;
+        assert_eq!(fetched[0].payload, b"left");
+        let (mut aborted, _) = Journal::open(dir.join("c"), 0, limits)?;
+        let _file = aborted.append_staged(1, b"gone")?;
+        aborted.abort_staged();
+        assert!(aborted.is_poisoned());
+        assert!(aborted.append(1, b"next").is_err());
+        drop(aborted);
+        let (mut recovered, recovery) = Journal::open(dir.join("c"), 0, limits)?;
+        assert_eq!(recovery.recovered_entries, 1);
+        assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"gone");
+        drop(reopened);
+        drop(recovered);
+        let _ = std::fs::remove_dir_all(&dir);
+        Ok(())
     }
 }

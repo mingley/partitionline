@@ -80,6 +80,26 @@ impl Backend {
             Self::Segments(log) => Ok(log.append(count, payload)?),
         }
     }
+    fn append_staged(&mut self, count: u32, payload: &[u8]) -> Result<std::fs::File, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.append_staged(count, payload)?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
+        }
+    }
+    fn commit_staged(&mut self) -> Result<journal::Append, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.commit_staged()?),
+            Self::Segments(_) => Err(Error::InvalidLimits),
+        }
+    }
+    fn abort_staged(&mut self) {
+        if let Self::Journal(log) = self {
+            log.abort_staged();
+        }
+    }
+    fn is_journal(&self) -> bool {
+        matches!(self, Self::Journal(_))
+    }
     fn fetch(
         &mut self,
         offset: u64,
@@ -109,6 +129,22 @@ impl Backend {
             Self::Segments(log) => log.is_poisoned(),
         }
     }
+}
+
+/// A monolithic journal write waiting for `sync_data` on `file`.
+pub(crate) struct StagedWrite {
+    /// Cloned descriptor. Synchronize this before [`Partition::commit_staged`].
+    pub file: std::fs::File,
+    /// Batches in the staged input.
+    pub batch_count: usize,
+}
+
+/// Either a fully durable append or a journal write that still needs sync.
+pub(crate) enum Stage {
+    /// Rolling storage already synchronized this append.
+    Done(Append),
+    /// Monolithic journal. Sync `file`, then commit or abort.
+    Sync(StagedWrite),
 }
 
 /// Successfully synchronized, contiguous record range assigned to one input.
@@ -225,7 +261,7 @@ impl Partition {
     ///
     /// The eight-byte base offset sits outside the batch CRC. Callers that
     /// already own the payload avoid the extra copy [`Self::append`] makes.
-    pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
+    fn assign_offsets(&mut self, bytes: &mut [u8]) -> Result<(u32, i64, i64, usize), Error> {
         self.check_alive()?;
         if bytes.len() > self.journal_limits.max_entry_bytes() {
             return Err(Error::InputTooLarge);
@@ -268,6 +304,11 @@ impl Partition {
                 .ok_or(Error::CorruptPayload)?
                 .copy_from_slice(&assigned.to_be_bytes());
         }
+        Ok((record_count, base_offset, next_offset, batch_count))
+    }
+
+    pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
+        let (record_count, base_offset, next_offset, batch_count) = self.assign_offsets(bytes)?;
         self.journal.append(record_count, bytes)?;
         self.next_offset = next_offset;
         Ok(Append {
@@ -276,6 +317,39 @@ impl Partition {
             record_count,
             batch_count,
         })
+    }
+
+    /// Write the payload without syncing a monolithic journal.
+    ///
+    /// [`Stage::Sync`] must be synchronized, then [`Self::commit_staged`] or
+    /// [`Self::abort_staged`]. Rolling storage returns [`Stage::Done`] because
+    /// its append already synchronized.
+    pub(crate) fn stage_in_place(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
+        if !self.journal.is_journal() {
+            return Ok(Stage::Done(self.append_in_place(bytes)?));
+        }
+        let (record_count, _base_offset, _next_offset, batch_count) = self.assign_offsets(bytes)?;
+        let file = self.journal.append_staged(record_count, bytes)?;
+        Ok(Stage::Sync(StagedWrite { file, batch_count }))
+    }
+
+    pub(crate) fn commit_staged(&mut self, batch_count: usize) -> Result<Append, Error> {
+        let appended = self.journal.commit_staged()?;
+        let base_offset =
+            i64::try_from(appended.first_offset).map_err(|_| Error::OffsetOverflow)?;
+        let next_offset = i64::try_from(appended.next_offset).map_err(|_| Error::OffsetOverflow)?;
+        self.next_offset = next_offset;
+        Ok(Append {
+            base_offset,
+            next_offset,
+            record_count: appended.record_count,
+            batch_count,
+        })
+    }
+
+    pub(crate) fn abort_staged(&mut self) {
+        self.journal.abort_staged();
+        self.poisoned = true;
     }
 
     /// Fetch bounded whole atomic inputs containing/following the supplied offset.

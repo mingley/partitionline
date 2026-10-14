@@ -353,41 +353,64 @@ impl Store {
             || poisoned != slot.partition.is_poisoned();
         result.map_err(Into::into)
     }
-    fn append_in_place(
+    fn stage_in_place(
         &mut self,
         id: TopicId,
         index: i32,
         bytes: &mut [u8],
+    ) -> Result<partition::Stage, i16> {
+        let position = self.slot(id, index)?;
+        let partition = &mut self.slots[position].partition;
+        let poisoned = partition.is_poisoned();
+        let result = partition.stage_in_place(bytes);
+        self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
+        result.map_err(storage_error)
+    }
+    fn commit_staged(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        batch_count: usize,
     ) -> Result<partition::Append, i16> {
-        let position = match self
+        let position = self.slot(id, index)?;
+        let partition = &mut self.slots[position].partition;
+        let result = partition.commit_staged(batch_count);
+        self.changed = true;
+        result.map_err(storage_error)
+    }
+    fn abort_staged(&mut self, id: TopicId, index: i32) {
+        if let Some(position) = self
             .slots
             .iter()
             .position(|slot| slot.id == id && slot.index == index)
         {
-            Some(position) => position,
-            None => {
-                if self.slots.len() >= self.config.max_stores {
-                    return Err(56);
-                }
-                let path = self.config.directory.join(storage_filename(
-                    id,
-                    index,
-                    self.config.segment_limits.is_some(),
-                ));
-                let partition = open_partition(&path, &self.config).map_err(|_| 56i16)?;
-                self.slots.push(Slot {
-                    id,
-                    index,
-                    partition,
-                });
-                self.slots.len() - 1
-            }
-        };
-        let partition = &mut self.slots[position].partition;
-        let poisoned = partition.is_poisoned();
-        let result = partition.append_in_place(bytes);
-        self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
-        result.map_err(storage_error)
+            self.slots[position].partition.abort_staged();
+            self.changed = true;
+        }
+    }
+    fn slot(&mut self, id: TopicId, index: i32) -> Result<usize, i16> {
+        if let Some(position) = self
+            .slots
+            .iter()
+            .position(|slot| slot.id == id && slot.index == index)
+        {
+            return Ok(position);
+        }
+        if self.slots.len() >= self.config.max_stores {
+            return Err(56);
+        }
+        let path = self.config.directory.join(storage_filename(
+            id,
+            index,
+            self.config.segment_limits.is_some(),
+        ));
+        let partition = open_partition(&path, &self.config).map_err(|_| 56i16)?;
+        self.slots.push(Slot {
+            id,
+            index,
+            partition,
+        });
+        Ok(self.slots.len() - 1)
     }
     pub(crate) fn take_changed(&mut self) -> bool {
         std::mem::take(&mut self.changed)
@@ -953,6 +976,62 @@ fn ranged_str(buf: &[u8], range: Option<(usize, usize)>) -> Result<Option<&str>,
 }
 /// Leader epoch is outside the batch CRC. The single-node log stores epoch 0,
 /// so write that into the request buffer instead of copying the payload.
+struct PendingSync {
+    topic_at: usize,
+    part_at: usize,
+    id: TopicId,
+    index: i32,
+    file: std::fs::File,
+    batch_count: usize,
+    failed: bool,
+}
+fn note_append(
+    part: &mut ResultPart,
+    id: TopicId,
+    result: partition::Append,
+    store: &mut Store,
+    admitted: Instant,
+    timeout: i32,
+) {
+    part.base = result.base_offset;
+    match store.log_start(id, part.index) {
+        Ok(log_start) => part.log_start = log_start,
+        Err(error) => {
+            part.error = error;
+            part.base = -1;
+        }
+    }
+    if timed_out(admitted, timeout) {
+        part.error = 7;
+        part.base = -1;
+    }
+}
+fn sync_staged(items: &mut [PendingSync]) {
+    if items.len() <= 1 {
+        if let Some(item) = items.first_mut() {
+            item.failed = item.file.sync_data().is_err();
+        }
+        return;
+    }
+    let mut joins = Vec::new();
+    for item in items.iter_mut() {
+        match item.file.try_clone() {
+            Ok(file) => joins.push(Some(std::thread::spawn(move || file.sync_data()))),
+            Err(_) => {
+                item.failed = true;
+                joins.push(None);
+            }
+        }
+    }
+    for (item, join) in items.iter_mut().zip(joins) {
+        if item.failed {
+            continue;
+        }
+        item.failed = join
+            .and_then(|handle| handle.join().ok())
+            .is_none_or(|result| result.is_err());
+    }
+}
 fn stamp_leader_epoch(batch: &mut [u8]) {
     if batch.len() >= 17 && batch[16] == 2 {
         batch[12..16].copy_from_slice(&0i32.to_be_bytes());
@@ -1113,8 +1192,11 @@ pub(crate) fn process(
         });
     }
     // Complete structural/record/response preflight precedes every storage mutation.
-    for topic in &mut results {
-        for part in &mut topic.parts {
+    // Monolithic journals write first and sync together; rolling storage syncs
+    // inside its own append.
+    let mut pending_sync: Vec<PendingSync> = Vec::new();
+    for (topic_at, topic) in results.iter_mut().enumerate() {
+        for (part_at, part) in topic.parts.iter_mut().enumerate() {
             active()?;
             if part.error == 0 {
                 if timed_out(admitted, parsed.timeout) {
@@ -1127,39 +1209,60 @@ pub(crate) fn process(
                     } else {
                         None
                     };
-                    let appended = if let Some((start, end)) = shared {
+                    let staged = if let Some((start, end)) = shared {
                         let abs_start = body_off.saturating_add(start);
                         let abs_end = body_off.saturating_add(end);
                         let Some(buf) = input.get_mut(abs_start..abs_end) else {
                             part.error = 87;
                             continue;
                         };
-                        store.append_in_place(id, part.index, buf)
+                        store.stage_in_place(id, part.index, buf)
                     } else if let Held::Owned(buf) = &mut part.bytes {
-                        store.append_in_place(id, part.index, buf)
+                        store.stage_in_place(id, part.index, buf)
                     } else {
                         Err(87)
                     };
-                    match appended {
-                        Ok(result) => {
-                            part.base = result.base_offset;
-                            match store.log_start(id, part.index) {
-                                Ok(log_start) => part.log_start = log_start,
-                                Err(error) => {
-                                    part.error = error;
-                                    part.base = -1;
-                                }
-                            }
-                            if timed_out(admitted, parsed.timeout) {
-                                part.error = 7;
-                                part.base = -1;
-                            }
+                    match staged {
+                        Ok(partition::Stage::Done(result)) => {
+                            note_append(part, id, result, store, admitted, parsed.timeout);
                         }
+                        Ok(partition::Stage::Sync(staged)) => pending_sync.push(PendingSync {
+                            topic_at,
+                            part_at,
+                            id,
+                            index: part.index,
+                            file: staged.file,
+                            batch_count: staged.batch_count,
+                            failed: false,
+                        }),
                         Err(error) => part.error = error,
                     }
                 } else {
                     part.error = 3;
                 }
+            }
+        }
+    }
+    sync_staged(&mut pending_sync);
+    for item in pending_sync {
+        let Some(part) = results
+            .get_mut(item.topic_at)
+            .and_then(|topic| topic.parts.get_mut(item.part_at))
+        else {
+            store.abort_staged(item.id, item.index);
+            continue;
+        };
+        if item.failed {
+            store.abort_staged(item.id, item.index);
+            part.error = 56;
+            part.base = -1;
+            continue;
+        }
+        match store.commit_staged(item.id, item.index, item.batch_count) {
+            Ok(result) => note_append(part, item.id, result, store, admitted, parsed.timeout),
+            Err(error) => {
+                part.error = error;
+                part.base = -1;
             }
         }
     }
