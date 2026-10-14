@@ -1190,7 +1190,18 @@ pub fn decide_vote_body(
     if vote_offset_epoch_illegal(body) {
         return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
     }
+    // Apache `validateVoterOnlyRequest` fences an older or negative candidate
+    // epoch and rejects a negative replica id before any grant. A higher epoch
+    // would become unattached in Apache; this path does not persist that bump.
+    if let Some(refusal) = voter_request_refusal(persistent, body) {
+        return VoteDisposition::Refused(refusal);
+    }
     if !body.pre_vote {
+        // A grant would persist `voted_for`. Report it as unadvertised and
+        // refuse the cases Apache would answer with `voteGranted = false`.
+        if let Some(refusal) = standard_vote_grant_refusal(persistent, body) {
+            return VoteDisposition::Refused(refusal);
+        }
         return VoteDisposition::NotAdvertised;
     }
     let log = if body.last_offset == 0 {
@@ -3492,6 +3503,12 @@ pub enum PreVoteRefusal {
     StaleTerm,
     /// The candidate log is behind the stable log.
     StaleLog,
+    /// This epoch already recorded a vote for a different replica.
+    ///
+    /// A standard vote at the local epoch is refused. A higher epoch is not
+    /// this case: adopting it would clear the prior vote, and that write stays
+    /// unadvertised.
+    AlreadyVoted,
     /// The candidate's last offset epoch or end offset is illegal.
     ///
     /// A negative end is refused. Offset 0 is legal only at epoch 0. A
@@ -3523,6 +3540,47 @@ fn leader_epoch_refusal(
     }
     if wire_epoch(persistent.term).is_ok_and(|current| epoch > current) {
         return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    None
+}
+
+fn voter_request_refusal(
+    persistent: &election::PersistentState,
+    body: &VoteBody,
+) -> Option<PreVoteRefusal> {
+    if body.replica_id < 0 {
+        return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    if body.replica_epoch < 0 || quorum_epoch_fenced(persistent, body.replica_epoch) {
+        return Some(PreVoteRefusal::StaleTerm);
+    }
+    None
+}
+
+fn candidate_log(body: &VoteBody) -> Result<election::LogPosition, PreVoteRefusal> {
+    log_position(body.last_offset_epoch, body.last_offset).map_err(|_| PreVoteRefusal::IllegalEpoch)
+}
+
+/// Apache `unattachedOrProspectiveCanGrantVote` for a standard vote, without
+/// writing the vote a grant would persist.
+fn standard_vote_grant_refusal(
+    persistent: &election::PersistentState,
+    body: &VoteBody,
+) -> Option<PreVoteRefusal> {
+    let log = match candidate_log(body) {
+        Ok(log) => log,
+        Err(refusal) => return Some(refusal),
+    };
+    if log < persistent.log {
+        return Some(PreVoteRefusal::StaleLog);
+    }
+    let same_epoch = wire_epoch(persistent.term).is_ok_and(|current| body.replica_epoch == current);
+    if same_epoch
+        && persistent
+            .voted_for
+            .is_some_and(|prior| i32::try_from(prior).ok() != Some(body.replica_id))
+    {
+        return Some(PreVoteRefusal::AlreadyVoted);
     }
     None
 }
@@ -3765,6 +3823,56 @@ mod prevote_tests {
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
+    }
+
+    #[test]
+    fn standard_directory_vote_refuses_a_losing_candidate_without_persisting() {
+        let persistent = state(4);
+        let before = persistent;
+        let replica = [4u8; 16];
+        let voter = [5u8; 16];
+        let mut older = sample_body(1, replica, voter, false);
+        older.replica_epoch = 2;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &older),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
+        );
+        let mut negative_id = sample_body(2, replica, voter, true);
+        negative_id.replica_id = -1;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &negative_id),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut negative_epoch = sample_body(2, replica, voter, true);
+        negative_epoch.replica_epoch = -1;
+        negative_epoch.last_offset_epoch = 0;
+        negative_epoch.last_offset = 0;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &negative_epoch),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut behind = sample_body(1, replica, voter, false);
+        behind.last_offset_epoch = 0;
+        behind.last_offset = 0;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &behind),
+            VoteDisposition::Refused(PreVoteRefusal::StaleLog)
+        );
+        let mut same_epoch = sample_body(1, replica, voter, false);
+        same_epoch.replica_epoch = 3;
+        same_epoch.last_offset_epoch = 1;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &same_epoch),
+            VoteDisposition::Refused(PreVoteRefusal::AlreadyVoted)
+        );
+        let mut repeat = same_epoch;
+        repeat.replica_id = 7;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &repeat),
+            VoteDisposition::NotAdvertised
+        );
+        assert_eq!(persistent, before);
+        assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
     }
 
     #[test]
