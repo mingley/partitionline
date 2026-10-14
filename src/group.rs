@@ -3167,15 +3167,16 @@ pub(crate) fn group_offset_topics(
 ) -> Vec<OffsetTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
     for (tp, md) in items {
-        by_topic
-            .entry(tp.topic.clone())
-            .or_default()
-            .push(OffsetPartition {
-                partition: tp.partition,
-                offset: md.offset,
-                leader_epoch: md.wire_epoch(),
-                metadata: md.metadata.clone(),
-            });
+        let parts = by_topic.entry(tp.topic.clone()).or_default();
+        if parts.iter().any(|part| part.partition == tp.partition) {
+            continue;
+        }
+        parts.push(OffsetPartition {
+            partition: tp.partition,
+            offset: md.offset,
+            leader_epoch: md.wire_epoch(),
+            metadata: md.metadata.clone(),
+        });
     }
     by_topic
         .into_iter()
@@ -3186,7 +3187,10 @@ pub(crate) fn group_offset_topics(
 pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
     let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
     for (topic, part) in wanted {
-        by_topic.entry(topic.clone()).or_default().push(*part);
+        let parts = by_topic.entry(topic.clone()).or_default();
+        if !parts.contains(part) {
+            parts.push(*part);
+        }
     }
     by_topic
         .into_iter()
@@ -3898,6 +3902,16 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+        let repeated = vec![
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(1)),
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(8)),
+        ];
+        let topics = group_offset_topics(&repeated);
+        assert_eq!(topics[0].partitions.len(), 1);
+        assert_eq!(topics[0].partitions[0].offset, 1);
+        let fetched =
+            group_offset_fetch_topics(&[("t".into(), 0), ("t".into(), 0), ("t".into(), 1)]);
+        assert_eq!(fetched[0].partitions, vec![0, 1]);
     }
 
     #[test]
