@@ -543,6 +543,8 @@ pub struct ShareGroup {
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
+    /// Topics sent when the background heartbeat rejoins at epoch 0.
+    hb_topics: Arc<Mutex<Vec<String>>>,
     /// Pending assignment from the background heartbeat task.
     hb_assignment: Arc<Mutex<Option<Vec<ShareTopicPartitions>>>>,
     hb_interval_ms: Arc<AtomicI32>,
@@ -696,6 +698,7 @@ impl ShareGroup {
         let hb_epoch = Arc::new(AtomicI32::new(
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
         ));
+        let hb_topics = Arc::new(Mutex::new(topics.clone()));
         let hb_assignment = Arc::new(Mutex::new(None));
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
         let hb_deadline = Arc::new(Mutex::new(None));
@@ -722,6 +725,7 @@ impl ShareGroup {
             acquisition_lock_timeout_ms: None,
             hb_err,
             hb_epoch,
+            hb_topics,
             hb_assignment,
             hb_interval_ms,
             hb_deadline,
@@ -738,6 +742,7 @@ impl ShareGroup {
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names().await?;
             g.last_match_refresh = Instant::now();
+            g.publish_hb_topics();
         }
 
         g.heartbeat_join().await?;
@@ -865,6 +870,10 @@ impl ShareGroup {
     /// `clientInstanceId(Duration)`).
     pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<crate::Uuid> {
         self.consumer.client_instance_id_timeout(timeout).await
+    }
+
+    fn publish_hb_topics(&self) {
+        *self.hb_topics.lock() = self.topics.clone();
     }
 
     /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
@@ -1770,6 +1779,7 @@ impl ShareGroup {
         if self.member_id.is_empty() {
             self.topic_match = None;
             self.topics.clear();
+            self.publish_hb_topics();
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
@@ -1789,6 +1799,7 @@ impl ShareGroup {
         let leave = self.leave_coordinator().await;
         self.assigned.clear();
         self.topics.clear();
+        self.publish_hb_topics();
         self.topic_ids.clear();
         self.share_epochs.clear();
         self.member_id.clear();
@@ -1846,6 +1857,7 @@ impl ShareGroup {
             self.share_epochs.clear();
         }
         self.topics = topics;
+        self.publish_hb_topics();
         if rejoining {
             self.heartbeat_join().await?;
             return Ok(());
@@ -2276,6 +2288,7 @@ impl ShareGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
+        let hb_topics = self.hb_topics.clone();
         let hb_assignment = self.hb_assignment.clone();
         let hb_interval_ms = self.hb_interval_ms.clone();
         let hb_deadline = self.hb_deadline.clone();
@@ -2371,7 +2384,10 @@ impl ShareGroup {
                             member_id: member_id.clone(),
                             member_epoch: epoch,
                             rack_id: cfg.rack.clone(),
-                            subscribed_topic_names: None,
+                            subscribed_topic_names: share_heartbeat_subscription(
+                                epoch,
+                                &hb_topics.lock(),
+                            ),
                         };
                         let res = c
                             .roundtrip(
@@ -2443,6 +2459,14 @@ impl ShareGroup {
                 }
             }
         }));
+    }
+}
+
+fn share_heartbeat_subscription(epoch: i32, topics: &[String]) -> Option<Vec<String>> {
+    if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
+        Some(topics.to_vec())
+    } else {
+        None
     }
 }
 
@@ -2660,6 +2684,14 @@ mod tests {
         );
         assert_eq!(share_heartbeat_epoch(0, 6, 4), 6);
         assert_eq!(share_heartbeat_epoch(0, 0, 4), 4);
+        assert_eq!(
+            share_heartbeat_subscription(
+                ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+                &["t".into()]
+            ),
+            Some(vec!["t".into()])
+        );
+        assert_eq!(share_heartbeat_subscription(4, &["t".into()]), None);
     }
 
     #[test]
