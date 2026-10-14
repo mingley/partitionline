@@ -955,7 +955,8 @@ impl ConsumerGroup {
     /// Broker fetch cursor (next offset to request from the broker) for an assigned partition.
     ///
     /// This may be ahead of [`Self::position`] when records are buffered in the consumer
-    /// under [`ConsumerConfig::max_poll_records`].
+    /// under [`ConsumerConfig::max_poll_records`]. A cursor below zero is waiting to be
+    /// placed in the log and is not returned.
     pub fn fetch_cursor(&self, topic: &str, partition: i32) -> Result<i64> {
         self.consumer.fetch_cursor(topic, partition)
     }
