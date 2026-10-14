@@ -62,23 +62,49 @@ async fn kip848_regex_against_local_broker() {
             result.error_message
         );
     }
+    let listed = admin.list_topics_with(false).await.expect("list topics");
+    let listed: HashSet<String> = listed.into_iter().map(|t| t.name().to_string()).collect();
+    assert!(
+        listed.contains(&match_a) && listed.contains(&match_b) && listed.contains(&other),
+        "created topics missing from Metadata: {listed:?}"
+    );
+    // The coordinator's regex refresh uses its metadata image. Topics created
+    // in the same millisecond as join are often missing from the first scan.
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
+    let named_group = format!("pl-kip848-regex-{suffix}-named");
+    let named = ConsumerGroup::join_consumer(cfg.clone(), named_group, match_a.clone())
+        .await
+        .expect("named KIP-848 join");
+    assert!(
+        named.assignment().iter().any(|tp| tp.topic == match_a),
+        "named join assignment {:?}",
+        named.assignment()
+    );
+    named.leave().await.expect("named leave");
     let group = format!("pl-kip848-regex-{suffix}");
     let regex = format!("pl-rx-{suffix}-[ab]");
-    let cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
     let mut g = ConsumerGroup::join_consumer_regex(cfg, group, regex)
         .await
         .expect("KIP-848 regex join");
     assert_eq!(g.topic_regex().map(str::is_empty), Some(false));
-    let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
-    assert!(
-        names.contains(&match_a) && names.contains(&match_b) && !names.contains(&other),
-        "regex assignment {names:?} wanted {match_a}+{match_b} not {other}"
-    );
-    let recs = g.poll().await.expect("poll");
-    eprintln!(
-        "kip848 live regex: assignment={names:?} poll_n={}",
-        recs.len()
-    );
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let names = loop {
+        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+        if names.contains(&match_a) && names.contains(&match_b) && !names.contains(&other) {
+            break names;
+        }
+        if std::time::Instant::now() >= deadline {
+            panic!("regex assignment {names:?} wanted {match_a}+{match_b} not {other}");
+        }
+        let recs = g.poll().await.expect("poll");
+        eprintln!(
+            "kip848 live regex wait: assignment={names:?} poll_n={}",
+            recs.len()
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    };
+    eprintln!("kip848 live regex: assignment={names:?}");
     g.leave().await.expect("leave");
     admin.close().await.expect("admin close");
 }

@@ -2314,7 +2314,8 @@ impl ConsumerGroup {
                 duration_millis_i32(self.cfg.max_poll_interval)
             },
             subscribed_topic_names: if self.topic_regex.is_some() {
-                None
+                // Empty list, not null: null means "unchanged" (still no names).
+                Some(Vec::new())
             } else {
                 Some(self.topics.clone())
             },
@@ -2418,7 +2419,13 @@ impl ConsumerGroup {
                 "group assignment contains an unknown topic UUID",
             ));
         }
-        Ok(wanted_from_kip848(&self.topics, &names, assignment))
+        let wanted = wanted_from_kip848(&self.topics, &names, assignment);
+        if !assignment.is_empty() && wanted.is_empty() {
+            return Err(Error::protocol(
+                "group assignment topic UUIDs did not resolve to names",
+            ));
+        }
+        Ok(wanted)
     }
 
     async fn apply_pending_assignment(&mut self) -> Result<()> {
@@ -2427,10 +2434,13 @@ impl ConsumerGroup {
         let Some(assignment) = pending else {
             return Ok(());
         };
+        // Heartbeat may have advanced MemberEpoch before poll sees the
+        // assignment. OffsetFetch/OffsetCommit use generation_id; adopting
+        // after assign_committed yields STALE_MEMBER_EPOCH (113).
+        self.generation_id = self.hb_generation.load(Ordering::SeqCst);
         let wanted = self.resolve_kip848_assignment(&assignment).await?;
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
-        self.generation_id = self.hb_generation.load(Ordering::SeqCst);
         Ok(())
     }
 

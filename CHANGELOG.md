@@ -12,6 +12,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `subscribe(Pattern)` on `group.protocol=consumer`). Version 0 is
   refused with the Java regex-resolution message. Assignment topic
   UUIDs are resolved via cluster Metadata when the name list is empty.
+  Delayed heartbeat assignments adopt `MemberEpoch` before OffsetFetch
+  so poll does not fail with `STALE_MEMBER_EPOCH`.
 
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
