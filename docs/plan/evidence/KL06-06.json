@@ -1,0 +1,84 @@
+{
+  "id": "KL06-06",
+  "status": "done",
+  "acceptance_met": true,
+  "owner": "cursor-cloud",
+  "source_sha": "42b838d3770446861a183b82184c56f1fd36c14c",
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "peer": {
+    "identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+    "connections_max_reauth_ms": 5000,
+    "listeners": {
+      "sasl_ssl_unsecured_oauth": "127.0.0.1:9192",
+      "plaintext_admin": "127.0.0.1:9194",
+      "mtls": "127.0.0.1:9195",
+      "sasl_ssl_jwks_oidc": "127.0.0.1:9196"
+    }
+  },
+  "commands": [
+    "cargo +stable fmt --all -- --check (exit 0)",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test rpc_sasl_reauthentication --test auth_lifecycle --test credential_redact -- --test-threads=2 (32 + 28 + 8 passed, exit 0)",
+    "REQUIRE_AUTH=1 KAFKA_HOME=/tmp/kafka_4.1.0 bash scripts/ci-auth-smoke.sh (exit 0; 10/10 lifecycle cases ok)"
+  ],
+  "results": {
+    "deliverable": "Live rotation, outage, reconnect, and JWKS-versus-unsecured OIDC cases beyond first-handshake success.",
+    "acceptance_validation": {
+      "admin_reauth": true,
+      "consumer_reauth": true,
+      "group_reauth": true,
+      "admin_idle_reconnect": true,
+      "admin_bad_password": true,
+      "oidc_idp_outage": true,
+      "oidc_idp_recovery": true,
+      "oauth_unsecured_jwt": true,
+      "oidc_jwks_validating": true,
+      "unsecured_jwt_rejected_by_jwks": true,
+      "peer_identity_stamped": true,
+      "failed_attempts_retained": true
+    }
+  },
+  "artifacts": [
+    "scripts/ci-auth-smoke.sh",
+    "scripts/oidc-token-stub.py",
+    "examples/auth_lifecycle.rs",
+    "src/protocol/sasl.rs",
+    "docs/evidence/security/auth-lifecycle-matrix/README.md",
+    "docs/evidence/security/auth-lifecycle-matrix/lifecycle-report.json",
+    "docs/evidence/security/auth-lifecycle-matrix/ci-auth-smoke.log",
+    "docs/plan/evidence/KL06-06.json"
+  ],
+  "limits": [
+    "Single-node native Kafka 4.1.0 KRaft on loopback. Not HA, soak, or multi-broker fault.",
+    "Producer worker reauthentication remains KL06-11.",
+    "Classic group join retried while the coordinator loaded __consumer_offsets on a fresh cluster.",
+    "OIDC stub is a local test IdP (unsecured /token plus RS256 /token/rs256 and /jwks). Not a production authorization server."
+  ],
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "error": "Broker code 34 sasl OAUTHBEARER authentication failed",
+      "cause": "SASL_OAUTH_PRINCIPAL leaked from the unsecured JWT produce into PLAIN lifecycle cases",
+      "log": "docs/evidence/security/auth-lifecycle-matrix/failed-attempts/01-admin-reauth-oauth-env-leak.log"
+    },
+    {
+      "attempt": 2,
+      "error": "Broker code 34 sasl PLAIN authentication failed after the session window",
+      "cause": "Mid-connection reauth sent SaslAuthenticate only; live Kafka begins KIP-368 renewal only on SaslHandshake",
+      "log": "docs/evidence/security/auth-lifecycle-matrix/failed-attempts/02-admin-reauth-authenticate-only.log"
+    },
+    {
+      "attempt": 3,
+      "error": "Broker code 16 JoinGroup NOT_COORDINATOR",
+      "cause": "First classic join on a freshly formatted cluster while the group coordinator loaded",
+      "log": "docs/evidence/security/auth-lifecycle-matrix/failed-attempts/03-group-reauth-not-coordinator.log"
+    },
+    {
+      "attempt": 4,
+      "error": "cp same-file on default lifecycle-report.json path (exit 1) after 10/10 cases",
+      "cause": "AUTH_LIFECYCLE_REPORT defaulted to the workdir file the script had just written"
+    }
+  ]
+}

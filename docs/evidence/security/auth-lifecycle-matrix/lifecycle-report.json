@@ -1,0 +1,64 @@
+{
+  "id": "KL06-06",
+  "broker": "native:4.1.0 path=/tmp/kafka_4.1.0",
+  "connections_max_reauth_ms": 5000,
+  "cases": [
+    {
+      "case": "admin_reauth",
+      "ok": true,
+      "detail": "brokers=1 then 1 after 4511ms"
+    },
+    {
+      "case": "consumer_reauth",
+      "ok": true,
+      "detail": "partitions=1 then 1"
+    },
+    {
+      "case": "group_reauth",
+      "ok": true,
+      "detail": "poll_records=6 after 4500ms"
+    },
+    {
+      "case": "admin_idle_reconnect",
+      "ok": true,
+      "detail": "idle reconnect brokers=1 then 1"
+    },
+    {
+      "case": "admin_bad_password",
+      "ok": true,
+      "detail": "rejected: broker error 58 (SASL_AUTHENTICATION_FAILED): sasl PLAIN authentication failed"
+    },
+    {
+      "case": "oidc_idp_outage",
+      "ok": true,
+      "detail": "rc=1"
+    },
+    {
+      "case": "oidc_idp_recovery",
+      "ok": true,
+      "detail": "produce after IdP restart"
+    },
+    {
+      "case": "oauth_unsecured_jwt",
+      "ok": true,
+      "detail": "unsecured validator on 127.0.0.1:9192"
+    },
+    {
+      "case": "oidc_jwks_validating",
+      "ok": true,
+      "detail": "RS256/JWKS listener 127.0.0.1:9196"
+    },
+    {
+      "case": "unsecured_jwt_rejected_by_jwks",
+      "ok": true,
+      "detail": "rc=1"
+    }
+  ],
+  "failed_attempt_logs": [
+    "lifecycle-admin_bad_password.log",
+    "oidc-outage.log",
+    "unsecured-on-jwks.log",
+    "/tmp/pl-auth-tls-only.log",
+    "/tmp/pl-auth-mtls-deny.log"
+  ]
+}

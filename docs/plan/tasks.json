@@ -9715,13 +9715,29 @@
     {
       "id": "KL06-06",
       "title": "Run a short-lived secure-broker lifecycle matrix",
-      "priority": "P1", "kind": "conformance", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "conformance", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL06-04", "KL06-05", "KL01-02"],
       "files": ["scripts/ci-auth-smoke.sh", "scripts/oidc-token-stub.py", "tests/conformance/cases.json"],
       "deliverable": "Live rotation/outage/reauth cases, beyond successful initial handshakes.",
       "acceptance": ["Exercise multiple short credential lifetimes, IdP outages, TLS/SASL reconnect and failure propagation for each selected client/coordinator path.", "Distinguish the current unsecured-JWT test broker from a cryptographically validating OIDC case.", "Use disposable local credentials and exact peer identity; required missing prerequisites fail and artifacts retain failed attempts."],
       "validation": ["REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh in an approved isolated environment", "Validate the lifecycle case report, including expiry and rejection outcomes."],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "42b838d3770446861a183b82184c56f1fd36c14c",
+          "receipt": "docs/plan/evidence/KL06-06.json",
+          "commands": [
+            "REQUIRE_AUTH=1 KAFKA_HOME=/tmp/kafka_4.1.0 bash scripts/ci-auth-smoke.sh (exit 0; 10/10 lifecycle cases; peer native:4.1.0 path=/tmp/kafka_4.1.0)"
+          ],
+          "results": "Admin, Consumer, and classic group RPCs succeed after connections.max.reauth.ms=5000. Idle reconnect and bad-password 58 fail closed. IdP kill fails OIDC produce; restart recovers. JWKS listener accepts RS256 and rejects unsecured JWT. Failed attempts retained.",
+          "artifacts": [
+            "docs/evidence/security/auth-lifecycle-matrix/lifecycle-report.json",
+            "docs/plan/evidence/KL06-06.json"
+          ],
+          "limits": [
+            "Single-node native Kafka 4.1.0. Producer workers remain KL06-11."
+          ]
+        }
+      ]
     },
     {
       "id": "KL06-07",

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-08",
+  "updated": "2026-10-14",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "plan_source": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
   "description": "Versioned conformance case registry mapping advertised Kafka APIs, versions, broker qualification cells, and behavioral regressions to immutable source pins and honest dispositions.",
@@ -1912,6 +1912,81 @@
         "KL06-08",
         "KL06-09",
         "KL06-10"
+      ]
+    },
+    {
+      "id": "auth-lifecycle-sasl-reauth-idle-reject-live-4-1-0",
+      "api_family": null,
+      "api_version": null,
+      "profile": "secure",
+      "adapter": "live-broker",
+      "source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "immutable_source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "peer_version_pin": "4.1.0",
+      "peer_pin": "4.1.0",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Native Apache Kafka 4.1.0 KRaft with connections.max.reauth.ms=5000. Admin describe_cluster, manual Consumer partitions_for, and classic group poll succeed after the session window. Idle reconnect works. Bad PLAIN password returns broker 58. Disposable loopback TLS and credentials. Not HA or Producer-worker reauth.",
+      "artifacts": [
+        "docs/evidence/security/auth-lifecycle-matrix/lifecycle-report.json",
+        "docs/evidence/security/auth-lifecycle-matrix/ci-auth-smoke.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL06-06.json"
+      ],
+      "peer_identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+      "backlog_tasks": [
+        "KL06-06"
+      ]
+    },
+    {
+      "id": "auth-lifecycle-oidc-idp-outage-recovery-live-4-1-0",
+      "api_family": null,
+      "api_version": null,
+      "profile": "secure",
+      "adapter": "live-broker",
+      "source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "immutable_source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "peer_version_pin": "4.1.0",
+      "peer_pin": "4.1.0",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "OIDC client_credentials produce fails closed while the local token stub is down, then succeeds after the stub restarts. Same native Kafka 4.1.0 SASL_SSL listener as the unsecured-JWT validator. Local stub only.",
+      "artifacts": [
+        "docs/evidence/security/auth-lifecycle-matrix/lifecycle-report.json",
+        "docs/evidence/security/auth-lifecycle-matrix/failed-attempts/05-oidc-idp-outage-expected.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL06-06.json"
+      ],
+      "peer_identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+      "backlog_tasks": [
+        "KL06-06"
+      ]
+    },
+    {
+      "id": "auth-lifecycle-jwks-validating-vs-unsecured-live-4-1-0",
+      "api_family": null,
+      "api_version": null,
+      "profile": "secure",
+      "adapter": "live-broker",
+      "source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "immutable_source_pin": "42b838d3770446861a183b82184c56f1fd36c14c",
+      "peer_version_pin": "4.1.0",
+      "peer_pin": "4.1.0",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Unsecured JWT produce succeeds on the Kafka test validator (127.0.0.1:9192). RS256 client_credentials produce succeeds on the JWKS-validating SASL_SSL_OIDC listener (127.0.0.1:9196). The same unsecured JWT is rejected on the JWKS listener.",
+      "artifacts": [
+        "docs/evidence/security/auth-lifecycle-matrix/lifecycle-report.json",
+        "docs/evidence/security/auth-lifecycle-matrix/failed-attempts/06-unsecured-jwt-on-jwks-expected.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL06-06.json"
+      ],
+      "peer_identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+      "backlog_tasks": [
+        "KL06-06"
       ]
     },
     {
@@ -4990,6 +5065,9 @@
       "api-broker-internal-087-read-share-group-state-summary",
       "feature-compression-zstd-decode-encode",
       "feature-auth-gssapi-kerberos",
+      "auth-lifecycle-sasl-reauth-idle-reject-live-4-1-0",
+      "auth-lifecycle-oidc-idp-outage-recovery-live-4-1-0",
+      "auth-lifecycle-jwks-validating-vs-unsecured-live-4-1-0",
       "feature-fetch-incremental-session-runtime",
       "feature-produce-fetch-quota-throttle-runtime",
       "verifiable-produce-consume-3-9-1",
@@ -5174,6 +5252,9 @@
       "broker-cell-target-apache-4-3-1",
       "feature-compression-zstd-decode-encode",
       "feature-auth-gssapi-kerberos",
+      "auth-lifecycle-sasl-reauth-idle-reject-live-4-1-0",
+      "auth-lifecycle-oidc-idp-outage-recovery-live-4-1-0",
+      "auth-lifecycle-jwks-validating-vs-unsecured-live-4-1-0",
       "feature-fetch-incremental-session-runtime",
       "feature-produce-fetch-quota-throttle-runtime",
       "verifiable-produce-consume-3-9-1",

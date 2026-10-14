@@ -32,7 +32,10 @@ uses an independent SDK parser. See the [qualification record](evidence/conforma
 Current gaps include prepared transaction initialization. Fault recovery and
 mixed-version behavior need further implementation or independent checks.
 Consumer, group, share and Admin exclusive roundtrips now honor broker SASL
-session lifetimes; Producer connection reauthentication remains a separate card.
+session lifetimes, including SaslHandshake then SaslAuthenticate on live
+Kafka 4.1.0 with a five-second session window, idle reconnect, IdP outage,
+and a JWKS-validating OAUTHBEARER listener distinct from the unsecured-JWT
+test validator. Producer connection reauthentication remains a separate card.
 
 ## Broker
 
