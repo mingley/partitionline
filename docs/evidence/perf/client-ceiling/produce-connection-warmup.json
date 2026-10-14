@@ -1,0 +1,15 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "523dd4c99548f0a59110ea483af67ff50a5e0a2f",
+  "cell": "nb-produce-bulk",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Twelve interleaved pairs on one host. The same null broker served both runtimes. The parent starts the leader connection inside the measured phase and records 1 to 3 QueueFull retries. The candidate flushes one record before the census so that connection already exists, and the broker end-offset audit subtracts that record. Every run acknowledged 20,000 measured records and matched the high watermark. The candidate recorded 0 QueueFull retries. The paired mean records/s ratio is 1.257 and the bootstrap 95% CI is 1.145 to 1.384. No pair was slower. This is a harness correction, not a library change, not a peer comparison, and not a KL09-70 claim.",
+  "before_median": 722564.92,
+  "after_median": 850192.12,
+  "paired_mean_ratio": 1.257,
+  "paired_ratio_ci95": [1.145, 1.384],
+  "pairs": 12,
+  "slower_pairs": 0
+}
