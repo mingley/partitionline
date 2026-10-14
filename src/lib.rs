@@ -3008,7 +3008,8 @@
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
 //! [`ShareGroup::acknowledge`] (local until the next poll, commit, or leave;
 //! acknowledge before [`ShareGroup::poll`] is
-//! `Acknowledge called before poll.`);
+//! `Acknowledge called before poll.`; implicit mode is
+//! `Implicit acknowledgement of delivery is being used.`);
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs;

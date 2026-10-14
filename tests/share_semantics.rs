@@ -122,6 +122,34 @@ async fn implicit_mode_accepts_previous_poll_on_next_poll() {
 }
 
 #[tokio::test]
+async fn implicit_mode_refuses_explicit_acknowledge() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "implicit-no-ack", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    let accept = group.accept(&recs).await.unwrap_err().to_string();
+    assert!(
+        accept.contains("Implicit acknowledgement of delivery is being used."),
+        "{accept}"
+    );
+    let release = group.release(&recs).await.unwrap_err().to_string();
+    assert!(
+        release.contains("Implicit acknowledgement of delivery is being used."),
+        "{release}"
+    );
+    let reject = group.reject(&recs).await.unwrap_err().to_string();
+    assert!(
+        reject.contains("Implicit acknowledgement of delivery is being used."),
+        "{reject}"
+    );
+    assert_eq!(mock.share_ack_calls(), 0);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_next_poll_piggybacks_acks_on_share_fetch() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;

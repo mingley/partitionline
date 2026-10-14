@@ -1425,10 +1425,15 @@ impl ShareGroup {
     /// [`Self::commit`], [`Self::leave`], or [`Self::close`]. Renew is sent
     /// immediately so the acquisition lock is extended. Called before
     /// [`Self::poll`] is Java `IllegalStateException`
-    /// (`Acknowledge called before poll.`).
+    /// (`Acknowledge called before poll.`). Called in
+    /// [`ShareAcknowledgementMode::Implicit`] is Java `IllegalStateException`
+    /// (`Implicit acknowledgement of delivery is being used.`).
     pub async fn acknowledge(&mut self, recs: &[ShareRecord], ack: AcknowledgeType) -> Result<()> {
         if ack == AcknowledgeType::Renew {
             return self.send_acknowledgements(recs, ack.id()).await;
+        }
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            return Err(reject_java_acknowledge_in_implicit_mode());
         }
         self.queue_acknowledgements(recs, ack.id())
     }
@@ -3395,6 +3400,12 @@ fn reject_java_share_not_subscribed() -> Error {
 /// `UNKNOWN` (acknowledge before the first poll).
 fn reject_java_acknowledge_before_poll() -> Error {
     Error::protocol("Acknowledge called before poll.")
+}
+
+/// Java `ShareConsumerImpl.ensureExplicitAcknowledgement` when the mode is
+/// implicit.
+fn reject_java_acknowledge_in_implicit_mode() -> Error {
+    Error::protocol("Implicit acknowledgement of delivery is being used.")
 }
 
 fn pending_typed(

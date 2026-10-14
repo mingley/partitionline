@@ -368,7 +368,8 @@ while the share member is already polling. Java
 or `ShareGroup::set_acknowledgement_mode`. Implicit ACCEPT on the next
 `poll` is piggybacked on ShareFetch. Explicit `accept` / `release` /
 `reject` are local until the next `poll`, `commit`, or `leave` (Java
-`acknowledge`; Renew is sent immediately). `ShareGroup::commit` flushes
+`acknowledge`; Renew is sent immediately). Implicit mode refuses those
+calls (`Implicit acknowledgement of delivery is being used.`). `ShareGroup::commit` flushes
 pending acknowledgements as `Result<()>`. `ShareGroup::commit_sync` is
 Java `commitSync` (`Map<TopicIdPartition, Optional<KafkaException>>`)
 and flushes without waiting for the next poll.

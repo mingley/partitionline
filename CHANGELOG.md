@@ -18,7 +18,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   new topic list instead of closing with FINAL epoch.
   `ShareGroup::accept` / `release` / `reject` are Java `acknowledge`
   (local until the next `poll`, `commit`, or `leave`; Renew stays an
-  immediate ShareAcknowledge). Implicit ACCEPT and queued explicit
+  immediate ShareAcknowledge). Implicit mode refuses those calls
+  (`Implicit acknowledgement of delivery is being used.`). Implicit ACCEPT
+  and queued explicit
   acknowledgements piggyback on the next ShareFetch.
   `ShareGroup::commit` / `commit_timeout` / `commit_async` flush pending
   acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
