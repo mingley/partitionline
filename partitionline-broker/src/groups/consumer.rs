@@ -34,6 +34,8 @@ pub const STALE_MEMBER_EPOCH: i16 = 113;
 pub struct Heartbeat<'a> {
     /// Coordinator epoch that must match the restored leader.
     pub coordinator_epoch: i64,
+    /// Coordinator clock for this heartbeat. Older values do not shorten the session.
+    pub now_ms: u64,
     /// Group id.
     pub group: &'a str,
     /// Empty to join. `member_epoch` of `-1` leaves.
@@ -141,6 +143,7 @@ impl From<journal::Error> for Error {
 pub struct Limits {
     max_members: usize,
     max_topics: usize,
+    session_timeout_ms: u64,
     journal: journal::Limits,
 }
 
@@ -149,10 +152,12 @@ impl Limits {
     pub fn new(
         max_members: usize,
         max_topics: usize,
+        session_timeout_ms: u64,
         journal: journal::Limits,
     ) -> Result<Self, Error> {
         if !(1..=10_000).contains(&max_members)
             || !(1..=10_000).contains(&max_topics)
+            || session_timeout_ms == 0
             || journal.max_entry_bytes() < 1024
             || journal.max_index_entries() < max_members
         {
@@ -161,6 +166,7 @@ impl Limits {
         Ok(Self {
             max_members,
             max_topics,
+            session_timeout_ms,
             journal,
         })
     }
@@ -169,6 +175,7 @@ impl Limits {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Member {
     epoch: i32,
+    last_seen_ms: u64,
     acked: bool,
     instance: Option<String>,
     version: i16,
@@ -316,6 +323,43 @@ impl Groups {
         })
     }
 
+    /// Remove members silent longer than the session timeout and reassign the rest.
+    pub fn expire(&mut self, now_ms: u64) -> Result<usize, Error> {
+        self.ready()?;
+        let timeout = self.limits.session_timeout_ms;
+        let mut next = self.state.clone();
+        let topics = next.topics.clone();
+        let mut removed = 0usize;
+        let ids: Vec<String> = next.groups.keys().cloned().collect();
+        for id in ids {
+            let Some(group) = next.groups.get_mut(&id) else {
+                continue;
+            };
+            let stale: Vec<String> = group
+                .members
+                .iter()
+                .filter(|(_, member)| now_ms.saturating_sub(member.last_seen_ms) > timeout)
+                .map(|(member_id, _)| member_id.clone())
+                .collect();
+            if stale.is_empty() {
+                continue;
+            }
+            for member_id in stale {
+                group.members.remove(&member_id);
+                removed = removed.saturating_add(1);
+            }
+            if group.members.is_empty() {
+                next.groups.remove(&id);
+            } else if let Some(group) = next.groups.get_mut(&id) {
+                finish_group_with(group, &topics);
+            }
+        }
+        if removed > 0 {
+            self.commit(next)?;
+        }
+        Ok(removed)
+    }
+
     fn join(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
         if request.member_epoch != 0 {
             return Err(Error::InvalidRequest);
@@ -355,6 +399,7 @@ impl Groups {
             member_id.clone(),
             Member {
                 epoch: 0,
+                last_seen_ms: request.now_ms,
                 acked: true,
                 instance,
                 version: request.version,
@@ -392,6 +437,7 @@ impl Groups {
         if member.instance != instance {
             return Err(Error::FencedInstance);
         }
+        member.last_seen_ms = later_seen(member.last_seen_ms, request.now_ms);
         let changed = replacement
             .as_ref()
             .is_some_and(|topics| member.topics != *topics)
@@ -553,6 +599,10 @@ fn finish_group_with(group: &mut Group, topics: &BTreeMap<String, i32>) {
         .unwrap_or(0);
 }
 
+fn later_seen(current: u64, now_ms: u64) -> u64 {
+    current.max(now_ms)
+}
+
 fn topic_set(topics: &[&str], known: &BTreeMap<String, i32>) -> Result<BTreeSet<String>, Error> {
     let mut set = BTreeSet::new();
     for topic in topics {
@@ -614,6 +664,7 @@ fn encode(state: &State) -> Result<Vec<u8>, Error> {
         for (member_id, member) in &group.members {
             put_str(&mut bytes, member_id)?;
             bytes.extend_from_slice(&member.epoch.to_be_bytes());
+            bytes.extend_from_slice(&member.last_seen_ms.to_be_bytes());
             bytes.push(u8::from(member.acked));
             bytes.extend_from_slice(&member.version.to_be_bytes());
             match &member.instance {
@@ -675,6 +726,7 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
         for _ in 0..member_count {
             let member_id = take_str(&mut bytes)?;
             let member_epoch = take_i32(&mut bytes)?;
+            let last_seen_ms = take_u64(&mut bytes)?;
             let acked = take_u8(&mut bytes)? == 1;
             let member_version = take_i16(&mut bytes)?;
             let instance = if take_u8(&mut bytes)? == 1 {
@@ -702,6 +754,7 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
                 member_id,
                 Member {
                     epoch: member_epoch,
+                    last_seen_ms,
                     acked,
                     instance,
                     version: member_version,
@@ -799,7 +852,7 @@ mod tests {
     fn limits() -> Limits {
         let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20)
             .unwrap_or_else(|_| panic!("journal limits"));
-        Limits::new(16, 8, journal).unwrap_or_else(|_| panic!("group limits"))
+        Limits::new(16, 8, 1_000, journal).unwrap_or_else(|_| panic!("group limits"))
     }
 
     fn open(name: &str) -> (Groups, std::path::PathBuf) {
@@ -821,6 +874,7 @@ mod tests {
     ) -> Heartbeat<'a> {
         Heartbeat {
             coordinator_epoch: 0,
+            now_ms: 0,
             group,
             member_id: member,
             member_epoch: epoch,
@@ -844,6 +898,42 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn session_timeout_removes_a_silent_member() {
+        let (mut groups, _) = open("session");
+        groups
+            .set_topic("orders", 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let _joined = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
+        assert!(groups.describe("orders-g").is_none());
+        let joined = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut ping = beat(
+            "orders-g",
+            &joined.member_id,
+            joined.member_epoch,
+            1,
+            &["orders"],
+        );
+        ping.now_ms = 1_000;
+        let pinged = groups
+            .heartbeat(ping)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        let mut older = ping;
+        older.member_epoch = pinged.member_epoch;
+        older.now_ms = 1;
+        groups
+            .heartbeat(older)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_500).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
     }
 
     #[test]
