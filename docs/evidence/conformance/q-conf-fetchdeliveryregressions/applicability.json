@@ -59,7 +59,7 @@
         "topics": 1,
         "partitions": 2,
         "attempt0_p1_error": 6,
-        "attempt1_both_ok": true
+        "attempt1_partitions": [1]
       },
       "a04-offset-out-of-range": {
         "error_code": 1,

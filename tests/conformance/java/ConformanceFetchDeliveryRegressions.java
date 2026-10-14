@@ -261,20 +261,20 @@ public final class ConformanceFetchDeliveryRegressions {
     }
 
     static FetchResponseData a03(int attempt) throws Exception {
-        FetchResponseData.PartitionData p0 =
-                okPartition(0, dataRecords(0L, false, 0, "keep-me".getBytes()));
-        FetchResponseData.PartitionData p1;
         if (attempt == 0) {
-            p1 = new FetchResponseData.PartitionData()
+            FetchResponseData.PartitionData p0 =
+                    okPartition(0, dataRecords(0L, false, 0, "keep-me".getBytes()));
+            FetchResponseData.PartitionData p1 = new FetchResponseData.PartitionData()
                     .setPartitionIndex(1)
                     .setErrorCode(NOT_LEADER_OR_FOLLOWER)
                     .setHighWatermark(4L)
                     .setLastStableOffset(4L)
                     .setLogStartOffset(0L);
-        } else {
-            p1 = okPartition(1, dataRecords(0L, false, 0, "keep-me".getBytes()));
+            return fetchResponse(p0, p1);
         }
-        return fetchResponse(p0, p1);
+        // Retry Fetch asks only for the failed partition. A full-session
+        // response must not include the already-completed partition.
+        return fetchResponse(okPartition(1, dataRecords(0L, false, 0, "keep-me".getBytes())));
     }
 
     static FetchResponseData a04() {

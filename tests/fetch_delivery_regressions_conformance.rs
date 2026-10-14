@@ -85,6 +85,7 @@ struct RawBroker {
     shutdown_tx: Option<oneshot::Sender<()>>,
     task: Option<JoinHandle<()>>,
     last_fetch_version: Arc<AtomicUsize>,
+    attempts: Arc<AtomicUsize>,
 }
 
 impl RawBroker {
@@ -245,6 +246,7 @@ impl RawBroker {
             shutdown_tx: Some(shutdown_tx),
             task: Some(task),
             last_fetch_version,
+            attempts,
         }
     }
 
@@ -252,6 +254,10 @@ impl RawBroker {
         partitionline::ConsumerConfig::bootstrap([self.addr.clone()])
             .request_timeout(Duration::from_secs(2))
             .retry_backoff(Duration::from_millis(1))
+    }
+
+    fn attempt_count(&self) -> usize {
+        self.attempts.load(Ordering::SeqCst)
     }
 
     fn last_fetch_version(&self) -> Option<i16> {
@@ -355,8 +361,9 @@ async fn apache_fetch_bodies_decode_leftover_empty() {
         assert_eq!(attempt0[0].error_code, 0);
         assert_eq!(attempt0[1].error_code, NOT_LEADER_OR_FOLLOWER);
         let attempt1 = decode_fetch_resp(&a03b);
+        assert_eq!(attempt1.len(), 1);
+        assert_eq!(attempt1[0].partition, 1);
         assert_eq!(attempt1[0].error_code, 0);
-        assert_eq!(attempt1[1].error_code, 0);
         bodies += 3;
 
         let a04_resp = read(&dir.join("a04-offset-out-of-range-response.bin")).await;
@@ -511,7 +518,13 @@ async fn apache_fetch_bodies_replay_public_consumer_histories() {
                 .map(|r| (r.partition, r.offset))
                 .collect::<Vec<_>>(),
             vec![(0, 0), (1, 0)],
-            "{peer} A03"
+            "{peer} A03 records={records:?} positions={:?} attempts={}",
+            consumer.positions(),
+            broker.attempt_count()
+        );
+        assert!(
+            broker.attempt_count() >= 2,
+            "{peer} A03 must retry the failed partition"
         );
         assert_eq!(broker.last_fetch_version(), Some(FETCH_VERSION));
         consumer.close().await.unwrap();
