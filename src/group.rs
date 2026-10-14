@@ -1552,8 +1552,12 @@ impl ConsumerGroup {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
-        let positions = self.consumer.positions();
-        self.commit_offsets_timeout(positions.clone(), timeout.saturating_sub(started.elapsed()))
+        let offsets = self.assigned_commit_offsets();
+        let positions = offsets
+            .iter()
+            .map(|(tp, md)| (tp.clone(), md.offset))
+            .collect();
+        self.commit_with_metadata_timeout(offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
         self.record_delivered_positions(positions);
         self.last_auto_commit = Instant::now();
@@ -1778,7 +1782,7 @@ impl ConsumerGroup {
         if let Some(ref positions) = self.last_delivered_positions {
             let assigned: HashSet<TopicPartition> =
                 self.consumer.assignment().into_iter().collect();
-            let to_commit: Vec<(TopicPartition, i64)> = positions
+            let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = positions
                 .iter()
                 .filter(|(tp, _)| {
                     assigned.contains(tp)
@@ -1788,11 +1792,18 @@ impl ConsumerGroup {
                             .copied()
                             == self.consumer.assigned_topic_id(&tp.topic, tp.partition)
                 })
-                .cloned()
+                .map(|(tp, offset)| {
+                    let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
+                    (
+                        tp.clone(),
+                        OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
+                    )
+                })
                 .collect();
             if !to_commit.is_empty() {
                 let timeout = self.cfg.request_timeout;
-                self.commit_offsets_timeout(to_commit, timeout).await?;
+                self.commit_with_metadata_timeout(to_commit, timeout)
+                    .await?;
                 self.last_auto_commit = Instant::now();
             }
         }

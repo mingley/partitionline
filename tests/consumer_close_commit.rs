@@ -7,7 +7,7 @@ mod common;
 
 use partitionline::{
     error, ConsumerConfig, ConsumerGroup, Error, OffsetAndMetadata, ProduceRecord, Producer,
-    ProducerConfig, TopicPartition, LEAVE_GROUP_REASON_POLL_TIMEOUT,
+    ProducerConfig, TopicPartition, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_POLL_TIMEOUT,
 };
 use std::time::Duration;
 
@@ -524,6 +524,46 @@ async fn commit_after_capped_poll_with_seek() {
         remaining.iter().map(|r| r.offset).collect::<Vec<_>>(),
         vec![2]
     );
+}
+
+#[tokio::test]
+async fn commit_keeps_the_fetched_epoch_when_metadata_moves_ahead() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"epoch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(false),
+        "fetched-epoch",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].leader_epoch, Some(0));
+    let bumped = mock.bump_leader_epoch("t", 0);
+    assert!(bumped > 0);
+    let _ = group.list_offsets("t", 0, LATEST_TIMESTAMP).await.unwrap();
+    group.commit().await.unwrap();
+    let committed = group.committed().await.unwrap();
+    assert_eq!(committed.len(), 1);
+    assert_eq!(committed[0].1.offset, 1);
+    assert_eq!(
+        committed[0].1.leader_epoch,
+        Some(0),
+        "commit must keep the fetched record epoch, not metadata epoch {bumped}"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]
