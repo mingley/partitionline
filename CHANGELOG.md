@@ -12,6 +12,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   The client default stays **explicit** (Java defaults to implicit).
   Implicit ACCEPT on the next `poll` is piggybacked on ShareFetch
   (standalone ShareAcknowledge is still used for `commit` / `leave`).
+  Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
+  partitions when the assignment shrinks or a topic id is replaced.
   `ShareGroup::commit` / `commit_timeout` / `commit_async` flush implicit
   acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
   `commit_sync_timeout` are Java `ShareConsumer.commitSync` /
