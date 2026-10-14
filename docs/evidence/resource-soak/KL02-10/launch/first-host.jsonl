@@ -1,0 +1,3 @@
+{"utc": "2026-10-14T10:28:32.301222+00:00", "monotonic_ns": 43584853249551, "pid": 901851, "rss_bytes": 9445376, "threads": 1, "socket_fds": 4}
+{"utc": "2026-10-14T10:28:32.352534+00:00", "monotonic_ns": 43584904561198, "pid": 901851, "rss_bytes": 11583488, "threads": 2, "socket_fds": 7}
+{"utc": "2026-10-14T10:28:32.404503+00:00", "monotonic_ns": 43584956529627, "pid": 901851, "rss_bytes": 11595776, "threads": 2, "socket_fds": 7}

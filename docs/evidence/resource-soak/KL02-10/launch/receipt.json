@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "card": "KL02-10",
+  "launched_utc": "2026-10-14T10:28:46.999861+00:00",
+  "output": "/tmp/kl02-10-soak",
+  "tmux_session": "kl02-10-soak",
+  "driver_pid": 901849,
+  "child_pid": 901851,
+  "attempt_status": "running",
+  "frozen_sha256": "c5d19ed2d34d2a193d57b4584b26ad5c8be92932ad2ed8d3eb7607cc64666cc7",
+  "stop": "SIGINT/SIGTERM to the python driver, or create /tmp/kl02-10-soak/attempt-0001/stop",
+  "resume": "python3 -B scripts/resource-soak.py --output /tmp/kl02-10-soak --resume",
+  "check": "python3 -B scripts/resource-soak.py --output /tmp/kl02-10-soak --check",
+  "do_not_rebuild": "Resume must not run scripts/run-resource-soak.sh (it rebuilds). Use the frozen binary hashed in baseline.json.",
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "launched_job_is_not_a_pass": true
+}

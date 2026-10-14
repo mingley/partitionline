@@ -1,0 +1,65 @@
+{
+  "frozen_sha256": "18e6d31857bcd645e8eee1984c96c1d6bdf784b0900203ea08f5fc4d66618c5e",
+  "attempts": [
+    {
+      "number": 1,
+      "started_utc": "2026-10-14T10:28:19.427315+00:00",
+      "status": "passed",
+      "raw": "attempt-0001/samples.jsonl",
+      "host": "attempt-0001/host.jsonl",
+      "command": [
+        "/workspace/target/debug/examples/resource_soak"
+      ],
+      "environment": {
+        "SOAK_STOP_FILE": "/tmp/kl02-10-rehearsal/attempt-0001/stop",
+        "SOAK_MODE": "controlled",
+        "SOAK_RATE": "1600",
+        "SOAK_TOPIC": "pl-soak-kl0210",
+        "SOAK_SLOW_MS": "25",
+        "SOAK_BOOTSTRAP": "127.0.0.1:9092",
+        "SOAK_DURATION_MS": "2000",
+        "SOAK_ID_BASE": "0",
+        "SOAK_PEER_DELAY_MS": "40"
+      },
+      "binary_sha256_before": "d2ea6227c3303ecea927a2437e26d781b137ec5efad9e1163342869dfe6d50e4",
+      "artifacts": {
+        "attempt-0001/host.jsonl": "670d3a4d0f8c911b9c95bf8026028a7ee24765f4fccc0a1a050166b8dc1dee90",
+        "attempt-0001/samples.jsonl": "369df6e3b3a206353aabf596a5745ee15b0127f7017fbfb13de7d72cf5102db5",
+        "attempt-0001/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pid": 901553,
+      "exit_code": 0,
+      "waited": true,
+      "check": {
+        "samples": 39,
+        "host_samples": 40,
+        "final": {
+          "kind": "sample",
+          "utc_ms": 1791973701502,
+          "elapsed_ms": 2002,
+          "offered": 3200,
+          "accepted": 1615,
+          "completed": 1615,
+          "failed": 1585,
+          "ambiguous": 0,
+          "pending": 0,
+          "producer_queue_bytes": 0,
+          "consumer_buffered_bytes": 0,
+          "application_decoded_bytes": 0,
+          "delivered": 76,
+          "delivered_bytes": 19456,
+          "fetch_errors": 0,
+          "runtime_tasks": 3,
+          "peer_connections": 0,
+          "final": true
+        },
+        "load_elapsed_ms": 2000,
+        "interrupted": false,
+        "rss_bound_claimed": false,
+        "production_qualification": false
+      },
+      "ended_utc": "2026-10-14T10:28:21.552355+00:00"
+    }
+  ],
+  "completed": true
+}

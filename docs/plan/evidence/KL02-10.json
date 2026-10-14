@@ -1,0 +1,68 @@
+{
+  "task": "KL02-10",
+  "status": "in_progress",
+  "disposition": "launched-not-a-pass",
+  "date": "2026-10-14",
+  "owner": "cursor-cloud",
+  "kind": "evidence",
+  "claim_sha": "bee8dabf9a219b5c5c9e2fc4b2580df44a6ca8b9",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "production_code_changed": false,
+  "hypothesis": "A frozen 24h controlled soak at 2x a measured sustainable rate can be launched on this host with stop/resume instructions; completion and RSS-drift comparison remain after the job finishes.",
+  "freeze": {
+    "host": "Linux cursor 6.12.94+ x86_64, 4 CPUs, Cursor cloud VM (not Lab A)",
+    "broker": "Kafka 4.1.0 KRaft 127.0.0.1:9092 RF=1 PLAINTEXT",
+    "topic": "pl-soak-kl0210",
+    "profile": "256 B values, 1 partition, 4 KiB budgets, max in flight 1, acks=all, idempotent, compression none, slow_ms=25",
+    "sustainable_records_per_second": 799.4133724418373,
+    "offered_rate": 1600,
+    "duration_ms": 86400000,
+    "binary_sha256": "d2ea6227c3303ecea927a2437e26d781b137ec5efad9e1163342869dfe6d50e4"
+  },
+  "job": {
+    "id": "tmux:kl02-10-soak/driver:901849/child:901851",
+    "output": "/tmp/kl02-10-soak",
+    "stop": "touch /tmp/kl02-10-soak/attempt-0001/stop or SIGINT/SIGTERM to 901849",
+    "resume": "python3 -B scripts/resource-soak.py --output /tmp/kl02-10-soak --resume",
+    "check": "python3 -B scripts/resource-soak.py --output /tmp/kl02-10-soak --check"
+  },
+  "commands": [
+    "cargo +stable build --locked --example resource_soak (exit 0)",
+    "PL_RESOURCE_SOAK_BINARY=target/debug/examples/resource_soak python3 -B -m unittest discover -s tests/ci -p test_resource_soak.py (10 passed, exit 0)",
+    "15s calibration SOAK_RATE=800 SOAK_MODE=controlled against 127.0.0.1:9092/pl-soak-kl0210 (799.41 completed/s)",
+    "python3 scripts/resource-soak.py --mode controlled --duration-ms 2000 --rate 1600 --baseline docs/evidence/resource-soak/KL02-10/baseline.json (completed true, exit 0)",
+    "python3 scripts/resource-soak.py --mode controlled --duration-ms 86400000 --rate 1600 launched in tmux kl02-10-soak"
+  ],
+  "results": {
+    "calibration_completed_per_second": 799.4133724418373,
+    "rehearsal_2s_2x": "completed, production_qualification false",
+    "soak_24h": "running",
+    "launched_job_is_not_a_pass": true,
+    "rss_drift_compared": false,
+    "host_time_approval": "not Lab A; official qualification remains blocked_external until an approved host/time is recorded"
+  },
+  "acceptance": {
+    "host_source_workload_budget_frozen": true,
+    "job_id_and_stop_resume_recorded": true,
+    "2x_load_bounds_and_rss_drift_after_24h": false,
+    "failures_and_raw_samples_retained": true
+  },
+  "artifacts": [
+    "docs/evidence/resource-soak/KL02-10/README.md",
+    "docs/evidence/resource-soak/KL02-10/baseline.json",
+    "docs/evidence/resource-soak/KL02-10/calibration-samples.jsonl",
+    "docs/evidence/resource-soak/KL02-10/rehearsal/",
+    "docs/evidence/resource-soak/KL02-10/launch/"
+  ],
+  "limits": [
+    "Launched job is not a pass. First-hour vs final-hour RSS comparison is after 24h.",
+    "Host is a Cursor cloud VM, not Lab A / Kernel Integrity.",
+    "RF=1 PLAINTEXT. No record-history integrity oracle.",
+    "Live samples stay in /tmp/kl02-10-soak; do not rebuild the binary before resume.",
+    "Suite HOLD remains. No performance claim. World-class client objective remains open."
+  ],
+  "qualification_limit": "Local unsigned launch. Official 24h qualification needs the completed artifact plus host/time approval.",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "world_class_client_complete": false
+}

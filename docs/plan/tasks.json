@@ -1222,12 +1222,13 @@
       "deliverable": "One approved controlled-host resource qualification for a named producer/consumer profile.",
       "acceptance": ["Freeze host, source, workload and budget first; record job ID and safe stop/resume instructions.", "At 2x sustainable offered load, declared bounds and outcome accounting hold; report steady-state RSS drift with allocator context.", "Retain failures and all raw samples; missing host/time approval is blocked_external, not a passed template."],
       "validation": ["Run the completed artifact through the soak invariant checker.", "Compare the final-hour and first steady-state-hour median RSS against the predeclared 10% target."],
-      "evidence": [],
+      "evidence": ["docs/plan/evidence/KL02-10.json"],
       "write_set": [
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL02-10.json",
         "docs/evidence/resource-soak/KL02-10/"
-      ]
+      ],
+      "follow_up": "Launched 24h soak at 1600 rec/s (2x 799.41 completed/s) on Cursor cloud VM, topic pl-soak-kl0210, output /tmp/kl02-10-soak, tmux kl02-10-soak. Not a pass. Official Lab A approval still blocked_external."
     },
     {
       "id": "KL03-01",
