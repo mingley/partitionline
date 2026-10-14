@@ -1,0 +1,25 @@
+{
+  "task": "KL01-27",
+  "date": "2026-10-14",
+  "releases": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "total_bodies": 80,
+  "total_unsupported_receipts": 0,
+  "independent_generations_match": true,
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 172.588,
+  "rust_offline_fixture_bodies": 80,
+  "rust_apache_reverse_parses": 25,
+  "public_histories": {
+    "latest_delivered_offset": 1,
+    "latest_delivered_value": "new",
+    "latest_position": 2,
+    "none_missing_error": "auto.offset.reset=none",
+    "none_resume_delivered_offset": 2,
+    "none_resume_delivered_value": "after-commit",
+    "none_resume_position": 3,
+    "autocommit_first_value": "first",
+    "autocommit_position": 1
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0
+}

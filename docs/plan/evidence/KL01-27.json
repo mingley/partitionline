@@ -1,0 +1,48 @@
+{
+  "task": "KL01-27",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "0e48d129370bb8aea55ddbb21fc61e330e7bbc29",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "initial_registered_case_ids": [
+    "verifiable-consumer-reset-policies-3-9-1",
+    "verifiable-consumer-autocommit-3-9-1"
+  ],
+  "commands": [
+    "python3 tests/conformance/test_verifiable_consumer_offsets.py -q (4 passed, exit 0)",
+    "python3 tests/conformance/java/generate_verifiable_consumer_offsets.py --output /tmp/verifiable-consumer-offsets-gen --install tests/fixtures/verifiable_consumer_offsets (80 bodies, 0 unsupported receipts, two generations match, 172.588s remaining of 180s)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --tests -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test verifiable_consumer_offsets_conformance (4 passed, including 25 live Apache reverse parses)"
+  ],
+  "results": {
+    "generated_bodies": 80,
+    "unsupported_receipts": 0,
+    "independent_generations_match": true,
+    "rust_offline_fixture_bodies": 80,
+    "rust_apache_reverse_parses": 25,
+    "public_histories": {
+      "latest_delivered_offset": 1,
+      "latest_delivered_value": "new",
+      "latest_position": 2,
+      "none_missing_error": "auto.offset.reset=none",
+      "none_resume_delivered_offset": 2,
+      "none_resume_delivered_value": "after-commit",
+      "none_resume_position": 3,
+      "autocommit_first_value": "first",
+      "autocommit_position": 1
+    },
+    "original_dispositions_preserved": true,
+    "cases_json_rows_added": 0
+  },
+  "actual_failures_retained": [],
+  "qualification_limit": "Finite named Fetch v12 / ListOffsets v5 / OffsetCommit v8 / OffsetFetch v8 cells for five pinned client jars. Public Consumer replay covers latest ListOffsets+Fetch, none-without-offset assign error, stored-offset resume Fetch, and the autocommit first-poll position. Group-subscribe OffsetFetch+autocommit-close is independently described by the Apache bodies and hashed events; the local verifiable_contract mock is not the oracle. The registered local_consistency rows are not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+  "evidence": "docs/evidence/conformance/q-conf-verifiableconsumeroffsets",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false
+}
