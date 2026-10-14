@@ -223,6 +223,17 @@ pub struct Entry {
     pub payload: Vec<u8>,
 }
 
+/// One fetched payload already appended to the caller's buffer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct PayloadView {
+    /// First logical record offset in the payload.
+    pub first_offset: u64,
+    /// Number of logical records declared by the caller.
+    pub record_count: u32,
+    /// Payload bytes appended to the destination.
+    pub len: usize,
+}
+
 /// Exclusive, synchronous file-backed partition journal.
 pub struct Journal {
     inner: Engine<File>,
@@ -468,6 +479,20 @@ impl Journal {
         self.inner.fetch(first_offset, max_entries, max_bytes)
     }
 
+    /// Append the one entry containing `first_offset` onto `dest`.
+    ///
+    /// The charge and checksum rules match [`Self::fetch`] of a single entry.
+    /// On failure `dest` is restored to its incoming length. An offset at or
+    /// beyond the next offset returns [`None`] and leaves `dest` unchanged.
+    pub(crate) fn fetch_one_into(
+        &mut self,
+        first_offset: u64,
+        max_bytes: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<Option<PayloadView>, Error> {
+        self.inner.fetch_one_into(first_offset, max_bytes, dest)
+    }
+
     /// Configured first logical offset.
     pub fn base_offset(&self) -> u64 {
         self.inner.base_offset
@@ -601,20 +626,28 @@ fn require_read(reader: &mut impl Read, output: &mut [u8]) -> io::Result<()> {
 ///
 /// `Read::read_to_end` fills reserved capacity directly. A short read is the
 /// same interrupted-tail failure as [`require_read`].
-fn read_exact_vec(reader: &mut impl Read, len: usize) -> Result<Vec<u8>, Error> {
-    let mut payload = Vec::new();
-    payload
-        .try_reserve_exact(len)
+fn read_exact_into(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Result<(), Error> {
+    let start = dest.len();
+    dest.try_reserve_exact(len)
         .map_err(|_| Error::AllocationFailed)?;
     let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
-    let read = reader.take(limit).read_to_end(&mut payload)?;
-    if read != len {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "journal changed during read",
-        )
-        .into());
+    let result = reader.take(limit).read_to_end(dest);
+    let complete = matches!(result, Ok(n) if n == len) && dest.len() == start.saturating_add(len);
+    if complete {
+        return Ok(());
     }
+    dest.truncate(start);
+    match result {
+        Ok(_) => {
+            Err(io::Error::new(io::ErrorKind::UnexpectedEof, "journal changed during read").into())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn read_exact_vec(reader: &mut impl Read, len: usize) -> Result<Vec<u8>, Error> {
+    let mut payload = Vec::new();
+    read_exact_into(reader, &mut payload, len)?;
     Ok(payload)
 }
 fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
@@ -1118,21 +1151,8 @@ impl<S: Storage> Engine<S> {
             }
             for position in start..start + count {
                 let index = self.index[position];
-                self.storage.seek(SeekFrom::Start(index.position))?;
-                let mut header = [0; ENTRY_HEADER];
-                require_read(&mut self.storage, &mut header)?;
-                let parsed =
-                    parse_header(&header, index.first_offset, index.position, self.limits)?;
-                if parsed.payload_len != index.payload_len
-                    || parsed.record_count != index.record_count
-                    || parsed.checksum != index.checksum
-                {
-                    return Err(corrupt(index.position, Corruption::EntryHeader));
-                }
-                let payload = read_exact_vec(&mut self.storage, index.payload_len as usize)?;
-                if crc32c::crc32c(&payload) != index.checksum {
-                    return Err(corrupt(index.position, Corruption::PayloadChecksum));
-                }
+                let mut payload = Vec::new();
+                self.read_indexed(&index, &mut payload)?;
                 entries.push(Entry {
                     first_offset: index.first_offset,
                     record_count: index.record_count,
@@ -1149,6 +1169,86 @@ impl<S: Storage> Engine<S> {
             return Err(error);
         }
         Ok(entries)
+    }
+
+    fn fetch_one_into(
+        &mut self,
+        first_offset: u64,
+        max_bytes: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<Option<PayloadView>, Error> {
+        if self.staged.is_some() {
+            self.abort_staged();
+            return Err(Error::Poisoned);
+        }
+        self.check_alive()?;
+        if max_bytes == 0 || max_bytes > self.limits.max_fetch_bytes {
+            return Err(Error::InvalidFetchLimits);
+        }
+        if first_offset < self.base_offset {
+            return Err(Error::OffsetBeforeBase);
+        }
+        let start = self
+            .index
+            .partition_point(|entry| entry.next_offset <= first_offset);
+        let Some(index) = self.index.get(start).copied() else {
+            return Ok(None);
+        };
+        let charge = size_of::<Entry>()
+            .checked_add(index.payload_len as usize)
+            .ok_or(Error::FetchBudgetExceeded)?;
+        if charge > max_bytes {
+            return Err(Error::FetchBudgetExceeded);
+        }
+        let mark = dest.len();
+        let result = (|| {
+            if self.storage.byte_len()? != self.file_bytes {
+                return Err(Error::ChangedFile);
+            }
+            self.read_indexed(&index, dest)?;
+            if self.storage.byte_len()? != self.file_bytes {
+                return Err(Error::ChangedFile);
+            }
+            Ok(())
+        })();
+        if let Err(error) = result {
+            dest.truncate(mark);
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(Some(PayloadView {
+            first_offset: index.first_offset,
+            record_count: index.record_count,
+            len: index.payload_len as usize,
+        }))
+    }
+
+    fn read_indexed(&mut self, index: &Index, dest: &mut Vec<u8>) -> Result<(), Error> {
+        let mark = dest.len();
+        let result = (|| {
+            self.storage.seek(SeekFrom::Start(index.position))?;
+            let mut header = [0; ENTRY_HEADER];
+            require_read(&mut self.storage, &mut header)?;
+            let parsed = parse_header(&header, index.first_offset, index.position, self.limits)?;
+            if parsed.payload_len != index.payload_len
+                || parsed.record_count != index.record_count
+                || parsed.checksum != index.checksum
+            {
+                return Err(corrupt(index.position, Corruption::EntryHeader));
+            }
+            read_exact_into(&mut self.storage, dest, index.payload_len as usize)?;
+            let payload = dest
+                .get(mark..)
+                .ok_or_else(|| corrupt(index.position, Corruption::PayloadChecksum))?;
+            if crc32c::crc32c(payload) != index.checksum {
+                return Err(corrupt(index.position, Corruption::PayloadChecksum));
+            }
+            Ok(())
+        })();
+        if result.is_err() {
+            dest.truncate(mark);
+        }
+        result
     }
 }
 

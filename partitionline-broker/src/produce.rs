@@ -558,6 +558,36 @@ impl Store {
         self.changed |= poisoned != slot.partition.is_poisoned();
         result
     }
+    pub(crate) fn read_entry_into(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        offset: i64,
+        remaining_bytes: usize,
+        remaining_entries: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<(Option<journal::PayloadView>, segments::Work), partition::Error> {
+        let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == id && slot.index == index)
+        else {
+            return Ok((None, segments::Work::default()));
+        };
+        let maximum = self
+            .config
+            .journal_limits
+            .max_entry_bytes()
+            .min(remaining_bytes)
+            .checked_add(std::mem::size_of::<journal::Entry>())
+            .ok_or(partition::Error::InvalidLimits)?;
+        let poisoned = slot.partition.is_poisoned();
+        let result =
+            slot.partition
+                .read_into(offset, maximum, remaining_bytes, remaining_entries, dest);
+        self.changed |= poisoned != slot.partition.is_poisoned();
+        result
+    }
     pub(crate) fn timestamp_start(
         &mut self,
         id: TopicId,

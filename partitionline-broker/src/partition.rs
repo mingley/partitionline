@@ -575,6 +575,69 @@ impl Partition {
         }
         Ok((entry, work))
     }
+
+    /// Like [`Self::read_with_work`], appending the payload onto `dest`.
+    ///
+    /// The monolithic journal reads into `dest` directly. Rolling storage still
+    /// validates an owned entry, then copies it. On failure `dest` is restored.
+    pub(crate) fn read_into(
+        &mut self,
+        offset: i64,
+        maximum: usize,
+        scan_bytes: usize,
+        scan_entries: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<(Option<journal::PayloadView>, segments::Work), Error> {
+        self.check_alive()?;
+        let offset = u64::try_from(offset).map_err(|_| Error::OffsetOverflow)?;
+        let mark = dest.len();
+        let loaded = match &mut self.journal {
+            Backend::Journal(log) => {
+                let view = log.fetch_one_into(offset, maximum, dest)?;
+                let work = view.map_or(segments::Work::default(), |view| segments::Work {
+                    bytes: view.len,
+                    entries: 1,
+                });
+                (view, work, None)
+            }
+            Backend::Segments(log) => {
+                let (entry, work) = log.read_one(offset, maximum, scan_bytes, scan_entries)?;
+                let view = entry.as_ref().map(|entry| journal::PayloadView {
+                    first_offset: entry.first_offset,
+                    record_count: entry.record_count,
+                    len: entry.payload.len(),
+                });
+                (view, work, entry)
+            }
+        };
+        if let Some(entry) = loaded.2.as_ref() {
+            if let Err(error) = self.check_for_read(entry) {
+                self.poisoned = true;
+                return Err(error);
+            }
+            dest.try_reserve_exact(entry.payload.len())
+                .map_err(|_| Error::AllocationFailed)?;
+            dest.extend_from_slice(&entry.payload);
+        } else if let Some(view) = loaded.0 {
+            let payload = match dest.get(mark..) {
+                Some(payload) if payload.len() == view.len => payload,
+                _ => {
+                    dest.truncate(mark);
+                    self.poisoned = true;
+                    return Err(Error::CorruptPayload);
+                }
+            };
+            if let Err(error) =
+                self.check_fetched_slice(view.first_offset, view.record_count, payload)
+            {
+                dest.truncate(mark);
+                self.poisoned = true;
+                return Err(error);
+            }
+        }
+        Ok((loaded.0, loaded.1))
+    }
+
     fn check_for_read(&self, entry: &journal::Entry) -> Result<u64, Error> {
         if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
             self.check_entry(entry)
@@ -598,15 +661,23 @@ impl Partition {
     /// Append and recovery already walked the records. A later fetch only
     /// checks that the declared bases still form that assigned range.
     fn check_fetched_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
-        let framed = records::framed_assignment(&entry.payload, self.record_limits)
+        self.check_fetched_slice(entry.first_offset, entry.record_count, &entry.payload)
+    }
+
+    fn check_fetched_slice(
+        &self,
+        first_offset: u64,
+        record_count: u32,
+        payload: &[u8],
+    ) -> Result<u64, Error> {
+        let framed = records::framed_assignment(payload, self.record_limits)
             .map_err(|_| Error::CorruptPayload)?;
-        if framed.record_count() != entry.record_count as usize {
+        if framed.record_count() != record_count as usize {
             return Err(Error::CorruptPayload);
         }
-        let offset = i64::try_from(entry.first_offset).map_err(|_| Error::CorruptPayload)?;
-        let next = entry
-            .first_offset
-            .checked_add(u64::from(entry.record_count))
+        let offset = i64::try_from(first_offset).map_err(|_| Error::CorruptPayload)?;
+        let next = first_offset
+            .checked_add(u64::from(record_count))
             .ok_or(Error::CorruptPayload)?;
         if framed.first_offset() != offset || u64::try_from(framed.next_offset()).ok() != Some(next)
         {
