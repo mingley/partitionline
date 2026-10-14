@@ -1,6 +1,7 @@
 #![allow(clippy::panic)]
 //! Decoder check against bytes packed independently of this crate.
 
+use partitionline_broker::protocol::ApiVersion;
 use partitionline_broker::raft::protocol::{
     self, BeginEpochBody, DescribeQuorumBody, EndEpochBody, FetchSnapshotBody,
     FetchSnapshotResponseBody, KafkaVoter, KafkaVotersRecord, LeaderEndpoint, PreferredCandidate,
@@ -176,4 +177,178 @@ fn begin_end_update_and_voters_record_match_the_independent_layout() {
     })
     .unwrap_or_else(|error| panic!("{error:?}"));
     assert_eq!(describe, fixture("describe-quorum-v2.bin"));
+}
+
+fn apache(name: &str) -> Vec<u8> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../tests/conformance/broker/kraft-layout/apache")
+        .join(name);
+    let mut file =
+        std::fs::File::open(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    let mut bytes = Vec::new();
+    std::io::Read::read_to_end(&mut file, &mut bytes)
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    bytes
+}
+
+#[test]
+fn apache_431_bodies_round_trip_and_stay_unadvertised() {
+    for name in [
+        "vote-v0.bin",
+        "vote-v2.bin",
+        "fetch-snapshot-v1.bin",
+        "begin-v1.bin",
+        "end-v1.bin",
+        "update-voter.bin",
+        "voters-record.bin",
+        "fetch-snapshot-response-v1.bin",
+        "describe-quorum-v2.bin",
+    ] {
+        assert_eq!(apache(name), fixture(name), "{name}");
+    }
+    let vote0 = apache("vote-v0.bin");
+    let decoded = protocol::decode_vote_body(&vote0, 0).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_vote_body(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        vote0
+    );
+    let vote2 = apache("vote-v2.bin");
+    let decoded = protocol::decode_vote_body(&vote2, 2).unwrap_or_else(|error| panic!("{error:?}"));
+    assert!(decoded.pre_vote);
+    assert_eq!(
+        protocol::encode_vote_body(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        vote2
+    );
+    let fetch = apache("fetch-snapshot-v1.bin");
+    let decoded =
+        protocol::decode_fetch_snapshot_body(&fetch, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_fetch_snapshot_body(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        fetch
+    );
+    let begin = apache("begin-v1.bin");
+    let decoded =
+        protocol::decode_begin_body(&begin, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_begin_body(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        begin
+    );
+    let end = apache("end-v1.bin");
+    let decoded = protocol::decode_end_body(&end, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_end_body(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        end
+    );
+    let update = apache("update-voter.bin");
+    let decoded =
+        protocol::decode_update_voter(&update).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_update_voter(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        update
+    );
+    let record = apache("voters-record.bin");
+    let decoded =
+        protocol::decode_voters_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_voters_record(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        record
+    );
+    let response = apache("fetch-snapshot-response-v1.bin");
+    let decoded = protocol::decode_fetch_snapshot_response(&response, 1)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_fetch_snapshot_response(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        response
+    );
+    let describe = apache("describe-quorum-v2.bin");
+    let decoded =
+        protocol::decode_describe_quorum(&describe, 2).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.error_message, None);
+    assert_eq!(
+        protocol::encode_describe_quorum(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        describe
+    );
+    let empty = apache("describe-quorum-v2-empty.bin");
+    let decoded =
+        protocol::decode_describe_quorum(&empty, 2).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.error_message.as_deref(), Some(""));
+    assert_eq!(decoded.partition_error_message.as_deref(), Some(""));
+    assert_eq!(
+        protocol::encode_describe_quorum(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        empty
+    );
+    let add0 = apache("add-voter-v0.bin");
+    let decoded = protocol::decode_add_voter(&add0, 0).unwrap_or_else(|error| panic!("{error:?}"));
+    assert!(decoded.ack_when_committed);
+    assert_eq!(
+        protocol::encode_add_voter(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        add0
+    );
+    let add1 = apache("add-voter-v1.bin");
+    let decoded = protocol::decode_add_voter(&add1, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert!(!decoded.ack_when_committed);
+    assert_eq!(decoded.voter_id, 4);
+    assert_eq!(
+        protocol::encode_add_voter(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        add1
+    );
+    let remove = apache("remove-voter.bin");
+    let decoded =
+        protocol::decode_remove_voter(&remove).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.voter_directory, [7u8; 16]);
+    assert_eq!(
+        protocol::encode_remove_voter(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        remove
+    );
+    let peer = [
+        ApiVersion {
+            api_key: 52,
+            min_version: 0,
+            max_version: 2,
+        },
+        ApiVersion {
+            api_key: 53,
+            min_version: 0,
+            max_version: 1,
+        },
+        ApiVersion {
+            api_key: 54,
+            min_version: 0,
+            max_version: 1,
+        },
+        ApiVersion {
+            api_key: 55,
+            min_version: 0,
+            max_version: 2,
+        },
+        ApiVersion {
+            api_key: 59,
+            min_version: 0,
+            max_version: 1,
+        },
+        ApiVersion {
+            api_key: 80,
+            min_version: 0,
+            max_version: 1,
+        },
+        ApiVersion {
+            api_key: 81,
+            min_version: 0,
+            max_version: 0,
+        },
+        ApiVersion {
+            api_key: 82,
+            min_version: 0,
+            max_version: 0,
+        },
+    ];
+    assert_eq!(protocol::negotiate(&peer, 52), Some(0));
+    assert_eq!(protocol::negotiate(&peer, 53), Some(0));
+    assert_eq!(protocol::negotiate(&peer, 54), Some(0));
+    assert_eq!(protocol::negotiate(&peer, 55), None);
+    assert_eq!(protocol::negotiate(&peer, 59), None);
+    assert_eq!(protocol::negotiate(&peer, 80), None);
+    assert_eq!(protocol::negotiate(&peer, 81), None);
+    assert_eq!(protocol::negotiate(&peer, 82), None);
 }
