@@ -1685,10 +1685,17 @@ pub fn decode_remove_voter(bytes: &[u8]) -> Result<RemoveVoterBody, Error> {
 /// Accept a removal without changing `persistent` or the voter set.
 pub fn decide_remove_voter(
     persistent: &election::PersistentState,
+    metadata: MetadataLog<'_>,
     voter_id: i32,
     expected_directory: [u8; 16],
     body: &RemoveVoterBody,
 ) -> VoteDisposition {
+    if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, body.cluster_id.as_deref()) {
+        return VoteDisposition::Refused(refusal);
+    }
+    if let Some(refusal) = negative_voter_id(body.voter_id) {
+        return VoteDisposition::Refused(refusal);
+    }
     directory_change(
         persistent,
         voter_id,
@@ -1759,10 +1766,17 @@ pub fn decode_add_voter(bytes: &[u8], version: i16) -> Result<AddVoterBody, Erro
 /// appended.
 pub fn decide_add_voter(
     persistent: &election::PersistentState,
+    metadata: MetadataLog<'_>,
     voter_id: i32,
     expected_directory: [u8; 16],
     body: &AddVoterBody,
 ) -> VoteDisposition {
+    if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, body.cluster_id.as_deref()) {
+        return VoteDisposition::Refused(refusal);
+    }
+    if let Some(refusal) = negative_voter_id(body.voter_id) {
+        return VoteDisposition::Refused(refusal);
+    }
     directory_change(
         persistent,
         voter_id,
@@ -1824,10 +1838,17 @@ pub fn decode_update_voter(bytes: &[u8]) -> Result<UpdateVoterBody, Error> {
 /// Accept an update without changing `persistent` or the voter set.
 pub fn decide_update_voter(
     persistent: &election::PersistentState,
+    metadata: MetadataLog<'_>,
     voter_id: i32,
     expected_directory: [u8; 16],
     body: &UpdateVoterBody,
 ) -> VoteDisposition {
+    if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, body.cluster_id.as_deref()) {
+        return VoteDisposition::Refused(refusal);
+    }
+    if let Some(refusal) = negative_voter_id(body.voter_id) {
+        return VoteDisposition::Refused(refusal);
+    }
     // Apache `handleUpdateVoterRequest` checks `validateLeaderOnlyRequest`
     // before the voter key. A mismatched epoch does not change listeners.
     if let Some(refusal) = leader_epoch_refusal(persistent, body.current_leader_epoch) {
@@ -2010,6 +2031,14 @@ pub fn decide_update_voter_response(
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     }
     VoteDisposition::NotAdvertised
+}
+
+fn negative_voter_id(voter_id: i32) -> Option<PreVoteRefusal> {
+    if voter_id < 0 {
+        Some(PreVoteRefusal::IllegalEpoch)
+    } else {
+        None
+    }
 }
 
 fn directory_change(
@@ -4493,13 +4522,13 @@ mod prevote_tests {
         let persistent = state(4);
         let before = persistent;
         assert_eq!(
-            decide_remove_voter(&persistent, 7, directory, &removed),
+            decide_remove_voter(&persistent, metadata_log(), 7, directory, &removed),
             VoteDisposition::NotAdvertised
         );
         let mut stale_remove = removed;
         stale_remove.voter_directory = [1u8; 16];
         assert_eq!(
-            decide_remove_voter(&persistent, 7, directory, &stale_remove),
+            decide_remove_voter(&persistent, metadata_log(), 7, directory, &stale_remove),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
         );
         let add = AddVoterBody {
@@ -4522,7 +4551,7 @@ mod prevote_tests {
         let decoded = decode_add_voter(&modern, 1).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(!decoded.ack_when_committed);
         assert_eq!(
-            decide_add_voter(&persistent, 7, directory, &decoded),
+            decide_add_voter(&persistent, metadata_log(), 7, directory, &decoded),
             VoteDisposition::NotAdvertised
         );
         let update = UpdateVoterBody {
@@ -4541,26 +4570,44 @@ mod prevote_tests {
         assert_eq!(updated.kraft_max, 1);
         assert_eq!(updated.listeners[0].port, 9093);
         assert_eq!(
-            decide_update_voter(&persistent, 7, directory, &updated),
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &updated),
             VoteDisposition::NotAdvertised
         );
         let mut older = updated.clone();
         older.current_leader_epoch = 2;
         assert_eq!(
-            decide_update_voter(&persistent, 7, directory, &older),
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         let mut newer = updated.clone();
         newer.current_leader_epoch = 4;
         assert_eq!(
-            decide_update_voter(&persistent, 7, directory, &newer),
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &newer),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut bare = updated;
         bare.listeners.clear();
         assert_eq!(
-            decide_update_voter(&persistent, 7, directory, &bare),
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &bare),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        let mut foreign_remove = stale_remove;
+        foreign_remove.cluster_id = Some("other".to_owned());
+        assert_eq!(
+            decide_remove_voter(&persistent, metadata_log(), 7, directory, &foreign_remove),
+            VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
+        );
+        let mut foreign_update = older;
+        foreign_update.cluster_id = Some("other".to_owned());
+        assert_eq!(
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &foreign_update),
+            VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
+        );
+        let mut negative = decoded;
+        negative.voter_id = -1;
+        assert_eq!(
+            decide_add_voter(&persistent, metadata_log(), 7, directory, &negative),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
         assert!(CONTROLLER_API_VERSIONS

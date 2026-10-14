@@ -2407,6 +2407,7 @@ impl Node {
                 }
                 Ok(protocol::decide_add_voter(
                     &persistent,
+                    metadata,
                     decoded.voter_id,
                     decoded.voter_directory,
                     &decoded,
@@ -2418,6 +2419,7 @@ impl Node {
                 let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_remove_voter(
                     &persistent,
+                    metadata,
                     known_id,
                     known.directory,
                     &decoded,
@@ -2429,6 +2431,7 @@ impl Node {
                 let known_id = i32::try_from(known.id).map_err(|_| Error::InvalidConfig)?;
                 Ok(protocol::decide_update_voter(
                     &persistent,
+                    metadata,
                     known_id,
                     known.directory,
                     &decoded,
