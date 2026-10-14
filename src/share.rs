@@ -678,7 +678,11 @@ pub enum ShareAcquireMode {
 /// on the initial share session (Java `maybeAddAcknowledgements`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
-/// `InvalidRecordStateException` / `INVALID_RESPONSE`).
+/// `InvalidRecordStateException` / `INVALID_RESPONSE`). A successful
+/// ShareAcknowledge that omits a requested partition completes that
+/// partition the same way (Java `processingComplete` /
+/// `testShareAcknowledgeInvalidResponse`). Unrequested ShareAcknowledge
+/// partitions are skipped (Java `lookupTopicId`).
 /// Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 /// invalidate topic metadata so the next poll uses the refreshed id
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
@@ -3254,30 +3258,28 @@ impl ShareGroup {
                 .iter()
                 .flat_map(|t| t.partitions.iter().map(move |(p, _)| (t.topic_id, *p)))
                 .collect();
-            let mut seen = HashSet::new();
-            for topic in &responses {
-                for part in &topic.partitions {
-                    if !expected.contains(&(topic.topic_id, part.partition))
-                        || !seen.insert((topic.topic_id, part.partition))
-                    {
-                        return Err(Error::protocol(
-                            "unrequested or duplicate ShareAcknowledge partition response",
-                        ));
-                    }
-                }
-            }
-            if seen != expected {
-                return Err(Error::protocol(
-                    "ShareAcknowledge omitted a requested partition outcome",
-                ));
-            }
+            let responded = responses.iter().flat_map(|topic| {
+                topic
+                    .partitions
+                    .iter()
+                    .map(move |part| (topic.topic_id, part.partition))
+            });
+            // Java lookupTopicId skips an unknown topic id. Omitted
+            // requested partitions complete with INVALID_RESPONSE
+            // (processingComplete), not a protocol error.
+            let omitted = share_acknowledge_omitted(&expected, responded);
             self.advance_node_epoch(node);
             if version >= 2 && lock_timeout > 0 {
                 self.acquisition_lock_timeout_ms = Some(lock_timeout);
             }
+            let mut processed = HashSet::new();
             for topic in responses {
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
+                    let key = (topic.topic_id, part.partition);
+                    if !expected.contains(&key) || !processed.insert(key) {
+                        continue;
+                    }
                     if part.error_code == 0 {
                         let _ = outcomes.insert((name.clone(), part.partition), None);
                         let matched: Vec<(String, i32, i64)> = self
@@ -3389,6 +3391,42 @@ impl ShareGroup {
                             self.reset_node_session(node);
                         }
                     }
+                }
+            }
+            for (topic_id, partition) in omitted {
+                let name = self.name_for_topic_id(topic_id);
+                let matched: Vec<(String, i32, i64)> = self
+                    .acquisitions
+                    .keys()
+                    .filter(|(t, p, offset)| {
+                        t == &name
+                            && *p == partition
+                            && partitions.iter().any(|(topic, part, batches)| {
+                                topic == t
+                                    && part == p
+                                    && batches.iter().any(|b| {
+                                        *offset >= b.first_offset && *offset <= b.last_offset
+                                    })
+                            })
+                    })
+                    .cloned()
+                    .collect();
+                self.uncount_acknowledgements(matched);
+                self.acquisitions.retain(|(t, p, offset), _| {
+                    !(t == &name
+                        && *p == partition
+                        && partitions.iter().any(|(topic, part, batches)| {
+                            topic == t
+                                && part == p
+                                && batches
+                                    .iter()
+                                    .any(|b| *offset >= b.first_offset && *offset <= b.last_offset)
+                        }))
+                });
+                let error = Error::broker(error::INVALID_RECORD_STATE, SHARE_ACK_INVALID_RESPONSE);
+                let _ = outcomes.insert((name, partition), Some(error.clone()));
+                if first_error.as_ref().is_none_or(share_ack_retriable) {
+                    first_error = Some(error);
                 }
             }
         }
@@ -3891,6 +3929,29 @@ fn share_session_reset(e: &Error) -> bool {
     )
 }
 
+/// Java `AcknowledgeRequestState.processingComplete`: requested
+/// acknowledgements missing from a successful ShareAcknowledge complete
+/// with `InvalidRecordStateException(INVALID_RESPONSE)`. Extra response
+/// partitions are ignored (`lookupTopicId`).
+fn share_acknowledge_omitted(
+    expected: &HashSet<([u8; 16], i32)>,
+    responded: impl IntoIterator<Item = ([u8; 16], i32)>,
+) -> Vec<([u8; 16], i32)> {
+    let mut seen = HashSet::new();
+    for key in responded {
+        if expected.contains(&key) {
+            let _ = seen.insert(key);
+        }
+    }
+    let mut omitted: Vec<_> = expected
+        .iter()
+        .copied()
+        .filter(|tp| !seen.contains(tp))
+        .collect();
+    omitted.sort_unstable();
+    omitted
+}
+
 fn retain_completed_records(
     pending: &mut VecDeque<ShareCompletedFetch>,
     keep: impl Fn(&ShareRecord) -> bool,
@@ -4107,6 +4168,35 @@ mod tests {
         ));
         assert!(!share_fetch_partition_skipped(error::CORRUPT_MESSAGE));
         assert!(!share_fetch_partition_skipped(error::INVALID_RECORD_STATE));
+    }
+
+    #[test]
+    fn share_acknowledge_omitted_matches_java_invalid_response() {
+        let topic = [0x11; 16];
+        let extra = [0xCD; 16];
+        let other = [0x22; 16];
+        let expected = HashSet::from([(topic, 0), (other, 0)]);
+        assert_eq!(
+            share_acknowledge_omitted(&expected, [(topic, 0)]),
+            vec![(other, 0)]
+        );
+        assert!(share_acknowledge_omitted(&expected, [(topic, 0), (other, 0)]).is_empty());
+        assert_eq!(
+            share_acknowledge_omitted(&expected, [(topic, 0), (extra, 0)]),
+            vec![(other, 0)],
+            "Java lookupTopicId skips an unrequested topic id"
+        );
+        assert!(
+            share_acknowledge_omitted(&expected, [(topic, 0), (topic, 0), (other, 0)]).is_empty(),
+            "duplicate requested partitions still count as present"
+        );
+        assert!(matches!(
+            Error::broker(error::INVALID_RECORD_STATE, SHARE_ACK_INVALID_RESPONSE),
+            Error::Broker {
+                code: error::INVALID_RECORD_STATE,
+                ref message,
+            } if message == SHARE_ACK_INVALID_RESPONSE
+        ));
     }
 
     #[test]
