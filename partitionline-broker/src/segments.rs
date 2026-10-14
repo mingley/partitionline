@@ -911,8 +911,7 @@ impl SparseWriter {
         header[24..28].copy_from_slice(&crc32c::crc32c(&entry.payload).to_be_bytes());
         let crc = crc32c::crc32c(&header[..28]);
         header[28..32].copy_from_slice(&crc.to_be_bytes());
-        self.file.write_all(&header)?;
-        self.file.write_all(&entry.payload)?;
+        journal::write_two(&mut self.file, &header, &entry.payload)?;
         self.file.sync_data()?;
         self.next = end;
         self.bytes = bytes;

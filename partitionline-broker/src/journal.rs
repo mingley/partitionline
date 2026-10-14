@@ -19,7 +19,7 @@
 //! implied. File-system/hardware synchronization guarantees still apply.
 
 use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::io::{self, IoSlice, Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
 use std::path::Path;
 
@@ -544,6 +544,26 @@ fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
     header[20..24].copy_from_slice(&checksum.to_be_bytes());
     header
 }
+/// Write `first` then `second` with one vectored transfer.
+pub(crate) fn write_two<W: Write>(w: &mut W, first: &[u8], second: &[u8]) -> io::Result<()> {
+    let mut slices = [IoSlice::new(first), IoSlice::new(second)];
+    let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+    while !bufs.is_empty() {
+        match w.write_vectored(bufs) {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "journal write returned 0",
+                ));
+            }
+            Ok(n) => IoSlice::advance_slices(&mut bufs, n),
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
 fn entry_header(index: Index) -> [u8; ENTRY_HEADER] {
     let mut header = [0; ENTRY_HEADER];
     header[..8].copy_from_slice(ENTRY_MAGIC);
@@ -894,8 +914,8 @@ impl<S: Storage> Engine<S> {
                 return Err(Error::ChangedFile);
             }
             self.storage.seek(SeekFrom::Start(self.file_bytes))?;
-            self.storage.write_all(&entry_header(index))?;
-            self.storage.write_all(payload)?;
+            let header = entry_header(index);
+            write_two(&mut self.storage, &header, payload)?;
             self.storage.synchronize()?;
             Ok(())
         })();
