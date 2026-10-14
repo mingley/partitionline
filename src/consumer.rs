@@ -2011,6 +2011,69 @@ impl WakeupHandle {
     }
 }
 
+/// Send Fetch epoch `-1` on `conn` and leave the socket with that response read.
+async fn send_fetch_session_close(
+    conn: &mut crate::net::BrokerConn,
+    session: &BrokerFetchSession,
+    throttle_until: Option<Instant>,
+    wakeup_tx: &watch::Sender<bool>,
+    cfg: &ConsumerConfig,
+    deadline: Instant,
+) -> Result<()> {
+    if Instant::now() >= deadline || conn.fetch_version() < 7 {
+        return Ok(());
+    }
+    let version = conn.fetch_version();
+    let mut wakeup = wakeup_tx.subscribe();
+    if let Some(until) = throttle_until {
+        // Terminal requests still obey the broker's quota. Drop the close
+        // when the mute outlives the remaining retirement budget.
+        if until >= deadline {
+            return Ok(());
+        }
+        tokio::select! {
+            biased;
+            result = wakeup.wait_for(|on| *on) => {
+                drop(result);
+                return Err(Error::Wakeup);
+            }
+            _ = tokio::time::sleep(until.saturating_duration_since(Instant::now())) => {}
+        }
+    }
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Ok(());
+    }
+    let metadata = session.metadata.next_close_existing();
+    let rack = cfg.rack.clone();
+    let isolation = cfg.isolation_level.as_i8();
+    let max_bytes = cfg.max_bytes;
+    tokio::select! {
+        biased;
+        result = wakeup.wait_for(|on| *on) => {
+            drop(result);
+            Err(Error::Wakeup)
+        }
+        result = conn.roundtrip(FETCH, version, |buf| {
+            encode_fetch_request_with_forgotten(
+                buf,
+                version,
+                0,
+                1,
+                max_bytes,
+                isolation,
+                &[],
+                rack.as_deref(),
+                metadata,
+                &[],
+            )
+        }, remaining) => {
+            drop(result);
+            Ok(())
+        }
+    }
+}
+
 impl Consumer {
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
@@ -3219,48 +3282,40 @@ impl Consumer {
             if session.metadata.session_id() == FetchMetadata::INVALID_SESSION_ID {
                 continue;
             }
+            let throttle_until = self.fetch_throttles.get(&node).copied();
+            let uses_bootstrap = !self.conns.contains_key(&node)
+                && self
+                    .cluster
+                    .brokers
+                    .get(&node)
+                    .is_some_and(|addr| addr == self.conn.addr());
+            if uses_bootstrap {
+                // One-node fetch keeps this leader on the bootstrap socket.
+                send_fetch_session_close(
+                    &mut self.conn,
+                    &session,
+                    throttle_until,
+                    &self.wakeup_tx,
+                    &self.cfg,
+                    deadline,
+                )
+                .await?;
+                continue;
+            }
             let Some(mut conn) = self.conns.remove(&node) else {
                 continue;
             };
-            if Instant::now() >= deadline || conn.fetch_version() < 7 {
-                continue;
-            }
-            let version = conn.fetch_version();
-            let mut wakeup = self.wakeup_tx.subscribe();
-            if let Some(until) = self.fetch_throttles.get(&node).copied() {
-                // Terminal requests still obey the broker's quota. An owned
-                // connection can be dropped immediately when its mute outlives
-                // the remaining retirement budget.
-                if until >= deadline {
-                    continue;
-                }
-                tokio::select! {
-                    biased;
-                    result = wakeup.wait_for(|on| *on) => {
-                        drop(result);
-                        return Err(Error::Wakeup);
-                    }
-                    _ = tokio::time::sleep(until.saturating_duration_since(Instant::now())) => {}
-                }
-            }
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                continue;
-            }
-            tokio::select! {
-                biased;
-                result = wakeup.wait_for(|on| *on) => {
-                    drop(result);
-                    return Err(Error::Wakeup);
-                }
-                result = conn.roundtrip(FETCH, version, |buf| {
-                    encode_fetch_request_with_forgotten(buf, version, 0, 1, self.cfg.max_bytes,
-                        self.cfg.isolation_level.as_i8(), &[], self.cfg.rack.as_deref(),
-                        session.metadata.next_close_existing(), &[])
-                }, remaining) => { drop(result); }
-            }
-            // Even an interrupted/failed retirement cannot leave a reused
-            // socket with an unread response or an uncertain session epoch.
+            send_fetch_session_close(
+                &mut conn,
+                &session,
+                throttle_until,
+                &self.wakeup_tx,
+                &self.cfg,
+                deadline,
+            )
+            .await?;
+            // The dedicated socket is dropped with its close response. An
+            // interrupted roundtrip must not be reused with an unread frame.
         }
         Ok(())
     }

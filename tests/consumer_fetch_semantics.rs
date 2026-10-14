@@ -3390,6 +3390,35 @@ async fn incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versio
 }
 
 #[tokio::test]
+async fn one_node_close_sends_final_fetch_session_epoch() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let open = mock.fetch_session_requests();
+    assert_eq!(open.len(), 2);
+    assert!(open[1].3.session_id() > 0);
+    assert_eq!(open[1].3.epoch(), 1);
+    consumer.close().await.unwrap();
+    let requests = mock.fetch_session_requests();
+    let close = requests.last().expect("final fetch session request");
+    assert_eq!(
+        close.3.epoch(),
+        partitionline::protocol::fetch::FetchMetadata::FINAL_EPOCH,
+        "closing a one-node consumer must retire the fetch session on the bootstrap socket"
+    );
+    assert_eq!(close.3.session_id(), open[1].3.session_id());
+}
+
+#[tokio::test]
 async fn incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets() {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 4);
