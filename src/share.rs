@@ -543,6 +543,9 @@ pub struct ShareGroup {
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
+    /// Member id shared with the heartbeat task so a broker-rotated id is used
+    /// on the next heartbeat, fetch, and acknowledge.
+    hb_member_id: Arc<Mutex<String>>,
     /// Topics sent when the background heartbeat rejoins at epoch 0.
     hb_topics: Arc<Mutex<Vec<String>>>,
     /// Pending assignment from the background heartbeat task.
@@ -698,6 +701,7 @@ impl ShareGroup {
         let hb_epoch = Arc::new(AtomicI32::new(
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
         ));
+        let hb_member_id = Arc::new(Mutex::new(member_id.clone()));
         let hb_topics = Arc::new(Mutex::new(topics.clone()));
         let hb_assignment = Arc::new(Mutex::new(None));
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
@@ -725,6 +729,7 @@ impl ShareGroup {
             acquisition_lock_timeout_ms: None,
             hb_err,
             hb_epoch,
+            hb_member_id,
             hb_topics,
             hb_assignment,
             hb_interval_ms,
@@ -872,6 +877,21 @@ impl ShareGroup {
         self.consumer.client_instance_id_timeout(timeout).await
     }
 
+    fn note_share_member_id(&mut self, id: &str) {
+        if id.is_empty() {
+            return;
+        }
+        self.member_id = id.to_string();
+        *self.hb_member_id.lock() = self.member_id.clone();
+    }
+
+    fn adopt_share_member_id(&mut self) {
+        let id = self.hb_member_id.lock().clone();
+        if !id.is_empty() {
+            self.member_id = id;
+        }
+    }
+
     fn publish_hb_topics(&self) {
         *self.hb_topics.lock() = self.topics.clone();
     }
@@ -937,9 +957,7 @@ impl ShareGroup {
             *self.hb_deadline.lock() = Some(hb_deadline);
             self.hb_wake.notify_one();
             if let Some(id) = resp.member_id {
-                if !id.is_empty() {
-                    self.member_id = id;
-                }
+                self.note_share_member_id(&id);
             }
             if resp.member_epoch > 0 {
                 self.member_epoch = resp.member_epoch;
@@ -1072,9 +1090,7 @@ impl ShareGroup {
                 self.hb_wake.notify_one();
             }
             if let Some(id) = resp.member_id {
-                if !id.is_empty() {
-                    self.member_id = id;
-                }
+                self.note_share_member_id(&id);
             }
             if resp.member_epoch > 0 {
                 self.member_epoch = resp.member_epoch;
@@ -1103,6 +1119,7 @@ impl ShareGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        self.adopt_share_member_id();
         if self.topics.is_empty() && self.topic_match.is_none() {
             return Err(reject_java_share_not_subscribed());
         }
@@ -1803,6 +1820,7 @@ impl ShareGroup {
         self.topic_ids.clear();
         self.share_epochs.clear();
         self.member_id.clear();
+        self.hb_member_id.lock().clear();
         *self.hb_assignment.lock() = None;
         self.member_epoch = ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
         self.hb_epoch.store(
@@ -1863,6 +1881,7 @@ impl ShareGroup {
             return Ok(());
         }
         self.member_id = Uuid::random_uuid().to_string();
+        *self.hb_member_id.lock() = self.member_id.clone();
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
         self.heartbeat_join().await?;
@@ -1907,6 +1926,7 @@ impl ShareGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        self.adopt_share_member_id();
         if recs.is_empty() {
             return Ok(());
         }
@@ -2239,6 +2259,7 @@ impl ShareGroup {
     }
 
     async fn leave_coordinator(&mut self) -> Result<()> {
+        self.adopt_share_member_id();
         let timeout = self.cfg.request_timeout;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
@@ -2285,7 +2306,7 @@ impl ShareGroup {
 
     fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
-        let member_id = self.member_id.clone();
+        let hb_member_id = self.hb_member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
         let hb_topics = self.hb_topics.clone();
@@ -2379,6 +2400,7 @@ impl ShareGroup {
                             if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
                             continue;
                         };
+                        let member_id = hb_member_id.lock().clone();
                         let req = ShareGroupHeartbeatRequest {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
@@ -2411,6 +2433,11 @@ impl ShareGroup {
                                         if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
+                                        if let Some(id) = resp.member_id.as_deref() {
+                                            if !id.is_empty() {
+                                                *hb_member_id.lock() = id.to_string();
+                                            }
+                                        }
                                         hb_epoch.store(
                                             share_heartbeat_epoch(
                                                 resp.error_code,
