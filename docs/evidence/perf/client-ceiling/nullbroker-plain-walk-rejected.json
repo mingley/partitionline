@@ -1,0 +1,21 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "b7266ec77bea3762e32f112c503b4e6500950173",
+  "cell": "nb-produce-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The candidate walked uncompressed no-header records with one- and two-byte varints by slicing, and left every other shape on the generic cursor. Twelve interleaved pairs on one host, alternating which broker ran first. Every run acknowledged 20,000 records and validation_failures stayed 0. Paired mean records/s ratio 0.987, bootstrap 95% CI 0.938 to 1.026. Seven of twelve pairs were slower. Client CPU-nanoseconds per record medians were 1,121.38 before and 1,154.35 after. Broker user-CPU samples from wait4 are coarse on these short runs (several zeros) and do not establish a wall-clock win. The code was not kept.",
+  "host": "Intel Xeon, 4 logical cores at 2400 MHz, Linux 6.12.94+, rustc 1.99.0, release",
+  "before_median": 893220.34,
+  "after_median": 876519.66,
+  "paired_mean_ratio": 0.9867,
+  "paired_ratio_ci95": [0.9383, 1.0258],
+  "pairs": 12,
+  "slower_pairs": 7,
+  "before_records_per_second": [784945.78, 803463.8, 925569.8, 964311.37, 885055.14, 917003.86, 865200.54, 901385.54, 879719.59, 865510.83, 901832.1, 908731.18],
+  "after_records_per_second": [794256.13, 872117.94, 925474.37, 953576.92, 880921.37, 853321.61, 903972.53, 900121.73, 941415.88, 870825.79, 844710.81, 701108.82],
+  "before_client_cpu_ns_per_record": [1281.45, 1260.05, 1094.1, 1052.95, 1133.75, 1105.0, 1169.2, 1120.7, 1149.55, 1088.05, 1122.05, 1112.25],
+  "after_client_cpu_ns_per_record": [1271.2, 1162.0, 1091.7, 1061.05, 1146.7, 1184.5, 1118.3, 1123.95, 1073.35, 1165.8, 1190.35, 1432.4]
+}
