@@ -1920,19 +1920,30 @@ impl Worker {
                     state.metadata_requests += 1;
                 }
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
-                let topics = topics.as_deref().unwrap_or(&[]);
-                // Remember id -> name so Fetch-by-ID resolves.
+                // A null topic array means every topic, matching Kafka. An empty
+                // array stays empty. Named topics are remembered for Fetch-by-ID.
+                let mut known = Vec::new();
                 if let Ok(mut state) = self.state.lock() {
-                    for topic in topics {
-                        if let Some(name) = topic.name.as_deref() {
-                            if !name.is_empty() {
-                                state
-                                    .topic_ids
-                                    .insert(synth::topic_id(name), name.to_owned());
+                    if let Some(requested) = topics.as_ref() {
+                        for topic in requested {
+                            if let Some(name) = topic.name.as_deref() {
+                                if !name.is_empty() {
+                                    state
+                                        .topic_ids
+                                        .insert(synth::topic_id(name), name.to_owned());
+                                }
                             }
                         }
+                    } else {
+                        let mut names: Vec<String> = state.topic_ids.values().cloned().collect();
+                        names.sort();
+                        known = names
+                            .into_iter()
+                            .map(|name| MetadataRequestTopic { name: Some(name) })
+                            .collect();
                     }
                 }
+                let topics = topics.as_deref().unwrap_or(known.as_slice());
                 encode_metadata_response(
                     &mut out,
                     api_version,

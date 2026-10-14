@@ -779,6 +779,38 @@ fn connect(port: u16) -> TcpStream {
     stream
 }
 
+fn metadata_all_body() -> Vec<u8> {
+    let mut body = Vec::new();
+    put_uvarint(&mut body, 0); // null array: every known topic
+    body.push(1);
+    body.push(0);
+    put_uvarint(&mut body, 0);
+    body
+}
+
+fn first_metadata_topic(frame: &[u8]) -> (u32, String) {
+    let mut cur = Cur::new(frame);
+    let _ = cur.i32();
+    cur.skip_tags();
+    let _ = cur.i32();
+    let brokers = cur.uvarint() - 1;
+    for _ in 0..brokers {
+        let _ = cur.i32();
+        let _ = cur.compact_string();
+        let _ = cur.i32();
+        let _ = cur.compact_string();
+        cur.skip_tags();
+    }
+    let _ = cur.compact_string();
+    let _ = cur.i32();
+    let count = cur.uvarint() - 1;
+    if count == 0 {
+        return (0, String::new());
+    }
+    let _ = cur.i16();
+    (count, cur.compact_string().unwrap_or_default())
+}
+
 fn metadata_body(topic: &str) -> Vec<u8> {
     let mut body = Vec::new();
     put_uvarint(&mut body, 2); // 1 topic
@@ -1331,6 +1363,32 @@ fn empty_synthetic_log_lists_offsets_assigned_by_produce() {
         found,
         "assigned base offset 1 was not written into the fetched log"
     );
+    drop(stream);
+    broker.shutdown();
+    handle.join().unwrap();
+}
+
+#[test]
+fn null_metadata_lists_topics_learned_by_name() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let broker = Arc::new(
+        NullBroker::with_listener(&listener, 6, nullbroker::synth::SynthConfig::default()).unwrap(),
+    );
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    let (count, name) = first_metadata_topic(&rpc.call(3, 13, &metadata_all_body()));
+    assert_eq!((count, name.as_str()), (0, ""));
+    let _ = rpc.call(3, 13, &metadata_body("orders"));
+    let (count, name) = first_metadata_topic(&rpc.call(3, 13, &metadata_all_body()));
+    assert_eq!((count, name.as_str()), (1, "orders"));
     drop(stream);
     broker.shutdown();
     handle.join().unwrap();
