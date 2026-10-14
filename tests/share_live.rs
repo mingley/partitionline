@@ -332,6 +332,115 @@ async fn share_release_then_reject_against_local_broker() {
     );
 }
 
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_two_members_same_partition_against_local_broker() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let topic = format!("pl-share-two-{suffix}");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(&[NewTopic::new(&topic, 1, 1)], 30_000, false)
+        .await
+        .expect("create share topic");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let group = format!("pl-share-two-{suffix}");
+    let cfg = ConsumerConfig::bootstrap([bootstrap.clone()])
+        .max_wait_ms(500)
+        .max_poll_records(1);
+    let mut a = ShareGroup::join(cfg.clone(), group.clone(), topic.clone())
+        .await
+        .expect("share join A");
+    wait_assigned_and_warmup(&mut a, &topic)
+        .await
+        .expect("A assignment");
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::ZERO))
+            .await
+            .expect("producer");
+    let first = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"share-a"[..]))
+        .await
+        .expect("produce first");
+    let recs_a = poll_until(&mut a, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == first.offset)
+    })
+    .await
+    .expect("A acquire");
+    let mut b = ShareGroup::join(cfg, group, topic.clone())
+        .await
+        .expect("share join B");
+    wait_assigned_and_warmup(&mut b, &topic)
+        .await
+        .expect("B assignment");
+    let second = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"share-b"[..]))
+        .await
+        .expect("produce second");
+    producer.close().await.expect("producer close");
+    let recs_b = poll_until(&mut b, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == second.offset)
+    })
+    .await
+    .expect("B acquire");
+    assert_eq!(recs_a[0].partition, recs_b[0].partition);
+    assert_ne!(
+        recs_a[0].offset, recs_b[0].offset,
+        "members must not share an acquired offset"
+    );
+    assert!(
+        recs_b.iter().all(|r| r.offset != first.offset),
+        "B must not steal A's unacknowledged lock {}@{}",
+        first.topic,
+        first.offset
+    );
+    a.accept(&recs_a).await.expect("A accept");
+    b.accept(&recs_b).await.expect("B accept");
+    a.leave().await.expect("A leave");
+    b.leave().await.expect("B leave");
+    admin.close().await.expect("admin close");
+    eprintln!(
+        "share live two-member ok A={}@{} B={}@{}",
+        first.topic, first.offset, second.topic, second.offset
+    );
+}
+
+async fn wait_assigned_and_warmup(g: &mut ShareGroup, topic: &str) -> partitionline::Result<()> {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+        if names.iter().any(|n| n == topic) {
+            let _warmup = g.poll().await?;
+            return Ok(());
+        }
+        let _recs = g.poll().await?;
+        if Instant::now() >= deadline {
+            return Err(partitionline::Error::protocol(format!(
+                "share assignment never included {topic}"
+            )));
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
 async fn poll_until(
     g: &mut ShareGroup,
     deadline: Instant,
