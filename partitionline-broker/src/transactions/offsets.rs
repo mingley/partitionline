@@ -1,9 +1,11 @@
 //! Transactional consumer-offset commits.
 //!
 //! Data records and group offsets staged by one producer epoch stay hidden
-//! until that epoch commits. An abort hides both. A later committed epoch of
-//! the same producer can publish new offsets. A stale group generation or an
-//! older producer epoch stores nothing. Repeating a commit after a lost
+//! until that epoch's marker commits them. A marker decides only the records
+//! written since the previous marker, so the same epoch can start another
+//! transaction. An abort hides its own records. A later committed epoch of the
+//! same producer can publish new offsets. A stale group generation or an older
+//! producer epoch stores nothing. Repeating a commit after a lost
 //! acknowledgement returns success and does not append another marker.
 //!
 //! The log is journaled, so reopen shows the same committed offsets and data.
@@ -11,7 +13,6 @@
 
 use crate::catalog;
 use crate::journal::{self, Journal};
-use std::collections::BTreeMap;
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLTXNO01";
@@ -244,11 +245,14 @@ impl TxnOffsets {
         })
     }
 
-    /// Commit or abort this producer epoch. A repeat of the same decision is a no-op.
+    /// Commit or abort the open transaction for this producer epoch.
+    ///
+    /// A repeat of that decision, with no data or offset staged after it, is a
+    /// no-op. Records staged after the marker belong to the next transaction.
     pub fn marker(&mut self, producer_id: i64, epoch: i16, commit: bool) -> Result<(), Error> {
         self.ready()?;
         self.check_epoch(producer_id, epoch)?;
-        if let Some(stored) = self.marker_for(producer_id, epoch) {
+        if let Some(stored) = self.trailing_marker(producer_id, epoch) {
             if stored != commit {
                 return Err(Error::ConflictingMarker);
             }
@@ -264,16 +268,16 @@ impl TxnOffsets {
     /// Application ids whose transaction has committed and is stable.
     pub fn visible_data(&self) -> Vec<u64> {
         let stable = self.last_stable();
-        let markers = self.markers();
         self.rows
             .iter()
+            .enumerate()
             .take(stable)
-            .filter_map(|row| match row {
+            .filter_map(|(index, row)| match row {
                 Row::Data {
                     producer_id,
                     epoch,
                     id,
-                } if markers.get(&(*producer_id, *epoch)) == Some(&true) => Some(*id),
+                } if self.closing_marker(*producer_id, *epoch, index) == Some(true) => Some(*id),
                 _ => None,
             })
             .collect()
@@ -282,11 +286,11 @@ impl TxnOffsets {
     /// Group offsets whose transaction has committed and is stable.
     pub fn visible_offsets(&self) -> Vec<VisibleOffset> {
         let stable = self.last_stable();
-        let markers = self.markers();
         self.rows
             .iter()
+            .enumerate()
             .take(stable)
-            .filter_map(|row| match row {
+            .filter_map(|(index, row)| match row {
                 Row::Offset {
                     producer_id,
                     epoch,
@@ -296,21 +300,22 @@ impl TxnOffsets {
                     topic,
                     partition,
                     offset,
-                } if markers.get(&(*producer_id, *epoch)) == Some(&true) => Some(VisibleOffset {
-                    group: group.clone(),
-                    member: member.clone(),
-                    topic: topic.clone(),
-                    partition: *partition,
-                    offset: *offset,
-                    generation: *generation,
-                }),
+                } if self.closing_marker(*producer_id, *epoch, index) == Some(true) => {
+                    Some(VisibleOffset {
+                        group: group.clone(),
+                        member: member.clone(),
+                        topic: topic.clone(),
+                        partition: *partition,
+                        offset: *offset,
+                        generation: *generation,
+                    })
+                }
                 _ => None,
             })
             .collect()
     }
 
     fn last_stable(&self) -> usize {
-        let markers = self.markers();
         for (index, row) in self.rows.iter().enumerate() {
             let key = match row {
                 Row::Data {
@@ -321,8 +326,8 @@ impl TxnOffsets {
                 } => Some((*producer_id, *epoch)),
                 Row::Marker { .. } => None,
             };
-            if let Some(key) = key {
-                if !markers.contains_key(&key) {
+            if let Some((producer_id, epoch)) = key {
+                if self.closing_marker(producer_id, epoch, index).is_none() {
                     return index;
                 }
             }
@@ -330,23 +335,45 @@ impl TxnOffsets {
         self.rows.len()
     }
 
-    fn markers(&self) -> BTreeMap<(i64, i16), bool> {
-        let mut markers = BTreeMap::new();
-        for row in &self.rows {
+    fn closing_marker(&self, producer_id: i64, epoch: i16, index: usize) -> Option<bool> {
+        for row in self.rows.iter().skip(index.saturating_add(1)) {
             if let Row::Marker {
-                producer_id,
-                epoch,
+                producer_id: id,
+                epoch: stored,
                 commit,
             } = row
             {
-                markers.insert((*producer_id, *epoch), *commit);
+                if *id == producer_id && *stored == epoch {
+                    return Some(*commit);
+                }
             }
         }
-        markers
+        None
     }
 
-    fn marker_for(&self, producer_id: i64, epoch: i16) -> Option<bool> {
-        self.markers().get(&(producer_id, epoch)).copied()
+    fn trailing_marker(&self, producer_id: i64, epoch: i16) -> Option<bool> {
+        let mut marker = None;
+        for row in &self.rows {
+            match row {
+                Row::Data {
+                    producer_id: id,
+                    epoch: stored,
+                    ..
+                }
+                | Row::Offset {
+                    producer_id: id,
+                    epoch: stored,
+                    ..
+                } if *id == producer_id && *stored == epoch => marker = None,
+                Row::Marker {
+                    producer_id: id,
+                    epoch: stored,
+                    commit,
+                } if *id == producer_id && *stored == epoch => marker = Some(*commit),
+                _ => {}
+            }
+        }
+        marker
     }
 
     fn generation_for(&self, group: &str) -> Option<i32> {
@@ -661,5 +688,57 @@ mod tests {
         assert_eq!(restored_offsets[0].offset, 11);
         assert_eq!(restored_offsets[0].member, "m-1");
         assert!(restored.visible_data().iter().all(|id| *id != 10));
+    }
+
+    #[test]
+    fn a_later_transaction_in_the_same_epoch_does_not_publish_early() {
+        let (mut log, path) = open("same-epoch");
+        log.append_data(4, 0, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.stage_offset(4, 0, staged("orders", "m-1", 2, "orders", 0, 10))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.marker(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.append_data(4, 0, 11)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.stage_offset(4, 0, staged("orders", "m-1", 3, "orders", 1, 12))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.visible_data(), vec![10]);
+        assert_eq!(log.visible_offsets().len(), 1);
+        assert_eq!(log.visible_offsets()[0].offset, 10);
+        let before = log.rows.len();
+        log.marker(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.marker(4, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.rows.len(), before.saturating_add(1));
+        assert_eq!(log.visible_data(), vec![10, 11]);
+        let visible = log.visible_offsets();
+        assert_eq!(visible.len(), 2);
+        assert_eq!(visible[1].offset, 12);
+        assert!(matches!(
+            log.marker(4, 0, false),
+            Err(Error::ConflictingMarker)
+        ));
+        log.append_data(4, 0, 13)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.stage_offset(4, 0, staged("orders", "m-1", 4, "orders", 2, 14))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.marker(4, 0, false)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(log.visible_data(), vec![10, 11]);
+        assert!(log
+            .visible_offsets()
+            .iter()
+            .all(|offset| offset.offset != 14));
+        drop(log);
+        let restored =
+            TxnOffsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.visible_data(), vec![10, 11]);
+        assert_eq!(restored.visible_offsets().len(), 2);
+        assert!(restored
+            .visible_offsets()
+            .iter()
+            .all(|offset| offset.offset != 14));
     }
 }
