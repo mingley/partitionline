@@ -27,11 +27,11 @@ mod fetch_fixture;
 
 mod common;
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use partitionline::error::{NOT_LEADER_OR_FOLLOWER, OFFSET_OUT_OF_RANGE};
 use partitionline::protocol::api::{
     encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
@@ -47,7 +47,8 @@ use partitionline::protocol::header::{
     RequestHeader,
 };
 use partitionline::protocol::records::{
-    ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+    decode_record_batch, encode_record_batch, ControlRecordType, EndTransactionMarker, Record,
+    RecordBatch,
 };
 use partitionline::{
     AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, ProduceRecord,
@@ -1545,6 +1546,248 @@ async fn fetch_offset_filter_sparse_and_compacted_offsets() {
 
     consumer.close().await.expect("consumer closes cleanly");
     broker.shutdown().await;
+}
+
+/// A compacted batch can carry an offset gap: two records, deltas 0 and 5.
+/// The record encoder writes dense deltas, so the fixture patches the second
+/// delta after encoding. Fetching past every record must still adopt that
+/// batch's leader epoch, because the next offset is the last record plus one
+/// (`6`), not `base + count` (`2`).
+#[tokio::test]
+async fn gapped_batch_below_fetch_offset_records_leader_epoch() {
+    let (dense, gapped) = gapped_offset_batch();
+    let decoded = decode_record_batch(&mut gapped.as_slice()).expect("gapped batch decodes");
+    assert_eq!(
+        decoded
+            .records
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![0, 5]
+    );
+    assert_eq!(decoded.partition_leader_epoch, 9);
+
+    let second_epoch = Arc::new(AtomicI32::new(i32::MIN));
+    let epoch_slot = Arc::clone(&second_epoch);
+    let patched = Arc::new(AtomicUsize::new(0));
+    let patched_slot = Arc::clone(&patched);
+    let dense_bytes = dense.clone();
+    let gapped_bytes = gapped.clone();
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler_patch(
+        "t",
+        1,
+        move |topics, attempt| {
+            if attempt >= 1 {
+                if let Some(epoch) = topics
+                    .first()
+                    .and_then(|topic| topic.partitions.first())
+                    .map(|partition| partition.last_fetched_epoch)
+                {
+                    epoch_slot.store(epoch, Ordering::SeqCst);
+                }
+            }
+            gapped_fetch_topic()
+        },
+        move |response| {
+            if let Some(start) = response
+                .windows(dense_bytes.len())
+                .position(|window| window == dense_bytes.as_slice())
+            {
+                let end = start + gapped_bytes.len();
+                response
+                    .get_mut(start..end)
+                    .expect("patch range")
+                    .copy_from_slice(&gapped_bytes);
+                let _ = patched_slot.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+    )
+    .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+    consumer
+        .assign("t", 0, 6)
+        .await
+        .expect("assign past the gapped batch");
+    let skipped = consumer.fetch().await.expect("fetch the gapped batch");
+    assert!(
+        skipped.is_empty(),
+        "records below offset 6 must not be delivered"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 6)],
+        "cursor must stay at 6"
+    );
+    assert!(
+        patched.load(Ordering::SeqCst) >= 1,
+        "fetch response must carry the gapped batch"
+    );
+
+    let _ = consumer.fetch().await.expect("second fetch");
+    assert_eq!(
+        second_epoch.load(Ordering::SeqCst),
+        9,
+        "LastFetchedEpoch must come from the gapped batch even though every record was skipped"
+    );
+
+    consumer.seek("t", 0, 0).expect("seek to the batch base");
+    let records = consumer.fetch().await.expect("fetch from offset 0");
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![0, 5],
+        "both gapped records are delivered from offset 0"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 6)],
+        "cursor must advance to the last record offset plus one, not base + count"
+    );
+
+    consumer.seek("t", 0, 3).expect("seek into the gap");
+    let records = consumer.fetch().await.expect("fetch from offset 3");
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![5],
+        "only the record at offset 5 is at or above the gap"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 6)],
+        "cursor must still advance past offset 5"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+fn gapped_fetch_topic() -> Vec<FetchedTopic> {
+    let mut batch = RecordBatch::from_records(vec![
+        Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k0")),
+            value: Some(Bytes::from_static(b"v0")),
+            headers: Vec::new(),
+        },
+        Record {
+            offset: 0,
+            timestamp: 2,
+            key: Some(Bytes::from_static(b"k5")),
+            value: Some(Bytes::from_static(b"v5")),
+            headers: Vec::new(),
+        },
+    ]);
+    batch.partition_leader_epoch = 9;
+    vec![FetchedTopic {
+        topic: "t".to_string(),
+        topic_id: [0u8; 16],
+        partitions: vec![{
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 6;
+            part.last_stable_offset = 6;
+            part.records = vec![batch];
+            part
+        }],
+    }]
+}
+
+fn gapped_offset_batch() -> (Vec<u8>, Vec<u8>) {
+    let mut dense = BytesMut::new();
+    let batch = gapped_fetch_topic()
+        .pop()
+        .expect("topic")
+        .partitions
+        .pop()
+        .expect("partition")
+        .records
+        .pop()
+        .expect("batch");
+    encode_record_batch(&mut dense, &batch).expect("encode dense batch");
+    let mut gapped = dense.to_vec();
+    retarget_second_offset_delta(&mut gapped, 5);
+    (dense.to_vec(), gapped)
+}
+
+fn retarget_second_offset_delta(batch: &mut [u8], delta: i32) {
+    let mut index = 61;
+    index = skip_plain_record(batch, index);
+    let (_body_len, mut cursor) = read_zigzag_i32(batch, index);
+    cursor += 1;
+    let (_timestamp_delta, next) = read_zigzag_i64(batch, cursor);
+    cursor = next;
+    let (_old_delta, next) = read_zigzag_i32(batch, cursor);
+    let encoded = encode_zigzag_i32(delta);
+    assert_eq!(
+        next - cursor,
+        encoded.len(),
+        "replacement offset delta must keep the record width"
+    );
+    batch
+        .get_mut(cursor..next)
+        .expect("offset delta")
+        .copy_from_slice(&encoded);
+    let crc = crc32c::crc32c(batch.get(21..).expect("crc input"));
+    batch
+        .get_mut(17..21)
+        .expect("crc field")
+        .copy_from_slice(&crc.to_be_bytes());
+}
+
+fn skip_plain_record(batch: &[u8], index: usize) -> usize {
+    let (body_len, cursor) = read_zigzag_i32(batch, index);
+    cursor + usize::try_from(body_len).expect("record body")
+}
+
+fn read_zigzag_i32(batch: &[u8], index: usize) -> (i32, usize) {
+    let (raw, next) = read_unsigned_varint(batch, index);
+    let decoded = ((raw >> 1) as i32) ^ -((raw & 1) as i32);
+    (decoded, next)
+}
+
+fn read_zigzag_i64(batch: &[u8], index: usize) -> (i64, usize) {
+    let (raw, next) = read_unsigned_varint(batch, index);
+    let raw = u64::from(raw);
+    let decoded = ((raw >> 1) as i64) ^ -((raw & 1) as i64);
+    (decoded, next)
+}
+
+fn read_unsigned_varint(batch: &[u8], mut index: usize) -> (u32, usize) {
+    let mut value = 0u32;
+    let mut shift = 0;
+    loop {
+        let byte = batch.get(index).copied().expect("varint byte");
+        index += 1;
+        value |= u32::from(byte & 0x7f) << shift;
+        if byte & 0x80 == 0 {
+            return (value, index);
+        }
+        shift += 7;
+    }
+}
+
+fn encode_zigzag_i32(value: i32) -> Vec<u8> {
+    let mut bits = ((value << 1) ^ (value >> 31)) as u32;
+    let mut out = Vec::new();
+    loop {
+        let mut byte = (bits & 0x7f) as u8;
+        bits >>= 7;
+        if bits != 0 {
+            byte |= 0x80;
+        }
+        out.push(byte);
+        if bits == 0 {
+            return out;
+        }
+    }
 }
 
 /// Verify that fetch offset filtering applies per-partition across multiple partitions

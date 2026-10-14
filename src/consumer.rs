@@ -4212,8 +4212,14 @@ impl Consumer {
                         let mark_bytes = *out_bytes;
                         let mut added = 0usize;
                         let mut added_records = 0u64;
-                        let mut last_off = None;
+                        // Last record in the batch, including ones below
+                        // `req_offset`. A compacted gap can make that offset
+                        // plus one larger than `base + count`.
+                        let mut last_record_off = None;
+                        // Highest `offset + 1` among records that are delivered.
+                        let mut included_next: Option<i64> = None;
                         let visited = encoded.try_visit_short_keys(|rec| {
+                            last_record_off = Some(rec.offset);
                             if rec.offset < req_offset {
                                 return;
                             }
@@ -4221,7 +4227,10 @@ impl Consumer {
                             let val_len = rec.value.as_ref().map_or(0, Bytes::len);
                             added = added.saturating_add(key_len.saturating_add(val_len));
                             added_records = added_records.saturating_add(1);
-                            last_off = Some(rec.offset);
+                            included_next = Some(
+                                included_next
+                                    .map_or(rec.offset + 1, |current| current.max(rec.offset + 1)),
+                            );
                             out.push(FetchedRecord {
                                 topic: TopicName::from(name.as_str()),
                                 partition: part.partition,
@@ -4272,8 +4281,12 @@ impl Consumer {
                             }
                             let count_i64 = i64::try_from(meta.count).unwrap_or(i64::MAX);
                             let next_off = meta.base_offset.saturating_add(count_i64);
-                            let batch_next =
-                                last_off.map_or(next_off, |offset| (offset + 1).max(next_off));
+                            let batch_next = last_record_off
+                                .map_or(next_off, |offset| (offset + 1).max(next_off));
+                            if let Some(advanced) = included_next {
+                                next = Some(next.map_or(advanced, |c| c.max(advanced)));
+                                last_epoch = meta.partition_leader_epoch;
+                            }
                             if batch_next >= req_offset {
                                 next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
                                 last_epoch = meta.partition_leader_epoch;

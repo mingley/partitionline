@@ -183,6 +183,7 @@ impl FixtureBroker {
             partition_count,
             Arc::new(move |topics, attempt| build_fetch_response(scenario, topics, attempt)),
             fetch_max_version,
+            None,
         )
         .await
     }
@@ -192,7 +193,30 @@ impl FixtureBroker {
     where
         F: Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync + 'static,
     {
-        Self::start_internal(topic, partition_count, Arc::new(handler), 12).await
+        Self::start_internal(topic, partition_count, Arc::new(handler), 12, None).await
+    }
+
+    /// Like [`Self::start_with_handler`], then rewrite the encoded Fetch
+    /// response. Used to inject a wire shape the record encoder does not
+    /// emit, such as an in-batch offset gap.
+    pub async fn start_with_handler_patch<F, P>(
+        topic: &str,
+        partition_count: usize,
+        handler: F,
+        patch: P,
+    ) -> Self
+    where
+        F: Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync + 'static,
+        P: Fn(&mut BytesMut) + Send + Sync + 'static,
+    {
+        Self::start_internal(
+            topic,
+            partition_count,
+            Arc::new(handler),
+            12,
+            Some(Arc::new(patch)),
+        )
+        .await
     }
 
     async fn start_internal(
@@ -200,6 +224,7 @@ impl FixtureBroker {
         partition_count: usize,
         fetch_handler: Arc<dyn Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync>,
         fetch_max_version: i16,
+        response_patch: Option<Arc<dyn Fn(&mut BytesMut) + Send + Sync>>,
     ) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
@@ -235,6 +260,7 @@ impl FixtureBroker {
                         let attempts = Arc::clone(&attempts_outer);
                         let last_fetch_version = Arc::clone(&last_fetch_version_outer);
                         let handler = Arc::clone(&fetch_handler);
+                        let response_patch = response_patch.clone();
                         let topic_name = topic_name.clone();
                         let partition_count = partition_count;
 
@@ -340,6 +366,9 @@ impl FixtureBroker {
                                         let fetched_topics = handler(&topics, attempt);
                                         if encode_fetch_response(&mut response, header.api_version, &fetched_topics).is_err() {
                                             return;
+                                        }
+                                        if let Some(patch) = &response_patch {
+                                            patch(&mut response);
                                         }
                                     }
                                     _ => return,
