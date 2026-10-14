@@ -1,0 +1,26 @@
+{
+  "card": "KL03-19",
+  "profile": "nontransactional-data-plane",
+  "source_sha": "231684511c6b71628891d637d81518925b31fce1",
+  "peer": "native:4.1.0 path=/tmp/kafka_4.1.0",
+  "ok_count": 1000,
+  "failed_count": 0,
+  "seed_count": 1000,
+  "fault_counts": {
+    "leader_move": 200,
+    "lost_ack": 200,
+    "stale_metadata": 200,
+    "disconnect": 200,
+    "restart": 200
+  },
+  "elapsed_ms": { "min": 1225, "avg": 3757, "max": 11203 },
+  "restore_ms": { "min": 41, "avg": 1535, "max": 8029, "at_or_under_5000_target": 961 },
+  "replay": {
+    "seed": 7,
+    "fault": "stale_metadata",
+    "ok": true,
+    "fresh_topology": true
+  },
+  "checker_batches": { "size": 100, "failures": 0 },
+  "restoration_note": "5-second recovery is a proposed controlled-restoration target, not a universal timer promise."
+}

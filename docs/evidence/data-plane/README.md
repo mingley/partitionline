@@ -13,4 +13,6 @@ stale metadata (leader move then produce), broker disconnect, broker restart.
 Five-second restoration is a proposed controlled-restoration target, not a
 client timer promise. Failed attempts stay under `failed-attempts/`.
 
-See `docs/plan/evidence/KL03-19.json` after the live run.
+Live run: 1000/1000 histories valid on `23168451`. Replay seed 7
+(`stale_metadata`) passed on a fresh topology. See `summary.json`,
+`campaign-report.json`, and `docs/plan/evidence/KL03-19.json`.

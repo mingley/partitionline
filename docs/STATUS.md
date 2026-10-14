@@ -29,8 +29,13 @@ validation, malformed fields and per-feature errors. The source mapping records
 48 parameter invocations. Java public v0 is unsupported; Rust v0 wire support
 uses an independent SDK parser. See the [qualification record](evidence/conformance/q-conf-updatefeatures/qualification-20261008/README.md).
 
-Current gaps include prepared transaction initialization. Fault recovery and
-mixed-version behavior need further implementation or independent checks.
+A 1,000-seed nontransactional data-plane fault campaign passed on native
+Kafka 4.1.0 RF=3/min-ISR=2, covering leader moves, lost acks, stale
+metadata, disconnects and restarts. Seed 7 replayed on a fresh topology.
+Transactional fencing and group/share churn remain separate cards.
+
+Current gaps include prepared transaction initialization. Mixed-version
+behavior still needs further implementation or independent checks.
 Consumer, group, share and Admin exclusive roundtrips now honor broker SASL
 session lifetimes, including SaslHandshake then SaslAuthenticate on live
 Kafka 4.1.0 with a five-second session window, idle reconnect, IdP outage,

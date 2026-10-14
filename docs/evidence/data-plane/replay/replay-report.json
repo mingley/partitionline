@@ -1,0 +1,30 @@
+{
+  "seed": 7,
+  "id": "dp-0007",
+  "fault": "stale_metadata",
+  "node": 2,
+  "partition": 1,
+  "example_exit": 0,
+  "elapsed_ms": 5176,
+  "restore_ms": 1170,
+  "restoration_target_ms": 5000,
+  "inject": {
+    "fault": "stale_metadata",
+    "node": 2,
+    "exit": 0,
+    "elapsed_ms": 3824,
+    "stdout": "{\"topic\": \"pl-dp-fault\", \"partition\": 1, \"new_leader\": 2}\n",
+    "stderr": ""
+  },
+  "history_path": "docs/evidence/data-plane/replay/histories/0007.json",
+  "stdout": "",
+  "stderr": "",
+  "checker": {
+    "valid": true,
+    "exit": 0,
+    "summary": null,
+    "violations": null,
+    "minimal_counterexample": null
+  },
+  "ok": true
+}

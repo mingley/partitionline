@@ -1,0 +1,84 @@
+{
+  "id": "KL03-19",
+  "status": "done",
+  "acceptance_met": true,
+  "owner": "cursor-cloud",
+  "source_sha": "231684511c6b71628891d637d81518925b31fce1",
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "peer": {
+    "identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2
+  },
+  "commands": [
+    "python3 -m unittest tests.history.test_data_plane_plan tests.history.test_checker tests.cluster.test_fixture -q (65 passed, exit 0)",
+    "python3 scripts/run-data-plane-fault-campaign.py --self-test (exit 0; 1000 plans, 200 of each fault, swap rejected)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-data-plane-fault-campaign.py --run --seeds 0:4 (5/5 after mid-trial restore)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-data-plane-fault-campaign.py --run (1000/1000 ok, exit 0)",
+    "python3 scripts/check-record-history.py on 1000 histories in 10 batches (0 batch failures)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-data-plane-fault-campaign.py --replay 7 (ok, stale_metadata, fresh topology)"
+  ],
+  "results": {
+    "deliverable": "One reproducible nontransactional data-plane fault campaign.",
+    "acceptance_validation": {
+      "seeds_frozen_before_run": true,
+      "seed_count": 1000,
+      "faults_exercised": ["leader_move", "lost_ack", "stale_metadata", "disconnect", "restart"],
+      "fault_counts": {
+        "leader_move": 200,
+        "lost_ack": 200,
+        "stale_metadata": 200,
+        "disconnect": 200,
+        "restart": 200
+      },
+      "history_discrepancies": 0,
+      "replay_seed": 7,
+      "replay_ok": true,
+      "restoration_target_ms": 5000,
+      "restore_at_or_under_target": 961
+    }
+  },
+  "artifacts": [
+    "scripts/cluster-fixture.sh",
+    "scripts/data_plane_faults.py",
+    "scripts/run-data-plane-fault-campaign.py",
+    "examples/data_plane_fault.rs",
+    "docs/evidence/data-plane/campaign-freeze.json",
+    "docs/evidence/data-plane/campaign-report.json",
+    "docs/evidence/data-plane/summary.json",
+    "docs/evidence/data-plane/histories/",
+    "docs/evidence/data-plane/replay/replay-report.json",
+    "docs/plan/evidence/KL03-19.json"
+  ],
+  "limits": [
+    "Single profile: nontransactional acks=all idempotent manual consumer. Transactional fencing is KL03-20. Group/share churn is KL03-21.",
+    "Native Apache Kafka 4.1.0 on loopback, not Docker and not a mixed-version topology.",
+    "5-second restoration is a proposed controlled-restoration target (961/1000 trials at or under 5000 ms). It is not a client timer promise.",
+    "Disconnect/lost-ack isolation is 2 seconds of SIGSTOP, then SIGCONT. In-flight Produce is not a guaranteed broker drop.",
+    "No cases.json rows were added (KL01-14 holds that write set)."
+  ],
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "error": "example_exit -1 after 45s on lost_ack seed 1",
+      "cause": "SIGSTOP without a mid-trial reconnect left Produce hanging past the trial deadline",
+      "log": "docs/evidence/data-plane/failed-attempts/01-lost-ack-no-midtrial-restore.json"
+    },
+    {
+      "attempt": 2,
+      "error": "example_exit -1 after 45s on disconnect seed 3",
+      "cause": "Same hung Produce path as attempt 1",
+      "log": "docs/evidence/data-plane/failed-attempts/02-disconnect-no-midtrial-restore.json"
+    },
+    {
+      "attempt": 3,
+      "error": "first --replay 7 exited 1 with an empty log immediately after campaign cleanup",
+      "cause": "Replay started on the same ports while native cleanup was still tearing down. A second replay on a fresh topology passed."
+    }
+  ]
+}

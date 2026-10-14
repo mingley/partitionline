@@ -2108,13 +2108,32 @@
     {
       "id": "KL03-19",
       "title": "Record producer and manual-consumer fault histories",
-      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "evidence", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL03-06", "KL03-09", "KL03-11", "KL03-22", "KL03-17", "KL03-18"],
       "files": ["scripts/cluster-fixture.sh", "scripts/check-record-history.py", "new: docs/evidence/data-plane/"],
       "deliverable": "One reproducible fault campaign for the nontransactional data-plane profile.",
       "acceptance": ["Freeze seeds, source, peer versions, fault timing and restoration/deadline budgets before running.", "Exercise leader moves, lost acks, stale metadata, disconnects and broker restarts; retain at least 1,000 seeded fault outcomes per declared profile.", "Every ID/order/outcome discrepancy is explained or the profile fails; 5-second recovery is a proposed controlled-restoration target, not a universal timer promise."],
       "validation": ["Validate the complete history and conformance report, including failed attempts.", "Replay at least one retained seed on a fresh isolated topology."],
-      "evidence": [],
+      "evidence": [
+        {
+                "source_sha": "231684511c6b71628891d637d81518925b31fce1",
+                "commands": [
+                        "python3 scripts/run-data-plane-fault-campaign.py --self-test (exit 0)",
+                        "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-data-plane-fault-campaign.py --run (1000/1000 ok, exit 0)",
+                        "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-data-plane-fault-campaign.py --replay 7 (ok)"
+                ],
+                "results": "Frozen 1000-seed nontransactional data-plane campaign on native Kafka 4.1.0 RF=3/min-ISR=2. 200 seeds each of leader_move, lost_ack, stale_metadata, disconnect, restart. Every history passed check-record-history.py. Seed 7 replayed on a fresh topology.",
+                "artifacts": [
+                        "docs/evidence/data-plane/summary.json",
+                        "docs/evidence/data-plane/campaign-report.json",
+                        "docs/plan/evidence/KL03-19.json"
+                ],
+                "limits": [
+                        "Nontransactional profile only. Transactions remain KL03-20. Groups remain KL03-21.",
+                        "5-second restoration is a proposed target (961/1000 <= 5000 ms), not a client timer promise."
+                ]
+        }
+      ],
       "write_set": [
         "scripts/cluster-fixture.sh",
         "scripts/data_plane_faults.py",

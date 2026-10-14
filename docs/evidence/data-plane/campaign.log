@@ -1,0 +1,28 @@
+seed 0 ok fault=leader_move
+seed 50 ok fault=leader_move
+seed 100 ok fault=leader_move
+seed 150 ok fault=leader_move
+seed 200 ok fault=leader_move
+seed 250 ok fault=leader_move
+seed 300 ok fault=leader_move
+seed 350 ok fault=leader_move
+seed 400 ok fault=leader_move
+seed 450 ok fault=leader_move
+seed 500 ok fault=leader_move
+seed 550 ok fault=leader_move
+seed 600 ok fault=leader_move
+seed 650 ok fault=leader_move
+seed 700 ok fault=leader_move
+seed 750 ok fault=leader_move
+seed 800 ok fault=leader_move
+seed 850 ok fault=leader_move
+seed 900 ok fault=leader_move
+seed 950 ok fault=leader_move
+{
+  "card": "KL03-19",
+  "profile": "nontransactional-data-plane",
+  "ok_count": 1000,
+  "failed_count": 0,
+  "seed_count": 1000
+}
+CAMPAIGN_EXIT:0
