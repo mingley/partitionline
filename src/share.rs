@@ -662,7 +662,9 @@ pub enum ShareAcquireMode {
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
-/// broker poll.
+/// broker poll. [`Self::poll`] returns [`Error::MaxPollInterval`] when
+/// [`ConsumerConfig::max_poll_interval`] elapses (Java
+/// `max.poll.interval.ms`).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
