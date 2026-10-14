@@ -2550,10 +2550,14 @@ impl Consumer {
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }
+        let mut seen = HashSet::new();
         for (topic, partition, offset) in starts {
             require_partition(*partition)?;
             require_fetch_offset(*offset)?;
             Topic::validate(topic)?;
+            if !seen.insert((topic.clone(), *partition)) {
+                return Err(Error::protocol("duplicate assigned partition"));
+            }
         }
         let old_ids = std::mem::take(&mut self.assigned_topic_ids);
         let mut old_assigned = PartitionMap::new();

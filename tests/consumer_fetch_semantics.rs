@@ -5289,6 +5289,13 @@ async fn current_lag_includes_buffered_records_and_clamps_at_zero() {
     let mut consumer = Consumer::new(cfg).await.unwrap();
     assert!(consumer.assign("t", -1, 0).await.is_err());
     assert!(consumer.assign("t", 0, -1).await.is_err());
+    assert!(consumer
+        .assign_many([
+            (TopicPartition::new("t", 0), 0),
+            (TopicPartition::new("t", 0), 1),
+        ])
+        .await
+        .is_err());
     assert!(consumer.assignment().is_empty());
     consumer.assign("t", 0, 0).await.unwrap();
     let first = consumer.fetch().await.unwrap();
