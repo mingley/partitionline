@@ -2039,9 +2039,10 @@
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java
-//! `ShareConsumer.setAcknowledgementCommitCallback`
-//! ([`AcknowledgementCommitCallback`]; [`AcknowledgementCommitError`] is
-//! the owned `Exception` argument).
+//! `ShareConsumer.setAcknowledgementCommitCallback` (closures).
+//! [`ShareGroup::set_acknowledgement_commit_handler`] takes a named
+//! [`AcknowledgementCommitCallback`]; [`AcknowledgementCommitError`] is
+//! the owned `Exception` argument.
 //! [`ShareRequestMetadata`] `Display` is Java `ShareRequestMetadata.toString`
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.

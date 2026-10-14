@@ -161,6 +161,13 @@ where
     }
 }
 
+type AcknowledgementCommitFn = Box<
+    dyn FnMut(
+            Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
+            Option<AcknowledgementCommitError>,
+        ) + Send,
+>;
+
 impl AcknowledgeType {
     /// Java `AcknowledgeType.id`.
     #[must_use]
@@ -646,14 +653,7 @@ pub struct ShareGroup {
     acquire_mode: ShareAcquireMode,
     acknowledgement_mode: ShareAcknowledgementMode,
     last_poll_unacked: Vec<ShareRecord>,
-    ack_commit_callback: Option<
-        Box<
-            dyn FnMut(
-                    Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
-                    Option<AcknowledgementCommitError>,
-                ) + Send,
-        >,
-    >,
+    ack_commit_callback: Option<AcknowledgementCommitFn>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
