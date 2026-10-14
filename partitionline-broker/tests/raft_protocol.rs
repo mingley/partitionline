@@ -907,7 +907,7 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     );
     let update = UpdateVoterBody {
         cluster_id: Some("cluster-fixed".into()),
-        current_leader_epoch: 1,
+        current_leader_epoch: 0,
         voter_id: 2,
         voter_directory: [2u8; 16],
         listeners: vec![listener],
@@ -917,6 +917,12 @@ fn dynamic_owner_fences_unadvertised_directory_wire_without_persisting() -> Resu
     assert_eq!(
         dynamic.inspect_unadvertised(82, 0, &protocol::encode_update_voter(&update)?)?,
         VoteDisposition::NotAdvertised
+    );
+    let mut ahead = update.clone();
+    ahead.current_leader_epoch = 1;
+    assert_eq!(
+        dynamic.inspect_unadvertised(82, 0, &protocol::encode_update_voter(&ahead)?)?,
+        VoteDisposition::Refused(protocol::PreVoteRefusal::IllegalEpoch)
     );
     let fetch = FetchSnapshotBody {
         version: 1,

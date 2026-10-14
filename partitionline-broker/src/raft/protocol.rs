@@ -1797,6 +1797,11 @@ pub fn decide_update_voter(
     expected_directory: [u8; 16],
     body: &UpdateVoterBody,
 ) -> VoteDisposition {
+    // Apache `handleUpdateVoterRequest` checks `validateLeaderOnlyRequest`
+    // before the voter key. A mismatched epoch does not change listeners.
+    if let Some(refusal) = leader_epoch_refusal(persistent, body.current_leader_epoch) {
+        return VoteDisposition::Refused(refusal);
+    }
     directory_change(
         persistent,
         voter_id,
@@ -3069,14 +3074,8 @@ pub fn decide_fetch_snapshot_body(
     // Apache `validateLeaderOnlyRequest` requires the follower's leader epoch
     // to equal the local epoch. An older epoch is fenced and a newer one is
     // unknown. Neither result installs snapshot bytes.
-    if body.current_leader_epoch < 0 {
-        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
-    }
-    if quorum_epoch_fenced(persistent, body.current_leader_epoch) {
-        return VoteDisposition::Refused(PreVoteRefusal::StaleTerm);
-    }
-    if wire_epoch(persistent.term).is_ok_and(|current| body.current_leader_epoch > current) {
-        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
+    if let Some(refusal) = leader_epoch_refusal(persistent, body.current_leader_epoch) {
+        return VoteDisposition::Refused(refusal);
     }
     if body.version == 0 {
         return VoteDisposition::NotAdvertised;
@@ -3507,6 +3506,25 @@ pub enum PreVoteRefusal {
 /// Internal term 0 has no wire epoch yet, so nothing is older than it.
 fn quorum_epoch_fenced(persistent: &election::PersistentState, leader_epoch: i32) -> bool {
     wire_epoch(persistent.term).is_ok_and(|current| leader_epoch < current)
+}
+
+/// Apache `validateLeaderOnlyRequest`: the caller's leader epoch must equal
+/// the local epoch. Older is [`PreVoteRefusal::StaleTerm`]. Newer or negative
+/// is [`PreVoteRefusal::IllegalEpoch`].
+fn leader_epoch_refusal(
+    persistent: &election::PersistentState,
+    epoch: i32,
+) -> Option<PreVoteRefusal> {
+    if epoch < 0 {
+        return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    if quorum_epoch_fenced(persistent, epoch) {
+        return Some(PreVoteRefusal::StaleTerm);
+    }
+    if wire_epoch(persistent.term).is_ok_and(|current| epoch > current) {
+        return Some(PreVoteRefusal::IllegalEpoch);
+    }
+    None
 }
 
 fn vote_offset_epoch_illegal(body: &VoteBody) -> bool {
@@ -4230,6 +4248,18 @@ mod prevote_tests {
         assert_eq!(
             decide_update_voter(&persistent, 7, directory, &updated),
             VoteDisposition::NotAdvertised
+        );
+        let mut older = updated.clone();
+        older.current_leader_epoch = 2;
+        assert_eq!(
+            decide_update_voter(&persistent, 7, directory, &older),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
+        );
+        let mut newer = updated.clone();
+        newer.current_leader_epoch = 4;
+        assert_eq!(
+            decide_update_voter(&persistent, 7, directory, &newer),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         let mut bare = updated;
         bare.listeners.clear();
