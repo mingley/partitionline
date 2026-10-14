@@ -1216,13 +1216,18 @@
     {
       "id": "KL02-10",
       "title": "Record one controlled 24-hour overload qualification",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL02-09", "KL03-19"],
       "files": ["scripts/run-resource-soak.sh", "new: docs/evidence/resource-soak/"],
       "deliverable": "One approved controlled-host resource qualification for a named producer/consumer profile.",
       "acceptance": ["Freeze host, source, workload and budget first; record job ID and safe stop/resume instructions.", "At 2x sustainable offered load, declared bounds and outcome accounting hold; report steady-state RSS drift with allocator context.", "Retain failures and all raw samples; missing host/time approval is blocked_external, not a passed template."],
       "validation": ["Run the completed artifact through the soak invariant checker.", "Compare the final-hour and first steady-state-hour median RSS against the predeclared 10% target."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL02-10.json",
+        "docs/evidence/resource-soak/KL02-10/"
+      ]
     },
     {
       "id": "KL03-01",
