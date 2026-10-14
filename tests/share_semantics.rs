@@ -152,6 +152,7 @@ async fn implicit_mode_refuses_explicit_acknowledge() {
 #[tokio::test]
 async fn explicit_mode_requires_last_poll_acknowledged() {
     let mock = common::Mock::start().await;
+    v2(&mock);
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;
     let mut cfg = config(&mock);
     cfg.max_poll_records = Some(2);
@@ -178,9 +179,8 @@ async fn explicit_mode_requires_last_poll_acknowledged() {
         partial.contains("All records must be acknowledged in explicit acknowledgement mode."),
         "{partial}"
     );
-    group.release(&first[1..]).await.unwrap();
-    let second = group.poll().await.unwrap();
-    assert!(second.is_empty());
+    group.reject(&first[1..]).await.unwrap();
+    let _next = group.poll().await.unwrap();
     group.leave().await.unwrap();
 }
 
@@ -699,7 +699,6 @@ async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     assert_eq!(first[0].value.as_deref(), Some(&b"v1"[..]));
     assert_eq!(group.acquisition_lock_timeout_ms(), Some(1200));
     assert_eq!(group.acquired_record_count(), 2);
-    group.accept(&first).await.unwrap();
     let calls = mock.share_fetch_calls();
     let second = group.poll().await.unwrap();
     assert_eq!(second.len(), 1);
@@ -713,6 +712,16 @@ async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
         .iter()
         .chain(second.iter())
         .all(|r| r.offset != 0 && r.offset != 3));
+    let after_buffer = group.poll().await.unwrap_err().to_string();
+    assert!(
+        after_buffer.contains("All records must be acknowledged in explicit acknowledgement mode."),
+        "{after_buffer}"
+    );
+    assert_eq!(
+        mock.share_fetch_calls(),
+        calls,
+        "in-flight check must run before another ShareFetch"
+    );
     group.unsubscribe().await.unwrap();
     assert_eq!(group.acquired_record_count(), 0);
     assert_eq!(mock.last_share_ack_epoch(), Some(-1));

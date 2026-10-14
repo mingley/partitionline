@@ -73,9 +73,11 @@ pub enum ShareAcknowledgementMode {
     /// / [`ShareGroup::reject`] every delivered record (Java `explicit`).
     /// Those calls are local until the next [`ShareGroup::poll`],
     /// [`ShareGroup::commit`], [`ShareGroup::leave`], or [`ShareGroup::close`].
-    /// A later [`ShareGroup::poll`] is Java `IllegalStateException`
+    /// A later [`ShareGroup::poll`] that would contact a broker is Java
+    /// `IllegalStateException`
     /// (`All records must be acknowledged in explicit acknowledgement mode.`)
-    /// until every record from the previous poll is acknowledged.
+    /// until every previously delivered record is acknowledged. Draining
+    /// records already buffered from the last ShareFetch is allowed.
     #[default]
     Explicit,
 }
@@ -650,7 +652,8 @@ pub enum ShareAcquireMode {
 /// partitions when the assignment shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
-/// Explicit mode requires those acknowledgements before the next poll.
+/// Explicit mode requires those acknowledgements before the next
+/// broker poll.
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -1318,11 +1321,13 @@ impl ShareGroup {
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
     /// subscribed to any topics.`). In
-    /// [`ShareAcknowledgementMode::Explicit`], a later poll is Java
-    /// `IllegalStateException` (`All records must be acknowledged in
-    /// explicit acknowledgement mode.`) until every record from the
-    /// previous poll is [`Self::accept`] / [`Self::release`] /
-    /// [`Self::reject`] (local; Renew does not count).
+    /// [`ShareAcknowledgementMode::Explicit`], a later poll that would
+    /// contact a broker is Java `IllegalStateException` (`All records must
+    /// be acknowledged in explicit acknowledgement mode.`) until every
+    /// previously delivered record is [`Self::accept`] / [`Self::release`]
+    /// / [`Self::reject`] (local; Renew does not count). Draining records
+    /// already buffered from the last ShareFetch is allowed without that
+    /// acknowledgement.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -1458,8 +1463,10 @@ impl ShareGroup {
     ///
     /// Unlike [`Self::commit_sync`], the first partition error is [`Err`]
     /// and pending is restored so a later [`Self::commit`] /
-    /// [`Self::poll`] can retry. Java `commitSync()` returns the
-    /// per-partition map — use [`Self::commit_sync`].
+    /// [`Self::poll`] can retry, except [`Error::Timeout`] (the broker
+    /// may already have applied the acknowledgements). Java
+    /// `commitSync()` returns the per-partition map — use
+    /// [`Self::commit_sync`].
     ///
     /// Flushes implicit last-poll ACCEPT and queued
     /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] without
@@ -1781,9 +1788,9 @@ impl ShareGroup {
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
         if !self.pending_delivery.is_empty() {
-            // Buffered records skip ShareFetch; flush pending acks now so
-            // they are not delayed until the next broker round-trip.
-            self.flush_pending_acknowledgements().await?;
+            // Java returns the completed-fetch buffer without a ShareFetch.
+            // Queued acknowledgements stay local until the next ShareFetch
+            // piggyback, commit, or leave.
             return Ok(self.drain_pending_delivery());
         }
         let assigned = self.assigned.clone();
@@ -2492,7 +2499,19 @@ impl ShareGroup {
                 .collect();
             self.complete_piggyback(&pending);
         }
-        self.last_poll_unacked = recs.to_vec();
+        if self.acknowledgement_mode == ShareAcknowledgementMode::Implicit {
+            self.last_poll_unacked = recs.to_vec();
+        } else {
+            for rec in recs {
+                if !self.last_poll_unacked.iter().any(|held| {
+                    held.topic == rec.topic
+                        && held.partition == rec.partition
+                        && held.offset == rec.offset
+                }) {
+                    self.last_poll_unacked.push(rec.clone());
+                }
+            }
+        }
     }
 
     fn complete_piggyback(&mut self, recs: &[ShareRecord]) {
@@ -2572,7 +2591,11 @@ impl ShareGroup {
                     .map(|(rec, _)| (rec.topic.clone(), rec.partition, rec.offset))
                     .collect();
                 self.uncount_acknowledgements(keys);
-                self.restore_pending_acknowledgements(implicit, explicit);
+                // A timed-out ShareAcknowledge is ambiguous (the broker may
+                // have applied it). Do not retry automatically.
+                if !matches!(error, Error::Timeout) {
+                    self.restore_pending_acknowledgements(implicit, explicit);
+                }
                 Err(error)
             }
         }
@@ -2625,9 +2648,14 @@ impl ShareGroup {
     }
 
     /// Java `ShareConsumerImpl.ensureInFlightAcknowledgedIfExplicitAcknowledgement`.
+    ///
+    /// Buffered leftover from the last ShareFetch (`pending_delivery`) can
+    /// still be drained; the check applies when the next poll would
+    /// contact a broker.
     fn ensure_explicit_in_flight_acknowledged(&self) -> Result<()> {
         if self.acknowledgement_mode == ShareAcknowledgementMode::Explicit
             && !self.last_poll_unacked.is_empty()
+            && self.pending_delivery.is_empty()
         {
             return Err(reject_java_explicit_in_flight());
         }

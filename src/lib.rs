@@ -2035,9 +2035,11 @@
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
 //! ShareFetch (Java `ShareConsumeRequestManager`).
-//! Explicit mode refuses a later [`ShareGroup::poll`] until every
-//! last-poll record is acknowledged
-//! (`All records must be acknowledged in explicit acknowledgement mode.`).
+//! Explicit mode refuses a later [`ShareGroup::poll`] that would
+//! contact a broker until every previously delivered record is
+//! acknowledged
+//! (`All records must be acknowledged in explicit acknowledgement mode.`;
+//! draining an already-buffered ShareFetch is allowed).
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`]
 //! are Java `acknowledge` (local until the next poll, commit, or leave;
 //! Renew is sent immediately).
@@ -3013,7 +3015,7 @@
 //! acknowledge before [`ShareGroup::poll`] is
 //! `Acknowledge called before poll.`; implicit mode is
 //! `Implicit acknowledgement of delivery is being used.`;
-//! a later poll before every last-poll record is acknowledged is
+//! a later broker poll before every delivered record is acknowledged is
 //! `All records must be acknowledged in explicit acknowledgement mode.`);
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]

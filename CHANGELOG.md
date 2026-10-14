@@ -20,8 +20,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (local until the next `poll`, `commit`, or `leave`; Renew stays an
   immediate ShareAcknowledge). Implicit mode refuses those calls
   (`Implicit acknowledgement of delivery is being used.`). Explicit mode
-  refuses a later `poll` until every last-poll record is acknowledged
-  (`All records must be acknowledged in explicit acknowledgement mode.`).
+  refuses a later `poll` that would contact a broker until every
+  previously delivered record is acknowledged
+  (`All records must be acknowledged in explicit acknowledgement mode.`;
+  draining an already-buffered ShareFetch is allowed).
   Implicit ACCEPT and queued explicit
   acknowledgements piggyback on the next ShareFetch.
   `ShareGroup::commit` / `commit_timeout` / `commit_async` flush pending
