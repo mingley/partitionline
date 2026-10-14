@@ -5,8 +5,8 @@
 //! `RUN_LIVE=1 KAFKA_BOOTSTRAP=127.0.0.1:9092 cargo test --test share_live -- --ignored --nocapture`
 
 use partitionline::{
-    Admin, ConsumerConfig, NewTopic, ProduceRecord, Producer, ProducerConfig,
-    ShareAcknowledgementMode, ShareGroup, ShareRecords,
+    Admin, ConsumerConfig, DescribeShareGroupOffsetsGroup, NewTopic, ProduceRecord, Producer,
+    ProducerConfig, ShareAcknowledgementMode, ShareGroup, ShareRecords,
 };
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -610,6 +610,133 @@ async fn share_implicit_commit_against_local_broker() {
         "share live commit ok first={}@{} next={}@{}",
         first.topic, first.offset, second.topic, second.offset
     );
+}
+
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_admin_describe_and_list_offsets_against_local_broker() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let topic = format!("pl-share-adm-{suffix}");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(&[NewTopic::new(&topic, 1, 1)], 30_000, false)
+        .await
+        .expect("create share topic");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let group = format!("pl-share-adm-{suffix}");
+    let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(500);
+    let mut g = ShareGroup::join(cfg, group.clone(), topic.clone())
+        .await
+        .expect("share join");
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("assignment");
+    let md = g.group_metadata();
+    let described = wait_described_member(&mut admin, &group, md.member_id())
+        .await
+        .expect("describe_share_groups");
+    assert_eq!(described.error_code(), 0);
+    assert_eq!(described.group_id(), group);
+    let member = described
+        .members()
+        .iter()
+        .find(|m| m.member_id() == md.member_id())
+        .expect("described member");
+    assert!(
+        member.subscribed_topic_names.iter().any(|n| n == &topic),
+        "subscribed {:?} wanted {topic}",
+        member.subscribed_topic_names
+    );
+    assert!(
+        member.member_epoch >= 1,
+        "described member epoch {}",
+        member.member_epoch
+    );
+    let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).linger(Duration::ZERO))
+        .await
+        .expect("producer");
+    let produced = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"adm"[..]))
+        .await
+        .expect("produce");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == produced.offset)
+    })
+    .await
+    .expect("poll produced");
+    g.accept(&recs).await.expect("accept");
+    let listed = admin
+        .list_share_group_offsets(&[DescribeShareGroupOffsetsGroup::all(&group)])
+        .await
+        .expect("list_share_group_offsets");
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].error_code(), 0);
+    assert_eq!(listed[0].group_id(), group);
+    let part = listed[0]
+        .topics()
+        .iter()
+        .find(|t| t.topic_name() == topic)
+        .expect("listed topic")
+        .partitions()
+        .iter()
+        .find(|p| p.partition_index() == 0)
+        .expect("listed partition 0");
+    assert_eq!(part.error_code(), 0);
+    assert!(
+        part.start_offset() >= 0,
+        "share start offset {}",
+        part.start_offset()
+    );
+    g.leave().await.expect("leave");
+    admin.close().await.expect("admin close");
+    eprintln!(
+        "share live admin ok describe members={} list {}-0@{}",
+        described.members().len(),
+        topic,
+        part.start_offset()
+    );
+}
+
+async fn wait_described_member(
+    admin: &mut Admin,
+    group: &str,
+    member_id: &str,
+) -> partitionline::Result<partitionline::DescribedShareGroup> {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let described = admin.describe_share_groups(&[group], false).await?;
+        if let Some(found) = described.into_iter().find(|g| {
+            g.group_id() == group
+                && g.error_code() == 0
+                && g.members().iter().any(|m| m.member_id() == member_id)
+        }) {
+            return Ok(found);
+        }
+        if Instant::now() >= deadline {
+            return Err(partitionline::Error::protocol(format!(
+                "describe_share_groups never listed member {member_id} in {group}"
+            )));
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
 }
 
 async fn wait_assigned_and_warmup(g: &mut ShareGroup, topic: &str) -> partitionline::Result<()> {

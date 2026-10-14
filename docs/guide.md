@@ -374,7 +374,8 @@ next poll. `ShareGroup::group_metadata` is Java `groupMetadata()`
 `tests/share_live.rs` (`RUN_LIVE=1` on a 4.1+ broker) covers join-then-produce,
 `group_metadata`, `join_topics`, `join_matching`, live `release`/`reject`,
 implicit `commit`, and two members acquiring distinct offsets on one
-partition. `KAFKA_TOPIC` may be a comma-separated list
+partition, plus Admin `describe_share_groups` /
+`list_share_group_offsets`. `KAFKA_TOPIC` may be a comma-separated list
 (`ShareGroup::join_topics`).
 
 ## Exactly-once (transactions)

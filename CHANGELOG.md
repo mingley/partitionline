@@ -25,7 +25,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+
   join-then-produce / `group_metadata` / multi-topic / `join_matching` /
   release-then-reject / two-member same-partition / implicit-ack / `commit`
-  probe (`RUN_LIVE=1`).
+  probe plus live Admin `describe_share_groups` /
+  `list_share_group_offsets` (`RUN_LIVE=1`).
   Produce after a warmup
   ShareFetch so `share.auto.offset.reset=latest` does not skip the first
   record.
