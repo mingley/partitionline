@@ -44,8 +44,11 @@ pub struct Heartbeat<'a> {
     pub version: i16,
     /// Server assignor. Only `range` is implemented.
     pub assignor: &'a str,
-    /// Subscribed topics.
-    pub topics: &'a [&'a str],
+    /// Replacement subscription. `None` keeps the previous subscription.
+    ///
+    /// A join must name topics. An empty list replaces the subscription with
+    /// nothing.
+    pub topics: Option<&'a [&'a str]>,
 }
 
 /// Assignment returned by a heartbeat.
@@ -312,7 +315,10 @@ impl Groups {
         if request.member_epoch != 0 {
             return Err(Error::InvalidRequest);
         }
-        let topics = topic_set(request.topics, &self.state.topics)?;
+        let Some(names) = request.topics else {
+            return Err(Error::InvalidRequest);
+        };
+        let topics = topic_set(names, &self.state.topics)?;
         let instance = instance_of(request.instance_id)?;
         let mut next = self.state.clone();
         let member_number = next.next_member;
@@ -359,7 +365,10 @@ impl Groups {
     }
 
     fn refresh(&mut self, request: Heartbeat<'_>) -> Result<Assigned, Error> {
-        let topics = topic_set(request.topics, &self.state.topics)?;
+        let replacement = match request.topics {
+            Some(names) => Some(topic_set(names, &self.state.topics)?),
+            None => None,
+        };
         let instance = instance_of(request.instance_id)?;
         let mut next = self.state.clone();
         let topic_counts = next.topics.clone();
@@ -375,10 +384,14 @@ impl Groups {
         if request.member_epoch > member.epoch {
             return Err(Error::Stale);
         }
-        let changed = member.topics != topics
+        let changed = replacement
+            .as_ref()
+            .is_some_and(|topics| member.topics != *topics)
             || member.version != request.version
             || member.instance != instance;
-        member.topics = topics;
+        if let Some(topics) = replacement {
+            member.topics = topics;
+        }
         member.version = request.version;
         member.instance = instance;
         if changed {
@@ -804,7 +817,7 @@ mod tests {
             instance_id: None,
             version,
             assignor: "range",
-            topics,
+            topics: Some(topics),
         }
     }
 
@@ -821,6 +834,64 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn unchanged_subscription_keeps_the_assignment() {
+        let (mut groups, _path) = open("unchanged");
+        groups
+            .set_topic("orders", 2)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let joined = groups
+            .heartbeat(beat("orders-g", "", 0, 1, &["orders"]))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut missing = beat("orders-g", "", 0, 1, &["orders"]);
+        missing.topics = None;
+        missing.group = "other-g";
+        assert!(matches!(
+            groups.heartbeat(missing),
+            Err(Error::InvalidRequest)
+        ));
+        let acked = groups
+            .heartbeat(Heartbeat {
+                topics: None,
+                ..beat(
+                    "orders-g",
+                    &joined.member_id,
+                    joined.member_epoch,
+                    1,
+                    &["orders"],
+                )
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            acked.assignment.get("orders").map(Vec::as_slice),
+            Some(&[0, 1][..])
+        );
+        let steady = groups
+            .heartbeat(Heartbeat {
+                topics: None,
+                ..beat(
+                    "orders-g",
+                    &joined.member_id,
+                    acked.member_epoch,
+                    1,
+                    &["orders"],
+                )
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(steady.member_epoch, acked.member_epoch);
+        assert_eq!(steady.assignment, acked.assignment);
+        let cleared = groups
+            .heartbeat(beat(
+                "orders-g",
+                &joined.member_id,
+                acked.member_epoch,
+                1,
+                &[],
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(cleared.assignment.is_empty());
     }
 
     #[test]
