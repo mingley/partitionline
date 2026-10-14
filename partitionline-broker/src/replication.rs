@@ -286,6 +286,9 @@ impl Log {
             if self.records.len() >= self.limits.max_records {
                 break;
             }
+            if source.offset.checked_add(1).is_none() {
+                return Err(Error::InvalidRecord);
+            }
             self.persist(&encode_record(source)?)?;
             used = used.saturating_add(source.bytes.len());
             self.records.push(source.clone());
@@ -389,7 +392,14 @@ fn decode_record(mut bytes: &[u8]) -> Result<Record, Error> {
     ))
     .map_err(|_| Error::InvalidRecord)?;
     let payload = take(&mut bytes, len)?.to_vec();
-    if !bytes.is_empty() || offset < 0 || leader_epoch < 0 || payload.is_empty() {
+    // An offset of `i64::MAX` has no exclusive end. `next_offset` would stay
+    // on the record and a follower would treat it as already replicated.
+    if !bytes.is_empty()
+        || offset < 0
+        || offset.checked_add(1).is_none()
+        || leader_epoch < 0
+        || payload.is_empty()
+    {
         return Err(Error::InvalidRecord);
     }
     Ok(Record {
@@ -489,6 +499,33 @@ mod tests {
         ));
         assert_eq!(log.records().len(), 1);
         assert_eq!(log.records()[0].bytes, b"aaa");
+    }
+
+    #[test]
+    fn a_record_at_i64_max_is_not_recovered_or_copied() {
+        let encoded = encode_record(&Record {
+            offset: i64::MAX,
+            leader_epoch: 1,
+            bytes: b"aaa".to_vec(),
+        })
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        let (mut follower, _) = log("max-offset");
+        assert!(matches!(
+            follower.apply(&encoded),
+            Err(Error::InvalidRecord)
+        ));
+        assert!(follower.records().is_empty());
+
+        let (mut leader, _) = log("max-leader");
+        leader
+            .append(1, b"aaa")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        leader.records[0].offset = i64::MAX;
+        assert!(matches!(
+            follower.replicate_from(&leader, 1, budget(8)),
+            Err(Error::InvalidRecord)
+        ));
+        assert!(follower.records().is_empty());
     }
 
     #[test]

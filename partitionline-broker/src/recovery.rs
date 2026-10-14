@@ -358,7 +358,9 @@ fn decode_record(mut bytes: &[u8]) -> Result<Record, Error> {
             .try_into()
             .map_err(|_| Error::InvalidRecord)?,
     );
-    if !bytes.is_empty() || offset < 0 || leader_epoch < 0 {
+    // An offset of `i64::MAX` has no exclusive end. The high watermark would
+    // stop on that record and `committed_ids` would omit it.
+    if !bytes.is_empty() || offset < 0 || offset.checked_add(1).is_none() || leader_epoch < 0 {
         return Err(Error::InvalidRecord);
     }
     Ok(Record {
@@ -456,6 +458,27 @@ mod tests {
         log.advance_high_watermark(i64::MAX)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(log.committed_ids(), vec![1]);
+    }
+
+    #[test]
+    fn a_record_at_i64_max_is_not_recovered() {
+        let encoded = encode_record(&Record {
+            offset: i64::MAX,
+            leader_epoch: 1,
+            id: 7,
+        })
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        let (mut recovered, _) = log("max-offset");
+        assert!(matches!(
+            recovered.apply(&encoded),
+            Err(Error::InvalidRecord)
+        ));
+        assert!(recovered.records().is_empty());
+        assert_eq!(recovered.log_end_offset(), 0);
+        assert!(matches!(
+            recovered.advance_high_watermark(i64::MAX),
+            Err(Error::OffsetOutOfRange)
+        ));
     }
 
     #[test]
