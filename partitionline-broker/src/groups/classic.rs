@@ -383,6 +383,46 @@ impl Groups {
         Ok(())
     }
 
+    /// Remove one member and start a new generation.
+    ///
+    /// A member who has already joined the current generation must name that
+    /// generation. A member who has not joined it yet may still leave. The
+    /// remaining members lose the published assignment and must rejoin.
+    pub fn leave(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        generation: i32,
+        coordinator_epoch: i64,
+    ) -> Result<(), Error> {
+        self.ready()?;
+        self.require_coordinator(coordinator_epoch)?;
+        if member_id.is_empty() {
+            return Err(Error::InvalidRequest);
+        }
+        let Some(group) = self.groups.get_mut(group_id) else {
+            return Err(Error::UnknownMember);
+        };
+        let Some(member) = group.members.get(member_id) else {
+            return Err(Error::UnknownMember);
+        };
+        if member.joined_generation == group.generation && generation != group.generation {
+            return Err(Error::IllegalGeneration);
+        }
+        group.members.remove(member_id);
+        group.generation = group.generation.saturating_add(1);
+        for member in group.members.values_mut() {
+            member.assignment.clear();
+            member.synced = false;
+            member.joined_generation = 0;
+        }
+        if !group.members.contains_key(&group.leader) {
+            group.leader = group.members.keys().next().cloned().unwrap_or_default();
+        }
+        self.persist_all()?;
+        Ok(())
+    }
+
     /// Remove members that have been silent longer than the session timeout.
     pub fn expire(&mut self, now_ms: u64) -> Result<usize, Error> {
         self.ready()?;
@@ -750,6 +790,66 @@ mod tests {
             restored.assignment("orders", &follower.member_id),
             Some(&[2][..])
         );
+    }
+
+    #[test]
+    fn leave_drops_one_member_and_revokes_the_generation() {
+        let (mut groups, _) = open("leave");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let follower = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let leader = groups
+            .join("orders", &leader.member_id, "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut assignment = BTreeMap::new();
+        assignment.insert(leader.member_id.clone(), vec![0]);
+        assignment.insert(follower.member_id.clone(), vec![1]);
+        groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                &assignment,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.leave("orders", &follower.member_id, leader.generation + 1, 0),
+            Err(Error::IllegalGeneration)
+        ));
+        let followed = groups
+            .sync(
+                "orders",
+                &follower.member_id,
+                leader.generation,
+                0,
+                &BTreeMap::new(),
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(followed, vec![1]);
+        assert_eq!(
+            groups.assignment("orders", &follower.member_id),
+            Some(&[1][..])
+        );
+        groups
+            .leave("orders", &follower.member_id, leader.generation, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.assignment("orders", &follower.member_id).is_none());
+        assert_eq!(groups.generation("orders"), Some(leader.generation + 1));
+        assert!(groups.assignment("orders", &leader.member_id).is_none());
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                &assignment,
+            ),
+            Err(Error::IllegalGeneration)
+        ));
     }
 
     #[test]
