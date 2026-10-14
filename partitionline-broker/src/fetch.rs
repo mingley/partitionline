@@ -459,6 +459,15 @@ fn selected<'a>(
     }
     Ok(target)
 }
+/// A log start past the high watermark is storage corruption, not a reset hint.
+fn stored_log_error(error: i16, log_start: i64, watermark: i64) -> i16 {
+    if error == 0 && log_start > watermark {
+        56
+    } else {
+        error
+    }
+}
+
 /// High watermark, last stable offset, and log start written on a Fetch
 /// partition. Offset-out-of-range still carries the boundaries so the
 /// consumer can reset without another lookup. Other errors clear them.
@@ -539,6 +548,14 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    #[test]
+    fn a_log_start_past_the_high_watermark_is_storage_corruption() {
+        assert_eq!(super::stored_log_error(0, 5, 2), 56);
+        assert_eq!(super::stored_log_error(0, 2, 2), 0);
+        assert_eq!(super::stored_log_error(0, 1, 4), 0);
+        assert_eq!(super::stored_log_error(3, 5, 2), 3);
+    }
 
     #[test]
     fn out_of_range_keeps_the_log_boundaries() {
@@ -623,7 +640,7 @@ pub(crate) fn process(
         for (position, part) in topic.parts.iter().enumerate() {
             active()?;
             let target = selected(catalog, topic, position, part, &request, invalid);
-            let (id, log_start, watermark, mut error) = match target {
+            let (id, log_start, watermark, error) = match target {
                 Err(error) => (None, -1, -1, error),
                 Ok(target) => match (
                     store.log_start(target.id(), part.index),
@@ -635,6 +652,7 @@ pub(crate) fn process(
                     }
                 },
             };
+            let mut error = stored_log_error(error, log_start, watermark);
             if key == 2 {
                 let mut timestamp = -1;
                 let mut offset = -1;
