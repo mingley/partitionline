@@ -475,17 +475,34 @@ fn buffer(size: usize) -> Result<Vec<u8>, Error> {
 }
 
 /// Read exactly `len` bytes without zero-filling them first.
-fn read_exact_vec(reader: &mut impl std::io::Read, len: usize) -> Result<Vec<u8>, Error> {
-    let mut payload = buffer(len)?;
+fn read_exact_into(
+    reader: &mut impl std::io::Read,
+    dest: &mut Vec<u8>,
+    len: usize,
+) -> Result<(), Error> {
+    let start = dest.len();
+    dest.try_reserve_exact(len)
+        .map_err(|_| Error::AllocationFailed)?;
     let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
-    let read = reader.take(limit).read_to_end(&mut payload)?;
-    if read != len {
-        return Err(std::io::Error::new(
+    let result = reader.take(limit).read_to_end(dest);
+    let complete = matches!(result, Ok(n) if n == len) && dest.len() == start.saturating_add(len);
+    if complete {
+        return Ok(());
+    }
+    dest.truncate(start);
+    match result {
+        Ok(_) => Err(std::io::Error::new(
             std::io::ErrorKind::UnexpectedEof,
             "segment changed during read",
         )
-        .into());
+        .into()),
+        Err(error) => Err(error.into()),
     }
+}
+
+fn read_exact_vec(reader: &mut impl std::io::Read, len: usize) -> Result<Vec<u8>, Error> {
+    let mut payload = Vec::new();
+    read_exact_into(reader, &mut payload, len)?;
     Ok(payload)
 }
 fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
@@ -756,7 +773,12 @@ impl SparseCursor {
         self.next = offset;
         Ok(())
     }
-    fn next(&mut self, maximum: usize) -> Result<Option<(u64, journal::Entry)>, Error> {
+    fn next_into(
+        &mut self,
+        maximum: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<Option<(u64, journal::PayloadView)>, Error> {
+        let dest_len = dest.len();
         if self.file.metadata()?.len() != self.bytes {
             return Err(Error::CorruptData);
         }
@@ -793,22 +815,37 @@ impl SparseCursor {
         if charged > maximum || charged > self.limits.max_fetch_bytes() {
             return Err(journal::Error::FetchBudgetExceeded.into());
         }
-        let payload = read_exact_vec(&mut self.file, length)?;
-        if crc32c::crc32c(&payload) != count(&header, 24)?
-            || self.file.metadata()?.len() != self.bytes
-        {
+        let mark = dest_len;
+        if let Err(error) = read_exact_into(&mut self.file, dest, length) {
+            dest.truncate(mark);
+            return Err(error);
+        }
+        let stored = count(&header, 24)?;
+        let checksum_ok = dest
+            .get(mark..)
+            .is_some_and(|payload| crc32c::crc32c(payload) == stored);
+        let file_len = match self.file.metadata() {
+            Ok(metadata) => metadata.len(),
+            Err(error) => {
+                dest.truncate(mark);
+                return Err(error.into());
+            }
+        };
+        if !checksum_ok || file_len != self.bytes {
+            dest.truncate(mark);
             return Err(Error::CorruptData);
         }
+        let payload = dest.get(mark..).ok_or(Error::CorruptData)?;
         self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &payload);
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, payload);
         self.position = position + 32 + length as u64;
         self.next = end;
         Ok(Some((
             position,
-            journal::Entry {
+            journal::PayloadView {
                 first_offset: first,
                 record_count: span,
-                payload,
+                len: length,
             },
         )))
     }
@@ -834,15 +871,33 @@ impl StoredCursor {
         }
     }
     fn next(&mut self, n: usize) -> Result<Option<(u64, journal::Entry)>, Error> {
-        let result = match self {
-            Self::Dense(c) => Ok(c.next(n)?),
-            Self::Sparse(c) => c.next(n),
+        let mut payload = Vec::new();
+        let result = match self.next_into(n, &mut payload)? {
+            None => Ok(None),
+            Some((position, view)) => Ok(Some((
+                position,
+                journal::Entry {
+                    first_offset: view.first_offset,
+                    record_count: view.record_count,
+                    payload,
+                },
+            ))),
         };
         #[cfg(test)]
         if let Ok(Some((_, entry))) = &result {
             COMPACTION_LOADED.with(|n| n.set(n.get() + entry.payload.len()));
         }
         result
+    }
+    fn next_into(
+        &mut self,
+        n: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<Option<(u64, journal::PayloadView)>, Error> {
+        match self {
+            Self::Dense(cursor) => Ok(cursor.next_into(n, dest)?),
+            Self::Sparse(cursor) => cursor.next_into(n, dest),
+        }
     }
     fn file_bytes(&self) -> u64 {
         match self {
@@ -969,18 +1024,32 @@ fn summarize_kind(
     limits: records::Limits,
     kind: u32,
 ) -> Result<i64, Error> {
+    summarize_kind_payload(
+        entry.first_offset,
+        entry.record_count,
+        &entry.payload,
+        limits,
+        kind,
+    )
+}
+fn summarize_kind_payload(
+    first_offset: u64,
+    record_count: u32,
+    payload: &[u8],
+    limits: records::Limits,
+    kind: u32,
+) -> Result<i64, Error> {
     if kind == 0 {
-        return summarize(entry, limits);
+        return summarize_payload(first_offset, record_count, payload, limits);
     }
-    let checked = records::validate_read(&entry.payload, limits).map_err(|_| Error::CorruptData)?;
-    let first = i64::try_from(entry.first_offset).map_err(|_| Error::CorruptData)?;
-    let end = entry
-        .first_offset
-        .checked_add(u64::from(entry.record_count))
+    let checked = records::validate_read(payload, limits).map_err(|_| Error::CorruptData)?;
+    let first = i64::try_from(first_offset).map_err(|_| Error::CorruptData)?;
+    let end = first_offset
+        .checked_add(u64::from(record_count))
         .and_then(|n| i64::try_from(n).ok())
         .ok_or(Error::CorruptData)?;
     let mut maximum = EMPTY_TIME;
-    if entry.record_count == 0 {
+    if record_count == 0 {
         return Err(Error::CorruptData);
     }
     for batch in checked.batches() {
@@ -1790,9 +1859,9 @@ impl Log {
 
     /// Like [`Self::read_one`], appending a kept payload onto `dest`.
     ///
-    /// The active generation is read straight into `dest`. A sealed generation
-    /// is still checked as an owned entry and then copied. On failure `dest`
-    /// is restored to its incoming length.
+    /// The active generation and a kept sealed entry are read straight into
+    /// `dest`. Entries before the requested offset are discarded. On failure
+    /// `dest` is restored to its incoming length.
     pub(crate) fn read_one_into(
         &mut self,
         offset: u64,
@@ -1838,23 +1907,88 @@ impl Log {
             return result;
         }
         let mark = dest.len();
-        let (entry, work) = self.read_one(offset, maximum, scan_bytes, scan_entries)?;
-        let Some(entry) = entry else {
-            return Ok((None, work));
-        };
-        if dest.try_reserve_exact(entry.payload.len()).is_err() {
+        let result = (|| {
+            let segment = self
+                .sealed
+                .iter()
+                .find(|segment| segment.descriptor.end > offset)
+                .ok_or(Error::CorruptData)?;
+            let checkpoint = segment
+                .checkpoints
+                .iter()
+                .rfind(|checkpoint| checkpoint.offset <= offset)
+                .ok_or(Error::InvalidIndex)?;
+            let mut cursor = StoredCursor::open(
+                &self.data_path(segment.descriptor.base, segment.descriptor.generation),
+                segment.descriptor.base,
+                self.journal_limits,
+                segment.descriptor.kind,
+            )?;
+            if cursor.file_bytes() != segment.descriptor.bytes {
+                return Err(Error::CorruptData);
+            }
+            cursor.seek(checkpoint.position, checkpoint.offset)?;
+            let mut work = Work::default();
+            loop {
+                if work.entries >= scan_entries {
+                    return Err(Error::ScanBudget);
+                }
+                let remaining = scan_bytes
+                    .checked_sub(work.bytes)
+                    .ok_or(Error::ScanBudget)?;
+                let cap = remaining
+                    .min(self.journal_limits.max_entry_bytes())
+                    .checked_add(size_of::<journal::Entry>())
+                    .ok_or(Error::ScanBudget)?;
+                let entry_at = dest.len();
+                let (_, view) = cursor
+                    .next_into(cap, dest)
+                    .map_err(|error| match error {
+                        Error::Storage(journal::Error::FetchBudgetExceeded) => Error::ScanBudget,
+                        other => other,
+                    })?
+                    .ok_or(Error::CorruptData)?;
+                let payload = dest.get(entry_at..).ok_or(Error::CorruptData)?;
+                if payload.len() != view.len {
+                    return Err(Error::CorruptData);
+                }
+                summarize_kind_payload(
+                    view.first_offset,
+                    view.record_count,
+                    payload,
+                    self.records,
+                    segment.descriptor.kind,
+                )?;
+                work.bytes = work.bytes.checked_add(view.len).ok_or(Error::ScanBudget)?;
+                work.entries += 1;
+                let end = view
+                    .first_offset
+                    .checked_add(u64::from(view.record_count))
+                    .ok_or(Error::CorruptData)?;
+                if end > offset {
+                    if view.len + size_of::<journal::Entry>() > maximum {
+                        return Err(journal::Error::FetchBudgetExceeded.into());
+                    }
+                    return Ok((Some(view), work));
+                }
+                dest.truncate(entry_at);
+            }
+        })();
+        if let Err(error) = &result {
             dest.truncate(mark);
-            return Err(Error::AllocationFailed);
+            if !matches!(
+                error,
+                Error::ScanBudget
+                    | Error::Storage(
+                        journal::Error::FetchBudgetExceeded
+                            | journal::Error::InvalidFetchLimits
+                            | journal::Error::OffsetBeforeBase
+                    )
+            ) {
+                self.poisoned = true;
+            }
         }
-        dest.extend_from_slice(&entry.payload);
-        Ok((
-            Some(journal::PayloadView {
-                first_offset: entry.first_offset,
-                record_count: entry.record_count,
-                len: entry.payload.len(),
-            }),
-            work,
-        ))
+        result
     }
 
     /// Fetch bounded containing/following whole atomic inputs across generations.

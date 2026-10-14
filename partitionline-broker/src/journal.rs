@@ -307,7 +307,11 @@ impl CheckedCursor {
         self.next_offset = offset;
         Ok(())
     }
-    pub(crate) fn next(&mut self, max_bytes: usize) -> Result<Option<(u64, Entry)>, Error> {
+    pub(crate) fn next_into(
+        &mut self,
+        max_bytes: usize,
+        dest: &mut Vec<u8>,
+    ) -> Result<Option<(u64, PayloadView)>, Error> {
         if self.file.metadata()?.len() != self.bytes {
             return Err(Error::ChangedFile);
         }
@@ -333,23 +337,42 @@ impl CheckedCursor {
         if charged > max_bytes || charged > self.limits.max_fetch_bytes {
             return Err(Error::FetchBudgetExceeded);
         }
-        let payload = read_exact_vec(&mut self.file, index.payload_len as usize)?;
-        if crc32c::crc32c(&payload) != index.checksum {
-            return Err(corrupt(position, Corruption::PayloadChecksum));
+        let mark = dest.len();
+        if let Err(error) = read_exact_into(&mut self.file, dest, index.payload_len as usize) {
+            dest.truncate(mark);
+            return Err(error);
         }
-        if self.file.metadata()?.len() != self.bytes {
-            return Err(Error::ChangedFile);
+        let checksum_ok = dest
+            .get(mark..)
+            .is_some_and(|payload| crc32c::crc32c(payload) == index.checksum);
+        let file_len = match self.file.metadata() {
+            Ok(metadata) => metadata.len(),
+            Err(error) => {
+                dest.truncate(mark);
+                return Err(error.into());
+            }
+        };
+        if !checksum_ok || file_len != self.bytes {
+            dest.truncate(mark);
+            return Err(if !checksum_ok {
+                corrupt(position, Corruption::PayloadChecksum)
+            } else {
+                Error::ChangedFile
+            });
         }
+        let payload = dest
+            .get(mark..)
+            .ok_or_else(|| corrupt(position, Corruption::PayloadChecksum))?;
         self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &payload);
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, payload);
         self.position = end;
         self.next_offset = index.next_offset;
         Ok(Some((
             position,
-            Entry {
+            PayloadView {
                 first_offset: index.first_offset,
                 record_count: index.record_count,
-                payload,
+                len: index.payload_len as usize,
             },
         )))
     }
@@ -645,11 +668,6 @@ fn read_exact_into(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Re
     }
 }
 
-fn read_exact_vec(reader: &mut impl Read, len: usize) -> Result<Vec<u8>, Error> {
-    let mut payload = Vec::new();
-    read_exact_into(reader, &mut payload, len)?;
-    Ok(payload)
-}
 fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
     let mut header = [0; FILE_HEADER];
     header[..8].copy_from_slice(FILE_MAGIC);

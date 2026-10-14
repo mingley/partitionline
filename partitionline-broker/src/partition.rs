@@ -578,9 +578,8 @@ impl Partition {
 
     /// Like [`Self::read_with_work`], appending the payload onto `dest`.
     ///
-    /// Monolithic logs and the active rolling generation read into `dest`.
-    /// Sealed generations still validate an owned entry, then copy it. On
-    /// failure `dest` is restored.
+    /// Monolithic logs and rolling generations read a kept payload into `dest`.
+    /// On failure `dest` is restored.
     pub(crate) fn read_into(
         &mut self,
         offset: i64,
