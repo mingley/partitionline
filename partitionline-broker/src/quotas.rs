@@ -286,13 +286,15 @@ impl Window {
     }
 
     fn charge_replication(&mut self, bytes: u64, now_ms: u64) -> Result<u64, Error> {
-        let elapsed = now_ms.saturating_sub(self.replication_updated_ms);
-        let refill = elapsed.saturating_mul(self.limits.replication_bytes_per_sec) / 1_000;
-        self.replication_tokens = self
-            .replication_tokens
-            .saturating_add(refill)
-            .min(self.limits.replication_bytes_per_sec);
-        self.replication_updated_ms = now_ms;
+        if now_ms >= self.replication_updated_ms {
+            let elapsed = now_ms.saturating_sub(self.replication_updated_ms);
+            let refill = elapsed.saturating_mul(self.limits.replication_bytes_per_sec) / 1_000;
+            self.replication_tokens = self
+                .replication_tokens
+                .saturating_add(refill)
+                .min(self.limits.replication_bytes_per_sec);
+            self.replication_updated_ms = now_ms;
+        }
         if self.replication_tokens >= bytes {
             self.replication_tokens -= bytes;
             return Ok(0);
@@ -327,6 +329,9 @@ impl Window {
 }
 
 fn refill(client: &mut Client, kind: Kind, rate: u64, now_ms: u64) {
+    if now_ms < client.updated_ms {
+        return;
+    }
     let elapsed = now_ms.saturating_sub(client.updated_ms);
     let added = elapsed.saturating_mul(rate) / 1_000;
     match kind {
@@ -419,5 +424,30 @@ mod tests {
             .admit(Some("a"), Kind::Fetch, 2, 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(delayed.throttle_ms, 1_000);
+    }
+
+    #[test]
+    fn an_older_clock_does_not_refill_a_spent_quota() {
+        let mut window = Window::new(limits(), 0);
+        let spent = window
+            .admit(Some("a"), Kind::Produce, 100, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(spent.throttle_ms, 0);
+        let older = window
+            .admit(Some("a"), Kind::Produce, 50, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(older.throttle_ms > 0);
+        let same_time = window
+            .admit(Some("a"), Kind::Produce, 50, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(same_time.throttle_ms > 0);
+        let replication = window
+            .admit(None, Kind::Replication, 50, 1_000)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(replication.throttle_ms, 0);
+        let older_replication = window
+            .admit(None, Kind::Replication, 50, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(older_replication.throttle_ms > 0);
     }
 }
