@@ -148,6 +148,10 @@ fn main() {
         eprintln!("nb-serve: broker init failed: {e}");
         std::process::exit(1);
     }));
+    // Build the synthetic log before READY so a fetch copies batches
+    // instead of regenerating them inside the client's timed wait.
+    // Oversized logs stay on the on-demand path.
+    let _cached = broker.cache_synthetic_log();
     println!("READY ports={}", ports.join(","));
     let _ = std::io::stdout().flush();
 

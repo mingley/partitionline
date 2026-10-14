@@ -1369,6 +1369,9 @@ impl Default for Modes {
     }
 }
 
+/// Largest synthetic log [`NullBroker::cache_synthetic_log`] will materialize.
+const SYNTH_CACHE_LIMIT: u64 = 768 * 1024 * 1024;
+
 /// A validating null-broker Produce server.
 #[derive(Debug)]
 pub struct NullBroker {
@@ -1381,6 +1384,8 @@ pub struct NullBroker {
     sockets: Arc<Mutex<Vec<TcpStream>>>,
     partitions: i32,
     synth: synth::SynthConfig,
+    /// Prebuilt synthetic batches, filled by [`Self::cache_synthetic_log`].
+    synth_cache: Mutex<Option<Arc<Vec<Vec<synth::SynthBatch>>>>>,
     /// Advertised brokers: live first, then dead.
     nodes: Vec<NodeInfo>,
     /// Leader node id per partition.
@@ -1491,6 +1496,7 @@ impl NullBroker {
             sockets: Arc::new(Mutex::new(Vec::new())),
             partitions: config.partitions,
             synth: config.synth.clone(),
+            synth_cache: Mutex::new(None),
             nodes,
             leadership,
             faults: Arc::new(FaultState::new(
@@ -1520,6 +1526,25 @@ impl NullBroker {
             ..Config::default()
         };
         Self::with_bound(&[(0, listener.try_clone()?)], &config)
+    }
+
+    /// Materialize the synthetic log when it fits in [`SYNTH_CACHE_LIMIT`].
+    ///
+    /// Fetch then copies those batches. Logs above the limit stay on the
+    /// storage-free path and are still built inside the fetch. Call this
+    /// before accepting clients so synthesis is not part of their wait.
+    /// Returns whether a cache was installed.
+    pub fn cache_synthetic_log(&self) -> bool {
+        if synth::approx_encoded_bytes(&self.synth, self.partitions) > u128::from(SYNTH_CACHE_LIMIT)
+        {
+            return false;
+        }
+        let built = Arc::new(synth::precompute(&self.synth, self.partitions));
+        let Ok(mut slot) = self.synth_cache.lock() else {
+            return false;
+        };
+        *slot = Some(built);
+        true
     }
 
     /// Ask the server to stop: the flag stops the accept loop and every
@@ -1557,6 +1582,7 @@ impl NullBroker {
                             sockets.push(handle);
                         }
                     }
+                    let synth_cache = self.synth_cache.lock().ok().and_then(|slot| slot.clone());
                     let worker = Worker {
                         trace_api_versions: self.trace_api_versions,
                         state: Arc::clone(&self.state),
@@ -1568,6 +1594,7 @@ impl NullBroker {
                         slow_delay: self.modes.slow_delay,
                         partitions: self.partitions,
                         synth: self.synth.clone(),
+                        synth_cache,
                     };
                     workers.push(std::thread::spawn(move || worker.serve_conn(stream)));
                 }
@@ -1635,6 +1662,7 @@ struct Worker {
     slow_delay: Duration,
     partitions: i32,
     synth: synth::SynthConfig,
+    synth_cache: Option<Arc<Vec<Vec<synth::SynthBatch>>>>,
 }
 
 fn classic_string(cur: &mut Cursor<'_>) -> Result<Option<String>, DecodeError> {
@@ -2471,23 +2499,46 @@ impl Worker {
                         }
                     }
                 } else if self.synth.records_per_batch > 0 {
-                    let mut batch_index =
+                    let start_index =
                         (part.fetch_offset as u64) / u64::from(self.synth.records_per_batch);
-                    while let Some(batch) =
-                        synth::encode_batch(&self.synth, part.partition, batch_index)
-                    {
-                        let fits_part = records.len() + batch.bytes.len() <= part_budget;
-                        let fits_total = total_used + batch.bytes.len() <= total_budget;
-                        if !records.is_empty() && (!fits_part || !fits_total) {
-                            break;
+                    let cached = self.synth_cache.as_ref().and_then(|cache| {
+                        usize::try_from(part.partition)
+                            .ok()
+                            .and_then(|index| cache.get(index))
+                    });
+                    if let Some(cached) = cached {
+                        let start = usize::try_from(start_index).unwrap_or(usize::MAX);
+                        for batch in cached.iter().skip(start) {
+                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_total = total_used + batch.bytes.len() <= total_budget;
+                            if !records.is_empty() && (!fits_part || !fits_total) {
+                                break;
+                            }
+                            if batch.aborted {
+                                aborted.push((batch.producer_id, batch.base_offset as i64));
+                            }
+                            part_records += u64::from(batch.count);
+                            total_used += batch.bytes.len();
+                            records.extend_from_slice(&batch.bytes);
                         }
-                        if batch.aborted {
-                            aborted.push((batch.producer_id, batch.base_offset as i64));
+                    } else {
+                        let mut batch_index = start_index;
+                        while let Some(batch) =
+                            synth::encode_batch(&self.synth, part.partition, batch_index)
+                        {
+                            let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                            let fits_total = total_used + batch.bytes.len() <= total_budget;
+                            if !records.is_empty() && (!fits_part || !fits_total) {
+                                break;
+                            }
+                            if batch.aborted {
+                                aborted.push((batch.producer_id, batch.base_offset as i64));
+                            }
+                            part_records += u64::from(batch.count);
+                            total_used += batch.bytes.len();
+                            records.extend_from_slice(&batch.bytes);
+                            batch_index += 1;
                         }
-                        part_records += u64::from(batch.count);
-                        total_used += batch.bytes.len();
-                        records.extend_from_slice(&batch.bytes);
-                        batch_index += 1;
                     }
                 }
                 served_records += part_records;

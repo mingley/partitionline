@@ -3,7 +3,9 @@
 //! Record content derives purely from `(seed, partition, offset)`, so a
 //! consumer can verify every ID and hash without shared state. Batches are
 //! generated on demand from `(seed, partition, batch_index)`, giving a
-//! bounded (configured size) but storage-free log.
+//! bounded (configured size) but storage-free log. [`precompute`] materializes
+//! that same log when a caller wants fetch to copy bytes instead of rebuilding
+//! them.
 //!
 //! Compressed codecs are served as valid stored (uncompressed) frames:
 //! gzip with stored deflate blocks, xerial snappy-java with literal-only
@@ -212,11 +214,10 @@ fn put_varlong(out: &mut Vec<u8>, value: i64) {
 pub const KEY_LEN: usize = 16;
 
 /// Encode one record value: offset ID + hash + deterministic filler.
-fn encode_value(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, offset: u64) {
-    let hash = record_hash(cfg.seed, partition, offset);
+fn encode_value(out: &mut Vec<u8>, payload_bytes: usize, offset: u64, hash: u64) {
     out.extend_from_slice(&offset.to_be_bytes());
     out.extend_from_slice(&hash.to_be_bytes());
-    let mut filler_len = cfg.payload_bytes.saturating_sub(16);
+    let mut filler_len = payload_bytes.saturating_sub(16);
     let mut word = hash;
     while filler_len >= 8 {
         word = splitmix64(word);
@@ -230,8 +231,7 @@ fn encode_value(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, offset: u6
 }
 
 /// Encode one record key: partition + offset + hash fragment.
-fn encode_key(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, offset: u64) {
-    let hash = record_hash(cfg.seed, partition, offset);
+fn encode_key(out: &mut Vec<u8>, partition: i32, offset: u64, hash: u64) {
     out.extend_from_slice(&partition.to_be_bytes());
     out.extend_from_slice(&offset.to_be_bytes());
     out.extend_from_slice(&(hash as u32).to_be_bytes());
@@ -241,18 +241,22 @@ fn encode_key(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, offset: u64)
 fn encode_records(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, base: u64, count: u32) {
     let mut key_buf = Vec::with_capacity(KEY_LEN);
     let mut val_buf = Vec::with_capacity(cfg.payload_bytes);
+    let mut body = Vec::with_capacity(cfg.payload_bytes.saturating_add(KEY_LEN).saturating_add(64));
+    let count_usize = usize::try_from(count).unwrap_or(0);
+    out.reserve(count_usize.saturating_mul(body.capacity().saturating_add(8)));
     for delta in 0..count {
         let offset = base + u64::from(delta);
-        let mut body = Vec::new();
+        let hash = record_hash(cfg.seed, partition, offset);
+        body.clear();
         body.push(0); // attributes
         put_varlong(&mut body, 0); // timestamp delta
         put_varint(&mut body, delta as i32); // offset delta
         key_buf.clear();
-        encode_key(&mut key_buf, cfg, partition, offset);
+        encode_key(&mut key_buf, partition, offset, hash);
         put_varint(&mut body, key_buf.len() as i32);
         body.extend_from_slice(&key_buf);
         val_buf.clear();
-        encode_value(&mut val_buf, cfg, partition, offset);
+        encode_value(&mut val_buf, cfg.payload_bytes, offset, hash);
         put_varint(&mut body, val_buf.len() as i32);
         body.extend_from_slice(&val_buf);
         put_varint(&mut body, cfg.header_count as i32);
@@ -260,8 +264,7 @@ fn encode_records(out: &mut Vec<u8>, cfg: &SynthConfig, partition: i32, base: u6
             let name = format!("h{h}");
             put_varint(&mut body, name.len() as i32);
             body.extend_from_slice(name.as_bytes());
-            let hv =
-                splitmix64(record_hash(cfg.seed, partition, offset).wrapping_add(u64::from(h)));
+            let hv = splitmix64(hash.wrapping_add(u64::from(h)));
             put_varint(&mut body, 8);
             body.extend_from_slice(&hv.to_be_bytes());
         }
@@ -445,6 +448,43 @@ pub fn encode_batch(cfg: &SynthConfig, partition: i32, batch_index: u64) -> Opti
         aborted,
         producer_id,
     })
+}
+
+/// Upper bound on encoded record bytes for `partitions` partitions.
+///
+/// Used to decide whether [`precompute`] fits in memory. Overhead is a
+/// constant per record, not a measured frame size.
+#[must_use]
+pub fn approx_encoded_bytes(cfg: &SynthConfig, partitions: i32) -> u128 {
+    let parts = u128::from(u32::try_from(partitions.max(0)).unwrap_or(0));
+    let records = u128::from(cfg.records_per_partition);
+    let payload = u128::try_from(cfg.payload_bytes).unwrap_or(u128::MAX);
+    let headers = u128::from(cfg.header_count).saturating_mul(24);
+    let per_record = payload
+        .saturating_add(u128::from(KEY_LEN as u32))
+        .saturating_add(64)
+        .saturating_add(headers);
+    parts.saturating_mul(records).saturating_mul(per_record)
+}
+
+/// Every batch of every partition, in partition and batch order.
+///
+/// Byte-identical to calling [`encode_batch`] for each index. Empty when the
+/// log has no batches.
+#[must_use]
+pub fn precompute(cfg: &SynthConfig, partitions: i32) -> Vec<Vec<SynthBatch>> {
+    let n = usize::try_from(partitions.max(0)).unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for partition in 0..partitions.max(0) {
+        let mut batches = Vec::new();
+        let mut index = 0u64;
+        while let Some(batch) = encode_batch(cfg, partition, index) {
+            batches.push(batch);
+            index = index.saturating_add(1);
+        }
+        out.push(batches);
+    }
+    out
 }
 
 #[cfg(test)]
@@ -642,6 +682,11 @@ mod tests {
         assert!(!b0.aborted);
         assert_eq!(b0.producer_id, -1);
         assert_eq!(encode_batch(&cfg, 0, 0).unwrap(), b0);
+        let cached = precompute(&cfg, 2);
+        assert_eq!(cached.len(), 2);
+        assert_eq!(cached[0][0], b0);
+        assert_eq!(cached[1][0], encode_batch(&cfg, 1, 0).unwrap());
+        assert_eq!(cached[0].len(), 3);
         assert_ne!(
             encode_batch(&cfg, 1, 0).unwrap().bytes,
             b0.bytes,
