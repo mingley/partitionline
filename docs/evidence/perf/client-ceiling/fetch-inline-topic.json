@@ -1,7 +1,7 @@
 {
   "task": "KL09-67",
   "status": "incomplete",
-  "source_sha": "pending",
+  "source_sha": "5ffca98316350d8b6dc1cdf59b07d0f73760f35f",
   "baseline_sha": "a0fa4954",
   "cell": "nb-fetch-bulk",
   "disposition": "accepted",
@@ -12,13 +12,52 @@
   "before_median": 509804.85,
   "after_median": 590935.33,
   "paired_mean_ratio": 1.215,
-  "paired_ratio_ci95": [1.129, 1.315],
+  "paired_ratio_ci95": [
+    1.129,
+    1.315
+  ],
   "pairs": 8,
   "slower_pairs": 0,
-  "before_records_per_second": [377713, 498079, 369280, 543600, 512749, 506861, 526684, 538064],
-  "after_records_per_second": [514226, 599252, 549340, 559032, 597774, 606537, 584096, 626718],
-  "before_client_cpu_ns_per_record": [2518.95, 1863.65, 2716.15, 1761.45, 1900.75, 1894.15, 1869.05, 1817.2],
-  "after_client_cpu_ns_per_record": [1857.65, 1556.1, 1583.25, 1648.45, 1601.9, 1642.15, 1673.5, 1571.35],
+  "before_records_per_second": [
+    377713,
+    498079,
+    369280,
+    543600,
+    512749,
+    506861,
+    526684,
+    538064
+  ],
+  "after_records_per_second": [
+    514226,
+    599252,
+    549340,
+    559032,
+    597774,
+    606537,
+    584096,
+    626718
+  ],
+  "before_client_cpu_ns_per_record": [
+    2518.95,
+    1863.65,
+    2716.15,
+    1761.45,
+    1900.75,
+    1894.15,
+    1869.05,
+    1817.2
+  ],
+  "after_client_cpu_ns_per_record": [
+    1857.65,
+    1556.1,
+    1583.25,
+    1648.45,
+    1601.9,
+    1642.15,
+    1673.5,
+    1571.35
+  ],
   "before_allocation_count": 135629,
   "after_allocation_count": 629
 }
