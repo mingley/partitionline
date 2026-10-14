@@ -110,6 +110,42 @@ async fn auto_commit_on_leave_with_long_interval_does_not_commit() {
 }
 
 #[tokio::test]
+async fn subscribe_with_auto_commit_commits_the_revoked_position() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("u", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(true)
+            .auto_commit_interval(Duration::from_secs(3600)),
+        "sub-ac",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(mock.committed_offset("sub-ac", "t", 0), None);
+    group.subscribe(["u"]).await.unwrap();
+    assert_eq!(
+        mock.committed_offset("sub-ac", "t", 0),
+        Some(1),
+        "changing the subscription must commit the revoked delivered position"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn auto_commit_on_poll_interval_still_commits() {
     let mock = common::Mock::start().await;
     let producer =

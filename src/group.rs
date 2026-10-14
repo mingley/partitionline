@@ -1941,6 +1941,13 @@ impl ConsumerGroup {
         }
         let rejoining = !self.member_id.is_empty();
         if rejoining {
+            if self.cfg.enable_auto_commit {
+                let to_commit = self.assigned_commit_offsets();
+                if !to_commit.is_empty() {
+                    let timeout = self.cfg.request_timeout;
+                    self.commit_metadata_offsets(to_commit, timeout).await?;
+                }
+            }
             let revoked = self.assignment();
             self.consumer.clear_assignment();
             if !revoked.is_empty() {
