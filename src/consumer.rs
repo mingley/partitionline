@@ -2110,6 +2110,17 @@ impl Consumer {
         if cfg.max_poll_records == Some(0) {
             return Err(Error::protocol("max.poll.records must be at least 1"));
         }
+        let Ok(session_ms) = u128::try_from(cfg.session_timeout_ms) else {
+            return Err(Error::protocol("session.timeout.ms must be at least 1"));
+        };
+        if session_ms == 0 {
+            return Err(Error::protocol("session.timeout.ms must be at least 1"));
+        }
+        if cfg.heartbeat_interval.as_millis() >= session_ms {
+            return Err(Error::protocol(
+                "heartbeat.interval.ms must be lower than session.timeout.ms",
+            ));
+        }
         let mut cfg = cfg;
         for (field, value) in [
             ("max_wait_ms", cfg.max_wait_ms),

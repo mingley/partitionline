@@ -5033,6 +5033,26 @@ async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
 }
 
 #[tokio::test]
+async fn session_timeout_must_outlast_the_heartbeat() {
+    let mut dead = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
+    dead.session_timeout_ms = 0;
+    match Consumer::new(dead).await {
+        Ok(_) => panic!("session.timeout.ms of 0 must be rejected"),
+        Err(err) => assert!(err.to_string().contains("session.timeout.ms"), "got {err}"),
+    }
+    let mut equal = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
+    equal.session_timeout_ms = 1_000;
+    equal.heartbeat_interval = Duration::from_millis(1_000);
+    match Consumer::new(equal).await {
+        Ok(_) => panic!("heartbeat equal to the session timeout must be rejected"),
+        Err(err) => assert!(
+            err.to_string().contains("heartbeat.interval.ms"),
+            "got {err}"
+        ),
+    }
+}
+
+#[tokio::test]
 async fn max_poll_records_zero_is_rejected_before_connect() {
     let mut cfg = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
     cfg.max_poll_records = Some(0);
