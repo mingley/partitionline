@@ -1,0 +1,15 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "6a913df797ef85b8cec58fc06bf596ddb1402853",
+  "cell": "nb-fetch-bulk",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "The null broker was rebuilding the synthetic log inside the timed fetch. Logs that fit in 768 MiB are now materialized before READY and served by copy. Five runs before and five after, same host, partitionline only. Every run verified 20,000 records and validation_failures stayed 0. Client allocation count stayed 135,386 because the client still decodes the full response. Broker rusage rose because wait4 includes building the whole log before READY. Not a client-code speedup, not a fetch comparison against other clients, and not a fastest-client result.",
+  "before_records_per_second": [140986.79, 127420.42, 142648.46, 143052.68, 147698.09],
+  "before_median": 142648.46,
+  "after_records_per_second": [254186.59, 276706.63, 269466.92, 269387.31, 297098.08],
+  "after_median": 269466.92,
+  "seek_in_batch_verified": 10000,
+  "seek_in_batch_validation_failures": 0
+}
