@@ -5814,7 +5814,7 @@ fn recreated_topic_partitions(
 }
 
 fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
-    if high_watermark < 0 {
+    if high_watermark < 0 || position < 0 {
         None
     } else {
         Some(high_watermark.saturating_sub(position).max(0))
@@ -6255,6 +6255,7 @@ mod tests {
         assert_eq!(partition_lag(5, 5), Some(0));
         assert_eq!(partition_lag(2, 5), Some(0));
         assert_eq!(partition_lag(-1, 0), None);
+        assert_eq!(partition_lag(5, -1), None);
     }
 
     #[test]
