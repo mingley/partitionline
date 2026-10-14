@@ -1836,14 +1836,15 @@ pub fn decode_add_voter(bytes: &[u8], version: i16) -> Result<AddVoterBody, Erro
 
 /// Accept an add without changing `persistent` or the voter set.
 ///
-/// An empty listener list is refused. `ack_when_committed` false is still not
-/// appended.
+/// The default `listener` must be present. `ack_when_committed` false is still
+/// not appended.
 pub fn decide_add_voter(
     persistent: &election::PersistentState,
     role: election::Role,
     metadata: MetadataLog<'_>,
     voter_id: i32,
     expected_directory: [u8; 16],
+    listener: &str,
     body: &AddVoterBody,
 ) -> VoteDisposition {
     if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, body.cluster_id.as_deref()) {
@@ -1861,11 +1862,7 @@ pub fn decide_add_voter(
         expected_directory,
         body.voter_id,
         body.voter_directory,
-        !body.listeners.is_empty()
-            && body
-                .listeners
-                .iter()
-                .all(|listener| !listener.host.is_empty()),
+        serves_listener(&body.listeners, listener),
     )
 }
 
@@ -1920,6 +1917,7 @@ pub fn decide_update_voter(
     metadata: MetadataLog<'_>,
     voter_id: i32,
     expected_directory: [u8; 16],
+    listener: &str,
     body: &UpdateVoterBody,
 ) -> VoteDisposition {
     if let Some(refusal) = inconsistent_cluster(metadata.cluster_id, body.cluster_id.as_deref()) {
@@ -1942,11 +1940,7 @@ pub fn decide_update_voter(
         expected_directory,
         body.voter_id,
         body.voter_directory,
-        !body.listeners.is_empty()
-            && body
-                .listeners
-                .iter()
-                .all(|listener| !listener.host.is_empty()),
+        serves_listener(&body.listeners, listener),
     );
     if disposition != VoteDisposition::NotAdvertised {
         return disposition;
@@ -2123,6 +2117,18 @@ pub fn decide_update_voter_response(
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     }
     VoteDisposition::NotAdvertised
+}
+
+/// Apache accepts an add or update only when the default listener is present.
+///
+/// Listener names are compared without case, matching `ListenerName.normalised`.
+fn serves_listener(listeners: &[LeaderEndpoint], required: &str) -> bool {
+    if required.is_empty() {
+        return false;
+    }
+    listeners
+        .iter()
+        .any(|endpoint| !endpoint.host.is_empty() && endpoint.name.eq_ignore_ascii_case(required))
 }
 
 fn leader_only_refusal(role: election::Role) -> Option<PreVoteRefusal> {
@@ -5301,7 +5307,36 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &decoded
+            ),
+            VoteDisposition::NotAdvertised
+        );
+        let mut other_listener = decoded.clone();
+        other_listener.listeners[0].name = "OTHER".to_owned();
+        assert_eq!(
+            decide_add_voter(
+                &persistent,
+                election::Role::Leader,
+                metadata_log(),
+                7,
+                directory,
+                "plaintext",
+                &other_listener
+            ),
+            VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
+        );
+        let mut upper = decoded.clone();
+        upper.listeners[0].name = "PLAINTEXT".to_owned();
+        assert_eq!(
+            decide_add_voter(
+                &persistent,
+                election::Role::Leader,
+                metadata_log(),
+                7,
+                directory,
+                "plaintext",
+                &upper
             ),
             VoteDisposition::NotAdvertised
         );
@@ -5312,6 +5347,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &decoded
             ),
             VoteDisposition::Refused(PreVoteRefusal::NotLeader)
@@ -5338,6 +5374,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &updated
             ),
             VoteDisposition::NotAdvertised
@@ -5349,6 +5386,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &updated
             ),
             VoteDisposition::Refused(PreVoteRefusal::NotLeader)
@@ -5363,6 +5401,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &inverted
             ),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
@@ -5376,6 +5415,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &negative_range
             ),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
@@ -5389,6 +5429,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &fenced_range
             ),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
@@ -5402,6 +5443,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &older
             ),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
@@ -5415,6 +5457,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &newer
             ),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
@@ -5428,6 +5471,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &bare
             ),
             VoteDisposition::Refused(PreVoteRefusal::StaleDirectory)
@@ -5454,6 +5498,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &foreign_update
             ),
             VoteDisposition::Refused(PreVoteRefusal::InconsistentCluster)
@@ -5467,6 +5512,7 @@ mod prevote_tests {
                 metadata_log(),
                 7,
                 directory,
+                "plaintext",
                 &negative
             ),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)

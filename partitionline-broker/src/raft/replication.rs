@@ -2335,6 +2335,11 @@ impl Node {
         let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
         let election = self.controller.state();
         let persistent = election.persistent;
+        let listener = self
+            .dynamic
+            .as_ref()
+            .map(|owner| owner.bootstrap.listener())
+            .unwrap_or("");
         let metadata = protocol::MetadataLog {
             cluster_id: &self.config.controller.cluster_id,
             topic: &self.config.controller.topic,
@@ -2418,6 +2423,7 @@ impl Node {
                     metadata,
                     decoded.voter_id,
                     decoded.voter_directory,
+                    listener,
                     &decoded,
                 );
                 if decided != protocol::VoteDisposition::NotAdvertised {
@@ -2463,6 +2469,7 @@ impl Node {
                         metadata,
                         decoded.voter_id,
                         decoded.voter_directory,
+                        listener,
                         &decoded,
                     ));
                 }
@@ -2474,6 +2481,7 @@ impl Node {
                     metadata,
                     known_id,
                     known.directory,
+                    listener,
                     &decoded,
                 ))
             }
