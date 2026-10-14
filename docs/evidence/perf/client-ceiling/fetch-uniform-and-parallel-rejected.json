@@ -1,0 +1,17 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "d9f1b2e1",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Two uncommitted experiments on the inline-topic parent, measured and reverted. Uniform plain batches (one key size, one value size, one-byte timestamp delta, no headers, one- or two-byte offset deltas) were decoded from fixed markers instead of per-field varints. A unit test crossed the 64-record offset-delta width change and matched the generic decoder. Eight interleaved pairs: before median 626,790.01, after median 609,768.02, paired mean ratio 0.986, bootstrap 95% CI 0.911 to 1.067, four of eight slower. Client CPU-nanoseconds per record mean ratio 1.024. Decoding the same batches on one thread per partition, only when the framed response already fit in buffer_memory, was slower: paired mean ratio 0.933, CI 0.879 to 0.989, six of eight slower, CPU mean ratio 1.210. Both were reverted. This is not a peer comparison and not a fastest-client result.",
+  "uniform_paired_mean_ratio": 0.986,
+  "uniform_paired_ratio_ci95": [0.911, 1.067],
+  "uniform_slower_pairs": 4,
+  "parallel_paired_mean_ratio": 0.933,
+  "parallel_paired_ratio_ci95": [0.879, 0.989],
+  "parallel_slower_pairs": 6,
+  "parallel_cpu_mean_ratio": 1.21
+}
