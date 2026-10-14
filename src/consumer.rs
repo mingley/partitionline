@@ -4773,12 +4773,7 @@ impl Consumer {
                     }
 
                     let batch_last = batch.last_offset();
-                    let batch_next = match batch.records.last() {
-                        Some(record) => exclusive_fetch_offset(record.offset)
-                            .ok_or_else(|| Error::protocol("fetch cursor overflow"))?
-                            .max(batch.next_offset()),
-                        None => batch.next_offset(),
-                    };
+                    let batch_next = batch_fetch_end(&batch)?;
 
                     if let Some(state) = aborted.as_deref_mut() {
                         state.advance(batch_last);
@@ -5774,6 +5769,30 @@ fn exclusive_fetch_offset(offset: i64) -> Option<i64> {
     offset.checked_add(1)
 }
 
+/// Fetch cursor after a decoded batch.
+///
+/// The end is the later of the last record's exclusive offset and
+/// `base + count` when that sum fits. A saturated count must not jump the
+/// cursor to [`i64::MAX`].
+fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
+    let from_record = match batch.records.last() {
+        Some(record) => Some(
+            exclusive_fetch_offset(record.offset)
+                .ok_or_else(|| Error::protocol("fetch cursor overflow"))?,
+        ),
+        None => None,
+    };
+    let from_count = i64::try_from(batch.records.len())
+        .ok()
+        .and_then(|count| batch.base_offset.checked_add(count));
+    match (from_record, from_count) {
+        (Some(record_end), Some(count_end)) => Ok(record_end.max(count_end)),
+        (Some(record_end), None) => Ok(record_end),
+        (None, Some(count_end)) => Ok(count_end),
+        (None, None) => Err(Error::protocol("fetch cursor overflow")),
+    }
+}
+
 fn partition_is_assigned(assigned: &[(String, i32, i64)], topic: &str, partition: i32) -> bool {
     assigned
         .iter()
@@ -6620,6 +6639,27 @@ mod tests {
             duplicate.contains("duplicate offset partition"),
             "{duplicate}"
         );
+    }
+
+    #[test]
+    fn a_saturated_batch_count_does_not_jump_the_fetch_cursor() {
+        let record = |offset| crate::protocol::records::Record {
+            offset,
+            timestamp: 0,
+            key: None,
+            value: None,
+            headers: Vec::new(),
+        };
+        let mut batch = crate::RecordBatch::from_records(vec![record(0), record(0), record(0)]);
+        batch.base_offset = i64::MAX - 1;
+        for item in &mut batch.records {
+            item.offset = i64::MAX - 2;
+        }
+        assert_eq!(batch_fetch_end(&batch).unwrap(), i64::MAX - 1);
+        let mut normal = crate::RecordBatch::from_records(vec![record(0), record(0)]);
+        normal.records[0].offset = 0;
+        normal.records[1].offset = 4;
+        assert_eq!(batch_fetch_end(&normal).unwrap(), 5);
     }
 
     #[test]
