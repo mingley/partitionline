@@ -1414,7 +1414,7 @@ async fn unknown_topic_id_refreshes_topic_id_for_next_poll() {
     // "u" makes a stale ShareFetch id resolve to the wrong name until
     // metadata refresh replaces the join id.
     mock.set_topic_partitions("u", 1);
-    produce_topic(&mock, "u", &[(0, b"first")]).await;
+    produce_topic(&mock, "u", &[(0, b"first"), (0, b"second")]).await;
     let mut cfg = config(&mock);
     cfg.max_poll_records = Some(1);
     let mut group = ShareGroup::join(cfg, "tid-refresh", "u").await.unwrap();
@@ -1424,8 +1424,9 @@ async fn unknown_topic_id_refreshes_topic_id_for_next_poll() {
     group.accept(&first).await.unwrap();
     group.commit().await.unwrap();
     let stale = mock.topic_id("u");
-    mock.recreate_topic_id("u", [0xAB; 16]);
-    produce_topic(&mock, "u", &[(0, b"second")]).await;
+    // Keep the log. recreate_topic_id would wipe it and reuse offset 0,
+    // which the mock still treats as accepted for this group.
+    mock.set_topic_id("u", [0xAB; 16]);
     mock.fail_share_top_once(SHARE_FETCH, 1, error::UNKNOWN_TOPIC_ID);
     assert_broker(group.poll().await.unwrap_err(), error::UNKNOWN_TOPIC_ID);
     assert_ne!(mock.topic_id("u"), stale, "broker topic id must change");
