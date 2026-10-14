@@ -1,0 +1,18 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "db41ae66",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. On one profiled fetch, record parsing was about 8 ms and moving those records into FetchedRecord was about 14 ms. Delivering uncompressed, non-transactional batches straight into the output vector skipped the intermediate record vector. Twenty interleaved pairs: paired mean records/s ratio 1.036, bootstrap 95% CI 1.009 to 1.063. The interval excludes zero and the mean is above 3%, but the lower bound is 0.9%, so the 3% bar is not established. Allocation count fell from 135,370 to 135,100. Allocated bytes fell from 51,649,211 to 37,609,211 on every run. The code was not kept.",
+  "paired_mean_ratio": 1.036,
+  "paired_ratio_ci95": [1.009, 1.063],
+  "before_median": 373119.11,
+  "after_median": 381647.71,
+  "before_allocation_count": 135370,
+  "after_allocation_count": 135100,
+  "before_allocated_bytes": 51649211,
+  "after_allocated_bytes": 37609211
+}
