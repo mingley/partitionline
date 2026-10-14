@@ -583,6 +583,7 @@ pub(crate) fn collect_bounded_commits(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
+    let mut seen = HashSet::new();
     for (tp, md) in offsets {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many committed partitions"));
@@ -593,6 +594,9 @@ pub(crate) fn collect_bounded_commits(
             return Err(Error::protocol(
                 "committed partition and offset must not be negative",
             ));
+        }
+        if !seen.insert((tp.topic.clone(), tp.partition)) {
+            return Err(Error::protocol("duplicate committed partition"));
         }
         if tp.topic.len() > limits.string_bytes || md.metadata.len() > limits.string_bytes {
             return Err(Error::protocol(
@@ -612,6 +616,7 @@ pub(crate) fn collect_bounded_partitions(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
+    let mut seen = HashSet::new();
     for partition in partitions {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many offset partitions"));
@@ -621,6 +626,9 @@ pub(crate) fn collect_bounded_partitions(
             return Err(Error::protocol(
                 "offset partition index must not be negative",
             ));
+        }
+        if !seen.insert((partition.topic.clone(), partition.partition)) {
+            return Err(Error::protocol("duplicate offset partition"));
         }
         if partition.topic.len() > limits.string_bytes {
             return Err(Error::protocol("offset topic string exceeds limit"));
@@ -818,5 +826,20 @@ mod tests {
         .is_ok());
         assert!(collect_bounded_partitions([TopicPartition::new("t", -1)]).is_err());
         assert!(collect_bounded_partitions([TopicPartition::new("t", 0)]).is_ok());
+        assert!(collect_bounded_commits([
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(1)),
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(2)),
+        ])
+        .is_err());
+        assert!(collect_bounded_commits([
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(1)),
+            (TopicPartition::new("t", 1), OffsetAndMetadata::new(2)),
+        ])
+        .is_ok());
+        assert!(collect_bounded_partitions([
+            TopicPartition::new("t", 0),
+            TopicPartition::new("t", 0),
+        ])
+        .is_err());
     }
 }
