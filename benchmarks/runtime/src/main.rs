@@ -25,7 +25,7 @@ use partitionline::producer::{Producer, ProducerConfig};
 use partitionline::Acks;
 
 use runtime::artifact::{build_result, parse_broker_artifact, BrokerCounts, RunContext};
-use runtime::cells::{generate, producer_cells, CellDef};
+use runtime::cells::{gen_one, generate, producer_cells, CellDef};
 use runtime::drive::drive_cell;
 use runtime::executor::RuntimeConfig;
 use runtime::host::probe as probe_host;
@@ -449,6 +449,42 @@ struct ProduceRun {
     require_faults: bool,
 }
 
+/// Send and flush one record so the leader worker exists before timing.
+fn open_produce_connection(
+    rt: &tokio::runtime::Runtime,
+    producer: &Arc<Producer>,
+    cell: &CellDef,
+    topics: &[std::sync::Arc<str>],
+) -> Result<(), String> {
+    let topic = topics.first().ok_or("produce cell has no topic")?.clone();
+    rt.block_on(async {
+        loop {
+            let mut rec = gen_one(cell, 0, 0, 0);
+            let mut req = partitionline::producer::ProduceRecord::to(std::sync::Arc::clone(&topic));
+            req.partition = Some(rec.partition);
+            req.key = Some(std::mem::take(&mut rec.key));
+            req.value = Some(std::mem::take(&mut rec.value));
+            req.headers = std::mem::take(&mut rec.headers);
+            match producer.try_send(req) {
+                Ok(()) => break,
+                Err(partitionline::Error::QueueFull) => {
+                    tokio::task::yield_now().await;
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                    producer
+                        .flush()
+                        .await
+                        .map_err(|e| format!("warmup flush: {e}"))?;
+                }
+                Err(e) => return Err(format!("warmup send: {e}")),
+            }
+        }
+        producer
+            .flush()
+            .await
+            .map_err(|e| format!("warmup flush: {e}"))
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_produce(
     rt: &tokio::runtime::Runtime,
@@ -497,6 +533,10 @@ fn run_produce(
         .iter()
         .map(|topic| std::sync::Arc::from(topic.name))
         .collect();
+    // One record opens the produce connection before the census. The
+    // measured phase then does not pay the handshake or the first
+    // channel-block faults. The broker end-offset audit subtracts it.
+    open_produce_connection(rt, &producer, cell, &topics)?;
     let mut outcome = runtime::drive::DriveOutcome::default();
     outcome.latencies_us.reserve(records.len());
     let mut stamps = Vec::with_capacity(records.len());
@@ -561,6 +601,7 @@ fn run_produce(
     let ctx = RunContext {
         cell_id: cell.id,
         offered: cell.total_records() as u64,
+        prior_produce_records: 1,
         seed: cell.seed,
         profile: "bulk",
         consumed: 0,
@@ -850,6 +891,7 @@ fn run_fetch(
     let ctx = RunContext {
         cell_id: cell.id,
         runtime_config: runtime_config.quiesce(rt)?,
+        prior_produce_records: 0,
         offered: if cell.id == "nb-fetch-committed-aborts" {
             fout.returned_records
         } else {
@@ -1127,6 +1169,7 @@ fn run_connect(
         cell_id: CELL_ID,
         runtime_config: runtime_config.quiesce(rt)?,
         offered: cases.len() as u64,
+        prior_produce_records: 0,
         seed: SEED,
         profile: "bulk",
         consumed: 0,

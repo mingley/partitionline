@@ -69,7 +69,10 @@ fn run_cell_with_args(cell: &str, extra: &[&str]) -> (serde_json::Value, PathBuf
     assert_eq!(doc["execution"]["repetition_index"], 1);
     assert_eq!(doc["schema_version"], "2.0.0");
     assert_eq!(doc["provenance"]["broker"]["mode"], "null");
-    assert_eq!(doc["execution"]["warmup_completed"], false);
+    assert_eq!(
+        doc["execution"]["warmup_completed"],
+        doc["execution"]["warmup_records"].as_u64().unwrap_or(0) > 0
+    );
     assert!(PathBuf::from(doc["provenance"]["config"]["path"].as_str().unwrap()).is_file());
     assert_eq!(
         doc["scenario"]["cell_disposition"].as_str(),

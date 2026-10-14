@@ -136,6 +136,10 @@ pub struct RunContext {
     pub cell_id: &'static str,
     /// Records offered (produce) or targeted (fetch/connect cases).
     pub offered: u64,
+    /// Produce records flushed before the measured phase so the
+    /// leader connection exists. Subtracted from the broker end-offset
+    /// sum; not part of `offered`.
+    pub prior_produce_records: u64,
     /// Base seed; repetition seeds derive from it.
     pub seed: u64,
     /// Scenario profile (`bulk` for produce, `fetch` for consume).
@@ -353,7 +357,7 @@ pub fn build_result(
         || outcome.timed_out
         || ctx.extra_failed
         || delivered != offered
-        || (acked > 0 && broker_accepted != acked)
+        || (acked > 0 && broker_accepted != acked.saturating_add(ctx.prior_produce_records))
         || (outcome.offsets_observed && outcome.offsets_valid != acked);
     let disposition = if failed { "failed" } else { "executed" };
 
@@ -431,7 +435,9 @@ pub fn build_result(
     }
     let (lat_sha, lat_size) = sha256_file(&ctx.latency_path)?;
 
-    let hw_delta: i64 = ctx.broker.end_offsets.iter().map(|(_, _, o)| o).sum();
+    let hw_raw: i64 = ctx.broker.end_offsets.iter().map(|(_, _, o)| o).sum();
+    let hw_delta =
+        hw_raw.saturating_sub(i64::try_from(ctx.prior_produce_records).unwrap_or(i64::MAX));
     let partitions: Vec<Value> = ctx
         .broker
         .end_offsets
@@ -568,8 +574,8 @@ pub fn build_result(
         },
         "execution": {
             "phase": "bounded_fixture",
-            "warmup_completed": false,
-            "warmup_records": 0,
+            "warmup_completed": ctx.prior_produce_records > 0,
+            "warmup_records": ctx.prior_produce_records,
             "warmup_duration_seconds": 0,
             "steady_state_duration_seconds": null,
             "measured_duration_seconds": ctx.wall_seconds,
