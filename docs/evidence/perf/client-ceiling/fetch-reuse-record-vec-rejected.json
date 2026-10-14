@@ -1,0 +1,21 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "2572e627",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-regression",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. One fetch reused a single record vector across batches instead of allocating a new vector per batch. Every run verified 20,000 records. Allocation count fell from 629 to 360 and allocated bytes from 51,625,440 to 37,637,440 on every run. Eight interleaved pairs against the inline-topic parent: before median 656,538.97 records/s, after median 670,081.29, paired mean ratio 0.983, bootstrap 95% CI 0.878 to 1.078. Five of eight pairs were slower. Client CPU-nanoseconds per record mean ratio was 1.055, above the 2% guardrail, pulled by one slow pair. The code was not kept. This is not a peer comparison and not a fastest-client result.",
+  "before_median": 656538.97,
+  "after_median": 670081.29,
+  "paired_mean_ratio": 0.983,
+  "paired_ratio_ci95": [0.878, 1.078],
+  "slower_pairs": 5,
+  "pairs": 8,
+  "before_allocation_count": 629,
+  "after_allocation_count": 360,
+  "before_allocated_bytes": 51625440,
+  "after_allocated_bytes": 37637440,
+  "cpu_mean_ratio": 1.055
+}
