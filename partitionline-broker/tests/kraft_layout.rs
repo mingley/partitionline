@@ -352,3 +352,97 @@ fn apache_431_bodies_round_trip_and_stay_unadvertised() {
     assert_eq!(protocol::negotiate(&peer, 81), None);
     assert_eq!(protocol::negotiate(&peer, 82), None);
 }
+
+#[test]
+fn apache_431_responses_round_trip() {
+    let vote0 = apache("vote-response-v0.bin");
+    let decoded =
+        protocol::decode_vote_response(&vote0, 0).unwrap_or_else(|error| panic!("{error:?}"));
+    assert!(decoded.endpoints.is_empty());
+    assert!(decoded.vote_granted);
+    assert_eq!(
+        protocol::encode_vote_response(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        vote0
+    );
+    let vote1 = apache("vote-response-v1.bin");
+    let decoded =
+        protocol::decode_vote_response(&vote1, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.endpoints.len(), 1);
+    assert_eq!(decoded.endpoints[0].node_id, 2);
+    assert_eq!(
+        protocol::encode_vote_response(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        vote1
+    );
+    let begin0 = apache("begin-response-v0.bin");
+    let decoded =
+        protocol::decode_epoch_response(&begin0, 0).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(
+        protocol::encode_epoch_response(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        begin0
+    );
+    assert_eq!(begin0, apache("end-response-v0.bin"));
+    let begin1 = apache("begin-response-v1.bin");
+    let decoded =
+        protocol::decode_epoch_response(&begin1, 1).unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.endpoints[0].host, "localhost");
+    assert_eq!(
+        protocol::encode_epoch_response(&decoded).unwrap_or_else(|error| panic!("{error:?}")),
+        begin1
+    );
+    assert_eq!(begin1, apache("end-response-v1.bin"));
+    let add0 = apache("add-voter-response-v0.bin");
+    let decoded = protocol::decode_voter_change_response(&add0, 80, 0)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.error_message, None);
+    assert_eq!(
+        protocol::encode_voter_change_response(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        add0
+    );
+    let add1 = apache("add-voter-response-v1-empty.bin");
+    let decoded = protocol::decode_voter_change_response(&add1, 80, 1)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.error_message.as_deref(), Some(""));
+    assert_eq!(
+        protocol::encode_voter_change_response(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        add1
+    );
+    let remove = apache("remove-voter-response.bin");
+    let decoded = protocol::decode_voter_change_response(&remove, 81, 0)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.throttle_ms, 4);
+    assert_eq!(
+        protocol::encode_voter_change_response(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        remove
+    );
+    let update = apache("update-voter-response.bin");
+    let decoded =
+        protocol::decode_update_voter_response(&update).unwrap_or_else(|error| panic!("{error:?}"));
+    assert!(decoded.leader_present);
+    assert_eq!(decoded.port, 9093);
+    assert_eq!(
+        protocol::encode_update_voter_response(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        update
+    );
+    let request = apache("describe-quorum-request.bin");
+    let decoded = protocol::decode_describe_quorum_request(&request, 2)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.partitions, vec![0]);
+    assert_eq!(
+        protocol::encode_describe_quorum_request(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        request
+    );
+    let two = apache("describe-quorum-request-two.bin");
+    let decoded = protocol::decode_describe_quorum_request(&two, 2)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    assert_eq!(decoded.partitions, vec![0, 3]);
+    assert_eq!(
+        protocol::encode_describe_quorum_request(&decoded)
+            .unwrap_or_else(|error| panic!("{error:?}")),
+        two
+    );
+}

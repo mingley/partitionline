@@ -2350,7 +2350,9 @@ pub fn encode_describe_quorum_request(body: &DescribeQuorumRequestBody) -> Resul
     )?;
     for partition in &body.partitions {
         out.extend_from_slice(&partition.to_be_bytes());
+        out.push(0);
     }
+    // Topic suffix, then the request suffix. Apache writes both.
     out.extend_from_slice(&[0, 0]);
     Ok(out)
 }
@@ -2382,6 +2384,7 @@ pub fn decode_describe_quorum_request(
             return Err(Error::InvalidConfig);
         }
         partitions.push(partition);
+        reader.tags()?;
     }
     reader.tags()?;
     reader.tags()?;

@@ -7,14 +7,21 @@ import java.util.Arrays;
 import java.util.HexFormat;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.message.AddRaftVoterRequestData;
+import org.apache.kafka.common.message.AddRaftVoterResponseData;
 import org.apache.kafka.common.message.BeginQuorumEpochRequestData;
+import org.apache.kafka.common.message.BeginQuorumEpochResponseData;
+import org.apache.kafka.common.message.DescribeQuorumRequestData;
 import org.apache.kafka.common.message.DescribeQuorumResponseData;
 import org.apache.kafka.common.message.EndQuorumEpochRequestData;
+import org.apache.kafka.common.message.EndQuorumEpochResponseData;
 import org.apache.kafka.common.message.FetchSnapshotRequestData;
 import org.apache.kafka.common.message.FetchSnapshotResponseData;
 import org.apache.kafka.common.message.RemoveRaftVoterRequestData;
+import org.apache.kafka.common.message.RemoveRaftVoterResponseData;
 import org.apache.kafka.common.message.UpdateRaftVoterRequestData;
+import org.apache.kafka.common.message.UpdateRaftVoterResponseData;
 import org.apache.kafka.common.message.VoteRequestData;
+import org.apache.kafka.common.message.VoteResponseData;
 import org.apache.kafka.common.message.VotersRecord;
 import org.apache.kafka.common.protocol.ByteBufferAccessor;
 import org.apache.kafka.common.protocol.Message;
@@ -80,6 +87,18 @@ public final class KraftLayoutApache {
         output(dir.resolve("add-voter-v0.bin"), encode(add(false), (short) 0), verify);
         output(dir.resolve("add-voter-v1.bin"), encode(add(true), (short) 1), verify);
         output(dir.resolve("remove-voter.bin"), encode(remove(), (short) 0), verify);
+        output(dir.resolve("vote-response-v0.bin"), encode(voteResponse(false), (short) 0), verify);
+        output(dir.resolve("vote-response-v1.bin"), encode(voteResponse(true), (short) 1), verify);
+        output(dir.resolve("begin-response-v0.bin"), encode(beginResponse(false), (short) 0), verify);
+        output(dir.resolve("begin-response-v1.bin"), encode(beginResponse(true), (short) 1), verify);
+        output(dir.resolve("end-response-v0.bin"), encode(endResponse(false), (short) 0), verify);
+        output(dir.resolve("end-response-v1.bin"), encode(endResponse(true), (short) 1), verify);
+        output(dir.resolve("add-voter-response-v0.bin"), encode(addResponse(null), (short) 0), verify);
+        output(dir.resolve("add-voter-response-v1-empty.bin"), encode(addResponse(""), (short) 1), verify);
+        output(dir.resolve("remove-voter-response.bin"), encode(removeResponse(), (short) 0), verify);
+        output(dir.resolve("update-voter-response.bin"), encode(updateResponse(), (short) 0), verify);
+        output(dir.resolve("describe-quorum-request.bin"), encode(describeRequest(), (short) 2), verify);
+        output(dir.resolve("describe-quorum-request-two.bin"), encode(describeRequestTwo(), (short) 2), verify);
     }
 
     static VoteRequestData vote(short version) {
@@ -244,5 +263,97 @@ public final class KraftLayoutApache {
         resp.topics().add(topic);
         resp.setNodes(nodes);
         return resp;
+    }
+
+    static VoteResponseData voteResponse(boolean endpoints) {
+        var part = new VoteResponseData.PartitionData()
+            .setPartitionIndex(0)
+            .setErrorCode((short) 0)
+            .setLeaderId(2)
+            .setLeaderEpoch(3)
+            .setVoteGranted(true);
+        var topic = new VoteResponseData.TopicData().setTopicName("__cluster_metadata");
+        topic.partitions().add(part);
+        var resp = new VoteResponseData().setErrorCode((short) 0);
+        resp.topics().add(topic);
+        if (endpoints) {
+            var nodes = new VoteResponseData.NodeEndpointCollection();
+            nodes.add(new VoteResponseData.NodeEndpoint().setNodeId(2).setHost("localhost").setPort(9093));
+            resp.setNodeEndpoints(nodes);
+        }
+        return resp;
+    }
+
+    static BeginQuorumEpochResponseData beginResponse(boolean endpoints) {
+        var part = new BeginQuorumEpochResponseData.PartitionData()
+            .setPartitionIndex(0)
+            .setErrorCode((short) 0)
+            .setLeaderId(2)
+            .setLeaderEpoch(3);
+        var topic = new BeginQuorumEpochResponseData.TopicData().setTopicName("__cluster_metadata");
+        topic.partitions().add(part);
+        var resp = new BeginQuorumEpochResponseData().setErrorCode((short) 0);
+        resp.topics().add(topic);
+        if (endpoints) {
+            var nodes = new BeginQuorumEpochResponseData.NodeEndpointCollection();
+            nodes.add(new BeginQuorumEpochResponseData.NodeEndpoint().setNodeId(2).setHost("localhost").setPort(9093));
+            resp.setNodeEndpoints(nodes);
+        }
+        return resp;
+    }
+
+    static EndQuorumEpochResponseData endResponse(boolean endpoints) {
+        var part = new EndQuorumEpochResponseData.PartitionData()
+            .setPartitionIndex(0)
+            .setErrorCode((short) 0)
+            .setLeaderId(2)
+            .setLeaderEpoch(3);
+        var topic = new EndQuorumEpochResponseData.TopicData().setTopicName("__cluster_metadata");
+        topic.partitions().add(part);
+        var resp = new EndQuorumEpochResponseData().setErrorCode((short) 0);
+        resp.topics().add(topic);
+        if (endpoints) {
+            var nodes = new EndQuorumEpochResponseData.NodeEndpointCollection();
+            nodes.add(new EndQuorumEpochResponseData.NodeEndpoint().setNodeId(2).setHost("localhost").setPort(9093));
+            resp.setNodeEndpoints(nodes);
+        }
+        return resp;
+    }
+
+    static AddRaftVoterResponseData addResponse(String message) {
+        return new AddRaftVoterResponseData().setThrottleTimeMs(0).setErrorCode((short) 0).setErrorMessage(message);
+    }
+
+    static RemoveRaftVoterResponseData removeResponse() {
+        return new RemoveRaftVoterResponseData().setThrottleTimeMs(4).setErrorCode((short) 0).setErrorMessage(null);
+    }
+
+    static UpdateRaftVoterResponseData updateResponse() {
+        return new UpdateRaftVoterResponseData()
+            .setThrottleTimeMs(0)
+            .setErrorCode((short) 0)
+            .setCurrentLeader(new UpdateRaftVoterResponseData.CurrentLeader()
+                .setLeaderId(2)
+                .setLeaderEpoch(3)
+                .setHost("localhost")
+                .setPort(9093));
+    }
+
+    static DescribeQuorumRequestData describeRequest() {
+        var part = new DescribeQuorumRequestData.PartitionData().setPartitionIndex(0);
+        var topic = new DescribeQuorumRequestData.TopicData().setTopicName("__cluster_metadata");
+        topic.partitions().add(part);
+        var req = new DescribeQuorumRequestData();
+        req.topics().add(topic);
+        return req;
+    }
+
+    static DescribeQuorumRequestData describeRequestTwo() {
+        var topic = new DescribeQuorumRequestData.TopicData().setTopicName("__cluster_metadata");
+        topic.partitions().add(new DescribeQuorumRequestData.PartitionData().setPartitionIndex(0));
+        topic.partitions().add(new DescribeQuorumRequestData.PartitionData().setPartitionIndex(3));
+        var req = new DescribeQuorumRequestData();
+        req.topics().add(topic);
+        return req;
     }
 }
