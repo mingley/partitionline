@@ -1060,9 +1060,8 @@ async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests()
     mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, Duration::from_millis(180));
     group.accept(&fresh).await.unwrap();
     assert!(
-        tokio::time::timeout(Duration::from_millis(20), group.commit())
-            .await
-            .is_err()
+        matches!(group.commit().await, Err(Error::Timeout)),
+        "ShareAcknowledge must obey request_timeout, not the delayed reply"
     );
     assert!(
         mock.share_accepted("late-reply", "t", 0, 1),
