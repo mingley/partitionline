@@ -14,6 +14,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (standalone ShareAcknowledge is still used for `commit` / `leave`).
   Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
   partitions when the assignment shrinks or a topic id is replaced.
+  `ShareGroup::subscribe` keeps the share session and heartbeats the
+  new topic list instead of closing with FINAL epoch.
   `ShareGroup::commit` / `commit_timeout` / `commit_async` flush implicit
   acknowledgements as `Result<()>`. `ShareGroup::commit_sync` /
   `commit_sync_timeout` are Java `ShareConsumer.commitSync` /

@@ -149,6 +149,54 @@ async fn implicit_next_poll_piggybacks_acks_on_share_fetch() {
 }
 
 #[tokio::test]
+async fn subscribe_shrink_keeps_share_session() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    admin.close().await.unwrap();
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join_topics(config(&mock), "shrink", ["t", "u"])
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert!(!first.is_empty());
+    assert_eq!(mock.last_share_fetch_epoch(), Some(0));
+    let acks = mock.share_ack_calls();
+    group.subscribe(["t"]).await.unwrap();
+    assert!(
+        group.assignment().iter().all(|tp| tp.topic == "t"),
+        "subscribe shrink must drop u, got {:?}",
+        group.assignment()
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "subscribe must not close the share session with FINAL epoch"
+    );
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(1),
+        "incremental ShareFetch must continue the session after assignment shrink"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_commit_flushes_without_waiting_for_next_poll() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;

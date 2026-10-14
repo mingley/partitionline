@@ -2168,11 +2168,12 @@ impl ShareGroup {
         implicit.and(close).and(leave)
     }
 
-    /// Replace the subscription and (re)join (Java `subscribe`).
+    /// Replace the subscription (Java `subscribe`).
     ///
-    /// If this member is already in the group, the coordinator is not left;
-    /// a join heartbeat uses the new topic list. After [`Self::unsubscribe`],
-    /// this starts a new heartbeat loop.
+    /// An already-joined member keeps its share sessions. The next
+    /// ShareFetch forgets partitions that left the assignment (Java
+    /// `ShareSessionHandler`). After [`Self::unsubscribe`], this starts a
+    /// new heartbeat loop.
     pub async fn subscribe(
         &mut self,
         topics: impl IntoIterator<Item = impl Into<String>>,
@@ -2202,16 +2203,18 @@ impl ShareGroup {
             return Ok(());
         }
         let rejoining = !self.member_id.is_empty();
-        if rejoining {
-            self.close_share_session().await?;
-            self.assigned.clear();
-            self.topic_ids.clear();
-            self.share_epochs.clear();
-            self.session_partitions.clear();
-        }
         self.topics = topics;
         if rejoining {
-            self.heartbeat_join().await?;
+            if self.member_epoch > 0 {
+                self.heartbeat_subscription().await?;
+            } else {
+                self.close_share_session().await?;
+                self.assigned.clear();
+                self.topic_ids.clear();
+                self.share_epochs.clear();
+                self.session_partitions.clear();
+                self.heartbeat_join().await?;
+            }
             return Ok(());
         }
         self.member_id = Uuid::random_uuid().to_string();
@@ -2220,6 +2223,94 @@ impl ShareGroup {
         self.heartbeat_join().await?;
         self.spawn_heartbeat(hb_rx);
         Ok(())
+    }
+
+    /// Heartbeat the new subscription without joining again or closing
+    /// share sessions. When the coordinator omits the assignment (or the
+    /// assigned topic set still does not match), rebuild from metadata —
+    /// a share member fetches every subscribed partition.
+    async fn heartbeat_subscription(&mut self) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
+        let req = ShareGroupHeartbeatRequest {
+            group_id: self.group_id.clone(),
+            member_id: self.member_id.clone(),
+            member_epoch: self.member_epoch,
+            rack_id: self.cfg.rack.clone(),
+            subscribed_topic_names: Some(self.topics.clone()),
+        };
+        let body = self
+            .coord
+            .roundtrip(
+                SHARE_GROUP_HEARTBEAT,
+                version,
+                |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                timeout,
+            )
+            .await?;
+        let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
+        }
+        if resp.heartbeat_interval_ms > 0 {
+            self.hb_interval_ms
+                .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+            let interval =
+                Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
+            *self.hb_deadline.lock() = Some(Instant::now() + interval);
+            self.hb_wake.notify_one();
+        }
+        if let Some(id) = resp.member_id {
+            if !id.is_empty() {
+                self.member_id = id;
+            }
+        }
+        if resp.member_epoch > 0 {
+            self.member_epoch = resp.member_epoch;
+        }
+        self.apply_share_assignment(resp.assignment.as_deref());
+        self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+        self.hb_err.store(0, Ordering::SeqCst);
+        if !self.assignment_matches_subscription() {
+            let synthesized = self.assignment_from_subscription().await?;
+            self.apply_share_assignment(Some(synthesized.as_slice()));
+        }
+        Ok(())
+    }
+
+    fn assignment_matches_subscription(&self) -> bool {
+        let assigned: HashSet<&str> = self
+            .assigned
+            .iter()
+            .map(|(topic, _)| topic.as_str())
+            .collect();
+        let wanted: HashSet<&str> = self.topics.iter().map(String::as_str).collect();
+        assigned == wanted
+    }
+
+    async fn assignment_from_subscription(&mut self) -> Result<Vec<ShareTopicPartitions>> {
+        self.consumer.refresh_topics(&self.topics).await?;
+        let infos = self.consumer.list_topics().await?;
+        let name_to_id = self.consumer.topic_name_ids();
+        let mut by_topic: BTreeMap<String, Vec<i32>> = BTreeMap::new();
+        for info in infos {
+            if self.topics.iter().any(|topic| topic == &info.topic) {
+                by_topic.entry(info.topic).or_default().push(info.partition);
+            }
+        }
+        let mut out = Vec::with_capacity(self.topics.len());
+        for name in &self.topics {
+            let Some(topic_id) = name_to_id.get(name).copied().filter(|id| *id != [0; 16]) else {
+                continue;
+            };
+            let mut partitions = by_topic.remove(name).unwrap_or_default();
+            partitions.sort_unstable();
+            out.push(ShareTopicPartitions {
+                topic_id,
+                partitions,
+            });
+        }
+        Ok(out)
     }
 
     async fn matching_topic_names(&mut self) -> Result<Vec<String>> {
