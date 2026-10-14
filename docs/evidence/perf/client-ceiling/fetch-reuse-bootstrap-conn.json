@@ -1,0 +1,22 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "3108864cca0df47e5fb6a899a086c5fb398eaae8",
+  "baseline_sha": "f8612f2e",
+  "cell": "nb-fetch-bulk",
+  "disposition": "accepted",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Eight interleaved pairs on one host, alternating which runtime ran first. The parent opens a new leader connection for fetch. The candidate reuses the bootstrap connection when that socket is already the leader and already negotiated Fetch. Every run verified 20,000 records and validation_failures stayed 0. Before median 470,622.14 records/s, after median 548,446.79. Paired mean ratio 1.176, bootstrap 95% CI 1.152 to 1.205. Zero of eight pairs were slower. Client CPU-nanoseconds per record medians were 1,838.98 before and 1,783.07 after. Not a fetch comparison against other clients and not a fastest-client result.",
+  "host": "Intel Xeon, 4 logical cores at 2400 MHz, Linux 6.12.94+, rustc 1.99.0, release",
+  "before_median": 470622.14,
+  "after_median": 548446.79,
+  "paired_mean_ratio": 1.176,
+  "paired_ratio_ci95": [1.152, 1.205],
+  "pairs": 8,
+  "slower_pairs": 0,
+  "before_records_per_second": [417334.38, 468443.28, 481848.27, 483978.86, 506796.62, 456692.05, 462258.2, 472800.99],
+  "after_records_per_second": [528403.4, 555931.94, 554377.26, 565088.87, 583686.2, 540711.8, 542516.33, 532958.88],
+  "before_client_cpu_ns_per_record": [2092.65, 1854.0, 1823.95, 1819.2, 1728.6, 1920.8, 1866.5, 1806.35],
+  "after_client_cpu_ns_per_record": [1864.3, 1783.8, 1782.35, 1748.5, 1687.8, 1841.5, 1748.05, 1860.85]
+}
