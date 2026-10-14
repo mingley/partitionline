@@ -373,9 +373,25 @@ fn matches_binding(
         Pattern::Any => true,
     };
     let operation_ok = key.operation == Operation::All || key.operation == operation;
-    let principal_ok = key.principal == "User:*" || key.principal == principal;
+    let principal_ok = principal_matches(&key.principal, principal);
     let host_ok = key.host == "*" || key.host == host;
     name_ok && operation_ok && principal_ok && host_ok
+}
+
+/// `User:*` matches every named `User:` principal. It does not match another
+/// principal type, and it does not match a bare `User:`.
+fn principal_matches(pattern: &str, principal: &str) -> bool {
+    if pattern == principal {
+        return true;
+    }
+    let Some(type_name) = pattern.strip_suffix(":*") else {
+        return false;
+    };
+    if type_name.is_empty() || !principal.starts_with(type_name) {
+        return false;
+    }
+    principal.as_bytes().get(type_name.len()) == Some(&b':')
+        && principal.len() > type_name.len().saturating_add(1)
 }
 
 fn key_from(entry: &Entry) -> Key {
@@ -708,6 +724,10 @@ mod tests {
                 Operation::Read,
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            authorizer.authorize("Group:bob", "*", Resource::Topic, "orders", Operation::Read),
+            Err(Error::Denied(Resource::Topic))
+        ));
         assert!(matches!(
             authorizer.authorize("User:bob", "*", Resource::Topic, "orders", Operation::Write),
             Err(Error::Denied(Resource::Topic))
