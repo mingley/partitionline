@@ -18,6 +18,15 @@ const MAX_CACHED_PARTITIONS: i32 = 1_000_000;
 /// outside `1..=65535` are not addresses.
 fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> {
     let host = host.trim();
+    // Metadata sometimes sends an IPv6 host already wrapped in brackets.
+    // Formatting that again would dial `[[::1]]:port`.
+    let host = match host
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+    {
+        Some(inner) => inner.trim(),
+        None => host,
+    };
     if node_id < 0 || host.is_empty() || !(1..=i32::from(u16::MAX)).contains(&port) {
         None
     } else {
@@ -487,6 +496,18 @@ mod tests {
             cluster.brokers.get(&1).map(String::as_str),
             Some("10.0.0.2:9093")
         );
+        cluster.apply(&metadata(vec![broker(4, "[::1]", 9092)]), 13);
+        assert_eq!(
+            cluster.brokers.get(&4).map(String::as_str),
+            Some("[::1]:9092")
+        );
+        cluster.apply_node_endpoints(&[NodeEndpoint::new(5, "[2001:db8::1]", 9092, None)]);
+        assert_eq!(
+            cluster.brokers.get(&5).map(String::as_str),
+            Some("[2001:db8::1]:9092")
+        );
+        cluster.apply(&metadata(vec![broker(6, "[]", 9092)]), 13);
+        assert!(!cluster.brokers.contains_key(&6));
     }
 
     #[test]
