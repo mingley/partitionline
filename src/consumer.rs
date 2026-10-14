@@ -4388,6 +4388,8 @@ impl Consumer {
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
+        // A partition listed twice must not rewind the cursor or deliver twice.
+        let mut seen_partitions: HashSet<(String, i32)> = HashSet::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
                 let name = if !topic.topic.is_empty() {
@@ -4398,6 +4400,9 @@ impl Consumer {
                     continue;
                 };
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+                    if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
+                        continue;
+                    }
                     if part.error_code == 0 {
                         self.retain_held(
                             &name,
@@ -4417,6 +4422,9 @@ impl Consumer {
                 continue;
             };
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+                if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
+                    continue;
+                }
                 if *budget_reached {
                     if part.error_code == 0 {
                         self.retain_held(
@@ -5724,6 +5732,11 @@ fn resolved_topic_identities<'a>(
     (by_name, by_id)
 }
 
+/// First copy of a fetch partition wins. A later copy is ignored.
+fn take_fetch_partition(seen: &mut HashSet<(String, i32)>, topic: &str, partition: i32) -> bool {
+    seen.insert((topic.to_owned(), partition))
+}
+
 fn recreated_topic_partitions(
     assigned: &[(String, i32, i64)],
     assigned_ids: &HashMap<(String, i32), [u8; 16]>,
@@ -5984,6 +5997,15 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_repeated_fetch_partition_is_applied_once() {
+        let mut seen = HashSet::new();
+        assert!(take_fetch_partition(&mut seen, "t", 0));
+        assert!(!take_fetch_partition(&mut seen, "t", 0));
+        assert!(take_fetch_partition(&mut seen, "t", 1));
+        assert!(take_fetch_partition(&mut seen, "u", 0));
     }
 
     #[test]
