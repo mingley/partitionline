@@ -213,40 +213,68 @@ impl Partition {
     /// Validation/allocation/budget failures cause no append. A journal write or
     /// synchronization failure is ambiguous and disables further use until reopen.
     pub fn append(&mut self, bytes: &[u8]) -> Result<Append, Error> {
+        let mut owned = Vec::new();
+        owned
+            .try_reserve_exact(bytes.len())
+            .map_err(|_| Error::AllocationFailed)?;
+        owned.extend_from_slice(bytes);
+        self.append_in_place(&mut owned)
+    }
+
+    /// Assign base offsets in `bytes` and append that same buffer.
+    ///
+    /// The eight-byte base offset sits outside the batch CRC. Callers that
+    /// already own the payload avoid the extra copy [`Self::append`] makes.
+    pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
         self.check_alive()?;
         if bytes.len() > self.journal_limits.max_entry_bytes() {
             return Err(Error::InputTooLarge);
         }
-        let checked = records::validate(bytes, self.record_limits)?;
-        let record_count =
-            u32::try_from(checked.record_count()).map_err(|_| Error::OffsetOverflow)?;
         let base_offset = self.next_offset();
-        let next_offset = base_offset
-            .checked_add(i64::from(record_count))
-            .ok_or(Error::OffsetOverflow)?;
-        let mut assigned = Vec::new();
-        assigned
-            .try_reserve_exact(bytes.len())
-            .map_err(|_| Error::AllocationFailed)?;
-        let mut offset = base_offset;
-        for batch in checked.batches() {
-            let batch = batch?;
-            assigned.extend_from_slice(&offset.to_be_bytes());
-            assigned.extend_from_slice(batch.bytes.get(8..).ok_or(Error::CorruptPayload)?);
-            offset = offset
-                .checked_add(i64::from(batch.record_count))
+        let (record_count, next_offset, batch_count, spans) = {
+            let checked = records::validate(bytes, self.record_limits)?;
+            let record_count =
+                u32::try_from(checked.record_count()).map_err(|_| Error::OffsetOverflow)?;
+            let next_offset = base_offset
+                .checked_add(i64::from(record_count))
                 .ok_or(Error::OffsetOverflow)?;
+            let mut spans = Vec::new();
+            spans
+                .try_reserve_exact(checked.batch_count())
+                .map_err(|_| Error::AllocationFailed)?;
+            let mut cursor = 0usize;
+            let mut offset = base_offset;
+            for batch in checked.batches() {
+                let batch = batch?;
+                let len = batch.bytes.len();
+                if bytes.get(cursor..cursor.saturating_add(len)).is_none() {
+                    return Err(Error::CorruptPayload);
+                }
+                spans.push((cursor, offset));
+                cursor = cursor.checked_add(len).ok_or(Error::CorruptPayload)?;
+                offset = offset
+                    .checked_add(i64::from(batch.record_count))
+                    .ok_or(Error::OffsetOverflow)?;
+            }
+            if offset != next_offset || cursor != bytes.len() {
+                return Err(Error::CorruptPayload);
+            }
+            (record_count, next_offset, checked.batch_count(), spans)
+        };
+        for (start, assigned) in spans {
+            let end = start.checked_add(8).ok_or(Error::CorruptPayload)?;
+            bytes
+                .get_mut(start..end)
+                .ok_or(Error::CorruptPayload)?
+                .copy_from_slice(&assigned.to_be_bytes());
         }
-        if offset != next_offset || assigned.len() != bytes.len() {
-            return Err(Error::CorruptPayload);
-        }
-        self.journal.append(record_count, &assigned)?;
+        self.journal.append(record_count, bytes)?;
         self.next_offset = next_offset;
         Ok(Append {
             base_offset,
             next_offset,
             record_count,
-            batch_count: checked.batch_count(),
+            batch_count,
         })
     }
 

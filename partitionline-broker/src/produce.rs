@@ -353,7 +353,12 @@ impl Store {
             || poisoned != slot.partition.is_poisoned();
         result.map_err(Into::into)
     }
-    fn append(&mut self, id: TopicId, index: i32, bytes: &[u8]) -> Result<partition::Append, i16> {
+    fn append_in_place(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        bytes: &mut [u8],
+    ) -> Result<partition::Append, i16> {
         let position = match self
             .slots
             .iter()
@@ -380,7 +385,7 @@ impl Store {
         };
         let partition = &mut self.slots[position].partition;
         let poisoned = partition.is_poisoned();
-        let result = partition.append(bytes);
+        let result = partition.append_in_place(bytes);
         self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
         result.map_err(storage_error)
     }
@@ -814,18 +819,23 @@ fn parse(
         topics,
     })
 }
-struct ResultPart<'a> {
+enum Held {
+    /// Body-relative span of the request buffer.
+    Shared((usize, usize)),
+    Owned(Vec<u8>),
+}
+struct ResultPart {
     index: i32,
     error: i16,
     base: i64,
     log_start: i64,
-    bytes: Cow<'a, [u8]>,
+    bytes: Held,
     id: Option<TopicId>,
 }
-struct ResultTopic<'a> {
-    name: Option<&'a str>,
+struct ResultTopic {
+    name: Option<(usize, usize)>,
     id: [u8; 16],
-    parts: Vec<ResultPart<'a>>,
+    parts: Vec<ResultPart>,
 }
 fn record_error(error: records::Error) -> i16 {
     match error {
@@ -1063,7 +1073,7 @@ pub(crate) fn process(
             } else {
                 0
             };
-            let mut bytes = Cow::Owned(Vec::new());
+            let mut held = Held::Owned(Vec::new());
             if error == 0 {
                 match normalize(ranged(body, part.bytes)?, version, &store.config) {
                     Ok(value) => {
@@ -1073,7 +1083,16 @@ pub(crate) fn process(
                         if normalized > store.config.max_normalized_bytes {
                             return Err(Error::ResourceLimit);
                         }
-                        bytes = value;
+                        held = match value {
+                            Cow::Borrowed(_) => match part.bytes {
+                                Some(range) => Held::Shared(range),
+                                None => {
+                                    error = 87;
+                                    Held::Owned(Vec::new())
+                                }
+                            },
+                            Cow::Owned(buf) => Held::Owned(buf),
+                        };
                     }
                     Err(code) => error = code,
                 }
@@ -1083,12 +1102,12 @@ pub(crate) fn process(
                 error,
                 base: -1,
                 log_start: -1,
-                bytes,
+                bytes: held,
                 id: target.map(|t| t.id()),
             });
         }
         results.push(ResultTopic {
-            name: topic_name,
+            name: topic.name,
             id: topic.id,
             parts,
         });
@@ -1103,7 +1122,25 @@ pub(crate) fn process(
                     continue;
                 }
                 if let Some(id) = part.id {
-                    match store.append(id, part.index, &part.bytes) {
+                    let shared = if let Held::Shared((start, end)) = &part.bytes {
+                        Some((*start, *end))
+                    } else {
+                        None
+                    };
+                    let appended = if let Some((start, end)) = shared {
+                        let abs_start = body_off.saturating_add(start);
+                        let abs_end = body_off.saturating_add(end);
+                        let Some(buf) = input.get_mut(abs_start..abs_end) else {
+                            part.error = 87;
+                            continue;
+                        };
+                        store.append_in_place(id, part.index, buf)
+                    } else if let Held::Owned(buf) = &mut part.bytes {
+                        store.append_in_place(id, part.index, buf)
+                    } else {
+                        Err(87)
+                    };
+                    match appended {
                         Ok(result) => {
                             part.base = result.base_offset;
                             match store.log_start(id, part.index) {
@@ -1141,7 +1178,13 @@ pub(crate) fn process(
         if version >= 13 {
             writer.put(&topic.id)?;
         } else {
-            writer.string(topic.name, flex)?;
+            writer.string(
+                ranged_str(
+                    input.get(body_off..).ok_or(protocol::Error::Truncated)?,
+                    topic.name,
+                )?,
+                flex,
+            )?;
         }
         writer.count(topic.parts.len(), flex)?;
         for part in topic.parts {
