@@ -2210,15 +2210,16 @@ impl ShareGroup {
         outcomes: &BTreeMap<(String, i32), Option<Error>>,
         fallback: Option<&Error>,
     ) -> AcknowledgementCommitResults {
-        let mut partitions = BTreeMap::new();
-        for rec in recs {
-            partitions
-                .entry((rec.topic.clone(), rec.partition))
-                .or_insert(());
-        }
+        let partitions: Vec<(String, i32)> = {
+            let mut names = BTreeMap::new();
+            for rec in recs {
+                let _ = names.insert((rec.topic.clone(), rec.partition), ());
+            }
+            names.into_keys().collect()
+        };
         partitions
             .into_iter()
-            .map(|((topic, partition), _)| {
+            .map(|(topic, partition)| {
                 let exception = match outcomes.get(&(topic.clone(), partition)) {
                     Some(None) => None,
                     Some(Some(error)) => Some(AcknowledgementCommitError::from_error(error)),
@@ -2324,7 +2325,7 @@ impl ShareGroup {
                 Ok(()) => {
                     self.fire_acknowledgement_commit_callback(recs, None);
                     for rec in recs {
-                        outcomes
+                        let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert(None);
                     }
@@ -2345,7 +2346,7 @@ impl ShareGroup {
                 Err(error) => {
                     self.fire_acknowledgement_commit_callback(recs, Some(&error));
                     for rec in recs {
-                        outcomes
+                        let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert_with(|| Some(error.clone()));
                     }
@@ -2473,7 +2474,7 @@ impl ShareGroup {
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
                     if part.error_code == 0 {
-                        outcomes.insert((name.clone(), part.partition), None);
+                        let _ = outcomes.insert((name.clone(), part.partition), None);
                         let count = self
                             .acquisitions
                             .iter()
@@ -2553,7 +2554,8 @@ impl ShareGroup {
                             part.error_code,
                             format!("ShareAcknowledge {name}-{}", part.partition),
                         );
-                        outcomes.insert((name.clone(), part.partition), Some(error.clone()));
+                        let _ =
+                            outcomes.insert((name.clone(), part.partition), Some(error.clone()));
                         // A terminal outcome must remain visible even when another
                         // partition asks for a metadata retry.
                         if first_error.as_ref().is_none_or(share_ack_retriable) {
