@@ -427,6 +427,9 @@ impl Groups {
         let Some(previous) = previous else {
             return Err(Error::UnknownMember);
         };
+        if request.member_id != previous && group.members.contains_key(request.member_id) {
+            return Err(Error::InvalidRequest);
+        }
         let endpoint = group
             .members
             .get(&previous)
@@ -796,6 +799,24 @@ mod tests {
             .heartbeat(join("b", None))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(second.assignment_epoch > first.assignment_epoch);
+        assert!(matches!(
+            groups.heartbeat(Heartbeat {
+                member_id: "b",
+                member_epoch: STATIC_REJOIN_MEMBER_EPOCH,
+                topology_epoch: None,
+                task_count: None,
+                ..join("b", Some("i-1"))
+            }),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(
+            groups
+                .describe("app")
+                .unwrap_or_else(|| panic!("describe"))
+                .members
+                .len(),
+            2
+        );
         let described = groups.describe("app").unwrap_or_else(|| panic!("describe"));
         let mut active = Set::new();
         assert_eq!(described.topology_epoch, 3);
