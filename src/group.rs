@@ -2459,7 +2459,10 @@ impl ConsumerGroup {
                 .consumer
                 .positions()
                 .into_iter()
-                .filter(|(tp, _)| revoked_set.contains(&(tp.topic.clone(), tp.partition)))
+                .filter(|(tp, offset)| {
+                    position_is_committable(*offset)
+                        && revoked_set.contains(&(tp.topic.clone(), tp.partition))
+                })
                 .map(|(tp, offset)| {
                     let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
                     (
