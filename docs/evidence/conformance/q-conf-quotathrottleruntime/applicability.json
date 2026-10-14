@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "task": "KL01-25",
+  "declared_before_qualification": true,
+  "api_scope": [0, 1],
+  "registered_case_ids": [
+    "feature-produce-fetch-quota-throttle-runtime"
+  ],
+  "original_dispositions_preserved": {
+    "not_run": [
+      "feature-produce-fetch-quota-throttle-runtime"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+    "peer_version_pin": "4.1.0",
+    "adapter": "none",
+    "note": "cases.json row stays not_run. The audit recorded that runtime discarded decoded ThrottleTimeMs without applying quota backoff. This card independently qualifies Apache Produce v9 / Fetch v12 throttle bodies and public Producer/Consumer quota histories without rewriting that pin."
+  },
+  "parameter_invocations": {
+    "produce_version": 9,
+    "fetch_version": 12,
+    "topic": "pl-quota",
+    "session_id": 91,
+    "cells": [
+      "p01-produce-zero",
+      "p02-produce-quota",
+      "p03-produce-negative",
+      "f01-fetch-zero",
+      "f02-fetch-quota",
+      "f03-empty-throttled-full"
+    ],
+    "nested_counts": {
+      "p01-produce-zero": {
+        "acks": -1,
+        "partitions": 1,
+        "records": 1,
+        "throttle_time_ms": 0
+      },
+      "p02-produce-quota": {
+        "throttle_time_ms": 250,
+        "base_offset": 0
+      },
+      "p03-produce-negative": {
+        "throttle_time_ms": -1
+      },
+      "f01-fetch-zero": {
+        "session": [0, 0],
+        "partitions": [0],
+        "throttle_time_ms": 0,
+        "response_session_id": 91
+      },
+      "f02-fetch-quota": {
+        "throttle_time_ms": 80,
+        "session_id": 91,
+        "partitions": 1
+      },
+      "f03-empty-throttled-full": {
+        "throttle_time_ms": 80,
+        "session_id": 91,
+        "topics": 0
+      }
+    },
+    "expected_histories": {
+      "produce_should_client_throttle_v9": true,
+      "produce_should_client_throttle_v5": false,
+      "fetch_should_client_throttle_v12": true,
+      "fetch_should_client_throttle_v7": false,
+      "produce_quota_ms": 250,
+      "fetch_quota_ms": 80,
+      "empty_throttled_full_resets_to_initial": true,
+      "zero_and_negative_do_not_unmute": true
+    },
+    "field_gates": {
+      "Produce_ThrottleTimeMs": "1+",
+      "Produce_shouldClientThrottle": "6+",
+      "Produce_flexible": "9+",
+      "Fetch_ThrottleTimeMs": "0+",
+      "Fetch_shouldClientThrottle": "8+",
+      "Fetch_session": "7+",
+      "Fetch_flexible": "12+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "GitHub raw of the 3.9.1 commit SHA 404s; sources hashed via tag 3.9.1. FetchSessionHandler.java matches 4.1.0–4.3.1 byte-for-byte. ProduceResponse.shouldClientThrottle is version >= 6; FetchResponse.shouldClientThrottle is version >= 8.",
+      "sources": {
+        "ProduceResponse.java": "cd31df2123f5bd9bec3e9e5fab6afc530a1abe67a488a491c85f0507e1b0bcac",
+        "FetchResponse.java": "adb6b322363c1bdec00a66a9844b1f7ba25c18a0128287afa31222e045954e50",
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "ProduceResponse.json": "b1c01c1cba74b7cc4b32a57c48c8fba54c12e7d64b93781da4431b11ad96bca1",
+        "FetchResponse.json": "61d3e92615763f6cf0b2482ac48f7cb3e61dbcf71f2978a403ec3a065ae70011"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "ProduceResponse.shouldClientThrottle and FetchResponse.shouldClientThrottle match 3.9.1 gates. FetchSessionHandler empty-throttled-full matches 3.9.1.",
+      "sources": {
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Produce/Fetch throttle sources match 4.1.0.",
+      "sources": {
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "ProduceResponse.java and Fetch throttle gates match 4.1.x. FetchSessionHandler matches 3.9.1–4.3.1.",
+      "sources": {
+        "ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+        "FetchResponse.java": "3bff5214b0ba5c79e97ab24912f39f546a5cada9a1034cc2719d1e5f314c7da5",
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "ProduceResponse.java and FetchResponse.java differ from 4.1.x/4.2.1; shouldClientThrottle gates remain version >= 6 and version >= 8. FetchSessionHandler matches earlier pins.",
+      "sources": {
+        "ProduceResponse.java": "f716aa94a3cf28e88cb92fbbb124d8202b63750f230258da724be53152a21ca0",
+        "FetchResponse.java": "251d68781a289306550986d91cb1f2cd05d96d95b4243c967ca55acec82db4e3",
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/ProduceResponse.java",
+      "method": "shouldClientThrottle",
+      "applicability": "applicable",
+      "reason": "Hashed on all five pins. return version >= 6. Produce v9 is client-throttled; v3–v5 already wait at the server. The Java generator constructed ProduceResponse(data) and asserted v9 true / v5 false on every peer."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/FetchResponse.java",
+      "method": "shouldClientThrottle",
+      "applicability": "applicable",
+      "reason": "Hashed on all five pins. return version >= 8. Fetch v12 is client-throttled; v1–v7 stay outside this campaign."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/FetchSessionHandler.java",
+      "method": "handleResponse",
+      "applicability": "applicable",
+      "reason": "Hashed identically on all five pins (54b490799175…). Empty full fetch with throttleTimeMs > 0 sets nextMetadata = INITIAL and returns false (L540–L552). Incremental empty with throttle is valid KIP-219 and uses nextIncremental (L587–L593)."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/ProduceResponse.json",
+      "method": "ThrottleTimeMs",
+      "applicability": "applicable",
+      "reason": "ThrottleTimeMs is JSON 1+. Produce v9 (flexible 9+) carries the field after the topic array. Named cells use 0, 250, and -1."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/FetchResponse.json",
+      "method": "ThrottleTimeMs",
+      "applicability": "applicable",
+      "reason": "ThrottleTimeMs is the first INT32 on every Fetch version. Named cells use 0 and 80. Empty responses omit the topic array."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json not_run disposition",
+      "reason": "feature-produce-fetch-quota-throttle-runtime stays not_run at source pin cb7e97d3b92a8555aea34d59266a2990c206395f. This card does not rewrite the historical audit result."
+    },
+    {
+      "cell": "produce-v0-v2-removed",
+      "reason": "Produce v0–v2 constructors were removed in Apache Kafka 4.0. Crate spoken starts at v3. Outside this v9 campaign."
+    },
+    {
+      "cell": "produce-v3-v5-server-side-throttle",
+      "reason": "ProduceResponse.shouldClientThrottle is false below v6. The broker already waited. CHANGELOG honors Produce v6–v13; this card uses spoken v9."
+    },
+    {
+      "cell": "fetch-v1-v7-pre-client-quota",
+      "reason": "FetchResponse.shouldClientThrottle is false below v8. Consumer observes header throttle only on negotiated Fetch v8+. Outside this v12 campaign."
+    },
+    {
+      "cell": "share-group-share-fetch",
+      "reason": "Share-group fetch is a different API family. This card's api_scope is Produce (0) and Fetch (1) only."
+    },
+    {
+      "cell": "kip-848-consumer-group-heartbeat",
+      "reason": "KIP-848 consumer-group heartbeat is outside api_scope [0, 1]."
+    },
+    {
+      "cell": "src/producer.rs BrokerThrottle unit test",
+      "reason": "Local BrokerThrottle::observe zero/negative unmute refusal is not the independent leftover-empty / public Producer oracle."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}

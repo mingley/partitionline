@@ -7,6 +7,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Produce v9 and Fetch v12 `ThrottleTimeMs` histories (zero, 250 ms
+  Produce quota, negative unmute refusal, 80 ms Fetch quota, and empty
+  throttled full reset to INITIAL) are checked against pinned Apache
+  kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
+  parsers. Public Producer/Consumer replay honors the hashed
+  `shouldClientThrottle` gates. The original `not_run` row stays
+  frozen (KL01-25).
+
 - Incremental Fetch v12 session histories (full INITIAL, empty
   incremental, forgotten partition, `FETCH_SESSION_ID_NOT_FOUND` reset,
   and `INVALID_FETCH_SESSION_EPOCH` close-existing-attempt-new) are

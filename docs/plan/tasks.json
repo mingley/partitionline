@@ -52400,7 +52400,7 @@
       "title": "Qualify Producer/Consumer quota throttle runtime histories",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52426,7 +52426,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-25.json",
+        "docs/evidence/conformance/q-conf-quotathrottleruntime/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceQuotaThrottleRuntime.java",
         "tests/conformance/java/generate_quota_throttle_runtime.py",
@@ -52449,7 +52452,8 @@
         "feature-produce-fetch-quota-throttle-runtime"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "70a2dbedb3ac053f1fef082fd2aa9f8a82607f36"
     },
     {
       "id": "KL01-26",

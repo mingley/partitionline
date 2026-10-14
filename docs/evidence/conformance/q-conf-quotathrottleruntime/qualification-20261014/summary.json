@@ -1,0 +1,33 @@
+{
+  "task": "KL01-25",
+  "source_sha": "70a2dbedb3ac053f1fef082fd2aa9f8a82607f36",
+  "date": "2026-10-14",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 170.975,
+  "generator_sha256": "2158c65ca22e800eaa5d2258357bf2f31fdf81795ae5c063768818eee09ddbb0",
+  "runner_sha256": "d688c519e3b9c73efbc12e6be123b7835ef1165f75e0201b5765f3b36db7e5cd",
+  "independent_generations_match": true,
+  "peers": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "generated_bodies": 40,
+  "unsupported_receipts": 0,
+  "fixture_files": 51,
+  "rust_offline_tests": 4,
+  "rust_apache_reverse_parses": 20,
+  "python_plan_tests": 4,
+  "replay_peers": ["4.1.0", "4.3.1"],
+  "public_histories": {
+    "produce_quota_ms": 250,
+    "produce_zero_does_not_count": true,
+    "produce_negative_invalid_and_no_wait": true,
+    "fetch_quota_ms": 80,
+    "empty_throttled_full_resets_to_initial": [0, 0],
+    "legacy_epoch_absent": true
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0,
+  "records_rs_edited": false,
+  "buf_rs_edited": false,
+  "qualification_limit": "Finite named Produce v9 / Fetch v12 ThrottleTimeMs cells for five pinned client jars. Public Producer replay covers 250 ms quota wait and zero/negative unmute refusal. Public Consumer replay covers 80 ms Fetch quota and empty-throttled-full INITIAL reset. Produce v3–v5 server-side throttle and Fetch v1–v7 pre-client quota stay nonapplicable. The registered not_run row is not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+}
