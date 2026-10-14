@@ -95,9 +95,11 @@ impl RawBroker {
         let address = listener.local_addr().expect("local addr");
         let addr = address.to_string();
         let last_fetch_version = Arc::new(AtomicUsize::new(0));
+        let attempts = Arc::new(AtomicUsize::new(0));
         let (shutdown_tx, mut shutdown_rx) = oneshot::channel();
         let topic_name = topic.to_string();
         let last_fetch_version_outer = Arc::clone(&last_fetch_version);
+        let attempts_outer = Arc::clone(&attempts);
         let responses = Arc::new(responses);
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
@@ -115,7 +117,7 @@ impl RawBroker {
                         let last_fetch_version = Arc::clone(&last_fetch_version_outer);
                         let responses = Arc::clone(&responses);
                         let topic_name = topic_name.clone();
-                        let attempts = Arc::new(AtomicUsize::new(0));
+                        let attempts = Arc::clone(&attempts_outer);
                         let _handle = connections.spawn(async move {
                             let io_deadline = Duration::from_secs(5);
                             loop {
