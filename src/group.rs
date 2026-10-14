@@ -1589,18 +1589,19 @@ impl ConsumerGroup {
     /// [`Self::commit_with_metadata`] with a one-shot timeout
     /// (Java `commitSync(Map, Duration)`).
     ///
-    /// KIP-848 members apply a pending heartbeat assignment and adopt
-    /// `MemberEpoch` before OffsetCommit, matching [`Self::commit`].
+    /// KIP-848 members adopt the heartbeat `MemberEpoch` before OffsetCommit
+    /// so a later assignment does not fail with `STALE_MEMBER_EPOCH`.
+    /// [`Self::commit`] / [`Self::poll`] still apply the pending assignment.
     pub async fn commit_with_metadata_timeout(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
         timeout: Duration,
     ) -> Result<()> {
         let started = Instant::now();
-        if self.kip848 {
-            self.check_kip848_membership().await?;
-            self.apply_pending_assignment().await?;
-        }
+        // Adopt only. Applying a pending assignment here would recurse
+        // through assign_committed → commit_offsets_timeout when
+        // enable_auto_commit revokes partitions.
+        self.adopt_kip848_membership();
         let offsets = crate::offsets::collect_bounded_commits(offsets)?;
         let topics = group_offset_topics(&offsets);
         if topics.is_empty() {
