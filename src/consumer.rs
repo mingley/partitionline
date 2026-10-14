@@ -4367,6 +4367,9 @@ impl Consumer {
                 if part.error_code != 0 {
                     let e = Error::broker(part.error_code, format!("{}-{}", name, part.partition));
                     if e.is_retriable() {
+                        // The follower chosen for the previous leader epoch must
+                        // not keep serving this partition after the leader moves.
+                        let _ = self.preferred.remove(&name, part.partition);
                         let applied = part.current_leader_id >= 0
                             && self.cluster.apply_current_leader(
                                 &name,
