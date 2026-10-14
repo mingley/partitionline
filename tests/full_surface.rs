@@ -4840,9 +4840,13 @@ async fn join_honors_group_protocol_consumer() {
     );
     group.leave().await.unwrap();
 
-    let classic = ConsumerGroup::join(ccfg.group_protocol(GroupProtocol::Classic), "gp-classic", "t")
-        .await
-        .unwrap();
+    let classic = ConsumerGroup::join(
+        ccfg.group_protocol(GroupProtocol::Classic),
+        "gp-classic",
+        "t",
+    )
+    .await
+    .unwrap();
     assert_eq!(classic.group_protocol(), GroupProtocol::Classic);
     assert!(
         mock.join_group_calls() >= 1,
