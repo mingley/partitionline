@@ -3143,6 +3143,9 @@
 
 #![forbid(unsafe_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
+// Boxing offset I/O so Admin list/alter debug futures fit the default
+// 2 MiB test stack adds one layout-query layer past the default 128.
+#![recursion_limit = "256"]
 
 /// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;

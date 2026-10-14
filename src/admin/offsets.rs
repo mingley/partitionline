@@ -82,6 +82,20 @@ impl Admin {
             Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
         )>,
     > {
+        Box::pin(self.fetch_named_groups_v10_body(jobs, require_stable, deadline)).await
+    }
+
+    async fn fetch_named_groups_v10_body(
+        &self,
+        jobs: &[(String, super::ListConsumerGroupOffsetsSpec)],
+        require_stable: bool,
+        deadline: Deadline,
+    ) -> Result<
+        Vec<(
+            String,
+            Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+        )>,
+    > {
         use crate::protocol::group::*;
         let limits = OffsetLimits::default();
         let mut ids = std::collections::HashSet::new();
@@ -231,6 +245,15 @@ impl Admin {
         offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
         deadline: Deadline,
     ) -> Result<()> {
+        Box::pin(self.commit_named_offsets_v10_body(group_id, offsets, deadline)).await
+    }
+
+    async fn commit_named_offsets_v10_body(
+        &self,
+        group_id: &str,
+        offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+        deadline: Deadline,
+    ) -> Result<()> {
         let limits = crate::protocol::group::OffsetLimits::default();
         let topics = crate::group::group_offset_topics(offsets);
         let mut request = OffsetCommitRequestData {
@@ -302,6 +325,17 @@ impl Admin {
     }
 
     pub(super) async fn fetch_named_offsets_v10(
+        &self,
+        group_id: &str,
+        topics: Option<&[crate::protocol::group::OffsetFetchTopic]>,
+        require_stable: bool,
+        deadline: Deadline,
+    ) -> Result<Vec<crate::protocol::group::FetchedOffsetTopic>> {
+        Box::pin(self.fetch_named_offsets_v10_body(group_id, topics, require_stable, deadline))
+            .await
+    }
+
+    async fn fetch_named_offsets_v10_body(
         &self,
         group_id: &str,
         topics: Option<&[crate::protocol::group::OffsetFetchTopic]>,
