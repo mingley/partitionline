@@ -258,6 +258,9 @@ impl Cluster {
         if leader_id < 0 || !self.brokers.contains_key(&leader_id) {
             return false;
         }
+        if !(0..MAX_CACHED_PARTITIONS).contains(&partition) {
+            return false;
+        }
         let known = self.leader_epoch(topic, partition);
         if known != RecordBatch::NO_PARTITION_LEADER_EPOCH && leader_epoch < known {
             return false;
@@ -462,6 +465,9 @@ mod tests {
         assert_eq!(cluster.leader_epochs.get("t").map(Vec::len), Some(1));
         cluster.set_leader_epoch("t", i32::MAX, 3);
         assert_eq!(cluster.leader_epochs.get("t").map(Vec::len), Some(1));
+        assert!(!cluster.apply_current_leader("t", i32::MAX, 1, 5));
+        assert_eq!(cluster.leaders.get("t").map(Vec::len), Some(1));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
     }
 
     #[test]
