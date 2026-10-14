@@ -191,12 +191,14 @@ impl Durability {
             return Err(Error::NotWritten);
         }
         let base = self.end_offset.get(&self.leader).copied().unwrap_or(0);
+        let count = i64::try_from(ids.len()).map_err(|_| Error::InvalidLimits)?;
+        let end = base.checked_add(count).ok_or(Error::InvalidLimits)?;
         let mut next = base;
         for id in ids {
             self.ids.insert(next, *id);
-            next = next.checked_add(1).ok_or(Error::InvalidLimits)?;
+            next = next.saturating_add(1);
         }
-        self.end_offset.insert(self.leader, next);
+        self.end_offset.insert(self.leader, end);
         self.advance_watermark();
         Ok(base)
     }
@@ -542,5 +544,18 @@ mod tests {
             Some(Ack::Committed)
         );
         assert!(state.is_committed(1) && state.is_committed(2) && state.is_committed(3));
+    }
+
+    #[test]
+    fn an_append_past_the_end_of_i64_does_not_store_a_partial_batch() {
+        let (mut state, _) = open("end", 1);
+        state
+            .append(&[1])
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let _ = state.end_offset.insert(state.leader, i64::MAX);
+        assert!(matches!(state.append(&[2, 3]), Err(Error::InvalidLimits)));
+        assert!(!state.ids.contains_key(&i64::MAX));
+        assert_eq!(state.end_offset.get(&state.leader).copied(), Some(i64::MAX));
+        assert_eq!(state.high_watermark(), 1);
     }
 }
