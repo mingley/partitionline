@@ -2035,6 +2035,9 @@
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
 //! ShareFetch (Java `ShareConsumeRequestManager`).
+//! Incremental ShareFetch forgotten topics follow Java
+//! `ShareSessionHandler.newShareFetchBuilder` (assignment shrink and
+//! topic-id replacement).
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] /
 //! [`ShareGroup::commit_async`] flush implicit acknowledgements
 //! (`Result<()>`). [`ShareGroup::commit_sync`] /

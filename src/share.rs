@@ -32,9 +32,9 @@ use crate::protocol::share::{
     decode_share_fetch_response_with_budget, decode_share_group_heartbeat_response,
     encode_share_acknowledge_request, encode_share_acknowledge_topics,
     encode_share_fetch_request_with_options, encode_share_group_heartbeat_request,
-    AcknowledgementBatch, ShareAckTopic, ShareFetchPartition, ShareFetchRequestOptions,
-    ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
-    ACK_RELEASE, ACK_RENEW,
+    AcknowledgementBatch, ShareAckTopic, ShareFetchPartition, ShareFetchRequest,
+    ShareFetchRequestOptions, ShareFetchTopic, ShareForgottenTopic, ShareGroupHeartbeatRequest,
+    ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
 };
 use crate::Uuid;
 
@@ -641,6 +641,8 @@ pub enum ShareAcquireMode {
 /// [`crate::ConsumerGroupMetadata::generation_id`] is the share member epoch.
 /// [`Self::commit_sync`] is Java `ShareConsumer.commitSync()`
 /// (`Map<TopicIdPartition, Optional<KafkaException>>`).
+/// Incremental ShareFetch sends Java `ShareSessionHandler` forgotten
+/// partitions when the assignment shrinks or a topic id is replaced.
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -656,6 +658,8 @@ pub struct ShareGroup {
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
+    /// Java `ShareSessionHandler.sessionPartitions` per share-partition leader.
+    session_partitions: HashMap<i32, HashSet<([u8; 16], i32)>>,
     share_conns: HashMap<i32, ShareNodeConnection>,
     share_addresses: HashMap<i32, String>,
     acquisitions: HashMap<AcquisitionKey, Acquisition>,
@@ -838,6 +842,7 @@ impl ShareGroup {
             assigned: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
+            session_partitions: HashMap::new(),
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
             acquisitions: HashMap::new(),
@@ -1665,8 +1670,18 @@ impl ShareGroup {
         let _ = self.share_epochs.insert(node, next);
     }
 
+    fn remember_share_session(&mut self, node: i32, by_id: &BTreeMap<[u8; 16], Vec<i32>>) {
+        let requested = share_session_requested(by_id);
+        if requested.is_empty() {
+            let _ = self.session_partitions.remove(&node);
+        } else {
+            let _ = self.session_partitions.insert(node, requested);
+        }
+    }
+
     fn reset_node_session(&mut self, node: i32) {
         let _ = self.share_epochs.remove(&node);
+        let _ = self.session_partitions.remove(&node);
         let _ = self.share_conns.remove(&node);
         self.acquisitions
             .retain(|_, acquisition| acquisition.node != node);
@@ -1759,7 +1774,20 @@ impl ShareGroup {
                 }
             }
         }
-        let by_leader = self.leaders_of(&fetch_tps).await?;
+        let mut by_leader = self.leaders_of(&fetch_tps).await?;
+        let leftover: Vec<i32> = self
+            .session_partitions
+            .iter()
+            .filter(|(node, parts)| {
+                !by_leader.contains_key(node)
+                    && self.session_epoch(**node) > ShareRequestMetadata::INITIAL_EPOCH
+                    && !parts.is_empty()
+            })
+            .map(|(node, _)| *node)
+            .collect();
+        for node in leftover {
+            let _ = by_leader.insert(node, Vec::new());
+        }
         let assigned_set: HashSet<(String, i32)> = assigned.into_iter().collect();
         let pending_acks = self.implicit_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
@@ -1775,8 +1803,16 @@ impl ShareGroup {
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
         let mut prepared = Vec::new();
         for (node, tps) in nodes {
-            let version = self.node_share_version(node, SHARE_FETCH).await?;
-            if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 {
+            let version = match self.node_share_version(node, SHARE_FETCH).await {
+                Ok(version) => version,
+                Err(_) if tps.is_empty() => {
+                    self.reset_node_session(node);
+                    continue;
+                }
+                Err(error) => return Err(error),
+            };
+            if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 && !tps.is_empty()
+            {
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support record-limit acquisition"
                 )));
@@ -1793,6 +1829,12 @@ impl ShareGroup {
                         Error::protocol(format!("share assignment missing topic id for {topic}"))
                     })?;
                 by_id.entry(id).or_default().push(*part);
+            }
+            let requested = share_session_requested(&by_id);
+            let forgotten =
+                share_session_forgotten(epoch, self.session_partitions.get(&node), &requested);
+            if by_id.is_empty() && forgotten.is_empty() {
+                continue;
             }
             let topics: Vec<_> = by_id
                 .iter()
@@ -1834,7 +1876,7 @@ impl ShareGroup {
                 self.cfg.max_bytes,
                 max_records,
                 &topics,
-                &[],
+                &forgotten,
                 max_records,
                 ShareFetchRequestOptions {
                     acquire_mode: self.acquire_mode as i8,
@@ -1904,12 +1946,14 @@ impl ShareGroup {
                     self.reset_node_session(node);
                 } else {
                     self.advance_node_epoch(node);
+                    self.remember_share_session(node, &by_id);
                 }
                 return Err(error);
             }
             // A well-formed response consumed this epoch even when a later
             // partition outcome fails. Initial sessions must also be closable.
             self.advance_node_epoch(node);
+            self.remember_share_session(node, &by_id);
             if version >= 1 {
                 self.acquisition_lock_timeout_ms = Some(lock_timeout);
             }
@@ -2090,6 +2134,7 @@ impl ShareGroup {
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
+            self.session_partitions.clear();
             self.share_conns.clear();
             self.acquisitions.clear();
             self.pending_delivery.clear();
@@ -2110,6 +2155,7 @@ impl ShareGroup {
         self.topics.clear();
         self.topic_ids.clear();
         self.share_epochs.clear();
+        self.session_partitions.clear();
         self.member_id.clear();
         *self.hb_assignment.lock() = None;
         self.member_epoch = ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
@@ -2161,6 +2207,7 @@ impl ShareGroup {
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
+            self.session_partitions.clear();
         }
         self.topics = topics;
         if rejoining {
@@ -2697,6 +2744,7 @@ impl ShareGroup {
             }
         }
         self.share_epochs.clear();
+        self.session_partitions.clear();
         self.share_conns.clear();
         self.acquisitions.clear();
         self.pending_delivery.clear();
@@ -3040,6 +3088,42 @@ fn share_session_reset(e: &Error) -> bool {
     )
 }
 
+/// Topic-id + partition keys currently in a node's ShareFetch body.
+fn share_session_requested(by_id: &BTreeMap<[u8; 16], Vec<i32>>) -> HashSet<([u8; 16], i32)> {
+    by_id
+        .iter()
+        .flat_map(|(topic_id, partitions)| {
+            partitions.iter().map(|partition| (*topic_id, *partition))
+        })
+        .collect()
+}
+
+/// Java `ShareSessionHandler.newShareFetchBuilder` removed + replaced
+/// partitions (`ForgottenTopicsData`).
+///
+/// Incremental epochs forget session keys that are not in this request,
+/// including a topic-id replacement for the same partition. The initial
+/// epoch is a new session, so the forget list is empty.
+fn share_session_forgotten(
+    epoch: i32,
+    session: Option<&HashSet<([u8; 16], i32)>>,
+    requested: &HashSet<([u8; 16], i32)>,
+) -> Vec<ShareForgottenTopic> {
+    if epoch <= ShareRequestMetadata::INITIAL_EPOCH {
+        return Vec::new();
+    }
+    let Some(session) = session else {
+        return Vec::new();
+    };
+    let mut removed: Vec<_> = session
+        .iter()
+        .copied()
+        .filter(|key| !requested.contains(key))
+        .collect();
+    removed.sort_unstable();
+    ShareFetchRequest::update_forgotten_data(&[], removed)
+}
+
 /// Java `ShareConsumerImpl.maybeThrowInvalidGroupIdException`.
 fn reject_java_share_group_id(group_id: &str) -> Result<()> {
     if group_id.is_empty() {
@@ -3281,6 +3365,111 @@ mod tests {
             ShareRequestMetadata::initial_epoch(Uuid::ZERO_UUID).to_string(),
             format!("(memberId={}, epoch=INITIAL)", Uuid::ZERO_UUID)
         );
+    }
+
+    #[test]
+    fn share_session_forgotten_matches_java_partition_removal() {
+        let foo = [1u8; 16];
+        let bar = [2u8; 16];
+        let mut session = HashSet::new();
+        let _ = session.insert((foo, 0));
+        let _ = session.insert((foo, 1));
+        let _ = session.insert((bar, 0));
+
+        assert!(share_session_forgotten(
+            ShareRequestMetadata::INITIAL_EPOCH,
+            Some(&session),
+            &HashSet::new(),
+        )
+        .is_empty());
+
+        let mut keep_foo1 = HashSet::new();
+        let _ = keep_foo1.insert((foo, 1));
+        assert_eq!(
+            share_session_forgotten(1, Some(&session), &keep_foo1),
+            vec![
+                ShareForgottenTopic {
+                    topic_id: foo,
+                    partitions: vec![0],
+                },
+                ShareForgottenTopic {
+                    topic_id: bar,
+                    partitions: vec![0],
+                },
+            ]
+        );
+
+        let mut replaced = HashSet::new();
+        let _ = replaced.insert(([3u8; 16], 0));
+        let _ = replaced.insert((foo, 1));
+        let _ = replaced.insert((bar, 0));
+        assert_eq!(
+            share_session_forgotten(1, Some(&session), &replaced),
+            vec![ShareForgottenTopic {
+                topic_id: foo,
+                partitions: vec![0],
+            }]
+        );
+
+        assert!(share_session_forgotten(1, Some(&session), &session).is_empty());
+        assert!(share_session_forgotten(1, None, &keep_foo1).is_empty());
+        assert_eq!(
+            share_session_forgotten(1, Some(&session), &HashSet::new()),
+            vec![
+                ShareForgottenTopic {
+                    topic_id: foo,
+                    partitions: vec![0, 1],
+                },
+                ShareForgottenTopic {
+                    topic_id: bar,
+                    partitions: vec![0],
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn share_session_forgotten_encodes_on_share_fetch() {
+        let foo = [1u8; 16];
+        let mut session = HashSet::new();
+        let _ = session.insert((foo, 0));
+        let _ = session.insert((foo, 1));
+        let mut requested = HashSet::new();
+        let _ = requested.insert((foo, 1));
+        let forgotten = share_session_forgotten(1, Some(&session), &requested);
+        let topics = [ShareFetchTopic {
+            topic_id: foo,
+            partitions: vec![ShareFetchPartition {
+                partition: 1,
+                partition_max_bytes: 1024,
+                acknowledgements: vec![],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_share_fetch_request_with_options(
+            &mut buf,
+            0,
+            "sg",
+            "m1",
+            1,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            &forgotten,
+            16,
+            ShareFetchRequestOptions::default(),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, epoch, _, got_topics, got_forgotten, ..) =
+            crate::protocol::share::decode_share_fetch_request(&mut cur, 0).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(epoch, 1);
+        assert_eq!(got_topics.len(), 1);
+        assert_eq!(got_topics[0].partitions[0].partition, 1);
+        assert_eq!(got_forgotten, forgotten);
     }
 
     #[test]
