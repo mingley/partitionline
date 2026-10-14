@@ -1,0 +1,42 @@
+{
+  "task": "KL11-70",
+  "status": "done",
+  "date": "2026-10-14",
+  "source_sha": "c8de2a301f3506b0cf62d0b562b97df97c548dfe",
+  "tested_base_sha": "9e6ddcea64cfd790973b18933de0e51e127ad87c",
+  "completion_source": "c8de2a301f3506b0cf62d0b562b97df97c548dfe",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "SDKs": ["4.1.2", "4.2.1", "4.3.1"],
+  "commands": [
+    "python3 -B partitionline-broker/tests/fixtures/raft-directory/generate_raft_directory.py --output /tmp/raft-directory-gen --jars /tmp/raft-directory-jars --install partitionline-broker/tests/fixtures/raft-directory (36 Apache request bodies, 3 pins, self-roundtrip at generate time)",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (workspace client)",
+    "cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+    "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --lib prevote (2 passed)",
+    "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_directory (9 passed, 36 Apache cases)",
+    "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_protocol (11 passed, 201 v0 goldens)",
+    "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test raft_election --test raft_membership --test raft_replication (10+31+29 passed)"
+  ],
+  "results": {
+    "apache_directory_cases": 36,
+    "vote_v2_encoder_matches_apache_4_3_1": true,
+    "default_profile_still_vote0": true,
+    "v0_controller_goldens_retained": 201,
+    "prevote_does_not_persist": true,
+    "stale_directory_fail_closed": true
+  },
+  "actual_failures_retained": [
+    "Vote/Begin/End versions above the advertised profile close the connection (UnsupportedVersion).",
+    "Zero or stale replica directories on Vote v1/v2 deny without persisting a term or vote.",
+    "Wrong VoterId or VoterDirectoryId returns INVALID_VOTER_KEY (125) without mutation."
+  ],
+  "qualification_limit": "Finite named Vote v1/v2, Begin v1 and End v1 layouts on an explicit directory-configured controller, plus typed dynamic pre-vote that does not touch the WAL. Default advertisement remains v0. This is not live Apache KRaft cluster qualification, Fetch/FetchSnapshot compatibility, or a production controller. The world-class client objective remains open.",
+  "evidence": "docs/evidence/broker/KL11-70",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}

@@ -44387,7 +44387,7 @@
       "title": "Complete modern KRaft directory identity and pre-vote profiles",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL11-13",
@@ -44417,7 +44417,10 @@
         "Pinned current Apache protocol and independent controller histories latest-stable Rust.",
         "Partition/quorum-loss/stale-directory/pre-vote counterexamples and strict bounded resource gates."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/plan/evidence/KL11-70.json",
+        "docs/evidence/broker/KL11-70/"
+      ]
     },
     {
       "id": "KL11-71",
