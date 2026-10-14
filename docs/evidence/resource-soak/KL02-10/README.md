@@ -55,6 +55,16 @@ After 24 h, compare first steady-state hour vs final hour median RSS
 (10% target) and run the invariant checker on the completed artifact.
 Do not mark this card `done` from the launch alone.
 
+RSS drift (does not rebuild the frozen binary):
+
+```sh
+python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak
+```
+
+The checker skips the first 60 s as startup, takes the next hour and the
+final hour, and fails closed if elapsed time is under 24 h. A 10% median
+RSS rise or fall fails. Passing it is not a performance claim.
+
 ## Host / time approval
 
 This VM is not an approved Lab A / Kernel Integrity host. If that

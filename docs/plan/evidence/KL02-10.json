@@ -31,7 +31,9 @@
     "PL_RESOURCE_SOAK_BINARY=target/debug/examples/resource_soak python3 -B -m unittest discover -s tests/ci -p test_resource_soak.py (10 passed, exit 0)",
     "15s calibration SOAK_RATE=800 SOAK_MODE=controlled against 127.0.0.1:9092/pl-soak-kl0210 (799.41 completed/s)",
     "python3 scripts/resource-soak.py --mode controlled --duration-ms 2000 --rate 1600 --baseline docs/evidence/resource-soak/KL02-10/baseline.json (completed true, exit 0)",
-    "python3 scripts/resource-soak.py --mode controlled --duration-ms 86400000 --rate 1600 launched in tmux kl02-10-soak"
+    "python3 scripts/resource-soak.py --mode controlled --duration-ms 86400000 --rate 1600 launched in tmux kl02-10-soak",
+    "python3 -B -m unittest tests.ci.test_soak_rss_drift (4 passed, exit 0)",
+    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak (exit 1, elapsed ~388s short of 24h)"
   ],
   "results": {
     "calibration_completed_per_second": 799.4133724418373,
@@ -39,6 +41,7 @@
     "soak_24h": "running",
     "launched_job_is_not_a_pass": true,
     "rss_drift_compared": false,
+    "rss_drift_checker": "scripts/check-soak-rss-drift.py fails closed until 24h elapse",
     "host_time_approval": "not Lab A; official qualification remains blocked_external until an approved host/time is recorded"
   },
   "acceptance": {
