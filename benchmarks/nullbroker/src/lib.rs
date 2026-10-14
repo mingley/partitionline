@@ -42,6 +42,8 @@ pub const API_KEY_INIT_PRODUCER_ID: i16 = 22;
 pub const API_KEY_API_VERSIONS: i16 = 18;
 /// API key: CreateTopics.
 pub const API_KEY_CREATE_TOPICS: i16 = 19;
+/// API key: DescribeConfigs.
+pub const API_KEY_DESCRIBE_CONFIGS: i16 = 32;
 
 /// Error code: none.
 pub const ERR_NONE: i16 = 0;
@@ -51,6 +53,8 @@ pub const ERR_OFFSET_OUT_OF_RANGE: i16 = 1;
 pub const ERR_UNKNOWN_TOPIC_OR_PARTITION: i16 = 3;
 /// Error code: `INVALID_PARTITIONS`.
 pub const ERR_INVALID_PARTITIONS: i16 = 37;
+/// Error code: `INVALID_REQUEST`.
+pub const ERR_INVALID_REQUEST: i16 = 42;
 /// Error code: `NOT_LEADER_OR_FOLLOWER`.
 pub const ERR_NOT_LEADER_OR_FOLLOWER: i16 = 6;
 /// Error code: `UNKNOWN_TOPIC_ID`.
@@ -361,6 +365,7 @@ fn decode_request_header(frame: &[u8]) -> Result<(i16, i16, i32, usize), DecodeE
         API_KEY_FETCH => api_version >= 12,
         API_KEY_LIST_OFFSETS => api_version >= 6,
         API_KEY_CREATE_TOPICS => api_version >= 5,
+        API_KEY_DESCRIBE_CONFIGS => api_version >= 4,
         _ => return Err(DecodeError::Invalid("unknown api key")),
     };
     let len = cur.get_i16()?;
@@ -391,6 +396,7 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
         API_KEY_FETCH => api_version >= 12,
         API_KEY_LIST_OFFSETS => api_version >= 6,
         API_KEY_CREATE_TOPICS => api_version >= 5,
+        API_KEY_DESCRIBE_CONFIGS => api_version >= 4,
         _ => false,
     };
     if flexible {
@@ -400,7 +406,7 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
 
 /// API versions this server advertises: `(api_key, min, max)`.
 #[must_use]
-pub const fn advertised_apis() -> [(i16, i16, i16); 8] {
+pub const fn advertised_apis() -> [(i16, i16, i16); 9] {
     [
         (API_KEY_PRODUCE, 9, 12),
         (API_KEY_METADATA, 12, 13),
@@ -410,6 +416,7 @@ pub const fn advertised_apis() -> [(i16, i16, i16); 8] {
         (API_KEY_FETCH, 15, 17),
         (API_KEY_LIST_OFFSETS, 7, 10),
         (API_KEY_CREATE_TOPICS, 5, 7),
+        (API_KEY_DESCRIBE_CONFIGS, 4, 4),
     ]
 }
 
@@ -1604,6 +1611,14 @@ struct Worker {
     synth: synth::SynthConfig,
 }
 
+/// One DescribeConfigs resource and the keys the caller named.
+struct DescribeConfigsQuery {
+    resource_type: i8,
+    name: String,
+    /// `None` asks for every config. `Some` is the explicit key list.
+    keys: Option<Vec<String>>,
+}
+
 impl Worker {
     /// Leader of `partition` (0 when the map has no entry).
     fn leader_of(&self, partition: i32) -> i32 {
@@ -1722,6 +1737,96 @@ impl Worker {
 
     /// Handle one frame. `Ok(None)` means "no response" (`acks=0`);
     /// `Err` means the connection must close.
+    /// Decode a flexible DescribeConfigs v4 body.
+    ///
+    /// `None` configuration keys means every config. An empty key list is kept
+    /// distinct so a caller that asked for nothing does not receive the topic
+    /// minimum ISR.
+    pub(crate) fn decode_describe_configs_request(
+        body: &[u8],
+    ) -> Result<Vec<DescribeConfigsQuery>, DecodeError> {
+        let mut cur = Cursor::new(body);
+        let n = cur
+            .get_array_len(true)?
+            .ok_or(DecodeError::Invalid("null describe configs resources"))?;
+        let mut resources = Vec::with_capacity(n);
+        for _ in 0..n {
+            let resource_type = cur.get_u8()? as i8;
+            let name = cur
+                .get_compact_string()?
+                .ok_or(DecodeError::Invalid("null describe configs name"))?;
+            let keys = match cur.get_array_len(true)? {
+                None => None,
+                Some(count) => {
+                    let mut keys = Vec::with_capacity(count);
+                    for _ in 0..count {
+                        keys.push(
+                            cur.get_compact_string()?
+                                .ok_or(DecodeError::Invalid("null configuration key"))?,
+                        );
+                    }
+                    Some(keys)
+                }
+            };
+            cur.skip_tagged_fields()?;
+            resources.push(DescribeConfigsQuery {
+                resource_type,
+                name,
+                keys,
+            });
+        }
+        let _include_synonyms = cur.get_u8()?;
+        let _include_documentation = cur.get_u8()?;
+        cur.skip_tagged_fields()?;
+        if !cur.is_empty() {
+            return Err(DecodeError::Invalid("describe configs trailing bytes"));
+        }
+        Ok(resources)
+    }
+
+    /// Encode a flexible DescribeConfigs v4 response.
+    ///
+    /// A topic resource includes `min.insync.replicas=1` when the caller asked
+    /// for every config or named that key. Other resource types are
+    /// `INVALID_REQUEST` and carry no configs.
+    pub(crate) fn encode_describe_configs_response(
+        out: &mut Vec<u8>,
+        resources: &[DescribeConfigsQuery],
+    ) {
+        const TOPIC: i8 = 2;
+        out.extend_from_slice(&0i32.to_be_bytes());
+        out.put_compact_array_len(resources.len());
+        for resource in resources {
+            let topic = resource.resource_type == TOPIC;
+            let include = topic
+                && match &resource.keys {
+                    None => true,
+                    Some(keys) => keys.iter().any(|key| key == "min.insync.replicas"),
+                };
+            let error = if topic { ERR_NONE } else { ERR_INVALID_REQUEST };
+            out.extend_from_slice(&error.to_be_bytes());
+            out.put_compact_string(None);
+            out.push(resource.resource_type as u8);
+            out.put_compact_string(Some(&resource.name));
+            if include {
+                out.put_compact_array_len(1);
+                out.put_compact_string(Some("min.insync.replicas"));
+                out.put_compact_string(Some("1"));
+                out.push(0); // read only
+                out.push(5); // default config source
+                out.push(0); // sensitive
+                out.put_compact_array_len(0);
+                out.push(3); // int
+                out.put_compact_string(None);
+                out.put_empty_tagged_fields();
+            } else {
+                out.put_compact_array_len(0);
+            }
+            out.put_empty_tagged_fields();
+        }
+        out.put_empty_tagged_fields();
+    }
+
     fn handle_frame(&self, frame: &[u8]) -> Result<Option<Vec<u8>>, ()> {
         let (api_key, api_version, correlation_id, header_len) =
             decode_request_header(frame).map_err(|_| ())?;
@@ -1780,6 +1885,12 @@ impl Worker {
                 drop(state);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 Self::encode_create_topics_response(&mut out, api_version, &results);
+                Ok(Some(out))
+            }
+            API_KEY_DESCRIBE_CONFIGS if api_version == 4 => {
+                let resources = Self::decode_describe_configs_request(body).map_err(|_| ())?;
+                encode_response_header(&mut out, api_key, api_version, correlation_id);
+                Self::encode_describe_configs_response(&mut out, &resources);
                 Ok(Some(out))
             }
             API_KEY_API_VERSIONS => {
@@ -2178,15 +2289,18 @@ impl Worker {
         out
     }
 
-    /// Serve one `ListOffsets` v10 request against the synthetic log.
+    /// Serve one `ListOffsets` v10 request.
     ///
-    /// Timestamp `-2` is earliest (`0`), `-1` is latest (log end); explicit
-    /// millis map through the deterministic batch timestamps.
+    /// A positive synthetic log keeps its deterministic end. An empty
+    /// synthetic log reports offsets assigned by accepted produces, so a
+    /// produce-only caller can reconcile high watermarks. Timestamp `-2` is
+    /// earliest (`0`), `-1` is latest; explicit millis map through the
+    /// deterministic batch timestamps.
     fn serve_list_offsets(
         &self,
         topics: &[ListOffsetsTopicData],
     ) -> Vec<(String, i32, i16, i64, i64)> {
-        let end = self.synth.records_per_partition as i64;
+        let synthetic_end = self.synth.records_per_partition as i64;
         let mut rows = Vec::new();
         for topic in topics {
             for part in &topic.partitions {
@@ -2200,6 +2314,20 @@ impl Worker {
                     ));
                     continue;
                 }
+                let end = if synthetic_end > 0 {
+                    synthetic_end
+                } else {
+                    self.state
+                        .lock()
+                        .ok()
+                        .and_then(|state| {
+                            state
+                                .next_offset
+                                .get(&(topic.name.clone(), part.partition))
+                                .copied()
+                        })
+                        .unwrap_or(0)
+                };
                 let offset = match part.timestamp {
                     -2 => 0,
                     -1 => end,
@@ -2701,12 +2829,9 @@ mod tests {
     fn create_topics_v7_round_trips_over_tcp() {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
-        let broker = super::NullBroker::with_listener(
-            &listener,
-            6,
-            super::synth::SynthConfig::default(),
-        )
-        .unwrap();
+        let broker =
+            super::NullBroker::with_listener(&listener, 6, super::synth::SynthConfig::default())
+                .unwrap();
         let broker = std::sync::Arc::new(broker);
         let serving = std::sync::Arc::clone(&broker);
         let accept = listener.try_clone().unwrap();
@@ -2750,5 +2875,35 @@ mod tests {
         assert_eq!(cur.get_i16().unwrap(), super::ERR_NONE);
         broker.shutdown();
         let _ = thread.join();
+    }
+
+    #[test]
+    fn describe_configs_v4_matches_the_apache_topic_response() {
+        let request = hex_bytes("0202076f72646572730000000000");
+        let resources = super::Worker::decode_describe_configs_request(&request).unwrap();
+        assert_eq!(resources[0].resource_type, 2);
+        assert_eq!(resources[0].name, "orders");
+        assert!(resources[0].keys.is_none());
+        let mut response = Vec::new();
+        super::Worker::encode_describe_configs_response(&mut response, &resources);
+        assert_eq!(
+            response,
+            hex_bytes("000000000200000002076f726465727302146d696e2e696e73796e632e7265706c696361730231000500010300000000")
+        );
+        let empty_keys = hex_bytes("0202076f72646572730100000000");
+        let resources = super::Worker::decode_describe_configs_request(&empty_keys).unwrap();
+        assert_eq!(resources[0].keys.as_ref().map(Vec::len), Some(0));
+        let mut response = Vec::new();
+        super::Worker::encode_describe_configs_response(&mut response, &resources);
+        assert!(!response
+            .windows(19)
+            .any(|window| window == b"min.insync.replicas"));
+    }
+
+    fn hex_bytes(text: &str) -> Vec<u8> {
+        (0..text.len())
+            .step_by(2)
+            .map(|index| u8::from_str_radix(&text[index..index + 2], 16).unwrap())
+            .collect()
     }
 }

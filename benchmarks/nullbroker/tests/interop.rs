@@ -1263,3 +1263,40 @@ fn unadvertised_version_closes_socket_before_broker_shutdown() {
     broker.shutdown();
     handle.join().unwrap();
 }
+
+#[test]
+fn empty_synthetic_log_lists_offsets_assigned_by_produce() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let config = nullbroker::Config {
+        partitions: 1,
+        synth: nullbroker::synth::SynthConfig {
+            records_per_partition: 0,
+            ..nullbroker::synth::SynthConfig::default()
+        },
+        ..nullbroker::Config::default()
+    };
+    let broker =
+        Arc::new(NullBroker::with_bound(&[(0, listener.try_clone().unwrap())], &config).unwrap());
+    let server = Arc::clone(&broker);
+    let handle =
+        std::thread::spawn(move || server.serve(0, &listener, Duration::from_secs(10)).unwrap());
+    let mut stream = connect(port);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    let (error, _, offset) =
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1)));
+    assert_eq!((error, offset), (0, 0));
+    let batch = build_batch(-1, -1, 0, 1, b'x');
+    let response = rpc.call(0, 12, &produce_body(-1, &[("orders", &[(0, &batch)])]));
+    assert_eq!(parse_produce_response(&response)[0].2, 0);
+    let (error, _, offset) =
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("orders", 0, -1)));
+    assert_eq!((error, offset), (0, 1));
+    drop(stream);
+    broker.shutdown();
+    handle.join().unwrap();
+}
