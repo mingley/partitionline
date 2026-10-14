@@ -1898,7 +1898,7 @@ pub fn decide_update_voter(
     if let Some(refusal) = leader_epoch_refusal(persistent, body.current_leader_epoch) {
         return VoteDisposition::Refused(refusal);
     }
-    directory_change(
+    let disposition = directory_change(
         persistent,
         voter_id,
         expected_directory,
@@ -1909,7 +1909,17 @@ pub fn decide_update_voter(
                 .listeners
                 .iter()
                 .all(|listener| !listener.host.is_empty()),
-    )
+    );
+    if disposition != VoteDisposition::NotAdvertised {
+        return disposition;
+    }
+    // Apache `handleUpdateVoterRequest` rejects a negative or inverted KRaft
+    // range with `INVALID_REQUEST` after the voter and listener checks. The
+    // refusal does not change listeners.
+    if let Some(refusal) = kraft_range_refusal(body.kraft_min, body.kraft_max) {
+        return VoteDisposition::Refused(refusal);
+    }
+    disposition
 }
 
 /// AddRaftVoter or RemoveRaftVoter response.
@@ -2075,6 +2085,14 @@ pub fn decide_update_voter_response(
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     }
     VoteDisposition::NotAdvertised
+}
+
+fn kraft_range_refusal(min: i16, max: i16) -> Option<PreVoteRefusal> {
+    if min < 0 || max < 0 || max < min {
+        Some(PreVoteRefusal::IllegalEpoch)
+    } else {
+        None
+    }
 }
 
 fn negative_voter_id(voter_id: i32) -> Option<PreVoteRefusal> {
@@ -3220,6 +3238,11 @@ pub fn decide_fetch_snapshot_body(
     // unknown. Neither result installs snapshot bytes.
     if let Some(refusal) = leader_epoch_refusal(persistent, body.current_leader_epoch) {
         return VoteDisposition::Refused(refusal);
+    }
+    // Apache returns `POSITION_OUT_OF_RANGE` before serving snapshot bytes
+    // when the resume position is negative.
+    if body.position < 0 {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
     }
     if body.version == 0 {
         return VoteDisposition::NotAdvertised;
@@ -4547,6 +4570,18 @@ mod prevote_tests {
             decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &older),
             VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
+        let mut resume = decoded.clone();
+        resume.position = -1;
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &resume),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut fenced_resume = resume;
+        fenced_resume.current_leader_epoch = 2;
+        assert_eq!(
+            decide_fetch_snapshot_body(&persistent, metadata_log(), directory, &fenced_resume),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
+        );
         let mut newer = decoded;
         newer.current_leader_epoch = 4;
         assert_eq!(
@@ -4843,6 +4878,25 @@ mod prevote_tests {
         assert_eq!(
             decide_update_voter(&persistent, metadata_log(), 7, directory, &updated),
             VoteDisposition::NotAdvertised
+        );
+        let mut inverted = updated.clone();
+        inverted.kraft_min = 2;
+        inverted.kraft_max = 1;
+        assert_eq!(
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &inverted),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut negative_range = updated.clone();
+        negative_range.kraft_max = -1;
+        assert_eq!(
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &negative_range),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut fenced_range = inverted;
+        fenced_range.current_leader_epoch = 2;
+        assert_eq!(
+            decide_update_voter(&persistent, metadata_log(), 7, directory, &fenced_range),
+            VoteDisposition::Refused(PreVoteRefusal::StaleTerm)
         );
         let mut older = updated.clone();
         older.current_leader_epoch = 2;
