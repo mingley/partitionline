@@ -466,6 +466,45 @@ fn storage_code(error: i16, key: i16, version: i16) -> i16 {
         error
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ListQuery {
+    Latest,
+    Earliest,
+    MaxTimestamp,
+    TieredEnd,
+    Timestamp(i64),
+}
+
+fn list_query(timestamp: i64) -> ListQuery {
+    match timestamp {
+        -1 => ListQuery::Latest,
+        -2 | -4 => ListQuery::Earliest,
+        -3 => ListQuery::MaxTimestamp,
+        -5 => ListQuery::TieredEnd,
+        other => ListQuery::Timestamp(other),
+    }
+}
+
+fn observe_max(
+    batch: records::Batch<'_>,
+    log_start: i64,
+    active: &impl Fn() -> Result<(), Error>,
+) -> Result<Option<(i64, i64)>, Error> {
+    let mut best = None;
+    for record in batch.records() {
+        active()?;
+        let record = record.map_err(|_| Error::StoredRecords)?;
+        if record.offset < log_start {
+            continue;
+        }
+        let candidate = (record.timestamp, record.offset);
+        best = Some(match best {
+            Some(current) if candidate <= current => current,
+            _ => candidate,
+        });
+    }
+    Ok(best)
+}
 fn first_timestamp(
     batch: records::Batch<'_>,
     wanted: i64,
@@ -484,6 +523,24 @@ fn first_timestamp(
     }
     Ok(None)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::list_query;
+    use super::ListQuery;
+
+    #[test]
+    fn a_pre_epoch_timestamp_is_searched() {
+        assert_eq!(list_query(-1), ListQuery::Latest);
+        assert_eq!(list_query(-2), ListQuery::Earliest);
+        assert_eq!(list_query(-4), ListQuery::Earliest);
+        assert_eq!(list_query(-3), ListQuery::MaxTimestamp);
+        assert_eq!(list_query(-5), ListQuery::TieredEnd);
+        assert_eq!(list_query(-100), ListQuery::Timestamp(-100));
+        assert_eq!(list_query(0), ListQuery::Timestamp(0));
+    }
+}
+
 fn stored_records(
     payload: &[u8],
     first_offset: u64,
@@ -564,53 +621,78 @@ pub(crate) fn process(
                 let mut timestamp = -1;
                 let mut offset = -1;
                 if error == 0 {
-                    if part.offset == -2 {
+                    // -1 latest, -2 earliest, -4 earliest local. -5 is the
+                    // tiered end, which this log does not have. -3 is the
+                    // maximum timestamp. Every other value, including a time
+                    // before the epoch, is a timestamp search.
+                    let query = list_query(part.offset);
+                    if query == ListQuery::Earliest {
                         offset = log_start;
-                    } else if part.offset == -1 {
+                    } else if query == ListQuery::Latest {
                         offset = watermark;
-                    } else if part.offset < 0 {
-                        error = 35;
-                    } else if let Some(id) = id {
-                        let mut cursor = match store.timestamp_start(id, part.index, part.offset) {
-                            Ok(offset) => offset.max(log_start),
-                            Err(_) => {
-                                error = 56;
-                                watermark
-                            }
-                        };
-                        'scan: while cursor < watermark {
-                            active()?;
-                            let entry = match budget.read(store, id, part.index, cursor)? {
-                                Err(code) => {
-                                    error = code;
-                                    break;
-                                }
-                                Ok(Some(entry)) => entry,
-                                Ok(None) => {
-                                    error = 56;
-                                    break;
+                    } else if query != ListQuery::TieredEnd {
+                        if let Some(id) = id {
+                            let want_max = query == ListQuery::MaxTimestamp;
+                            let mut best = None;
+                            let mut cursor = if want_max {
+                                log_start
+                            } else {
+                                match store.timestamp_start(id, part.index, part.offset) {
+                                    Ok(offset) => offset.max(log_start),
+                                    Err(_) => {
+                                        error = 56;
+                                        watermark
+                                    }
                                 }
                             };
-                            let (checked, next) = stored_records(
-                                &entry.payload,
-                                entry.first_offset,
-                                entry.record_count,
-                                store.record_limits(),
-                            )?;
-                            for batch in checked.batches() {
+                            'scan: while cursor < watermark {
                                 active()?;
-                                let batch = batch.map_err(|_| Error::StoredRecords)?;
-                                if let Some(found) =
-                                    first_timestamp(batch, part.offset, log_start, &active)?
-                                {
-                                    (timestamp, offset) = found;
-                                    break 'scan;
+                                let entry = match budget.read(store, id, part.index, cursor)? {
+                                    Err(code) => {
+                                        error = code;
+                                        break;
+                                    }
+                                    Ok(Some(entry)) => entry,
+                                    Ok(None) => {
+                                        error = 56;
+                                        break;
+                                    }
+                                };
+                                let (checked, next) = stored_records(
+                                    &entry.payload,
+                                    entry.first_offset,
+                                    entry.record_count,
+                                    store.record_limits(),
+                                )?;
+                                for batch in checked.batches() {
+                                    active()?;
+                                    let batch = batch.map_err(|_| Error::StoredRecords)?;
+                                    if want_max {
+                                        if let Some(found) = observe_max(batch, log_start, &active)?
+                                        {
+                                            best = Some(match best {
+                                                Some(current) if found <= current => current,
+                                                _ => found,
+                                            });
+                                        }
+                                    } else if let Some(found) =
+                                        first_timestamp(batch, part.offset, log_start, &active)?
+                                    {
+                                        (timestamp, offset) = found;
+                                        break 'scan;
+                                    }
+                                }
+                                if next <= cursor {
+                                    return Err(Error::StoredRecords);
+                                }
+                                cursor = next;
+                            }
+                            if want_max && error == 0 {
+                                if let Some((found_timestamp, found_offset)) = best {
+                                    timestamp = found_timestamp;
+                                    offset = found_offset;
                                 }
                             }
-                            if next <= cursor {
-                                return Err(Error::StoredRecords);
-                            }
-                            cursor = next;
                         }
                     }
                 }
