@@ -2496,6 +2496,10 @@ impl Consumer {
     }
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
+        self.connect_node_inner(node, false).await
+    }
+
+    async fn connect_node_inner(&mut self, node: i32, reuse_bootstrap: bool) -> Result<()> {
         if self
             .conns
             .get(&node)
@@ -2515,6 +2519,9 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        if reuse_bootstrap && self.conn.addr() == addr && self.conn.fetch_version() >= 0 {
+            return Ok(());
+        }
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             if self.woken() {
@@ -3450,15 +3457,6 @@ impl Consumer {
     ) -> Result<Vec<FetchReply>> {
         let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
         nodes.sort_unstable();
-        for node in &nodes {
-            let rest = deadline.saturating_duration_since(Instant::now());
-            if rest.is_zero() {
-                return Err(Error::Timeout);
-            }
-            tokio::time::timeout(rest, self.connect_node(*node))
-                .await
-                .map_err(|_| Error::Timeout)??;
-        }
         let min_bytes = self.cfg.min_bytes;
         let max_bytes = if self.cfg.buffer_memory > 0 {
             let headroom = self.cfg.buffer_memory.saturating_sub(self.buffered_bytes);
@@ -3504,6 +3502,15 @@ impl Consumer {
             }
         }
         let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
+        for node in &nodes {
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
+            tokio::time::timeout(rest, self.connect_node_inner(*node, !collect_parallel))
+                .await
+                .map_err(|_| Error::Timeout)??;
+        }
         if !collect_parallel {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
@@ -3511,19 +3518,34 @@ impl Consumer {
                     continue;
                 };
                 let topics = fetch_topics(by_topic, &name_ids);
+                let reuse_bootstrap = !self.conns.contains_key(&node)
+                    && self
+                        .cluster
+                        .brokers
+                        .get(&node)
+                        .is_some_and(|addr| addr == self.conn.addr())
+                    && self.conn.fetch_version() >= 0;
                 let (fetch_version, body) = {
-                    let conn = self
-                        .conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing fetch conn"))?;
                     // Each leader speaks its own negotiated Fetch version; a
                     // newer bootstrap never forces its schema on an older
-                    // leader (KL03-22, mirrors KL03-11).
-                    let fetch_version = conn.fetch_version();
+                    // leader (KL03-22, mirrors KL03-11). The same broker's
+                    // bootstrap connection already negotiated that schema.
+                    let fetch_version = if reuse_bootstrap {
+                        self.conn.fetch_version()
+                    } else {
+                        self.conns
+                            .get(&node)
+                            .ok_or_else(|| Error::protocol("missing fetch conn"))?
+                            .fetch_version()
+                    };
                     if fetch_version < 0 {
                         return Err(Error::Unsupported(format!(
                             "broker at {} does not support Fetch v4-17",
-                            conn.addr()
+                            if reuse_bootstrap {
+                                self.conn.addr()
+                            } else {
+                                self.conns.get(&node).map(|conn| conn.addr()).unwrap_or("")
+                            }
                         )));
                     }
                     let request = self
@@ -3531,27 +3553,31 @@ impl Consumer {
                         .entry(node)
                         .or_default()
                         .prepare(topics, fetch_version);
-                    let body = conn
-                        .roundtrip(
-                            FETCH,
+                    let encode = |buf: &mut bytes::BytesMut| {
+                        encode_fetch_request_with_forgotten(
+                            buf,
                             fetch_version,
-                            |buf| {
-                                encode_fetch_request_with_forgotten(
-                                    buf,
-                                    fetch_version,
-                                    max_wait,
-                                    min_bytes,
-                                    max_bytes,
-                                    isolation_level,
-                                    &request.topics,
-                                    rack.as_deref(),
-                                    request.metadata,
-                                    &request.forgotten,
-                                )
-                            },
-                            timeout,
+                            max_wait,
+                            min_bytes,
+                            max_bytes,
+                            isolation_level,
+                            &request.topics,
+                            rack.as_deref(),
+                            request.metadata,
+                            &request.forgotten,
                         )
-                        .await;
+                    };
+                    let body = if reuse_bootstrap {
+                        self.conn
+                            .roundtrip(FETCH, fetch_version, encode, timeout)
+                            .await
+                    } else {
+                        let conn = self
+                            .conns
+                            .get_mut(&node)
+                            .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+                        conn.roundtrip(FETCH, fetch_version, encode, timeout).await
+                    };
                     (fetch_version, body)
                 };
                 out.push(FetchReply {
