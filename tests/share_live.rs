@@ -5,8 +5,9 @@
 //! `RUN_LIVE=1 KAFKA_BOOTSTRAP=127.0.0.1:9092 cargo test --test share_live -- --ignored --nocapture`
 
 use partitionline::{
-    Admin, ConsumerConfig, DescribeShareGroupOffsetsGroup, NewTopic, ProduceRecord, Producer,
-    ProducerConfig, ShareAcknowledgementMode, ShareGroup, ShareRecords,
+    Admin, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic, ConsumerConfig,
+    DescribeShareGroupOffsetsGroup, NewTopic, ProduceRecord, Producer, ProducerConfig,
+    ShareAcknowledgementMode, ShareGroup, ShareRecords,
 };
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -712,6 +713,116 @@ async fn share_admin_describe_and_list_offsets_against_local_broker() {
         described.members().len(),
         topic,
         part.start_offset()
+    );
+}
+
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_admin_alter_offsets_recovers_latest_skip() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let topic = format!("pl-share-alt-{suffix}");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(&[NewTopic::new(&topic, 1, 1)], 30_000, false)
+        .await
+        .expect("create share topic");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::ZERO))
+            .await
+            .expect("producer");
+    let produced = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"before-join"[..]))
+        .await
+        .expect("produce before join");
+    producer.close().await.expect("producer close");
+    let group = format!("pl-share-alt-{suffix}");
+    let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(500);
+    let mut g = ShareGroup::join(cfg, group.clone(), topic.clone())
+        .await
+        .expect("share join");
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("assignment");
+    let skipped = poll_until(&mut g, Instant::now() + Duration::from_secs(2), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == produced.offset)
+    })
+    .await;
+    assert!(
+        skipped.is_err(),
+        "produce-before-join must skip @{} under latest, got {:?}",
+        produced.offset,
+        skipped
+            .ok()
+            .map(|recs| recs.iter().map(|r| r.offset).collect::<Vec<_>>())
+    );
+    g.leave().await.expect("leave before alter");
+    let altered = admin
+        .alter_share_group_offsets(
+            &group,
+            &[AlterShareGroupOffsetsTopic::new(
+                topic.clone(),
+                vec![AlterShareGroupOffsetsPartition::new(0, produced.offset)],
+            )],
+        )
+        .await
+        .expect("alter_share_group_offsets");
+    assert_eq!(
+        altered.error_code(),
+        0,
+        "alter top-level {:?}",
+        altered.error_message()
+    );
+    if let Some(part) = altered
+        .topics()
+        .iter()
+        .find(|t| t.topic_name() == topic)
+        .and_then(|t| t.partitions().iter().find(|p| p.partition_index() == 0))
+    {
+        assert_eq!(
+            part.error_code(),
+            0,
+            "alter partition {:?}",
+            part.error_message()
+        );
+    }
+    let cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
+    let mut g = ShareGroup::join(cfg, group, topic.clone())
+        .await
+        .expect("rejoin after alter");
+    wait_assigned_and_warmup(&mut g, &topic)
+        .await
+        .expect("rejoin assignment");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == produced.offset)
+    })
+    .await
+    .expect("poll after alter");
+    g.accept(&recs).await.expect("accept recovered");
+    g.leave().await.expect("leave");
+    admin.close().await.expect("admin close");
+    eprintln!(
+        "share live alter offsets recovered {}-{}@{}",
+        produced.topic, produced.partition, produced.offset
     );
 }
 
