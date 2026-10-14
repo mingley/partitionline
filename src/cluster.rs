@@ -186,6 +186,10 @@ impl Cluster {
             .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
+    /// Store `epoch` when it is unknown or at least the cached leader epoch.
+    ///
+    /// OffsetForLeaderEpoch can report the epoch of an older offset. That
+    /// value must not replace the current leader epoch.
     pub(crate) fn set_leader_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
         let Ok(idx) = usize::try_from(partition) else {
             return;
@@ -198,7 +202,9 @@ impl Cluster {
                 );
             }
             if let Some(slot) = v.get_mut(idx) {
-                *slot = epoch;
+                if *slot == RecordBatch::NO_PARTITION_LEADER_EPOCH || epoch >= *slot {
+                    *slot = epoch;
+                }
             }
             return;
         }
@@ -810,5 +816,9 @@ mod tests {
             RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
         assert_eq!(cluster.leader_epoch("u", 1), 2);
+        cluster.set_leader_epoch("u", 1, 1);
+        assert_eq!(cluster.leader_epoch("u", 1), 2);
+        cluster.set_leader_epoch("u", 1, 4);
+        assert_eq!(cluster.leader_epoch("u", 1), 4);
     }
 }
