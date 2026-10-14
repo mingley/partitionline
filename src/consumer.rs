@@ -4376,14 +4376,17 @@ impl Consumer {
                             }
                             *out_bytes = mark_bytes.saturating_add(added);
                             if added_records > 0 {
-                                let totals = self
-                                    .fetch_return_totals
-                                    .entry(name.clone())
-                                    .or_insert((0, 0));
-                                totals.0 = totals.0.saturating_add(added_records);
-                                totals.1 = totals
-                                    .1
-                                    .saturating_add(u64::try_from(added).unwrap_or(u64::MAX));
+                                let added_bytes = u64::try_from(added).unwrap_or(u64::MAX);
+                                if let Some(totals) =
+                                    self.fetch_return_totals.get_mut(name.as_str())
+                                {
+                                    totals.0 = totals.0.saturating_add(added_records);
+                                    totals.1 = totals.1.saturating_add(added_bytes);
+                                } else {
+                                    let _previous = self
+                                        .fetch_return_totals
+                                        .insert(name.clone(), (added_records, added_bytes));
+                                }
                             }
                             let count_i64 = i64::try_from(meta.count).unwrap_or(i64::MAX);
                             let next_off = meta.base_offset.saturating_add(count_i64);
@@ -4522,12 +4525,14 @@ impl Consumer {
                         });
                     }
                     if batch_records > 0 {
-                        let totals = self
-                            .fetch_return_totals
-                            .entry(name.clone())
-                            .or_insert((0, 0));
-                        totals.0 = totals.0.saturating_add(batch_records);
-                        totals.1 = totals.1.saturating_add(batch_bytes);
+                        if let Some(totals) = self.fetch_return_totals.get_mut(name.as_str()) {
+                            totals.0 = totals.0.saturating_add(batch_records);
+                            totals.1 = totals.1.saturating_add(batch_bytes);
+                        } else {
+                            let _previous = self
+                                .fetch_return_totals
+                                .insert(name.clone(), (batch_records, batch_bytes));
+                        }
                     }
                     if reached_lso {
                         break;
