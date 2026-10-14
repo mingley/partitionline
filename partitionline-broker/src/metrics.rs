@@ -130,6 +130,9 @@ impl Registry {
     }
 
     /// Add `value` to a counter. Sensitive names are refused before any copy lands.
+    ///
+    /// A sum that would exceed `u64::MAX` is refused and leaves the counter and
+    /// subscriber queues unchanged.
     pub fn add(
         &mut self,
         name: &str,
@@ -152,7 +155,7 @@ impl Registry {
             .series
             .get_mut(usize::try_from(id).unwrap_or(usize::MAX))
             .ok_or(Error::Invalid)?;
-        series.value = series.value.saturating_add(value);
+        series.value = series.value.checked_add(value).ok_or(Error::Invalid)?;
         let mut dropped = false;
         for subscriber in &mut self.subscribers {
             if subscriber.queue.len() >= self.limits.max_queue_events {
@@ -386,5 +389,39 @@ mod tests {
                 .and_then(|_| registry.add("b", &[], 1)),
             Err(Error::Cardinality)
         ));
+    }
+
+    #[test]
+    fn a_counter_that_would_overflow_is_refused() {
+        let mut registry = Registry::open(limits());
+        let subscriber = registry
+            .subscribe()
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            registry
+                .add("fetch_bytes", &[], u64::MAX)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            Delivery::Queued
+        );
+        let retained = registry.overhead_bytes();
+        assert!(matches!(
+            registry.add("fetch_bytes", &[], 1),
+            Err(Error::Invalid)
+        ));
+        assert_eq!(registry.overhead_bytes(), retained);
+        assert_eq!(
+            registry
+                .snapshot()
+                .iter()
+                .find(|sample| sample.name == "fetch_bytes")
+                .map(|sample| sample.value),
+            Some(u64::MAX)
+        );
+        assert_eq!(
+            registry
+                .poll(subscriber)
+                .unwrap_or_else(|error| panic!("{error:?}")),
+            1
+        );
     }
 }
