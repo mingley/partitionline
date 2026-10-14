@@ -1,5 +1,8 @@
 //! Byte-compatible with the independent C and franz-go comparison peers.
 
+#[path = "../../../gateway/src/json1k.rs"]
+mod json1k;
+
 pub fn mix(mut value: u64) -> u64 {
     value = value.wrapping_add(0x9e3779b97f4a7c15);
     value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
@@ -27,6 +30,16 @@ pub fn value(seed: u64, index: u64, bytes: usize, seeded: bool) -> Vec<u8> {
     result
 }
 
+/// KL10-02 / KL10-03 1 KiB JSON payload.
+pub fn json1k_value(seed: u64, index: u64) -> Vec<u8> {
+    json1k::value(seed, usize::try_from(index).unwrap_or(usize::MAX))
+}
+
+/// Profile 8-byte header.
+pub fn gw8_header(seed: u64, index: u64) -> [u8; 8] {
+    json1k::header(seed, index)
+}
+
 pub fn hex(bytes: &[u8]) -> String {
     const DIGITS: &[u8; 16] = b"0123456789abcdef";
     let mut output = String::with_capacity(bytes.len() * 2);
@@ -50,5 +63,14 @@ mod tests {
         assert_eq!(value(0, 0, 3, true), [0xe2, 0x20, 0xa8]);
         assert!(value(1, 1, 0, true).is_empty());
         assert_eq!(value(5, 9, 7, false), b"xxxxxxx");
+    }
+
+    #[test]
+    fn json1k_is_exact_kib() {
+        let value = json1k_value(0xC0DEC, 0);
+        assert_eq!(value.len(), 1024);
+        assert!(value.starts_with(b"{"));
+        assert_ne!(json1k_value(0xC0DEC, 0), json1k_value(0xC0DEC, 1));
+        assert_eq!(gw8_header(0xC0DEC, 0).len(), 8);
     }
 }

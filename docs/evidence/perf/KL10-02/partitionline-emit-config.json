@@ -1,0 +1,20 @@
+{
+  "acknowledgment_mode": "fire-and-forget confirmed by a timed flush",
+  "acks": -1,
+  "batch_size_bytes": 1048576,
+  "cell": "lb-gateway-produce-gzip",
+  "client": "partitionline",
+  "codec": "gzip",
+  "compression": "gzip",
+  "header_mode": "gw8",
+  "idempotence": false,
+  "level": -1,
+  "linger_ms": 100,
+  "max_in_flight": 1,
+  "partitions": 8,
+  "payload_bytes": 1024,
+  "payload_mode": "json1k",
+  "record_seed": 789996,
+  "security_protocol": "PLAINTEXT",
+  "tls_client_cert": false
+}

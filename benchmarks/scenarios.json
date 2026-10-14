@@ -1957,5 +1957,62 @@
       "null/UUID key distribution"
     ],
     "claim": "No performance comparison qualified by driver tests or roundtrip validation."
+  },
+  "gateway_produce": {
+    "card": "KL10-02",
+    "tier": "exploratory",
+    "feeds_claims": false,
+    "driver": "benchmarks/gateway",
+    "peer": "rust-rdkafka",
+    "peer_driver": "benchmarks/peers/rust",
+    "performance_claims_valid": false,
+    "suite_hold": "active",
+    "profile": {
+      "records": "seeded json1k 1024-byte JSON plus one 8-byte gw header",
+      "partitions": 8,
+      "acks": -1,
+      "max_in_flight": 1,
+      "linger_ms": 100,
+      "batch_size_bytes": 1048576,
+      "tls": "mTLS preferred; PLAINTEXT accepted and recorded"
+    },
+    "cells": [
+      {
+        "id": "lb-gateway-produce-gzip",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "codec": "gzip",
+        "level": -1,
+        "acknowledgment_mode": "fire-and-forget confirmed by a timed flush",
+        "loads": ["open-loop-25k", "unpaced"],
+        "description": "Gateway gzip produce versus rust-rdkafka at matched knobs (KL10-02)."
+      },
+      {
+        "id": "lb-gateway-produce-lz4",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "codec": "lz4",
+        "level": 9,
+        "acknowledgment_mode": "fire-and-forget confirmed by a timed flush",
+        "loads": ["open-loop-25k", "unpaced"],
+        "description": "Gateway lz4 produce versus rust-rdkafka at matched knobs (KL10-02)."
+      },
+      {
+        "id": "lb-gateway-produce-ack",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "codec": "gzip",
+        "level": -1,
+        "acknowledgment_mode": "per-record completion",
+        "loads": ["open-loop-25k", "unpaced"],
+        "description": "Gateway gzip produce with one completion per record versus rust-rdkafka (KL10-02)."
+      }
+    ]
   }
 }

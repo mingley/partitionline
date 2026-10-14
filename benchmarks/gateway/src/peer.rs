@@ -1,0 +1,178 @@
+//! Orchestrate the isolated rust-rdkafka binary without linking librdkafka.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+
+use serde_json::json;
+
+use crate::cells::{AckMode, Cell, Load};
+use crate::rusage::ProcessRusage;
+use crate::settings::{ComparableSettings, TlsMode};
+
+/// Broker and count settings shared by a rust-rdkafka produce run.
+pub struct PeerWorkload<'a> {
+    /// Bootstrap.
+    pub bootstrap: &'a str,
+    /// Topic.
+    pub topic: &'a str,
+    /// Timed records.
+    pub count: u64,
+    /// Warmup records.
+    pub warmup: u64,
+    /// TLS mode.
+    pub tls: TlsMode,
+    /// Overall deadline.
+    pub run_timeout_ms: u64,
+}
+
+/// Config JSON the rust-rdkafka peer deserializes.
+pub fn rust_peer_config(cell: Cell, load: Load, work: &PeerWorkload<'_>) -> serde_json::Value {
+    json!({
+        "bootstrap": work.bootstrap,
+        "topic": work.topic,
+        "count": work.count,
+        "warmup": work.warmup,
+        "payload_bytes": crate::json1k::VALUE_BYTES,
+        "partitions": cell.partitions,
+        "acks": cell.acks,
+        "linger_ms": cell.linger_ms,
+        "batch_size_bytes": cell.batch_size_bytes,
+        "batch_num_messages": 32768,
+        "max_in_flight": cell.max_in_flight,
+        "queue_max_messages": 1_000_000,
+        "queue_max_kbytes": 32768,
+        "delivery_timeout_ms": 30_000,
+        "flush_timeout_ms": 35_000,
+        "run_timeout_ms": work.run_timeout_ms,
+        "consume_timeout_ms": 30_000,
+        "record_seed": crate::json1k::SEED,
+        "latency_samples": work.count,
+        "idempotence": false,
+        "compression": cell.codec,
+        "compression_level": cell.level,
+        "isolation_level": "read_uncommitted",
+        "payload_mode": "json1k",
+        "key_mode": "id",
+        "header_mode": "gw8",
+        "target_rate_per_s": load.rate_per_second().unwrap_or(0),
+        "security_protocol": work.tls.security_protocol(),
+        "sasl_mechanism": "",
+        "acknowledgment_mode": cell.ack_mode.label(),
+    })
+}
+
+/// Locate the rust-rdkafka peer binary.
+pub fn rust_peer_binary() -> Result<PathBuf, String> {
+    if let Ok(path) = std::env::var("GATEWAY_RUST_PEER_BIN") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Ok(path);
+        }
+        return Err(format!(
+            "GATEWAY_RUST_PEER_BIN is not a file: {}",
+            path.display()
+        ));
+    }
+    Err("GATEWAY_RUST_PEER_BIN is unset; rust-rdkafka stays in the excluded peer crate".into())
+}
+
+/// Spawn `emit-config` and parse the peer's effective configuration.
+pub fn emit_peer_config(
+    binary: &Path,
+    config: &serde_json::Value,
+    work: &Path,
+) -> Result<ComparableSettings, String> {
+    let config_path = work.join("peer-input.json");
+    write_new(&config_path, config)?;
+    let native =
+        std::env::var("GATEWAY_RUST_PEER_NATIVE_SHA256").unwrap_or_else(|_| "0".repeat(64));
+    let output = Command::new(binary)
+        .arg("emit-config")
+        .env("RUST_PEER_CONFIG", &config_path)
+        .env("RUST_PEER_NATIVE_SHA256", native)
+        .output()
+        .map_err(|error| format!("spawn rust peer emit-config: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "rust peer emit-config failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let dump: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("rust peer emit-config JSON: {error}"))?;
+    let effective = dump
+        .get("effective_config")
+        .cloned()
+        .ok_or_else(|| "rust peer emit-config missing effective_config".to_string())?;
+    ComparableSettings::from_effective(&effective)
+}
+
+/// One rust-rdkafka produce run reaped with wait4 for CPU.
+pub struct PeerRun {
+    /// Process rusage of the peer child only.
+    pub rusage: ProcessRusage,
+    /// Raw driver JSON, if written.
+    pub raw: serde_json::Value,
+    /// Child exit code.
+    pub exit_code: i32,
+}
+
+/// Spawn `produce` and collect the raw artifact plus child rusage.
+pub fn run_peer_produce(
+    binary: &Path,
+    config: &serde_json::Value,
+    work: &Path,
+) -> Result<PeerRun, String> {
+    let config_path = work.join("peer-input.json");
+    write_new(&config_path, config)?;
+    let raw_path = work.join("peer.raw.json");
+    let samples = work.join("peer.samples.csv");
+    let history = work.join("peer.attempts.jsonl");
+    let native =
+        std::env::var("GATEWAY_RUST_PEER_NATIVE_SHA256").unwrap_or_else(|_| "0".repeat(64));
+    let log = fs::File::create(work.join("peer.stderr.log"))
+        .map_err(|error| format!("peer stderr: {error}"))?;
+    let child = Command::new(binary)
+        .arg("produce")
+        .env("RUST_PEER_CONFIG", &config_path)
+        .env("RUST_PEER_NATIVE_SHA256", native)
+        .env("RUST_PEER_RAW", &raw_path)
+        .env("RUST_PEER_SAMPLES", &samples)
+        .env("RUST_PEER_HISTORY", &history)
+        .stdout(Stdio::from(log.try_clone().map_err(|e| e.to_string())?))
+        .stderr(Stdio::from(log))
+        .spawn()
+        .map_err(|error| format!("spawn rust peer produce: {error}"))?;
+    let pid = child.id();
+    let (exit_code, rusage) = ProcessRusage::wait4(pid)?;
+    std::mem::forget(child);
+    let raw = if raw_path.is_file() {
+        serde_json::from_slice(&fs::read(&raw_path).map_err(|e| e.to_string())?)
+            .map_err(|error| format!("peer raw JSON: {error}"))?
+    } else {
+        json!({})
+    };
+    Ok(PeerRun {
+        rusage,
+        raw,
+        exit_code,
+    })
+}
+
+fn write_new(path: &Path, value: &serde_json::Value) -> Result<(), String> {
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|error| format!("create {}: {error}", path.display()))?;
+    serde_json::to_writer_pretty(&mut file, value).map_err(|e| e.to_string())?;
+    use std::io::Write;
+    file.write_all(b"\n").map_err(|e| e.to_string())
+}
+
+/// Acknowledgment mode the rust peer used for this cell.
+#[must_use]
+pub fn peer_ack_mode(cell: Cell) -> AckMode {
+    cell.ack_mode
+}

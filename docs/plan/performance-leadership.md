@@ -265,6 +265,9 @@ reports medians with bootstrap 95% CIs. Artifacts must pass
 | `lb-oidc-connect` | `scripts/ci-auth-smoke.sh` setup | OIDC endpoint plus broker | IdP fetches per 8 opens; connect ms |
 | `lb-share-2leader` | KL03-17 topology | Share group across 2 leaders | rec/s |
 | `lb-rtt-bulk` | KL09-58 (a `tc netem` wrapper around `lb-bulk`, Linux) | 1 ms and 10 ms RTT | rec/s |
+| `lb-gateway-produce-gzip` | KL10-02 | 1 KiB json1k; 8 partitions; gzip; acks=all; max in flight 1; linger 100 ms; 1 MiB batches; open-loop 25k and unpaced; fire-and-forget confirmed by a timed flush; rust-rdkafka peer at the same knobs | Acknowledged rec/s, CPU per record (process rusage), peak RSS |
+| `lb-gateway-produce-lz4` | KL10-02 | As gzip, with lz4 (advertised level 9) | As gzip |
+| `lb-gateway-produce-ack` | KL10-02 | As gzip, with one completion per record (`Producer::send` / librdkafka delivery callback) | As gzip, plus p50/p99/p99.9 acknowledgment latency |
 
 ## 5. Strategy and waves
 

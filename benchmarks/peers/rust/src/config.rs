@@ -29,6 +29,16 @@ pub struct Config {
     pub key_mode: String,
     pub security_protocol: String,
     pub sasl_mechanism: String,
+    #[serde(default)]
+    pub target_rate_per_s: u64,
+    #[serde(default)]
+    pub header_mode: String,
+    #[serde(default = "default_compression_level")]
+    pub compression_level: i32,
+}
+
+fn default_compression_level() -> i32 {
+    -1
 }
 
 impl Config {
@@ -68,9 +78,12 @@ impl Config {
         }
         if !["none", "gzip", "snappy", "lz4", "zstd"].contains(&self.compression.as_str())
             || !["read_uncommitted", "read_committed"].contains(&self.isolation_level.as_str())
-            || !["seeded", "constant-x"].contains(&self.payload_mode.as_str())
+            || !["seeded", "constant-x", "json1k"].contains(&self.payload_mode.as_str())
             || !["id", "none"].contains(&self.key_mode.as_str())
             || (self.key_mode == "none" && self.payload_mode != "constant-x")
+            || (self.payload_mode == "json1k" && self.payload_bytes != 1024)
+            || !["", "gw8"].contains(&self.header_mode.as_str())
+            || (self.target_rate_per_s != 0 && self.target_rate_per_s > 1_000_000_000)
             || !["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"]
                 .contains(&self.security_protocol.as_str())
             || !["", "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"]
@@ -133,6 +146,7 @@ impl Config {
                 )
                 .set("message.timeout.ms", self.delivery_timeout_ms.to_string())
                 .set("compression.codec", &self.compression)
+                .set("compression.level", self.compression_level.to_string())
                 .set("partitioner", "consistent_random")
                 .set("sticky.partitioning.linger.ms", "0");
         }

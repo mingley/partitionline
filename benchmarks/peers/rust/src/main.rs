@@ -4,6 +4,7 @@ use rdkafka::{
     admin::{AdminClient, AdminOptions, ResourceSpecifier},
     client::ClientContext,
     error::{KafkaError, RDKafkaErrorCode},
+    message::{Header, OwnedHeaders},
     producer::{BaseProducer, BaseRecord, DeliveryResult, Producer, ProducerContext, PurgeConfig},
     Message,
 };
@@ -181,14 +182,34 @@ fn produce(
         if Instant::now() >= deadline {
             break;
         }
+        if config.target_rate_per_s > 0 {
+            let intended_ns =
+                u128::from(id).saturating_mul(1_000_000_000) / u128::from(config.target_rate_per_s);
+            let intended =
+                began + Duration::from_nanos(u64::try_from(intended_ns).unwrap_or(u64::MAX));
+            while Instant::now() < intended && Instant::now() < deadline {
+                producer.poll(Duration::from_millis(1));
+            }
+        }
         phase.lock().expect("phase lock").counts.offered += 1;
         let key = records::key(config.record_seed, id);
-        let value = records::value(
-            config.record_seed,
-            id,
-            config.payload_bytes,
-            config.payload_mode == "seeded",
-        );
+        let value = if config.payload_mode == "json1k" {
+            records::json1k_value(config.record_seed, id)
+        } else {
+            records::value(
+                config.record_seed,
+                id,
+                config.payload_bytes,
+                config.payload_mode == "seeded",
+            )
+        };
+        let header = records::gw8_header(config.record_seed, id);
+        let headers = (config.header_mode == "gw8").then(|| {
+            OwnedHeaders::new().insert(Header {
+                key: "gw",
+                value: Some(header.as_slice()),
+            })
+        });
         let partition = (id % config.partitions as u64) as i32;
         let opaque = Box::new(Delivery {
             phase: phase.clone(),
@@ -204,6 +225,9 @@ fn produce(
             .partition(partition);
         if config.key_mode == "id" {
             record = record.key(&key);
+        }
+        if let Some(ref headers) = headers {
+            record = record.headers(headers);
         }
         loop {
             match producer.send(record) {

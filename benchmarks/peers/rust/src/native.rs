@@ -57,6 +57,7 @@ pub fn effective<C: ClientContext>(client: &Client<C>) -> Result<BTreeMap<String
         "message.timeout.ms",
         "enable.idempotence",
         "compression.codec",
+        "compression.level",
         "security.protocol",
         "socket.nagle.disable",
         "sticky.partitioning.linger.ms",

@@ -56,6 +56,21 @@ fn null_keys_cannot_suggest_unique_id_verification() {
 }
 
 #[test]
+fn json1k_requires_exact_kib_and_optional_header() {
+    let mut c = config();
+    c.payload_mode = "json1k".into();
+    assert!(c.validate().is_err());
+    c.payload_bytes = 1024;
+    assert!(c.validate().is_ok());
+    c.header_mode = "gw8".into();
+    c.target_rate_per_s = 25_000;
+    c.compression_level = 9;
+    assert!(c.validate().is_ok());
+    c.header_mode = "unknown".into();
+    assert!(c.validate().is_err());
+}
+
+#[test]
 fn unsupported_protocol_and_compression_settings_fail_closed() {
     for (field, value) in [
         ("compression", "made-up"),

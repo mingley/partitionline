@@ -1,0 +1,35 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Gateway produce cells versus the isolated rust-rdkafka peer. Standalone benchmark crate."
+
+[workspace]
+
+[dependencies]
+partitionline = { version = "0.1.0", path = "../.." }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "sync", "macros", "fs"] }
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+libc = "0.2"
+
+[dev-dependencies]
+codec = { version = "0.1.0", path = "../codec" }
+
+[[bin]]
+name = "gateway-produce"
+path = "src/bin/gateway-produce.rs"
+
+[lib]
+name = "gateway"
+path = "src/lib.rs"
+
+[lints.clippy]
+# Harness crate: process wait4, host files and peer spawn are synchronous.
+disallowed_methods = "allow"
+disallowed_types = "allow"
