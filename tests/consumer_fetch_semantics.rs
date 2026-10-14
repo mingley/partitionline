@@ -3502,6 +3502,51 @@ async fn idle_metadata_reconnect_reuses_bootstrap_for_the_next_fetch() {
 }
 
 #[tokio::test]
+async fn idle_client_instance_id_resets_the_bootstrap_fetch_session() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .connections_max_idle(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    let before = mock.accept_count();
+    let _id = consumer.client_instance_id().await.unwrap();
+    let after = mock.accept_count();
+    assert!(
+        after > before,
+        "idle clientInstanceId must replace the bootstrap socket"
+    );
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(
+        mock.accept_count(),
+        after,
+        "the next fetch must reuse the socket opened for clientInstanceId"
+    );
+    let next = mock
+        .fetch_session_requests()
+        .last()
+        .cloned()
+        .expect("fetch after clientInstanceId");
+    assert_eq!(
+        next.3.epoch(),
+        partitionline::protocol::fetch::FetchMetadata::INITIAL_EPOCH,
+        "replacing the bootstrap socket must not continue the old fetch session"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets() {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 4);

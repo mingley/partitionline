@@ -2793,6 +2793,25 @@ impl Consumer {
         Err(Error::protocol("missing broker conn"))
     }
 
+    fn reset_fetch_sessions_using_bootstrap(&mut self) {
+        let bootstrap = self.conn.addr().to_string();
+        let nodes: Vec<i32> = self
+            .cluster
+            .brokers
+            .iter()
+            .filter(|(_, addr)| *addr == &bootstrap)
+            .map(|(node, _)| *node)
+            .collect();
+        for node in nodes {
+            if self.conns.contains_key(&node) {
+                continue;
+            }
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
+        }
+    }
+
     fn drop_broker_conn(&mut self, node: i32) {
         let used_bootstrap = !self.conns.contains_key(&node)
             && self
@@ -3247,6 +3266,8 @@ impl Consumer {
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
             self.conn = self.open_node_conn(&addr).await?;
+            // The new socket does not own the previous connection's fetch session.
+            self.reset_fetch_sessions_using_bootstrap();
         }
         let id = crate::admin::fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16])
             .await?;
