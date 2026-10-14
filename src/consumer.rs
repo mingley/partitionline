@@ -2209,6 +2209,7 @@ impl Consumer {
         offset: i64,
     ) -> Result<()> {
         let topic = topic.into();
+        require_fetch_offset(offset)?;
         Topic::validate(&topic)?;
         self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
@@ -2304,6 +2305,7 @@ impl Consumer {
     /// Java `assign` calls [`crate::protocol::group::Topic::validate`] on the topic name.
     pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
         let topic = topic.into();
+        require_fetch_offset(offset)?;
         Topic::validate(&topic)?;
         self.reject_pending_wakeup()?;
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
@@ -2521,7 +2523,8 @@ impl Consumer {
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }
-        for (topic, _, _) in starts {
+        for (topic, _, offset) in starts {
+            require_fetch_offset(*offset)?;
             Topic::validate(topic)?;
         }
         let old_ids = std::mem::take(&mut self.assigned_topic_ids);
@@ -4987,9 +4990,7 @@ impl Consumer {
         offset: i64,
         last_fetched_epoch: i32,
     ) -> Result<()> {
-        if offset < 0 {
-            return Err(Error::protocol("seek offset must not be a negative number"));
-        }
+        require_fetch_offset(offset)?;
         // The in-flight request still carries the pre-seek offset.
         self.abort_inflight_fetches();
         if let Some(slot) = self
@@ -5538,6 +5539,14 @@ fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     }
 }
 
+fn require_fetch_offset(offset: i64) -> Result<()> {
+    if offset < 0 {
+        Err(Error::protocol("seek offset must not be a negative number"))
+    } else {
+        Ok(())
+    }
+}
+
 /// A ListOffsets reset position. Offset `-1` means the broker has no offset.
 pub(crate) fn reset_position(offset: i64) -> Option<i64> {
     (offset >= 0).then_some(offset)
@@ -5752,6 +5761,12 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_negative_fetch_offset_is_rejected() {
+        assert!(require_fetch_offset(-1).is_err());
+        assert!(require_fetch_offset(0).is_ok());
     }
 
     #[test]
