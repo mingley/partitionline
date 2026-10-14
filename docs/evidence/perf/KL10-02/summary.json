@@ -1,0 +1,2003 @@
+{
+  "schema": "kl10-02-summary/1",
+  "task": "KL10-02",
+  "date": "2026-10-14",
+  "suite_hold": "active",
+  "performance_claims_valid": false,
+  "feeds_claims": false,
+  "host": {
+    "os": "linux",
+    "arch": "x86_64",
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "logical_cores": 4,
+    "broker": "native Kafka 4.1.0 KRaft PLAINTEXT 127.0.0.1:9092 RF=1",
+    "security": "PLAINTEXT (mTLS preferred; not configured on this host)"
+  },
+  "workload": {
+    "count": 25000,
+    "warmup": 0,
+    "repetitions": 5,
+    "pairing": "A-B-B-A",
+    "payload": "json1k 1024 bytes seed 0xC0DEC plus gw8 header",
+    "partitions": 8,
+    "acks": -1,
+    "max_in_flight": 1,
+    "linger_ms": 100,
+    "batch_size_bytes": 1048576,
+    "open_loop_rate": 25000,
+    "limitation": "COUNT=25000 is a 1.0 s open-loop at 25k/s, not the dated 20 s / 15 s walls in gateway-adoption.md section 2."
+  },
+  "peer": {
+    "wrapper": "rust-rdkafka 0.39.0",
+    "bindings": "rdkafka-sys 4.10.0+2.12.1",
+    "native": "librdkafka 2.15.0",
+    "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "library_sha256": "a4a43bb95a0ddd16951e81e734deb8e92b3333fd60c91e81a3fe8dfc7aa92ca3",
+    "ack_api": "KL04-05 BaseProducer delivery callbacks, not FutureProducer::send_result from the 2026-09-30 table"
+  },
+  "integrity": {
+    "result_files": 60,
+    "executed": 60,
+    "verified": 60,
+    "benchmark_report_py": "all 60 passed",
+    "throughput_definition": "acknowledged / elapsed",
+    "cpu_source": "partitionline: getrusage self delta per run; rust-rdkafka: wait4 child"
+  },
+  "section2_differences": [
+    "Host is this Linux 4-core Xeon VM, not the 2026-09-30 Apple M4 Pro laptop.",
+    "PLAINTEXT on RF=1; mTLS was not configured.",
+    "High-watermark deltas were reconciled against acknowledged counts (section 2 did not check them).",
+    "gzip uses the repository default zlib-rs backend.",
+    "Open-loop and unpaced share COUNT=25000 (1.0 s at 25k/s), not separate 20 s / 15 s walls.",
+    "rust-rdkafka peer is BaseProducer (KL04-05), not FutureProducer::send_result."
+  ],
+  "cells": {
+    "lb-gateway-produce-ack/open-loop-25k/partitionline": {
+      "cell": "lb-gateway-produce-ack",
+      "load": "open-loop-25k",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 22506.78750019512,
+        "ci95_low": 22470.318284715202,
+        "ci95_high": 22555.895941669038,
+        "min": 22470.318284715202,
+        "max": 22555.895941669038,
+        "samples": [
+          22549.534671,
+          22470.318285,
+          22495.249788,
+          22555.895942,
+          22506.7875
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 61.53119999999996,
+        "ci95_low": 58.61471999999999,
+        "ci95_high": 65.65548,
+        "min": 58.61471999999999,
+        "max": 65.65548,
+        "samples": [
+          65.65548,
+          61.6208,
+          58.61472,
+          60.18772,
+          61.5312
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 104636416,
+        "ci95_low": 103194624,
+        "ci95_high": 113680384,
+        "min": 103194624,
+        "max": 113680384,
+        "samples": [
+          103194624,
+          103587840,
+          104636416,
+          111321088,
+          113680384
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 22549.53467104966,
+          "cpu_s": 1.641387,
+          "cpu_us_per_record": 65.65548,
+          "peak_rss_bytes": 103194624,
+          "p50_us": 75939.972,
+          "p99_us": 126137.513,
+          "p99_9_us": 133095.29,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 22470.318284715202,
+          "cpu_s": 1.5405200000000003,
+          "cpu_us_per_record": 61.62080000000001,
+          "peak_rss_bytes": 103587840,
+          "p50_us": 71384.028,
+          "p99_us": 124467.666,
+          "p99_9_us": 129875.13500000001,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 22495.249788328925,
+          "cpu_s": 1.4653679999999998,
+          "cpu_us_per_record": 58.61471999999999,
+          "peak_rss_bytes": 104636416,
+          "p50_us": 71120.094,
+          "p99_us": 123156.51699999999,
+          "p99_9_us": 130163.897,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 22555.895941669038,
+          "cpu_s": 1.5046929999999987,
+          "cpu_us_per_record": 60.187719999999956,
+          "peak_rss_bytes": 111321088,
+          "p50_us": 72725.863,
+          "p99_us": 124046.383,
+          "p99_9_us": 131237.748,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 22506.78750019512,
+          "cpu_s": 1.538279999999999,
+          "cpu_us_per_record": 61.53119999999996,
+          "peak_rss_bytes": 113680384,
+          "p50_us": 73549.344,
+          "p99_us": 124502.635,
+          "p99_9_us": 127799.085,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ],
+      "ack_p50_us": {
+        "n": 5,
+        "median": 72725.863,
+        "ci95_low": 71120.094,
+        "ci95_high": 75939.972,
+        "min": 71120.094,
+        "max": 75939.972,
+        "samples": [
+          75939.972,
+          71384.028,
+          71120.094,
+          72725.863,
+          73549.344
+        ]
+      },
+      "ack_p99_us": {
+        "n": 5,
+        "median": 124467.666,
+        "ci95_low": 123156.51699999999,
+        "ci95_high": 126137.513,
+        "min": 123156.51699999999,
+        "max": 126137.513,
+        "samples": [
+          126137.513,
+          124467.666,
+          123156.517,
+          124046.383,
+          124502.635
+        ]
+      },
+      "ack_p99_9_us": {
+        "n": 5,
+        "median": 130163.897,
+        "ci95_low": 127799.085,
+        "ci95_high": 133095.29,
+        "min": 127799.085,
+        "max": 133095.29,
+        "samples": [
+          133095.29,
+          129875.135,
+          130163.897,
+          131237.748,
+          127799.085
+        ]
+      }
+    },
+    "lb-gateway-produce-ack/open-loop-25k/rust-rdkafka": {
+      "cell": "lb-gateway-produce-ack",
+      "load": "open-loop-25k",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 22719.31101322909,
+        "ci95_low": 20818.328540386457,
+        "ci95_high": 22721.347578185912,
+        "min": 20818.328540386457,
+        "max": 22721.347578185912,
+        "samples": [
+          20818.32854,
+          20822.990415,
+          22721.347578,
+          22721.064031,
+          22719.311013
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 77.00919999999999,
+        "ci95_low": 76.76839999999999,
+        "ci95_high": 80.65240000000001,
+        "min": 76.76839999999999,
+        "max": 80.65240000000001,
+        "samples": [
+          80.6524,
+          78.59508,
+          76.95488,
+          76.7684,
+          77.0092
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 110534656,
+        "ci95_low": 103194624,
+        "ci95_high": 114597888,
+        "min": 103194624,
+        "max": 114597888,
+        "samples": [
+          103194624,
+          103194624,
+          110534656,
+          110534656,
+          114597888
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 20818.328540386457,
+          "cpu_s": 2.0163100000000003,
+          "cpu_us_per_record": 80.65240000000001,
+          "peak_rss_bytes": 103194624,
+          "p50_us": 120015.387,
+          "p99_us": 221140.348,
+          "p99_9_us": 274181.825,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 20822.99041517418,
+          "cpu_s": 1.9648769999999998,
+          "cpu_us_per_record": 78.59508,
+          "peak_rss_bytes": 103194624,
+          "p50_us": 93113.632,
+          "p99_us": 237634.418,
+          "p99_9_us": 278890.233,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 22721.347578185912,
+          "cpu_s": 1.923872,
+          "cpu_us_per_record": 76.95488,
+          "peak_rss_bytes": 110534656,
+          "p50_us": 79791.355,
+          "p99_us": 201025.954,
+          "p99_9_us": 250053.717,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 22721.064031282076,
+          "cpu_s": 1.9192099999999999,
+          "cpu_us_per_record": 76.76839999999999,
+          "peak_rss_bytes": 110534656,
+          "p50_us": 81188.312,
+          "p99_us": 204275.12,
+          "p99_9_us": 241405.699,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 22719.31101322909,
+          "cpu_s": 1.9252299999999998,
+          "cpu_us_per_record": 77.00919999999999,
+          "peak_rss_bytes": 114597888,
+          "p50_us": 80046.51,
+          "p99_us": 205301.215,
+          "p99_9_us": 241124.67,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ],
+      "ack_p50_us": {
+        "n": 5,
+        "median": 81188.312,
+        "ci95_low": 79791.355,
+        "ci95_high": 120015.387,
+        "min": 79791.355,
+        "max": 120015.387,
+        "samples": [
+          120015.387,
+          93113.632,
+          79791.355,
+          81188.312,
+          80046.51
+        ]
+      },
+      "ack_p99_us": {
+        "n": 5,
+        "median": 205301.215,
+        "ci95_low": 201025.954,
+        "ci95_high": 237634.418,
+        "min": 201025.954,
+        "max": 237634.418,
+        "samples": [
+          221140.348,
+          237634.418,
+          201025.954,
+          204275.12,
+          205301.215
+        ]
+      },
+      "ack_p99_9_us": {
+        "n": 5,
+        "median": 250053.717,
+        "ci95_low": 241124.67,
+        "ci95_high": 278890.233,
+        "min": 241124.67,
+        "max": 278890.233,
+        "samples": [
+          274181.825,
+          278890.233,
+          250053.717,
+          241405.699,
+          241124.67
+        ]
+      }
+    },
+    "lb-gateway-produce-ack/unpaced/partitionline": {
+      "cell": "lb-gateway-produce-ack",
+      "load": "unpaced",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 26721.345865519135,
+        "ci95_low": 26125.40009796231,
+        "ci95_high": 27012.81565771711,
+        "min": 26125.40009796231,
+        "max": 27012.81565771711,
+        "samples": [
+          27012.815658,
+          26927.508661,
+          26721.345866,
+          26125.400098,
+          26255.090909
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 60.120040000000046,
+        "ci95_low": 57.21787999999998,
+        "ci95_high": 63.17392000000006,
+        "min": 57.21787999999998,
+        "max": 63.17392000000006,
+        "samples": [
+          58.75508,
+          60.12004,
+          57.21788,
+          63.17392,
+          60.96624
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 120496128,
+        "ci95_low": 114728960,
+        "ci95_high": 124428288,
+        "min": 114728960,
+        "max": 124428288,
+        "samples": [
+          114728960,
+          119971840,
+          120496128,
+          121413632,
+          124428288
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 27012.81565771711,
+          "cpu_s": 1.4688770000000004,
+          "cpu_us_per_record": 58.75508000000002,
+          "peak_rss_bytes": 114728960,
+          "p50_us": 111118.929,
+          "p99_us": 144084.067,
+          "p99_9_us": 150995.00799999997,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 26927.508660737694,
+          "cpu_s": 1.5030010000000011,
+          "cpu_us_per_record": 60.120040000000046,
+          "peak_rss_bytes": 119971840,
+          "p50_us": 110393.044,
+          "p99_us": 141344.19100000002,
+          "p99_9_us": 149067.66499999998,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 26721.345865519135,
+          "cpu_s": 1.4304469999999996,
+          "cpu_us_per_record": 57.21787999999998,
+          "peak_rss_bytes": 120496128,
+          "p50_us": 114309.985,
+          "p99_us": 147427.1,
+          "p99_9_us": 155334.261,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 26125.40009796231,
+          "cpu_s": 1.5793480000000013,
+          "cpu_us_per_record": 63.17392000000006,
+          "peak_rss_bytes": 121413632,
+          "p50_us": 115550.528,
+          "p99_us": 151009.26,
+          "p99_9_us": 158113.76799999998,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 26255.090909386494,
+          "cpu_s": 1.5241559999999996,
+          "cpu_us_per_record": 60.966239999999985,
+          "peak_rss_bytes": 124428288,
+          "p50_us": 115413.284,
+          "p99_us": 149230.19700000001,
+          "p99_9_us": 155048.473,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ],
+      "ack_p50_us": {
+        "n": 5,
+        "median": 114309.985,
+        "ci95_low": 110393.044,
+        "ci95_high": 115550.528,
+        "min": 110393.044,
+        "max": 115550.528,
+        "samples": [
+          111118.929,
+          110393.044,
+          114309.985,
+          115550.528,
+          115413.284
+        ]
+      },
+      "ack_p99_us": {
+        "n": 5,
+        "median": 147427.1,
+        "ci95_low": 141344.19100000002,
+        "ci95_high": 151009.26,
+        "min": 141344.19100000002,
+        "max": 151009.26,
+        "samples": [
+          144084.067,
+          141344.191,
+          147427.1,
+          151009.26,
+          149230.197
+        ]
+      },
+      "ack_p99_9_us": {
+        "n": 5,
+        "median": 155048.473,
+        "ci95_low": 149067.66499999998,
+        "ci95_high": 158113.76799999998,
+        "min": 149067.66499999998,
+        "max": 158113.76799999998,
+        "samples": [
+          150995.008,
+          149067.665,
+          155334.261,
+          158113.768,
+          155048.473
+        ]
+      }
+    },
+    "lb-gateway-produce-ack/unpaced/rust-rdkafka": {
+      "cell": "lb-gateway-produce-ack",
+      "load": "unpaced",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 24167.469886223236,
+        "ci95_low": 23911.60013041234,
+        "ci95_high": 26764.287370765695,
+        "min": 23911.60013041234,
+        "max": 26764.287370765695,
+        "samples": [
+          24106.980694,
+          23911.60013,
+          26764.287371,
+          24167.469886,
+          24554.234158
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 45.58292,
+        "ci95_low": 43.8366,
+        "ci95_high": 49.71624,
+        "min": 43.8366,
+        "max": 49.71624,
+        "samples": [
+          45.97812,
+          45.58292,
+          43.8366,
+          44.66628,
+          49.71624
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 120758272,
+        "ci95_low": 119316480,
+        "ci95_high": 125607936,
+        "min": 119316480,
+        "max": 125607936,
+        "samples": [
+          119316480,
+          119447552,
+          120758272,
+          120889344,
+          125607936
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 24106.980693788548,
+          "cpu_s": 1.149453,
+          "cpu_us_per_record": 45.97812,
+          "peak_rss_bytes": 119316480,
+          "p50_us": 415009.214,
+          "p99_us": 846898.36,
+          "p99_9_us": 856632.567,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 23911.60013041234,
+          "cpu_s": 1.139573,
+          "cpu_us_per_record": 45.58292,
+          "peak_rss_bytes": 119447552,
+          "p50_us": 400574.419,
+          "p99_us": 828721.174,
+          "p99_9_us": 838852.25,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 26764.287370765695,
+          "cpu_s": 1.095915,
+          "cpu_us_per_record": 43.8366,
+          "peak_rss_bytes": 120758272,
+          "p50_us": 393460.303,
+          "p99_us": 804259.56,
+          "p99_9_us": 812167.384,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 24167.469886223236,
+          "cpu_s": 1.116657,
+          "cpu_us_per_record": 44.66628,
+          "peak_rss_bytes": 120889344,
+          "p50_us": 400022.539,
+          "p99_us": 821076.307,
+          "p99_9_us": 829056.572,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 24554.234158313076,
+          "cpu_s": 1.242906,
+          "cpu_us_per_record": 49.71624,
+          "peak_rss_bytes": 125607936,
+          "p50_us": 391410.699,
+          "p99_us": 835137.748,
+          "p99_9_us": 848052.009,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ],
+      "ack_p50_us": {
+        "n": 5,
+        "median": 400022.539,
+        "ci95_low": 391410.699,
+        "ci95_high": 415009.214,
+        "min": 391410.699,
+        "max": 415009.214,
+        "samples": [
+          415009.214,
+          400574.419,
+          393460.303,
+          400022.539,
+          391410.699
+        ]
+      },
+      "ack_p99_us": {
+        "n": 5,
+        "median": 828721.174,
+        "ci95_low": 804259.56,
+        "ci95_high": 846898.36,
+        "min": 804259.56,
+        "max": 846898.36,
+        "samples": [
+          846898.36,
+          828721.174,
+          804259.56,
+          821076.307,
+          835137.748
+        ]
+      },
+      "ack_p99_9_us": {
+        "n": 5,
+        "median": 838852.25,
+        "ci95_low": 812167.384,
+        "ci95_high": 856632.567,
+        "min": 812167.384,
+        "max": 856632.567,
+        "samples": [
+          856632.567,
+          838852.25,
+          812167.384,
+          829056.572,
+          848052.009
+        ]
+      }
+    },
+    "lb-gateway-produce-gzip/open-loop-25k/partitionline": {
+      "cell": "lb-gateway-produce-gzip",
+      "load": "open-loop-25k",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 24603.16267259334,
+        "ci95_low": 24515.874965546616,
+        "ci95_high": 24611.97084263919,
+        "min": 24515.874965546616,
+        "max": 24611.97084263919,
+        "samples": [
+          24515.874966,
+          24611.970843,
+          24603.557902,
+          24518.430828,
+          24603.162673
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 47.97996000000001,
+        "ci95_low": 46.89883999999999,
+        "ci95_high": 48.59476,
+        "min": 46.89883999999999,
+        "max": 48.59476,
+        "samples": [
+          48.59476,
+          47.97996,
+          47.48312,
+          48.10476,
+          46.89884
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 40955904,
+        "ci95_low": 20017152,
+        "ci95_high": 45150208,
+        "min": 20017152,
+        "max": 45150208,
+        "samples": [
+          20017152,
+          29155328,
+          40955904,
+          42397696,
+          45150208
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 24515.874965546616,
+          "cpu_s": 1.214869,
+          "cpu_us_per_record": 48.59476,
+          "peak_rss_bytes": 20017152,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 24611.97084263919,
+          "cpu_s": 1.1994990000000003,
+          "cpu_us_per_record": 47.97996000000001,
+          "peak_rss_bytes": 29155328,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 24603.557901612618,
+          "cpu_s": 1.187078,
+          "cpu_us_per_record": 47.48312,
+          "peak_rss_bytes": 40955904,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 24518.430827606033,
+          "cpu_s": 1.2026189999999997,
+          "cpu_us_per_record": 48.10475999999999,
+          "peak_rss_bytes": 42397696,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 24603.16267259334,
+          "cpu_s": 1.1724709999999998,
+          "cpu_us_per_record": 46.89883999999999,
+          "peak_rss_bytes": 45150208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-gzip/open-loop-25k/rust-rdkafka": {
+      "cell": "lb-gateway-produce-gzip",
+      "load": "open-loop-25k",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 22714.029291845003,
+        "ci95_low": 20820.29403428603,
+        "ci95_high": 22724.54357156581,
+        "min": 20820.29403428603,
+        "max": 22724.54357156581,
+        "samples": [
+          22724.543572,
+          20820.294034,
+          22712.913314,
+          22722.830331,
+          22714.029292
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 75.78335999999999,
+        "ci95_low": 75.22424,
+        "ci95_high": 77.73756,
+        "min": 75.22424,
+        "max": 77.73756,
+        "samples": [
+          75.78336,
+          75.6706,
+          76.6788,
+          77.73756,
+          75.22424
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 41218048,
+        "ci95_low": 29155328,
+        "ci95_high": 45412352,
+        "min": 29155328,
+        "max": 45412352,
+        "samples": [
+          29155328,
+          29155328,
+          41218048,
+          41218048,
+          45412352
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 22724.54357156581,
+          "cpu_s": 1.8945839999999998,
+          "cpu_us_per_record": 75.78335999999999,
+          "peak_rss_bytes": 29155328,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 20820.29403428603,
+          "cpu_s": 1.891765,
+          "cpu_us_per_record": 75.6706,
+          "peak_rss_bytes": 29155328,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 22712.913313754227,
+          "cpu_s": 1.91697,
+          "cpu_us_per_record": 76.6788,
+          "peak_rss_bytes": 41218048,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 22722.830331314482,
+          "cpu_s": 1.943439,
+          "cpu_us_per_record": 77.73756,
+          "peak_rss_bytes": 41218048,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 22714.029291845003,
+          "cpu_s": 1.880606,
+          "cpu_us_per_record": 75.22424,
+          "peak_rss_bytes": 45412352,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-gzip/unpaced/partitionline": {
+      "cell": "lb-gateway-produce-gzip",
+      "load": "unpaced",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 70803.1524157683,
+        "ci95_low": 70072.83406810914,
+        "ci95_high": 74040.01150060537,
+        "min": 70072.83406810914,
+        "max": 74040.01150060537,
+        "samples": [
+          70072.834068,
+          74040.011501,
+          70803.152416,
+          72132.033105,
+          70578.314673
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 43.50963999999996,
+        "ci95_low": 42.46508,
+        "ci95_high": 44.67051999999999,
+        "min": 42.46508,
+        "max": 44.67051999999999,
+        "samples": [
+          44.67052,
+          42.46508,
+          43.55628,
+          43.50964,
+          43.44272
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 75186176,
+        "ci95_low": 54718464,
+        "ci95_high": 82526208,
+        "min": 54718464,
+        "max": 82526208,
+        "samples": [
+          54718464,
+          60375040,
+          75186176,
+          79380480,
+          82526208
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 70072.83406810914,
+          "cpu_s": 1.1167629999999997,
+          "cpu_us_per_record": 44.67051999999999,
+          "peak_rss_bytes": 54718464,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 74040.01150060537,
+          "cpu_s": 1.061627,
+          "cpu_us_per_record": 42.46508,
+          "peak_rss_bytes": 60375040,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 70803.1524157683,
+          "cpu_s": 1.0889070000000003,
+          "cpu_us_per_record": 43.55628000000001,
+          "peak_rss_bytes": 75186176,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 72132.03310477154,
+          "cpu_s": 1.087740999999999,
+          "cpu_us_per_record": 43.50963999999996,
+          "peak_rss_bytes": 79380480,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 70578.31467335386,
+          "cpu_s": 1.0860679999999994,
+          "cpu_us_per_record": 43.44271999999997,
+          "peak_rss_bytes": 82526208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-gzip/unpaced/rust-rdkafka": {
+      "cell": "lb-gateway-produce-gzip",
+      "load": "unpaced",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 26900.38136928911,
+        "ci95_low": 26869.417559427693,
+        "ci95_high": 26997.349497416802,
+        "min": 26869.417559427693,
+        "max": 26997.349497416802,
+        "samples": [
+          26869.417559,
+          26942.833091,
+          26997.349497,
+          26895.020249,
+          26900.381369
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 42.93236,
+        "ci95_low": 42.51691999999999,
+        "ci95_high": 43.24592000000001,
+        "min": 42.51691999999999,
+        "max": 43.24592000000001,
+        "samples": [
+          42.93236,
+          43.20228,
+          42.51692,
+          43.24592,
+          42.85788
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 75186176,
+        "ci95_low": 56844288,
+        "ci95_high": 82526208,
+        "min": 56844288,
+        "max": 82526208,
+        "samples": [
+          56844288,
+          56852480,
+          75186176,
+          75186176,
+          82526208
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 26869.417559427693,
+          "cpu_s": 1.073309,
+          "cpu_us_per_record": 42.93236,
+          "peak_rss_bytes": 56844288,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 26942.83309119019,
+          "cpu_s": 1.080057,
+          "cpu_us_per_record": 43.20228,
+          "peak_rss_bytes": 56852480,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 26997.349497416802,
+          "cpu_s": 1.0629229999999998,
+          "cpu_us_per_record": 42.51691999999999,
+          "peak_rss_bytes": 75186176,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 26895.02024897566,
+          "cpu_s": 1.0811480000000002,
+          "cpu_us_per_record": 43.24592000000001,
+          "peak_rss_bytes": 75186176,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 26900.38136928911,
+          "cpu_s": 1.071447,
+          "cpu_us_per_record": 42.85788,
+          "peak_rss_bytes": 82526208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-lz4/open-loop-25k/partitionline": {
+      "cell": "lb-gateway-produce-lz4",
+      "load": "open-loop-25k",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 24891.16690724378,
+        "ci95_low": 24870.00250729417,
+        "ci95_high": 24923.81109971599,
+        "min": 24870.00250729417,
+        "max": 24923.81109971599,
+        "samples": [
+          24888.359134,
+          24891.166907,
+          24870.002507,
+          24909.305369,
+          24923.8111
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 23.177760000000006,
+        "ci95_low": 22.482599999999966,
+        "ci95_high": 26.035120000000006,
+        "min": 22.482599999999966,
+        "max": 26.035120000000006,
+        "samples": [
+          23.09468,
+          23.809,
+          26.03512,
+          22.4826,
+          23.17776
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 83443712,
+        "ci95_low": 82526208,
+        "ci95_high": 84885504,
+        "min": 82526208,
+        "max": 84885504,
+        "samples": [
+          82526208,
+          82657280,
+          83443712,
+          83574784,
+          84885504
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 24888.359133638445,
+          "cpu_s": 0.577367000000001,
+          "cpu_us_per_record": 23.094680000000036,
+          "peak_rss_bytes": 82526208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 24891.16690724378,
+          "cpu_s": 0.5952250000000001,
+          "cpu_us_per_record": 23.809000000000005,
+          "peak_rss_bytes": 82657280,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 24870.00250729417,
+          "cpu_s": 0.6508780000000001,
+          "cpu_us_per_record": 26.035120000000006,
+          "peak_rss_bytes": 83443712,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 24909.30536860873,
+          "cpu_s": 0.5620649999999991,
+          "cpu_us_per_record": 22.482599999999966,
+          "peak_rss_bytes": 83574784,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 24923.81109971599,
+          "cpu_s": 0.5794440000000001,
+          "cpu_us_per_record": 23.177760000000006,
+          "peak_rss_bytes": 84885504,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-lz4/open-loop-25k/rust-rdkafka": {
+      "cell": "lb-gateway-produce-lz4",
+      "load": "open-loop-25k",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 22713.046266206322,
+        "ci95_low": 22710.305672093513,
+        "ci95_high": 22715.876832691276,
+        "min": 22710.305672093513,
+        "max": 22715.876832691276,
+        "samples": [
+          22710.305672,
+          22710.580306,
+          22715.876833,
+          22714.780403,
+          22713.046266
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 75.14659999999999,
+        "ci95_low": 74.88984,
+        "ci95_high": 78.92532,
+        "min": 74.88984,
+        "max": 78.92532,
+        "samples": [
+          74.88984,
+          75.02004,
+          78.92532,
+          76.44356,
+          75.1466
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 83574784,
+        "ci95_low": 82526208,
+        "ci95_high": 84885504,
+        "min": 82526208,
+        "max": 84885504,
+        "samples": [
+          82526208,
+          82526208,
+          83574784,
+          83574784,
+          84885504
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 22710.305672093513,
+          "cpu_s": 1.872246,
+          "cpu_us_per_record": 74.88984,
+          "peak_rss_bytes": 82526208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 22710.580306225776,
+          "cpu_s": 1.875501,
+          "cpu_us_per_record": 75.02004,
+          "peak_rss_bytes": 82526208,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 22715.876832691276,
+          "cpu_s": 1.973133,
+          "cpu_us_per_record": 78.92532,
+          "peak_rss_bytes": 83574784,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 22714.780403393077,
+          "cpu_s": 1.9110889999999998,
+          "cpu_us_per_record": 76.44355999999999,
+          "peak_rss_bytes": 83574784,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 22713.046266206322,
+          "cpu_s": 1.8786649999999998,
+          "cpu_us_per_record": 75.14659999999999,
+          "peak_rss_bytes": 84885504,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-lz4/unpaced/partitionline": {
+      "cell": "lb-gateway-produce-lz4",
+      "load": "unpaced",
+      "client": "partitionline",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 85783.25034959077,
+        "ci95_low": 77083.28326131724,
+        "ci95_high": 92492.07768357809,
+        "min": 77083.28326131724,
+        "max": 92492.07768357809,
+        "samples": [
+          92492.077684,
+          77083.283261,
+          86355.463384,
+          85783.25035,
+          80594.834496
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 25.896159999999938,
+        "ci95_low": 23.232960000000055,
+        "ci95_high": 27.165960000000027,
+        "min": 23.232960000000055,
+        "max": 27.165960000000027,
+        "samples": [
+          23.23296,
+          27.1396,
+          24.81316,
+          25.89616,
+          27.16596
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 87244800,
+        "ci95_low": 87244800,
+        "ci95_high": 89169920,
+        "min": 87244800,
+        "max": 89169920,
+        "samples": [
+          87244800,
+          87244800,
+          87244800,
+          87990272,
+          89169920
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 92492.07768357809,
+          "cpu_s": 0.5808240000000013,
+          "cpu_us_per_record": 23.232960000000055,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 77083.28326131724,
+          "cpu_s": 0.67849,
+          "cpu_us_per_record": 27.1396,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 86355.46338426281,
+          "cpu_s": 0.6203290000000001,
+          "cpu_us_per_record": 24.813160000000003,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 85783.25034959077,
+          "cpu_s": 0.6474039999999985,
+          "cpu_us_per_record": 25.896159999999938,
+          "peak_rss_bytes": 87990272,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 80594.83449587997,
+          "cpu_s": 0.6791490000000007,
+          "cpu_us_per_record": 27.165960000000027,
+          "peak_rss_bytes": 89169920,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    },
+    "lb-gateway-produce-lz4/unpaced/rust-rdkafka": {
+      "cell": "lb-gateway-produce-lz4",
+      "load": "unpaced",
+      "client": "rust-rdkafka",
+      "acknowledged_rps": {
+        "n": 5,
+        "median": 26497.87472417885,
+        "ci95_low": 21723.47585582162,
+        "ci95_high": 26902.699531261245,
+        "min": 21723.47585582162,
+        "max": 26902.699531261245,
+        "samples": [
+          26893.777981,
+          26902.699531,
+          26327.6541,
+          26497.874724,
+          21723.475856
+        ]
+      },
+      "cpu_us_per_record": {
+        "n": 5,
+        "median": 42.89824,
+        "ci95_low": 42.08647999999999,
+        "ci95_high": 50.95423999999999,
+        "min": 42.08647999999999,
+        "max": 50.95423999999999,
+        "samples": [
+          42.08648,
+          42.30916,
+          43.8118,
+          42.89824,
+          50.95424
+        ]
+      },
+      "peak_rss_bytes": {
+        "n": 5,
+        "median": 87244800,
+        "ci95_low": 87244800,
+        "ci95_high": 89432064,
+        "min": 87244800,
+        "max": 89432064,
+        "samples": [
+          87244800,
+          87244800,
+          87244800,
+          87244800,
+          89432064
+        ]
+      },
+      "repetitions": [
+        {
+          "rep": 1,
+          "rps": 26893.777980743806,
+          "cpu_s": 1.0521619999999998,
+          "cpu_us_per_record": 42.08647999999999,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 2,
+          "rps": 26902.699531261245,
+          "cpu_s": 1.057729,
+          "cpu_us_per_record": 42.30916,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 3,
+          "rps": 26327.654100287804,
+          "cpu_s": 1.0952950000000001,
+          "cpu_us_per_record": 43.81180000000001,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 4,
+          "rps": 26497.87472417885,
+          "cpu_s": 1.072456,
+          "cpu_us_per_record": 42.89824,
+          "peak_rss_bytes": 87244800,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        },
+        {
+          "rep": 5,
+          "rps": 21723.47585582162,
+          "cpu_s": 1.2738559999999999,
+          "cpu_us_per_record": 50.95423999999999,
+          "peak_rss_bytes": 89432064,
+          "p50_us": 0.0,
+          "p99_us": 0.0,
+          "p99_9_us": 0.0,
+          "acknowledged": 25000,
+          "hwm_delta": 25000,
+          "verified": true
+        }
+      ]
+    }
+  },
+  "paired_ratios": {
+    "lb-gateway-produce-ack/open-loop-25k": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 0.9927306181882312,
+        "ci95_low": 0.990049102982164,
+        "ci95_high": 1.0831577870098819,
+        "min": 0.990049102982164,
+        "max": 1.0831577870098819,
+        "samples": [
+          1.083158,
+          1.079111,
+          0.990049,
+          0.992731,
+          0.990646
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 0.7840287203728276,
+        "ci95_low": 0.7616764524874834,
+        "ci95_high": 0.8140548824337526,
+        "min": 0.7616764524874834,
+        "max": 0.8140548824337526,
+        "samples": [
+          0.814055,
+          0.784029,
+          0.761676,
+          0.784017,
+          0.799011
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 1.0831577870098819,
+          "cpu_ratio": 0.8140548824337526
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 1.0791110131972486,
+          "cpu_ratio": 0.7840287203728276
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 0.990049102982164,
+          "cpu_ratio": 0.7616764524874834
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 0.9927306181882312,
+          "cpu_ratio": 0.7840168611043081
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 0.9906456884669513,
+          "cpu_ratio": 0.7990110272538862
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    },
+    "lb-gateway-produce-ack/unpaced": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 1.08101510919251,
+        "ci95_low": 0.9983955670236353,
+        "ci95_high": 1.1261274240902652,
+        "min": 0.9983955670236353,
+        "max": 1.1261274240902652,
+        "samples": [
+          1.120539,
+          1.126127,
+          0.998396,
+          1.081015,
+          1.069269
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 1.30525360087233,
+        "ci95_low": 1.2262842081380247,
+        "ci95_high": 1.4143537361965237,
+        "min": 1.2262842081380247,
+        "max": 1.4143537361965237,
+        "samples": [
+          1.277892,
+          1.318916,
+          1.305254,
+          1.414354,
+          1.226284
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 1.1205391500843274,
+          "cpu_ratio": 1.2778921800195402
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 1.1261274240902652,
+          "cpu_ratio": 1.3189159448319687
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 0.9983955670236353,
+          "cpu_ratio": 1.30525360087233
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 1.08101510919251,
+          "cpu_ratio": 1.4143537361965237
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 1.0692693871088452,
+          "cpu_ratio": 1.2262842081380247
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    },
+    "lb-gateway-produce-gzip/open-loop-25k": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 1.0831703330340685,
+        "ci95_low": 1.0788280472318141,
+        "ci95_high": 1.1821144697624912,
+        "min": 1.0788280472318141,
+        "max": 1.1821144697624912,
+        "samples": [
+          1.078828,
+          1.182114,
+          1.083241,
+          1.079022,
+          1.08317
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 0.6234538228634812,
+        "ci95_low": 0.6188097491096967,
+        "ci95_high": 0.6412325872064792,
+        "min": 0.6188097491096967,
+        "max": 0.6412325872064792,
+        "samples": [
+          0.641233,
+          0.634063,
+          0.619247,
+          0.61881,
+          0.623454
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 1.0788280472318141,
+          "cpu_ratio": 0.6412325872064792
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 1.1821144697624912,
+          "cpu_ratio": 0.6340634275398902
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 1.0832409546825275,
+          "cpu_ratio": 0.6192470409030919
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 1.0790218678795933,
+          "cpu_ratio": 0.6188097491096967
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 1.0831703330340685,
+          "cpu_ratio": 0.6234538228634812
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    },
+    "lb-gateway-produce-gzip/unpaced": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 2.6236919731528334,
+        "ci95_low": 2.6079029779163423,
+        "ci95_high": 2.748041056039318,
+        "min": 2.6079029779163423,
+        "max": 2.748041056039318,
+        "samples": [
+          2.607903,
+          2.748041,
+          2.622596,
+          2.681985,
+          2.623692
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 1.0136460319549163,
+        "ci95_low": 0.9829360857806578,
+        "ci95_high": 1.0404860110182619,
+        "min": 0.9829360857806578,
+        "max": 1.0404860110182619,
+        "samples": [
+          1.040486,
+          0.982936,
+          1.024446,
+          1.006098,
+          1.013646
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 2.6079029779163423,
+          "cpu_ratio": 1.0404860110182619
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 2.748041056039318,
+          "cpu_ratio": 0.9829360857806578
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 2.622596430162264,
+          "cpu_ratio": 1.0244457971085397
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 2.681984710813475,
+          "cpu_ratio": 1.006098147524667
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 2.6236919731528334,
+          "cpu_ratio": 1.0136460319549163
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    },
+    "lb-gateway-produce-lz4/open-loop-25k": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 1.0960163312260334,
+        "ci95_low": 1.0948290788186883,
+        "ci95_high": 1.0973345806457921,
+        "min": 1.0948290788186883,
+        "max": 1.0973345806457921,
+        "samples": [
+          1.095906,
+          1.096016,
+          1.094829,
+          1.096612,
+          1.097335
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 0.30843391450844093,
+        "ci95_low": 0.29410718182146367,
+        "ci95_high": 0.32987031284763885,
+        "min": 0.29410718182146367,
+        "max": 0.32987031284763885,
+        "samples": [
+          0.308382,
+          0.317369,
+          0.32987,
+          0.294107,
+          0.308434
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 1.0959059509366855,
+          "cpu_ratio": 0.3083820181749625
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 1.0960163312260334,
+          "cpu_ratio": 0.31736853246145974
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 1.0948290788186883,
+          "cpu_ratio": 0.32987031284763885
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 1.0966122025501879,
+          "cpu_ratio": 0.29410718182146367
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 1.0973345806457921,
+          "cpu_ratio": 0.30843391450844093
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    },
+    "lb-gateway-produce-lz4/unpaced": {
+      "rps_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 3.2800287885626243,
+        "ci95_low": 2.865262022190211,
+        "ci95_high": 3.710034021755389,
+        "min": 2.865262022190211,
+        "max": 3.710034021755389,
+        "samples": [
+          3.439163,
+          2.865262,
+          3.280029,
+          3.237363,
+          3.710034
+        ]
+      },
+      "cpu_us_ratio_pl_over_rd": {
+        "n": 5,
+        "median": 0.5663579218384087,
+        "ci95_low": 0.5331442486434893,
+        "ci95_high": 0.6414592017426014,
+        "min": 0.5331442486434893,
+        "max": 0.6414592017426014,
+        "samples": [
+          0.552029,
+          0.641459,
+          0.566358,
+          0.603665,
+          0.533144
+        ]
+      },
+      "pairs": [
+        {
+          "rep": 1,
+          "rps_ratio": 3.4391626847593995,
+          "cpu_ratio": 0.5520290601637405
+        },
+        {
+          "rep": 2,
+          "rps_ratio": 2.865262022190211,
+          "cpu_ratio": 0.6414592017426014
+        },
+        {
+          "rep": 3,
+          "rps_ratio": 3.2800287885626243,
+          "cpu_ratio": 0.5663579218384087
+        },
+        {
+          "rep": 4,
+          "rps_ratio": 3.237363420369523,
+          "cpu_ratio": 0.603664858977896
+        },
+        {
+          "rep": 5,
+          "rps_ratio": 3.710034021755389,
+          "cpu_ratio": 0.5331442486434893
+        }
+      ],
+      "note": "Unsigned local ratios. Not a performance claim. Suite HOLD remains."
+    }
+  },
+  "note": "Exploratory local baseline. Suite HOLD remains. No comparison, qualification, or performance claim."
+}

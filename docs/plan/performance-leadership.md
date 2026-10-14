@@ -269,6 +269,10 @@ reports medians with bootstrap 95% CIs. Artifacts must pass
 | `lb-gateway-produce-lz4` | KL10-02 | As gzip, with lz4 (advertised level 9) | As gzip |
 | `lb-gateway-produce-ack` | KL10-02 | As gzip, with one completion per record (`Producer::send` / librdkafka delivery callback) | As gzip, plus p50/p99/p99.9 acknowledgment latency |
 
+KL10-02 recorded a local unsigned `COUNT=25000` A-B baseline for the three
+produce cells (`docs/evidence/perf/KL10-02`). Suite HOLD remains. Those
+numbers are not a performance claim.
+
 ## 5. Strategy and waves
 
 A card's wave is its position in the dependency graph. The graph in

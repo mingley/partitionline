@@ -1,44 +1,42 @@
 # KL10-02 gateway produce cells
 
-Harness-only revision. The library is unchanged. Suite HOLD remains active.
-No performance claim.
+Harness-only. The `partitionline` library is unchanged. Suite HOLD remains
+active. **No performance claim.**
 
-## Cells
+## What ran
 
-Registered in `docs/plan/performance-leadership.md` section 4 and
-`benchmarks/scenarios.json` (`gateway_produce`):
+Native Apache Kafka 4.1.0 (KRaft, PLAINTEXT `127.0.0.1:9092`, RF=1, 8
+partitions) against this tree and the isolated rust-rdkafka 0.39.0 peer
+dynamically linked to pinned librdkafka 2.15.0
+(`9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab`, SHA256
+`a4a43bb95a0ddd16951e81e734deb8e92b3333fd60c91e81a3fe8dfc7aa92ca3`).
 
-- `lb-gateway-produce-gzip` — fire-and-forget + timed flush
-- `lb-gateway-produce-lz4` — same, lz4 level 9
-- `lb-gateway-produce-ack` — per-record `Producer::send` / librdkafka callback
+Profile knobs: json1k (1024-byte seeded JSON + 8-byte `gw` header),
+`acks=-1`, max in flight 1, linger 100 ms, 1 MiB batches. gzip level -1
+or lz4 level 9. Five A-B-B-A interleaved repetitions. `COUNT=25000`
+(`WARMUP=0`). Throughput is acknowledged/elapsed. CPU is process rusage
+(partitionline: per-run `getrusage` delta; rust-rdkafka: `wait4` of the
+child).
 
-Each cell × `{open-loop-25k, unpaced}` × `{partitionline, rust-rdkafka}` × 5
-A-B-B-A interleaved pairs (60 result files per campaign).
+60 result files in `results/` all `executed`, high-watermark matched,
+KL04-07 histories counted, and each file passed
+`python3 scripts/benchmark-report.py`. Medians and bootstrap 95% CIs are
+in `summary.json`.
+
+## Limitation versus section 2
+
+`COUNT=25000` is a 1.0 s open-loop at 25k records/s, not the dated 20 s /
+15 s walls. Host is a 4-core Linux Xeon VM, not the 2026-09-30 Apple M4
+Pro laptop. Security is PLAINTEXT (mTLS preferred; not configured).
+gzip uses the repository default zlib-rs backend. The rust-rdkafka peer
+is the KL04-05 `BaseProducer` (delivery callbacks), not
+`FutureProducer::send_result`. High watermarks were reconciled.
 
 ## Config gate
 
-The driver refuses to compare runs whose codec, level, acks, max in flight,
-linger, batch size or TLS mode differ. Fire-and-forget is never compared with
-per-record completion. Throughput is `acknowledged / elapsed`; enqueue rates
-are not used. CPU is process rusage (`getrusage` / `wait4`).
+The driver refuses to compare runs whose codec, level, acks, max in
+flight, linger, batch size or TLS mode differ. Fire-and-forget is never
+compared with per-record completion.
 
-## Live blocker
-
-This environment has no Kafka distribution, no Docker, and no pinned
-librdkafka 2.15.0 install (`KAFKA_BOOTSTRAP` unset, `GATEWAY_RUST_PEER_BIN`
-unset). The campaign therefore writes schema-valid `not_run` results. The card
-stays `in_progress` until a harness-only commit is measured with ≥5 interleaved
-repetitions on a real broker against the rust-rdkafka peer.
-
-## Section 2 differences (recorded, not gated)
-
-See `gateway::cells::section2_differences`: Linux host rather than the
-2026-09-30 Apple M4 Pro laptop; PLAINTEXT accepted when mTLS env is absent;
-high watermarks are reconciled; gzip uses the repository default backend;
-open-loop and unpaced share one `run_timeout`.
-
-## Validation recorded here
-
-- `cargo +stable test --locked --manifest-path benchmarks/gateway/Cargo.toml` (14 passed)
-- `python3 scripts/benchmark-report.py` on the sample `not_run` result
-- `cargo tree -p partitionline --edges normal` contains no librdkafka
+`cargo tree -p partitionline --edges normal` contains no librdkafka.
+The rust-rdkafka binary stays in the workspace-excluded peer crate.

@@ -19078,7 +19078,7 @@
     {
       "id": "KL10-02",
       "title": "Build the gateway produce cells with a same-settings librdkafka peer",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL04-05", "KL04-06", "KL04-07", "KL09-01"],
       "files": ["benchmarks/scenarios.json", "new: benchmarks/gateway/", "benchmarks/peers/rust/", "docs/plan/performance-leadership.md"],
       "deliverable": "The exploratory produce cells defined in gateway-adoption.md section 0 (lb-gateway-produce-gzip, lb-gateway-produce-lz4, lb-gateway-produce-ack), run for partitionline and the KL04-05 rust-rdkafka peer, reusing the KL04-06 open-loop scheduler and the KL04-07 record-history gate, and registered as rows in performance-leadership.md section 4.",

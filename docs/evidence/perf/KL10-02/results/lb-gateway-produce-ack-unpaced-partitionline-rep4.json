@@ -1,0 +1,312 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "acknowledgment_mode": "per-record completion",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "measured_phase_present": true,
+    "note": "",
+    "pairing_order": "A-B-B-A",
+    "phase": "steady_state",
+    "repetition_index": 4,
+    "steady_state_duration_seconds": 0.956923144,
+    "total_repetitions": 5,
+    "warmup_completed": false,
+    "warmup_duration_seconds": 0,
+    "warmup_records": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 0,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 1,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 2,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 3,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 4,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 5,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 6,
+          "start_offset": 178125
+        },
+        {
+          "end_offset": 181250,
+          "offset_delta": 3125,
+          "partition": 7,
+          "start_offset": 178125
+        }
+      ],
+      "total_offset_delta": 25000
+    },
+    "idempotence_sequence_verified": false,
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "KL04-07 record history plus SHA256 payload hash",
+      "duplicate_ids_count": 0,
+      "end_id": 24999,
+      "expected_count": 25000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 0,
+      "verified_count": 25000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0,
+      "disk_write_bytes": 0,
+      "disk_write_unit": "bytes",
+      "note": "Unmeasured",
+      "peak_rss_bytes": 0,
+      "rss_unit": "bytes"
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 0,
+        "note": "Uninstrumented",
+        "total_allocated_bytes": 0,
+        "unit": "bytes"
+      },
+      "cpu_seconds_unit": "seconds",
+      "cpu_source": "process rusage",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 165.04439357566645,
+      "rss": {
+        "average_rss_bytes": 0,
+        "note": "getrusage / wait4 peak",
+        "peak_rss_bytes": 121413632,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.08394999999999975,
+      "threads_count": 5,
+      "user_cpu_seconds": 1.4953980000000016
+    },
+    "errors": [],
+    "latency": {
+      "acknowledgment_mode": "per-record completion",
+      "confidence_interval_95": {
+        "lower": 86509.91500000001,
+        "unit": "microseconds",
+        "upper": 147258.11299999998
+      },
+      "definition": "offer-to-send-future-completion; not a fire-and-forget flush bound",
+      "max": 161035.233,
+      "mean": 116156.38883199992,
+      "min": 67128.711,
+      "p50": 115550.528,
+      "p90": 138647.133,
+      "p95": 143723.15999999997,
+      "p99": 151009.26,
+      "p99_9": 158113.76799999998,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 25000,
+            "max_us": 0,
+            "min_us": 0
+          }
+        ]
+      },
+      "sample_count": 25000,
+      "stddev": 16770.375573478163,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "definition": "acknowledged / elapsed; enqueue rates are never reported as acknowledged throughput",
+      "mb_definition": "1 MB=1000000 value bytes; keys/protocol excluded",
+      "megabytes_per_second": 26.752409700313404,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 26125.40009796231,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 25600000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 25000,
+    "acknowledged": 25000,
+    "consumed": 25000,
+    "offered": 25000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "/tmp/gateway-kl10-02-live/step-0057/history.jsonl",
+        "sha256": "e413ce59a734db64463fe54b2852a7741a2cd3ec58d65002da59481536bab8de",
+        "size_bytes": 6939243,
+        "type": "history"
+      }
+    ],
+    "binary": {
+      "name": "partitionline",
+      "path": "benchmarks/gateway",
+      "sha256": "488bf0989a664320fb22ddf659da5cd5012c9317aaa2ca66e4a6210a6c972677"
+    },
+    "broker": {
+      "cluster_id": "unreported",
+      "endpoints": [
+        "unreported"
+      ],
+      "image": "apache/kafka:4.1.0",
+      "mode": "kraft",
+      "node_count": 1,
+      "version": "4.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acknowledgment_mode": "per-record completion",
+        "acks": -1,
+        "batch_size_bytes": 1048576,
+        "codec": "gzip",
+        "idempotence": false,
+        "level": -1,
+        "linger_ms": 100,
+        "max_in_flight": 1,
+        "tls": "plain"
+      },
+      "path": "effective-settings",
+      "sha256": "985713b9e06996c8a077a4f582a3e727540f21b4b3eeca00e2ab71ad44315e44"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 0,
+        "logical_cores": 4,
+        "model": "Intel(R) Xeon(R) Processor",
+        "physical_cores": 4
+      },
+      "hostname": "sanitized-local-host",
+      "kernel_version": "6.12.94+",
+      "memory": {
+        "total_bytes": 16780713984,
+        "unit": "bytes"
+      },
+      "os": "linux",
+      "os_family": "unix"
+    },
+    "seeds": {
+      "key_seed": "0xc0dec",
+      "partition_seed": "explicit index modulo 8",
+      "payload_seed": "0xc0dec",
+      "repetition_seed": "0x5EED0004"
+    },
+    "source": {
+      "clean": false,
+      "git_branch": "dev/gateway-produce-cells-c143",
+      "git_commit": "c7535d71e82940968aef488f74217893c12add04",
+      "note": "Harness-only gateway produce cell; librdkafka stays in excluded peer crates",
+      "peer": "partitionline",
+      "repo_url": "https://github.com/mingley/partitionline",
+      "tree_hash": "97152aba9840bee078842af5136b1a5f4a3a71aa"
+    },
+    "timestamps": {
+      "duration_seconds": 0.956923144,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-14T08:48:27Z",
+      "start_time_utc": "2026-10-14T08:48:27Z"
+    },
+    "toolchains": {
+      "build_tool": "cargo",
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "partitionline + isolated rust-rdkafka peer"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "cloud_vm",
+      "network_interface": "lo",
+      "rtt_ms": 0,
+      "rtt_unit": "milliseconds",
+      "section2_differences": [
+        "Host is this Linux measurement environment, not the 2026-09-30 Apple M4 Pro laptop.",
+        "mTLS is preferred when TLS_CLIENT_CERT_PEM is set; PLAINTEXT is accepted and recorded when it is not.",
+        "High-watermark deltas are reconciled against acknowledged counts (section 2 did not check them).",
+        "gzip uses the repository default backend (zlib-rs unless built with default-features = false), not the dated miniz_oxide-only profile.",
+        "Open-loop 25k and unpaced loads share one run_timeout; section 2 used separate 20 s / 15 s walls."
+      ]
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "broker_workload_attempted": true,
+        "error_message": null,
+        "integrity_failure": false,
+        "repetition_index": 4,
+        "status": "passed_measurement",
+        "timestamp_utc": "2026-10-14T08:48:27Z"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "acknowledgment_mode": "per-record completion",
+      "acks": -1,
+      "durability": {
+        "min_insync_replicas": 1,
+        "replication_factor": 1
+      },
+      "idempotence": false,
+      "isolation": "read_uncommitted",
+      "note": "",
+      "security": {
+        "mechanism": "NONE",
+        "protocol": "PLAINTEXT"
+      }
+    },
+    "peer": "partitionline",
+    "profile": "bulk",
+    "scenario_id": "lb-gateway-produce-ack:unpaced:partitionline",
+    "tier": "exploratory"
+  },
+  "schema_version": "1.0.0",
+  "suite_hold": {
+    "note": "No comparison, qualification, or performance claim",
+    "policy": "Unsigned gateway samples do not lift Suite HOLD",
+    "status": "active"
+  }
+}
