@@ -6,6 +6,7 @@
 
 use partitionline::{
     Admin, ConsumerConfig, NewTopic, ProduceRecord, Producer, ProducerConfig, ShareGroup,
+    ShareRecords,
 };
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -215,4 +216,134 @@ async fn share_join_matching_against_local_broker() {
     g.leave().await.expect("leave");
     admin.close().await.expect("admin close");
     eprintln!("share live join_matching: assignment={names:?}");
+}
+
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_release_then_reject_against_local_broker() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let topic = format!("pl-share-ack-{suffix}");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(&[NewTopic::new(&topic, 1, 1)], 30_000, false)
+        .await
+        .expect("create share topic");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let group = format!("pl-share-ack-{suffix}");
+    let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(500);
+    let mut g = ShareGroup::join(cfg, group, topic.clone())
+        .await
+        .expect("share join");
+    let assigned_deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+        if names.contains(&topic) {
+            let _warmup = g.poll().await.expect("share warmup poll");
+            break;
+        }
+        let _recs = g.poll().await.expect("share poll for assignment");
+        assert!(
+            Instant::now() < assigned_deadline,
+            "share assignment never included {topic}"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::ZERO))
+            .await
+            .expect("producer");
+    let first_md = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"share-rel"[..]))
+        .await
+        .expect("produce released record");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == first_md.offset)
+    })
+    .await;
+    let first_delivery = recs
+        .iter()
+        .find(|r| r.offset == first_md.offset)
+        .expect("acquired first")
+        .delivery_count;
+    g.release(&recs).await.expect("release");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.offset == first_md.offset && r.delivery_count > first_delivery)
+    })
+    .await;
+    let again_delivery = recs
+        .iter()
+        .find(|r| r.offset == first_md.offset)
+        .expect("redelivered")
+        .delivery_count;
+    g.reject(&recs).await.expect("reject");
+    let second_md = producer
+        .send(ProduceRecord::to(topic.as_str()).value(&b"share-next"[..]))
+        .await
+        .expect("produce after reject");
+    producer.close().await.expect("producer close");
+    let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
+        recs.iter()
+            .any(|r| r.topic == topic && r.offset == second_md.offset)
+    })
+    .await;
+    assert!(
+        recs.iter().all(|r| r.offset != first_md.offset),
+        "rejected {}-{}@{} must not redeliver, got {:?}",
+        first_md.topic,
+        first_md.partition,
+        first_md.offset,
+        recs.iter()
+            .map(|r| (r.offset, r.delivery_count))
+            .collect::<Vec<_>>()
+    );
+    g.accept(&recs).await.expect("accept successor");
+    g.leave().await.expect("leave");
+    admin.close().await.expect("admin close");
+    eprintln!(
+        "share live release/reject ok release={}@{}#{} redeliver#{} next={}@{}",
+        first_md.topic,
+        first_md.offset,
+        first_delivery,
+        again_delivery,
+        second_md.topic,
+        second_md.offset
+    );
+}
+
+async fn poll_until(
+    g: &mut ShareGroup,
+    deadline: Instant,
+    ok: impl Fn(&ShareRecords) -> bool,
+) -> ShareRecords {
+    loop {
+        let recs = g.poll().await.expect("share poll");
+        if ok(&recs) {
+            return recs;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "share poll deadline, last n={}",
+            recs.count()
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
 }
