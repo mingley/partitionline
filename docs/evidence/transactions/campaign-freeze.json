@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "card": "KL03-20",
+  "profile": "transactional-crash-fencing",
+  "frozen": true,
+  "frozen_note": "Named consume-transform-produce crash boundaries are frozen before the live run. Transaction timeout is 15000 ms; leader-recovery and request budgets are separate. No exactly-once claim for external application effects.",
+  "peer": {
+    "identity": "native:4.1.0",
+    "kafka_home": "/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "java_consumer": "bin/kafka-console-consumer.sh --isolation-level read_committed",
+    "replication_factor": 3,
+    "min_insync_replicas": 2
+  },
+  "replay_case": "fence_replacement",
+  "input_records": 2,
+  "partitions": 1,
+  "acks": -1,
+  "idempotent": true,
+  "transactional": true,
+  "isolation_level": "read_committed",
+  "delivery": "partition",
+  "budgets": {
+    "transaction_timeout_ms": 15000,
+    "request_timeout_ms": 8000,
+    "delivery_timeout_ms": 12000,
+    "trial_deadline_ms": 45000,
+    "verify_wait_ms": 4000,
+    "leader_recovery_ms": 20000,
+    "cluster_ready_timeout_ms": 180000
+  },
+  "cases": [
+    {
+      "id": "happy_commit",
+      "crash": null,
+      "expect_output": "copied_input",
+      "expect_offsets": "advanced"
+    },
+    {
+      "id": "crash_before_produce_ack",
+      "crash": "before_produce_ack",
+      "expect_output": "anchor_only",
+      "expect_offsets": "unchanged"
+    },
+    {
+      "id": "crash_after_produce_ack",
+      "crash": "after_produce_ack",
+      "expect_output": "anchor_only",
+      "expect_offsets": "unchanged"
+    },
+    {
+      "id": "crash_after_offset_stage",
+      "crash": "after_offset_stage",
+      "expect_output": "anchor_only",
+      "expect_offsets": "unchanged"
+    },
+    {
+      "id": "crash_before_endtxn",
+      "crash": "before_endtxn",
+      "expect_output": "anchor_only",
+      "expect_offsets": "unchanged"
+    },
+    {
+      "id": "crash_during_endtxn",
+      "crash": "during_endtxn",
+      "expect_output": "atomic",
+      "expect_offsets": "atomic_with_output"
+    },
+    {
+      "id": "fence_replacement",
+      "crash": null,
+      "fence": true,
+      "expect_output": "replacement_only",
+      "expect_offsets": "unchanged"
+    },
+    {
+      "id": "abort_hides",
+      "crash": null,
+      "abort": true,
+      "expect_output": "anchor_only",
+      "expect_offsets": "unchanged"
+    }
+  ]
+}

@@ -2147,13 +2147,21 @@
     {
       "id": "KL03-20",
       "title": "Record transactional crash and fencing histories",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL03-10", "KL03-17", "KL03-18"],
       "files": ["examples/eos.rs", "scripts/cluster-fixture.sh", "new: docs/evidence/transactions/"],
       "deliverable": "A pinned-Java differential campaign for consume-transform-produce crash boundaries.",
       "acceptance": ["Crash before/after produce ack, offset staging, EndTxn request/response and replacement-producer fencing.", "Independent read_committed consumers see only committed output and matching committed input offsets.", "Separate transaction-timeout budgets from leader recovery; no exactly-once claim for external application effects."],
       "validation": ["Run the transaction history checker and retain minimized divergent seeds.", "Record case counts and broker/API versions in the fail-closed conformance report."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "examples/txn_crash.rs",
+        "scripts/txn_crash_cases.py",
+        "scripts/run-txn-crash-campaign.py",
+        "tests/history/test_txn_crash_plan.py",
+        "docs/evidence/transactions/",
+        "docs/plan/evidence/KL03-20.json"
+      ]
     },
     {
       "id": "KL03-21",

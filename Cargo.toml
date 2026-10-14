@@ -149,6 +149,9 @@ name = "auth_lifecycle"
 name = "data_plane_fault"
 
 [[example]]
+name = "txn_crash"
+
+[[example]]
 name = "tls"
 
 [[example]]

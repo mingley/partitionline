@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- A frozen consume-transform-produce crash and fencing campaign records
+  named crash boundaries, replacement-producer fencing, and explicit abort
+  on native Kafka 4.1.0. Independent `read_committed` partitionline and
+  Java consumers must agree, and transaction timeout stays distinct from
+  leader recovery (KL03-20).
+
 - A frozen 1,000-seed nontransactional data-plane fault campaign now drives
   the three-broker KRaft fixture (native Kafka 4.1.0), injects leader moves,
   lost acks, stale metadata, disconnects and restarts, and checks unique-ID
