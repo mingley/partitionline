@@ -19269,7 +19269,8 @@
         "docs/plan/gateway-adoption.md",
         "docs/plan/evidence/KL10-10.json",
         "docs/evidence/perf/KL10-10/"
-      ]
+      ],
+      "follow_up": "Within budget at KL10-14 knobs (~52 MB both clients). Dated 1.4 GB was 8 MiB/partition decode-then-discard. No P0. No default change."
     },
     {
       "id": "KL10-11",
