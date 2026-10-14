@@ -1,7 +1,7 @@
 {
   "task": "KL09-67",
   "status": "incomplete",
-  "source_sha": "pending",
+  "source_sha": "d8caeeb6c634e8021c9243abe6f3160b737c2180",
   "baseline_sha": "eb3edb2e",
   "cell": "nb-fetch-bulk",
   "disposition": "accepted",
@@ -11,12 +11,33 @@
   "before_median": 595377.63,
   "after_median": 627525.69,
   "paired_mean_ratio": 1.061,
-  "paired_ratio_ci95": [0.996, 1.149],
+  "paired_ratio_ci95": [
+    0.996,
+    1.149
+  ],
   "pairs": 8,
   "slower_pairs": 2,
   "before_allocation_count": 629,
   "after_allocation_count": 359,
   "cpu_mean_ratio": 0.941,
-  "before_records_per_second": [632686, 593130, 677404, 579277, 574423, 597626, 639740, 482119],
-  "after_records_per_second": [601213, 635426, 642364, 590866, 606487, 619625, 680830, 645450]
+  "before_records_per_second": [
+    632686,
+    593130,
+    677404,
+    579277,
+    574423,
+    597626,
+    639740,
+    482119
+  ],
+  "after_records_per_second": [
+    601213,
+    635426,
+    642364,
+    590866,
+    606487,
+    619625,
+    680830,
+    645450
+  ]
 }
