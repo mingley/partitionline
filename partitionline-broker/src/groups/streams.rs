@@ -417,7 +417,9 @@ impl Groups {
             return Err(Error::FencedInstance);
         }
         member.last_seen_ms = later_seen(member.last_seen_ms, request.now_ms);
-        member.endpoint_epoch = request.endpoint_epoch;
+        if request.endpoint_epoch > member.endpoint_epoch {
+            member.endpoint_epoch = request.endpoint_epoch;
+        }
         reassign(group);
         if let Some(member) = group.members.get_mut(request.member_id) {
             if !member.acked {
@@ -490,6 +492,7 @@ impl Groups {
             .get(&previous)
             .map(|member| (member.endpoint_epoch, member.last_seen_ms))
             .unwrap_or((request.endpoint_epoch, request.now_ms));
+        let endpoint = endpoint.max(request.endpoint_epoch);
         group.members.remove(&previous);
         group.members.insert(
             request.member_id.to_owned(),
@@ -1020,5 +1023,73 @@ mod tests {
             .unwrap_or_else(|| panic!("restored"));
         assert_eq!(again.assignment_epoch, described.assignment_epoch);
         assert_eq!(again.members.len(), described.members.len());
+    }
+
+    #[test]
+    fn an_older_endpoint_epoch_does_not_replace_a_newer_one() {
+        let (mut groups, path) = open("streams-endpoint");
+        let joined = groups
+            .heartbeat(join("a", Some("i-1")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(joined.endpoint_epoch, 1);
+        let advanced = groups
+            .heartbeat(Heartbeat {
+                member_epoch: joined.member_epoch,
+                endpoint_epoch: 5,
+                now_ms: 10,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(advanced.endpoint_epoch, 5);
+        let older = groups
+            .heartbeat(Heartbeat {
+                member_epoch: advanced.member_epoch,
+                endpoint_epoch: 2,
+                now_ms: 11,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(older.endpoint_epoch, 5);
+        let replaced = groups
+            .heartbeat(Heartbeat {
+                member_id: "a2",
+                member_epoch: STATIC_REJOIN_MEMBER_EPOCH,
+                endpoint_epoch: 4,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a2", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(replaced.endpoint_epoch, 5);
+        let newer = groups
+            .heartbeat(Heartbeat {
+                member_id: "a3",
+                member_epoch: STATIC_REJOIN_MEMBER_EPOCH,
+                endpoint_epoch: 9,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a3", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(newer.endpoint_epoch, 9);
+        drop(groups);
+        let mut restored =
+            Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        let echoed = restored
+            .heartbeat(Heartbeat {
+                member_id: "a3",
+                member_epoch: newer.member_epoch,
+                endpoint_epoch: 1,
+                now_ms: 12,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a3", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(echoed.endpoint_epoch, 9);
     }
 }
