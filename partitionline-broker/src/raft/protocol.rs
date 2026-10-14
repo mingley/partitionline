@@ -3472,15 +3472,21 @@ pub enum PreVoteRefusal {
     StaleLog,
     /// The candidate's last offset epoch or end offset is illegal.
     ///
-    /// A negative end is refused. A standard vote must name a last offset
-    /// epoch strictly older than the candidate epoch. A pre-vote may name
-    /// the same epoch, but not a newer one.
+    /// A negative end is refused. Offset 0 is legal only at epoch 0. A
+    /// standard vote must name a last offset epoch strictly older than the
+    /// candidate epoch. A pre-vote may name the same epoch, but not a newer one.
     IllegalEpoch,
 }
 
 /// Whether Apache would reject this Vote body as `INVALID_REQUEST`.
 fn vote_offset_epoch_illegal(body: &VoteBody) -> bool {
     if body.last_offset < 0 || body.last_offset_epoch < 0 {
+        return true;
+    }
+    // Offset 0 is only the empty log at epoch 0. A non-zero epoch at offset 0
+    // is the same invalid coordinate the v0 Vote handler rejects. Treating it
+    // as an empty log would grant a pre-vote the durable path cannot represent.
+    if body.last_offset == 0 && body.last_offset_epoch != 0 {
         return true;
     }
     if body.pre_vote {
@@ -3691,6 +3697,23 @@ mod prevote_tests {
         same_epoch.last_offset_epoch = same_epoch.replica_epoch;
         assert_eq!(
             decide_vote_body(&persistent, replica, voter, &same_epoch),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(persistent, before);
+    }
+
+    #[test]
+    fn prevote_offset_zero_with_nonzero_epoch_is_not_an_empty_log() {
+        let persistent = election::PersistentState::default();
+        let before = persistent;
+        let replica = [4u8; 16];
+        let voter = [5u8; 16];
+        let mut body = sample_body(2, replica, voter, true);
+        body.replica_epoch = 5;
+        body.last_offset = 0;
+        body.last_offset_epoch = 3;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &body),
             VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
         );
         assert_eq!(persistent, before);
