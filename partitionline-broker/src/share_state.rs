@@ -256,6 +256,9 @@ impl Store {
     }
 
     /// Replace the snapshot when `write.state_epoch` is current.
+    ///
+    /// The start offset cannot move backward, and every batch must begin at
+    /// or after that offset. A refused write leaves the stored snapshot unchanged.
     pub fn write(
         &mut self,
         group: &str,
@@ -271,10 +274,15 @@ impl Store {
         if write.state_epoch != current.state_epoch || write.leader_epoch < current.leader_epoch {
             return Err(Error::Fenced);
         }
-        validate_batches(&write.batches, self.limits.max_batches)?;
-        if write.start_offset < 0 || write.state_epoch == i32::MAX {
+        // The start offset only moves forward. A batch that begins before it
+        // would put offsets back into the delivery window.
+        if write.start_offset < current.start_offset
+            || write.start_offset < 0
+            || write.state_epoch == i32::MAX
+        {
             return Err(Error::InvalidRequest);
         }
+        validate_batches(&write.batches, self.limits.max_batches, write.start_offset)?;
         let updated = Partition {
             state_epoch: write.state_epoch.saturating_add(1),
             leader_epoch: write.leader_epoch,
@@ -378,13 +386,13 @@ fn valid_name(text: &str) -> bool {
     !text.is_empty() && text.len() <= 249 && !text.chars().any(char::is_control)
 }
 
-fn validate_batches(batches: &[Batch], max_batches: usize) -> Result<(), Error> {
+fn validate_batches(batches: &[Batch], max_batches: usize, start_offset: i64) -> Result<(), Error> {
     if batches.len() > max_batches {
         return Err(Error::InvalidLimits);
     }
     let mut previous_last = -1i64;
     for batch in batches {
-        if batch.first_offset < 0
+        if batch.first_offset < start_offset
             || batch.last_offset < batch.first_offset
             || batch.first_offset <= previous_last
         {
@@ -684,5 +692,82 @@ mod tests {
             store.read("share", "orders", 0),
             Err(Error::NotFound)
         ));
+    }
+
+    #[test]
+    fn a_start_offset_does_not_move_backward_or_cover_an_earlier_batch() {
+        let (mut store, path) = open("start");
+        store
+            .init("share", "orders", 0, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .write(
+                "share",
+                "orders",
+                0,
+                Write {
+                    state_epoch: 0,
+                    leader_epoch: 1,
+                    start_offset: 10,
+                    batches: vec![Batch {
+                        first_offset: 10,
+                        last_offset: 11,
+                        delivery_count: 1,
+                        state: DeliveryState::Acknowledged,
+                    }],
+                },
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            store.write(
+                "share",
+                "orders",
+                0,
+                Write {
+                    state_epoch: 1,
+                    leader_epoch: 1,
+                    start_offset: 9,
+                    batches: vec![Batch {
+                        first_offset: 9,
+                        last_offset: 11,
+                        delivery_count: 1,
+                        state: DeliveryState::Available,
+                    }],
+                },
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            store.write(
+                "share",
+                "orders",
+                0,
+                Write {
+                    state_epoch: 1,
+                    leader_epoch: 1,
+                    start_offset: 12,
+                    batches: vec![Batch {
+                        first_offset: 11,
+                        last_offset: 12,
+                        delivery_count: 1,
+                        state: DeliveryState::Acquired,
+                    }],
+                },
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        let kept = store
+            .read("share", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(kept.start_offset, 10);
+        assert_eq!(kept.state_epoch, 1);
+        assert_eq!(kept.batches[0].state, DeliveryState::Acknowledged);
+        drop(store);
+        let store = Store::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        let restored = store
+            .read("share", "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(restored.start_offset, 10);
+        assert_eq!(restored.batches[0].last_offset, 11);
     }
 }
