@@ -317,12 +317,19 @@ impl Groups {
         {
             return Err(Error::RebalanceInProgress);
         }
-        if member_id == group.leader {
-            validate_assignment(group, assignment)?;
-        } else if !assignment.is_empty() {
+        if member_id != group.leader && !assignment.is_empty() {
             return Err(Error::InvalidRequest);
         }
+        if member_id != group.leader
+            && !group
+                .members
+                .get(&group.leader)
+                .is_some_and(|member| member.synced)
+        {
+            return Err(Error::RebalanceInProgress);
+        }
         if member_id == group.leader {
+            validate_assignment(group, assignment)?;
             let group = self.groups.get_mut(group_id).ok_or(Error::UnknownMember)?;
             for (id, partitions) in assignment {
                 let member = group.members.get_mut(id).ok_or(Error::UnknownMember)?;
@@ -637,6 +644,16 @@ mod tests {
                 &assignment
             ),
             Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            groups.sync(
+                "orders",
+                &follower.member_id,
+                leader.generation,
+                0,
+                &BTreeMap::new(),
+            ),
+            Err(Error::RebalanceInProgress)
         ));
         let owned = groups
             .sync(
