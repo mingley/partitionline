@@ -5255,6 +5255,7 @@ async fn current_lag_includes_buffered_records_and_clamps_at_zero() {
     let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
     cfg.max_poll_records = Some(1);
     let mut consumer = Consumer::new(cfg).await.unwrap();
+    assert!(consumer.assign("t", -1, 0).await.is_err());
     assert!(consumer.assign("t", 0, -1).await.is_err());
     assert!(consumer.assignment().is_empty());
     consumer.assign("t", 0, 0).await.unwrap();

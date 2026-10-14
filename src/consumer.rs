@@ -2232,6 +2232,7 @@ impl Consumer {
         offset: i64,
     ) -> Result<()> {
         let topic = topic.into();
+        require_partition(partition)?;
         require_fetch_offset(offset)?;
         Topic::validate(&topic)?;
         self.reject_pending_wakeup()?;
@@ -2353,6 +2354,9 @@ impl Consumer {
         }
         if parts.is_empty() {
             return Err(Error::UnknownTopic(topic));
+        }
+        for partition in &parts {
+            require_partition(*partition)?;
         }
         self.assigned.retain(|(t, _, _)| t != &topic);
         self.assigned_topic_ids
@@ -2546,7 +2550,8 @@ impl Consumer {
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }
-        for (topic, _, offset) in starts {
+        for (topic, partition, offset) in starts {
+            require_partition(*partition)?;
             require_fetch_offset(*offset)?;
             Topic::validate(topic)?;
         }
@@ -5084,6 +5089,7 @@ impl Consumer {
         offset: i64,
         last_fetched_epoch: i32,
     ) -> Result<()> {
+        require_partition(partition)?;
         require_fetch_offset(offset)?;
         // The in-flight request still carries the pre-seek offset.
         self.abort_inflight_fetches();
@@ -5659,6 +5665,16 @@ fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     }
 }
 
+fn require_partition(partition: i32) -> Result<()> {
+    if partition < 0 {
+        Err(Error::protocol(
+            "partition index must not be a negative number",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn require_fetch_offset(offset: i64) -> Result<()> {
     if offset < 0 {
         Err(Error::protocol("seek offset must not be a negative number"))
@@ -5887,6 +5903,8 @@ mod tests {
     fn a_negative_fetch_offset_is_rejected() {
         assert!(require_fetch_offset(-1).is_err());
         assert!(require_fetch_offset(0).is_ok());
+        assert!(require_partition(-1).is_err());
+        assert!(require_partition(0).is_ok());
     }
 
     #[test]
