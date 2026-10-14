@@ -11,6 +11,7 @@
 
 mod common;
 
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
@@ -23,7 +24,7 @@ use partitionline::share::ShareAcquireMode;
 use partitionline::{
     error, Admin, AlterConfig, ConfigResource, ConfigResourceUpdate, ConsumerConfig, Error,
     NewTopic, ProduceRecord, Producer, ProducerConfig, ShareAcknowledgementMode, ShareGroup,
-    ShareRecord,
+    ShareRecord, TimestampType,
 };
 
 fn config(mock: &common::Mock) -> ConsumerConfig {
@@ -178,6 +179,141 @@ async fn share_group_metadata_matches_join() {
             md.member_id(),
             "worker-1"
         )
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn acknowledgement_commit_callback_fires_on_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "cb", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        seen_cb.lock().unwrap().push((
+            offsets
+                .iter()
+                .map(|(tp, offs)| {
+                    (
+                        tp.topic().to_string(),
+                        tp.partition(),
+                        offs.iter().map(|o| o.offset).collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+            exception.is_some(),
+        ));
+    });
+    group.accept(&recs).await.unwrap();
+    {
+        let got = seen.lock().unwrap();
+        assert_eq!(got.len(), 1);
+        assert!(!got[0].1, "success must pass a null exception");
+        assert_eq!(got[0].0[0].0, "t");
+        assert_eq!(got[0].0[0].1, 0);
+        assert_eq!(
+            got[0].0[0].2,
+            recs.iter().map(|r| r.offset).collect::<Vec<_>>()
+        );
+    }
+    group.clear_acknowledgement_commit_callback();
+    group.leave().await.unwrap();
+    assert_eq!(
+        seen.lock().unwrap().len(),
+        1,
+        "clear must stop further callback invocations"
+    );
+}
+
+#[tokio::test]
+async fn acknowledgement_commit_callback_skips_before_poll() {
+    let mock = common::Mock::start().await;
+    let mut group = ShareGroup::join(config(&mock), "cb-pre", "t")
+        .await
+        .unwrap();
+    let fired = Arc::new(Mutex::new(0usize));
+    let fired_cb = fired.clone();
+    group.set_acknowledgement_commit_callback(move |_, _| {
+        *fired_cb.lock().unwrap() += 1;
+    });
+    let rec = ShareRecord {
+        topic: "t".into(),
+        partition: 0,
+        offset: 0,
+        timestamp: 0,
+        timestamp_type: TimestampType::CreateTime,
+        key: None,
+        value: None,
+        headers: Vec::new(),
+        delivery_count: 1,
+        leader_epoch: None,
+    };
+    assert!(group.accept(std::slice::from_ref(&rec)).await.is_err());
+    assert_eq!(
+        *fired.lock().unwrap(),
+        0,
+        "Acknowledge called before poll must not invoke the callback"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn acknowledgement_commit_callback_receives_broker_error() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "cb-err", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .unwrap()
+            .push(exception.map(|error| match error {
+                Error::Broker { code, .. } => *code,
+                other => panic!("expected broker error, got {other:?}"),
+            }));
+    });
+    mock.fail_share_ack_once("t", 0, error::INVALID_RECORD_STATE);
+    assert_broker(
+        group.accept(&recs).await.unwrap_err(),
+        error::INVALID_RECORD_STATE,
+    );
+    assert_eq!(
+        *seen.lock().unwrap(),
+        vec![Some(error::INVALID_RECORD_STATE)]
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn implicit_poll_fires_acknowledgement_commit_callback() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "cb-implicit", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let fired = Arc::new(Mutex::new(0usize));
+    let fired_cb = fired.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        assert!(exception.is_none());
+        assert!(!offsets.is_empty());
+        *fired_cb.lock().unwrap() += 1;
+    });
+    let _second = group.poll().await.unwrap();
+    assert_eq!(
+        *fired.lock().unwrap(),
+        1,
+        "implicit next poll must fire the acknowledgement commit callback"
     );
     group.leave().await.unwrap();
 }

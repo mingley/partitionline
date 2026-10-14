@@ -55,7 +55,7 @@ set is an earlier baseline.
 | `FutureProducer` / `BaseProducer` | `KafkaProducer` | `Producer` (`Producer::new(cfg)`, `src/producer.rs:1113`) |
 | `StreamConsumer` / `BaseConsumer` | `KafkaConsumer` (manual) | `Consumer` (`Consumer::new(cfg)`, `src/consumer.rs:1333`) |
 | group consumer | `KafkaConsumer` (subscribed) | `ConsumerGroup::join_*` (`src/group.rs:525`) |
-| — (KIP-932) | `ShareConsumer` | `ShareGroup::join_*` / `group_metadata` (`src/share.rs`) |
+| — (KIP-932) | `ShareConsumer` | `ShareGroup::join_*` / `group_metadata` / `set_acknowledgement_commit_callback` (`src/share.rs`) |
 | `AdminClient` | `Admin` | `Admin` (`Admin::new(cfg)`, `src/admin.rs:3000`) |
 | String property bag (`ClientConfig::set`) | `Properties` | Typed builders: `ProducerConfig`, `ConsumerConfig`, `AdminConfig` |
 | `Message` / `BorrowedMessage` | `ConsumerRecord` / `ProducerRecord` | `FetchedRecord` / `ShareRecord` / `ProduceRecord` (owned; no borrow lifetimes) |

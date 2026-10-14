@@ -17,6 +17,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `ShareGroup::group_metadata` is Java `ShareConsumer.groupMetadata()`
   (`ConsumerGroupMetadata`; `generationId` is the share member epoch).
 
+- `ShareGroup::set_acknowledgement_commit_callback` is Java
+  `ShareConsumer.setAcknowledgementCommitCallback`
+  (`AcknowledgementCommitCallback.onComplete`).
+
 - `examples/share.rs` accepts a comma-separated `KAFKA_TOPIC` list via
   `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+
   join-then-produce / `group_metadata` / multi-topic / `join_matching` /

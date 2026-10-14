@@ -99,7 +99,21 @@ async fn share_join_then_produce_against_local_broker() {
         );
         tokio::time::sleep(Duration::from_millis(50)).await;
     };
+    let fired = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let fired_cb = fired.clone();
+    g.set_acknowledgement_commit_callback(move |offsets, exception| {
+        assert!(exception.is_none(), "live accept callback {exception:?}");
+        assert!(
+            !offsets.is_empty(),
+            "live accept callback must include offsets"
+        );
+        fired_cb.store(true, std::sync::atomic::Ordering::SeqCst);
+    });
     g.accept(&recs).await.expect("accept");
+    assert!(
+        fired.load(std::sync::atomic::Ordering::SeqCst),
+        "live accept must fire AcknowledgementCommitCallback"
+    );
     g.leave().await.expect("leave");
     admin.close().await.expect("admin close");
     eprintln!(

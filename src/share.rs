@@ -92,6 +92,34 @@ impl fmt::Display for ShareAcknowledgementMode {
     }
 }
 
+/// Java `AcknowledgementCommitCallback` for share acknowledgement outcomes.
+///
+/// `onComplete(Map<TopicIdPartition, Set<OffsetAndMetadata>>, Exception)`.
+/// Closures that match [`Self::on_complete`] implement this trait.
+pub trait AcknowledgementCommitCallback: Send {
+    /// Java `AcknowledgementCommitCallback.onComplete`.
+    ///
+    /// `exception` is `None` when the ShareAcknowledge RPC succeeded.
+    fn on_complete(
+        &mut self,
+        offsets: &[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)],
+        exception: Option<&Error>,
+    );
+}
+
+impl<F> AcknowledgementCommitCallback for F
+where
+    F: FnMut(&[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)], Option<&Error>) + Send,
+{
+    fn on_complete(
+        &mut self,
+        offsets: &[(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)],
+        exception: Option<&Error>,
+    ) {
+        self(offsets, exception);
+    }
+}
+
 impl AcknowledgeType {
     /// Java `AcknowledgeType.id`.
     #[must_use]
@@ -577,6 +605,7 @@ pub struct ShareGroup {
     acquire_mode: ShareAcquireMode,
     acknowledgement_mode: ShareAcknowledgementMode,
     last_poll_unacked: Vec<ShareRecord>,
+    ack_commit_callback: Option<Box<dyn AcknowledgementCommitCallback>>,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
@@ -758,6 +787,7 @@ impl ShareGroup {
             acquire_mode: ShareAcquireMode::BatchOptimized,
             acknowledgement_mode: cfg.share_acknowledgement_mode,
             last_poll_unacked: Vec::new(),
+            ack_commit_callback: None,
             acquisition_lock_timeout_ms: None,
             hb_err,
             hb_epoch,
@@ -803,6 +833,25 @@ impl ShareGroup {
     #[must_use]
     pub fn acknowledgement_mode(&self) -> ShareAcknowledgementMode {
         self.acknowledgement_mode
+    }
+
+    /// Java `ShareConsumer.setAcknowledgementCommitCallback`.
+    ///
+    /// Invoked after a ShareAcknowledge RPC completes (success or error).
+    /// Client-side rejects before a request is sent (`Acknowledge called
+    /// before poll.`, empty input) do not invoke the callback. Pass a new
+    /// callback to replace; use [`Self::clear_acknowledgement_commit_callback`]
+    /// for Java `null`.
+    pub fn set_acknowledgement_commit_callback(
+        &mut self,
+        callback: impl AcknowledgementCommitCallback + 'static,
+    ) {
+        self.ack_commit_callback = Some(Box::new(callback));
+    }
+
+    /// Java `ShareConsumer.setAcknowledgementCommitCallback(null)`.
+    pub fn clear_acknowledgement_commit_callback(&mut self) {
+        self.ack_commit_callback = None;
     }
 
     /// Last broker-reported acquisition lock duration (absent for v0 peers).
@@ -2001,6 +2050,48 @@ impl ShareGroup {
             .unwrap_or_default()
     }
 
+    fn acknowledgement_commit_offsets(
+        &self,
+        recs: &[ShareRecord],
+    ) -> Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)> {
+        let mut grouped: BTreeMap<(String, i32), Vec<crate::OffsetAndMetadata>> = BTreeMap::new();
+        for rec in recs {
+            grouped
+                .entry((rec.topic.clone(), rec.partition))
+                .or_default()
+                .push(crate::OffsetAndMetadata::new(rec.offset));
+        }
+        grouped
+            .into_iter()
+            .map(|((topic, partition), offsets)| {
+                let topic_id = self
+                    .topic_ids
+                    .get(&topic)
+                    .copied()
+                    .map(crate::Uuid::from_bytes)
+                    .unwrap_or(crate::Uuid::ZERO);
+                (
+                    crate::TopicIdPartition::from_topic(topic_id, partition, topic),
+                    offsets,
+                )
+            })
+            .collect()
+    }
+
+    fn fire_acknowledgement_commit_callback(
+        &mut self,
+        recs: &[ShareRecord],
+        exception: Option<&Error>,
+    ) {
+        if self.ack_commit_callback.is_none() {
+            return;
+        }
+        let offsets = self.acknowledgement_commit_offsets(recs);
+        if let Some(callback) = self.ack_commit_callback.as_mut() {
+            callback.on_complete(&offsets, exception);
+        }
+    }
+
     async fn implicit_accept_pending(&mut self) -> Result<()> {
         if self.acknowledgement_mode != ShareAcknowledgementMode::Implicit {
             return Ok(());
@@ -2060,15 +2151,22 @@ impl ShareGroup {
             )
             .await;
             match outcome.unwrap_or(Err(Error::Timeout)) {
-                Ok(()) => return Ok(()),
+                Ok(()) => {
+                    self.fire_acknowledgement_commit_callback(recs, None);
+                    return Ok(());
+                }
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
+                        self.fire_acknowledgement_commit_callback(recs, Some(&Error::Timeout));
                         return Err(Error::Timeout);
                     }
                     self.consumer.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                 }
-                Err(error) => return Err(error),
+                Err(error) => {
+                    self.fire_acknowledgement_commit_callback(recs, Some(&error));
+                    return Err(error);
+                }
             }
         }
     }
