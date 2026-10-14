@@ -445,15 +445,50 @@ async fn collect_partition(
     Ok(())
 }
 
-async fn share_member(names: &Names) -> partitionline::Result<()> {
+async fn join_share(names: &Names) -> partitionline::Result<ShareGroup> {
     let cfg = consumer_config(names)?;
-    let mut group = retry(Duration::from_secs(20), || {
+    retry(Duration::from_secs(20), || {
         let cfg = cfg.clone();
         let group_id = names.group.clone();
         let topic = names.topic.clone();
         async move { ShareGroup::join(cfg, group_id, topic).await }
     })
-    .await?;
+    .await
+}
+
+async fn recover_share_after_loss(
+    mut group: ShareGroup,
+    names: &Names,
+    events: &mut Vec<&str>,
+) -> partitionline::Result<ShareGroup> {
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while group.assignment().len() < 3 && Instant::now() < deadline {
+        match group.poll_timeout(Duration::from_millis(400)).await {
+            Ok(recs) => {
+                if !recs.is_empty() {
+                    drop(group.release(recs.as_ref()).await);
+                }
+            }
+            Err(Error::Timeout) => {}
+            Err(error) if error.is_retriable() || coordinator_starting(&error) => {
+                tokio::time::sleep(Duration::from_millis(150)).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    if group.assignment().len() >= 3 {
+        events.push("reassigned");
+        return Ok(group);
+    }
+    events.push("rejoined");
+    drop(group.leave().await);
+    let mut group = join_share(names).await?;
+    arm_share_poll(&mut group, Duration::from_secs(12)).await?;
+    Ok(group)
+}
+
+async fn share_member(names: &Names) -> partitionline::Result<()> {
+    let mut group = join_share(names).await?;
     let ready = PathBuf::from(env::var("GROUP_CHURN_READY").unwrap_or_else(|_| "ready".into()));
     let go = PathBuf::from(env::var("GROUP_CHURN_GO").unwrap_or_else(|_| "go".into()));
     let history = PathBuf::from(
@@ -510,6 +545,9 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
         drop(wait_file(&resume, Duration::from_secs(20)).await?);
         group.accept(recs.as_ref()).await?;
         events.push("accepted");
+    }
+    if names.churn == "member_loss" {
+        group = recover_share_after_loss(group, names, &mut events).await?;
     }
     collect_share(&mut group, &mut seen, 6, Duration::from_secs(25)).await?;
     events.push("accepted");

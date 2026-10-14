@@ -363,8 +363,28 @@ def run_one_cell(
             result["stderr"] = (produced.stderr or "")[-2000:]
             return result
 
+    finished: Dict[str, Any] = {}
     if cell["churn"] == "member_loss":
         paths["go_b"].write_text('{"action":"die"}\n')
+        proc_b = procs["b"]
+        try:
+            stdout_b, stderr_b = proc_b.communicate(timeout=15)
+            rc_b = proc_b.returncode
+        except subprocess.TimeoutExpired:
+            proc_b.kill()
+            stdout_b, stderr_b = proc_b.communicate(timeout=10)
+            rc_b = -1
+        result["b_exit"] = rc_b
+        result["b_stderr"] = (stderr_b or "")[-1500:]
+        if rc_b != CRASH_EXIT:
+            for proc in procs.values():
+                if proc.poll() is None:
+                    proc.kill()
+            result["ok"] = False
+            result["error"] = "expected_member_b_crash"
+            result["stdout"] = (stdout_b or "")[-1500:]
+            return result
+        finished["b"] = True
         paths["go_a"].write_text('{"action":"continue"}\n')
     elif cell["churn"] == "max_poll_expiry":
         paths["go_a"].write_text('{"action":"hold"}\n')
@@ -397,6 +417,8 @@ def run_one_cell(
     member_payloads = []
     events: Dict[str, List[str]] = {}
     for member, proc in procs.items():
+        if member in finished:
+            continue
         try:
             stdout, stderr = proc.communicate(timeout=trial_s)
             rc = proc.returncode
