@@ -3117,7 +3117,11 @@ impl Consumer {
                 };
                 self.connect_node(node).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
-                let topics = offset_for_leader_epoch_topics(&self.cluster, &parts);
+                let topics = offset_for_leader_epoch_topics(
+                    &self.cluster,
+                    &self.last_fetched_epochs,
+                    &parts,
+                );
                 let timeout = self.cfg.request_timeout;
                 let body = {
                     let conn = self.broker_conn_mut(node)?;
@@ -5513,13 +5517,22 @@ fn fetch_topics(
 
 fn offset_for_leader_epoch_topics(
     cluster: &Cluster,
+    last_fetched: &PartitionMap<i32>,
     parts: &[(String, i32)],
 ) -> Vec<OffsetForLeaderTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetForLeaderPartition>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for (topic, partition) in parts {
         let current = cluster.leader_epoch(topic, *partition);
-        let part = OffsetForLeaderPartition::new(*partition, current, current);
+        // KIP-320: current_leader_epoch fences the leader. The epoch to resolve
+        // is the one already fetched. An unknown fetch epoch keeps the current
+        // epoch so a broker does not treat -1 as older than the log.
+        let looked_up = last_fetched
+            .get(topic, *partition)
+            .copied()
+            .filter(|epoch| *epoch >= 0)
+            .unwrap_or(current);
+        let part = OffsetForLeaderPartition::new(*partition, current, looked_up);
         match by_topic.entry(topic.clone()) {
             Entry::Vacant(v) => {
                 order.push(topic.clone());
@@ -5678,6 +5691,23 @@ mod tests {
         bytes.extend_from_slice(&code.to_be_bytes());
         bytes.extend_from_slice(&id.to_be_bytes());
         Bytes::from(bytes)
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_resolves_the_fetched_epoch() {
+        let mut cluster = Cluster::default();
+        let _ = cluster.leader_epochs.insert("t".into(), vec![4, 6]);
+        let mut fetched = PartitionMap::new();
+        let _ = fetched.insert("t", 0, 2);
+        let topics =
+            offset_for_leader_epoch_topics(&cluster, &fetched, &[("t".into(), 0), ("t".into(), 1)]);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].partitions[0].partition, 0);
+        assert_eq!(topics[0].partitions[0].current_leader_epoch, 4);
+        assert_eq!(topics[0].partitions[0].leader_epoch, 2);
+        assert_eq!(topics[0].partitions[1].partition, 1);
+        assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
+        assert_eq!(topics[0].partitions[1].leader_epoch, 6);
     }
 
     #[test]

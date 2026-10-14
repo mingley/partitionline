@@ -2120,7 +2120,10 @@ async fn offset_for_leader_epoch_follows_partition_leader() {
         .expect("fenced follower fetch must speak OffsetForLeaderEpoch");
     assert_eq!(ofle.0, "t");
     assert_eq!(ofle.1, md.partition);
-    assert_eq!(ofle.2, bumped);
+    assert_eq!(
+        ofle.2, 0,
+        "lookup epoch is the epoch already fetched, not the new leader epoch {bumped}"
+    );
     assert_eq!(
         mock.last_offset_for_leader_epoch_node(),
         Some(2),
