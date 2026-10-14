@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- A frozen 1,000-seed nontransactional data-plane fault campaign now drives
+  the three-broker KRaft fixture (native Kafka 4.1.0), injects leader moves,
+  lost acks, stale metadata, disconnects and restarts, and checks unique-ID
+  produce/consume histories (KL03-19).
+
 - Consumer, ConsumerGroup, ShareGroup, and Admin exclusive roundtrips
   reauthenticate when a broker SaslAuthenticate session lifetime is due
   (KIP-368). One shared `BrokerConn::roundtrip` path honors the stored

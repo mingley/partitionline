@@ -2108,13 +2108,22 @@
     {
       "id": "KL03-19",
       "title": "Record producer and manual-consumer fault histories",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL03-06", "KL03-09", "KL03-11", "KL03-22", "KL03-17", "KL03-18"],
       "files": ["scripts/cluster-fixture.sh", "scripts/check-record-history.py", "new: docs/evidence/data-plane/"],
       "deliverable": "One reproducible fault campaign for the nontransactional data-plane profile.",
       "acceptance": ["Freeze seeds, source, peer versions, fault timing and restoration/deadline budgets before running.", "Exercise leader moves, lost acks, stale metadata, disconnects and broker restarts; retain at least 1,000 seeded fault outcomes per declared profile.", "Every ID/order/outcome discrepancy is explained or the profile fails; 5-second recovery is a proposed controlled-restoration target, not a universal timer promise."],
       "validation": ["Validate the complete history and conformance report, including failed attempts.", "Replay at least one retained seed on a fresh isolated topology."],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "scripts/cluster-fixture.sh",
+        "scripts/data_plane_faults.py",
+        "scripts/run-data-plane-fault-campaign.py",
+        "examples/data_plane_fault.rs",
+        "tests/history/test_data_plane_plan.py",
+        "docs/evidence/data-plane/",
+        "docs/plan/evidence/KL03-19.json"
+      ]
     },
     {
       "id": "KL03-20",

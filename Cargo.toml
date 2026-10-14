@@ -146,6 +146,9 @@ name = "oauth"
 name = "auth_lifecycle"
 
 [[example]]
+name = "data_plane_fault"
+
+[[example]]
 name = "tls"
 
 [[example]]

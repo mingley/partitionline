@@ -265,6 +265,11 @@ check_preconditions() {
     if ! command -v "$JAVA_BIN" >/dev/null 2>&1; then
       fail "java is required for native backend but not found"
     fi
+    local khome
+    khome="${KAFKA_HOME:-/tmp/kafka_4.1.0}"
+    if [[ ! -x "$khome/bin/kafka-server-start.sh" ]]; then
+      fail "native backend requires KAFKA_HOME with kafka-server-start.sh (tried $khome)"
+    fi
   elif [[ "$backend" == "fake" ]]; then
     # Isolated fake backend requires neither approval nor Docker/Java
     return 0
@@ -302,6 +307,167 @@ ensure_initialized() {
   fi
 }
 
+# --- Native KRaft helpers (KL03-19) ---
+
+native_kafka_home() {
+  local khome="${KAFKA_HOME:-/tmp/kafka_4.1.0}"
+  if [[ ! -x "$khome/bin/kafka-server-start.sh" ]]; then
+    fail "native backend requires KAFKA_HOME with kafka-server-start.sh (tried $khome)"
+  fi
+  printf '%s\n' "$khome"
+}
+
+native_bootstrap() {
+  python3 -c "
+import json
+with open('$TOPOLOGY_FILE') as f:
+    top = json.load(f)
+print(top.get('bootstrap_servers') or ','.join(
+    '127.0.0.1:%s' % n['client_port'] for n in top['nodes']))
+"
+}
+
+native_write_props() {
+  local nid="$1"
+  local khome="$2"
+  local props="$STATE_DIR/node-${nid}.properties"
+  local logdir="$STATE_DIR/kafka-logs-${nid}"
+  mkdir -p "$logdir"
+  python3 -c "
+import json
+top = json.load(open('$TOPOLOGY_FILE'))
+nid = int('$nid')
+node = next(n for n in top['nodes'] if n['node_id'] == nid)
+voters = top['quorum_voters']
+cfg = top.get('configs', {})
+lines = [
+    'process.roles=broker,controller',
+    'node.id=%d' % nid,
+    'controller.quorum.voters=%s' % voters,
+    'listeners=PLAINTEXT://127.0.0.1:%s,CONTROLLER://127.0.0.1:%s' % (node['client_port'], node['controller_port']),
+    'advertised.listeners=PLAINTEXT://127.0.0.1:%s' % node['client_port'],
+    'controller.listener.names=CONTROLLER',
+    'inter.broker.listener.name=PLAINTEXT',
+    'listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT',
+    'log.dirs=$logdir',
+    'num.network.threads=2',
+    'num.io.threads=4',
+    'num.partitions=3',
+    'default.replication.factor=%s' % cfg.get('default.replication.factor', 3),
+    'min.insync.replicas=%s' % cfg.get('min.insync.replicas', 2),
+    'offsets.topic.replication.factor=%s' % cfg.get('offsets.topic.replication.factor', 3),
+    'transaction.state.log.replication.factor=%s' % cfg.get('transaction.state.log.replication.factor', 3),
+    'transaction.state.log.min.isr=%s' % cfg.get('transaction.state.log.min.isr', 2),
+    'share.coordinator.state.topic.replication.factor=%s' % cfg.get('share.coordinator.state.topic.replication.factor', 3),
+    'share.coordinator.state.topic.min.isr=%s' % cfg.get('share.coordinator.state.topic.min.isr', 2),
+    'group.initial.rebalance.delay.ms=%s' % cfg.get('group.initial.rebalance.delay.ms', 0),
+    'unstable.api.versions.enable=true',
+    'group.share.enable=true',
+    'broker.session.timeout.ms=6000',
+    'controlled.shutdown.max.retries=1',
+    'controlled.shutdown.retry.backoff.ms=100',
+]
+open('$props', 'w').write('\\n'.join(lines) + '\\n')
+"
+  printf '%s\n' "$props"
+}
+
+native_ensure_formatted() {
+  local nid="$1"
+  local khome="$2"
+  local props="$3"
+  local logdir="$STATE_DIR/kafka-logs-${nid}"
+  if [[ -f "$logdir/meta.properties" ]]; then
+    return 0
+  fi
+  local uuid
+  uuid="$(python3 -c "
+import json
+r = json.load(open('$RESOURCES_FILE'))
+print(r.get('kraft_uuid') or '')
+")"
+  if [[ -z "$uuid" ]]; then
+    uuid="$("$khome/bin/kafka-storage.sh" random-uuid)"
+    python3 -c "
+import json
+p = '$RESOURCES_FILE'
+r = json.load(open(p))
+r['kraft_uuid'] = '''$uuid'''
+json.dump(r, open(p, 'w'), indent=2)
+"
+  fi
+  "$khome/bin/kafka-storage.sh" format -t "$uuid" -c "$props" >/dev/null
+}
+
+native_wait_ready() {
+  local khome
+  khome="$(native_kafka_home)"
+  local bs
+  bs="$(native_bootstrap)"
+  local i
+  for i in $(seq 1 90); do
+    if "$khome/bin/kafka-topics.sh" --bootstrap-server "$bs" --list >/dev/null 2>&1; then
+      log "native cluster ready ($bs)"
+      return 0
+    fi
+    sleep 2
+  done
+  fail "native cluster did not become ready; see $STATE_DIR/kafka-node-*.log"
+}
+
+native_create_topic() {
+  local topic="$1"
+  local khome
+  khome="$(native_kafka_home)"
+  local bs
+  bs="$(native_bootstrap)"
+  "$khome/bin/kafka-topics.sh" --bootstrap-server "$bs" --create --if-not-exists \
+    --topic "$topic" --partitions 3 --replication-factor 3 \
+    --config min.insync.replicas=2 >/dev/null
+}
+
+native_leader_move() {
+  local topic="$1"
+  local partition="$2"
+  local to_node="$3"
+  local khome
+  khome="$(native_kafka_home)"
+  local bs
+  bs="$(native_bootstrap)"
+  local assign
+  assign="$(python3 -c "
+nodes = [1, 2, 3]
+target = int('$to_node')
+rest = [n for n in nodes if n != target]
+print(','.join(str(n) for n in [target] + rest))
+")"
+  local rejs="$STATE_DIR/reassign-${topic}-${partition}.json"
+  python3 -c "
+import json
+obj = {
+  'version': 1,
+  'partitions': [{
+    'topic': '''$topic''',
+    'partition': int('$partition'),
+    'replicas': [int(x) for x in '''$assign'''.split(',')],
+  }],
+}
+json.dump(obj, open('$rejs', 'w'))
+"
+  "$khome/bin/kafka-reassign-partitions.sh" --bootstrap-server "$bs" \
+    --reassignment-json-file "$rejs" --execute >/dev/null 2>&1 || true
+  local i
+  for i in $(seq 1 30); do
+    if "$khome/bin/kafka-reassign-partitions.sh" --bootstrap-server "$bs" \
+      --reassignment-json-file "$rejs" --verify 2>/dev/null | grep -qi 'complete'; then
+      break
+    fi
+    sleep 1
+  done
+  "$khome/bin/kafka-leader-election.sh" --bootstrap-server "$bs" \
+    --election-type PREFERRED --topic "$topic" --partition "$partition" >/dev/null 2>&1 || true
+}
+
 # --- Actions on Recorded Owned Resources ---
 
 start_node() {
@@ -329,8 +495,17 @@ start_node() {
     py_state set_node_state "$RESOURCES_FILE" "$nid" "running" ""
     log "node $nid started (docker container=$cname)"
   elif [[ "$BACKEND" == "native" ]]; then
-    # Would launch kafka-server-start.sh for this specific node
-    log "node $nid started (native)"
+    local khome
+    khome="$(native_kafka_home)"
+    local props
+    props="$(native_write_props "$nid" "$khome")"
+    native_ensure_formatted "$nid" "$khome" "$props"
+    export KAFKA_HEAP_OPTS="${KAFKA_HEAP_OPTS:--Xmx384m -Xms256m}"
+    local logfile="$STATE_DIR/kafka-node-${nid}.log"
+    "$khome/bin/kafka-server-start.sh" "$props" >"$logfile" 2>&1 &
+    local pid=$!
+    py_state set_node_state "$RESOURCES_FILE" "$nid" "running" "$pid"
+    log "node $nid started (native pid=$pid)"
   fi
 }
 
@@ -359,7 +534,14 @@ stop_node() {
     local pid
     pid="$(python3 -c "import json; print(json.loads('''$node_info''').get('pid') or '')")"
     if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-      kill "$pid" 2>/dev/null || true
+      kill -CONT "$pid" 2>/dev/null || true
+      kill -TERM "$pid" 2>/dev/null || true
+      local waited=0
+      while [[ $waited -lt 8 ]] && kill -0 "$pid" 2>/dev/null; do
+        sleep 1
+        waited=$((waited + 1))
+      done
+      kill -KILL "$pid" 2>/dev/null || true
     fi
     py_state set_node_state "$RESOURCES_FILE" "$nid" "stopped" ""
     log "node $nid stopped (native pid=$pid)"
@@ -439,12 +621,18 @@ move_leader() {
   local partition="$2"
   local to_node="$3"
   ensure_initialized
+  if [[ "$BACKEND" == "native" ]]; then
+    native_leader_move "$topic" "$partition" "$to_node"
+  fi
   py_state leader_move "$RESOURCES_FILE" "$topic" "$partition" "$to_node"
 }
 
 add_topic() {
   local topic="$1"
   ensure_initialized
+  if [[ "$BACKEND" == "native" ]]; then
+    native_create_topic "$topic"
+  fi
   py_state create_topic "$RESOURCES_FILE" "$topic"
   log "created owned topic $topic (RF=3, min.isr=2)"
 }
@@ -728,11 +916,17 @@ parse_and_run() {
       ensure_initialized
       if [[ -n "$target_node" ]]; then
         start_node "$target_node"
+        if [[ "$BACKEND" == "native" ]]; then
+          native_wait_ready
+        fi
       else
         local nid
         for nid in 1 2 3; do
           start_node "$nid"
         done
+        if [[ "$BACKEND" == "native" ]]; then
+          native_wait_ready
+        fi
         log "all 3 nodes started (RF=3, min.isr=2, backend=$BACKEND)"
       fi
       ;;

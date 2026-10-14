@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "card": "KL03-19",
+  "profile": "nontransactional-data-plane",
+  "frozen": true,
+  "frozen_note": "Seeds, peer, fault timing, and budgets are frozen before the live campaign. 5-second recovery is a proposed controlled-restoration target, not a universal timer promise.",
+  "peer": {
+    "identity": "native:4.1.0",
+    "kafka_home": "/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2,
+    "metadata_version": "4.1-IV0"
+  },
+  "topic": "pl-dp-fault",
+  "seeds": {
+    "start": 0,
+    "end": 999,
+    "count": 1000
+  },
+  "replay_seed": 7,
+  "records_per_seed": 3,
+  "fault_after": 1,
+  "partitions": 3,
+  "acks": -1,
+  "idempotent": true,
+  "transactional": false,
+  "isolation_level": "read_uncommitted",
+  "delivery": "partition",
+  "faults": [
+    "leader_move",
+    "lost_ack",
+    "stale_metadata",
+    "disconnect",
+    "restart"
+  ],
+  "budgets": {
+    "trial_deadline_ms": 45000,
+    "restoration_target_ms": 5000,
+    "produce_request_timeout_ms": 8000,
+    "delivery_timeout_ms": 20000,
+    "cluster_ready_timeout_ms": 180000,
+    "ready_wait_ms": 30000
+  }
+}
