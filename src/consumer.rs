@@ -2836,32 +2836,25 @@ impl Consumer {
     }
 
     pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
-        let mut out = HashMap::new();
-        let Some(md) = &self.metadata else {
-            return out;
-        };
-        for t in &md.topics {
-            if t.topic_id == [0u8; 16] {
-                continue;
-            }
-            if let Some(name) = &t.name {
-                let _ = out.insert(t.topic_id, name.clone());
-            }
-        }
-        out
+        self.topic_identities().1
     }
 
     pub(crate) fn topic_name_ids(&self) -> HashMap<String, [u8; 16]> {
-        let mut out = HashMap::new();
+        self.topic_identities().0
+    }
+
+    /// Topic ids after Metadata merge. A cached id wins over a later zero id
+    /// in the same response, matching [`Cluster::apply`].
+    fn topic_identities(&self) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
         let Some(md) = &self.metadata else {
-            return out;
+            return (HashMap::new(), HashMap::new());
         };
-        for t in &md.topics {
-            if let Some(name) = &t.name {
-                let _ = out.insert(name.clone(), t.topic_id);
-            }
-        }
-        out
+        resolved_topic_identities(
+            md.topics
+                .iter()
+                .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
+            &self.cluster.topic_ids,
+        )
     }
 
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
@@ -5703,6 +5696,34 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
 ///
 /// A missing stored id is the first time the assignment learns the id, not a
 /// recreation. A zero metadata id does not replace a stored id.
+/// Name-to-id and id-to-name maps for one Metadata response.
+///
+/// `cached` is the leader cache's topic id. It replaces a zero id written by
+/// a later copy of the same name. A zero id does not erase an id already
+/// taken from an earlier copy.
+fn resolved_topic_identities<'a>(
+    topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
+    cached: &HashMap<String, [u8; 16]>,
+) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
+    let mut by_name = HashMap::new();
+    let mut by_id = HashMap::new();
+    for (name, metadata_id) in topics {
+        let id = cached
+            .get(name)
+            .copied()
+            .filter(|id| *id != [0; 16])
+            .unwrap_or(metadata_id);
+        if id == [0; 16] && by_name.get(name).is_some_and(|current| *current != [0; 16]) {
+            continue;
+        }
+        let _previous = by_name.insert(name.to_owned(), id);
+        if id != [0; 16] {
+            let _previous = by_id.insert(id, name.to_owned());
+        }
+    }
+    (by_name, by_id)
+}
+
 fn recreated_topic_partitions(
     assigned: &[(String, i32, i64)],
     assigned_ids: &HashMap<(String, i32), [u8; 16]>,
@@ -5963,6 +5984,25 @@ mod tests {
             headers: Vec::new(),
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_later_zero_topic_id_does_not_erase_the_cached_id() {
+        let cached = HashMap::from([("t".to_string(), [1u8; 16])]);
+        let (by_name, by_id) = resolved_topic_identities(
+            [("t", [1u8; 16]), ("t", [0u8; 16]), ("u", [2u8; 16])],
+            &cached,
+        );
+        assert_eq!(by_name.get("t").copied(), Some([1u8; 16]));
+        assert_eq!(by_name.get("u").copied(), Some([2u8; 16]));
+        assert_eq!(by_id.get(&[1u8; 16]).map(String::as_str), Some("t"));
+        let (by_name, _) =
+            resolved_topic_identities([("t", [4u8; 16]), ("t", [0u8; 16])], &HashMap::new());
+        assert_eq!(
+            by_name.get("t").copied(),
+            Some([4u8; 16]),
+            "a zero copy must not erase an earlier id in the same response"
+        );
     }
 
     #[test]
