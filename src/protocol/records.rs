@@ -2671,8 +2671,10 @@ impl EncodedBatch {
         let Ok(base_timestamp) = buf::get_i64(&mut body) else {
             return Ok(None);
         };
+        let Ok(max_timestamp) = buf::get_i64(&mut body) else {
+            return Ok(None);
+        };
         if buf::get_i64(&mut body).is_err()
-            || buf::get_i64(&mut body).is_err()
             || buf::get_i16(&mut body).is_err()
             || buf::get_i32(&mut body).is_err()
         {
@@ -2702,6 +2704,7 @@ impl EncodedBatch {
             partition_leader_epoch,
             attributes,
             base_offset: self.base_offset,
+            max_timestamp,
             count: count_usize,
         }))
     }
@@ -3058,6 +3061,7 @@ pub(crate) struct ShortKeyBatch {
     pub(crate) partition_leader_epoch: i32,
     pub(crate) attributes: i16,
     pub(crate) base_offset: i64,
+    pub(crate) max_timestamp: i64,
     pub(crate) count: usize,
 }
 

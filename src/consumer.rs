@@ -4403,6 +4403,9 @@ impl Consumer {
                             if let Some(tail) = out.get_mut(mark..) {
                                 for record in tail {
                                     record.timestamp_type = timestamp_type;
+                                    if timestamp_type == TimestampType::LogAppendTime {
+                                        record.timestamp = meta.max_timestamp;
+                                    }
                                     record.leader_epoch = epoch;
                                 }
                             }
@@ -4501,6 +4504,8 @@ impl Consumer {
 
                     let is_transactional = batch.is_transactional();
                     let timestamp_type = batch.timestamp_type();
+                    let log_append_timestamp = (timestamp_type == TimestampType::LogAppendTime)
+                        .then_some(batch.max_timestamp());
                     let mut batch_records = 0u64;
                     let mut batch_bytes = 0u64;
                     // No transaction state changes within one decoded data batch.
@@ -4543,11 +4548,12 @@ impl Consumer {
                             )
                             .unwrap_or(u64::MAX),
                         );
+                        let timestamp = log_append_timestamp.unwrap_or(rec.timestamp);
                         out.push(FetchedRecord {
                             topic: TopicName::from(name.as_str()),
                             partition: part.partition,
                             offset,
-                            timestamp: rec.timestamp,
+                            timestamp,
                             timestamp_type,
                             key: rec.key.map(RecordBytes::from),
                             value: rec.value,

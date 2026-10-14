@@ -47,8 +47,8 @@ use partitionline::protocol::header::{
     RequestHeader,
 };
 use partitionline::protocol::records::{
-    decode_record_batch, encode_record_batch, ControlRecordType, EndTransactionMarker, Record,
-    RecordBatch,
+    decode_record_batch, encode_record_batch, ControlRecordType, EndTransactionMarker, Header,
+    Record, RecordBatch,
 };
 use partitionline::{
     AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, ProduceRecord,
@@ -1787,6 +1787,73 @@ fn encode_zigzag_i32(value: i32) -> Vec<u8> {
         if bits == 0 {
             return out;
         }
+    }
+}
+
+/// Java `ConsumerRecord.timestamp` is the batch max timestamp when the batch
+/// attribute says log-append time, for both the short-key path and full decode.
+#[tokio::test]
+async fn log_append_time_reports_the_batch_max_timestamp() {
+    for headers in [false, true] {
+        let mut broker =
+            fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, _attempt| {
+                let mut batch = RecordBatch::from_records(vec![
+                    Record {
+                        offset: 0,
+                        timestamp: 10,
+                        key: Some(Bytes::from_static(b"k0")),
+                        value: Some(Bytes::from_static(b"a")),
+                        headers: if headers {
+                            vec![Header::new("h", Bytes::from_static(b"v"))]
+                        } else {
+                            Vec::new()
+                        },
+                    },
+                    Record {
+                        offset: 0,
+                        timestamp: 40,
+                        key: Some(Bytes::from_static(b"k1")),
+                        value: Some(Bytes::from_static(b"b")),
+                        headers: if headers {
+                            vec![Header::new("h", Bytes::from_static(b"v"))]
+                        } else {
+                            Vec::new()
+                        },
+                    },
+                ])
+                .with_timestamp_type(partitionline::TimestampType::LogAppendTime);
+                batch.partition_leader_epoch = 3;
+                vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut part = FetchedPartition::partition_response(0, 0);
+                        part.high_watermark = 2;
+                        part.last_stable_offset = 2;
+                        part.records = vec![batch];
+                        part
+                    }],
+                }]
+            })
+            .await;
+        let mut consumer = Consumer::new(broker.config())
+            .await
+            .expect("consumer starts");
+        consumer.assign("t", 0, 0).await.expect("assign");
+        let records = consumer.fetch().await.expect("fetch");
+        assert_eq!(
+            records
+                .iter()
+                .map(|record| (record.offset, record.timestamp, record.timestamp_type))
+                .collect::<Vec<_>>(),
+            vec![
+                (0, 40, partitionline::TimestampType::LogAppendTime),
+                (1, 40, partitionline::TimestampType::LogAppendTime),
+            ],
+            "headers={headers}"
+        );
+        consumer.close().await.expect("close");
+        broker.shutdown().await;
     }
 }
 
