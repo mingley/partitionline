@@ -2160,6 +2160,45 @@ async fn out_of_range_with_reset_none_must_fail_without_advancing() {
     }
 }
 
+/// A successful Fetch whose offset is below the log start has been deleted.
+/// Reset must run even without error 1.
+#[tokio::test]
+async fn fetch_before_log_start_resets_without_an_out_of_range_error() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.log_start_offset = 2;
+                    part.high_watermark = 4;
+                    part.last_stable_offset = 4;
+                    if attempt > 0 {
+                        part.records = vec![fetch_fixture::data_batch(2, &[b"kept"], None)];
+                    }
+                    part
+                }],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Earliest))
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign below the log start");
+    let first = consumer.fetch().await.expect("reset fetch");
+    assert!(first.is_empty());
+    assert_eq!(consumer.position("t", 0).expect("position"), 2);
+    let second = consumer.fetch().await.expect("refetch");
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].offset, 2);
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
 /// A containing batch may include records that have already been deleted.
 /// Those offsets are not delivered, and the cursor moves to the log start.
 #[tokio::test]
@@ -2184,12 +2223,15 @@ async fn fetch_skips_records_below_the_log_start() {
             }]
         })
         .await;
-    let mut consumer = Consumer::new(broker.config())
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Earliest))
         .await
         .expect("consumer starts");
     consumer.assign("t", 0, 0).await.expect("assign");
-    let recs = consumer.fetch().await.expect("fetch");
-    let offsets: Vec<_> = recs.iter().map(|record| record.offset).collect();
+    let first = consumer.fetch().await.expect("reset fetch");
+    assert!(first.is_empty(), "deleted offsets must not be delivered");
+    assert_eq!(consumer.position("t", 0).expect("position"), 2);
+    let second = consumer.fetch().await.expect("refetch");
+    let offsets: Vec<_> = second.iter().map(|record| record.offset).collect();
     assert_eq!(offsets, vec![2]);
     assert_eq!(consumer.position("t", 0).expect("position"), 3);
     consumer.close().await.expect("close");

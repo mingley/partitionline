@@ -4467,7 +4467,9 @@ impl Consumer {
                     .iter()
                     .find(|(t, p, _)| t == &name && *p == part.partition)
                     .map_or(0, |(_, _, offset)| *offset);
-                if position_past_high_watermark(req_offset, part.high_watermark) {
+                if position_past_high_watermark(req_offset, part.high_watermark)
+                    || position_before_log_start(req_offset, part.log_start_offset)
+                {
                     let is_leader = self
                         .cluster
                         .leader(&name, part.partition)
@@ -5625,6 +5627,11 @@ fn position_past_high_watermark(position: i64, high_watermark: i64) -> bool {
     high_watermark >= 0 && position > high_watermark
 }
 
+/// The requested offset was deleted when it is below a known log start.
+fn position_before_log_start(position: i64, log_start: i64) -> bool {
+    log_start >= 0 && position < log_start
+}
+
 /// A record is visible when it is strictly below a known high watermark.
 fn record_is_visible(offset: i64, high_watermark: i64) -> bool {
     high_watermark < 0 || offset < high_watermark
@@ -5887,6 +5894,9 @@ mod tests {
         assert!(!position_past_high_watermark(2, 2));
         assert!(position_past_high_watermark(3, 2));
         assert!(!position_past_high_watermark(3, -1));
+        assert!(position_before_log_start(1, 2));
+        assert!(!position_before_log_start(2, 2));
+        assert!(!position_before_log_start(0, -1));
         assert!(record_is_visible(1, 2));
         assert!(!record_is_visible(2, 2));
         assert!(record_is_visible(9, -1));
