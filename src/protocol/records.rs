@@ -2180,7 +2180,7 @@ where
                     buf,
                     &rec,
                     buf::i32_from_usize(i)?,
-                    rec.timestamp.wrapping_sub(header.base_timestamp),
+                    timestamp_delta(header.base_timestamp, rec.timestamp)?,
                 )?;
             }
         }
@@ -2196,7 +2196,7 @@ where
                     section,
                     &rec,
                     buf::i32_from_usize(i)?,
-                    rec.timestamp.wrapping_sub(header.base_timestamp),
+                    timestamp_delta(header.base_timestamp, rec.timestamp)?,
                 )?;
             }
             let packed = &mut scratch.packed;
@@ -2329,7 +2329,7 @@ where
         let mut count = 0usize;
         for rec in records {
             let delta = buf::i32_from_usize(count)?;
-            let timestamp = rec.timestamp.wrapping_sub(header.base_timestamp);
+            let timestamp = timestamp_delta(header.base_timestamp, rec.timestamp)?;
             let body = record_body_size(&rec, delta, timestamp)?;
             let size = buf::usize_from_i32(body)?
                 .checked_add(buf::varint_size(body))
@@ -2495,18 +2495,16 @@ fn record_batch_size_in_bytes(records: &[Record], base_offset: Option<i64>) -> R
     let mut size = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
     let base_timestamp = first.timestamp;
     let first_delta = match base_offset {
-        Some(base) => i32::try_from(first.offset.wrapping_sub(base))
-            .map_err(|_| Error::protocol("offset delta exceeds i32"))?,
+        Some(base) => offset_delta_from(base, first.offset)?,
         None => 0,
     };
     size += buf::usize_from_i32(first.size_in_bytes(first_delta, 0)?)?;
     for (i, rec) in rest.iter().enumerate() {
         let offset_delta = match base_offset {
-            Some(base) => i32::try_from(rec.offset.wrapping_sub(base))
-                .map_err(|_| Error::protocol("offset delta exceeds i32"))?,
+            Some(base) => offset_delta_from(base, rec.offset)?,
             None => buf::i32_from_usize(i.saturating_add(1))?,
         };
-        let timestamp_delta = rec.timestamp.wrapping_sub(base_timestamp);
+        let timestamp_delta = timestamp_delta(base_timestamp, rec.timestamp)?;
         size += buf::usize_from_i32(rec.size_in_bytes(offset_delta, timestamp_delta)?)?;
     }
     buf::i32_from_usize(size)
@@ -3145,6 +3143,19 @@ fn try_plain_short_key(
         key,
         value,
     })
+}
+
+fn timestamp_delta(base: i64, timestamp: i64) -> Result<i64> {
+    timestamp
+        .checked_sub(base)
+        .ok_or_else(|| Error::protocol("record timestamp overflow"))
+}
+
+fn offset_delta_from(base: i64, offset: i64) -> Result<i32> {
+    let delta = offset
+        .checked_sub(base)
+        .ok_or_else(|| Error::protocol("offset delta exceeds i32"))?;
+    i32::try_from(delta).map_err(|_| Error::protocol("offset delta exceeds i32"))
 }
 
 fn record_offset(base: i64, delta: i32) -> Option<i64> {
@@ -4626,6 +4637,37 @@ mod tests {
         assert_eq!(
             RecordBatch::encoded_last_offset(&encoded).unwrap(),
             i64::MIN
+        );
+
+        let overflow = Record {
+            offset: 0,
+            timestamp: i64::MIN,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let mut batch = RecordBatch::from_records(vec![
+            Record {
+                timestamp: i64::MAX,
+                ..overflow.clone()
+            },
+            overflow,
+        ]);
+        batch.base_timestamp = i64::MAX;
+        let err = encode_record_batch(&mut BytesMut::new(), &batch)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("record timestamp overflow"), "{err}");
+        let size_err = RecordBatch::size_in_bytes_from(0, &batch.records)
+            .unwrap_err()
+            .to_string();
+        assert!(size_err.contains("record timestamp overflow"), "{size_err}");
+        let offset_err = RecordBatch::size_in_bytes_from(i64::MAX, &batch.records)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            offset_err.contains("offset delta exceeds i32"),
+            "{offset_err}"
         );
         let batch_err = decode_record_batch(&mut &encoded[..])
             .unwrap_err()
