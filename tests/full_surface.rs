@@ -4824,13 +4824,11 @@ async fn join_consumer_regex_refuses_empty() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    let err = ConsumerGroup::join_consumer_regex(ccfg, "rx-empty", "")
-        .await
-        .unwrap_err();
-    assert!(
-        err.to_string().contains("must not be empty"),
-        "{err}"
-    );
+    let err = match ConsumerGroup::join_consumer_regex(ccfg, "rx-empty", "").await {
+        Ok(_) => panic!("empty regex must fail"),
+        Err(e) => e,
+    };
+    assert!(err.to_string().contains("must not be empty"), "{err}");
     assert_eq!(mock.cg_heartbeat_calls(), 0);
 }
 
@@ -4840,9 +4838,10 @@ async fn join_consumer_regex_refuses_v0() {
     mock.set_api_max(CONSUMER_GROUP_HEARTBEAT, 0);
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    let err = ConsumerGroup::join_consumer_regex(ccfg, "rx-v0", "t.*")
-        .await
-        .unwrap_err();
+    let err = match ConsumerGroup::join_consumer_regex(ccfg, "rx-v0", "t.*").await {
+        Ok(_) => panic!("v0 regex must fail"),
+        Err(e) => e,
+    };
     assert!(
         err.to_string().contains("regular expressions resolution"),
         "{err}"
@@ -4877,9 +4876,7 @@ async fn subscribe_regex_on_classic_is_unsupported() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    let mut group = ConsumerGroup::join(ccfg, "rx-classic", "t")
-        .await
-        .unwrap();
+    let mut group = ConsumerGroup::join(ccfg, "rx-classic", "t").await.unwrap();
     let err = group.subscribe_regex("t.*").await.unwrap_err();
     assert!(
         err.to_string().contains("regular expressions resolution"),

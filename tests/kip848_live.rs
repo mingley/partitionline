@@ -40,7 +40,7 @@ async fn kip848_regex_against_local_broker() {
     let mut admin = Admin::connect(bootstrap.clone())
         .await
         .expect("admin connect");
-    admin
+    let created = admin
         .create_topics(
             &[
                 NewTopic::new(&match_a, 1, 1),
@@ -52,6 +52,16 @@ async fn kip848_regex_against_local_broker() {
         )
         .await
         .expect("create regex topics");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
     let group = format!("pl-kip848-regex-{suffix}");
     let regex = format!("pl-rx-{suffix}-[ab]");
     let cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
@@ -64,7 +74,11 @@ async fn kip848_regex_against_local_broker() {
         names.contains(&match_a) && names.contains(&match_b) && !names.contains(&other),
         "regex assignment {names:?} wanted {match_a}+{match_b} not {other}"
     );
-    g.poll().await.expect("poll");
+    let recs = g.poll().await.expect("poll");
+    eprintln!(
+        "kip848 live regex: assignment={names:?} poll_n={}",
+        recs.len()
+    );
     g.leave().await.expect("leave");
-    admin.close().await.ok();
+    admin.close().await.expect("admin close");
 }

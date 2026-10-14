@@ -2402,9 +2402,10 @@ impl ConsumerGroup {
     ) -> Result<Vec<(String, i32)>> {
         self.consumer.refresh_topics(&self.topics).await?;
         let mut names = self.consumer.topic_id_names();
-        if assignment.iter().any(|topic| {
-            topic.topic_id != [0u8; 16] && !names.contains_key(&topic.topic_id)
-        }) {
+        if assignment
+            .iter()
+            .any(|topic| topic.topic_id != [0u8; 16] && !names.contains_key(&topic.topic_id))
+        {
             let _ = self.consumer.list_topics().await?;
             names = self.consumer.topic_id_names();
         }
@@ -3045,9 +3046,7 @@ fn reject_java_empty_group_id(group_id: &str) -> Result<()> {
 
 fn reject_empty_topic_regex(regex: String) -> Result<String> {
     if regex.is_empty() {
-        return Err(Error::protocol(
-            "subscribed topic regex must not be empty",
-        ));
+        return Err(Error::protocol("subscribed topic regex must not be empty"));
     }
     Ok(regex)
 }
