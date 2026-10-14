@@ -1663,6 +1663,8 @@ impl ShareGroup {
                     let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
                     for batch in part.records {
                         let timestamp_type = batch.timestamp_type();
+                        let log_append_timestamp = (timestamp_type == TimestampType::LogAppendTime)
+                            .then_some(batch.max_timestamp());
                         let leader_epoch = (batch.partition_leader_epoch >= 0)
                             .then_some(batch.partition_leader_epoch);
                         for record in batch.records {
@@ -1688,7 +1690,7 @@ impl ShareGroup {
                                 topic: topic_name.clone(),
                                 partition: part.partition,
                                 offset: record.offset,
-                                timestamp: record.timestamp,
+                                timestamp: log_append_timestamp.unwrap_or(record.timestamp),
                                 timestamp_type,
                                 key: record.key,
                                 value: record.value,

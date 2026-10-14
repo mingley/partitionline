@@ -15,9 +15,11 @@ use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
+use partitionline::protocol::records::{Header, Record, RecordBatch};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
-    encode_share_fetch_response_with_acquisition_lock_timeout, AcquiredRange,
+    encode_share_fetch_response, encode_share_fetch_response_with_acquisition_lock_timeout,
+    AcquiredRange, ShareFetchedPartition, ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -61,6 +63,65 @@ fn assert_broker(error: Error, expected: i16) {
         matches!(error, Error::Broker { code, .. } if code == expected),
         "{error:?}"
     );
+}
+
+#[tokio::test]
+async fn share_fetch_log_append_time_uses_the_batch_max_timestamp() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    let topic_id = [9u8; 16];
+    mock.recreate_topic_id("t", topic_id);
+    let mut batch = RecordBatch::from_records(vec![
+        Record {
+            offset: 0,
+            timestamp: 10,
+            key: Some(Bytes::from_static(b"k0")),
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![Header::new("h", Bytes::from_static(b"v"))],
+        },
+        Record {
+            offset: 0,
+            timestamp: 40,
+            key: Some(Bytes::from_static(b"k1")),
+            value: Some(Bytes::from_static(b"b")),
+            headers: Vec::new(),
+        },
+    ])
+    .with_timestamp_type(partitionline::TimestampType::LogAppendTime);
+    batch.partition_leader_epoch = 4;
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![batch];
+    part.acquired = vec![AcquiredRange {
+        first_offset: 0,
+        last_offset: 1,
+        delivery_count: 1,
+    }];
+    let mut body = BytesMut::new();
+    encode_share_fetch_response(
+        &mut body,
+        2,
+        &[ShareFetchedTopic {
+            topic_id,
+            partitions: vec![part],
+        }],
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&body);
+    let mut group = ShareGroup::join(config(&mock), "log-append", "t")
+        .await
+        .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter()
+            .map(|record| (record.offset, record.timestamp, record.timestamp_type))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, 40, partitionline::TimestampType::LogAppendTime),
+            (1, 40, partitionline::TimestampType::LogAppendTime),
+        ]
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]
