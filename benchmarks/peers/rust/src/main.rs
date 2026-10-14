@@ -226,7 +226,7 @@ fn produce(
         if config.key_mode == "id" {
             record = record.key(&key);
         }
-        if let Some(ref headers) = headers {
+        if let Some(headers) = headers {
             record = record.headers(headers);
         }
         loop {
