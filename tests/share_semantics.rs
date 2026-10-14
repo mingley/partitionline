@@ -139,9 +139,8 @@ async fn implicit_leave_releases_last_poll_without_accept() {
     assert_eq!(group.metrics().records_acknowledged, 0);
     assert_eq!(mock.share_ack_calls(), 0);
     group.leave().await.unwrap();
-    assert_eq!(
-        mock.share_accepted("close-rel", "t", 0, off),
-        false,
+    assert!(
+        !mock.share_accepted("close-rel", "t", 0, off),
         "Java implicit close releases without ACCEPT"
     );
     assert_eq!(
