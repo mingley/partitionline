@@ -2658,9 +2658,14 @@ impl ConsumerGroup {
                                         *hb_deadline.lock() = Some(next_hb_deadline);
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
-                                        if resp.member_epoch > 0 {
-                                            hb_generation.store(resp.member_epoch, Ordering::SeqCst);
-                                        }
+                                        hb_generation.store(
+                                            kip848_heartbeat_epoch(
+                                                resp.error_code,
+                                                resp.member_epoch,
+                                                hb_generation.load(Ordering::SeqCst),
+                                            ),
+                                            Ordering::SeqCst,
+                                        );
                                         // The broker owns member ids; adopt a
                                         // rotated id for later heartbeats and
                                         // the poll path (KL03-15).
@@ -2934,6 +2939,16 @@ enum ClassicHeartbeat {
     Ready,
     Rejoin,
     Failed,
+}
+
+fn kip848_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
+    if matches!(code, error::FENCED_MEMBER_EPOCH | error::UNKNOWN_MEMBER_ID) {
+        ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+    } else if response_epoch > 0 {
+        response_epoch
+    } else {
+        current
+    }
 }
 
 fn classic_heartbeat(code: i16) -> ClassicHeartbeat {
@@ -3755,6 +3770,20 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn kip848_fenced_epoch_restarts_at_join() {
+        assert_eq!(
+            kip848_heartbeat_epoch(error::FENCED_MEMBER_EPOCH, 8, 8),
+            ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(
+            kip848_heartbeat_epoch(error::UNKNOWN_MEMBER_ID, 8, 8),
+            ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(kip848_heartbeat_epoch(0, 6, 4), 6);
+        assert_eq!(kip848_heartbeat_epoch(0, 0, 4), 4);
     }
 
     #[test]

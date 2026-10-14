@@ -3591,6 +3591,36 @@ async fn wakeup_interrupts_group_committed_and_unsubscribe_once() {
     group.close().await.unwrap();
 }
 
+/// A fenced KIP-848 member is rejoined by the next poll.
+#[tokio::test]
+async fn kip848_fenced_member_epoch_recovers_on_poll() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_cg_heartbeat_interval_ms(30);
+    let mut group = ConsumerGroup::join_consumer(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "g848-fence",
+        "t",
+    )
+    .await
+    .unwrap();
+    let before = mock.cg_heartbeat_calls();
+    mock.set_cg_heartbeat_error_times(partitionline::error::FENCED_MEMBER_EPOCH, 1);
+    for _ in 0..40 {
+        if mock.cg_heartbeat_calls() >= before + 2 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(
+        mock.cg_heartbeat_calls() >= before + 2,
+        "the fenced heartbeat and the following join must both be sent"
+    );
+    let recovered = group.poll().await.unwrap();
+    assert!(recovered.len() <= 1);
+    group.close().await.unwrap();
+}
+
 /// A coordinator that omits Heartbeat cannot keep a classic member silent.
 #[tokio::test]
 async fn missing_heartbeat_api_fails_the_next_poll() {
