@@ -19151,7 +19151,8 @@
     {
       "id": "KL10-04",
       "title": "Explain the in-client gzip deflate overhead",
-      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "cursor-cloud",
+      "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL10-04.json", "docs/plan/gateway-adoption.md", "docs/evidence/perf/KL10-04/"],
       "depends_on": ["KL10-02", "KL10-03"],
       "files": ["docs/plan/gateway-adoption.md", "docs/plan/tasks.json"],
       "deliverable": "A measured explanation (reading src/protocol/records.rs and src/producer.rs; no edits) of why gzip_compress_into costs about 18 us per 1 KiB record on lb-gateway-produce-gzip versus about 10 us for the same backend compressing the same bytes in one call (gateway-adoption.md section 2).",
