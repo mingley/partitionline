@@ -7,6 +7,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ShareRecord.topic` and share-acquisition keys use the same inline `TopicName`
+  as fetched records, so a short topic is not allocated again for every
+  shared record.
+
 - `FetchedRecord.topic` is a `TopicName`. Names of at most 23 bytes are stored
   in the record and clone without a heap allocation. Longer names still use a
   `String`. `as_str()`, `Deref<Target = str>`, and equality with `str` and

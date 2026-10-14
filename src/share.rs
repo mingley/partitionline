@@ -206,8 +206,8 @@ impl fmt::Display for ShareRequestMetadata {
 /// One record from ShareFetch.
 #[derive(Debug, Clone)]
 pub struct ShareRecord {
-    /// Topic name.
-    pub topic: String,
+    /// Topic name. Short names are stored inline, the same as [`crate::TopicName`].
+    pub topic: crate::consumer::TopicName,
     /// Partition index.
     pub partition: i32,
     /// Record offset.
@@ -494,7 +494,7 @@ impl<'a> IntoIterator for &'a ShareRecords {
 const SHARE_FETCH_RUNTIME_MAX_VERSION: i16 = 2;
 const SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION: i16 = 2;
 
-type AcquisitionKey = (String, i32, i64);
+type AcquisitionKey = (crate::consumer::TopicName, i32, i64);
 
 struct Acquisition {
     node: i32,
@@ -1617,6 +1617,7 @@ impl ShareGroup {
                     Error::protocol("ShareFetch returned an unrequested topic id")
                 })?;
                 let name = self.name_for_topic_id(topic.topic_id);
+                let topic_name = crate::consumer::TopicName::from(name.as_str());
                 for part in topic.partitions {
                     if !requested.contains(&part.partition) {
                         return Err(Error::protocol(
@@ -1669,7 +1670,7 @@ impl ShareGroup {
                             else {
                                 continue;
                             };
-                            let key = (name.clone(), part.partition, record.offset);
+                            let key = (topic_name.clone(), part.partition, record.offset);
                             if !incoming_keys.insert(key.clone()) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
@@ -1684,7 +1685,7 @@ impl ShareGroup {
                                 }
                             }
                             incoming.push(ShareRecord {
-                                topic: name.clone(),
+                                topic: topic_name.clone(),
                                 partition: part.partition,
                                 offset: record.offset,
                                 timestamp: record.timestamp,
@@ -2549,7 +2550,7 @@ fn acknowledgement_batches(
     recs: &[ShareRecord],
     ack: i8,
 ) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
-    let mut by_part: BTreeMap<(String, i32), Vec<i64>> = BTreeMap::new();
+    let mut by_part: BTreeMap<(crate::consumer::TopicName, i32), Vec<i64>> = BTreeMap::new();
     for rec in recs {
         by_part
             .entry((rec.topic.clone(), rec.partition))
@@ -2584,7 +2585,7 @@ fn acknowledgement_batches(
             });
         }
         if !batches.is_empty() {
-            out.push((topic, partition, batches));
+            out.push((topic.into(), partition, batches));
         }
     }
     out
