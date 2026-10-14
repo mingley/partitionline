@@ -808,9 +808,7 @@ async fn share_admin_alter_offsets_recovers_latest_skip() {
     let mut g = ShareGroup::join(cfg, group, topic.clone())
         .await
         .expect("rejoin after alter");
-    wait_assigned_and_warmup(&mut g, &topic)
-        .await
-        .expect("rejoin assignment");
+    // Do not warmup-discard: the first ShareFetch must keep @produced.
     let recs = poll_until(&mut g, Instant::now() + Duration::from_secs(15), |recs| {
         recs.iter()
             .any(|r| r.topic == topic && r.offset == produced.offset)
