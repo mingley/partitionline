@@ -47,7 +47,7 @@
     "pause": "ShareGroup has no pause API; the share/pause cell holds acquired records without acknowledge for pause_ms, then accepts.",
     "max_poll_expiry": "ShareGroup does not leave on max.poll.interval.ms; the share/max_poll_expiry cell uses share lock timeout / redelivery as the distinct budget."
   },
-  "share_produce": "Broker default share.auto.offset.reset is latest. Share cells create the topic, join and arm a fetch, then produce so the first ShareFetch is not at log-end. share/member_loss produces after the surviving member rejoins so newly assigned partitions are not initialized at log-end.",
+  "share_produce": "Broker default share.auto.offset.reset is latest. Share cells create the topic, join and arm a fetch, then produce so the first ShareFetch is not at log-end. member_loss, coordinator_loss and secure_reconnect produce after the surviving member rejoins so recovery does not initialize newly assigned partitions at log-end.",
   "older_brokers": {
     "3.9.1": {
       "classic": "supported; not scheduled in this 4.1.0 job",

@@ -312,7 +312,11 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
         env::var("GROUP_CHURN_HISTORY").unwrap_or_else(|_| "group-churn-member.json".into()),
     );
     let mut seen = Vec::new();
-    arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
+    if names.member == "b" {
+        drop(group.poll_timeout(Duration::from_millis(800)).await);
+    } else {
+        arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
+    }
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
     let action = wait_go_partition(&mut group, &mut seen, &go, Duration::from_secs(40)).await?;
     if action == "die" {
@@ -575,7 +579,12 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     arm_share_poll(&mut group, Duration::from_secs(12)).await?;
     write_path(&ready, &render_ready(names, &group.assignment())).await?;
     let mut events: Vec<&str> = vec!["joined"];
-    if names.churn == "member_loss" && names.member == "a" {
+    if names.member == "a"
+        && matches!(
+            names.churn.as_str(),
+            "member_loss" | "coordinator_loss" | "secure_reconnect"
+        )
+    {
         let lost = PathBuf::from(env::var("GROUP_CHURN_LOST").unwrap_or_else(|_| "lost".into()));
         drop(wait_file(&lost, Duration::from_secs(40)).await?);
         group = rejoin_share_after_loss(group, names, &mut events).await?;

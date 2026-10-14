@@ -232,6 +232,35 @@ def start_member(binary: Path, env: Dict[str, str], member: str, paths: Dict[str
     )
 
 
+def share_recover_and_produce(
+    binary: Path,
+    trial: Dict[str, str],
+    paths: Dict[str, Path],
+    procs: Dict[str, subprocess.Popen],
+    result: Dict[str, Any],
+    trial_s: float,
+) -> Optional[Dict[str, Any]]:
+    paths["lost"].write_text("lost\n")
+    if not wait_for(paths["recovered"], 25):
+        for proc in procs.values():
+            if proc.poll() is None:
+                proc.kill()
+        result["ok"] = False
+        result["error"] = "recover_timeout_a"
+        return result
+    produced = run_phase(binary, trial, "produce", trial_s)
+    result["produce_exit"] = produced.returncode
+    if produced.returncode != 0:
+        for proc in procs.values():
+            if proc.poll() is None:
+                proc.kill()
+        result["ok"] = False
+        result["error"] = "produce_failed"
+        result["stderr"] = (produced.stderr or "")[-2000:]
+        return result
+    return None
+
+
 def find_coordinator(freeze: Dict[str, Any], bootstrap: str, group: str, share: bool) -> Optional[int]:
     home = Path(freeze["peer"]["kafka_home"])
     script = home / "bin" / ("kafka-share-groups.sh" if share else "kafka-consumer-groups.sh")
@@ -364,7 +393,7 @@ def run_one_cell(
             result["error"] = "ready_timeout_b"
             return result
 
-    if cell["protocol"] == "share" and cell["churn"] != "member_loss":
+    if cell["protocol"] == "share" and cell["churn"] in ("pause", "max_poll_expiry"):
         produced = run_phase(binary, trial, "produce", trial_s)
         result["produce_exit"] = produced.returncode
         if produced.returncode != 0:
@@ -398,24 +427,9 @@ def run_one_cell(
             return result
         finished["b"] = True
         if cell["protocol"] == "share":
-            paths["lost"].write_text("lost\n")
-            if not wait_for(paths["recovered"], 25):
-                for proc in procs.values():
-                    if proc.poll() is None:
-                        proc.kill()
-                result["ok"] = False
-                result["error"] = "recover_timeout_a"
-                return result
-            produced = run_phase(binary, trial, "produce", trial_s)
-            result["produce_exit"] = produced.returncode
-            if produced.returncode != 0:
-                for proc in procs.values():
-                    if proc.poll() is None:
-                        proc.kill()
-                result["ok"] = False
-                result["error"] = "produce_failed"
-                result["stderr"] = (produced.stderr or "")[-2000:]
-                return result
+            recovered = share_recover_and_produce(binary, trial, paths, procs, result, trial_s)
+            if recovered is not None:
+                return recovered
         paths["go_a"].write_text('{"action":"continue"}\n')
     elif cell["churn"] == "max_poll_expiry":
         paths["go_a"].write_text('{"action":"hold"}\n')
@@ -437,12 +451,20 @@ def run_one_cell(
         restart = fixture(env, "restart", "--node", str(node), timeout=180)
         result["inject_exit"] = restart.returncode
         time.sleep(2.0)
+        if cell["protocol"] == "share":
+            recovered = share_recover_and_produce(binary, trial, paths, procs, result, trial_s)
+            if recovered is not None:
+                return recovered
         paths["go_a"].write_text('{"action":"continue"}\n')
     elif cell["churn"] == "secure_reconnect":
         senv = sasl_env(sasl_state or Path("/tmp/partitionline-kl03-21-sasl"), freeze)
         restart = sasl_node(senv, "restart", timeout=120)
         result["inject_exit"] = restart.returncode
         time.sleep(2.0)
+        if cell["protocol"] == "share":
+            recovered = share_recover_and_produce(binary, trial, paths, procs, result, trial_s)
+            if recovered is not None:
+                return recovered
         paths["go_a"].write_text('{"action":"continue"}\n')
     else:
         paths["go_a"].write_text('{"action":"continue"}\n')
