@@ -19078,13 +19078,23 @@
     {
       "id": "KL10-02",
       "title": "Build the gateway produce cells with a same-settings librdkafka peer",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "cursor-cloud",
       "depends_on": ["KL04-05", "KL04-06", "KL04-07", "KL09-01"],
       "files": ["benchmarks/scenarios.json", "new: benchmarks/gateway/", "benchmarks/peers/rust/", "docs/plan/performance-leadership.md"],
       "deliverable": "The exploratory produce cells defined in gateway-adoption.md section 0 (lb-gateway-produce-gzip, lb-gateway-produce-lz4, lb-gateway-produce-ack), run for partitionline and the KL04-05 rust-rdkafka peer, reusing the KL04-06 open-loop scheduler and the KL04-07 record-history gate, and registered as rows in performance-leadership.md section 4.",
       "acceptance": ["Both clients emit their effective configuration; the driver refuses to compare runs whose codec, level, acks, max in flight, linger, batch size or TLS settings differ, and labels the acknowledgment mode (per-record completion, or fire-and-forget confirmed by a timed flush).", "Acknowledged counts are reconciled against partition high-watermark deltas and the KL04-07 record histories; enqueue rates are never reported as acknowledged throughput; CPU comes from process rusage; results validate with scripts/benchmark-report.py.", "The baseline is measured on a harness-only commit (library unchanged) with the section 4 protocol (>=5 interleaved repetitions, medians with 95% CIs); differences from gateway-adoption.md section 2 are recorded and explained, not gated.", "librdkafka and any other native code stay in workspace-excluded benchmark crates and never enter the partitionline dependency graph or package."],
       "validation": ["cargo test --locked --manifest-path benchmarks/gateway/Cargo.toml", "python3 scripts/benchmark-report.py <gateway result files>", "cargo tree -p partitionline --edges normal (no librdkafka, no new native crates)"],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "docs/plan/tasks.json",
+        "benchmarks/gateway/",
+        "benchmarks/scenarios.json",
+        "benchmarks/peers/rust/",
+        "docs/plan/performance-leadership.md",
+        "Cargo.toml",
+        "docs/plan/evidence/KL10-02.json",
+        "docs/evidence/perf/KL10-02/"
+      ]
     },
     {
       "id": "KL10-03",
