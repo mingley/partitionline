@@ -1258,8 +1258,16 @@ impl ConsumerGroup {
                 self.rebalance_reason = None;
                 self.heartbeat_join().await?;
             }
-        } else if force || self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
-            self.rejoin().await?;
+        } else {
+            let code = self.hb_err.load(Ordering::SeqCst);
+            if code == error::FENCED_INSTANCE_ID {
+                return Err(Error::broker(code, "Heartbeat"));
+            }
+            if force || matches!(classic_heartbeat(code), ClassicHeartbeat::Rejoin) {
+                self.rejoin().await?;
+            } else if matches!(classic_heartbeat(code), ClassicHeartbeat::Failed) {
+                return Err(Error::broker(code, "Heartbeat"));
+            }
         }
         self.flush_async_commits().await;
         self.maybe_auto_commit_interval().await?;
@@ -1530,7 +1538,7 @@ impl ConsumerGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
-        self.reject_unsupported_heartbeat()?;
+        self.reject_sticky_classic_heartbeat()?;
         let started = Instant::now();
         if self.kip848 {
             self.check_kip848_membership().await?;
@@ -2318,6 +2326,17 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    fn reject_sticky_classic_heartbeat(&self) -> Result<()> {
+        if self.kip848 {
+            return Ok(());
+        }
+        let code = self.hb_err.load(Ordering::SeqCst);
+        if code != 0 {
+            return Err(Error::broker(code, "Heartbeat"));
+        }
+        Ok(())
+    }
+
     /// Reconcile the poll path with the KIP-848 heartbeat loop (KL03-15).
     ///
     /// A fenced epoch or unknown member id means this membership is dead:
@@ -2908,6 +2927,22 @@ fn spoken_sync_group(version: i16) -> Result<i16> {
         Err(Error::Unsupported(
             "broker does not support SyncGroup v0-5".into(),
         ))
+    }
+}
+
+enum ClassicHeartbeat {
+    Ready,
+    Rejoin,
+    Failed,
+}
+
+fn classic_heartbeat(code: i16) -> ClassicHeartbeat {
+    match code {
+        0 => ClassicHeartbeat::Ready,
+        error::REBALANCE_IN_PROGRESS | error::ILLEGAL_GENERATION | error::UNKNOWN_MEMBER_ID => {
+            ClassicHeartbeat::Rejoin
+        }
+        _ => ClassicHeartbeat::Failed,
     }
 }
 
@@ -3720,6 +3755,31 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn classic_heartbeat_rejoins_a_lost_generation_and_fails_a_fence() {
+        assert!(matches!(classic_heartbeat(0), ClassicHeartbeat::Ready));
+        assert!(matches!(
+            classic_heartbeat(error::REBALANCE_IN_PROGRESS),
+            ClassicHeartbeat::Rejoin
+        ));
+        assert!(matches!(
+            classic_heartbeat(error::ILLEGAL_GENERATION),
+            ClassicHeartbeat::Rejoin
+        ));
+        assert!(matches!(
+            classic_heartbeat(error::UNKNOWN_MEMBER_ID),
+            ClassicHeartbeat::Rejoin
+        ));
+        assert!(matches!(
+            classic_heartbeat(error::FENCED_INSTANCE_ID),
+            ClassicHeartbeat::Failed
+        ));
+        assert!(matches!(
+            classic_heartbeat(error::UNSUPPORTED_VERSION),
+            ClassicHeartbeat::Failed
+        ));
     }
 
     #[test]
