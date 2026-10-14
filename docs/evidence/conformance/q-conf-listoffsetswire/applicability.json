@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "task": "KL01-21",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "matrix-cell-listoffsets-3-9-1",
+    "matrix-cell-listoffsets-4-1-0",
+    "proto-list-offsets-v01-local",
+    "proto-list-offsets-v02-local",
+    "proto-list-offsets-v03-local",
+    "proto-list-offsets-v04-local",
+    "proto-list-offsets-v05-local",
+    "proto-list-offsets-v06-local",
+    "proto-list-offsets-v07-local",
+    "proto-list-offsets-v08-local",
+    "proto-list-offsets-v09-local",
+    "proto-list-offsets-v10-local",
+    "proto-diff-list-offsets-v10-apache-3-9-1",
+    "proto-unsupported-list-offsets-v11-client-cap",
+    "proto-differential-list-offsets-apache-java"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "matrix-cell-listoffsets-3-9-1",
+      "matrix-cell-listoffsets-4-1-0",
+      "proto-list-offsets-v01-local",
+      "proto-list-offsets-v02-local",
+      "proto-list-offsets-v03-local",
+      "proto-list-offsets-v04-local",
+      "proto-list-offsets-v05-local",
+      "proto-list-offsets-v06-local",
+      "proto-list-offsets-v07-local",
+      "proto-list-offsets-v08-local",
+      "proto-list-offsets-v09-local",
+      "proto-list-offsets-v10-local"
+    ],
+    "unsupported": [
+      "proto-diff-list-offsets-v10-apache-3-9-1",
+      "proto-unsupported-list-offsets-v11-client-cap"
+    ],
+    "blocked": [
+      "proto-differential-list-offsets-apache-java"
+    ]
+  },
+  "crate_spoken_versions": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  "parameter_invocations": {
+    "cells": ["empty", "canonical", "errors", "tagged"],
+    "tagged_versions": [6, 7, 8, 9, 10, 11],
+    "nested_counts": {
+      "empty": {"topics": 0, "partitions": 0},
+      "canonical": {"topics": 1, "partitions": 1, "replica_id": -1, "timestamp": -1},
+      "errors": {"topics": 1, "partitions": 1, "error_code": 3, "isolation": 1},
+      "tagged": {"topics": 1, "unknown_tags": 6}
+    },
+    "field_gates": {
+      "ReplicaId": "0+",
+      "IsolationLevel": "2+",
+      "CurrentLeaderEpoch_request": "4+",
+      "flexible": "6+",
+      "MAX_TIMESTAMP": "7+",
+      "EARLIEST_LOCAL": "8+",
+      "LATEST_TIERED": "9+",
+      "TimeoutMs": "10+",
+      "EARLIEST_PENDING_UPLOAD": "11+",
+      "ThrottleTimeMs": "2+",
+      "LeaderEpoch_response": "4+",
+      "MaxNumOffsets_v0": "unsupported",
+      "OldStyleOffsets_v0": "unsupported"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "valid_versions": "0-9",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "sources": {
+        "ListOffsetsRequest.json": "a620b1209703bad380ff8a6e0848aad2bca2c7ca40bd7da4aca6c131e9529ecc",
+        "ListOffsetsResponse.json": "a908f54a1031b6363ba57e1cbd4b6f0ccbab85a7cd36a7e1e57f1792c4a43b22",
+        "ListOffsetsRequest.java": "709afff3dcf39b738ab2124330d522143904be8f93754e5529fc23f1f3430413",
+        "ListOffsetsResponse.java": "63eede180234f610c2182d463a5d6274d97195b5941801d9abab079dc1db2248",
+        "ListOffsetsRequestTest.java": "2c3dc5aeb106c18d2b1719400d7ce4c0a06ecda63bb1ba6c5b84f30b6c083833"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "valid_versions": "1-10",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "ListOffsets request/response JSON, Java, and tests match 4.1.2 byte-for-byte.",
+      "sources": {
+        "ListOffsetsRequest.json": "85cb56e6a662177f88fb5d126d1485fb93e1f0b727d712b6bfdd782ce6b8a430",
+        "ListOffsetsResponse.json": "0d767cfe74c80d56c6b83fccb3889d6ee2b7279749597579bf5c0d24b1392786",
+        "ListOffsetsRequest.java": "cb4002d3cc5ba238a7b9cd48318d601522295914d0ff65d14dc85d6afeb01849",
+        "ListOffsetsResponse.java": "53399ef37db59812a3df2fe6fbef126a6d92ffcb21b5b462c02bc97b43a64ff0",
+        "ListOffsetsRequestTest.java": "b5a191e3289da3527c010e24ed0844dec54fdddd69b40cca0c9499455ac5f796"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "valid_versions": "1-10",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "ListOffsets sources match 4.1.0.",
+      "sources": {
+        "ListOffsetsRequest.json": "85cb56e6a662177f88fb5d126d1485fb93e1f0b727d712b6bfdd782ce6b8a430",
+        "ListOffsetsResponse.json": "0d767cfe74c80d56c6b83fccb3889d6ee2b7279749597579bf5c0d24b1392786",
+        "ListOffsetsRequest.java": "cb4002d3cc5ba238a7b9cd48318d601522295914d0ff65d14dc85d6afeb01849",
+        "ListOffsetsResponse.java": "53399ef37db59812a3df2fe6fbef126a6d92ffcb21b5b462c02bc97b43a64ff0",
+        "ListOffsetsRequestTest.java": "b5a191e3289da3527c010e24ed0844dec54fdddd69b40cca0c9499455ac5f796"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "valid_versions": "1-11",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "Request JSON/Java match 4.3.1. Response JSON matches 4.3.1; Response.java differs only by the 4.3 RecordBatch import move.",
+      "sources": {
+        "ListOffsetsRequest.json": "7949a78fdbf56d0436c34239475b04be2db24007b2942aa016f37408aa3ea13b",
+        "ListOffsetsResponse.json": "7ab8384fb66fc588169e15d49d0a098e43186f17bdfefddc7c3cde056f158eeb",
+        "ListOffsetsRequest.java": "8e511e8c6660814d1be2476a14cefe8902ce2eca7453c3724684f981068253a4",
+        "ListOffsetsResponse.java": "53399ef37db59812a3df2fe6fbef126a6d92ffcb21b5b462c02bc97b43a64ff0",
+        "ListOffsetsRequestTest.java": "d10273ed5861912341cf16910bb836127dcb6130c35d57ffd8ad05065fdbeaf5"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "valid_versions": "1-11",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "Request sources match 4.2.1. Response.java import path moved to record.internal.RecordBatch.",
+      "sources": {
+        "ListOffsetsRequest.json": "7949a78fdbf56d0436c34239475b04be2db24007b2942aa016f37408aa3ea13b",
+        "ListOffsetsResponse.json": "7ab8384fb66fc588169e15d49d0a098e43186f17bdfefddc7c3cde056f158eeb",
+        "ListOffsetsRequest.java": "8e511e8c6660814d1be2476a14cefe8902ce2eca7453c3724684f981068253a4",
+        "ListOffsetsResponse.java": "432b19605b61cdafd5e644d334c19325951c24ef81cfc22ab1e9a563fe63b00d",
+        "ListOffsetsRequestTest.java": "d10273ed5861912341cf16910bb836127dcb6130c35d57ffd8ad05065fdbeaf5"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testDuplicatePartitions",
+      "applicability": "applicable",
+      "reason": "Duplicate (topic, partition) pairs on v1 parse. Empty and canonical cells stay unique; this card does not emit a duplicate cell."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testGetErrorResponse",
+      "applicability": "applicable",
+      "reason": "getErrorResponse fills UNKNOWN_OFFSET / UNKNOWN_TIMESTAMP / UNKNOWN_EPOCH. Errors cell uses the same partition body with UNKNOWN_TOPIC_OR_PARTITION (3)."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testGetErrorResponseV0",
+      "applicability": "unsupported",
+      "reason": "v0 OldStyleOffsets error body. Present only on 3.9.1. Crate spoken range starts at v1; Kafka 4.0 removed v0."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testToListOffsetsTopics",
+      "applicability": "applicable",
+      "reason": "Grouping helper, not envelope layout. Canonical/errors already use a single topic with one partition."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testListOffsetsRequestOldestVersion",
+      "applicability": "applicable",
+      "reason": "Builder oldest version: baseline 1, READ_COMMITTED 2, max-timestamp 7, earliest-local 8, tiered 9. 4.2.1/4.3.1 add pending-upload 11. 4.1.0/4.1.2 omit the v11 flag."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testCheckEarliestLocalTimestampVersion",
+      "applicability": "nonapplicable",
+      "reason": "3.9.1 NodeApiVersions latestUsableVersion gate, not request/response body bytes. Timestamp constants are version-gated in encode but canonical uses LATEST on every spoken version."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/ListOffsetsRequestTest.java",
+      "method": "testCheckLatestTieredTimestampVersion",
+      "applicability": "nonapplicable",
+      "reason": "Same 3.9.1 NodeApiVersions gate for LATEST_TIERED. Not a body-layout case."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "ListOffsets v0",
+      "reason": "MaxNumOffsets / OldStyleOffsets. 3.9.1 JSON still lists 0-9; Kafka 4.0+ validVersions start at 1. This crate's spoken range is 1-11."
+    },
+    {
+      "cell": "proto-diff-list-offsets-v10-apache-3-9-1",
+      "reason": "3.9.1 ListOffsetsRequest.json validVersions 0-9. Live generator throws UnsupportedVersionException for crate-spoken v10 (TimeoutMs / KIP-1075)."
+    },
+    {
+      "cell": "proto-unsupported-list-offsets-v11-client-cap",
+      "reason": "Registered row stays unsupported (historical client-cap wording). 4.2.1 and 4.3.1 jars speak v11 and this crate encodes v11; cases.json disposition is not rewritten."
+    },
+    {
+      "cell": "4.1.0/4.1.2 ListOffsets v11",
+      "reason": "kafka-clients 4.1.0 and 4.1.2 HIGHEST_SUPPORTED_VERSION is 10. Live generator writes unsupported receipts for crate-spoken v11."
+    },
+    {
+      "cell": "public Admin.list_offsets / broker ReplicaManager",
+      "reason": "This card qualifies builders/parsers of ListOffsets request and response bodies, not Admin public behavior or broker offset lookup."
+    },
+    {
+      "cell": "ListOffsetsResponseTest.java",
+      "reason": "No dedicated response test class in 3.9.1-4.3.1. Response coverage lives in ListOffsetsRequestTest.getErrorResponse and RequestResponseTest serialize/deserialize."
+    }
+  ]
+}

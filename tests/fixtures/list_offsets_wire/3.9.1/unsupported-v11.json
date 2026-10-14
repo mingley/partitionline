@@ -1,0 +1,1 @@
+{"version":11,"disposition":"unsupported","exception":"org.apache.kafka.common.errors.UnsupportedVersionException","message":"Can't size version 11 of ListOffsetsTopic","reason":"ListOffsetsRequestData validVersions 0-9 rejects crate-spoken v11"}
