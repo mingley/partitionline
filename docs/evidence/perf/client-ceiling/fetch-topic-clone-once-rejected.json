@@ -1,0 +1,17 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "a525a5d9",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The parent builds a TopicName from the partition name for every record. The candidate builds it once per partition and clones that value. Eight interleaved pairs: before median 610,428.67 records/s, after median 626,614.69, paired mean ratio 1.029, bootstrap 95% CI 1.001 to 1.059. Three of eight pairs were slower. The mean is under 3%. Client CPU-nanoseconds per record mean ratio was 0.980. Every run verified 20,000 records. The code was not kept. This is not a peer comparison and not a fastest-client result.",
+  "before_median": 610428.67,
+  "after_median": 626614.69,
+  "paired_mean_ratio": 1.029,
+  "paired_ratio_ci95": [1.001, 1.059],
+  "slower_pairs": 3,
+  "pairs": 8,
+  "cpu_mean_ratio": 0.98
+}
