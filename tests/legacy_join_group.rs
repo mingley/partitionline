@@ -193,10 +193,10 @@ fn join_group_v0_v1_static_and_disjoint_fail_closed() {
     );
 }
 
-#[test]
-fn apache_join_group_v0_v1_bodies_reverse_parse_leftover_empty() {
+#[tokio::test]
+async fn apache_join_group_v0_v1_bodies_reverse_parse_leftover_empty() {
     let root = fixture_root();
-    let manifest = std::fs::read_to_string(root.join("manifest.json")).unwrap();
+    let manifest = String::from_utf8(read_fixture(&root.join("manifest.json")).await).unwrap();
     assert!(
         manifest.contains("KL05-42"),
         "fixture manifest must name KL05-42"
@@ -210,27 +210,27 @@ fn apache_join_group_v0_v1_bodies_reverse_parse_leftover_empty() {
             let resp = dir.join(format!("v{version}-response-canonical.bin"));
             let err = dir.join(format!("v{version}-response-error.bin"));
             if req.is_file() {
-                parse_apache_request(&req, version, release);
+                parse_apache_request(&read_fixture(&req).await, version, release);
                 parsed += 1;
             }
             if resp.is_file() {
-                parse_apache_response(&resp, version, release, false);
+                parse_apache_response(&read_fixture(&resp).await, version, release, false);
                 parsed += 1;
             }
             if err.is_file() {
-                parse_apache_response(&err, version, release, true);
+                parse_apache_response(&read_fixture(&err).await, version, release, true);
                 parsed += 1;
             }
             let receipt = dir.join(format!("v{version}-unsupported.json"));
             if receipt.is_file() {
-                let body = std::fs::read_to_string(&receipt).unwrap();
+                let body = String::from_utf8(read_fixture(&receipt).await).unwrap();
                 assert!(body.contains("\"disposition\": \"unsupported\""));
                 assert!(body.contains(&format!("\"version\": {version}")));
                 receipts += 1;
             }
             let static_receipt = dir.join(format!("v{version}-static-unsupported.json"));
             if static_receipt.is_file() {
-                let body = std::fs::read_to_string(&static_receipt).unwrap();
+                let body = String::from_utf8(read_fixture(&static_receipt).await).unwrap();
                 assert!(body.contains("\"disposition\": \"unsupported\""));
                 receipts += 1;
             }
@@ -246,29 +246,39 @@ fn apache_join_group_v0_v1_bodies_reverse_parse_leftover_empty() {
     );
 }
 
-fn parse_apache_request(path: &Path, version: i16, release: &str) {
-    let bytes = std::fs::read(path).unwrap();
-    let mut cur = bytes.as_slice();
+async fn read_fixture(path: &Path) -> Vec<u8> {
+    tokio::fs::read(path)
+        .await
+        .unwrap_or_else(|error| panic!("read {}: {error}", path.display()))
+}
+
+fn parse_apache_request(bytes: &[u8], version: i16, release: &str) {
+    let mut cur = bytes;
     let (gid, member, instance, meta, reason) = decode_join_group_request(&mut cur, version)
-        .unwrap_or_else(|e| panic!("{} v{version} request: {e}", path.display()));
+        .unwrap_or_else(|e| panic!("{release} v{version} request: {e}"));
     leftover(cur, &format!("{release} v{version} request"));
     assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
     assert!(instance.is_none());
     assert_eq!(meta, vec![1, 2, 3]);
     assert_eq!(reason, None);
     if version == 0 {
-        assert_eq!(bytes, REQ_V0, "{release} v0 request must match Apache layout");
+        assert_eq!(
+            bytes, REQ_V0,
+            "{release} v0 request must match Apache layout"
+        );
     } else {
-        assert_eq!(bytes, REQ_V1, "{release} v1 request must match Apache layout");
+        assert_eq!(
+            bytes, REQ_V1,
+            "{release} v1 request must match Apache layout"
+        );
     }
 }
 
-fn parse_apache_response(path: &Path, version: i16, release: &str, error: bool) {
-    let bytes = std::fs::read(path).unwrap();
-    let mut cur = bytes.as_slice();
+fn parse_apache_response(bytes: &[u8], version: i16, release: &str, error: bool) {
+    let mut cur = bytes;
     let (err, gen, proto, leader, mid, skip, members, ptype, throttle) =
         decode_join_group_response(&mut cur, version)
-            .unwrap_or_else(|e| panic!("{} v{version} response: {e}", path.display()));
+            .unwrap_or_else(|e| panic!("{release} v{version} response: {e}"));
     leftover(cur, &format!("{release} v{version} response"));
     assert_eq!(bytes[0..2], err.to_be_bytes(), "ErrorCode at bytes 0-1");
     assert!(!skip);
@@ -300,7 +310,7 @@ fn group_cfg(addr: &str) -> ConsumerConfig {
 async fn local_mock_public_join_on_join_group_v0_only() {
     let mock = common::Mock::start().await;
     mock.set_api_range(JOIN_GROUP, 0, 0);
-    let mut group = ConsumerGroup::join(group_cfg(&mock.addr), "jg0", "t")
+    let group = ConsumerGroup::join(group_cfg(&mock.addr), "jg0", "t")
         .await
         .unwrap();
     assert_eq!(
@@ -321,7 +331,7 @@ async fn local_mock_public_join_on_join_group_v0_only() {
 async fn local_mock_public_join_on_join_group_v1_only() {
     let mock = common::Mock::start().await;
     mock.set_api_range(JOIN_GROUP, 1, 1);
-    let mut group = ConsumerGroup::join(group_cfg(&mock.addr), "jg1", "t")
+    let group = ConsumerGroup::join(group_cfg(&mock.addr), "jg1", "t")
         .await
         .unwrap();
     assert_eq!(

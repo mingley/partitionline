@@ -9095,7 +9095,15 @@ mod tests {
             decode_join_group_response(&mut cur, 1).unwrap();
         assert!(cur.is_empty(), "v1 response leftover-empty");
         assert_eq!(
-            (err, gen, proto.as_str(), leader.as_str(), mid.as_str(), skip, throttle),
+            (
+                err,
+                gen,
+                proto.as_str(),
+                leader.as_str(),
+                mid.as_str(),
+                skip,
+                throttle
+            ),
             (0, 7, "range", "l", "m1", false, 0)
         );
         assert_eq!(got[0].member_id, "m1");
@@ -9108,7 +9116,15 @@ mod tests {
             decode_join_group_response(&mut cur, 0).unwrap();
         assert!(cur.is_empty(), "v0 response leftover-empty");
         assert_eq!(
-            (err, gen, proto.as_str(), leader.as_str(), mid.as_str(), skip, throttle),
+            (
+                err,
+                gen,
+                proto.as_str(),
+                leader.as_str(),
+                mid.as_str(),
+                skip,
+                throttle
+            ),
             (0, 7, "range", "l", "m1", false, 0)
         );
         assert_eq!(got[0].member_id, "m1");
