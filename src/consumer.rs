@@ -4289,6 +4289,11 @@ impl Consumer {
         completed: &mut PartitionMap<()>,
         need_offsets: &mut Vec<(String, i32, i64)>,
     ) -> Result<()> {
+        if log_boundary_conflict(log_start, high_watermark) {
+            return Err(Error::protocol(format!(
+                "Fetch {name}-{partition} log start {log_start} is past high watermark {high_watermark}"
+            )));
+        }
         match self.cfg.auto_offset_reset {
             crate::AutoOffsetReset::None => Err(Error::broker(
                 error::OFFSET_OUT_OF_RANGE,
@@ -5638,6 +5643,11 @@ fn position_before_log_start(position: i64, log_start: i64) -> bool {
     log_start >= 0 && position < log_start
 }
 
+/// A log start past the high watermark cannot be used to reset a fetch.
+fn log_boundary_conflict(log_start: i64, high_watermark: i64) -> bool {
+    log_start >= 0 && high_watermark >= 0 && log_start > high_watermark
+}
+
 /// A record is visible when it is strictly below a known high watermark.
 fn record_is_visible(offset: i64, high_watermark: i64) -> bool {
     high_watermark < 0 || offset < high_watermark
@@ -5915,6 +5925,10 @@ mod tests {
         assert!(position_before_log_start(1, 2));
         assert!(!position_before_log_start(2, 2));
         assert!(!position_before_log_start(0, -1));
+        assert!(log_boundary_conflict(5, 2));
+        assert!(!log_boundary_conflict(2, 2));
+        assert!(!log_boundary_conflict(1, 4));
+        assert!(!log_boundary_conflict(-1, 4));
         assert!(record_is_visible(1, 2));
         assert!(!record_is_visible(2, 2));
         assert!(record_is_visible(9, -1));

@@ -2160,6 +2160,38 @@ async fn out_of_range_with_reset_none_must_fail_without_advancing() {
     }
 }
 
+/// Log start past the high watermark is not a usable reset target.
+#[tokio::test]
+async fn fetch_rejects_a_log_start_past_the_high_watermark() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.log_start_offset = 5;
+                    part.high_watermark = 2;
+                    part.last_stable_offset = 2;
+                    part
+                }],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Earliest))
+        .await
+        .expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    let err = match consumer.fetch().await {
+        Ok(_) => panic!("inconsistent log boundaries must fail the fetch"),
+        Err(err) => err,
+    };
+    assert!(err.to_string().contains("log start"), "got {err}");
+    assert_eq!(consumer.position("t", 0).expect("position stays"), 0);
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
 /// A successful Fetch whose offset is below the log start has been deleted.
 /// Reset must run even without error 1.
 #[tokio::test]
