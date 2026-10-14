@@ -672,6 +672,8 @@ fn run_fetch(
     } else {
         cell.target_records
     };
+    rt.block_on(runtime::fdrive::prepare_fetch(&mut consumer, cell))
+        .map_err(|e| format!("fetch setup: {e}"))?;
     fout.latencies_us
         .reserve(verify_capacity.min(1_000_000) as usize);
     if cell.id == "nb-fetch-committed-aborts" {

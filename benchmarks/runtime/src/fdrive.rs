@@ -109,32 +109,38 @@ pub fn consumer_config(cell: &FetchCellDef, bootstrap: &[String]) -> ConsumerCon
     }
 }
 
-/// Drive `cell`: assign, seek/pause as configured, fetch until
-/// `target_records` verify. `out.latencies_us` must be pre-reserved.
+/// Assign, seek, and pause before the timed fetch.
+///
+/// Metadata for the assignment is not part of the measured delivery rate.
+/// The capped-paused cell still prefetches inside the timed drive.
+pub async fn prepare_fetch(consumer: &mut Consumer, cell: &FetchCellDef) -> Result<(), String> {
+    let starts: Vec<(TopicPartition, i64)> = (0..cell.partitions)
+        .map(|p| (TopicPartition::new(cell.topic, p), 0))
+        .collect();
+    consumer
+        .assign_many(starts)
+        .await
+        .map_err(|e| format!("assign: {e}"))?;
+    if let Some(offset) = cell.seek_offset {
+        consumer
+            .seek(cell.topic, 0, offset)
+            .map_err(|e| format!("seek: {e}"))?;
+    }
+    if cell.id != "nb-fetch-capped-paused" && !cell.paused_partitions.is_empty() {
+        consumer.pause(
+            cell.paused_partitions
+                .iter()
+                .map(|p| TopicPartition::new(cell.topic, *p)),
+        );
+    }
+    Ok(())
+}
+
+/// Drive `cell` after [`prepare_fetch`]: fetch until `target_records` verify.
+/// `out.latencies_us` must be pre-reserved.
 pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut FetchOutcome) {
     let result = tokio::time::timeout(cell.timeout, async {
-        let starts: Vec<(TopicPartition, i64)> = (0..cell.partitions)
-            .map(|p| (TopicPartition::new(cell.topic, p), 0))
-            .collect();
-        if let Err(e) = consumer.assign_many(starts).await {
-            record_error(out, format!("assign: {e}"));
-            return;
-        }
-        if let Some(offset) = cell.seek_offset {
-            if let Err(e) = consumer.seek(cell.topic, 0, offset) {
-                record_error(out, format!("seek: {e}"));
-                return;
-            }
-        }
         let pause_after_prefill = cell.id == "nb-fetch-capped-paused";
-        if !pause_after_prefill && !cell.paused_partitions.is_empty() {
-            let paused: Vec<TopicPartition> = cell
-                .paused_partitions
-                .iter()
-                .map(|p| TopicPartition::new(cell.topic, *p))
-                .collect();
-            consumer.pause(paused);
-        }
         let mut empties = 0u64;
         while out.verified < cell.target_records {
             let start = Instant::now();
