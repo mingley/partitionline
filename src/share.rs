@@ -598,6 +598,8 @@ struct PreparedShareFetch {
 impl ShareGroup {
     /// Join a share group. One topic.
     ///
+    /// Returns after the first successful share heartbeat. Assignment may
+    /// still be empty; [`Self::poll`] waits for it (Java `ShareConsumer`).
     /// An empty `group_id` is Java `InvalidGroupIdException`
     /// (`You must provide a valid group.id in the consumer configuration.`).
     pub async fn join(
@@ -623,10 +625,12 @@ impl ShareGroup {
     /// Join a share group with a topic predicate (Java `subscribe(Pattern)`).
     ///
     /// Cluster topics for which `matches` is true become the subscription.
-    /// Names starting with `__` are skipped. An empty match still joins: the
-    /// member is in the group with no assignment, and [`Self::poll`] re-lists
+    /// Names starting with `__` are skipped. Join returns after the first
+    /// successful heartbeat and does not wait for an assignment (Java
+    /// `ShareConsumer.subscribe(Pattern)`). An empty match still joins; the
+    /// member is in the group with no assignment. [`Self::poll`] re-lists
     /// Metadata when [`ConsumerConfig::metadata_max_age`] has elapsed (every
-    /// poll when that age is zero).
+    /// poll when that age is zero) and waits for assignment once names appear.
     pub async fn join_matching(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -881,83 +885,58 @@ impl ShareGroup {
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
 
-        let mut first = true;
-        loop {
-            let req = ShareGroupHeartbeatRequest {
-                group_id: self.group_id.clone(),
-                member_id: self.member_id.clone(),
-                member_epoch: if first {
-                    ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
-                } else {
-                    self.member_epoch
-                },
-                rack_id: self.cfg.rack.clone(),
-                // Re-send subscription until assignment arrives so the
-                // coordinator can resolve topic ids (KIP-932).
-                subscribed_topic_names: Some(self.topics.clone()),
-            };
-            let body = self
-                .coord
-                .roundtrip(
-                    SHARE_GROUP_HEARTBEAT,
-                    version,
-                    |buf| encode_share_group_heartbeat_request(buf, version, &req),
-                    timeout,
-                )
-                .await?;
+        let req = ShareGroupHeartbeatRequest {
+            group_id: self.group_id.clone(),
+            member_id: self.member_id.clone(),
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: self.cfg.rack.clone(),
+            subscribed_topic_names: Some(self.topics.clone()),
+        };
+        let body = self
+            .coord
+            .roundtrip(
+                SHARE_GROUP_HEARTBEAT,
+                version,
+                |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                timeout,
+            )
+            .await?;
 
-            let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
+        let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
 
-            if resp.error_code != 0 {
-                return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
-            }
-            if resp.heartbeat_interval_ms <= 0 {
-                return Err(Error::protocol(format!(
-                    "invalid ShareGroupHeartbeat heartbeat_interval_ms: {}",
-                    resp.heartbeat_interval_ms
-                )));
-            }
-            self.hb_interval_ms
-                .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
-            let interval =
-                Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
-            let hb_deadline = Instant::now() + interval;
-            *self.hb_deadline.lock() = Some(hb_deadline);
-            self.hb_wake.notify_one();
-            if let Some(id) = resp.member_id {
-                if !id.is_empty() {
-                    self.member_id = id;
-                }
-            }
-            if resp.member_epoch > 0 {
-                self.member_epoch = resp.member_epoch;
-            }
-            self.apply_share_assignment(resp.assignment.as_deref());
-            self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
-            self.hb_err.store(0, Ordering::SeqCst);
-            if !self.assigned.is_empty() {
-                return Ok(());
-            }
-            if self.topics.is_empty() {
-                // Pattern subscribe with no current matches: join succeeded.
-                // [`Self::poll`] re-lists Metadata and (re)joins when names appear.
-                return Ok(());
-            }
-            if Instant::now() >= deadline {
-                // Join succeeded; poll waits for assignment (Java ShareConsumer).
-                return Ok(());
-            }
-            first = false;
-            tokio::time::sleep(Duration::from_millis(50)).await;
-            if Instant::now() >= deadline {
-                return Ok(());
-            }
-            self.consumer.refresh_topics(&self.topics).await?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
         }
+        if resp.heartbeat_interval_ms <= 0 {
+            return Err(Error::protocol(format!(
+                "invalid ShareGroupHeartbeat heartbeat_interval_ms: {}",
+                resp.heartbeat_interval_ms
+            )));
+        }
+        self.hb_interval_ms
+            .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+        let interval =
+            Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
+        let hb_deadline = Instant::now() + interval;
+        *self.hb_deadline.lock() = Some(hb_deadline);
+        self.hb_wake.notify_one();
+        if let Some(id) = resp.member_id {
+            if !id.is_empty() {
+                self.member_id = id;
+            }
+        }
+        if resp.member_epoch > 0 {
+            self.member_epoch = resp.member_epoch;
+        }
+        self.apply_share_assignment(resp.assignment.as_deref());
+        self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+        self.hb_err.store(0, Ordering::SeqCst);
+        // Membership is established. Assignment may arrive on this response
+        // or a later heartbeat; poll waits (Java ShareConsumer).
+        Ok(())
     }
 
     fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {

@@ -4842,6 +4842,44 @@ async fn share_group_join_leave_without_classic_or_kip848() {
 }
 
 #[tokio::test]
+async fn share_join_matching_empty_does_not_wait_request_timeout() {
+    let mock = common::Mock::start().await;
+    let started = Instant::now();
+    let mut group = ShareGroup::join_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .request_timeout(Duration::from_secs(10))
+            .metadata_max_age(Duration::ZERO),
+        "sg-empty-pat",
+        |n: &str| n.starts_with("no-such-prefix-"),
+    )
+    .await
+    .unwrap();
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "empty pattern join waited {:?}",
+        started.elapsed()
+    );
+    assert!(
+        !group
+            .subscription()
+            .iter()
+            .any(|t| t.starts_with("no-such-prefix-")),
+        "seeded topic t must not match, got {:?}",
+        group.subscription()
+    );
+    assert!(group.assignment().is_empty());
+    let recs = group.poll().await.unwrap();
+    assert!(recs.is_empty());
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "empty pattern poll waited {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_group_heartbeat_negotiates_v0_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(SHARE_GROUP_HEARTBEAT, 0);
