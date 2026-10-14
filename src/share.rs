@@ -5,7 +5,7 @@ mod acquired;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Deref;
-use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -703,6 +703,10 @@ pub struct ShareGroup {
     hb_deadline: Arc<Mutex<Option<Instant>>>,
     hb_wake: Arc<Notify>,
     hb_stop: watch::Sender<bool>,
+    /// Last successful [`Self::poll`] start. Java `max.poll.interval.ms`.
+    last_poll: Arc<Mutex<Option<Instant>>>,
+    /// Heartbeat task left after [`ConsumerConfig::max_poll_interval`].
+    left_max_poll: Arc<AtomicBool>,
     fetch_rounds: u64,
     records_fetched: u64,
     bytes_fetched: u64,
@@ -854,6 +858,8 @@ impl ShareGroup {
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
         let hb_deadline = Arc::new(Mutex::new(None));
         let hb_wake = Arc::new(Notify::new());
+        let last_poll = Arc::new(Mutex::new(None));
+        let left_max_poll = Arc::new(AtomicBool::new(false));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -888,6 +894,8 @@ impl ShareGroup {
             hb_deadline,
             hb_wake,
             hb_stop,
+            last_poll,
+            left_max_poll,
             fetch_rounds: 0,
             records_fetched: 0,
             bytes_fetched: 0,
@@ -1031,6 +1039,28 @@ impl ShareGroup {
     #[must_use]
     pub fn next_heartbeat_deadline(&self) -> Option<Instant> {
         *self.hb_deadline.lock()
+    }
+
+    /// True after the heartbeat task left because
+    /// [`ConsumerConfig::max_poll_interval`] elapsed (Java
+    /// `max.poll.interval.ms`).
+    #[must_use]
+    pub fn is_left_max_poll(&self) -> bool {
+        self.left_max_poll.load(Ordering::SeqCst)
+    }
+
+    fn check_max_poll_interval(&self) -> Result<()> {
+        let interval = self.cfg.max_poll_interval;
+        let mut last = self.last_poll.lock();
+        if !interval.is_zero() {
+            if let Some(t) = *last {
+                if t.elapsed() > interval {
+                    return Err(Error::MaxPollInterval);
+                }
+            }
+        }
+        *last = Some(Instant::now());
+        Ok(())
     }
 
     /// Subscribed topic names, in join order.
@@ -1332,7 +1362,9 @@ impl ShareGroup {
     /// `max_partition_fetch_bytes` are the request byte limits.
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
-    /// subscribed to any topics.`). In
+    /// subscribed to any topics.`). Returns [`Error::MaxPollInterval`] when
+    /// [`ConsumerConfig::max_poll_interval`] elapsed since the last poll
+    /// (Java `max.poll.interval.ms`; the heartbeat task also leaves). In
     /// [`ShareAcknowledgementMode::Explicit`], a later poll that would
     /// contact a broker is Java `IllegalStateException` (`All records must
     /// be acknowledged in explicit acknowledgement mode.`) until every
@@ -1344,6 +1376,10 @@ impl ShareGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        if self.left_max_poll.load(Ordering::SeqCst) {
+            return Err(Error::MaxPollInterval);
+        }
+        self.check_max_poll_interval()?;
         if self.topics.is_empty() && self.topic_match.is_none() {
             return Err(reject_java_share_not_subscribed());
         }
@@ -2205,6 +2241,8 @@ impl ShareGroup {
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
+            *self.last_poll.lock() = None;
+            self.left_max_poll.store(false, Ordering::SeqCst);
             return Ok(());
         }
         self.topic_match = None;
@@ -2213,7 +2251,11 @@ impl ShareGroup {
         self.hb_interval_ms.store(0, Ordering::SeqCst);
         let acks = self.flush_close_acknowledgements().await;
         let close = self.close_share_session().await;
-        let leave = self.leave_coordinator().await;
+        let leave = if self.left_max_poll.load(Ordering::SeqCst) {
+            Ok(())
+        } else {
+            self.leave_coordinator().await
+        };
         self.assigned.clear();
         self.topics.clear();
         self.topic_ids.clear();
@@ -2231,6 +2273,8 @@ impl ShareGroup {
         self.pending_acknowledgements.clear();
         self.counted_acknowledgements.clear();
         self.async_commit = false;
+        *self.last_poll.lock() = None;
+        self.left_max_poll.store(false, Ordering::SeqCst);
         acks.and(close).and(leave)
     }
 
@@ -3136,7 +3180,11 @@ impl ShareGroup {
         *self.hb_deadline.lock() = None;
         let acks = self.flush_close_acknowledgements().await;
         let close = self.close_share_session().await;
-        let out = self.leave_coordinator().await;
+        let out = if self.left_max_poll.load(Ordering::SeqCst) {
+            Ok(())
+        } else {
+            self.leave_coordinator().await
+        };
         self.consumer.close_interceptors();
         acks.and(close).and(out)
     }
@@ -3197,6 +3245,8 @@ impl ShareGroup {
         let hb_interval_ms = self.hb_interval_ms.clone();
         let hb_deadline = self.hb_deadline.clone();
         let hb_wake = self.hb_wake.clone();
+        let last_poll = self.last_poll.clone();
+        let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             if *stop.borrow() {
@@ -3241,7 +3291,15 @@ impl ShareGroup {
                         }
                     }
                 }
-                let wake_deadline = next_hb_deadline;
+                let mut wake_deadline = next_hb_deadline;
+                if !cfg.max_poll_interval.is_zero() {
+                    if let Some(t) = *last_poll.lock() {
+                        let poll_deadline = t + cfg.max_poll_interval;
+                        if poll_deadline < wake_deadline {
+                            wake_deadline = poll_deadline;
+                        }
+                    }
+                }
                 let sleep_duration = wake_deadline.saturating_duration_since(Instant::now());
                 tokio::select! {
                     res = stop.changed() => {
@@ -3253,6 +3311,18 @@ impl ShareGroup {
                         continue;
                     }
                     _ = tokio::time::sleep(sleep_duration) => {
+                        if leave_if_share_max_poll(
+                            &cfg,
+                            &group_id,
+                            &member_id,
+                            &last_poll,
+                            &left_max_poll,
+                        )
+                        .await
+                        {
+                            *hb_deadline.lock() = None;
+                            break;
+                        }
                         if Instant::now() < next_hb_deadline {
                             continue;
                         }
@@ -3355,6 +3425,50 @@ impl ShareGroup {
             }
         }));
     }
+}
+
+async fn leave_if_share_max_poll(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    member_id: &str,
+    last_poll: &Mutex<Option<Instant>>,
+    left: &AtomicBool,
+) -> bool {
+    if left.load(Ordering::SeqCst) {
+        return true;
+    }
+    if cfg.max_poll_interval.is_zero() {
+        return false;
+    }
+    let expired = last_poll
+        .lock()
+        .is_some_and(|t| t.elapsed() > cfg.max_poll_interval);
+    if !expired {
+        return false;
+    }
+    left.store(true, Ordering::SeqCst);
+    if let Ok(mut conn) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
+        let version = conn.share_group_heartbeat_version;
+        if spoken_share_group_heartbeat(version).is_ok() {
+            let req = ShareGroupHeartbeatRequest {
+                group_id: group_id.to_string(),
+                member_id: member_id.to_string(),
+                member_epoch: ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
+                rack_id: cfg.rack.clone(),
+                subscribed_topic_names: None,
+            };
+            drop(
+                conn.roundtrip(
+                    SHARE_GROUP_HEARTBEAT,
+                    version,
+                    |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    cfg.request_timeout,
+                )
+                .await,
+            );
+        }
+    }
+    true
 }
 
 fn share_record_bytes(rec: &ShareRecord) -> u64 {

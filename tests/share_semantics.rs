@@ -187,6 +187,48 @@ async fn implicit_commit_async_then_leave_sends_standalone_ack() {
 }
 
 #[tokio::test]
+async fn max_poll_interval_errors_on_second_share_poll() {
+    let mock = common::Mock::start().await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_interval = Duration::from_millis(1);
+    let mut group = ShareGroup::join(cfg, "mpi", "t").await.unwrap();
+    group.poll().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    let err = group.poll().await.unwrap_err();
+    assert!(
+        matches!(err, Error::MaxPollInterval),
+        "expected MaxPollInterval, got {err}"
+    );
+    assert_eq!(err.to_string(), "max.poll.interval.ms exceeded");
+}
+
+#[tokio::test]
+async fn max_poll_interval_heartbeat_leaves_share_group() {
+    let mock = common::Mock::start().await;
+    mock.set_share_heartbeat_interval_ms(5000);
+    let mut cfg = config(&mock);
+    cfg.max_poll_interval = Duration::from_millis(40);
+    let mut group = ShareGroup::join(cfg, "mpi-leave", "t").await.unwrap();
+    group.poll().await.unwrap();
+    let started = Instant::now();
+    common::wait_pred("share heartbeat leaves on max poll", || {
+        group.is_left_max_poll()
+    })
+    .await;
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "max poll leave must not wait on the 5s share heartbeat: {:?}",
+        started.elapsed()
+    );
+    let err = group.poll().await.unwrap_err();
+    assert!(
+        matches!(err, Error::MaxPollInterval),
+        "expected MaxPollInterval, got {err}"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_mode_refuses_explicit_acknowledge() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"held")]).await;
