@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ShareGroup::join_matching` with a predicate that matches no current
+  topics joins immediately instead of waiting `request_timeout` for an
+  assignment. `poll` re-lists Metadata and returns empty records until
+  names appear.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a
