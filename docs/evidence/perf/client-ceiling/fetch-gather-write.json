@@ -1,0 +1,15 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "b7d362a02a6213a7a3d55aacb9e217feaed4414e",
+  "cell": "nb-fetch-bulk",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Ten interleaved pairs on one host. The same partitionline runtime fetched from two null brokers. The parent copies cached batches into one response buffer, then writes that buffer. The candidate writes the framing and the cached batches with one vectored transfer. Every run verified 20,000 records and validation_failures stayed 0. The paired mean records/s ratio is 1.126 and the bootstrap 95% CI is 1.094 to 1.162. This is a null-broker socket change, not a client-code speedup, not a fetch comparison against other clients, and not a fastest-client result.",
+  "before_records_per_second": [380720.21, 386189.84, 377232.52, 384493.74, 382967.12, 367436.13, 384651.23, 367972.65, 399128.49, 389059.82],
+  "before_median": 383730.43,
+  "after_records_per_second": [426238.64, 420925.96, 434980.1, 402329.48, 420266.65, 435803.37, 426276.82, 419896.38, 428674.84, 484409.2],
+  "after_median": 426257.73,
+  "paired_mean_ratio": 1.126,
+  "paired_ratio_ci95": [1.094, 1.162]
+}
