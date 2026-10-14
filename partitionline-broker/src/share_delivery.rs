@@ -1,7 +1,8 @@
 //! Share-fetch locks, partial acknowledgements, and expiry.
 //!
 //! A record can be accepted only while it is locked for the acknowledging
-//! member. Release, reject, gap, and expiry return it without accepting it.
+//! member and the lock deadline is still ahead. Release, reject, gap, expiry,
+//! and an acknowledgement of an expired lock return it without accepting it.
 //! Delivery stops after the configured limit. Every lock has a deadline, so
 //! restart and leader loss cannot leave a permanent lock or turn an
 //! undelivered record into an acknowledgement.
@@ -268,8 +269,8 @@ impl Delivery {
                 });
                 continue;
             };
-            let (locked_member, leader_epoch) = match &record.phase {
-                Phase::Locked(lock) => (lock.member.clone(), lock.leader_epoch),
+            let (locked_member, leader_epoch, deadline_ms) = match &record.phase {
+                Phase::Locked(lock) => (lock.member.clone(), lock.leader_epoch, lock.deadline_ms),
                 _ => {
                     results.push(AckResult {
                         offset: ack.offset,
@@ -278,6 +279,15 @@ impl Delivery {
                     continue;
                 }
             };
+            if now_ms >= deadline_ms {
+                record.phase = Phase::Available;
+                changed = true;
+                results.push(AckResult {
+                    offset: ack.offset,
+                    error_code: INVALID_REQUEST,
+                });
+                continue;
+            }
             if locked_member != member {
                 results.push(AckResult {
                     offset: ack.offset,
@@ -617,13 +627,25 @@ mod tests {
         assert_eq!(delivery.accepted(), vec![1]);
         assert_eq!(delivery.locked(), vec![4]);
         assert!(!delivery.accepted().contains(&9));
+        let expired = delivery
+            .acknowledge(
+                "alice",
+                1_500,
+                &[Ack {
+                    offset: 4,
+                    kind: ACK_ACCEPT,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(expired[0].error_code, INVALID_REQUEST);
+        assert!(!delivery.accepted().contains(&4));
+        assert!(delivery.locked().is_empty());
         assert_eq!(
             delivery
                 .expire(1_500)
                 .unwrap_or_else(|error| panic!("{error:?}")),
-            1
+            0
         );
-        assert!(delivery.locked().is_empty());
         assert_eq!(delivery.accepted(), vec![1]);
         assert!(delivery
             .acquire("alice", 2, 2_000, &[2])
