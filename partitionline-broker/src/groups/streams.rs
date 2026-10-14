@@ -2,7 +2,8 @@
 //!
 //! The client supplies the member id. Epoch 0 joins with a topology epoch and
 //! task count. Epoch -1 leaves. Epoch -2 replaces the member id of the same
-//! static instance. Active tasks are range-assigned. A second member receives
+//! static instance. An older endpoint epoch does not replace a newer one.
+//! Active tasks are range-assigned. A second member receives
 //! the other member's active tasks as standby, so one task is never active on
 //! two members. A different topology epoch stores nothing. Silence past the
 //! session timeout drops the member and reassigns the rest. Reopen restores
