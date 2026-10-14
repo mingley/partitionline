@@ -290,13 +290,15 @@ impl Groups {
     /// Publish the leader assignment or accept it as a follower.
     ///
     /// Followers pass an empty assignment. The leader's map must name every
-    /// current member and must not repeat a partition.
+    /// current member and must not repeat a partition. A successful sync
+    /// refreshes the member session clock.
     pub fn sync(
         &mut self,
         group_id: &str,
         member_id: &str,
         generation: i32,
         coordinator_epoch: i64,
+        now_ms: u64,
         assignment: &BTreeMap<String, Vec<i32>>,
     ) -> Result<Vec<i32>, Error> {
         self.ready()?;
@@ -347,6 +349,7 @@ impl Groups {
             .get_mut(member_id)
             .ok_or(Error::UnknownMember)?;
         member.synced = true;
+        member.last_seen_ms = now_ms;
         let owned = member.assignment.clone();
         self.persist_all()?;
         Ok(owned)
@@ -717,6 +720,7 @@ mod tests {
                 &follower.member_id,
                 leader.generation,
                 0,
+                0,
                 &assignment
             ),
             Err(Error::InvalidRequest)
@@ -727,6 +731,7 @@ mod tests {
                 &follower.member_id,
                 leader.generation,
                 0,
+                0,
                 &BTreeMap::new(),
             ),
             Err(Error::RebalanceInProgress)
@@ -736,6 +741,7 @@ mod tests {
                 "orders",
                 &leader.member_id,
                 leader.generation,
+                0,
                 0,
                 &assignment,
             )
@@ -752,6 +758,7 @@ mod tests {
                 &leader.member_id,
                 leader.generation,
                 0,
+                0,
                 &rewritten,
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -761,6 +768,7 @@ mod tests {
                 "orders",
                 &follower.member_id,
                 follower.generation,
+                0,
                 0,
                 &BTreeMap::new(),
             )
@@ -774,6 +782,7 @@ mod tests {
                 "orders",
                 &leader.member_id,
                 leader.generation,
+                0,
                 0,
                 &assignment
             ),
@@ -813,6 +822,7 @@ mod tests {
                 &leader.member_id,
                 leader.generation,
                 0,
+                0,
                 &assignment,
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
@@ -825,6 +835,7 @@ mod tests {
                 "orders",
                 &follower.member_id,
                 leader.generation,
+                0,
                 0,
                 &BTreeMap::new(),
             )
@@ -846,10 +857,33 @@ mod tests {
                 &leader.member_id,
                 leader.generation,
                 0,
+                0,
                 &assignment,
             ),
             Err(Error::IllegalGeneration)
         ));
+    }
+
+    #[test]
+    fn sync_holds_the_session_until_the_new_clock() {
+        let (mut groups, _) = open("sync-session");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut assignment = BTreeMap::new();
+        assignment.insert(leader.member_id.clone(), vec![0]);
+        groups
+            .sync(
+                "orders",
+                &leader.member_id,
+                leader.generation,
+                0,
+                1_000,
+                &assignment,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
+        assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
     }
 
     #[test]
@@ -886,6 +920,7 @@ mod tests {
                 "orders",
                 &leader.member_id,
                 leader.generation,
+                0,
                 0,
                 &BTreeMap::new()
             ),
