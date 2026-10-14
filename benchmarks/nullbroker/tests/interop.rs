@@ -325,7 +325,15 @@ fn handshake_produce_and_rejections() {
     }
     assert!(ranges.contains(&(0, 9, 12)), "produce range: {ranges:?}");
     assert!(ranges.contains(&(3, 12, 13)), "metadata range: {ranges:?}");
-    assert!(ranges.contains(&(22, 5, 5)), "ipid range: {ranges:?}");
+    assert!(ranges.contains(&(22, 3, 5)), "ipid range: {ranges:?}");
+    assert!(
+        ranges.contains(&(32, 1, 4)),
+        "describe configs range: {ranges:?}"
+    );
+    assert!(
+        ranges.contains(&(2, 7, 10)),
+        "list offsets range: {ranges:?}"
+    );
     assert!(ranges.contains(&(10, 1, 6)), "find-coord range: {ranges:?}");
 
     // Metadata v13 for ["t"]: 2 partitions, leader 0.

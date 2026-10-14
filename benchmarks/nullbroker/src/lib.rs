@@ -410,7 +410,7 @@ pub const fn advertised_apis() -> [(i16, i16, i16); 9] {
     [
         (API_KEY_PRODUCE, 9, 12),
         (API_KEY_METADATA, 12, 13),
-        (API_KEY_INIT_PRODUCER_ID, 5, 5),
+        (API_KEY_INIT_PRODUCER_ID, 3, 5),
         (API_KEY_API_VERSIONS, 0, 4),
         (API_KEY_FIND_COORDINATOR, 1, 6),
         (API_KEY_FETCH, 15, 17),
@@ -563,7 +563,10 @@ fn encode_metadata_response(
     out.put_empty_tagged_fields();
 }
 
-/// Decode an `InitProducerId` v5 request: `(transactional_id, timeout_ms)`.
+/// Decode an `InitProducerId` v3–v5 request: `(transactional_id, timeout_ms)`.
+///
+/// Versions 3 and 4 carry the same flexible body as version 5. librdkafka
+/// 2.15 negotiates at most version 4.
 fn decode_init_producer_id_request(body: &[u8]) -> Result<(Option<String>, i32), DecodeError> {
     let mut cur = Cursor::new(body);
     let transactional_id = cur.get_compact_string()?;
@@ -2077,7 +2080,7 @@ impl Worker {
                 );
                 Ok(Some(out))
             }
-            API_KEY_INIT_PRODUCER_ID if api_version == 5 => {
+            API_KEY_INIT_PRODUCER_ID if (3..=5).contains(&api_version) => {
                 let (transactional_id, _timeout) =
                     decode_init_producer_id_request(body).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
