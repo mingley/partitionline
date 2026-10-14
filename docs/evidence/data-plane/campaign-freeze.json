@@ -35,8 +35,9 @@
     "restart"
   ],
   "budgets": {
-    "trial_deadline_ms": 45000,
+    "trial_deadline_ms": 60000,
     "restoration_target_ms": 5000,
+    "isolation_ms": 2000,
     "produce_request_timeout_ms": 8000,
     "delivery_timeout_ms": 20000,
     "cluster_ready_timeout_ms": 180000,

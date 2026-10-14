@@ -1,0 +1,24 @@
+{
+  "seed": 1,
+  "id": "dp-0001",
+  "fault": "lost_ack",
+  "node": 2,
+  "partition": 1,
+  "example_exit": -1,
+  "elapsed_ms": 45236,
+  "restore_ms": 87,
+  "restoration_target_ms": 5000,
+  "inject": {
+    "fault": "lost_ack",
+    "node": 2,
+    "exit": 0,
+    "elapsed_ms": 61,
+    "stdout": "cluster-fixture: node 2 disconnected (SIGSTOP pid=39282)\n",
+    "stderr": ""
+  },
+  "history_path": null,
+  "stdout": "",
+  "stderr": "",
+  "ok": false,
+  "error": "example_failed"
+}

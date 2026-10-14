@@ -1,0 +1,24 @@
+{
+  "seed": 3,
+  "id": "dp-0003",
+  "fault": "disconnect",
+  "node": 1,
+  "partition": 0,
+  "example_exit": -1,
+  "elapsed_ms": 45248,
+  "restore_ms": 99,
+  "restoration_target_ms": 5000,
+  "inject": {
+    "fault": "disconnect",
+    "node": 1,
+    "exit": 0,
+    "elapsed_ms": 63,
+    "stdout": "cluster-fixture: node 1 disconnected (SIGSTOP pid=38515)\n",
+    "stderr": ""
+  },
+  "history_path": null,
+  "stdout": "",
+  "stderr": "",
+  "ok": false,
+  "error": "example_failed"
+}

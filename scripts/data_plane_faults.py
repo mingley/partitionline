@@ -72,6 +72,7 @@ def plan_seed(seed: int, freeze: Dict[str, Any] | None = None) -> Dict[str, Any]
         "budgets": {
             "trial_deadline_ms": int(budgets["trial_deadline_ms"]),
             "restoration_target_ms": int(budgets["restoration_target_ms"]),
+            "isolation_ms": int(budgets.get("isolation_ms", 2000)),
             "produce_request_timeout_ms": int(budgets["produce_request_timeout_ms"]),
             "delivery_timeout_ms": int(budgets["delivery_timeout_ms"]),
             "ready_wait_ms": int(budgets["ready_wait_ms"]),

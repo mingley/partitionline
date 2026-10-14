@@ -252,15 +252,20 @@ def run_trial(
         }
     inject = inject_fault(env, plan)
     go.write_text(json.dumps(inject))
+    isolation_s = plan["budgets"].get("isolation_ms", 2000) / 1000.0
+    restore_started = time.monotonic()
+    if plan["fault"] in ("disconnect", "lost_ack"):
+        time.sleep(isolation_s)
+        restore_cluster(env)
     trial_s = plan["budgets"]["trial_deadline_ms"] / 1000.0
+    remaining = max(5.0, trial_s - (time.monotonic() - started))
     try:
-        stdout, stderr = proc.communicate(timeout=trial_s)
+        stdout, stderr = proc.communicate(timeout=remaining)
         rc = proc.returncode
     except subprocess.TimeoutExpired:
         proc.kill()
         stdout, stderr = proc.communicate(timeout=10)
         rc = -1
-    restore_started = time.monotonic()
     restore_cluster(env)
     restore_ms = int((time.monotonic() - restore_started) * 1000)
     elapsed_ms = int((time.monotonic() - started) * 1000)
@@ -275,7 +280,7 @@ def run_trial(
         "restore_ms": restore_ms,
         "restoration_target_ms": plan["budgets"]["restoration_target_ms"],
         "inject": inject,
-        "history_path": str(history.relative_to(REPO_ROOT)) if history.exists() else None,
+        "history_path": str(history) if history.exists() else None,
         "stdout": (stdout or "")[-2000:],
         "stderr": (stderr or "")[-2000:],
     }
