@@ -2160,6 +2160,50 @@ async fn out_of_range_with_reset_none_must_fail_without_advancing() {
     }
 }
 
+/// A leader that returns success with the high watermark behind the fetch
+/// offset has truncated the log. Reset must run even without error 1.
+#[tokio::test]
+async fn fetch_past_high_watermark_resets_without_an_out_of_range_error() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |topics, attempt| {
+            let fetch_offset = topics[0].partitions[0].fetch_offset;
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    if attempt == 0 {
+                        part.high_watermark = 2;
+                        part.log_start_offset = 0;
+                        part.last_stable_offset = 2;
+                    } else {
+                        part.high_watermark = 2;
+                        part.last_stable_offset = 2;
+                        part.records = vec![fetch_fixture::data_batch(0, &[b"kept"], None)];
+                    }
+                    let _ = fetch_offset;
+                    part
+                }],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Earliest))
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign("t", 0, 5)
+        .await
+        .expect("assign past the log");
+    let first = consumer.fetch().await.expect("reset fetch");
+    assert!(first.is_empty());
+    assert_eq!(consumer.position("t", 0).expect("position"), 0);
+    let second = consumer.fetch().await.expect("refetch");
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].offset, 0);
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
 /// Verify that with auto.offset.reset=Earliest, OFFSET_OUT_OF_RANGE resolves the leader
 /// log start offset, clears last fetched epoch, and purges pending/abort state.
 #[tokio::test]

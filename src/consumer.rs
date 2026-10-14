@@ -4275,6 +4275,53 @@ impl Consumer {
         }
     }
 
+    fn reset_fetched_offset(
+        &mut self,
+        name: &str,
+        partition: i32,
+        log_start: i64,
+        high_watermark: i64,
+        completed: &mut PartitionMap<()>,
+        need_offsets: &mut Vec<(String, i32, i64)>,
+    ) -> Result<()> {
+        match self.cfg.auto_offset_reset {
+            crate::AutoOffsetReset::None => Err(Error::broker(
+                error::OFFSET_OUT_OF_RANGE,
+                format!("{name}-{partition}"),
+            )),
+            crate::AutoOffsetReset::Earliest => {
+                if log_start >= 0 {
+                    self.advance(name, partition, log_start);
+                    self.set_last_fetched_epoch(
+                        name,
+                        partition,
+                        crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    );
+                    self.drop_pending_for(name, partition);
+                    let _ = completed.insert(name, partition, ());
+                } else {
+                    need_offsets.push((name.to_owned(), partition, crate::EARLIEST_TIMESTAMP));
+                }
+                Ok(())
+            }
+            crate::AutoOffsetReset::Latest => {
+                if high_watermark >= 0 {
+                    self.advance(name, partition, high_watermark);
+                    self.set_last_fetched_epoch(
+                        name,
+                        partition,
+                        crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    );
+                    self.drop_pending_for(name, partition);
+                    let _ = completed.insert(name, partition, ());
+                } else {
+                    need_offsets.push((name.to_owned(), partition, crate::LATEST_TIMESTAMP));
+                }
+                Ok(())
+            }
+        }
+    }
+
     #[expect(
         clippy::too_many_arguments,
         reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
@@ -4367,52 +4414,15 @@ impl Consumer {
                         retry = retry.merge(FetchRetry::Redirect);
                         continue;
                     }
-                    match self.cfg.auto_offset_reset {
-                        crate::AutoOffsetReset::None => {
-                            return Err(Error::broker(
-                                error::OFFSET_OUT_OF_RANGE,
-                                format!("{}-{}", name, part.partition),
-                            ));
-                        }
-                        crate::AutoOffsetReset::Earliest => {
-                            if part.log_start_offset >= 0 {
-                                self.advance(&name, part.partition, part.log_start_offset);
-                                self.set_last_fetched_epoch(
-                                    &name,
-                                    part.partition,
-                                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                                );
-                                self.drop_pending_for(&name, part.partition);
-                                let _ = completed.insert(&name, part.partition, ());
-                            } else {
-                                need_offsets.push((
-                                    name.clone(),
-                                    part.partition,
-                                    crate::EARLIEST_TIMESTAMP,
-                                ));
-                            }
-                            continue;
-                        }
-                        crate::AutoOffsetReset::Latest => {
-                            if part.high_watermark >= 0 {
-                                self.advance(&name, part.partition, part.high_watermark);
-                                self.set_last_fetched_epoch(
-                                    &name,
-                                    part.partition,
-                                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                                );
-                                self.drop_pending_for(&name, part.partition);
-                                let _ = completed.insert(&name, part.partition, ());
-                            } else {
-                                need_offsets.push((
-                                    name.clone(),
-                                    part.partition,
-                                    crate::LATEST_TIMESTAMP,
-                                ));
-                            }
-                            continue;
-                        }
-                    }
+                    self.reset_fetched_offset(
+                        &name,
+                        part.partition,
+                        part.log_start_offset,
+                        part.high_watermark,
+                        completed,
+                        need_offsets,
+                    )?;
+                    continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
@@ -4450,6 +4460,33 @@ impl Consumer {
                     self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
                     self.drop_pending_for(&name, part.partition);
                     retry = retry.merge(FetchRetry::Redirect);
+                    continue;
+                }
+                let req_offset = self
+                    .assigned
+                    .iter()
+                    .find(|(t, p, _)| t == &name && *p == part.partition)
+                    .map_or(0, |(_, _, offset)| *offset);
+                if position_past_high_watermark(req_offset, part.high_watermark) {
+                    let is_leader = self
+                        .cluster
+                        .leader(&name, part.partition)
+                        .ok()
+                        .map(|(leader, _)| leader)
+                        == Some(node);
+                    if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
+                        let _ = self.preferred.remove(&name, part.partition);
+                        retry = retry.merge(FetchRetry::Redirect);
+                        continue;
+                    }
+                    self.reset_fetched_offset(
+                        &name,
+                        part.partition,
+                        part.log_start_offset,
+                        part.high_watermark,
+                        completed,
+                        need_offsets,
+                    )?;
                     continue;
                 }
                 let isolation = self.cfg.isolation_level;
@@ -5550,6 +5587,12 @@ fn fetch_topics(
 /// log position. A successful lookup with that sentinel must not rewind.
 /// Java `SubscriptionState.partitionLag`: unknown watermark is empty, and a
 /// position past the high watermark is zero rather than negative.
+/// A successful Fetch whose position is past the high watermark was truncated
+/// without an out-of-range error. The high watermark itself is still readable.
+fn position_past_high_watermark(position: i64, high_watermark: i64) -> bool {
+    high_watermark >= 0 && position > high_watermark
+}
+
 fn partition_lag(high_watermark: i64, position: i64) -> Option<i64> {
     if high_watermark < 0 {
         None
@@ -5786,6 +5829,13 @@ mod tests {
     fn a_negative_fetch_offset_is_rejected() {
         assert!(require_fetch_offset(-1).is_err());
         assert!(require_fetch_offset(0).is_ok());
+    }
+
+    #[test]
+    fn a_position_past_the_high_watermark_is_truncated() {
+        assert!(!position_past_high_watermark(2, 2));
+        assert!(position_past_high_watermark(3, 2));
+        assert!(!position_past_high_watermark(3, -1));
     }
 
     #[test]
