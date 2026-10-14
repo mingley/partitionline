@@ -3131,7 +3131,10 @@ fn wanted_from_kip848(
     let mut seen = HashSet::new();
     for tp in assignment {
         let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
-            if subscribed.len() == 1 || tp.topic_id == [0u8; 16] {
+            // One subscription can name an id metadata has not indexed yet.
+            // A zero id is not a topic, so it must not be attached to the
+            // first name when several topics are subscribed.
+            if subscribed.len() == 1 {
                 subscribed.first().cloned()
             } else {
                 None
@@ -4157,6 +4160,15 @@ mod tests {
         assert!(unresolved.is_empty());
         assert!(!kip848_assignment_can_apply(&unresolved, &unknown));
         assert!(kip848_assignment_can_apply(&[], &[]));
+        let zero = vec![TopicPartitions {
+            topic_id: [0u8; 16],
+            partitions: vec![0, 1],
+        }];
+        assert!(wanted_from_kip848(&["orders".into(), "payments".into()], &ids, &zero).is_empty());
+        assert_eq!(
+            wanted_from_kip848(&["orders".into()], &HashMap::new(), &zero),
+            vec![("orders".into(), 0), ("orders".into(), 1)]
+        );
     }
 
     #[test]
