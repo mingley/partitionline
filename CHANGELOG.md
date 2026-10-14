@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Incremental Fetch v12 session histories (full INITIAL, empty
+  incremental, forgotten partition, `FETCH_SESSION_ID_NOT_FOUND` reset,
+  and `INVALID_FETCH_SESSION_EPOCH` close-existing-attempt-new) are
+  checked against pinned Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1
+  and 4.3.1 builders and parsers. Public Consumer replay speaks INITIAL
+  rather than LEGACY. The original `not_run` row stays frozen (KL01-24).
+
 - Ordinary Produce v9, Fetch v12, ListOffsets v5 and Metadata v9 bodies
   for a 25-record `pl-ordinary` topic are checked against pinned Apache
   kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and

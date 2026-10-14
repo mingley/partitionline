@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "task": "KL01-24",
+  "declared_before_qualification": true,
+  "api_scope": [1],
+  "registered_case_ids": [
+    "feature-fetch-incremental-session-runtime"
+  ],
+  "original_dispositions_preserved": {
+    "not_run": [
+      "feature-fetch-incremental-session-runtime"
+    ]
+  },
+  "frozen_historical_pin": {
+    "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+    "peer_version_pin": "4.1.0",
+    "adapter": "none",
+    "note": "cases.json row stays not_run. The audit recorded that the high-level consumer hardcoded FetchMetadata::LEGACY. This card independently qualifies Apache Fetch v12 session wire and public Consumer INITIAL/incremental/reset histories without rewriting that pin."
+  },
+  "parameter_invocations": {
+    "fetch_version": 12,
+    "topic": "pl-session",
+    "session_id": 91,
+    "cells": [
+      "s01-full",
+      "s02-incremental",
+      "s03-forgotten",
+      "s04-not-found",
+      "s05-after-not-found",
+      "s06-invalid-epoch",
+      "s07-after-invalid-epoch"
+    ],
+    "nested_counts": {
+      "s01-full": {
+        "session_id": 0,
+        "epoch": 0,
+        "partitions": [0, 1],
+        "forgotten": []
+      },
+      "s02-incremental": {
+        "session_id": 91,
+        "epoch": 1,
+        "partitions": [],
+        "forgotten": []
+      },
+      "s03-forgotten": {
+        "session_id": 91,
+        "epoch": 2,
+        "partitions": [],
+        "forgotten": [1]
+      },
+      "s04-not-found": {
+        "error_code": 70,
+        "session_id": 0
+      },
+      "s05-after-not-found": {
+        "session_id": 0,
+        "epoch": 0,
+        "partitions": [0, 1]
+      },
+      "s06-invalid-epoch": {
+        "error_code": 71,
+        "session_id": 0
+      },
+      "s07-after-invalid-epoch": {
+        "session_id": 91,
+        "epoch": 0,
+        "is_full": true
+      }
+    },
+    "expected_histories": {
+      "s01_session": [0, 0],
+      "s02_session": [91, 1],
+      "s03_forgotten": [1],
+      "s04_error": 70,
+      "s05_session": [0, 0],
+      "s06_error": 71,
+      "s07_session": [91, 0]
+    },
+    "field_gates": {
+      "Fetch_session": "7+",
+      "Fetch_flexible": "12+",
+      "Fetch_topic_ids": "13+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "note": "Fetch v12 sessions are inside 3.9.1 HIGHEST_SUPPORTED_VERSION. GitHub raw of the 3.9.1 commit SHA 404s; sources hashed via tag 3.9.1. FetchSessionHandler.java and FetchMetadata.java match 4.1.0–4.3.1 byte-for-byte.",
+      "sources": {
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "FetchMetadata.java": "3cbebdfe98522e225e1cd1e2f8025a6577f564f85d52d6f6841f1a29b7522b98",
+        "FetchRequest.json": "556074dc9896bd9fe33a85aa7bd8816bf1c22b9dc56f03a2b2b359560c31e4eb",
+        "FetchResponse.json": "61d3e92615763f6cf0b2482ac48f7cb3e61dbcf71f2978a403ec3a065ae70011"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "FetchSessionHandler/FetchMetadata match 3.9.1 and later pins. FetchRequest.json matches 4.1.2.",
+      "sources": {
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "FetchMetadata.java": "3cbebdfe98522e225e1cd1e2f8025a6577f564f85d52d6f6841f1a29b7522b98",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Handler, metadata, and Fetch JSON envelopes match 4.1.0.",
+      "sources": {
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "FetchMetadata.java": "3cbebdfe98522e225e1cd1e2f8025a6577f564f85d52d6f6841f1a29b7522b98",
+        "FetchRequest.json": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "Handler and FetchMetadata match 3.9.1/4.1.x. FetchRequest.json differs from 4.1.x; FetchResponse.json matches 4.1.x.",
+      "sources": {
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "FetchMetadata.java": "3cbebdfe98522e225e1cd1e2f8025a6577f564f85d52d6f6841f1a29b7522b98",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "Handler, FetchMetadata, and Fetch JSON envelopes match 4.2.1.",
+      "sources": {
+        "FetchSessionHandler.java": "54b4907991752a7ff6518bd6820cd96cd5487822ff03a0961c0f40dde2abeb71",
+        "FetchMetadata.java": "3cbebdfe98522e225e1cd1e2f8025a6577f564f85d52d6f6841f1a29b7522b98",
+        "FetchRequest.json": "40d679a103935abe707055c2f3dde3aefcdb0eb13a00e51a71f2e0832d2033ba",
+        "FetchResponse.json": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/FetchSessionHandler.java",
+      "method": "handleResponse",
+      "applicability": "applicable",
+      "reason": "Hashed identically on all five pins (54b490799175…). FETCH_SESSION_ID_NOT_FOUND sets nextMetadata = INITIAL (L531-L532). Other session errors including INVALID_FETCH_SESSION_EPOCH use nextCloseExistingAttemptNew (L534). Successful full with sessionId 91 uses newIncremental (L569). Successful incremental uses nextIncremental (L593)."
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/FetchMetadata.java",
+      "method": "INITIAL / newIncremental / nextCloseExistingAttemptNew",
+      "applicability": "applicable",
+      "reason": "INITIAL is (INVALID_SESSION_ID=0, INITIAL_EPOCH=0). LEGACY is (0, FINAL_EPOCH=-1). newIncremental(91) is (91, 1). nextCloseExistingAttemptNew keeps sessionId and sets epoch 0."
+    },
+    {
+      "path": "clients/src/main/resources/common/message/FetchRequest.json",
+      "method": "SessionId / SessionEpoch / ForgottenTopicsData",
+      "applicability": "applicable",
+      "reason": "Fetch v12 (7+) carries session metadata and forgotten topics. s03 forgets pl-session partition 1 on session 91 epoch 2."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "cases.json not_run disposition",
+      "reason": "feature-fetch-incremental-session-runtime stays not_run at source pin cb7e97d3b92a8555aea34d59266a2990c206395f. This card does not rewrite the historical audit result."
+    },
+    {
+      "cell": "fetch-v4-v6-legacy",
+      "reason": "SessionId / SessionEpoch / ForgottenTopicsData start at Fetch v7. v4–v6 remain LEGACY (epoch -1). Outside this incremental-session campaign."
+    },
+    {
+      "cell": "fetch-v13-topic-ids",
+      "reason": "The fixture broker advertises FETCH max v12. Topic IDs start at 13."
+    },
+    {
+      "cell": "share-v2-fetch-session-reset",
+      "reason": "Share-group fetch sessions are a different API family (share-v2-*). This card's api_scope is Fetch (1) only."
+    },
+    {
+      "cell": "tests/oracles/java/FetchSessionOracle.java",
+      "reason": "The existing 128-partition local oracle campaign is not this card's finite named cells and is not the independent leftover-empty / public Consumer oracle."
+    },
+    {
+      "cell": "KL01-14 exhaustive source/parameter applicability",
+      "reason": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+    }
+  ]
+}

@@ -52340,7 +52340,7 @@
       "title": "Qualify incremental Fetch session runtime and bounded reset histories",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "cursor-cloud",
       "depends_on": [
         "KL01-03"
@@ -52366,7 +52366,10 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-24.json",
+        "docs/evidence/conformance/q-conf-fetchsessionruntime/qualification-20261014/README.md"
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceFetchSessionRuntime.java",
         "tests/conformance/java/generate_fetch_session_runtime.py",
@@ -52389,7 +52392,8 @@
         "feature-fetch-incremental-session-runtime"
       ],
       "caller_scopes": [],
-      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+      "qualification_limit": "This bounded registered cohort does not close exhaustive upstream source/parameter applicability under KL01-14.",
+      "completion_source": "3b86fc4e6424bdfe95735987d4652fdda34f466d"
     },
     {
       "id": "KL01-25",

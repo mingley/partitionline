@@ -1,0 +1,31 @@
+{
+  "task": "KL01-24",
+  "source_sha": "3b86fc4e6424bdfe95735987d4652fdda34f466d",
+  "date": "2026-10-14",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "JDK": "21.0.12.1",
+  "deadline_seconds": 180,
+  "deadline_remaining_seconds": 173.609,
+  "generator_sha256": "d3999aa87f28035d1cdf11a9991ca7932f034973d168db379adea4aeb1533099",
+  "runner_sha256": "ce4e8848d71cae3db6909331e9c5e2e8a0e089649d79e2528ab2fbf889241f6d",
+  "independent_generations_match": true,
+  "peers": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+  "generated_bodies": 50,
+  "unsupported_receipts": 0,
+  "fixture_files": 61,
+  "rust_offline_tests": 4,
+  "rust_apache_reverse_parses": 20,
+  "python_plan_tests": 4,
+  "replay_peers": ["4.1.0", "4.3.1"],
+  "public_consumer_histories": {
+    "first_request": [0, 0],
+    "incremental_request": [91, 1],
+    "after_not_found": [0, 0],
+    "legacy_epoch_absent": true
+  },
+  "original_dispositions_preserved": true,
+  "cases_json_rows_added": 0,
+  "records_rs_edited": false,
+  "buf_rs_edited": false,
+  "qualification_limit": "Finite named Fetch v12 session cells for five pinned client jars. Public Consumer replay covers INITIAL vs LEGACY, incremental epoch 1, and NOT_FOUND reset. INVALID_FETCH_SESSION_EPOCH is leftover-empty wire only. Fetch v13+ topic IDs stay outside the advertised FETCH max. The registered not_run row is not rewritten. This bounded cohort does not close exhaustive upstream source/parameter applicability under KL01-14."
+}
