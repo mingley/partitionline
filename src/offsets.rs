@@ -589,6 +589,11 @@ pub(crate) fn collect_bounded_commits(
         }
         let tp = tp.into();
         let md = md.into();
+        if tp.partition < 0 || md.offset < 0 {
+            return Err(Error::protocol(
+                "committed partition and offset must not be negative",
+            ));
+        }
         if tp.topic.len() > limits.string_bytes || md.metadata.len() > limits.string_bytes {
             return Err(Error::protocol(
                 "offset topic/metadata string exceeds limit",
@@ -612,6 +617,11 @@ pub(crate) fn collect_bounded_partitions(
             return Err(Error::protocol("too many offset partitions"));
         }
         let partition = partition.into();
+        if partition.partition < 0 {
+            return Err(Error::protocol(
+                "offset partition index must not be negative",
+            ));
+        }
         if partition.topic.len() > limits.string_bytes {
             return Err(Error::protocol("offset topic string exceeds limit"));
         }
@@ -782,4 +792,31 @@ fn validate_fetch_response(
         return Err(Error::protocol("incomplete offset fetch groups"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{collect_bounded_commits, collect_bounded_partitions};
+    use crate::consumer::{OffsetAndMetadata, TopicPartition};
+
+    #[test]
+    fn a_negative_commit_is_rejected() {
+        assert!(collect_bounded_commits([(
+            TopicPartition::new("t", -1),
+            OffsetAndMetadata::new(0)
+        )])
+        .is_err());
+        assert!(collect_bounded_commits([(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::new(-1)
+        )])
+        .is_err());
+        assert!(collect_bounded_commits([(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::new(0)
+        )])
+        .is_ok());
+        assert!(collect_bounded_partitions([TopicPartition::new("t", -1)]).is_err());
+        assert!(collect_bounded_partitions([TopicPartition::new("t", 0)]).is_ok());
+    }
 }
