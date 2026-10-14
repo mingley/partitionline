@@ -2132,6 +2132,14 @@ impl Consumer {
                 return Err(Error::protocol(format!("{field} must be nonnegative")));
             }
         }
+        let Ok(wait_ms) = u32::try_from(cfg.max_wait_ms) else {
+            return Err(Error::protocol("max_wait_ms must be nonnegative"));
+        };
+        if u128::from(wait_ms) >= cfg.request_timeout.as_millis() {
+            return Err(Error::protocol(
+                "request.timeout.ms must be greater than fetch.max.wait.ms",
+            ));
+        }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,

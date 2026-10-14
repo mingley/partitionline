@@ -5033,6 +5033,17 @@ async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
 }
 
 #[tokio::test]
+async fn request_timeout_must_outlast_fetch_wait() {
+    let mut cfg = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
+    cfg.max_wait_ms = 30_000;
+    cfg.request_timeout = Duration::from_secs(30);
+    match Consumer::new(cfg).await {
+        Ok(_) => panic!("request timeout equal to fetch.max.wait.ms must be rejected"),
+        Err(err) => assert!(err.to_string().contains("fetch.max.wait.ms"), "got {err}"),
+    }
+}
+
+#[tokio::test]
 async fn session_timeout_must_outlast_the_heartbeat() {
     let mut dead = ConsumerConfig::bootstrap(["127.0.0.1:1"]);
     dead.session_timeout_ms = 0;

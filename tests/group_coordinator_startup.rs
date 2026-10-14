@@ -64,6 +64,7 @@ async fn slow_bootstrap_negotiation_cannot_reset_the_discovery_deadline() {
         .bootstrap
         .extend([second.addr.clone(), third.addr.clone()]);
     config.request_timeout = Duration::from_millis(80);
+    config.max_wait_ms = 1;
     let result = tokio::time::timeout(
         Duration::from_millis(150),
         ConsumerGroup::join(config, "slow-bootstrap", "t"),
@@ -81,6 +82,7 @@ async fn persistent_startup_errors_stop_at_the_original_deadline_with_backoff() 
     }
     let mut config = config(&mock);
     config.request_timeout = Duration::from_millis(80);
+    config.max_wait_ms = 1;
     config.retry_backoff = Duration::from_millis(25);
     config.retry_backoff_max = config.retry_backoff;
     let started = Instant::now();
