@@ -106,19 +106,26 @@ impl fmt::Display for ShareAcknowledgementMode {
 /// Java `AcknowledgementCommitCallback` exception argument (owned).
 ///
 /// `code` is the Kafka `error_code` when the failure is a broker error.
+/// [`Self::message`] is Java `Exception.getMessage`: the broker
+/// `AcknowledgeErrorMessage` when ShareFetch/ShareAcknowledge supplies
+/// one, otherwise the [`Error`] display text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcknowledgementCommitError {
     /// Kafka `error_code`, or `None` for timeout / client-side RPC failure.
     pub code: Option<i16>,
-    /// [`Error`] display text.
+    /// Java `Exception.getMessage`.
     pub message: String,
 }
 
 impl AcknowledgementCommitError {
     fn from_error(error: &Error) -> Self {
+        let message = match error {
+            Error::Broker { message, .. } if !message.is_empty() => message.clone(),
+            _ => error.to_string(),
+        };
         Self {
             code: error.broker_code(),
-            message: error.to_string(),
+            message,
         }
     }
 
@@ -128,7 +135,7 @@ impl AcknowledgementCommitError {
         self.code
     }
 
-    /// [`Error`] display text.
+    /// Java `Exception.getMessage`.
     #[must_use]
     pub fn message(&self) -> &str {
         &self.message
@@ -659,7 +666,9 @@ pub enum ShareAcquireMode {
 /// (Java `close` releases acquired records without acknowledgement).
 /// A piggybacked ShareFetch acknowledgement error fires the commit
 /// callback and does not fail [`Self::poll`] (Java
-/// `ShareConsumeRequestManager`). Incremental ShareFetch sends Java
+/// `ShareConsumeRequestManager`); the callback message is
+/// `AcknowledgeErrorMessage` when the broker sends one. Incremental
+/// ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
@@ -2107,10 +2116,16 @@ impl ShareGroup {
                         // Java ShareConsumeRequestManager completes the
                         // piggybacked acknowledgements and still delivers
                         // this ShareFetch. poll() does not throw.
-                        let error = Error::broker(
-                            part.acknowledge_error_code,
-                            format!("ShareFetch acknowledgement {name}-{}", part.partition),
-                        );
+                        // Errors.forCode(ack).exception(acknowledgeErrorMessage)
+                        let detail = part
+                            .acknowledge_error_message
+                            .as_deref()
+                            .filter(|msg| !msg.is_empty())
+                            .map(str::to_owned)
+                            .unwrap_or_else(|| {
+                                format!("ShareFetch acknowledgement {name}-{}", part.partition)
+                            });
+                        let error = Error::broker(part.acknowledge_error_code, detail);
                         self.fail_share_fetch_acknowledgements(&name, part.partition, &error);
                     }
                     let mut acquired = part.acquired;
@@ -3844,6 +3859,7 @@ mod tests {
             "x",
         ));
         assert_eq!(error.code(), Some(error::INVALID_RECORD_STATE));
+        assert_eq!(error.message(), "x");
         assert_eq!(error.to_string(), error.message());
         assert!(AcknowledgementCommitError::from_error(&Error::Timeout)
             .code()

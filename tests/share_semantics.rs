@@ -848,6 +848,47 @@ async fn implicit_piggyback_ack_error_does_not_fail_poll() {
 }
 
 #[tokio::test]
+async fn implicit_piggyback_ack_error_message_reaches_callback() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-msg", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.acknowledge_error_code = error::UNKNOWN_SERVER_ERROR;
+    part.acknowledge_error_message = Some("ack failure with broker context".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(group.poll().await.unwrap().is_empty());
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::UNKNOWN_SERVER_ERROR),
+            "ack failure with broker context".into()
+        ))]
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_overlaps_two_leaders() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

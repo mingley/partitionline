@@ -2036,7 +2036,9 @@
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on
 //! ShareFetch (Java `ShareConsumeRequestManager`). A piggybacked
 //! acknowledgement error fires the commit callback and does not fail
-//! that poll (Java). Implicit
+//! that poll; [`AcknowledgementCommitError::message`] is the broker
+//! `AcknowledgeErrorMessage` when present (Java
+//! `Errors.exception(acknowledgeErrorMessage)`). Implicit
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll
 //! without ACCEPT (Java `close`). [`ShareGroup::poll`] returns
 //! [`Error::MaxPollInterval`] when [`ConsumerConfig::max_poll_interval`]
