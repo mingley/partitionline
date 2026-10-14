@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- KIP-848 OffsetFetch / OffsetCommit adopt the heartbeat `MemberEpoch`
+  before the RPC. Delayed assignment (second member join, broker-resolved
+  regex) used to OffsetFetch at the join epoch and fail with
+  `STALE_MEMBER_EPOCH` (113). `commit_with_metadata` now applies a pending
+  heartbeat assignment the same way `commit` / `poll` already did.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a

@@ -123,6 +123,7 @@ impl ConsumerGroup {
         timeout: Duration,
         snapshot: Option<&HashMap<(String, i32), [u8; 16]>>,
     ) -> Result<()> {
+        self.adopt_kip848_membership();
         let metadata = self.consumer.topic_name_ids();
         let mut topics = BTreeMap::<[u8; 16], Vec<OffsetCommitPartitionData>>::new();
         for (tp, md) in offsets {
@@ -189,6 +190,7 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
+        self.adopt_kip848_membership();
         let names = self.consumer.topic_name_ids();
         let mut reverse = HashMap::new();
         let topics = topics

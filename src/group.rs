@@ -1172,6 +1172,7 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
+        self.adopt_kip848_membership();
         if self.coord.offset_fetch_version == 10 {
             return self.fetch_offsets_v10(topics, timeout).await;
         }
@@ -1587,12 +1588,19 @@ impl ConsumerGroup {
 
     /// [`Self::commit_with_metadata`] with a one-shot timeout
     /// (Java `commitSync(Map, Duration)`).
+    ///
+    /// KIP-848 members apply a pending heartbeat assignment and adopt
+    /// `MemberEpoch` before OffsetCommit, matching [`Self::commit`].
     pub async fn commit_with_metadata_timeout(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
         timeout: Duration,
     ) -> Result<()> {
         let started = Instant::now();
+        if self.kip848 {
+            self.check_kip848_membership().await?;
+            self.apply_pending_assignment().await?;
+        }
         let offsets = crate::offsets::collect_bounded_commits(offsets)?;
         let topics = group_offset_topics(&offsets);
         if topics.is_empty() {
@@ -1615,6 +1623,7 @@ impl ConsumerGroup {
         topics: &[OffsetTopic],
         timeout: Duration,
     ) -> Result<()> {
+        self.adopt_kip848_membership();
         let version = spoken_offset_commit(self.coord.offset_commit_version)?;
         let body = coord_roundtrip(
             &mut self.coord,
@@ -2335,8 +2344,23 @@ impl ConsumerGroup {
         }
     }
 
-    async fn apply_pending_assignment(&mut self) -> Result<()> {
+    /// Copy broker-rotated member id and MemberEpoch from the heartbeat task.
+    ///
+    /// OffsetFetch / OffsetCommit use [`Self::generation_id`]. Adopting after
+    /// those RPCs yields [`error::STALE_MEMBER_EPOCH`].
+    fn adopt_kip848_membership(&mut self) {
+        if !self.kip848 {
+            return;
+        }
         self.adopt_kip848_member_id();
+        let epoch = self.hb_generation.load(Ordering::SeqCst);
+        if epoch > 0 {
+            self.generation_id = epoch;
+        }
+    }
+
+    async fn apply_pending_assignment(&mut self) -> Result<()> {
+        self.adopt_kip848_membership();
         let pending = self.hb_assignment.lock().take();
         let Some(assignment) = pending else {
             return Ok(());
@@ -2355,7 +2379,6 @@ impl ConsumerGroup {
         let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
         let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
-        self.generation_id = self.hb_generation.load(Ordering::SeqCst);
         Ok(())
     }
 

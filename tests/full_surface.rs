@@ -14059,6 +14059,50 @@ async fn kip848_acks_assignment_only_after_apply() {
     b.leave().await.unwrap();
 }
 
+#[tokio::test]
+async fn commit_with_metadata_adopts_pending_kip848_epoch() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join_consumer(ccfg.clone(), "epoch-848", "t")
+        .await
+        .unwrap();
+    let _ = a.poll().await.unwrap();
+    a.commit_with_metadata(
+        a.assignment()
+            .into_iter()
+            .map(|tp| (tp, OffsetAndMetadata::new(1))),
+    )
+    .await
+    .unwrap();
+    assert_eq!(mock.last_offset_commit_generation(), Some(1));
+
+    let b = ConsumerGroup::join_consumer(ccfg, "epoch-848", "t")
+        .await
+        .unwrap();
+    common::wait_pred("A heartbeats at epoch 2", || {
+        mock.cg_heartbeat_acks().iter().any(|(_, e, _)| *e == 2)
+    })
+    .await;
+
+    a.commit_with_metadata(
+        a.assignment()
+            .into_iter()
+            .map(|tp| (tp, OffsetAndMetadata::new(2))),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mock.last_offset_commit_generation(),
+        Some(2),
+        "commit_with_metadata must adopt the heartbeat MemberEpoch before OffsetCommit"
+    );
+    assert_eq!(a.generation_id(), 2);
+    a.leave().await.unwrap();
+    b.leave().await.unwrap();
+}
+
 /// KL03-15: malformed heartbeat responses must surface from poll as an
 /// INVALID_REQUEST broker error instead of spinning silently in the loop.
 /// A short burst keeps the test deterministic: no healthy heartbeat can
