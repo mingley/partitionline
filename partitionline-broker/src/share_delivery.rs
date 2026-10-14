@@ -249,8 +249,10 @@ impl Delivery {
     /// Apply a partial acknowledgement batch.
     ///
     /// An offset that is not locked for `member` is reported as
-    /// [`INVALID_REQUEST`] and is not accepted. Successful entries in the same
-    /// batch are still stored.
+    /// [`INVALID_REQUEST`] and is not accepted. A release, a gap, or an
+    /// acknowledgement of an expired lock returns the record only while
+    /// another delivery is allowed. At the delivery limit those paths archive
+    /// it. Successful entries in the same batch are still stored.
     pub fn acknowledge(
         &mut self,
         member: &str,
@@ -286,7 +288,10 @@ impl Delivery {
                 }
             };
             if now_ms >= deadline_ms {
-                record.phase = Phase::Available;
+                // The lock is already dead. At the delivery limit this is the
+                // same archive `expire` would perform; a live member must not
+                // accept the record on the way out.
+                release_lock(record, self.limits.max_deliveries);
                 changed = true;
                 results.push(AckResult {
                     offset: ack.offset,
@@ -303,7 +308,7 @@ impl Delivery {
             }
             match ack.kind {
                 ACK_ACCEPT => record.phase = Phase::Accepted,
-                ACK_RELEASE | ACK_GAP => record.phase = Phase::Available,
+                ACK_RELEASE | ACK_GAP => release_lock(record, self.limits.max_deliveries),
                 ACK_REJECT => record.phase = Phase::Rejected,
                 ACK_RENEW => {
                     record.phase = Phase::Locked(Lock {
@@ -763,6 +768,84 @@ mod tests {
             .acquire("bob", 1, 1_000, &[8])
             .unwrap_or_else(|error| panic!("{error:?}"))
             .is_empty());
+        assert!(delivery.accepted().is_empty());
+    }
+
+    #[test]
+    fn release_gap_and_expired_ack_at_the_delivery_limit_archive_the_record() {
+        let (mut delivery, path) = open("limit-release");
+        for offset in [3, 4, 5] {
+            delivery
+                .append(offset)
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            assert_eq!(
+                delivery
+                    .acquire("alice", 1, 0, &[offset])
+                    .unwrap_or_else(|error| panic!("{error:?}")),
+                vec![offset]
+            );
+            delivery
+                .acknowledge(
+                    "alice",
+                    0,
+                    &[Ack {
+                        offset,
+                        kind: ACK_RELEASE,
+                    }],
+                )
+                .unwrap_or_else(|error| panic!("{error:?}"));
+            assert_eq!(
+                delivery
+                    .acquire("alice", 1, 0, &[offset])
+                    .unwrap_or_else(|error| panic!("{error:?}")),
+                vec![offset]
+            );
+        }
+        let released = delivery
+            .acknowledge(
+                "alice",
+                0,
+                &[Ack {
+                    offset: 3,
+                    kind: ACK_RELEASE,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(released[0].error_code, ACK_OK);
+        let gap = delivery
+            .acknowledge(
+                "alice",
+                0,
+                &[Ack {
+                    offset: 4,
+                    kind: ACK_GAP,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(gap[0].error_code, ACK_OK);
+        let expired = delivery
+            .acknowledge(
+                "alice",
+                1_000,
+                &[Ack {
+                    offset: 5,
+                    kind: ACK_ACCEPT,
+                }],
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(expired[0].error_code, INVALID_REQUEST);
+        assert_eq!(delivery.archived(), vec![3, 4, 5]);
+        assert!(delivery.locked().is_empty());
+        assert!(delivery.accepted().is_empty());
+        for offset in [3, 4, 5] {
+            assert!(delivery
+                .acquire("bob", 1, 1_000, &[offset])
+                .unwrap_or_else(|error| panic!("{error:?}"))
+                .is_empty());
+        }
+        drop(delivery);
+        let delivery = Delivery::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(delivery.archived(), vec![3, 4, 5]);
         assert!(delivery.accepted().is_empty());
     }
 }
