@@ -251,6 +251,7 @@ async fn run_phase(
         AckMode::PerRecordCompletion => {
             per_record(producer, req, count, rate, deadline, journal).await
         }
+        AckMode::ManualAssignment => Err("manual assignment is a fetch cell".into()),
     }
 }
 

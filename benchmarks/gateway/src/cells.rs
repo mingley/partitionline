@@ -10,6 +10,8 @@ pub enum AckMode {
     FireAndForgetTimedFlush,
     /// One completion per record (`Producer::send` / librdkafka delivery callback).
     PerRecordCompletion,
+    /// Manual assignment consume; every ID/hash is verified.
+    ManualAssignment,
 }
 
 impl AckMode {
@@ -19,6 +21,7 @@ impl AckMode {
         match self {
             Self::FireAndForgetTimedFlush => "fire-and-forget confirmed by a timed flush",
             Self::PerRecordCompletion => "per-record completion",
+            Self::ManualAssignment => "manual assignment from an explicit offset",
         }
     }
 }
@@ -31,6 +34,8 @@ pub enum Load {
     OpenLoop25k,
     /// Unpaced saturation.
     Unpaced,
+    /// Consume a backlog written once by the pinned peer.
+    SeededBacklog,
 }
 
 impl Load {
@@ -40,6 +45,7 @@ impl Load {
         match self {
             Self::OpenLoop25k => "open-loop-25k",
             Self::Unpaced => "unpaced",
+            Self::SeededBacklog => "backlog",
         }
     }
 
@@ -48,7 +54,7 @@ impl Load {
     pub fn rate_per_second(self) -> Option<u64> {
         match self {
             Self::OpenLoop25k => Some(25_000),
-            Self::Unpaced => None,
+            Self::Unpaced | Self::SeededBacklog => None,
         }
     }
 }
@@ -115,8 +121,33 @@ pub const ACK: Cell = Cell {
     partitions: 8,
 };
 
+/// gzip fetch cell over a seeded backlog.
+pub const FETCH_GZIP: Cell = Cell {
+    id: "lb-gateway-fetch-gzip",
+    codec: "gzip",
+    level: -1,
+    ack_mode: AckMode::ManualAssignment,
+    acks: -1,
+    max_in_flight: 1,
+    linger_ms: 100,
+    batch_size_bytes: 1_048_576,
+    partitions: 8,
+};
+
+/// Java / librdkafka `fetch.min.bytes`.
+pub const FETCH_MIN_BYTES: i32 = 1;
+/// Java / librdkafka `fetch.max.wait.ms`.
+pub const FETCH_MAX_WAIT_MS: i32 = 500;
+/// Java / librdkafka `fetch.max.bytes` (50 MiB).
+pub const FETCH_MAX_BYTES: i32 = 52_428_800;
+/// Java / librdkafka `max.partition.fetch.bytes` (1 MiB).
+pub const FETCH_PARTITION_BYTES: i32 = 1_048_576;
+
 /// All produce cells built by KL10-02.
 pub const CELLS: [Cell; 3] = [GZIP, LZ4, ACK];
+
+/// Fetch cells built by KL10-14.
+pub const FETCH_CELLS: [Cell; 1] = [FETCH_GZIP];
 
 /// Both load shapes every cell runs.
 pub const LOADS: [Load; 2] = [Load::OpenLoop25k, Load::Unpaced];
@@ -128,6 +159,15 @@ pub fn find(id: &str) -> Result<Cell, String> {
         .copied()
         .find(|cell| cell.id == id)
         .ok_or_else(|| format!("unknown gateway produce cell {id}"))
+}
+
+/// Look up a registered fetch cell.
+pub fn find_fetch(id: &str) -> Result<Cell, String> {
+    FETCH_CELLS
+        .iter()
+        .copied()
+        .find(|cell| cell.id == id)
+        .ok_or_else(|| format!("unknown gateway fetch cell {id}"))
 }
 
 /// Clients the campaign interleaves.
@@ -185,5 +225,18 @@ pub fn section2_differences() -> [&'static str; 5] {
         "High-watermark deltas are reconciled against acknowledged counts (section 2 did not check them).",
         "gzip uses the repository default backend (zlib-rs unless built with default-features = false), not the dated miniz_oxide-only profile.",
         "Open-loop 25k and unpaced loads share one run_timeout; section 2 used separate 20 s / 15 s walls.",
+    ]
+}
+
+/// Differences from gateway-adoption.md section 2 consume table. Recorded, not gated.
+#[must_use]
+pub fn fetch_section2_differences() -> [&'static str; 6] {
+    [
+        "Host is this Linux measurement environment, not the 2026-09-30 Apple M4 Pro laptop.",
+        "mTLS is preferred when TLS_CLIENT_CERT_PEM is set; PLAINTEXT is accepted and recorded when it is not.",
+        "Both clients use matched Java/librdkafka fetch knobs (1 byte min, 500 ms wait, 50 MiB fetch.max.bytes, 1 MiB max.partition.fetch.bytes).",
+        "gzip uses the repository default backend (zlib-rs unless built with default-features = false), not the dated miniz_oxide-only profile.",
+        "The backlog is COUNT records written once by the pinned rust-rdkafka peer; section 2 did not publish the backlog size.",
+        "Every consumed ID/hash is verified against the KL04-07 produce history; section 2 did not report that gate.",
     ]
 }

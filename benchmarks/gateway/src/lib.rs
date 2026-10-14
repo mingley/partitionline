@@ -5,6 +5,8 @@
 
 pub mod cells;
 pub mod drive;
+pub mod fdrive;
+pub mod fetch;
 pub mod json1k;
 pub mod peer;
 pub mod report;

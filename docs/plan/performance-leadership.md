@@ -268,10 +268,15 @@ reports medians with bootstrap 95% CIs. Artifacts must pass
 | `lb-gateway-produce-gzip` | KL10-02 | 1 KiB json1k; 8 partitions; gzip; acks=all; max in flight 1; linger 100 ms; 1 MiB batches; open-loop 25k and unpaced; fire-and-forget confirmed by a timed flush; rust-rdkafka peer at the same knobs | Acknowledged rec/s, CPU per record (process rusage), peak RSS |
 | `lb-gateway-produce-lz4` | KL10-02 | As gzip, with lz4 (advertised level 9) | As gzip |
 | `lb-gateway-produce-ack` | KL10-02 | As gzip, with one completion per record (`Producer::send` / librdkafka delivery callback) | As gzip, plus p50/p99/p99.9 acknowledgment latency |
+| `lb-gateway-fetch-gzip` | KL10-14 | 1 KiB json1k gzip backlog written once by the pinned rust-rdkafka peer; 8 partitions; manual assignment from those explicit start offsets; matched fetch.min.bytes / fetch.max.wait.ms / fetch.max.bytes / max.partition.fetch.bytes / TLS | Verified rec/s, CPU per record (process rusage), peak RSS |
 
 KL10-02 recorded a local unsigned `COUNT=25000` A-B baseline for the three
 produce cells (`docs/evidence/perf/KL10-02`). Suite HOLD remains. Those
 numbers are not a performance claim.
+
+KL10-14 registers `lb-gateway-fetch-gzip`. A local unsigned baseline is
+recorded in `docs/evidence/perf/KL10-14` when the campaign executes.
+Suite HOLD remains. Those numbers are not a performance claim.
 
 ## 5. Strategy and waves
 

@@ -105,6 +105,21 @@ fn effective_post_creation_settings_and_no_secret_dump() {
 }
 
 #[test]
+fn fetch_defaults_apply_without_explicit_fields() {
+    let c = config();
+    assert_eq!(c.fetch_min_bytes, 1);
+    assert_eq!(c.fetch_wait_max_ms, 500);
+    assert_eq!(c.fetch_max_bytes, 52_428_800);
+    assert_eq!(c.max_partition_fetch_bytes, 1_048_576);
+    assert!(c.assignment_offsets.is_empty());
+    let mut assigned = c.clone();
+    assigned.assignment_offsets = vec![0; assigned.partitions as usize];
+    assert!(assigned.validate().is_ok());
+    assigned.assignment_offsets.push(1);
+    assert!(assigned.validate().is_err());
+}
+
+#[test]
 fn native_pin_checks_fail_before_any_broker_request() {
     assert!(native::runtime("missing-hash").is_err());
     let failure = native::runtime(&"0".repeat(64)).unwrap_err();

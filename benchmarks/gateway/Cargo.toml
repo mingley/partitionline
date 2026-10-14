@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.99"
 publish = false
 license = "MIT OR Apache-2.0"
-description = "Gateway produce cells versus the isolated rust-rdkafka peer. Standalone benchmark crate."
+description = "Gateway produce and fetch cells versus the isolated rust-rdkafka peer. Standalone benchmark crate."
 
 [workspace]
 
@@ -24,6 +24,10 @@ codec = { version = "0.1.0", path = "../codec" }
 [[bin]]
 name = "gateway-produce"
 path = "src/bin/gateway-produce.rs"
+
+[[bin]]
+name = "gateway-fetch"
+path = "src/bin/gateway-fetch.rs"
 
 [lib]
 name = "gateway"

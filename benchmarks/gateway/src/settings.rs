@@ -226,6 +226,135 @@ pub fn refuse_compare(
     Ok(())
 }
 
+/// Fetch knobs both clients must match.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FetchSettings {
+    /// `fetch.min.bytes`.
+    pub min_bytes: i32,
+    /// `fetch.max.wait.ms`.
+    pub max_wait_ms: i32,
+    /// `fetch.max.bytes`.
+    pub fetch_max_bytes: i32,
+    /// `max.partition.fetch.bytes`.
+    pub max_partition_fetch_bytes: i32,
+    /// TLS shape.
+    pub tls: TlsMode,
+    /// `isolation.level`.
+    pub isolation: String,
+}
+
+impl FetchSettings {
+    /// Profile defaults with the campaign TLS mode.
+    #[must_use]
+    pub fn for_cell(tls: TlsMode) -> Self {
+        Self {
+            min_bytes: crate::cells::FETCH_MIN_BYTES,
+            max_wait_ms: crate::cells::FETCH_MAX_WAIT_MS,
+            fetch_max_bytes: crate::cells::FETCH_MAX_BYTES,
+            max_partition_fetch_bytes: crate::cells::FETCH_PARTITION_BYTES,
+            tls,
+            isolation: "read_uncommitted".into(),
+        }
+    }
+
+    /// Parse partitionline or rust-rdkafka effective-config.
+    pub fn from_effective(value: &serde_json::Value) -> Result<Self, String> {
+        let min_bytes = i32_field(value, &["fetch_min_bytes", "min_bytes", "fetch.min.bytes"])?;
+        let max_wait_ms = i32_field(
+            value,
+            &["fetch_max_wait_ms", "max_wait_ms", "fetch.wait.max.ms"],
+        )?;
+        let fetch_max_bytes =
+            i32_field(value, &["fetch_max_bytes", "max_bytes", "fetch.max.bytes"])?;
+        let max_partition_fetch_bytes = i32_field(
+            value,
+            &[
+                "max_partition_fetch_bytes",
+                "max.partition.fetch.bytes",
+                "fetch.message.max.bytes",
+            ],
+        )?;
+        let isolation = string_field(value, &["isolation", "isolation_level", "isolation.level"])?
+            .to_ascii_lowercase();
+        let protocol = value
+            .get("security_protocol")
+            .or_else(|| value.get("security.protocol"))
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("PLAINTEXT");
+        let client_cert = value
+            .get("tls_client_cert")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        Ok(Self {
+            min_bytes,
+            max_wait_ms,
+            fetch_max_bytes,
+            max_partition_fetch_bytes,
+            tls: TlsMode::from_protocol(protocol, client_cert),
+            isolation,
+        })
+    }
+}
+
+fn i32_field(value: &serde_json::Value, names: &[&str]) -> Result<i32, String> {
+    int_field(value, names)
+}
+
+/// Refuse when any gated fetch knob differs.
+pub fn refuse_fetch_compare(
+    left: &FetchSettings,
+    right: &FetchSettings,
+) -> Result<(), CompareRefusal> {
+    let checks: [(&'static str, String, String, bool); 6] = [
+        (
+            "min_bytes",
+            left.min_bytes.to_string(),
+            right.min_bytes.to_string(),
+            left.min_bytes == right.min_bytes,
+        ),
+        (
+            "max_wait_ms",
+            left.max_wait_ms.to_string(),
+            right.max_wait_ms.to_string(),
+            left.max_wait_ms == right.max_wait_ms,
+        ),
+        (
+            "fetch_max_bytes",
+            left.fetch_max_bytes.to_string(),
+            right.fetch_max_bytes.to_string(),
+            left.fetch_max_bytes == right.fetch_max_bytes,
+        ),
+        (
+            "max_partition_fetch_bytes",
+            left.max_partition_fetch_bytes.to_string(),
+            right.max_partition_fetch_bytes.to_string(),
+            left.max_partition_fetch_bytes == right.max_partition_fetch_bytes,
+        ),
+        (
+            "tls",
+            format!("{:?}", left.tls),
+            format!("{:?}", right.tls),
+            left.tls == right.tls,
+        ),
+        (
+            "isolation",
+            left.isolation.clone(),
+            right.isolation.clone(),
+            left.isolation == right.isolation,
+        ),
+    ];
+    for (field, l, r, ok) in checks {
+        if !ok {
+            return Err(CompareRefusal {
+                field,
+                left: l,
+                right: r,
+            });
+        }
+    }
+    Ok(())
+}
+
 /// Fire-and-forget is never compared with per-record completion.
 pub fn refuse_ack_modes(left: AckMode, right: AckMode) -> Result<(), CompareRefusal> {
     if left == right {

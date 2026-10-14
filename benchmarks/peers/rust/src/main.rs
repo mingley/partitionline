@@ -3,10 +3,11 @@ use partitionline_rust_rdkafka_peer::{config::Config, native, records};
 use rdkafka::{
     admin::{AdminClient, AdminOptions, ResourceSpecifier},
     client::ClientContext,
+    consumer::{BaseConsumer, Consumer as KafkaConsumer},
     error::{KafkaError, RDKafkaErrorCode},
-    message::{Header, OwnedHeaders},
+    message::{Header, Headers, Message, OwnedHeaders},
     producer::{BaseProducer, BaseRecord, DeliveryResult, Producer, ProducerContext, PurgeConfig},
-    Message,
+    topic_partition_list::{Offset, TopicPartitionList},
 };
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -336,16 +337,172 @@ fn watermarks(producer: &BaseProducer<Context>, config: &Config) -> Result<Vec<i
         .collect()
 }
 
+fn consume(config: &Config) -> Result<bool, Failure> {
+    if config.assignment_offsets.len() != config.partitions as usize {
+        return Err("consume requires assignment_offsets for every partition".into());
+    }
+    let consumer: BaseConsumer = config.client(true).create()?;
+    let effective = native::consumer_effective(consumer.client())?;
+    let mut assignment = TopicPartitionList::new();
+    for (partition, offset) in config.assignment_offsets.iter().enumerate() {
+        assignment.add_partition_offset(
+            &config.topic,
+            i32::try_from(partition).map_err(|_| "partition index")?,
+            Offset::Offset(*offset),
+        )?;
+    }
+    consumer.assign(&assignment)?;
+    let history_path = std::env::var("RUST_PEER_HISTORY")?;
+    let mut history = create(&history_path)?;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut verified = 0u64;
+    let mut duplicates = 0u64;
+    let mut bad = 0u64;
+    let mut received = 0u64;
+    let deadline = Instant::now()
+        + Duration::from_millis(config.consume_timeout_ms.max(config.run_timeout_ms));
+    let began = Instant::now();
+    while received < config.count && Instant::now() < deadline {
+        let Some(result) = consumer.poll(Duration::from_millis(100)) else {
+            continue;
+        };
+        let message = match result {
+            Ok(message) => message,
+            Err(error) => {
+                if error.rdkafka_error_code() == Some(RDKafkaErrorCode::PartitionEOF) {
+                    continue;
+                }
+                bad += 1;
+                continue;
+            }
+        };
+        received += 1;
+        let Some(key) = message.key() else {
+            bad += 1;
+            continue;
+        };
+        if key.len() != 16 {
+            bad += 1;
+            continue;
+        }
+        let id = u64::from_be_bytes(key[..8].try_into().map_err(|_| "record key")?);
+        let expected_key = records::key(config.record_seed, id);
+        let expected_value = if config.payload_mode == "json1k" {
+            records::json1k_value(config.record_seed, id)
+        } else {
+            records::value(
+                config.record_seed,
+                id,
+                config.payload_bytes,
+                config.payload_mode == "seeded",
+            )
+        };
+        let payload = message.payload().unwrap_or(&[]);
+        let expected_header = records::gw8_header(config.record_seed, id);
+        let header_ok = message.headers().is_some_and(|headers| {
+            (0..headers.count()).any(|index| {
+                let header = headers.get(index);
+                header.key == "gw" && header.value == Some(expected_header.as_slice())
+            })
+        });
+        let partition_ok = id % u64::try_from(config.partitions).unwrap_or(1)
+            == u64::try_from(message.partition()).unwrap_or(u64::MAX);
+        if key != expected_key.as_slice()
+            || payload != expected_value.as_slice()
+            || !header_ok
+            || !partition_ok
+        {
+            bad += 1;
+            continue;
+        }
+        if !seen.insert(id) {
+            duplicates += 1;
+            continue;
+        }
+        verified += 1;
+        let record = json!({
+            "id": id.to_string(),
+            "attempt_index": id,
+            "topic": config.topic,
+            "partition": message.partition(),
+            "offset": message.offset(),
+            "payload_hash": format!("{:x}", Sha256::digest(payload)),
+            "status": "verified"
+        });
+        serde_json::to_writer(&mut history, &record)?;
+        writeln!(history)?;
+    }
+    history.flush()?;
+    let elapsed_s = began.elapsed().as_secs_f64().max(f64::EPSILON);
+    let threads = fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|status| {
+            status.lines().find_map(|line| {
+                line.strip_prefix("Threads:")
+                    .and_then(|s| s.trim().parse::<u64>().ok())
+            })
+        })
+        .unwrap_or(1);
+    let raw = json!({
+        "client": "rust-rdkafka-BaseConsumer",
+        "version": native::WRAPPER_VERSION,
+        "effective_config": effective,
+        "timed": {
+            "offered": received,
+            "accepted": received,
+            "acknowledged": 0,
+            "consumed": verified,
+            "rejected": bad,
+            "timed_out": u64::from(verified < config.count),
+            "unknown": 0,
+            "elapsed_s": elapsed_s
+        },
+        "verification": {
+            "verified_ids": verified,
+            "duplicate_ids": duplicates,
+            "bad_records": bad,
+            "performed": true
+        },
+        "assignment": {
+            "offsets": config.assignment_offsets,
+            "partitions": config.partitions
+        },
+        "resources": {
+            "user_cpu_seconds": 0,
+            "system_cpu_seconds": 0,
+            "peak_rss_bytes": 0,
+            "threads_count": threads
+        }
+    });
+    let mut file = create(&std::env::var("RUST_PEER_RAW")?)?;
+    serde_json::to_writer(&mut file, &raw)?;
+    writeln!(file)?;
+    file.flush()?;
+    Ok(verified == config.count && duplicates == 0 && bad == 0)
+}
+
 fn run() -> Result<bool, Failure> {
     let mode = std::env::args()
         .nth(1)
-        .ok_or("usage: rust-peer emit-config|produce")?;
-    if !["emit-config", "produce"].contains(&mode.as_str()) {
+        .ok_or("usage: rust-peer emit-config|produce|emit-consumer-config|consume")?;
+    if !["emit-config", "produce", "emit-consumer-config", "consume"].contains(&mode.as_str()) {
         return Err("unsupported mode".into());
     }
     let runtime = native::runtime(&std::env::var("RUST_PEER_NATIVE_SHA256")?)?;
     let config: Config = serde_json::from_slice(&fs::read(std::env::var("RUST_PEER_CONFIG")?)?)?;
     config.validate()?;
+    if mode == "emit-consumer-config" || mode == "consume" {
+        if mode == "emit-consumer-config" {
+            let consumer: BaseConsumer = config.client(true).create()?;
+            let effective = native::consumer_effective(consumer.client())?;
+            println!(
+                "{}",
+                json!({"runtime":runtime,"effective_config":effective})
+            );
+            return Ok(true);
+        }
+        return consume(&config);
+    }
     let producer: BaseProducer<_> = config.client(false).create_with_context(Context)?;
     let effective = native::effective(producer.client())?;
     if mode == "emit-config" {

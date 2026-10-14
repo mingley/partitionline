@@ -38,7 +38,53 @@ pub fn runtime(expected_hash: &str) -> Result<serde_json::Value, String> {
     )
 }
 
+const PRODUCER_KEYS: &[&str] = &[
+    "request.required.acks",
+    "queue.buffering.max.ms",
+    "batch.size",
+    "batch.num.messages",
+    "max.in.flight.requests.per.connection",
+    "queue.buffering.max.messages",
+    "queue.buffering.max.kbytes",
+    "message.timeout.ms",
+    "enable.idempotence",
+    "compression.codec",
+    "compression.level",
+    "security.protocol",
+    "socket.nagle.disable",
+    "sticky.partitioning.linger.ms",
+    "partitioner",
+    "retries",
+    "client.id",
+];
+
+const CONSUMER_KEYS: &[&str] = &[
+    "fetch.min.bytes",
+    "fetch.wait.max.ms",
+    "fetch.max.bytes",
+    "max.partition.fetch.bytes",
+    "isolation.level",
+    "enable.auto.commit",
+    "auto.offset.reset",
+    "security.protocol",
+    "socket.nagle.disable",
+    "client.id",
+];
+
 pub fn effective<C: ClientContext>(client: &Client<C>) -> Result<BTreeMap<String, String>, String> {
+    read_keys(client, PRODUCER_KEYS)
+}
+
+pub fn consumer_effective<C: ClientContext>(
+    client: &Client<C>,
+) -> Result<BTreeMap<String, String>, String> {
+    read_keys(client, CONSUMER_KEYS)
+}
+
+fn read_keys<C: ClientContext>(
+    client: &Client<C>,
+    keys: &[&str],
+) -> Result<BTreeMap<String, String>, String> {
     let mut output = BTreeMap::new();
     // SAFETY: client owns the live RDKafka; rd_kafka_conf returns a borrowed immutable
     // configuration valid until client destruction. This function never mutates or frees it.
@@ -46,26 +92,8 @@ pub fn effective<C: ClientContext>(client: &Client<C>) -> Result<BTreeMap<String
     if config.is_null() {
         return Err("native client has no configuration".into());
     }
-    for key in [
-        "request.required.acks",
-        "queue.buffering.max.ms",
-        "batch.size",
-        "batch.num.messages",
-        "max.in.flight.requests.per.connection",
-        "queue.buffering.max.messages",
-        "queue.buffering.max.kbytes",
-        "message.timeout.ms",
-        "enable.idempotence",
-        "compression.codec",
-        "compression.level",
-        "security.protocol",
-        "socket.nagle.disable",
-        "sticky.partitioning.linger.ms",
-        "partitioner",
-        "retries",
-        "client.id",
-    ] {
-        let name = CString::new(key).expect("constant contains no NUL");
+    for key in keys {
+        let name = CString::new(*key).expect("constant contains no NUL");
         let mut size = 0;
         // SAFETY: borrowed config and name are valid; null destination requests its size.
         let status = unsafe {
@@ -96,7 +124,7 @@ pub fn effective<C: ClientContext>(client: &Client<C>) -> Result<BTreeMap<String
             .to_str()
             .map_err(|_| "non-UTF8 native config")?
             .to_owned();
-        output.insert(key.to_owned(), text);
+        output.insert((*key).to_owned(), text);
     }
     Ok(output)
 }

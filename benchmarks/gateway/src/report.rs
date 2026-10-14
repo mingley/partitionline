@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 
 use crate::cells::{AckMode, Cell, ClientKind, Load};
 use crate::rusage::ProcessRusage;
-use crate::settings::ComparableSettings;
+use crate::settings::{ComparableSettings, FetchSettings};
 
 /// Inputs for one result file.
 pub struct ResultDraft {
@@ -59,28 +59,41 @@ pub struct ResultDraft {
     pub pairing_order: String,
     /// Companion artifact paths already written.
     pub artifacts: Vec<(String, PathBuf)>,
+    /// `bulk` for produce cells, `fetch` for the gateway fetch cell.
+    pub profile: &'static str,
+    /// Matched fetch knobs when `profile` is `fetch`.
+    pub fetch: Option<FetchSettings>,
 }
 
 /// Acknowledged records / elapsed. Enqueue rates are never used.
 #[must_use]
 pub fn acknowledged_throughput(acknowledged: u64, elapsed_s: f64) -> f64 {
+    verified_throughput(acknowledged, elapsed_s)
+}
+
+/// Verified consumed records / elapsed.
+#[must_use]
+pub fn verified_throughput(records: u64, elapsed_s: f64) -> f64 {
     if elapsed_s <= 0.0 {
         return 0.0;
     }
-    acknowledged as f64 / elapsed_s
+    records as f64 / elapsed_s
 }
 
 /// Build and write a schema 1.0.0 result object.
 pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
     let elapsed = draft.elapsed_s.max(1e-9);
-    let acked = draft.acknowledged;
-    let throughput = acknowledged_throughput(acked, elapsed);
-    let bytes = acked.saturating_mul(crate::json1k::VALUE_BYTES as u64);
+    let is_fetch = draft.profile == "fetch";
+    let acked = if is_fetch { 0 } else { draft.acknowledged };
+    let consumed = if is_fetch { draft.verified_ids } else { 0 };
+    let delivered = if is_fetch { consumed } else { acked };
+    let throughput = verified_throughput(delivered, elapsed);
+    let bytes = delivered.saturating_mul(crate::json1k::VALUE_BYTES as u64);
     let cpu = draft.rusage.user_cpu_seconds + draft.rusage.system_cpu_seconds;
-    let matches = draft.watermarks_queried && draft.watermark_delta == acked as i64;
+    let matches = draft.watermarks_queried && draft.watermark_delta == delivered as i64;
     let verified = draft.disposition == "executed"
         && matches
-        && draft.verified_ids == acked
+        && draft.verified_ids == delivered
         && draft.rejected == 0
         && draft.timed_out == 0;
     let latency = latency_block(&draft.latencies_us, draft.cell.ack_mode);
@@ -110,6 +123,65 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
             "size_bytes": 0,
         }));
     }
+    let fetch = draft
+        .fetch
+        .clone()
+        .unwrap_or_else(|| FetchSettings::for_cell(draft.settings.tls));
+    let equal_semantics = json!({
+        "durability": {"replication_factor": 1, "min_insync_replicas": 1},
+        "acks": draft.settings.acks,
+        "idempotence": false,
+        "isolation": if is_fetch {
+            fetch.isolation.clone()
+        } else {
+            "read_uncommitted".into()
+        },
+        "security": {
+            "protocol": if is_fetch {
+                fetch.tls.security_protocol()
+            } else {
+                draft.settings.tls.security_protocol()
+            },
+            "mechanism": "NONE"
+        },
+        "acknowledgment_mode": draft.cell.ack_mode.label(),
+        "note": draft.reason,
+    });
+    let effective_settings = if is_fetch {
+        json!({
+            "acks": draft.settings.acks,
+            "linger_ms": draft.settings.linger_ms,
+            "batch_size_bytes": draft.settings.batch_size_bytes,
+            "max_in_flight": draft.settings.max_in_flight,
+            "idempotence": false,
+            "codec": draft.settings.codec,
+            "level": draft.settings.level,
+            "tls": fetch.tls,
+            "acknowledgment_mode": draft.cell.ack_mode.label(),
+            "fetch_min_bytes": fetch.min_bytes,
+            "fetch_max_wait_ms": fetch.max_wait_ms,
+            "fetch_max_bytes": fetch.fetch_max_bytes,
+            "max_partition_fetch_bytes": fetch.max_partition_fetch_bytes,
+            "isolation": fetch.isolation,
+        })
+    } else {
+        json!({
+            "acks": draft.settings.acks,
+            "linger_ms": draft.settings.linger_ms,
+            "batch_size_bytes": draft.settings.batch_size_bytes,
+            "max_in_flight": draft.settings.max_in_flight,
+            "idempotence": false,
+            "codec": draft.settings.codec,
+            "level": draft.settings.level,
+            "tls": draft.settings.tls,
+            "acknowledgment_mode": draft.cell.ack_mode.label(),
+        })
+    };
+    let section2 = if is_fetch {
+        json!(crate::cells::fetch_section2_differences())
+    } else {
+        json!(crate::cells::section2_differences())
+    };
     let doc = json!({
         "schema_version": "1.0.0",
         "contract_version": "1.1.0",
@@ -120,22 +192,11 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
         },
         "scenario": {
             "scenario_id": format!("{}:{}:{}", draft.cell.id, draft.load.id(), draft.client.name()),
-            "profile": "bulk",
+            "profile": draft.profile,
             "tier": "exploratory",
             "peer": draft.client.peer_label(),
             "cell_disposition": draft.disposition,
-            "equal_semantics": {
-                "durability": {"replication_factor": 1, "min_insync_replicas": 1},
-                "acks": draft.settings.acks,
-                "idempotence": false,
-                "isolation": "read_uncommitted",
-                "security": {
-                    "protocol": draft.settings.tls.security_protocol(),
-                    "mechanism": "NONE"
-                },
-                "acknowledgment_mode": draft.cell.ack_mode.label(),
-                "note": draft.reason,
-            }
+            "equal_semantics": equal_semantics
         },
         "provenance": {
             "source": {
@@ -145,7 +206,11 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
                 "clean": clean,
                 "tree_hash": tree_hash,
                 "peer": draft.client.name(),
-                "note": "Harness-only gateway produce cell; librdkafka stays in excluded peer crates"
+                "note": if is_fetch {
+                    "Harness-only gateway fetch cell; librdkafka stays in excluded peer crates"
+                } else {
+                    "Harness-only gateway produce cell; librdkafka stays in excluded peer crates"
+                }
             },
             "binary": {
                 "name": draft.client.name(),
@@ -155,17 +220,7 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
             "config": {
                 "path": "effective-settings",
                 "sha256": config_sha,
-                "effective_settings": {
-                    "acks": draft.settings.acks,
-                    "linger_ms": draft.settings.linger_ms,
-                    "batch_size_bytes": draft.settings.batch_size_bytes,
-                    "max_in_flight": draft.settings.max_in_flight,
-                    "idempotence": false,
-                    "codec": draft.settings.codec,
-                    "level": draft.settings.level,
-                    "tls": draft.settings.tls,
-                    "acknowledgment_mode": draft.cell.ack_mode.label(),
-                }
+                "effective_settings": effective_settings
             },
             "toolchains": {
                 "compiler": rustc_version(),
@@ -188,7 +243,7 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
                 "client_nodes": 1,
                 "broker_nodes": 1,
                 "network_interface": "lo",
-                "section2_differences": crate::cells::section2_differences(),
+                "section2_differences": section2,
             },
             "timestamps": {
                 "start_time_utc": start,
@@ -229,7 +284,7 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
             "offered": draft.offered,
             "accepted": draft.accepted,
             "acknowledged": acked,
-            "consumed": draft.verified_ids,
+            "consumed": consumed,
             "rejected": draft.rejected,
             "timed_out": draft.timed_out,
             "unknown": draft.unknown
@@ -243,7 +298,11 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
                 "total_bytes_transferred": bytes,
                 "total_bytes_unit": "bytes",
                 "mb_definition": "1 MB=1000000 value bytes; keys/protocol excluded",
-                "definition": "acknowledged / elapsed; enqueue rates are never reported as acknowledged throughput"
+                "definition": if is_fetch {
+                    "verified consumed / elapsed; every ID/hash checked against the KL04-07 history"
+                } else {
+                    "acknowledged / elapsed; enqueue rates are never reported as acknowledged throughput"
+                }
             },
             "latency": latency,
             "client_resources": {
@@ -293,9 +352,9 @@ pub fn write_result(path: &Path, draft: &ResultDraft) -> Result<Value, String> {
             "record_ids": {
                 "start_id": 0,
                 "end_id": draft.offered.saturating_sub(1),
-                "expected_count": acked,
+                "expected_count": delivered,
                 "verified_count": draft.verified_ids,
-                "missing_ids_count": acked.saturating_sub(draft.verified_ids),
+                "missing_ids_count": delivered.saturating_sub(draft.verified_ids),
                 "duplicate_ids_count": 0,
                 "checksum_algorithm": "KL04-07 record history plus SHA256 payload hash",
                 "payload_checksum_matches": verified
@@ -377,10 +436,16 @@ fn latency_block(samples: &[f64], mode: AckMode) -> Value {
             "buckets": [{"min_us": 0, "max_us": 0, "count": n}]
         },
         "acknowledgment_mode": mode.label(),
-        "definition": if mode == AckMode::PerRecordCompletion {
-            "offer-to-send-future-completion; not a fire-and-forget flush bound"
-        } else {
-            "fire-and-forget cells do not report per-record acknowledgment latency"
+        "definition": match mode {
+            AckMode::PerRecordCompletion => {
+                "offer-to-send-future-completion; not a fire-and-forget flush bound"
+            }
+            AckMode::ManualAssignment => {
+                "fetch cells report verified consume throughput, not per-record acknowledgment latency"
+            }
+            AckMode::FireAndForgetTimedFlush => {
+                "fire-and-forget cells do not report per-record acknowledgment latency"
+            }
         }
     })
 }
@@ -544,5 +609,30 @@ pub fn not_run_draft(
         total_repetitions,
         pairing_order: pairing_order.into(),
         artifacts: Vec::new(),
+        profile: "bulk",
+        fetch: None,
     }
+}
+
+/// Draft a `not_run` fetch result.
+pub fn not_run_fetch_draft(
+    cell: Cell,
+    client: ClientKind,
+    reason: impl Into<String>,
+    repetition_index: u64,
+    total_repetitions: u64,
+    pairing_order: impl Into<String>,
+) -> ResultDraft {
+    let mut draft = not_run_draft(
+        cell,
+        Load::SeededBacklog,
+        client,
+        reason,
+        repetition_index,
+        total_repetitions,
+        pairing_order,
+    );
+    draft.profile = "fetch";
+    draft.fetch = Some(FetchSettings::for_cell(crate::settings::TlsMode::Plain));
+    draft
 }

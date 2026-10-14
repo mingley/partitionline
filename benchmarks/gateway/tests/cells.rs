@@ -40,6 +40,10 @@ fn ack_mode_labels_are_stable() {
         AckMode::PerRecordCompletion.label(),
         "per-record completion"
     );
+    assert_eq!(
+        AckMode::ManualAssignment.label(),
+        "manual assignment from an explicit offset"
+    );
 }
 
 #[test]

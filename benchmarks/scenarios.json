@@ -2014,5 +2014,41 @@
         "description": "Gateway gzip produce with one completion per record versus rust-rdkafka (KL10-02)."
       }
     ]
+  },
+  "gateway_fetch": {
+    "card": "KL10-14",
+    "tier": "exploratory",
+    "feeds_claims": false,
+    "driver": "benchmarks/gateway",
+    "peer": "rust-rdkafka",
+    "peer_driver": "benchmarks/peers/rust",
+    "performance_claims_valid": false,
+    "suite_hold": "active",
+    "profile": {
+      "records": "seeded json1k 1024-byte JSON plus one 8-byte gw header, gzip stored",
+      "partitions": 8,
+      "assignment": "manual from explicit start offsets",
+      "fetch_min_bytes": 1,
+      "fetch_max_wait_ms": 500,
+      "fetch_max_bytes": 52428800,
+      "max_partition_fetch_bytes": 1048576,
+      "isolation": "read_uncommitted",
+      "tls": "mTLS preferred; PLAINTEXT accepted and recorded",
+      "backlog": "written once by the pinned rust-rdkafka peer and reused unchanged"
+    },
+    "cells": [
+      {
+        "id": "lb-gateway-fetch-gzip",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "not_run",
+        "disposition": "harness",
+        "codec": "gzip",
+        "level": -1,
+        "acknowledgment_mode": "manual assignment from an explicit offset",
+        "loads": ["backlog"],
+        "description": "Gateway gzip fetch versus rust-rdkafka BaseConsumer at matched fetch knobs (KL10-14)."
+      }
+    ]
   }
 }

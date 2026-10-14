@@ -1,5 +1,6 @@
 //! Byte-compatible with the independent C and franz-go comparison peers.
 
+#[allow(dead_code)]
 #[path = "../../../gateway/src/json1k.rs"]
 mod json1k;
 

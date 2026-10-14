@@ -35,10 +35,36 @@ pub struct Config {
     pub header_mode: String,
     #[serde(default = "default_compression_level")]
     pub compression_level: i32,
+    #[serde(default = "default_fetch_min_bytes")]
+    pub fetch_min_bytes: i32,
+    #[serde(default = "default_fetch_wait_max_ms")]
+    pub fetch_wait_max_ms: i32,
+    #[serde(default = "default_fetch_max_bytes")]
+    pub fetch_max_bytes: i32,
+    #[serde(default = "default_max_partition_fetch_bytes")]
+    pub max_partition_fetch_bytes: i32,
+    #[serde(default)]
+    pub assignment_offsets: Vec<i64>,
 }
 
 fn default_compression_level() -> i32 {
     -1
+}
+
+fn default_fetch_min_bytes() -> i32 {
+    1
+}
+
+fn default_fetch_wait_max_ms() -> i32 {
+    500
+}
+
+fn default_fetch_max_bytes() -> i32 {
+    52_428_800
+}
+
+fn default_max_partition_fetch_bytes() -> i32 {
+    1_048_576
 }
 
 impl Config {
@@ -93,6 +119,25 @@ impl Config {
                 "unsupported payload/key/security/compression/isolation configuration".into(),
             );
         }
+        if self.fetch_min_bytes < 1
+            || self.fetch_max_bytes < 1
+            || self.max_partition_fetch_bytes < 1
+            || self.fetch_wait_max_ms < 0
+            || self.fetch_min_bytes > 1_000_000_000
+            || self.fetch_max_bytes > 1_000_000_000
+            || self.max_partition_fetch_bytes > 1_000_000_000
+            || self.fetch_wait_max_ms > 1_000_000_000
+        {
+            return Err("positive bounded fetch sizes and wait are required".into());
+        }
+        if !self.assignment_offsets.is_empty()
+            && (self.assignment_offsets.len() != self.partitions as usize
+                || self.assignment_offsets.iter().any(|offset| *offset < 0))
+        {
+            return Err(
+                "assignment_offsets must be empty or one non-negative offset per partition".into(),
+            );
+        }
         Ok(())
     }
 
@@ -124,7 +169,18 @@ impl Config {
                 .set("group.id", "rust-rdkafka-direct-audit")
                 .set("enable.auto.commit", "false")
                 .set("auto.offset.reset", "earliest")
-                .set("isolation.level", &self.isolation_level);
+                .set("isolation.level", &self.isolation_level)
+                .set("fetch.min.bytes", self.fetch_min_bytes.to_string())
+                .set("fetch.wait.max.ms", self.fetch_wait_max_ms.to_string())
+                .set("fetch.max.bytes", self.fetch_max_bytes.to_string())
+                .set(
+                    "max.partition.fetch.bytes",
+                    self.max_partition_fetch_bytes.to_string(),
+                )
+                .set(
+                    "fetch.message.max.bytes",
+                    self.max_partition_fetch_bytes.to_string(),
+                );
         } else {
             config
                 .set("request.required.acks", self.acks.to_string())
