@@ -1,0 +1,16 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "source_sha": "4f879cb9",
+  "cell": "nb-fetch-bulk",
+  "disposition": "rejected-no-gain",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "note": "Uncommitted experiment, measured and reverted. The gathered fetch write rebuilt its IoSlice list after every short write. Advancing one list in place did not change the cell. Eight interleaved pairs: paired mean records/s ratio 1.006, bootstrap 95% CI 0.975 to 1.035. Every run verified 20,000 records. The code was not kept.",
+  "paired_mean_ratio": 1.006,
+  "paired_ratio_ci95": [0.975, 1.035],
+  "before_median": 444802.81,
+  "after_median": 453434.55,
+  "before_records_per_second": [478885.64, 432369.83, 442946.02, 446659.61, 492286.4, 439735.03, 450400.61, 430640.89],
+  "after_records_per_second": [451457.48, 455411.63, 450324.83, 469866.87, 458276.41, 440727.66, 461287.99, 443646.9]
+}
