@@ -1,0 +1,56 @@
+{
+  "task": "KL01-26",
+  "produce_version": 9,
+  "topic": "pl-options",
+  "record_count": 6,
+  "throughput": 5,
+  "value_prefix": 42,
+  "repeating_keys": 2,
+  "message_create_time": 1650000000000,
+  "registered_case_ids": [
+    "verifiable-producer-options-3-9-1"
+  ],
+  "nonapplicable_cells": [
+    "message-create-time-elapsed-runtime",
+    "throughput-0-unthrottled",
+    "max-messages-until-killed",
+    "command-config-4-2-plus",
+    "broker-list-removed-4-2",
+    "verifiable-consumer-earliest",
+    "ducktape-live-broker"
+  ],
+  "peers": {
+    "3.9.1": {
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.1.0": {
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.1.2": {
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.2.1": {
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    },
+    "4.3.1": {
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "generated_bodies": 8,
+      "unsupported_receipts": 0
+    }
+  },
+  "total_bodies": 40,
+  "total_unsupported_receipts": 0
+}

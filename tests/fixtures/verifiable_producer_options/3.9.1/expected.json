@@ -1,0 +1,1 @@
+{"topic":"pl-options","record_count":6,"throughput":5,"value_prefix":42,"repeating_keys":2,"message_create_time":1650000000000,"acks":-1,"keys":["0","1","0","1","0","1"],"values":["42.0","42.1","42.2","42.3","42.4","42.5"]}
