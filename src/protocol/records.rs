@@ -2172,59 +2172,68 @@ where
     if compression == Compression::Zstd {
         return write_zstd_record_batch(buf, header, records, scratch);
     }
-    let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
-    match compression {
-        Compression::None => {
-            for (i, rec) in records.enumerate() {
-                encode_record(
-                    buf,
-                    &rec,
-                    absolute_offset_delta(header.base_offset, i)?,
-                    timestamp_delta(header.base_timestamp, rec.timestamp)?,
-                )?;
-            }
-        }
-        Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
-            // KL09-33: 1 KiB floor kills the early doubling steps for real
-            // batches. `reserve` is a no-op once reused capacity covers it.
-            // KL09-32 sizes each record's varints once inside `encode_record`.
-            let section = &mut scratch.section;
-            section.clear();
-            section.reserve(1024);
-            for (i, rec) in records.enumerate() {
-                encode_record(
-                    section,
-                    &rec,
-                    absolute_offset_delta(header.base_offset, i)?,
-                    timestamp_delta(header.base_timestamp, rec.timestamp)?,
-                )?;
-            }
-            let packed = &mut scratch.packed;
-            match compression {
-                Compression::Gzip => gzip_compress_into(section, packed)?,
-                Compression::Snappy => snappy_compress_into(section, packed)?,
-                Compression::Lz4 => lz4_compress_into(section, packed)?,
-                Compression::None => {
-                    return Err(Error::protocol("internal: none after compressed branch"));
-                }
-                #[cfg(feature = "zstd")]
-                Compression::Zstd => {
-                    return Err(Error::Unsupported(
-                        "internal: zstd after non-zstd encoder branch".into(),
-                    ))
+    // A failed record leaves the caller's buffer unchanged. The header is
+    // written before the records, so an overflow must roll that prefix back.
+    let original = buf.len();
+    let encoded = (|| {
+        let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+        match compression {
+            Compression::None => {
+                for (i, rec) in records.enumerate() {
+                    encode_record(
+                        buf,
+                        &rec,
+                        absolute_offset_delta(header.base_offset, i)?,
+                        timestamp_delta(header.base_timestamp, rec.timestamp)?,
+                    )?;
                 }
             }
-            buf.extend_from_slice(packed);
-            scratch.shrink_to_caps();
+            Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
+                // KL09-33: 1 KiB floor kills the early doubling steps for real
+                // batches. `reserve` is a no-op once reused capacity covers it.
+                // KL09-32 sizes each record's varints once inside `encode_record`.
+                let section = &mut scratch.section;
+                section.clear();
+                section.reserve(1024);
+                for (i, rec) in records.enumerate() {
+                    encode_record(
+                        section,
+                        &rec,
+                        absolute_offset_delta(header.base_offset, i)?,
+                        timestamp_delta(header.base_timestamp, rec.timestamp)?,
+                    )?;
+                }
+                let packed = &mut scratch.packed;
+                match compression {
+                    Compression::Gzip => gzip_compress_into(section, packed)?,
+                    Compression::Snappy => snappy_compress_into(section, packed)?,
+                    Compression::Lz4 => lz4_compress_into(section, packed)?,
+                    Compression::None => {
+                        return Err(Error::protocol("internal: none after compressed branch"));
+                    }
+                    #[cfg(feature = "zstd")]
+                    Compression::Zstd => {
+                        return Err(Error::Unsupported(
+                            "internal: zstd after non-zstd encoder branch".into(),
+                        ))
+                    }
+                }
+                buf.extend_from_slice(packed);
+                scratch.shrink_to_caps();
+            }
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => {
+                return Err(Error::Unsupported(
+                    "internal: zstd after non-zstd encoder branch".into(),
+                ))
+            }
         }
-        #[cfg(feature = "zstd")]
-        Compression::Zstd => {
-            return Err(Error::Unsupported(
-                "internal: zstd after non-zstd encoder branch".into(),
-            ))
-        }
+        finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
+    })();
+    if encoded.is_err() {
+        buf.truncate(original);
     }
-    finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
+    encoded
 }
 
 fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize, usize, usize) {
@@ -4695,13 +4704,15 @@ mod tests {
             },
         ]);
         at_end.base_offset = i64::MAX;
-        let encode_err = encode_record_batch(&mut BytesMut::new(), &at_end)
+        let mut buf = BytesMut::from(&b"prefix"[..]);
+        let encode_err = encode_record_batch(&mut buf, &at_end)
             .unwrap_err()
             .to_string();
         assert!(
             encode_err.contains("record offset overflow"),
             "{encode_err}"
         );
+        assert_eq!(&buf[..], b"prefix");
         let batch_err = decode_record_batch(&mut &encoded[..])
             .unwrap_err()
             .to_string();
