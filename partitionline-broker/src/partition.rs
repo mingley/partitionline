@@ -266,13 +266,7 @@ impl Partition {
         let offset = u64::try_from(first_offset).map_err(|_| Error::OffsetOverflow)?;
         let entries = self.journal.fetch(offset, max_entries, max_bytes)?;
         for entry in &entries {
-            let check = if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(entry.first_offset))
-            {
-                self.check_entry(entry)
-            } else {
-                self.check_fetched_entry(entry)
-            };
-            if let Err(error) = check {
+            if let Err(error) = self.check_for_read(entry) {
                 self.poisoned = true;
                 return Err(error);
             }
@@ -393,12 +387,19 @@ impl Partition {
             Backend::Segments(log) => log.read_one(offset, maximum, scan_bytes, scan_entries)?,
         };
         if let Some(entry) = &entry {
-            if let Err(error) = self.check_entry(entry) {
+            if let Err(error) = self.check_for_read(entry) {
                 self.poisoned = true;
                 return Err(error);
             }
         }
         Ok((entry, work))
+    }
+    fn check_for_read(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        if matches!(&self.journal, Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
+            self.check_entry(entry)
+        } else {
+            self.check_fetched_entry(entry)
+        }
     }
     /// Whether reopening is required after a payload or storage failure.
     pub fn is_poisoned(&self) -> bool {
@@ -479,5 +480,36 @@ impl Partition {
             return Err(Error::CorruptPayload);
         }
         Ok(next)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetch_does_not_walk_records_already_checked_at_append(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let path = std::env::temp_dir().join(format!(
+            "pl-fetch-novisit-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| std::io::Error::other(e))?
+                .as_nanos()
+        ));
+        let journal_limits = journal::Limits::new(1024 * 1024, 1 << 30, 1000, 8 * 1024 * 1024)?;
+        let (mut part, _) = Partition::open(&path, 0, journal_limits, records::Limits::default())?;
+        part.append(include_bytes!("../tests/fixtures/records/valid-basic.bin"))?;
+        records::reset_record_visits();
+        let got = part.fetch(0, 4, 1024 * 1024)?;
+        assert_eq!(got.len(), 1);
+        assert_eq!(records::record_visits(), 0);
+        records::reset_record_visits();
+        let (entry, _) = part.read_with_work(0, 1024 * 1024, 1024 * 1024, 4)?;
+        assert!(entry.is_some());
+        assert_eq!(records::record_visits(), 0);
+        drop(part);
+        let _ = std::fs::remove_file(path);
+        Ok(())
     }
 }
