@@ -1041,3 +1041,123 @@ async fn capped_pending_large_paused_partition_releases_only_sought_buffers() {
     consumer.close().await.unwrap();
     broker.shutdown().await;
 }
+
+/// KL10-09: worker decode must keep the KL02-08 / KL10-16 budget (second batch
+/// stays compressed when the first batch already filled `buffer_memory`).
+#[tokio::test]
+async fn decode_workers_batch_past_budget_is_not_decompressed() {
+    use partitionline::protocol::records::Compression;
+
+    let first = build_batch_with_record_sizes(0, 5, 1000).with_compression(Compression::Gzip);
+    let mut bomb = RecordBatch::from_records(vec![Record {
+        offset: 0,
+        timestamp: 0,
+        key: None,
+        value: Some(Bytes::from(vec![
+            b'z';
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES + 1
+        ])),
+        headers: Vec::new(),
+    }])
+    .with_compression(Compression::Gzip);
+    bomb.base_offset = 5;
+
+    let mut cluster = spawn_cluster(
+        0,
+        0,
+        move |topics, _attempt| {
+            let req = topics
+                .iter()
+                .find(|t| t.topic == "t")?
+                .partitions
+                .iter()
+                .find(|p| p.partition == 0)?;
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 6;
+            part.records = match req.fetch_offset {
+                0 => vec![first.clone(), bomb.clone()],
+                5 => vec![bomb.clone()],
+                _ => Vec::new(),
+            };
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![part],
+            }])
+        },
+        |_topics, _attempt| None,
+    )
+    .await;
+
+    let cfg = cluster
+        .config()
+        .request_timeout(Duration::from_secs(60))
+        .buffer_memory(1500)
+        .fetch_decode_workers(4);
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign succeeds");
+
+    let recs = consumer
+        .fetch()
+        .await
+        .expect("the batch past the budget must not be decompressed");
+    assert_eq!(recs.len(), 5);
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 5);
+
+    let err = consumer
+        .fetch()
+        .await
+        .expect_err("applying the oversized batch reports the decode ceiling");
+    assert!(
+        err.to_string().contains("maximum allowable size"),
+        "expected decode ceiling error, got: {err}"
+    );
+
+    consumer.close().await.expect("close succeeds");
+    cluster.shutdown().await;
+}
+
+/// KL10-09: later partitions stay unapplied when the aggregate budget is full.
+#[tokio::test]
+async fn decode_workers_preserve_aggregate_buffer_budget() {
+    use partitionline::protocol::records::Compression;
+
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 2, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![0, 1]
+                    .into_iter()
+                    .map(|p| {
+                        let mut part = FetchedPartition::partition_response(p, 0);
+                        part.high_watermark = 2;
+                        part.records = vec![build_batch_with_record_sizes(0, 2, 400)
+                            .with_compression(Compression::Gzip)];
+                        part
+                    })
+                    .collect(),
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().fetch_decode_workers(4).buffer_memory(500))
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign");
+
+    let recs = consumer.fetch().await.expect("fetch");
+    assert!(
+        recs.iter().all(|r| r.partition == 0),
+        "worker decode must not apply partition 1 after the budget is full"
+    );
+    assert_eq!(consumer.position("t", 0).unwrap(), 2);
+    assert_eq!(consumer.position("t", 1).unwrap(), 0);
+    assert_eq!(consumer.fetch_cursor("t", 1).unwrap(), 0);
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}

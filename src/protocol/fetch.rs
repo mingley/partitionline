@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use super::api::MetadataResponse;
 use super::buf;
 use super::epoch::EpochEndOffset;
-use super::records::{self, RecordBatch};
+use super::records::{self, EncodedBatch, RecordBatch};
 use crate::error::{Error, Result};
 
 /// Java `FetchRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level
@@ -2268,6 +2268,47 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     Ok((
         topics,
         raw_records,
+        endpoints,
+        error_code,
+        session_id,
+        throttle_time_ms,
+    ))
+}
+
+/// Frame and CRC-check every fetched partition's record set without decompressing.
+pub(crate) fn split_fetch_record_sets(raw: Vec<Vec<Bytes>>) -> Result<Vec<Vec<Vec<EncodedBatch>>>> {
+    raw.into_iter()
+        .map(|partitions| {
+            partitions
+                .into_iter()
+                .map(records::split_record_batches)
+                .collect::<Result<Vec<_>>>()
+        })
+        .collect()
+}
+
+/// [`decode_fetch_response_raw`] plus [`split_fetch_record_sets`].
+#[expect(
+    clippy::type_complexity,
+    reason = "Fetch response decode returns topics, framed batches, endpoints, error, session, and throttle together"
+)]
+pub(crate) fn decode_fetch_response_batches<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<Vec<Vec<EncodedBatch>>>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
+    let (topics, raw, endpoints, error_code, session_id, throttle_time_ms) =
+        decode_fetch_response_raw(buf, version)?;
+    let batches = split_fetch_record_sets(raw)?;
+    Ok((
+        topics,
+        batches,
         endpoints,
         error_code,
         session_id,

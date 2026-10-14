@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `ConsumerConfig::fetch_decode_workers` (default `0` = host parallelism,
+  capped at 32) decompresses and decodes fetched batches on bounded workers
+  instead of the caller's fetch/poll task. `1` keeps the previous inline
+  path. Per-partition order, `buffer_memory`, seek, pause, rebalance and
+  `read_committed` filtering are unchanged (KL10-09).
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a

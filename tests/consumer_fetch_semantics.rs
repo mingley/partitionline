@@ -4189,3 +4189,269 @@ async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
     consumer.close().await.unwrap();
     broker.shutdown().await;
 }
+
+/// KL10-09: worker decode must keep per-partition offset order on gzip batches.
+#[tokio::test]
+async fn decode_workers_preserve_per_partition_order() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 4, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: (0..4)
+                    .map(|p| {
+                        let mut part = FetchedPartition::partition_response(p, 0);
+                        part.high_watermark = 4;
+                        part.last_stable_offset = 4;
+                        let first = format!("p{p}-a");
+                        let second = format!("p{p}-b");
+                        part.records = vec![
+                            fetch_fixture::data_batch(0, &[first.as_bytes()], None)
+                                .with_compression(partitionline::Compression::Gzip),
+                            fetch_fixture::data_batch(1, &[second.as_bytes(), b"c", b"d"], None)
+                                .with_compression(partitionline::Compression::Gzip),
+                        ];
+                        part
+                    })
+                    .collect(),
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().fetch_decode_workers(4))
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign_many((0..4).map(|p| (("t", p), 0)))
+        .await
+        .expect("assign");
+
+    let records = consumer.fetch().await.expect("fetch");
+    for p in 0..4 {
+        let offsets: Vec<_> = records
+            .iter()
+            .filter(|r| r.partition == p)
+            .map(|r| r.offset)
+            .collect();
+        assert_eq!(
+            offsets,
+            vec![0, 1, 2, 3],
+            "partition {p} must stay in offset order under worker decode"
+        );
+    }
+    let partitions: Vec<_> = records.iter().map(|r| r.partition).collect();
+    assert_eq!(
+        partitions,
+        vec![0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3],
+        "decoded results must be applied in partition order, not worker completion order"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
+/// KL10-09: seek must drop worker-decoded pending records.
+#[tokio::test]
+async fn decode_workers_seek_drops_unapplied_decode() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 3;
+                    part.last_stable_offset = 3;
+                    part.records = vec![fetch_fixture::data_batch(0, &[b"a", b"b", b"c"], None)
+                        .with_compression(partitionline::Compression::Gzip)];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().fetch_decode_workers(4).max_poll_records(1))
+        .await
+        .expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    let first = consumer.fetch().await.expect("first fetch");
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    consumer.seek("t", 0, 2).expect("seek past pending");
+    let after = consumer.fetch().await.expect("fetch after seek");
+    assert_eq!(
+        after.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "seek must invalidate worker-decoded pending records"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
+/// KL10-09: pause must not deliver worker-decoded records for the paused partition.
+#[tokio::test]
+async fn decode_workers_pause_holds_decoded_pending() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 2, |_topics, attempt| {
+            assert_eq!(attempt, 0, "paused pending must not issue another Fetch");
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![0, 1]
+                    .into_iter()
+                    .map(|p| {
+                        let v0 = format!("p{p}-0");
+                        let v1 = format!("p{p}-1");
+                        let mut part = FetchedPartition::partition_response(p, 0);
+                        part.high_watermark = 2;
+                        part.last_stable_offset = 2;
+                        part.records = vec![fetch_fixture::data_batch(
+                            0,
+                            &[v0.as_bytes(), v1.as_bytes()],
+                            None,
+                        )
+                        .with_compression(partitionline::Compression::Gzip)];
+                        part
+                    })
+                    .collect(),
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().fetch_decode_workers(4).max_poll_records(1))
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign");
+    let first = consumer.fetch().await.expect("first fetch");
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].offset, 0);
+    consumer.pause([("t", 0)]);
+    let held = consumer.fetch().await.expect("paused fetch");
+    assert_eq!(
+        held.iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(1, 0)],
+        "pause must not apply further worker-decoded records for the paused partition"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
+/// KL10-09: unassign (manual rebalance) must drop worker-decoded pending records.
+#[tokio::test]
+async fn decode_workers_unassign_invalidates_decoded_pending() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 3;
+                    part.last_stable_offset = 3;
+                    part.records = vec![fetch_fixture::data_batch(0, &[b"a", b"b", b"c"], None)
+                        .with_compression(partitionline::Compression::Gzip)];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().fetch_decode_workers(4).max_poll_records(1))
+        .await
+        .expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    assert_eq!(consumer.fetch().await.expect("first").len(), 1);
+    consumer.unassign();
+    consumer.assign("t", 0, 0).await.expect("reassign");
+    let after = consumer.fetch().await.expect("fetch after unassign");
+    assert_eq!(
+        after.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0],
+        "rebalance/unassign must not replay worker-decoded pending records"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
+/// KL10-09: read_committed filtering stays on the apply path after worker decode.
+#[tokio::test]
+async fn decode_workers_read_committed_filters_aborted() {
+    let mut broker = fetch_fixture::FixtureBroker::start_with_version(
+        fetch_fixture::Scenario::AbortThenCommit,
+        12,
+    )
+    .await;
+    let mut cfg = broker.config().fetch_decode_workers(4);
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    let records = consumer.fetch().await.expect("fetch");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "worker decode must not leak aborted records"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
+
+/// KL10-09: a decode ceiling error surfaces on the same fetch that applies the batch.
+#[tokio::test]
+async fn decode_workers_surface_decode_error_on_same_call() {
+    use partitionline::protocol::records::{Record, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES};
+
+    let bomb = RecordBatch::from_records(vec![Record {
+        offset: 0,
+        timestamp: 0,
+        key: None,
+        value: Some(bytes::Bytes::from(vec![
+            b'z';
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES
+                + 1
+        ])),
+        headers: Vec::new(),
+    }])
+    .with_compression(partitionline::Compression::Gzip);
+
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, _attempt| {
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 1;
+            part.records = vec![bomb.clone()];
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![part],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(
+        broker
+            .config()
+            .fetch_decode_workers(4)
+            .request_timeout(Duration::from_secs(60)),
+    )
+    .await
+    .expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign");
+    let err = consumer
+        .fetch()
+        .await
+        .expect_err("decode error must surface on this fetch");
+    assert!(
+        err.to_string().contains("maximum allowable size"),
+        "expected decode ceiling, got {err}"
+    );
+
+    consumer.close().await.expect("close");
+    broker.shutdown().await;
+}
