@@ -260,10 +260,10 @@ impl RawBroker {
 
     async fn shutdown(&mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
-            let _ = tx.send(());
+            drop(tx.send(()));
         }
         if let Some(task) = self.task.take() {
-            let _ = task.await;
+            drop(task.await);
         }
     }
 }
@@ -271,7 +271,7 @@ impl RawBroker {
 impl Drop for RawBroker {
     fn drop(&mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
-            let _ = tx.send(());
+            drop(tx.send(()));
         }
         if let Some(task) = self.task.take() {
             task.abort();
@@ -549,10 +549,10 @@ async fn apache_fetch_bodies_replay_public_consumer_histories() {
     }
 }
 
-#[test]
-fn frozen_audit_dispositions_stay_failed() {
+#[tokio::test]
+async fn frozen_audit_dispositions_stay_failed() {
     let cases = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/conformance/cases.json");
-    let text = std::fs::read_to_string(cases).unwrap();
+    let text = String::from_utf8(read(&cases).await).unwrap();
     for case_id in REGISTERED {
         assert!(
             text.contains(&format!("\"id\": \"{case_id}\""))
@@ -564,8 +564,8 @@ fn frozen_audit_dispositions_stay_failed() {
     }
 }
 
-#[test]
-fn rust_fetch_and_offset_output_decodes_with_pinned_apache_when_jars_present() {
+#[tokio::test]
+async fn rust_fetch_and_offset_output_decodes_with_pinned_apache_when_jars_present() {
     let jars = PathBuf::from("/tmp/partitionline-conformance");
     let slf4j = jars.join("slf4j-api-1.7.36.jar");
     let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -636,7 +636,7 @@ fn rust_fetch_and_offset_output_decodes_with_pinned_apache_when_jars_present() {
             if !path.exists() {
                 continue;
             }
-            let bytes = std::fs::read(&path).unwrap();
+            let bytes = read(&path).await;
             let run_cp = format!(
                 "{}:{}:{}",
                 classes.display(),
