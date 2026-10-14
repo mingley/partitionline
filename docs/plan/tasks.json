@@ -1230,7 +1230,7 @@
         "scripts/check-soak-rss-drift.py",
         "tests/ci/test_soak_rss_drift.py"
       ],
-      "follow_up": "Launched 24h soak at 1600 rec/s (2x 799.41 completed/s) on Cursor cloud VM, topic pl-soak-kl0210, output /tmp/kl02-10-soak, tmux kl02-10-soak. T+16m: RSS 11.2 MiB steady, ambiguous=0, fetch_errors=0, queue at 4 KiB cap. Not a pass. Official Lab A approval still blocked_external."
+      "follow_up": "Launched 24h soak at 1600 rec/s (2x 799.41 completed/s) on Cursor cloud VM, topic pl-soak-kl0210, output /tmp/kl02-10-soak, tmux kl02-10-soak. First-hour median RSS 11.21 MiB (69861 samples); ambiguous=0, fetch_errors=0, queue at 4 KiB cap. Not a pass. Official Lab A approval still blocked_external."
     },
     {
       "id": "KL03-01",

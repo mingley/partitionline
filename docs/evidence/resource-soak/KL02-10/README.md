@@ -65,6 +65,11 @@ The checker skips the first 60 s as startup, takes the next hour and the
 final hour, and fails closed if elapsed time is under 24 h. A 10% median
 RSS rise or fall fails. Passing it is not a performance claim.
 
+First steady-state hour (startup + 60 min of soak monotonic time) is
+recorded in [progress/first-hour.json](progress/first-hour.json):
+median RSS 11.21 MiB over 69 861 host samples. That is a monitoring
+snapshot, not the 24 h drift comparison.
+
 Live progress (never a 24 h pass):
 
 ```sh

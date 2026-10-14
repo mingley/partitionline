@@ -1,0 +1,46 @@
+{
+  "captured_utc": "2026-10-14T12:01:38.105778+00:00",
+  "driver_pid": 901849,
+  "child_pid": 901851,
+  "attempt_status": "running",
+  "kafka_listen": "127.0.0.1:9092",
+  "first_hour_median_rss_bytes": 11759616,
+  "first_hour_samples": 69861,
+  "rss_bytes": {
+    "min": 9445376,
+    "median": 11759616,
+    "max": 11767808,
+    "latest": 11767808
+  },
+  "last_sample": {
+    "kind": "sample",
+    "utc_ms": 1791979297990,
+    "elapsed_ms": 3700641,
+    "offered": 5921025,
+    "accepted": 3002526,
+    "completed": 3002510,
+    "failed": 2918499,
+    "ambiguous": 0,
+    "pending": 16,
+    "producer_queue_bytes": 4096,
+    "consumer_buffered_bytes": 3584,
+    "application_decoded_bytes": 256,
+    "delivered": 141084,
+    "delivered_bytes": 36117504,
+    "fetch_errors": 0,
+    "runtime_tasks": 5,
+    "peer_connections": 0,
+    "final": false
+  },
+  "last_host": {
+    "utc": "2026-10-14T12:01:38.084094+00:00",
+    "monotonic_ns": 47285592213021,
+    "pid": 901851,
+    "rss_bytes": 11767808,
+    "threads": 2,
+    "socket_fds": 7
+  },
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "launched_job_is_not_a_pass": true
+}
