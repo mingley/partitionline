@@ -182,8 +182,10 @@ impl Lifecycle {
                 .map(|(id, member)| (id.clone(), member.clone()));
             if let Some((old_id, mut replacement)) = previous {
                 if old_id != member_id {
-                    replacement.last_heartbeat_ms = now_ms;
-                    replacement.rebalance_deadline_ms = None;
+                    if now_ms >= replacement.last_heartbeat_ms {
+                        replacement.last_heartbeat_ms = now_ms;
+                        replacement.rebalance_deadline_ms = None;
+                    }
                     self.members.remove(&old_id);
                     self.members.insert(member_id.to_owned(), replacement);
                     self.persist()?;
@@ -222,12 +224,15 @@ impl Lifecycle {
         Ok(())
     }
 
-    /// Refresh the session timer.
+    /// Refresh the session timer. An older clock does not shorten the session.
     pub fn heartbeat(&mut self, member_id: &str, now_ms: u64) -> Result<(), Error> {
         self.ready()?;
         let Some(member) = self.members.get_mut(member_id) else {
             return Err(Error::UnknownMember);
         };
+        if now_ms < member.last_heartbeat_ms {
+            return Ok(());
+        }
         member.last_heartbeat_ms = now_ms;
         member.rebalance_deadline_ms = None;
         self.persist()?;
@@ -512,6 +517,8 @@ mod tests {
         life.heartbeat("a", 500)
             .unwrap_or_else(|error| panic!("{error:?}"));
         life.heartbeat("b", 500)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        life.heartbeat("a", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(life
             .expire(1_001)
