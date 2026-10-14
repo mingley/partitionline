@@ -3604,17 +3604,24 @@ async fn kip848_fenced_member_epoch_recovers_on_poll() {
     )
     .await
     .unwrap();
-    let before = mock.cg_heartbeat_calls();
+    let start = mock.cg_heartbeat_acks().len();
     mock.set_cg_heartbeat_error_times(partitionline::error::FENCED_MEMBER_EPOCH, 1);
+    let mut rejoined = false;
     for _ in 0..40 {
-        if mock.cg_heartbeat_calls() >= before + 2 {
+        let acks = mock.cg_heartbeat_acks();
+        rejoined = acks
+            .iter()
+            .skip(start)
+            .any(|(_, epoch, parts)| *epoch == 0 && parts.as_ref().is_some_and(Vec::is_empty));
+        if rejoined {
             break;
         }
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     assert!(
-        mock.cg_heartbeat_calls() >= before + 2,
-        "the fenced heartbeat and the following join must both be sent"
+        rejoined,
+        "a fenced member must rejoin with an empty TopicPartitions list, acks={:?}",
+        mock.cg_heartbeat_acks()
     );
     let recovered = group.poll().await.unwrap();
     assert!(recovered.len() <= 1);

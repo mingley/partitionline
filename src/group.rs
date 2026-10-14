@@ -508,6 +508,8 @@ pub struct ConsumerGroup {
     /// clone. The poll path copies this into `member_id` before committing
     /// or leaving (KL03-15).
     hb_member_id: Arc<parking_lot::Mutex<String>>,
+    /// Topics the KIP-848 heartbeat task sends when it rejoins at epoch 0.
+    hb_topics: Arc<parking_lot::Mutex<Vec<String>>>,
     hb_interval_ms: Arc<AtomicI32>,
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
@@ -660,6 +662,7 @@ impl ConsumerGroup {
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
         let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
+        let hb_topics = Arc::new(parking_lot::Mutex::new(topics.clone()));
         let hb_interval_ms = Arc::new(AtomicI32::new(duration_millis_i32(cfg.heartbeat_interval)));
         let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -682,6 +685,7 @@ impl ConsumerGroup {
             hb_assignment,
             hb_ack,
             hb_member_id,
+            hb_topics,
             hb_interval_ms,
             hb_deadline,
             hb_stop,
@@ -817,6 +821,7 @@ impl ConsumerGroup {
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
         let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
+        let hb_topics = Arc::new(parking_lot::Mutex::new(topics.clone()));
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
         let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -839,6 +844,7 @@ impl ConsumerGroup {
             hb_assignment,
             hb_ack,
             hb_member_id,
+            hb_topics,
             hb_interval_ms,
             hb_deadline,
             hb_stop,
@@ -1819,6 +1825,7 @@ impl ConsumerGroup {
         }
         if self.member_id.is_empty() {
             self.topics.clear();
+            self.publish_hb_topics();
             self.topic_match = None;
             self.consumer.clear_assignment();
             return Ok(());
@@ -1836,6 +1843,7 @@ impl ConsumerGroup {
         }
         self.consumer.clear_assignment();
         self.topics.clear();
+        self.publish_hb_topics();
         self.topic_match = None;
         self.member_id.clear();
         self.generation_id = 0;
@@ -1896,6 +1904,7 @@ impl ConsumerGroup {
             self.prev_assignment.clear();
         }
         self.topics = topics;
+        self.publish_hb_topics();
         self.left_max_poll.store(false, Ordering::SeqCst);
         if rejoining {
             if self.kip848 {
@@ -2319,6 +2328,10 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    fn publish_hb_topics(&self) {
+        *self.hb_topics.lock() = self.topics.clone();
+    }
+
     fn reject_unsupported_heartbeat(&self) -> Result<()> {
         if !self.kip848 && self.hb_err.load(Ordering::SeqCst) == error::UNSUPPORTED_VERSION {
             return Err(Error::broker(error::UNSUPPORTED_VERSION, "Heartbeat"));
@@ -2520,6 +2533,7 @@ impl ConsumerGroup {
         let hb_generation = self.hb_generation.clone();
         let hb_assignment = self.hb_assignment.clone();
         let hb_ack = self.hb_ack.clone();
+        let hb_topics = self.hb_topics.clone();
         let hb_interval_ms = self.hb_interval_ms.clone();
         let hb_deadline = self.hb_deadline.clone();
         let last_poll = self.last_poll.clone();
@@ -2614,7 +2628,27 @@ impl ConsumerGroup {
                         };
                         let timeout = cfg.request_timeout;
                         let epoch = hb_generation.load(Ordering::SeqCst);
-                        let topic_partitions = hb_ack.lock().clone();
+                        let joining =
+                            epoch == ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
+                        let topic_partitions = if joining {
+                            Some(Vec::new())
+                        } else {
+                            hb_ack.lock().clone()
+                        };
+                        let subscribed_topic_names = if joining {
+                            Some(hb_topics.lock().clone())
+                        } else {
+                            None
+                        };
+                        let rebalance_timeout_ms = if joining {
+                            if cfg.max_poll_interval.is_zero() {
+                                i32::MAX
+                            } else {
+                                duration_millis_i32(cfg.max_poll_interval)
+                            }
+                        } else {
+                            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS
+                        };
                         let version = c.consumer_group_heartbeat_version;
                         if spoken_consumer_group_heartbeat(version).is_err() {
                             conn = None;
@@ -2630,9 +2664,8 @@ impl ConsumerGroup {
                             member_epoch: epoch,
                             instance_id: cfg.group_instance_id.clone(),
                             rack_id: cfg.rack.clone(),
-                            rebalance_timeout_ms:
-                                ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
-                            subscribed_topic_names: None,
+                            rebalance_timeout_ms,
+                            subscribed_topic_names,
                             subscribed_topic_regex: None,
                             server_assignor: None,
                             topic_partitions,
