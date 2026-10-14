@@ -1183,6 +1183,13 @@ pub fn decide_vote_body(
     if replica_directory != expected_replica || voter_directory != expected_voter {
         return VoteDisposition::Refused(PreVoteRefusal::StaleDirectory);
     }
+    // Apache `KafkaRaftClient.handleVoteRequest` returns INVALID_REQUEST
+    // before any quorum transition: a negative end, a standard vote whose
+    // last offset epoch is not strictly older than the candidate epoch, or a
+    // pre-vote whose last offset epoch is newer than the candidate epoch.
+    if vote_offset_epoch_illegal(body) {
+        return VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch);
+    }
     if !body.pre_vote {
         return VoteDisposition::NotAdvertised;
     }
@@ -3463,6 +3470,24 @@ pub enum PreVoteRefusal {
     StaleTerm,
     /// The candidate log is behind the stable log.
     StaleLog,
+    /// The candidate's last offset epoch or end offset is illegal.
+    ///
+    /// A negative end is refused. A standard vote must name a last offset
+    /// epoch strictly older than the candidate epoch. A pre-vote may name
+    /// the same epoch, but not a newer one.
+    IllegalEpoch,
+}
+
+/// Whether Apache would reject this Vote body as `INVALID_REQUEST`.
+fn vote_offset_epoch_illegal(body: &VoteBody) -> bool {
+    if body.last_offset < 0 || body.last_offset_epoch < 0 {
+        return true;
+    }
+    if body.pre_vote {
+        body.last_offset_epoch > body.replica_epoch
+    } else {
+        body.last_offset_epoch >= body.replica_epoch
+    }
 }
 
 /// Decide a pre-vote without changing `persistent`.
@@ -3650,6 +3675,25 @@ mod prevote_tests {
             VoteDisposition::NotAdvertised
         );
         assert_eq!(CONTROLLER_API_VERSIONS[1].max_version, 0);
+        let mut ahead = decoded;
+        ahead.last_offset_epoch = ahead.replica_epoch.saturating_add(1);
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &ahead),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut negative = sample_body(2, replica, voter, true);
+        negative.last_offset = -1;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &negative),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        let mut same_epoch = sample_body(1, replica, voter, false);
+        same_epoch.last_offset_epoch = same_epoch.replica_epoch;
+        assert_eq!(
+            decide_vote_body(&persistent, replica, voter, &same_epoch),
+            VoteDisposition::Refused(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(persistent, before);
     }
 
     #[test]
