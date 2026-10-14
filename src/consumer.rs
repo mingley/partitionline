@@ -1548,6 +1548,11 @@ pub struct Consumer {
     client_instance_id: Option<[u8; 16]>,
     m_fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
+    /// Key/value bytes already summed for records currently in `out`, by topic.
+    ///
+    /// Used when `fetch` returns that vector unchanged, so metrics do not walk
+    /// every record again. Cleared when a later filter returns a subset.
+    fetch_return_totals: HashMap<String, (u64, u64)>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -1908,6 +1913,7 @@ impl Consumer {
             client_instance_id: None,
             m_fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
+            fetch_return_totals: HashMap::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -2807,13 +2813,30 @@ impl Consumer {
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
-                let bytes: u64 = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
+                let staged = std::mem::take(&mut self.fetch_return_totals);
+                let staged_records = staged
+                    .values()
+                    .fold(0u64, |n, (count, _)| n.saturating_add(*count));
+                let bytes = if staged_records == u64::try_from(recs.len()).unwrap_or(u64::MAX) {
+                    let mut bytes = 0u64;
+                    for (topic, (n, topic_bytes)) in staged {
+                        bytes = bytes.saturating_add(topic_bytes);
+                        self.topic_metrics
+                            .entry(topic)
+                            .or_insert_with(crate::metrics::FetchTopicTracker::new)
+                            .note_fetched(n, topic_bytes, elapsed);
+                    }
+                    bytes
+                } else {
+                    let bytes = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
+                    crate::metrics::accumulate_fetch_topics(
+                        &mut self.topic_metrics,
+                        recs.iter().map(|r| (r.topic.as_str(), fetched_bytes(r))),
+                        elapsed,
+                    );
+                    bytes
+                };
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
-                crate::metrics::accumulate_fetch_topics(
-                    &mut self.topic_metrics,
-                    recs.iter().map(|r| (r.topic.as_str(), fetched_bytes(r))),
-                    elapsed,
-                );
                 Ok(ConsumerRecords::from(
                     self.cfg.interceptors.on_consume(recs),
                 ))
@@ -3070,6 +3093,7 @@ impl Consumer {
 
     async fn fetch_assigned(&mut self, max_wait_ms: i32) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
+            self.fetch_return_totals.clear();
             return Ok(ready);
         }
         if self.assigned.is_empty() {
@@ -3107,6 +3131,7 @@ impl Consumer {
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
         let mut completed = PartitionMap::new();
+        self.fetch_return_totals.clear();
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
@@ -4017,6 +4042,8 @@ impl Consumer {
 
                     let is_transactional = batch.is_transactional();
                     let timestamp_type = batch.timestamp_type();
+                    let mut batch_records = 0u64;
+                    let mut batch_bytes = 0u64;
                     // No transaction state changes within one decoded data batch.
                     let abort_from = aborted.as_ref().and_then(|state| {
                         if !has_txn_headers || is_transactional {
@@ -4047,6 +4074,16 @@ impl Consumer {
                         }
                         let rec_b = single_record_bytes(&rec);
                         *out_bytes = out_bytes.saturating_add(rec_b);
+                        batch_records = batch_records.saturating_add(1);
+                        batch_bytes = batch_bytes.saturating_add(
+                            u64::try_from(
+                                rec.key
+                                    .as_ref()
+                                    .map_or(0, Bytes::len)
+                                    .saturating_add(rec.value.as_ref().map_or(0, Bytes::len)),
+                            )
+                            .unwrap_or(u64::MAX),
+                        );
                         out.push(FetchedRecord {
                             topic: name.clone(),
                             partition: part.partition,
@@ -4059,6 +4096,14 @@ impl Consumer {
                             leader_epoch: (batch.partition_leader_epoch >= 0)
                                 .then_some(batch.partition_leader_epoch),
                         });
+                    }
+                    if batch_records > 0 {
+                        let totals = self
+                            .fetch_return_totals
+                            .entry(name.clone())
+                            .or_insert((0, 0));
+                        totals.0 = totals.0.saturating_add(batch_records);
+                        totals.1 = totals.1.saturating_add(batch_bytes);
                     }
                     if reached_lso {
                         break;
