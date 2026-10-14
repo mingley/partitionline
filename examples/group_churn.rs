@@ -459,15 +459,26 @@ async fn join_share(names: &Names) -> partitionline::Result<ShareGroup> {
 async fn recover_share_after_loss(
     mut group: ShareGroup,
     names: &Names,
+    seen: &mut Vec<Seen>,
     events: &mut Vec<&str>,
 ) -> partitionline::Result<ShareGroup> {
     let deadline = Instant::now() + Duration::from_secs(8);
     while group.assignment().len() < 3 && Instant::now() < deadline {
         match group.poll_timeout(Duration::from_millis(400)).await {
             Ok(recs) => {
-                if !recs.is_empty() {
-                    drop(group.release(recs.as_ref()).await);
+                if recs.is_empty() {
+                    continue;
                 }
+                for rec in recs.iter() {
+                    push_seen(
+                        seen,
+                        rec_text(rec.value.as_deref()),
+                        rec.partition,
+                        rec.offset,
+                        rec.delivery_count,
+                    );
+                }
+                group.accept(recs.as_ref()).await?;
             }
             Err(Error::Timeout) => {}
             Err(error) if error.is_retriable() || coordinator_starting(&error) => {
@@ -547,7 +558,7 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
         events.push("accepted");
     }
     if names.churn == "member_loss" {
-        group = recover_share_after_loss(group, names, &mut events).await?;
+        group = recover_share_after_loss(group, names, &mut seen, &mut events).await?;
     }
     collect_share(&mut group, &mut seen, 6, Duration::from_secs(25)).await?;
     events.push("accepted");
