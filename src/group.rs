@@ -1528,7 +1528,8 @@ impl ConsumerGroup {
     /// consumable offset), not the ahead-of-delivery broker fetch cursor. When
     /// [`ConsumerConfig::max_poll_records`] leaves fetched records buffered in
     /// the consumer, undelivered records remain uncommitted so they are available
-    /// on restart or rejoin.
+    /// on restart or rejoin. The committed leader epoch is the epoch of the
+    /// fetched records when one is known, and the metadata leader epoch otherwise.
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. To commit only
     /// partitions from the last poll, pass [`ConsumerRecords::next_offsets`]
@@ -1723,7 +1724,10 @@ impl ConsumerGroup {
             .positions()
             .into_iter()
             .map(|(tp, offset)| {
-                let epoch = self.consumer.leader_epoch(&tp.topic, tp.partition);
+                let epoch = commit_position_epoch(
+                    self.consumer.last_fetched_epoch(&tp.topic, tp.partition),
+                    self.consumer.leader_epoch(&tp.topic, tp.partition),
+                );
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),
@@ -3172,6 +3176,14 @@ pub(crate) fn committed_offset_map(
     Ok(map)
 }
 
+fn commit_position_epoch(last_fetched: i32, metadata_epoch: i32) -> i32 {
+    if last_fetched >= 0 {
+        last_fetched
+    } else {
+        metadata_epoch
+    }
+}
+
 #[cfg(test)]
 fn committed_starts(
     wanted: &[(String, i32)],
@@ -3610,6 +3622,13 @@ mod tests {
     use super::*;
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
+
+    #[test]
+    fn a_commit_uses_the_fetched_epoch_ahead_of_metadata() {
+        assert_eq!(commit_position_epoch(4, 9), 4);
+        assert_eq!(commit_position_epoch(-1, 9), 9);
+        assert_eq!(commit_position_epoch(-1, -1), -1);
+    }
 
     #[test]
     fn consumer_group_metadata_getters_match_java() {
