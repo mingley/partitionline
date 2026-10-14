@@ -35,7 +35,8 @@
     "python3 -B -m unittest tests.ci.test_soak_rss_drift (7 passed, exit 0)",
     "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak (exit 1, elapsed ~388s short of 24h)",
     "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~1091s, first-hour incomplete)",
-    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~3700s, first-hour complete, median RSS 11759616)"
+    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~3700s, first-hour complete, median RSS 11759616)",
+    "python3 -B scripts/check-soak-rss-drift.py /tmp/kl02-10-soak --progress (exit 0, elapsed ~7543s, T+2h, first-hour median RSS 11759616, second-hour median RSS 10891264)"
   ],
   "results": {
     "calibration_completed_per_second": 799.4133724418373,
@@ -66,6 +67,20 @@
       "producer_queue_bytes": 4096,
       "complete": true
     },
+    "t_plus_2h": {
+      "elapsed_ms": 7543270,
+      "first_hour_median_rss_bytes": 11759616,
+      "second_hour_median_rss_bytes": 10891264,
+      "second_hour_samples": 69859,
+      "rss_latest_bytes": 7299072,
+      "threads": 3,
+      "socket_fds": 7,
+      "ambiguous": 0,
+      "fetch_errors": 0,
+      "pending": 16,
+      "producer_queue_bytes": 4096,
+      "complete_24h": false
+    },
     "launched_job_is_not_a_pass": true,
     "rss_drift_compared": false,
     "rss_drift_checker": "scripts/check-soak-rss-drift.py fails closed until 24h elapse; --progress never sets passed",
@@ -86,7 +101,9 @@
     "docs/evidence/resource-soak/KL02-10/progress/t-plus-16m.json",
     "docs/evidence/resource-soak/KL02-10/progress/t-plus-16m-receipt.json",
     "docs/evidence/resource-soak/KL02-10/progress/first-hour.json",
-    "docs/evidence/resource-soak/KL02-10/progress/first-hour-receipt.json"
+    "docs/evidence/resource-soak/KL02-10/progress/first-hour-receipt.json",
+    "docs/evidence/resource-soak/KL02-10/progress/t-plus-2h.json",
+    "docs/evidence/resource-soak/KL02-10/progress/t-plus-2h-receipt.json"
   ],
   "limits": [
     "Launched job is not a pass. First-hour vs final-hour RSS comparison is after 24h.",

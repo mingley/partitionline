@@ -70,6 +70,12 @@ recorded in [progress/first-hour.json](progress/first-hour.json):
 median RSS 11.21 MiB over 69 861 host samples. That is a monitoring
 snapshot, not the 24 h drift comparison.
 
+T+2h (startup + 120 min) is recorded in
+[progress/t-plus-2h.json](progress/t-plus-2h.json). Second-hour median
+RSS is 10.39 MiB over 69 859 host samples (`ambiguous=0`,
+`fetch_errors=0`). Latest RSS at capture was 6.96 MiB. Still not a
+24 h pass.
+
 Live progress (never a 24 h pass):
 
 ```sh
