@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
+use tokio::task::JoinHandle;
 
 use crate::config::{AutoOffsetReset, IsolationLevel};
 use crate::consumer::{
@@ -511,6 +512,7 @@ pub struct ConsumerGroup {
     hb_interval_ms: Arc<AtomicI32>,
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
+    hb_task: Option<JoinHandle<()>>,
     last_auto_commit: Instant,
     last_delivered_positions: Option<Vec<(TopicPartition, i64)>>,
     last_delivered_topic_ids: HashMap<(String, i32), [u8; 16]>,
@@ -685,6 +687,7 @@ impl ConsumerGroup {
             hb_interval_ms,
             hb_deadline,
             hb_stop,
+            hb_task: None,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
@@ -842,6 +845,7 @@ impl ConsumerGroup {
             hb_interval_ms,
             hb_deadline,
             hb_stop,
+            hb_task: None,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
@@ -1805,8 +1809,7 @@ impl ConsumerGroup {
         self.flush_async_commits().await;
         // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
         // and explicit commit* are the only OffsetCommit paths for positions.
-        self.hb_stop.send(true).unwrap_or(());
-        *self.hb_deadline.lock() = None;
+        self.stop_heartbeat().await;
         let revoked = self.assignment();
         self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED)
             .await?;
@@ -1881,6 +1884,7 @@ impl ConsumerGroup {
             }
             return Ok(());
         }
+        self.stop_heartbeat().await;
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
         if self.kip848 {
@@ -1927,11 +1931,14 @@ impl ConsumerGroup {
     /// positions even when [`ConsumerConfig::enable_auto_commit`] is on (KL-02:
     /// close must not commit polled-but-unprocessed records). Use poll-interval
     /// auto-commit or an explicit `commit*` before leave if you want stored offsets.
+    ///
+    /// Stops and joins the heartbeat task (bounded by
+    /// [`ConsumerConfig::request_timeout`]) before the leave RPC so a
+    /// background heartbeat cannot race the leave.
     pub async fn leave(mut self) -> Result<()> {
         let started = Instant::now();
+        self.stop_heartbeat().await;
         if self.member_id.is_empty() {
-            self.hb_stop.send(true).unwrap_or(());
-            *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             self.consumer
                 .close_fetch_sessions(self.cfg.request_timeout)
@@ -1940,8 +1947,6 @@ impl ConsumerGroup {
         }
         self.flush_async_commits().await;
         // KL-02: never auto-commit positions on leave/close.
-        self.hb_stop.send(true).unwrap_or(());
-        *self.hb_deadline.lock() = None;
         let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
         self.consumer.close_interceptors();
         self.consumer
@@ -2485,7 +2490,21 @@ impl ConsumerGroup {
         Ok(revoked)
     }
 
-    fn spawn_heartbeat_consumer(&self, mut stop: watch::Receiver<bool>) {
+    async fn stop_heartbeat(&mut self) {
+        self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
+        if let Some(task) = self.hb_task.take() {
+            let abort = task.abort_handle();
+            if tokio::time::timeout(self.cfg.request_timeout, task)
+                .await
+                .is_err()
+            {
+                abort.abort();
+            }
+        }
+    }
+
+    fn spawn_heartbeat_consumer(&mut self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
         let hb_member_id = self.hb_member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -2497,7 +2516,7 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
-        drop(tokio::spawn(async move {
+        self.hb_task = Some(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let init_ms = hb_interval_ms.load(Ordering::SeqCst);
             let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
@@ -2520,6 +2539,10 @@ impl ConsumerGroup {
                 d
             };
             loop {
+                if *stop.borrow() {
+                    *hb_deadline.lock() = None;
+                    break;
+                }
                 let now = Instant::now();
                 if let Some(extern_deadline) = *hb_deadline.lock() {
                     if extern_deadline > now && extern_deadline != next_hb_deadline {
@@ -2691,7 +2714,7 @@ impl ConsumerGroup {
         }));
     }
 
-    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
+    fn spawn_heartbeat(&mut self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -2699,11 +2722,14 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
-        drop(tokio::spawn(async move {
+        self.hb_task = Some(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
+                if *stop.borrow() {
+                    break;
+                }
                 tokio::select! {
                     _ = stop.changed() => {
                         if *stop.borrow() {
@@ -2780,6 +2806,15 @@ impl ConsumerGroup {
                 }
             }
         }));
+    }
+}
+
+impl Drop for ConsumerGroup {
+    fn drop(&mut self) {
+        self.hb_stop.send(true).unwrap_or(());
+        if let Some(task) = self.hb_task.take() {
+            task.abort();
+        }
     }
 }
 

@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use bytes::{Bytes, BytesMut};
 use parking_lot::Mutex;
 use tokio::sync::{watch, Notify};
+use tokio::task::JoinHandle;
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
@@ -549,6 +550,7 @@ pub struct ShareGroup {
     hb_deadline: Arc<Mutex<Option<Instant>>>,
     hb_wake: Arc<Notify>,
     hb_stop: watch::Sender<bool>,
+    hb_task: Option<JoinHandle<()>>,
     fetch_rounds: u64,
     records_fetched: u64,
     bytes_fetched: u64,
@@ -727,6 +729,7 @@ impl ShareGroup {
             hb_deadline,
             hb_wake,
             hb_stop,
+            hb_task: None,
             fetch_rounds: 0,
             records_fetched: 0,
             bytes_fetched: 0,
@@ -1773,8 +1776,7 @@ impl ShareGroup {
             return Ok(());
         }
         self.topic_match = None;
-        self.hb_stop.send(true).unwrap_or(());
-        *self.hb_deadline.lock() = None;
+        self.stop_heartbeat().await;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
         let close = self.close_share_session().await;
         let leave = self.leave_coordinator().await;
@@ -1838,6 +1840,7 @@ impl ShareGroup {
             self.heartbeat_join().await?;
             return Ok(());
         }
+        self.stop_heartbeat().await;
         self.member_id = Uuid::random_uuid().to_string();
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
@@ -2196,15 +2199,16 @@ impl ShareGroup {
     }
 
     /// Leave the share group ([`ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]).
+    ///
+    /// Stops and joins the heartbeat task (bounded by
+    /// [`crate::ConsumerConfig::request_timeout`]) before closing the share
+    /// session and sending leave, so a background heartbeat cannot race it.
     pub async fn leave(mut self) -> Result<()> {
+        self.stop_heartbeat().await;
         if self.member_id.is_empty() {
-            self.hb_stop.send(true).unwrap_or(());
-            *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             return Ok(());
         }
-        self.hb_stop.send(true).unwrap_or(());
-        *self.hb_deadline.lock() = None;
         let close = self.close_share_session().await;
         let out = self.leave_coordinator().await;
         self.consumer.close_interceptors();
@@ -2258,7 +2262,21 @@ impl ShareGroup {
         }
     }
 
-    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
+    async fn stop_heartbeat(&mut self) {
+        self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
+        if let Some(task) = self.hb_task.take() {
+            let abort = task.abort_handle();
+            if tokio::time::timeout(self.cfg.request_timeout, task)
+                .await
+                .is_err()
+            {
+                abort.abort();
+            }
+        }
+    }
+
+    fn spawn_heartbeat(&mut self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -2268,7 +2286,7 @@ impl ShareGroup {
         let hb_deadline = self.hb_deadline.clone();
         let hb_wake = self.hb_wake.clone();
         let cfg = self.cfg.clone();
-        drop(tokio::spawn(async move {
+        self.hb_task = Some(tokio::spawn(async move {
             if *stop.borrow() {
                 return;
             }
@@ -2424,6 +2442,15 @@ impl ShareGroup {
                 }
             }
         }));
+    }
+}
+
+impl Drop for ShareGroup {
+    fn drop(&mut self) {
+        self.hb_stop.send(true).unwrap_or(());
+        if let Some(task) = self.hb_task.take() {
+            task.abort();
+        }
     }
 }
 

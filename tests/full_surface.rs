@@ -5543,6 +5543,58 @@ async fn kip848_broker_heartbeat_interval_scheduling() {
 }
 
 #[tokio::test]
+async fn share_leave_joins_in_flight_heartbeat_task() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    mock.set_share_heartbeat_interval_ms(40);
+    let g = ShareGroup::join(ccfg, "sg-leave-join", "t").await.unwrap();
+    let after_join = mock.share_heartbeat_calls();
+    mock.delay_share_reply_once(SHARE_GROUP_HEARTBEAT, Duration::from_millis(250));
+    common::wait_pred("in-flight share heartbeat", || {
+        mock.share_heartbeat_calls() > after_join
+    })
+    .await;
+    let started = Instant::now();
+    g.leave().await.unwrap();
+    assert!(
+        started.elapsed() >= Duration::from_millis(200),
+        "leave returned while the heartbeat task was still in flight: {:?}",
+        started.elapsed()
+    );
+    let calls = mock.share_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert_eq!(
+        mock.share_heartbeat_calls(),
+        calls,
+        "share heartbeat after leave returned"
+    );
+}
+
+#[tokio::test]
+async fn kip848_leave_stops_further_heartbeats() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    mock.set_cg_heartbeat_interval_ms(40);
+    let g = ConsumerGroup::join_consumer(ccfg, "kip848-leave-join", "t")
+        .await
+        .unwrap();
+    common::wait_pred("background kip848 heartbeat", || {
+        mock.cg_heartbeat_calls() >= 2
+    })
+    .await;
+    g.leave().await.unwrap();
+    let calls = mock.cg_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(
+        mock.cg_heartbeat_calls(),
+        calls,
+        "KIP-848 heartbeat after leave returned"
+    );
+}
+
+#[tokio::test]
 async fn share_fetch_follows_partition_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

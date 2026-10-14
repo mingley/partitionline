@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Classic and KIP-848 `ConsumerGroup` / `ShareGroup` leave now joins the
+  heartbeat task under `request_timeout` before the leave RPC. A `watch`
+  stop sent during an in-flight heartbeat is observed on the next loop
+  (missed `changed()` wakeup). Drop aborts a still-running task.
+  `leave` / `close` / `unsubscribe` no longer return while that task can
+  send another heartbeat.
+
 - Classic JoinGroup now speaks v0 and v1. v0 omits RebalanceTimeoutMs
   and fills it from session timeout; v1 matches v2 on the request and
   omits response ThrottleTimeMs. A present `group.instance.id` on a
