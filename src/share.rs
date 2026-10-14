@@ -1029,6 +1029,34 @@ impl ShareGroup {
         });
     }
 
+    /// Replace a stored topic id when metadata has a new one.
+    ///
+    /// Records acquired under the previous id belong to the deleted topic.
+    /// A zero metadata id does not clear a stored id.
+    fn refresh_share_topic_ids(&mut self) {
+        let metadata = self.consumer.topic_name_ids();
+        let mut names: Vec<String> = self.topic_ids.keys().cloned().collect();
+        for (topic, _) in &self.assigned {
+            if !names.iter().any(|name| name == topic) {
+                names.push(topic.clone());
+            }
+        }
+        for topic in names {
+            let stored = self.topic_ids.get(&topic).copied();
+            let next = metadata.get(&topic).copied();
+            let Some(id) = refreshed_share_topic_id(stored, next) else {
+                continue;
+            };
+            if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
+                self.acquisitions
+                    .retain(|(name, _, _), _| name.as_str() != topic);
+                self.pending_delivery
+                    .retain(|record| record.topic.as_str() != topic);
+            }
+            let _previous = self.topic_ids.insert(topic, id);
+        }
+    }
+
     fn apply_pending_assignment(&mut self) {
         let pending = self.hb_assignment.lock().take();
         if let Some(assignment) = pending {
@@ -1479,6 +1507,7 @@ impl ShareGroup {
     }
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
+        self.refresh_share_topic_ids();
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
         }
@@ -1933,6 +1962,7 @@ impl ShareGroup {
         if self.share_epochs.is_empty() {
             return Err(reject_java_acknowledge_before_poll());
         }
+        self.refresh_share_topic_ids();
         self.prune_expired_acquisitions();
         for record in recs {
             let acquired =
@@ -2600,6 +2630,22 @@ fn share_ack_retriable(error: &Error) -> bool {
     })
 }
 
+/// Metadata id when it is present, otherwise the id stored at assignment.
+fn refreshed_share_topic_id(
+    stored: Option<[u8; 16]>,
+    metadata: Option<[u8; 16]>,
+) -> Option<[u8; 16]> {
+    match metadata.filter(|id| *id != [0; 16]) {
+        Some(id) => Some(id),
+        None => stored.filter(|id| *id != [0; 16]),
+    }
+}
+
+/// A new non-zero metadata id replaces the id captured with the assignment.
+fn share_topic_recreated(stored: [u8; 16], metadata: Option<[u8; 16]>) -> bool {
+    metadata.is_some_and(|id| id != [0; 16] && id != stored)
+}
+
 fn share_fetch_session_reset(error: &Error) -> bool {
     share_session_reset(error) || error.broker_code() == Some(error::SHARE_SESSION_LIMIT_REACHED)
 }
@@ -2701,6 +2747,25 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_recreated_share_topic_replaces_its_stored_id() {
+        assert_eq!(
+            refreshed_share_topic_id(Some([1u8; 16]), Some([2u8; 16])),
+            Some([2u8; 16])
+        );
+        assert!(share_topic_recreated([1u8; 16], Some([2u8; 16])));
+        assert_eq!(
+            refreshed_share_topic_id(Some([1u8; 16]), Some([0u8; 16])),
+            Some([1u8; 16])
+        );
+        assert!(!share_topic_recreated([1u8; 16], Some([0u8; 16])));
+        assert!(!share_topic_recreated([1u8; 16], Some([1u8; 16])));
+        assert_eq!(
+            refreshed_share_topic_id(None, Some([4u8; 16])),
+            Some([4u8; 16])
+        );
     }
 
     #[test]
