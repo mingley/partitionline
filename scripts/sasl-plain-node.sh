@@ -48,6 +48,8 @@ log.dirs=${LOGDIR}
 offsets.topic.replication.factor=1
 transaction.state.log.replication.factor=1
 transaction.state.log.min.isr=1
+share.coordinator.state.topic.replication.factor=1
+share.coordinator.state.topic.min.isr=1
 group.initial.rebalance.delay.ms=0
 num.partitions=3
 group.share.enable=true
@@ -95,6 +97,9 @@ start_node() {
   nohup "$KAFKA_HOME/bin/kafka-server-start.sh" "$PROPS" >"$LOGFILE" 2>&1 &
   echo $! >"$PIDFILE"
   wait_ready
+  "$KAFKA_HOME/bin/kafka-features.sh" --bootstrap-server "127.0.0.1:${CLIENT_PORT}" \
+    --command-config "$STATE_DIR/client.properties" \
+    upgrade --feature share.version=1 --feature group.version=1 >/dev/null 2>&1 || true
 }
 
 stop_node() {

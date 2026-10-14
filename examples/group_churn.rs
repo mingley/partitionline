@@ -351,7 +351,15 @@ async fn partition_member(names: &Names) -> partitionline::Result<()> {
         events.push("resumed");
     }
     if names.churn == "member_loss" {
-        wait_partition_assignment(&mut group, &mut seen, Duration::from_secs(15)).await?;
+        match wait_partition_assignment(&mut group, &mut seen, Duration::from_secs(15)).await {
+            Ok(()) => {}
+            Err(_) => {
+                events.push("rejoined");
+                drop(group.leave().await);
+                group = join_group(names).await?;
+                arm_partition_poll(&mut group, &mut seen, Duration::from_secs(12)).await?;
+            }
+        }
     }
     let collect_for = if matches!(
         names.churn.as_str(),
@@ -476,7 +484,9 @@ async fn arm_partition_poll(
                         1,
                     );
                 }
-                return Ok(());
+                if !group.assignment().is_empty() {
+                    return Ok(());
+                }
             }
             Err(Error::Timeout) if Instant::now() < deadline => {}
             Err(error)
@@ -485,13 +495,17 @@ async fn arm_partition_poll(
             {
                 tokio::time::sleep(Duration::from_millis(150)).await;
             }
-            Err(Error::Timeout) => return Ok(()),
+            Err(Error::Timeout) => break,
             Err(error) => return Err(error),
         }
         if Instant::now() >= deadline {
-            return Ok(());
+            break;
         }
     }
+    if group.assignment().is_empty() {
+        return Err(Error::protocol("member has no assignment"));
+    }
+    Ok(())
 }
 
 async fn collect_partition(
@@ -569,7 +583,7 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
             PathBuf::from(env::var("GROUP_CHURN_RECOVERED").unwrap_or_else(|_| "recovered".into()));
         write_path(&recovered, "recovered\n").await?;
     }
-    let action = wait_go_share(&mut group, &go, Duration::from_secs(40)).await?;
+    let action = go_action(&wait_file(&go, Duration::from_secs(40)).await?);
     if action == "die" {
         drop(group.leave().await);
         std::process::exit(CRASH_EXIT);
@@ -631,39 +645,6 @@ async fn share_member(names: &Names) -> partitionline::Result<()> {
     drop(group.leave().await);
     write_path(&history, &render_member(names, &seen, &events, false)).await?;
     Ok(())
-}
-
-async fn wait_go_share(
-    group: &mut ShareGroup,
-    go: &PathBuf,
-    timeout: Duration,
-) -> partitionline::Result<String> {
-    let deadline = Instant::now() + timeout;
-    loop {
-        if tokio::fs::try_exists(go)
-            .await
-            .map_err(|e| Error::protocol(e.to_string()))?
-        {
-            return Ok(go_action(
-                &tokio::fs::read_to_string(go)
-                    .await
-                    .map_err(|e| Error::protocol(e.to_string()))?,
-            ));
-        }
-        if Instant::now() >= deadline {
-            return Err(Error::Timeout);
-        }
-        match group.poll_timeout(Duration::from_millis(250)).await {
-            Ok(recs) => {
-                if !recs.is_empty() {
-                    drop(group.release(recs.as_ref()).await);
-                }
-            }
-            Err(Error::Timeout) => {}
-            Err(error) if error.is_retriable() || coordinator_starting(&error) => {}
-            Err(error) => return Err(error),
-        }
-    }
 }
 
 async fn arm_share_poll(group: &mut ShareGroup, timeout: Duration) -> partitionline::Result<()> {

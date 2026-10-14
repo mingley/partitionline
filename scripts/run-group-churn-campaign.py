@@ -347,13 +347,21 @@ def run_one_cell(
     members = ["a"]
     if cell["two_members"]:
         members.append("b")
-    procs = {m: start_member(binary, trial, m, paths) for m in members}
-    for member in members:
-        if not wait_for(paths[f"ready_{member}"], 25):
+    # Start A first so the survivor has an assignment before B joins.
+    procs = {"a": start_member(binary, trial, "a", paths)}
+    if not wait_for(paths["ready_a"], 25):
+        for proc in procs.values():
+            proc.kill()
+        result["ok"] = False
+        result["error"] = "ready_timeout_a"
+        return result
+    if "b" in members:
+        procs["b"] = start_member(binary, trial, "b", paths)
+        if not wait_for(paths["ready_b"], 25):
             for proc in procs.values():
                 proc.kill()
             result["ok"] = False
-            result["error"] = f"ready_timeout_{member}"
+            result["error"] = "ready_timeout_b"
             return result
 
     if cell["protocol"] == "share" and cell["churn"] != "member_loss":
@@ -428,11 +436,13 @@ def run_one_cell(
         result["coordinator_node"] = node
         restart = fixture(env, "restart", "--node", str(node), timeout=180)
         result["inject_exit"] = restart.returncode
+        time.sleep(2.0)
         paths["go_a"].write_text('{"action":"continue"}\n')
     elif cell["churn"] == "secure_reconnect":
         senv = sasl_env(sasl_state or Path("/tmp/partitionline-kl03-21-sasl"), freeze)
         restart = sasl_node(senv, "restart", timeout=120)
         result["inject_exit"] = restart.returncode
+        time.sleep(2.0)
         paths["go_a"].write_text('{"action":"continue"}\n')
     else:
         paths["go_a"].write_text('{"action":"continue"}\n')
