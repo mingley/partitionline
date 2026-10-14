@@ -5285,6 +5285,7 @@ impl Consumer {
     ) -> Result<Vec<PartitionInfo>> {
         let topic = topic.into();
         self.reject_pending_wakeup()?;
+        Topic::validate(&topic)?;
         self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
             .await?;
         let infos = self.partition_infos(Some(topic.as_str()))?;

@@ -967,6 +967,20 @@ async fn max_poll_records_returns_rest_on_next_fetch() {
 }
 
 #[tokio::test]
+async fn partitions_for_rejects_an_invalid_topic_without_metadata() {
+    let mock = common::Mock::start().await;
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let before = mock.metadata_calls();
+    let err = consumer.partitions_for("bad name").await.unwrap_err();
+    assert!(err.to_string().contains("Topic name is invalid"), "{err}");
+    assert_eq!(mock.metadata_calls(), before);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn partitions_for_and_end_offsets() {
     let mock = common::Mock::start().await;
     let producer =
