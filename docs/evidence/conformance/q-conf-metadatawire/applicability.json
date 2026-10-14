@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "task": "KL01-20",
+  "declared_before_qualification": true,
+  "registered_case_ids": [
+    "matrix-cell-metadata-3-9-1",
+    "matrix-cell-metadata-4-1-0",
+    "proto-metadata-v01-local",
+    "proto-metadata-v02-local",
+    "proto-metadata-v03-local",
+    "proto-metadata-v04-local",
+    "proto-metadata-v05-local",
+    "proto-metadata-v06-local",
+    "proto-metadata-v07-local",
+    "proto-metadata-v08-local",
+    "proto-metadata-v09-local",
+    "proto-metadata-v10-local",
+    "proto-metadata-v11-local",
+    "proto-metadata-v12-local",
+    "proto-metadata-v13-local",
+    "proto-diff-metadata-v13-apache-3-9-1",
+    "proto-differential-metadata-apache-java"
+  ],
+  "original_dispositions_preserved": {
+    "local_consistency": [
+      "matrix-cell-metadata-3-9-1",
+      "matrix-cell-metadata-4-1-0",
+      "proto-metadata-v01-local",
+      "proto-metadata-v02-local",
+      "proto-metadata-v03-local",
+      "proto-metadata-v04-local",
+      "proto-metadata-v05-local",
+      "proto-metadata-v06-local",
+      "proto-metadata-v07-local",
+      "proto-metadata-v08-local",
+      "proto-metadata-v09-local",
+      "proto-metadata-v10-local",
+      "proto-metadata-v11-local",
+      "proto-metadata-v12-local",
+      "proto-metadata-v13-local"
+    ],
+    "unsupported": [
+      "proto-diff-metadata-v13-apache-3-9-1"
+    ],
+    "blocked": [
+      "proto-differential-metadata-apache-java"
+    ]
+  },
+  "crate_spoken_versions": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  "parameter_invocations": {
+    "cells": ["empty", "canonical", "errors", "tagged"],
+    "tagged_versions": [9, 10, 11, 12, 13],
+    "nested_counts": {
+      "empty": {"topics": "null-all-topics", "brokers": 0},
+      "canonical": {"topics": 1, "partitions": 1, "brokers": 1},
+      "errors": {"topics": 1, "partitions": 0},
+      "tagged": {"topics": 1, "unknown_tags": 3}
+    },
+    "field_gates": {
+      "ControllerId_IsInternal_Rack": "1+",
+      "ClusterId": "2+",
+      "ThrottleTimeMs": "3+",
+      "AllowAutoTopicCreation": "4+",
+      "OfflineReplicas": "5+",
+      "LeaderEpoch": "7+",
+      "IncludeTopicAuthorizedOperations": "8+",
+      "IncludeClusterAuthorizedOperations": "8-10",
+      "flexible": "9+",
+      "TopicId": "10+",
+      "null_Name": "12+",
+      "top_level_ErrorCode": "13+"
+    }
+  },
+  "peers": {
+    "3.9.1": {
+      "source_commit_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "github_raw_ref": "3.9.1",
+      "valid_versions": "0-12",
+      "jar_sha256": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
+      "sources": {
+        "MetadataRequest.json": "789e5e00d7ac7c621162bb0e4036dca79005c68d0bb3434091af798ef655b077",
+        "MetadataResponse.json": "e55b72b04ac383894d216cb0dd03dbe3618123e9ce52c7df012735ef236af013",
+        "MetadataRequest.java": "df586662d865fbbe253672a063195e352925ed79807bddb98b0aca64b5bde502",
+        "MetadataResponse.java": "a8487d9d71b8e82a3b176453e6a91ed71e2da9b918cfc2b684364cd98283c734",
+        "MetadataRequestTest.java": "e79fb88c9fb086e31e76ab9980aaa4adb72a973252313a599bc1c77f54c37334",
+        "MetadataResponseTest.java": "7a549664a9175d06c2ec8cc1978656fe8ea09578d31c036c5c422af70643ff08"
+      }
+    },
+    "4.1.0": {
+      "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+      "valid_versions": "0-13",
+      "jar_sha256": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627",
+      "note": "Metadata request/response JSON, Java, and tests match 4.1.2/4.2.1/4.3.1 byte-for-byte.",
+      "sources": {
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+        "MetadataRequest.java": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+        "MetadataResponse.java": "4bc7c408c4f884734dd793c9ad3fb0f04de640f0287b47342becd776a23d94b5",
+        "MetadataRequestTest.java": "e79fb88c9fb086e31e76ab9980aaa4adb72a973252313a599bc1c77f54c37334",
+        "MetadataResponseTest.java": "7a549664a9175d06c2ec8cc1978656fe8ea09578d31c036c5c422af70643ff08"
+      }
+    },
+    "4.1.2": {
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "valid_versions": "0-13",
+      "jar_sha256": "afe861c05067f4018a3148d73c1ed1e5fc90808757c15b043527d7e535a5d431",
+      "note": "Metadata sources match 4.1.0.",
+      "sources": {
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+        "MetadataRequest.java": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+        "MetadataResponse.java": "4bc7c408c4f884734dd793c9ad3fb0f04de640f0287b47342becd776a23d94b5",
+        "MetadataRequestTest.java": "e79fb88c9fb086e31e76ab9980aaa4adb72a973252313a599bc1c77f54c37334",
+        "MetadataResponseTest.java": "7a549664a9175d06c2ec8cc1978656fe8ea09578d31c036c5c422af70643ff08"
+      }
+    },
+    "4.2.1": {
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "valid_versions": "0-13",
+      "jar_sha256": "6a281026416938a53c105f2d91d2807fdc83d5658452abf0ad1b6d8ab8a553c8",
+      "note": "Metadata sources match 4.1.0.",
+      "sources": {
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+        "MetadataRequest.java": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+        "MetadataResponse.java": "4bc7c408c4f884734dd793c9ad3fb0f04de640f0287b47342becd776a23d94b5",
+        "MetadataRequestTest.java": "e79fb88c9fb086e31e76ab9980aaa4adb72a973252313a599bc1c77f54c37334",
+        "MetadataResponseTest.java": "7a549664a9175d06c2ec8cc1978656fe8ea09578d31c036c5c422af70643ff08"
+      }
+    },
+    "4.3.1": {
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "valid_versions": "0-13",
+      "jar_sha256": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
+      "note": "Metadata sources match 4.1.0.",
+      "sources": {
+        "MetadataRequest.json": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+        "MetadataResponse.json": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+        "MetadataRequest.java": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+        "MetadataResponse.java": "4bc7c408c4f884734dd793c9ad3fb0f04de640f0287b47342becd776a23d94b5",
+        "MetadataRequestTest.java": "e79fb88c9fb086e31e76ab9980aaa4adb72a973252313a599bc1c77f54c37334",
+        "MetadataResponseTest.java": "7a549664a9175d06c2ec8cc1978656fe8ea09578d31c036c5c422af70643ff08"
+      }
+    }
+  },
+  "source_methods": [
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataRequestTest.java",
+      "method": "testEmptyMeansAllTopicsV0",
+      "applicability": "unsupported",
+      "reason": "Empty Topics means all-topics only on v0. Crate Builder refuses v0; empty cell uses null Topics (all-topics) on spoken v1–v13."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataRequestTest.java",
+      "method": "testEmptyMeansEmptyForVersionsAboveV0",
+      "applicability": "applicable",
+      "reason": "Empty list is not all-topics on v1+. This card's empty cell uses null, not empty list."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataRequestTest.java",
+      "method": "testMetadataRequestVersion",
+      "applicability": "applicable",
+      "reason": "Builder oldest/latest and allowAutoTopicCreation version cap."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataRequestTest.java",
+      "method": "testTopicIdAndNullTopicNameRequests",
+      "applicability": "applicable",
+      "reason": "Null Name / non-zero TopicId rejected below v12. This card stays name-based with zero TopicId."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataRequestTest.java",
+      "method": "testTopicIdWithZeroUuid",
+      "applicability": "applicable",
+      "reason": "Zero Uuid with a name is the name-based v10+ layout used by canonical/errors."
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/common/requests/MetadataResponseTest.java",
+      "method": "buildClusterTest",
+      "applicability": "nonapplicable",
+      "reason": "Cluster.topicName lookup, not request/response body layout."
+    }
+  ],
+  "unsupported_or_nonapplicable": [
+    {
+      "cell": "Metadata v0",
+      "reason": "Crate MetadataRequest::build refuses versions older than 1. 3.9.1 and 4.x JSON still list 0; this cohort starts at 1."
+    },
+    {
+      "cell": "proto-diff-metadata-v13-apache-3-9-1",
+      "reason": "3.9.1 MetadataRequest.json validVersions 0-12. Live generator throws UnsupportedVersionException for crate-spoken v13."
+    },
+    {
+      "cell": "public KafkaAdmin describeTopics / ControllerApis",
+      "reason": "This card qualifies builders/parsers of Metadata request and response bodies, not Admin public behavior or broker metadata cache."
+    }
+  ]
+}

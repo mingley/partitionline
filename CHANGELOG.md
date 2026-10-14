@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Metadata v1–v13 request and response bodies are checked against pinned
+  Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
+  parsers. Kafka 3.9.1 v13 stays an unsupported receipt. The original
+  registered local-consistency rows are not rewritten (KL01-20).
+
 - Fetch v4–v18 request and response bodies are checked against pinned
   Apache kafka-clients 3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1 builders and
   parsers. Kafka 3.9.1 v18 stays an unsupported receipt. The original
