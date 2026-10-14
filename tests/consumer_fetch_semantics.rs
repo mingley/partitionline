@@ -37,7 +37,7 @@ use partitionline::protocol::api::{
     encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
-use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA};
+use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA, OFFSET_FOR_LEADER_EPOCH};
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchPartition, FetchTopic, FetchedPartition,
     FetchedTopic,
@@ -3505,6 +3505,39 @@ async fn list_offsets_on_another_leader_negotiates_once() {
         mock.api_versions_versions().len(),
         before + 1,
         "opening the leader socket negotiates ApiVersions once; ListOffsets must not repeat it"
+    );
+    consumer.close().await.unwrap();
+}
+
+/// A newer bootstrap must not force OffsetForLeaderEpoch v4 onto an older leader.
+#[tokio::test]
+async fn offset_for_leader_epoch_follows_the_leader_not_the_bootstrap() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_node_api_max(2, OFFSET_FOR_LEADER_EPOCH, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"epoch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let _ = mock.bump_leader_epoch("t", md.partition);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"epoch"[..]));
+    assert_eq!(mock.last_offset_for_leader_epoch_node(), Some(2));
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_version(),
+        Some(2),
+        "fenced fetch must speak the leader's OffsetForLeaderEpoch max, not the bootstrap max"
     );
     consumer.close().await.unwrap();
 }

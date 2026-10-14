@@ -1721,6 +1721,8 @@ pub struct Consumer {
     conns: HashMap<i32, BrokerConn>,
     /// ListOffsets min/max negotiated for each dedicated leader socket.
     list_offsets_ranges: HashMap<i32, (i16, i16)>,
+    /// OffsetForLeaderEpoch min/max negotiated for each dedicated leader socket.
+    leader_epoch_ranges: HashMap<i32, (i16, i16)>,
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
@@ -2155,6 +2157,7 @@ impl Consumer {
             cluster: Cluster::default(),
             conns: HashMap::new(),
             list_offsets_ranges: HashMap::new(),
+            leader_epoch_ranges: HashMap::new(),
             fetch_throttles: HashMap::new(),
             fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
@@ -2824,6 +2827,7 @@ impl Consumer {
                 .is_some_and(|addr| addr == self.conn.addr());
         let _ = self.conns.remove(&node);
         let _ = self.list_offsets_ranges.remove(&node);
+        let _ = self.leader_epoch_ranges.remove(&node);
         if used_bootstrap {
             self.conn.close();
         }
@@ -2837,6 +2841,7 @@ impl Consumer {
         {
             let _ = self.conns.remove(&node);
             let _ = self.list_offsets_ranges.remove(&node);
+            let _ = self.leader_epoch_ranges.remove(&node);
             if let Some(session) = self.fetch_sessions.get_mut(&node) {
                 session.reset();
             }
@@ -2943,6 +2948,11 @@ impl Consumer {
                 .list_offsets_ranges
                 .insert(node, (range.min_version, range.max_version));
         }
+        if let Some(range) = versions.api_version(OFFSET_FOR_LEADER_EPOCH) {
+            let _previous = self
+                .leader_epoch_ranges
+                .insert(node, (range.min_version, range.max_version));
+        }
         let _previous = self.conns.insert(node, conn);
     }
 
@@ -2985,17 +2995,32 @@ impl Consumer {
             .await
     }
 
+    fn offset_for_leader_epoch_version(&self, node: i32) -> Result<i16> {
+        let uses_bootstrap = !self.conns.contains_key(&node)
+            && self
+                .cluster
+                .brokers
+                .get(&node)
+                .is_some_and(|addr| addr == self.conn.addr());
+        let version = if uses_bootstrap {
+            self.versions
+                .get(&OFFSET_FOR_LEADER_EPOCH)
+                .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
+        } else {
+            self.leader_epoch_ranges
+                .get(&node)
+                .copied()
+                .and_then(|(min_version, max_version)| pick_version(min_version, max_version, 0, 4))
+        };
+        version.ok_or_else(|| {
+            Error::Unsupported("broker does not support OffsetForLeaderEpoch v0-4".into())
+        })
+    }
+
     async fn recover_leader_epochs(&mut self, coords: &[(String, i32)]) -> Result<()> {
         if coords.is_empty() {
             return Ok(());
         }
-        let version = self
-            .versions
-            .get(&OFFSET_FOR_LEADER_EPOCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support OffsetForLeaderEpoch v0-4".into())
-            })?;
         // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
         // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.
         for (topic, partition) in coords {
@@ -3038,6 +3063,7 @@ impl Consumer {
                     continue;
                 };
                 self.connect_node(node).await?;
+                let version = self.offset_for_leader_epoch_version(node)?;
                 let topics = offset_for_leader_epoch_topics(&self.cluster, &parts);
                 let timeout = self.cfg.request_timeout;
                 let body = {
