@@ -2333,7 +2333,8 @@ impl Node {
         }
         let local = self.local_voter()?;
         let local_id = i32::try_from(local.id).map_err(|_| Error::InvalidConfig)?;
-        let persistent = self.controller.state().persistent;
+        let election = self.controller.state();
+        let persistent = election.persistent;
         let metadata = protocol::MetadataLog {
             cluster_id: &self.config.controller.cluster_id,
             topic: &self.config.controller.topic,
@@ -2346,6 +2347,10 @@ impl Node {
                 let replica = self.known_voter(decoded.replica_id)?;
                 Ok(protocol::decide_vote_body(
                     &persistent,
+                    protocol::VoteQuorum {
+                        role: election.role,
+                        leader: election.leader,
+                    },
                     metadata,
                     replica.directory,
                     local_id,
