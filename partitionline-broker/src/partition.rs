@@ -271,10 +271,19 @@ impl Partition {
     ///
     /// The eight-byte base offset sits outside the batch CRC. Callers that
     /// already own the payload avoid the extra copy [`Self::append`] makes.
-    fn assign_offsets(&mut self, bytes: &mut [u8]) -> Result<(u32, i64, i64, usize), Error> {
+    fn assign_offsets(
+        &mut self,
+        bytes: &mut [u8],
+        trusted: bool,
+    ) -> Result<(u32, i64, i64, usize), Error> {
         self.check_alive()?;
         if bytes.len() > self.journal_limits.max_entry_bytes() {
             return Err(Error::InputTooLarge);
+        }
+        if trusted {
+            if let Some(assigned) = self.assign_trusted_batch(bytes)? {
+                return Ok(assigned);
+            }
         }
         let base_offset = self.next_offset();
         let (record_count, next_offset, batch_count, spans) = {
@@ -317,8 +326,61 @@ impl Partition {
         Ok((record_count, base_offset, next_offset, batch_count))
     }
 
+    /// One already-validated batch: patch its base offset and read `numRecords`.
+    ///
+    /// Produce admission already matched the CRC and walked the records. Those
+    /// bytes are unchanged by the base-offset and leader-epoch patches. Any
+    /// other shape returns `Ok(None)` so the caller runs a full validate.
+    fn assign_trusted_batch(
+        &mut self,
+        bytes: &mut [u8],
+    ) -> Result<Option<(u32, i64, i64, usize)>, Error> {
+        let Some(header) = bytes.get(..61) else {
+            return Ok(None);
+        };
+        let mut length_bytes = [0u8; 4];
+        length_bytes.copy_from_slice(&header[8..12]);
+        let declared = usize::try_from(i32::from_be_bytes(length_bytes))
+            .ok()
+            .and_then(|n| n.checked_add(12));
+        if declared != Some(bytes.len()) || header[16] != 2 {
+            return Ok(None);
+        }
+        let mut count_bytes = [0u8; 4];
+        count_bytes.copy_from_slice(&header[57..61]);
+        let count = i32::from_be_bytes(count_bytes);
+        if count <= 0 {
+            return Err(Error::CorruptPayload);
+        }
+        let record_count = u32::try_from(count).map_err(|_| Error::OffsetOverflow)?;
+        let base_offset = self.next_offset();
+        let next_offset = base_offset
+            .checked_add(i64::from(record_count))
+            .ok_or(Error::OffsetOverflow)?;
+        bytes
+            .get_mut(..8)
+            .ok_or(Error::CorruptPayload)?
+            .copy_from_slice(&base_offset.to_be_bytes());
+        Ok(Some((record_count, base_offset, next_offset, 1)))
+    }
+
+    fn append_trusted(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
+        let (record_count, base_offset, next_offset, batch_count) =
+            self.assign_offsets(bytes, true)?;
+        let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
+        self.journal.append(record_count, bytes, checksum)?;
+        self.next_offset = next_offset;
+        Ok(Append {
+            base_offset,
+            next_offset,
+            record_count,
+            batch_count,
+        })
+    }
+
     pub(crate) fn append_in_place(&mut self, bytes: &mut [u8]) -> Result<Append, Error> {
-        let (record_count, base_offset, next_offset, batch_count) = self.assign_offsets(bytes)?;
+        let (record_count, base_offset, next_offset, batch_count) =
+            self.assign_offsets(bytes, false)?;
         let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
         self.journal.append(record_count, bytes, checksum)?;
         self.next_offset = next_offset;
@@ -337,9 +399,10 @@ impl Partition {
     /// its append already synchronized.
     pub(crate) fn stage_in_place(&mut self, bytes: &mut [u8]) -> Result<Stage, Error> {
         if !self.journal.is_journal() {
-            return Ok(Stage::Done(self.append_in_place(bytes)?));
+            return Ok(Stage::Done(self.append_trusted(bytes)?));
         }
-        let (record_count, _base_offset, _next_offset, batch_count) = self.assign_offsets(bytes)?;
+        let (record_count, _base_offset, _next_offset, batch_count) =
+            self.assign_offsets(bytes, true)?;
         let checksum = journal::checksum_reusing_record_crc(bytes, batch_count);
         let file = self.journal.append_staged(record_count, bytes, checksum)?;
         Ok(Stage::Sync(StagedWrite { file, batch_count }))
