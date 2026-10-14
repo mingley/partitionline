@@ -2179,7 +2179,7 @@ where
                 encode_record(
                     buf,
                     &rec,
-                    buf::i32_from_usize(i)?,
+                    absolute_offset_delta(header.base_offset, i)?,
                     timestamp_delta(header.base_timestamp, rec.timestamp)?,
                 )?;
             }
@@ -2195,7 +2195,7 @@ where
                 encode_record(
                     section,
                     &rec,
-                    buf::i32_from_usize(i)?,
+                    absolute_offset_delta(header.base_offset, i)?,
                     timestamp_delta(header.base_timestamp, rec.timestamp)?,
                 )?;
             }
@@ -2328,7 +2328,7 @@ where
     let result = (|| {
         let mut count = 0usize;
         for rec in records {
-            let delta = buf::i32_from_usize(count)?;
+            let delta = absolute_offset_delta(header.base_offset, count)?;
             let timestamp = timestamp_delta(header.base_timestamp, rec.timestamp)?;
             let body = record_body_size(&rec, delta, timestamp)?;
             let size = buf::usize_from_i32(body)?
@@ -3143,6 +3143,14 @@ fn try_plain_short_key(
         key,
         value,
     })
+}
+
+fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
+    let delta = buf::i32_from_usize(index)?;
+    if base.checked_add(i64::from(delta)).is_none() {
+        return Err(Error::protocol("record offset overflow"));
+    }
+    Ok(delta)
 }
 
 fn timestamp_delta(base: i64, timestamp: i64) -> Result<i64> {
@@ -4668,6 +4676,31 @@ mod tests {
         assert!(
             offset_err.contains("offset delta exceeds i32"),
             "{offset_err}"
+        );
+
+        let mut at_end = RecordBatch::from_records(vec![
+            Record {
+                offset: 0,
+                timestamp: 0,
+                key: None,
+                value: Some(Bytes::from_static(b"a")),
+                headers: vec![],
+            },
+            Record {
+                offset: 1,
+                timestamp: 0,
+                key: None,
+                value: Some(Bytes::from_static(b"b")),
+                headers: vec![],
+            },
+        ]);
+        at_end.base_offset = i64::MAX;
+        let encode_err = encode_record_batch(&mut BytesMut::new(), &at_end)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            encode_err.contains("record offset overflow"),
+            "{encode_err}"
         );
         let batch_err = decode_record_batch(&mut &encoded[..])
             .unwrap_err()
