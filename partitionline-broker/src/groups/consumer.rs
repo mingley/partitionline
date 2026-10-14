@@ -22,6 +22,8 @@ pub const NOT_COORDINATOR: i16 = 16;
 pub const UNKNOWN_MEMBER_ID: i16 = 25;
 /// Kafka `FENCED_MEMBER_EPOCH`.
 pub const FENCED_MEMBER_EPOCH: i16 = 110;
+/// Kafka `FENCED_INSTANCE_ID`.
+pub const FENCED_INSTANCE_ID: i16 = 82;
 /// Kafka `UNSUPPORTED_ASSIGNOR`.
 pub const UNSUPPORTED_ASSIGNOR: i16 = 112;
 /// Kafka `STALE_MEMBER_EPOCH`.
@@ -97,6 +99,8 @@ pub enum Error {
     UnknownMember,
     /// The member epoch is older than the epoch last issued.
     Fenced,
+    /// The static instance id does not match the joined member.
+    FencedInstance,
     /// The member epoch skipped ahead of the issued epoch.
     Stale,
     /// The assignor is not the server range assignor.
@@ -118,6 +122,7 @@ impl Error {
             Self::NotCoordinator => Some(NOT_COORDINATOR),
             Self::UnknownMember => Some(UNKNOWN_MEMBER_ID),
             Self::Fenced => Some(FENCED_MEMBER_EPOCH),
+            Self::FencedInstance => Some(FENCED_INSTANCE_ID),
             Self::Stale => Some(STALE_MEMBER_EPOCH),
             Self::UnsupportedAssignor => Some(UNSUPPORTED_ASSIGNOR),
             Self::InvalidRequest | Self::Poisoned | Self::InvalidLimits | Self::Storage(_) => None,
@@ -384,16 +389,17 @@ impl Groups {
         if request.member_epoch > member.epoch {
             return Err(Error::Stale);
         }
+        if member.instance != instance {
+            return Err(Error::FencedInstance);
+        }
         let changed = replacement
             .as_ref()
             .is_some_and(|topics| member.topics != *topics)
-            || member.version != request.version
-            || member.instance != instance;
+            || member.version != request.version;
         if let Some(topics) = replacement {
             member.topics = topics;
         }
         member.version = request.version;
-        member.instance = instance;
         if changed {
             group.epoch = group.epoch.saturating_add(1);
         }
@@ -420,9 +426,13 @@ impl Groups {
         let Some(group) = next.groups.get_mut(request.group) else {
             return Err(Error::UnknownMember);
         };
-        if group.members.remove(request.member_id).is_none() {
+        let Some(member) = group.members.get(request.member_id) else {
             return Err(Error::UnknownMember);
+        };
+        if member.instance.as_deref() != request.instance_id {
+            return Err(Error::FencedInstance);
         }
+        group.members.remove(request.member_id);
         group.epoch = group.epoch.saturating_add(1);
         finish_group_with(group, &topic_counts);
         let epoch = group.epoch;
@@ -1023,5 +1033,43 @@ mod tests {
         );
         assert!(owners(&view).len() <= 4);
         assert_eq!(owners(&view).len(), 4);
+        let mut wrong_instance = beat(
+            "orders-g",
+            &second.member_id,
+            second.member_epoch,
+            1,
+            &["orders"],
+        );
+        wrong_instance.coordinator_epoch = 1;
+        wrong_instance.instance_id = Some("i-2");
+        assert!(matches!(
+            groups.heartbeat(wrong_instance),
+            Err(Error::FencedInstance)
+        ));
+        let mut wrong_leave = beat("orders-g", &second.member_id, -1, 1, &["orders"]);
+        wrong_leave.coordinator_epoch = 1;
+        wrong_leave.member_epoch = -1;
+        wrong_leave.instance_id = Some("i-2");
+        assert!(matches!(
+            groups.heartbeat(wrong_leave),
+            Err(Error::FencedInstance)
+        ));
+        assert!(groups.describe("orders-g").is_some_and(|view| {
+            view.members
+                .iter()
+                .any(|member| member.member_id == second.member_id)
+        }));
+        let mut leave = beat("orders-g", &second.member_id, -1, 1, &["orders"]);
+        leave.coordinator_epoch = 1;
+        leave.member_epoch = -1;
+        leave.instance_id = Some("i-1");
+        groups
+            .heartbeat(leave)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.describe("orders-g").is_some_and(|view| {
+            view.members
+                .iter()
+                .all(|member| member.member_id != second.member_id)
+        }));
     }
 }
