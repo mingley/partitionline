@@ -4141,9 +4141,165 @@ async fn admin_list_consumer_group_offsets_for_groups_falls_back_below_v8() {
     admin.close().await.unwrap();
 }
 
+#[test]
+fn admin_offset_debug_future_sizes() {
+    let sizes = std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| {
+            let mock_size = std::mem::size_of_val(&common::Mock::start());
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let mock = common::Mock::start().await;
+                let cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+                let new_fut = Admin::new(cfg.clone());
+                let new_size = std::mem::size_of_val(&new_fut);
+                let mut admin = new_fut.await.unwrap();
+                let alter_fut = admin.alter_consumer_group_offsets(
+                    "g1",
+                    [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+                );
+                let alter_size = std::mem::size_of_val(&alter_fut);
+                alter_fut.await.unwrap();
+                let list_fut = admin.list_consumer_group_offsets_for_groups([
+                    (
+                        "g1",
+                        ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                            "t", 0,
+                        )]),
+                    ),
+                    (
+                        "g2",
+                        ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                            "t", 0,
+                        )]),
+                    ),
+                ]);
+                let list_size = std::mem::size_of_val(&list_fut);
+                drop(list_fut);
+                admin.close().await.unwrap();
+                (mock_size, new_size, alter_size, list_size)
+            })
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+    let test_shaped = std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| {
+            std::mem::size_of_val(&async {
+                let mock = common::Mock::start().await;
+                let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+                    .await
+                    .unwrap();
+                admin
+                    .alter_consumer_group_offsets(
+                        "g1",
+                        [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+                    )
+                    .await
+                    .unwrap();
+                admin
+                    .alter_consumer_group_offsets(
+                        "g2",
+                        [(TopicPartition::new("t", 0), OffsetAndMetadata::new(2))],
+                    )
+                    .await
+                    .unwrap();
+                let listed = admin
+                    .list_consumer_group_offsets_for_groups([
+                        (
+                            "g1",
+                            ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                                "t", 0,
+                            )]),
+                        ),
+                        (
+                            "g2",
+                            ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                                "t", 0,
+                            )]),
+                        ),
+                    ])
+                    .await
+                    .unwrap();
+                assert_eq!(listed.len(), 2);
+                admin.close().await.unwrap();
+                let mock = common::Mock::start().await;
+                mock.set_api_max(FIND_COORDINATOR, 3);
+                let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+                    .await
+                    .unwrap();
+                admin
+                    .alter_consumer_group_offsets(
+                        "g1",
+                        [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+                    )
+                    .await
+                    .unwrap();
+                admin
+                    .alter_consumer_group_offsets(
+                        "g2",
+                        [(TopicPartition::new("t", 0), OffsetAndMetadata::new(2))],
+                    )
+                    .await
+                    .unwrap();
+                let listed = admin
+                    .list_consumer_group_offsets_for_groups([
+                        (
+                            "g1",
+                            ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                                "t", 0,
+                            )]),
+                        ),
+                        (
+                            "g2",
+                            ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new(
+                                "t", 0,
+                            )]),
+                        ),
+                    ])
+                    .await
+                    .unwrap();
+                assert_eq!(listed.len(), 2);
+                admin.close().await.unwrap();
+            })
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+    eprintln!(
+        "Mock::start={mock} Admin::new={new} alter={alter} list={list} test_shaped={test}",
+        mock = sizes.0,
+        new = sizes.1,
+        alter = sizes.2,
+        list = sizes.3,
+        test = test_shaped
+    );
+}
+
+#[test]
+fn admin_list_offsets_runs_on_2mib_thread() {
+    std::thread::Builder::new()
+        .stack_size(2 * 1024 * 1024)
+        .spawn(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(
+                    admin_list_consumer_group_offsets_for_groups_batches_find_coordinator_body(),
+                )
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
 /// Debug future layout overflows the default 2 MiB worker stack; `.cargo/config.toml` sets `RUST_MIN_STACK`.
-#[tokio::test]
-async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator() {
+async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator_body() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
         .await
@@ -4256,6 +4412,11 @@ async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator()
         "OffsetFetch v8+ is still one RPC per coordinator"
     );
     admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator() {
+    admin_list_consumer_group_offsets_for_groups_batches_find_coordinator_body().await
 }
 
 #[tokio::test]

@@ -159,9 +159,12 @@ pub async fn fetch_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
-    fetch_client_credentials_token_response(cfg, request_timeout)
-        .await
-        .map(|resp| resp.access_token)
+    Box::pin(fetch_client_credentials_token_response(
+        cfg,
+        request_timeout,
+    ))
+    .await
+    .map(|resp| resp.access_token)
 }
 
 // The cache retains at most 64 credential configurations and HTTP token bodies.
@@ -305,6 +308,13 @@ pub(crate) async fn shared_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
+    Box::pin(shared_client_credentials_token_io(cfg, request_timeout)).await
+}
+
+async fn shared_client_credentials_token_io(
+    cfg: &OidcConfig,
+    request_timeout: Duration,
+) -> Result<String> {
     let lease = SHARED_MANAGERS.acquire(cfg)?;
     lease.manager.token(request_timeout).await
 }
@@ -315,6 +325,17 @@ pub(crate) async fn shared_client_credentials_token(
 /// attempts within `request_timeout`. HTTP 4xx fails immediately
 /// (no credential hammering).
 pub async fn fetch_client_credentials_token_response(
+    cfg: &OidcConfig,
+    request_timeout: Duration,
+) -> Result<OidcTokenResponse> {
+    Box::pin(fetch_client_credentials_token_response_io(
+        cfg,
+        request_timeout,
+    ))
+    .await
+}
+
+async fn fetch_client_credentials_token_response_io(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<OidcTokenResponse> {
@@ -2077,11 +2098,15 @@ impl OidcTokenManager {
     /// Retrieve a valid token, acquiring one synchronously if uninitialized or expired,
     /// or returning the cached token while refreshing proactively in the background.
     pub async fn token(&self, timeout: Duration) -> Result<String> {
-        self.token_data(timeout).await.map(|td| td.token)
+        Box::pin(self.token_data(timeout)).await.map(|td| td.token)
     }
 
     /// Retrieve a valid [`TokenData`] record.
     pub async fn token_data(&self, timeout_dur: Duration) -> Result<TokenData> {
+        Box::pin(self.token_data_io(timeout_dur)).await
+    }
+
+    async fn token_data_io(&self, timeout_dur: Duration) -> Result<TokenData> {
         let deadline = Instant::now() + timeout_dur;
 
         // 1. Fast read path: Check cache under read lock
