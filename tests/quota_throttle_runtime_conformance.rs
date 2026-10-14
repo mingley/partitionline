@@ -29,7 +29,9 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProduceResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA, PRODUCE};
-use partitionline::protocol::fetch::{decode_fetch_request, decode_fetch_response, FetchMetadata, FetchResponse};
+use partitionline::protocol::fetch::{
+    decode_fetch_request, decode_fetch_response, FetchMetadata, FetchResponse,
+};
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::{Consumer, ProduceRecord, Producer, ProducerConfig};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -514,18 +516,20 @@ async fn apache_quota_bodies_replay_public_histories() {
 
         let mut broker = RawBroker::start(TOPIC, vec![produce_neg, produce_zero], Vec::new()).await;
         let producer = Producer::new(broker.producer_config()).await.unwrap();
-        producer
+        let first_neg = producer
             .send(ProduceRecord::to(TOPIC).value(&b"q"[..]))
             .await
             .unwrap();
+        assert_eq!(first_neg.offset, 0, "{peer} produce negative offset");
         let neg = producer.metrics().throttle;
         assert_eq!(neg.responses, 0, "{peer} negative is not a quota");
         assert_eq!(neg.invalid_responses, 1, "{peer} negative invalid count");
         let started = Instant::now();
-        producer
+        let second_neg = producer
             .send(ProduceRecord::to(TOPIC).value(&b"q"[..]))
             .await
             .unwrap();
+        assert_eq!(second_neg.offset, 0, "{peer} produce after negative");
         assert!(
             started.elapsed() < Duration::from_millis(150),
             "{peer} negative must not unmute a wait: {:?}",
@@ -567,7 +571,8 @@ async fn apache_quota_bodies_replay_public_histories() {
         consumer.close().await.unwrap();
         broker.shutdown().await;
 
-        let mut broker = RawBroker::start(TOPIC, Vec::new(), vec![empty_throttled, fetch_zero]).await;
+        let mut broker =
+            RawBroker::start(TOPIC, Vec::new(), vec![empty_throttled, fetch_zero]).await;
         let mut consumer = Consumer::new(broker.consumer_config()).await.unwrap();
         consumer.assign_many([((TOPIC, 0), 0)]).await.unwrap();
         let first_fetch = tokio::time::timeout(Duration::from_millis(800), consumer.fetch()).await;
