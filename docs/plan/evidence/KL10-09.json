@@ -1,0 +1,79 @@
+{
+  "task": "KL10-09",
+  "status": "done",
+  "disposition": "rejected-regression",
+  "date": "2026-10-14",
+  "source_sha": "b3a5c3bfc1f52c2319981cffb4f0e9778379dacd",
+  "baseline_sha": "0df79d8d9ee48ec73346b8f063f334163ea1b169",
+  "claim_sha": "daa1b843d6998c7b9062e7420dce18de47646443",
+  "revert_sha": "d7da40359b9ed7a1a6ed675b4e14c780663852ae",
+  "owner": "cursor-cloud",
+  "Rust": "stable 1.99.0 (b940084d7 2026-09-28)",
+  "hypothesis": "Decompressing and decoding fetched gzip batches on bounded spawn_blocking workers (per partition / remaining-batch wave) instead of the caller's fetch/poll would use more than one core on lb-gateway-fetch-gzip without changing apply order, buffer_memory, seek, pause, unassign or read_committed.",
+  "finding": "The targeted cost is visible. Parent consume is caller-bound (elapsed ≈ CPU, ~54 ms / 2.16 µs/rec). The candidate cut wall-clock (median paired records/s +84.6%, 95% CI [+58.3%, +106.2%]) by using about two cores. Fetch-profile guardrails failed: CPU per record +17.9% (CI [+10.0%, +20.6%]) and peak RSS +8.7% (CI [+8.1%, +9.2%]), both above the 2% limit. Net production lines were 229. Production code is reverted; remaining criteria do not apply.",
+  "cells": ["lb-gateway-fetch-gzip"],
+  "host": {
+    "cpu_model": "Intel(R) Xeon(R) Processor",
+    "logical_cores": 4,
+    "os": "Linux",
+    "arch": "x86_64",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "profile": "release, default features; dedicated consume driver (no ID/hash verify)"
+  },
+  "commands": [
+    "cargo +stable fmt --all -- --check (exit 0)",
+    "cargo +stable clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo +stable test --locked --test consumer_fetch_semantics (68 passed, 1 ignored)",
+    "cargo +stable test --locked --test fetch_buffer_budget (12 passed)",
+    "cargo +stable test --locked --test protocol_oracles (39 passed, 1 ignored)",
+    "A-B-B-A parent 0df79d8d vs candidate b3a5c3bf, COUNT=25000, 5 interleaved pairs after one warmup (see docs/evidence/perf/KL10-09/)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "records/s",
+      "baseline_median": 461611.30522276816,
+      "candidate_median": 894960.5238282703,
+      "delta_pct": 84.60017573903838,
+      "ci95_pct": [58.283042613828506, 106.20228729049046],
+      "repetitions": 5
+    },
+    "allocations": {
+      "unit": "not measured on this cell",
+      "baseline": null,
+      "candidate": null
+    },
+    "instructions": {
+      "bench": "not measured",
+      "baseline": null,
+      "candidate": null
+    },
+    "guardrails": {
+      "cpu_us_per_record_delta_pct": 17.859773162468695,
+      "cpu_us_per_record_ci95_pct": [9.953686550574293, 20.626854599406542],
+      "peak_rss_delta_pct": 8.711450666169762,
+      "peak_rss_ci95_pct": [8.131214571136503, 9.2419716206124]
+    },
+    "net_production_lines": 229,
+    "correctness": "consumer_fetch_semantics 68 passed; fetch_buffer_budget 12 passed including worker budget/bomb tests; protocol_oracles 39 passed. Reverted with the production change."
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL10-09/README.md",
+    "docs/evidence/perf/KL10-09/summary.json",
+    "docs/evidence/perf/KL10-09/results/",
+    "docs/evidence/perf/KL10-09/binaries.sha256"
+  ],
+  "limits": [
+    "local/unsigned; not a Kafka comparison claim",
+    "Consume driver did not re-verify ID/hash (KL10-14 already did on this backlog)",
+    "COUNT=25000 is a short backlog",
+    "No iai instruction or allocation census"
+  ],
+  "next_dependency_effect": "No card lists KL10-09 in requires_accepted. KL10-12 depends_on KL10-09 and may start with this rejection recorded; measure its cells on the default inline-decode build.",
+  "qualification_limit": "Outcome branch rejected-regression. World-class client objective remains open.",
+  "evidence": "docs/evidence/perf/KL10-09",
+  "production_ready": false,
+  "performance_claims_valid": false,
+  "core_protocol_complete": false,
+  "full_protocol_complete": false,
+  "world_class_client_complete": false
+}

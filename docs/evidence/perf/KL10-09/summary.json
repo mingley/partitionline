@@ -1,0 +1,68 @@
+{
+  "schema": "kl10-09-summary/1",
+  "task": "KL10-09",
+  "date": "2026-10-14",
+  "disposition": "rejected-regression",
+  "suite_hold": "active",
+  "performance_claims_valid": false,
+  "feeds_claims": false,
+  "baseline_sha": "0df79d8d9ee48ec73346b8f063f334163ea1b169",
+  "candidate_sha": "b3a5c3bfc1f52c2319981cffb4f0e9778379dacd",
+  "note_baseline_sha": "0df79d8d Record KL10-14; library decode is inline on the caller.",
+  "host": {
+    "os": "linux",
+    "arch": "x86_64",
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "logical_cores": 4,
+    "broker": "native Kafka 4.1.0 KRaft PLAINTEXT 127.0.0.1:9092 RF=1",
+    "security": "PLAINTEXT"
+  },
+  "workload": {
+    "cell": "lb-gateway-fetch-gzip",
+    "count": 25000,
+    "warmup_pairs": 1,
+    "repetitions": 5,
+    "pairing": "A-B-B-A",
+    "a": "parent 0df79d8d inline decode",
+    "b": "candidate b3a5c3bf fetch_decode_workers=0 (auto, 4 cores)",
+    "payload": "json1k 1024 bytes gzip backlog reused from KL10-14",
+    "partitions": 8,
+    "assignment": "manual from offset 0",
+    "fetch_min_bytes": 1,
+    "fetch_max_wait_ms": 500,
+    "fetch_max_bytes": 52428800,
+    "max_partition_fetch_bytes": 1048576,
+    "isolation": "read_uncommitted",
+    "throughput_definition": "consumed / elapsed (no ID/hash verify in this driver)",
+    "cpu_source": "getrusage RUSAGE_SELF including blocking-pool threads"
+  },
+  "primary": {
+    "metric": "records/s",
+    "baseline_median": 461611.30522276816,
+    "candidate_median": 894960.5238282703,
+    "delta_pct": 84.60017573903838,
+    "ci95_pct": [58.283042613828506, 106.20228729049046],
+    "repetitions": 5
+  },
+  "guardrails": {
+    "cpu_us_per_record": {
+      "baseline_median": 2.1567999999999996,
+      "candidate_median": 2.4487599999999996,
+      "delta_pct": 17.859773162468695,
+      "ci95_pct": [9.953686550574293, 20.626854599406542]
+    },
+    "peak_rss_bytes": {
+      "baseline_median": 43962368,
+      "candidate_median": 47804416,
+      "delta_pct": 8.711450666169762,
+      "ci95_pct": [8.131214571136503, 9.2419716206124]
+    }
+  },
+  "paired_deltas_pct": {
+    "rps": [94.25712781464637, 84.60017573903838, 106.20228729049046, 58.283042613828506, 79.62701225061623],
+    "cpu_us_per_record": [15.132261166311567, 19.363203868351285, 17.859773162468695, 20.626854599406542, 9.953686550574293],
+    "peak_rss": [8.131214571136503, 9.2419716206124, 9.012115563839696, 8.711450666169762, 8.648296406628187]
+  },
+  "rejection": "Fetch-profile guardrails are CPU per record and peak RSS. Both rose by more than 2% (spawn_blocking / worker-thread overhead). Remaining KL10-09 criteria do not apply.",
+  "note": "Suite HOLD remains. These numbers are not a performance claim."
+}
