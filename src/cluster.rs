@@ -44,7 +44,13 @@ impl Cluster {
                 continue;
             };
             if t.error_code != 0 {
-                let _ = self.topic_ids.remove(name);
+                // A missing topic must not keep a stale leader. Other topic
+                // errors are transient, so the last good leaders stay cached.
+                if t.error_code == crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                    || t.error_code == crate::error::UNKNOWN_TOPIC_ID
+                {
+                    self.invalidate_topic(name);
+                }
                 continue;
             }
             if version >= 10 && t.topic_id != [0; 16] {
@@ -496,6 +502,82 @@ mod tests {
         cluster.apply(&metadata(1, 10), 13);
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 10);
+    }
+
+    #[test]
+    fn an_unknown_topic_drops_its_cached_leader() {
+        use crate::error;
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [9u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 4,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                error_code: 0,
+            },
+            13,
+        );
+        let transient = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: error::LEADER_NOT_AVAILABLE,
+                name: Some("t".into()),
+                topic_id: [9u8; 16],
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        cluster.apply(&transient, 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 4);
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([9u8; 16]));
+        cluster.apply(
+            &MetadataResponse {
+                topics: vec![TopicMetadata {
+                    error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+                    ..transient.topics[0].clone()
+                }],
+                ..transient
+            },
+            13,
+        );
+        assert!(cluster.leader("t", 0).is_err());
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(cluster.topic_ids.get("t").is_none());
     }
 
     #[test]
