@@ -214,7 +214,15 @@ impl Log {
         if self.records.len() >= self.limits.max_records {
             return Err(Error::Budget);
         }
-        let offset = self.next_offset();
+        // The next offset must itself have an exclusive end that fits in `i64`.
+        let offset = match self.records.last() {
+            Some(last) => last
+                .offset
+                .checked_add(1)
+                .filter(|next| next.checked_add(1).is_some())
+                .ok_or(Error::OffsetOutOfRange)?,
+            None => 0,
+        };
         let record = Record {
             offset,
             leader_epoch,
@@ -466,6 +474,21 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(rest.copied, 2);
         assert_eq!(follower.records(), leader.records());
+    }
+
+    #[test]
+    fn an_offset_at_the_end_of_i64_is_not_appended() {
+        let (mut log, _) = log("end");
+        log.append(1, b"aaa")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.records[0].offset = i64::MAX - 1;
+        assert_eq!(log.next_offset(), i64::MAX);
+        assert!(matches!(
+            log.append(1, b"bbb"),
+            Err(Error::OffsetOutOfRange)
+        ));
+        assert_eq!(log.records().len(), 1);
+        assert_eq!(log.records()[0].bytes, b"aaa");
     }
 
     #[test]
