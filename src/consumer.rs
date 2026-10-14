@@ -1533,6 +1533,16 @@ impl<V> PartitionMap<V> {
         self.topics.clear();
     }
 
+    fn entries(&self) -> Vec<(String, i32)> {
+        let mut out = Vec::new();
+        for (topic, partitions) in &self.topics {
+            for partition in partitions.keys() {
+                out.push((topic.clone(), *partition));
+            }
+        }
+        out
+    }
+
     fn is_empty(&self) -> bool {
         self.topics.is_empty()
     }
@@ -2715,7 +2725,15 @@ impl Consumer {
         }
         let md = decode_metadata_response(&mut body.clone(), version)?;
         md.check()?;
+        let previous_epochs = self.cluster.leader_epochs.clone();
         self.cluster.apply(&md, version);
+        for (topic, partition) in preferred_partitions_to_drop(
+            &self.preferred.entries(),
+            &previous_epochs,
+            &self.cluster.leader_epochs,
+        ) {
+            let _ = self.preferred.remove(&topic, partition);
+        }
         self.metadata = Some(md);
         Ok(())
     }
@@ -5542,6 +5560,32 @@ fn fetched_bytes(rec: &FetchedRecord) -> u64 {
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
+fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> i32 {
+    usize::try_from(partition)
+        .ok()
+        .and_then(|index| {
+            epochs
+                .get(topic)
+                .and_then(|values| values.get(index).copied())
+        })
+        .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
+}
+
+/// Preferred replicas belong to a leader epoch. Drop one when that epoch changes.
+fn preferred_partitions_to_drop(
+    preferred: &[(String, i32)],
+    previous: &HashMap<String, Vec<i32>>,
+    current: &HashMap<String, Vec<i32>>,
+) -> Vec<(String, i32)> {
+    preferred
+        .iter()
+        .filter(|(topic, partition)| {
+            epoch_at(previous, topic, *partition) != epoch_at(current, topic, *partition)
+        })
+        .cloned()
+        .collect()
+}
+
 pub(crate) fn duration_millis_i32(d: Duration) -> i32 {
     i32::try_from(d.as_millis()).unwrap_or(i32::MAX).max(0)
 }
@@ -5613,6 +5657,20 @@ mod tests {
         bytes.extend_from_slice(&code.to_be_bytes());
         bytes.extend_from_slice(&id.to_be_bytes());
         Bytes::from(bytes)
+    }
+
+    #[test]
+    fn a_leader_epoch_change_drops_the_preferred_replica() {
+        let mut previous = HashMap::new();
+        let _ = previous.insert("t".into(), vec![4, 4]);
+        let _ = previous.insert("u".into(), vec![2]);
+        let mut current = HashMap::new();
+        let _ = current.insert("t".into(), vec![4, 9]);
+        let preferred = vec![("t".into(), 0), ("t".into(), 1), ("u".into(), 0)];
+        let dropped = preferred_partitions_to_drop(&preferred, &previous, &current);
+        assert_eq!(dropped, vec![("t".into(), 1), ("u".into(), 0)]);
+        let kept = preferred_partitions_to_drop(&[("t".into(), 0)], &previous, &current);
+        assert!(kept.is_empty());
     }
 
     #[test]
