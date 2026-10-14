@@ -2706,12 +2706,12 @@ impl Consumer {
             .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
         {
             let _ = self.conns.remove(&node);
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
         }
         if self.conns.contains_key(&node) {
             return Ok(());
-        }
-        if let Some(session) = self.fetch_sessions.get_mut(&node) {
-            session.reset();
         }
         let addr = self
             .cluster
@@ -2719,8 +2719,20 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        // The one-node leader is the bootstrap socket, which is not stored in
+        // `conns`. Resetting its fetch session on every poll forces a full
+        // partition list. Keep the session while that socket stays live.
         if reuse_bootstrap && self.conn.addr() == addr && self.conn.fetch_version() >= 0 {
+            if self.conn.idle_expired(self.cfg.connections_max_idle) {
+                if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                    session.reset();
+                }
+                self.conn = self.open_node_conn(&addr).await?;
+            }
             return Ok(());
+        }
+        if let Some(session) = self.fetch_sessions.get_mut(&node) {
+            session.reset();
         }
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
@@ -3541,7 +3553,16 @@ impl Consumer {
                         continue;
                     }
                     Err(e) if e.is_retriable() => {
+                        let used_bootstrap = !self.conns.contains_key(&node)
+                            && self
+                                .cluster
+                                .brokers
+                                .get(&node)
+                                .is_some_and(|addr| addr == self.conn.addr());
                         let _ = self.conns.remove(&node);
+                        if used_bootstrap {
+                            self.conn.close();
+                        }
                         retry = retry.merge(FetchRetry::Backoff);
                         continue;
                     }
