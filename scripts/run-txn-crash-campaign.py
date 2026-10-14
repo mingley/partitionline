@@ -419,6 +419,12 @@ def run_campaign(args: argparse.Namespace) -> int:
         print(start.stderr, file=sys.stderr)
         print("native cluster start failed", file=sys.stderr)
         return 1
+    warmup = fixture(env, "create-topic", "--topic", "pl-txn-warmup", timeout=60)
+    if warmup.returncode != 0:
+        print(warmup.stderr, file=sys.stderr)
+        print("RF=3 warmup topic failed; brokers may still be joining", file=sys.stderr)
+        fixture(env, "cleanup", timeout=60)
+        return 1
 
     binary = build_example()
     outcomes: List[Dict[str, Any]] = []
@@ -478,6 +484,11 @@ def replay_case(args: argparse.Namespace) -> int:
     start = fixture(env, "start", timeout=int(freeze["budgets"]["cluster_ready_timeout_ms"] / 1000))
     if start.returncode != 0:
         print(start.stderr, file=sys.stderr)
+        return 1
+    warmup = fixture(env, "create-topic", "--topic", "pl-txn-warmup", timeout=60)
+    if warmup.returncode != 0:
+        print(warmup.stderr, file=sys.stderr)
+        fixture(env, "cleanup", timeout=60)
         return 1
     try:
         binary = build_example()

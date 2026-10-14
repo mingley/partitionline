@@ -29,6 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[derive(Clone)]
 struct Names {
     bootstrap: String,
     input: String,
@@ -75,6 +76,11 @@ fn coordinator_starting(error: &Error) -> bool {
                 | error::COORDINATOR_LOAD_IN_PROGRESS
                 | error::NOT_COORDINATOR
                 | error::CONCURRENT_TRANSACTIONS
+                | error::INVALID_REPLICATION_FACTOR
+                | error::LEADER_NOT_AVAILABLE
+                | error::NOT_LEADER_OR_FOLLOWER
+                | error::NOT_ENOUGH_REPLICAS
+                | error::NOT_ENOUGH_REPLICAS_AFTER_APPEND
         )
     )
 }
@@ -97,23 +103,29 @@ where
 }
 
 async fn ensure_topics(names: &Names) -> partitionline::Result<()> {
-    let mut admin = Admin::new(AdminConfig::bootstrap(names.servers())).await?;
-    for topic in [&names.input, &names.output] {
-        let created = admin
-            .create_topics(
-                &[NewTopic::new(topic.clone(), 1, 3).config("min.insync.replicas", "2")],
-                30_000,
-                false,
-            )
-            .await?;
-        for result in created {
-            if result.error_code != 0 && result.error_code != 36 {
-                return Err(Error::broker(result.error_code, result.name));
+    retry(Duration::from_secs(30), || {
+        let names = names.clone();
+        async move {
+            let mut admin = Admin::new(AdminConfig::bootstrap(names.servers())).await?;
+            for topic in [&names.input, &names.output] {
+                let created = admin
+                    .create_topics(
+                        &[NewTopic::new(topic.clone(), 1, 3).config("min.insync.replicas", "2")],
+                        30_000,
+                        false,
+                    )
+                    .await?;
+                for result in created {
+                    if result.error_code != 0 && result.error_code != 36 {
+                        return Err(Error::broker(result.error_code, result.name));
+                    }
+                }
             }
+            admin.close().await?;
+            Ok(())
         }
-    }
-    admin.close().await?;
-    Ok(())
+    })
+    .await
 }
 
 async fn connect_producer(names: &Names, transactional: bool) -> partitionline::Result<Producer> {
@@ -142,29 +154,46 @@ async fn seed() -> partitionline::Result<()> {
     let names = Names::from_env();
     ensure_topics(&names).await?;
     let producer = connect_producer(&names, false).await?;
-    drop(
-        producer
-            .send(
-                ProduceRecord::to(names.output.clone())
-                    .partition(0)
-                    .key(b"anchor".to_vec())
-                    .value(b"anchor".to_vec()),
-            )
-            .await?,
-    );
+    retry(Duration::from_secs(20), || {
+        let producer = &producer;
+        let output = names.output.clone();
+        async move {
+            drop(
+                producer
+                    .send(
+                        ProduceRecord::to(output)
+                            .partition(0)
+                            .key(b"anchor".to_vec())
+                            .value(b"anchor".to_vec()),
+                    )
+                    .await?,
+            );
+            Ok(())
+        }
+    })
+    .await?;
     let count = env_u64("TXN_INPUT_RECORDS", 2)?;
     for i in 0..count {
         let id = format!("in-{i}");
-        drop(
-            producer
-                .send(
-                    ProduceRecord::to(names.input.clone())
-                        .partition(0)
-                        .key(id.as_bytes().to_vec())
-                        .value(id.as_bytes().to_vec()),
-                )
-                .await?,
-        );
+        retry(Duration::from_secs(20), || {
+            let producer = &producer;
+            let input = names.input.clone();
+            let id = id.clone();
+            async move {
+                drop(
+                    producer
+                        .send(
+                            ProduceRecord::to(input)
+                                .partition(0)
+                                .key(id.as_bytes().to_vec())
+                                .value(id.as_bytes().to_vec()),
+                        )
+                        .await?,
+                );
+                Ok(())
+            }
+        })
+        .await?;
     }
     producer.close().await?;
     Ok(())
