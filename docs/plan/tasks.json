@@ -2186,13 +2186,35 @@
     {
       "id": "KL03-21",
       "title": "Record group-protocol churn and recovery evidence",
-      "priority": "P1", "kind": "evidence", "status": "in_progress", "owner": "cursor-cloud",
+      "priority": "P1", "kind": "evidence", "status": "done", "owner": "cursor-cloud",
       "depends_on": ["KL03-14", "KL03-15", "KL03-16", "KL03-17", "KL03-18"],
       "files": ["tests/cluster/", "new: docs/evidence/groups/"],
       "deliverable": "A result matrix with separate classic/cooperative, KIP-848 and share-group histories.",
       "acceptance": ["Run one protocol/profile cell per resumable job; report assignment, delivered/committed offsets, lock/redelivery and recovery invariants.", "Include member/coordinator loss, pause, max-poll expiry and secure reconnect; unsupported older brokers stay explicit.", "Do not substitute a classic-group pass for KIP-848/share evidence or merge all timer budgets into one threshold."],
       "validation": ["Validate each profile artifact separately with the history and conformance checkers.", "Reproduce a chosen churn seed independently before closing the matrix."],
-      "evidence": [],
+      "evidence": [
+        {
+                "source_sha": "4f5691d97eddfbdb3584d1bc20ecec3327de9cf0",
+                "commands": [
+                        "python3 -m unittest tests.history.test_group_churn_plan -q (7 passed, exit 0)",
+                        "python3 scripts/run-group-churn-campaign.py --self-test (exit 0; 20 cells)",
+                        "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-group-churn-campaign.py --run (20/20 ok, exit 0)",
+                        "python3 scripts/check-record-history.py on 20 assembled histories (all_valid)",
+                        "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-group-churn-campaign.py --replay classic/member_loss (ok)"
+                ],
+                "results": "Frozen 20-cell classic/cooperative/KIP-848/share campaign on native Kafka 4.1.0. Member loss, coordinator loss, pause, max-poll expiry and SASL reconnect each have a separate history. Timer budgets stay distinct. Kafka 3.9.1 KIP-848/share stay unsupported. classic/member_loss replayed on a fresh topology.",
+                "artifacts": [
+                        "docs/evidence/groups/summary.json",
+                        "docs/evidence/groups/campaign-report.json",
+                        "docs/plan/evidence/KL03-21.json"
+                ],
+                "limits": [
+                        "Share cells produce after the first armed fetch (default share.auto.offset.reset is latest).",
+                        "Share pause is lock-hold; share max-poll is lock-timeout/redelivery.",
+                        "No cases.json rows were added."
+                ]
+        }
+      ],
       "write_set": [
         "examples/group_churn.rs",
         "scripts/group_churn_cases.py",

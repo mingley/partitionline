@@ -1,0 +1,116 @@
+{
+  "id": "classic/member_loss",
+  "config": {
+    "acks": -1,
+    "idempotent": true,
+    "transactional": false,
+    "isolation_level": "read_uncommitted",
+    "delivery": "partition"
+  },
+  "attempted": [
+    {
+      "id": "g00",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 0,
+      "key": "g00",
+      "payload": "g00",
+      "status": "acked"
+    },
+    {
+      "id": "g01",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 1,
+      "key": "g01",
+      "payload": "g01",
+      "status": "acked"
+    },
+    {
+      "id": "g02",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 2,
+      "key": "g02",
+      "payload": "g02",
+      "status": "acked"
+    },
+    {
+      "id": "g03",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 0,
+      "key": "g03",
+      "payload": "g03",
+      "status": "acked"
+    },
+    {
+      "id": "g04",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 1,
+      "key": "g04",
+      "payload": "g04",
+      "status": "acked"
+    },
+    {
+      "id": "g05",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 2,
+      "key": "g05",
+      "payload": "g05",
+      "status": "acked"
+    }
+  ],
+  "consumed": [
+    {
+      "id": "g00",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 0,
+      "offset": 0,
+      "key": "g00",
+      "payload": "g00",
+      "status": "acked"
+    },
+    {
+      "id": "g03",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 0,
+      "offset": 1,
+      "key": "g03",
+      "payload": "g03",
+      "status": "acked"
+    },
+    {
+      "id": "g01",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 1,
+      "offset": 0,
+      "key": "g01",
+      "payload": "g01",
+      "status": "acked"
+    },
+    {
+      "id": "g04",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 1,
+      "offset": 1,
+      "key": "g04",
+      "payload": "g04",
+      "status": "acked"
+    },
+    {
+      "id": "g02",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 2,
+      "offset": 0,
+      "key": "g02",
+      "payload": "g02",
+      "status": "acked"
+    },
+    {
+      "id": "g05",
+      "topic": "pl-grp-classic-member-loss",
+      "partition": 2,
+      "offset": 1,
+      "key": "g05",
+      "payload": "g05",
+      "status": "acked"
+    }
+  ]
+}

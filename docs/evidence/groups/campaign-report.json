@@ -1,0 +1,909 @@
+{
+  "card": "KL03-21",
+  "profile": "group-protocol-churn",
+  "peer": {
+    "identity": "native:4.1.0",
+    "kafka_home": "/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2,
+    "secure_peer": {
+      "identity": "native:4.1.0-sasl-plaintext",
+      "bootstrap": "127.0.0.1:19192",
+      "mechanism": "PLAIN",
+      "username": "pl-group",
+      "password": "pl-group-secret",
+      "replication_factor": 1
+    }
+  },
+  "cell_count": 20,
+  "ok_count": 20,
+  "failed_count": 0,
+  "budgets": {
+    "session_timeout_ms": 10000,
+    "heartbeat_interval_ms": 150,
+    "max_poll_interval_ms": 4000,
+    "share_lock_hold_ms": 2000,
+    "pause_ms": 1500,
+    "coordinator_recovery_ms": 20000,
+    "member_rebalance_ms": 8000,
+    "secure_reconnect_ms": 15000,
+    "trial_deadline_ms": 45000,
+    "verify_wait_ms": 4000,
+    "cluster_ready_timeout_ms": 180000
+  },
+  "older_brokers": {
+    "3.9.1": {
+      "classic": "supported; not scheduled in this 4.1.0 job",
+      "cooperative": "supported; not scheduled in this 4.1.0 job",
+      "kip848": "unsupported: ConsumerGroupHeartbeat requires Kafka 4.x",
+      "share": "unsupported: KIP-932 share groups require Kafka 4.x"
+    }
+  },
+  "outcomes": [
+    {
+      "id": "classic/member_loss",
+      "protocol": "classic",
+      "churn": "member_loss",
+      "seed_exit": 0,
+      "b_exit": 77,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/classic-member_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 1373,
+      "ok": true
+    },
+    {
+      "id": "classic/coordinator_loss",
+      "protocol": "classic",
+      "churn": "coordinator_loss",
+      "seed_exit": 0,
+      "coordinator_node": 3,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g00",
+          "g03",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/classic-coordinator_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 7231,
+      "ok": true
+    },
+    {
+      "id": "classic/pause",
+      "protocol": "classic",
+      "churn": "pause",
+      "seed_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "paused",
+            "resumed",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "paused",
+          "resumed",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/classic-pause.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 2388,
+      "ok": true
+    },
+    {
+      "id": "classic/max_poll_expiry",
+      "protocol": "classic",
+      "churn": "max_poll_expiry",
+      "seed_exit": 0,
+      "b_exit": 0,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "b": [
+            "joined"
+          ],
+          "a": [
+            "joined",
+            "max_poll_left"
+          ]
+        }
+      },
+      "events": {
+        "b": [
+          "joined"
+        ],
+        "a": [
+          "joined",
+          "max_poll_left"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/classic-max_poll_expiry.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 5656,
+      "ok": true
+    },
+    {
+      "id": "classic/secure_reconnect",
+      "protocol": "classic",
+      "churn": "secure_reconnect",
+      "seed_exit": 0,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/classic-secure_reconnect.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 8161,
+      "ok": true
+    },
+    {
+      "id": "cooperative/member_loss",
+      "protocol": "cooperative",
+      "churn": "member_loss",
+      "seed_exit": 0,
+      "b_exit": 77,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/cooperative-member_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 758,
+      "ok": true
+    },
+    {
+      "id": "cooperative/coordinator_loss",
+      "protocol": "cooperative",
+      "churn": "coordinator_loss",
+      "seed_exit": 0,
+      "coordinator_node": 1,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/cooperative-coordinator_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 7232,
+      "ok": true
+    },
+    {
+      "id": "cooperative/pause",
+      "protocol": "cooperative",
+      "churn": "pause",
+      "seed_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g00",
+          "g03",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "paused",
+            "resumed",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "paused",
+          "resumed",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/cooperative-pause.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 2413,
+      "ok": true
+    },
+    {
+      "id": "cooperative/max_poll_expiry",
+      "protocol": "cooperative",
+      "churn": "max_poll_expiry",
+      "seed_exit": 0,
+      "b_exit": 0,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "b": [
+            "joined"
+          ],
+          "a": [
+            "joined",
+            "max_poll_left"
+          ]
+        }
+      },
+      "events": {
+        "b": [
+          "joined"
+        ],
+        "a": [
+          "joined",
+          "max_poll_left"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/cooperative-max_poll_expiry.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 5658,
+      "ok": true
+    },
+    {
+      "id": "cooperative/secure_reconnect",
+      "protocol": "cooperative",
+      "churn": "secure_reconnect",
+      "seed_exit": 0,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/cooperative-secure_reconnect.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 7615,
+      "ok": true
+    },
+    {
+      "id": "kip848/member_loss",
+      "protocol": "kip848",
+      "churn": "member_loss",
+      "seed_exit": 0,
+      "b_exit": 77,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/kip848-member_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 656,
+      "ok": true
+    },
+    {
+      "id": "kip848/coordinator_loss",
+      "protocol": "kip848",
+      "churn": "coordinator_loss",
+      "seed_exit": 0,
+      "coordinator_node": 2,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/kip848-coordinator_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 7077,
+      "ok": true
+    },
+    {
+      "id": "kip848/pause",
+      "protocol": "kip848",
+      "churn": "pause",
+      "seed_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g00",
+          "g03",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "paused",
+            "resumed",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "paused",
+          "resumed",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/kip848-pause.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 3095,
+      "ok": true
+    },
+    {
+      "id": "kip848/max_poll_expiry",
+      "protocol": "kip848",
+      "churn": "max_poll_expiry",
+      "seed_exit": 0,
+      "b_exit": 0,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g00",
+          "g03",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "b": [
+            "joined"
+          ],
+          "a": [
+            "joined",
+            "max_poll_left"
+          ]
+        }
+      },
+      "events": {
+        "b": [
+          "joined"
+        ],
+        "a": [
+          "joined",
+          "max_poll_left"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/kip848-max_poll_expiry.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 5414,
+      "ok": true
+    },
+    {
+      "id": "kip848/secure_reconnect",
+      "protocol": "kip848",
+      "churn": "secure_reconnect",
+      "seed_exit": 0,
+      "inject_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "committed"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "committed"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/kip848-secure_reconnect.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 7392,
+      "ok": true
+    },
+    {
+      "id": "share/member_loss",
+      "protocol": "share",
+      "churn": "member_loss",
+      "seed_exit": 0,
+      "b_exit": 77,
+      "b_stderr": "",
+      "produce_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g01",
+          "g04",
+          "g02",
+          "g05",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "rejoined",
+            "accepted"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "rejoined",
+          "accepted"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/share-member_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 5206,
+      "ok": true
+    },
+    {
+      "id": "share/coordinator_loss",
+      "protocol": "share",
+      "churn": "coordinator_loss",
+      "seed_exit": 0,
+      "coordinator_node": 1,
+      "inject_exit": 0,
+      "produce_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g01",
+          "g04",
+          "g00",
+          "g03"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "rejoined",
+            "accepted"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "rejoined",
+          "accepted"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/share-coordinator_loss.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 8405,
+      "ok": true
+    },
+    {
+      "id": "share/pause",
+      "protocol": "share",
+      "churn": "pause",
+      "seed_exit": 0,
+      "produce_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g02",
+          "g05",
+          "g00",
+          "g03",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "paused_hold",
+            "accepted",
+            "accepted"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "paused_hold",
+          "accepted",
+          "accepted"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/share-pause.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 2794,
+      "ok": true
+    },
+    {
+      "id": "share/max_poll_expiry",
+      "protocol": "share",
+      "churn": "max_poll_expiry",
+      "seed_exit": 0,
+      "produce_exit": 0,
+      "b_exit": 0,
+      "b_stderr": "",
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g01",
+          "g04",
+          "g02",
+          "g05"
+        ],
+        "events": {
+          "b": [
+            "joined",
+            "accepted"
+          ],
+          "a": [
+            "joined",
+            "lock_held",
+            "released_for_redelivery"
+          ]
+        }
+      },
+      "events": {
+        "b": [
+          "joined",
+          "accepted"
+        ],
+        "a": [
+          "joined",
+          "lock_held",
+          "released_for_redelivery"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/share-max_poll_expiry.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 12345,
+      "ok": true
+    },
+    {
+      "id": "share/secure_reconnect",
+      "protocol": "share",
+      "churn": "secure_reconnect",
+      "seed_exit": 0,
+      "inject_exit": 0,
+      "produce_exit": 0,
+      "a_exit": 0,
+      "a_stderr": "",
+      "verdict": {
+        "ok": true,
+        "errors": [],
+        "committed_ids": [
+          "g00",
+          "g03",
+          "g02",
+          "g05",
+          "g01",
+          "g04"
+        ],
+        "events": {
+          "a": [
+            "joined",
+            "rejoined",
+            "accepted"
+          ]
+        }
+      },
+      "events": {
+        "a": [
+          "joined",
+          "rejoined",
+          "accepted"
+        ]
+      },
+      "history_path": "docs/evidence/groups/histories/share-secure_reconnect.json",
+      "checker": {
+        "valid": true,
+        "exit": 0
+      },
+      "elapsed_ms": 11438,
+      "ok": true
+    }
+  ],
+  "failed": []
+}

@@ -1,0 +1,6 @@
+{
+  "attempt": 2,
+  "error": "seed_failed Broker code 40 INVALID_CONFIG on the share group id",
+  "cause": "IncrementalAlterConfigs of share.auto.offset.reset=earliest and share.record.lock.duration.ms=2000 was rejected on native Kafka 4.1.0.",
+  "fix": "Dropped the group-config override. Share cells keep produce-after-join."
+}

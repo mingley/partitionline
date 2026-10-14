@@ -1,0 +1,41 @@
+{
+  "id": "classic/member_loss",
+  "protocol": "classic",
+  "churn": "member_loss",
+  "seed_exit": 0,
+  "b_exit": 77,
+  "b_stderr": "",
+  "a_exit": 0,
+  "a_stderr": "",
+  "verdict": {
+    "ok": true,
+    "errors": [],
+    "committed_ids": [
+      "g01",
+      "g04",
+      "g02",
+      "g05",
+      "g00",
+      "g03"
+    ],
+    "events": {
+      "a": [
+        "joined",
+        "committed"
+      ]
+    }
+  },
+  "events": {
+    "a": [
+      "joined",
+      "committed"
+    ]
+  },
+  "history_path": "docs/evidence/groups/replay/histories/classic-member_loss.json",
+  "checker": {
+    "valid": true,
+    "exit": 0
+  },
+  "elapsed_ms": 1568,
+  "ok": true
+}

@@ -1,0 +1,27 @@
+classic/member_loss ok elapsed_ms=1373
+classic/coordinator_loss ok elapsed_ms=7231
+classic/pause ok elapsed_ms=2388
+classic/max_poll_expiry ok elapsed_ms=5656
+classic/secure_reconnect ok elapsed_ms=8161
+cooperative/member_loss ok elapsed_ms=758
+cooperative/coordinator_loss ok elapsed_ms=7232
+cooperative/pause ok elapsed_ms=2413
+cooperative/max_poll_expiry ok elapsed_ms=5658
+cooperative/secure_reconnect ok elapsed_ms=7615
+kip848/member_loss ok elapsed_ms=656
+kip848/coordinator_loss ok elapsed_ms=7077
+kip848/pause ok elapsed_ms=3095
+kip848/max_poll_expiry ok elapsed_ms=5414
+kip848/secure_reconnect ok elapsed_ms=7392
+share/member_loss ok elapsed_ms=5206
+share/coordinator_loss ok elapsed_ms=8405
+share/pause ok elapsed_ms=2794
+share/max_poll_expiry ok elapsed_ms=12345
+share/secure_reconnect ok elapsed_ms=11438
+{
+  "card": "KL03-21",
+  "profile": "group-protocol-churn",
+  "ok_count": 20,
+  "failed_count": 0,
+  "cell_count": 20
+}

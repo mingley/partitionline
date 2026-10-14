@@ -1,0 +1,6 @@
+{
+  "attempt": 3,
+  "error": "kip848/member_loss missing ids; share/secure_reconnect ready_timeout_a or empty fetch; classic/kip848 max_poll missing survivor ids",
+  "cause": "KIP-848 exclusive assignment left the second member with no partitions. Waiting on GO without polling exceeded max.poll.interval. The SASL one-node fixture used the default RF=3 share coordinator topic.",
+  "fix": "Start the surviving member first. Only the leaving/holding member may READY without an assignment. Poll while waiting for GO. SASL node uses RF=1 share coordinator state and upgrades share.version. Share recovery cells rejoin before produce."
+}

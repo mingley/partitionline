@@ -1,0 +1,1 @@
+{"id":"share/max_poll_expiry","member":"a","profile":"share","churn":"max_poll_expiry","uncommitted":true,"events":["joined","lock_held","released_for_redelivery"],"consumed":[]}

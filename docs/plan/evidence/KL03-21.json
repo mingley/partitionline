@@ -1,0 +1,91 @@
+{
+  "id": "KL03-21",
+  "status": "done",
+  "acceptance_met": true,
+  "owner": "cursor-cloud",
+  "source_sha": "4f5691d97eddfbdb3584d1bc20ecec3327de9cf0",
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "peer": {
+    "identity": "native:4.1.0 path=/tmp/kafka_4.1.0",
+    "topology": "tests/cluster/topology.json",
+    "replication_factor": 3,
+    "min_insync_replicas": 2,
+    "secure_peer": "native:4.1.0-sasl-plaintext 127.0.0.1:19192 PLAIN user=pl-group"
+  },
+  "commands": [
+    "python3 -m unittest tests.history.test_group_churn_plan -q (7 passed, exit 0)",
+    "python3 scripts/run-group-churn-campaign.py --self-test (exit 0; 20 cells, distinct budgets, 3.9.1 kip848/share unsupported)",
+    "cargo +stable fmt --all",
+    "cargo +stable clippy --locked --example group_churn -- -D warnings (exit 0)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-group-churn-campaign.py --run (20/20 ok, exit 0)",
+    "python3 scripts/check-record-history.py on 20 assembled histories (all_valid, 0 failures)",
+    "CLUSTER_FIXTURE_APPROVED=1 python3 scripts/run-group-churn-campaign.py --replay classic/member_loss (ok, fresh topology)"
+  ],
+  "results": {
+    "deliverable": "A result matrix with separate classic/cooperative, KIP-848 and share-group histories.",
+    "acceptance_validation": {
+      "cells_frozen_before_run": true,
+      "cell_count": 20,
+      "profiles": ["classic", "cooperative", "kip848", "share"],
+      "churns": ["member_loss", "coordinator_loss", "pause", "max_poll_expiry", "secure_reconnect"],
+      "one_job_per_cell": true,
+      "classic_not_substituted_for_kip848_or_share": true,
+      "timer_budgets_distinct": {
+        "session_timeout_ms": 10000,
+        "heartbeat_interval_ms": 150,
+        "max_poll_interval_ms": 4000,
+        "share_lock_hold_ms": 2000,
+        "pause_ms": 1500,
+        "coordinator_recovery_ms": 20000
+      },
+      "older_brokers_3.9.1_kip848": "unsupported",
+      "older_brokers_3.9.1_share": "unsupported",
+      "history_discrepancies": 0,
+      "replay_cell": "classic/member_loss",
+      "replay_ok": true
+    }
+  },
+  "artifacts": [
+    "examples/group_churn.rs",
+    "scripts/group_churn_cases.py",
+    "scripts/run-group-churn-campaign.py",
+    "scripts/sasl-plain-node.sh",
+    "tests/history/test_group_churn_plan.py",
+    "docs/evidence/groups/campaign-freeze.json",
+    "docs/evidence/groups/campaign-report.json",
+    "docs/evidence/groups/summary.json",
+    "docs/evidence/groups/histories/",
+    "docs/evidence/groups/replay/replay-report.json",
+    "docs/plan/evidence/KL03-21.json"
+  ],
+  "limits": [
+    "Native Apache Kafka 4.1.0 on loopback, not Docker and not a mixed-version topology.",
+    "Share cells produce after the first armed fetch because broker share.auto.offset.reset defaults to latest. IncrementalAlterConfigs of that group key returned INVALID_CONFIG (40) on this peer.",
+    "Share pause is lock-hold without acknowledge. Share max-poll is lock-timeout / redelivery. ShareGroup has neither pause nor max.poll leave.",
+    "Share member_loss / coordinator_loss / secure_reconnect rejoin the surviving member before produce so newly assigned partitions are not initialized at log-end.",
+    "Kafka 3.9.1 KIP-848 and share cells stay explicitly unsupported.",
+    "No cases.json rows were added (KL01-14 holds that write set)."
+  ],
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "error": "share cells empty committed_ids / pause_timeout / Timeout",
+      "cause": "Broker default share.auto.offset.reset is latest; seed-then-join ShareFetch started at log-end.",
+      "log": "docs/evidence/groups/failed-attempts/01-share-latest-offset-reset.json"
+    },
+    {
+      "attempt": 2,
+      "error": "share seed INVALID_CONFIG 40",
+      "cause": "IncrementalAlterConfigs of share.auto.offset.reset / share.record.lock.duration.ms on the group id was rejected on Kafka 4.1.0.",
+      "log": "docs/evidence/groups/failed-attempts/02-share-group-alter-invalid-config.json"
+    },
+    {
+      "attempt": 3,
+      "error": "kip848/member_loss empty history; share/secure ready_timeout or empty fetch",
+      "cause": "KIP-848 assigned every partition to one member; the other sat past max.poll.interval or never received a reassignment. The SASL one-node fixture could not create the share coordinator topic at RF=3.",
+      "log": "docs/evidence/groups/failed-attempts/03-exclusive-assignment-and-sasl-share-rf.json"
+    }
+  ]
+}

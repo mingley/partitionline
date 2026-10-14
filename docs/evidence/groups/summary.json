@@ -1,0 +1,66 @@
+{
+  "card": "KL03-21",
+  "profile": "group-protocol-churn",
+  "source_sha": "4f5691d97eddfbdb3584d1bc20ecec3327de9cf0",
+  "peer": "native:4.1.0 path=/tmp/kafka_4.1.0",
+  "secure_peer": "native:4.1.0-sasl-plaintext 127.0.0.1:19192 PLAIN",
+  "ok_count": 20,
+  "failed_count": 0,
+  "cell_count": 20,
+  "profiles": ["classic", "cooperative", "kip848", "share"],
+  "churns": [
+    "member_loss",
+    "coordinator_loss",
+    "pause",
+    "max_poll_expiry",
+    "secure_reconnect"
+  ],
+  "budgets": {
+    "session_timeout_ms": 10000,
+    "heartbeat_interval_ms": 150,
+    "max_poll_interval_ms": 4000,
+    "share_lock_hold_ms": 2000,
+    "pause_ms": 1500,
+    "coordinator_recovery_ms": 20000
+  },
+  "cells": {
+    "classic/member_loss": {"elapsed_ms": 1373, "events": {"a": ["joined", "committed"]}},
+    "classic/coordinator_loss": {"elapsed_ms": 7231, "events": {"a": ["joined", "committed"]}},
+    "classic/pause": {"elapsed_ms": 2388, "events": {"a": ["joined", "paused", "resumed", "committed"]}},
+    "classic/max_poll_expiry": {"elapsed_ms": 5656, "events": {"a": ["joined", "max_poll_left"], "b": ["joined"]}},
+    "classic/secure_reconnect": {"elapsed_ms": 8161, "events": {"a": ["joined", "committed"]}},
+    "cooperative/member_loss": {"elapsed_ms": 758, "events": {"a": ["joined", "committed"]}},
+    "cooperative/coordinator_loss": {"elapsed_ms": 7232, "events": {"a": ["joined", "committed"]}},
+    "cooperative/pause": {"elapsed_ms": 2413, "events": {"a": ["joined", "paused", "resumed", "committed"]}},
+    "cooperative/max_poll_expiry": {"elapsed_ms": 5658, "events": {"a": ["joined", "max_poll_left"], "b": ["joined"]}},
+    "cooperative/secure_reconnect": {"elapsed_ms": 7615, "events": {"a": ["joined", "committed"]}},
+    "kip848/member_loss": {"elapsed_ms": 656, "events": {"a": ["joined", "committed"]}},
+    "kip848/coordinator_loss": {"elapsed_ms": 7077, "events": {"a": ["joined", "committed"]}},
+    "kip848/pause": {"elapsed_ms": 3095, "events": {"a": ["joined", "paused", "resumed", "committed"]}},
+    "kip848/max_poll_expiry": {"elapsed_ms": 5414, "events": {"a": ["joined", "max_poll_left"], "b": ["joined"]}},
+    "kip848/secure_reconnect": {"elapsed_ms": 7392, "events": {"a": ["joined", "committed"]}},
+    "share/member_loss": {"elapsed_ms": 5206, "events": {"a": ["joined", "rejoined", "accepted"]}},
+    "share/coordinator_loss": {"elapsed_ms": 8405, "events": {"a": ["joined", "rejoined", "accepted"]}},
+    "share/pause": {"elapsed_ms": 2794, "events": {"a": ["joined", "paused_hold", "accepted", "accepted"]}},
+    "share/max_poll_expiry": {"elapsed_ms": 12345, "events": {"a": ["joined", "lock_held", "released_for_redelivery"], "b": ["joined", "accepted"]}},
+    "share/secure_reconnect": {"elapsed_ms": 11438, "events": {"a": ["joined", "rejoined", "accepted"]}}
+  },
+  "replay": {
+    "cell": "classic/member_loss",
+    "ok": true,
+    "fresh_topology": true,
+    "elapsed_ms": 1568,
+    "events": {"a": ["joined", "committed"]}
+  },
+  "checker_batches": {
+    "size": 20,
+    "failures": 0,
+    "all_valid": true
+  },
+  "older_brokers": {
+    "3.9.1": {
+      "kip848": "unsupported: ConsumerGroupHeartbeat requires Kafka 4.x",
+      "share": "unsupported: KIP-932 share groups require Kafka 4.x"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "attempt": 1,
+  "error": "share/member_loss expectation_failed with committed_ids []; share/pause pause_timeout; share/max_poll_expiry Timeout",
+  "cause": "Kafka 4.1 default share.auto.offset.reset is latest. Records produced before the first ShareFetch are not delivered.",
+  "fix": "Create the topic, join and arm a fetch (initialize at log-start), then produce."
+}
