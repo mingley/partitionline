@@ -1772,7 +1772,7 @@ impl ShareGroup {
         for rec in self.pending_ack_records() {
             if !fetch_tps
                 .iter()
-                .any(|(topic, part)| topic == rec.topic && *part == rec.partition)
+                .any(|(topic, part)| topic == &rec.topic && *part == rec.partition)
             {
                 fetch_tps.push((rec.topic.clone(), rec.partition));
             }
@@ -2621,7 +2621,7 @@ impl ShareGroup {
         let ack = if recs.iter().all(|(_, ack)| *ack == ACK_RENEW) {
             ACK_RENEW
         } else {
-            recs[0].1
+            recs.first().map(|(_, ack)| *ack).unwrap_or(ACK_ACCEPT)
         };
         let mut partitions = acknowledgement_batches_typed(recs);
         let deadline = Instant::now() + self.cfg.request_timeout;
@@ -3356,14 +3356,6 @@ fn pending_typed(
 /// Contiguous offsets with the same type become one batch with a single
 /// `AcknowledgeType` (applies to the whole range). Gaps or type changes
 /// start a new batch.
-fn acknowledgement_batches(
-    recs: &[ShareRecord],
-    ack: i8,
-) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
-    let typed: Vec<(ShareRecord, i8)> = recs.iter().cloned().map(|rec| (rec, ack)).collect();
-    acknowledgement_batches_typed(&typed)
-}
-
 fn acknowledgement_batches_typed(
     recs: &[(ShareRecord, i8)],
 ) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
@@ -3430,7 +3422,8 @@ mod tests {
     #[test]
     fn acknowledgement_batches_collapses_contiguous_offsets() {
         let recs = [rec(0, 1), rec(0, 3), rec(0, 2), rec(1, 9)];
-        let batches = acknowledgement_batches(&recs, ACK_ACCEPT);
+        let typed: Vec<_> = recs.iter().cloned().map(|rec| (rec, ACK_ACCEPT)).collect();
+        let batches = acknowledgement_batches_typed(&typed);
         assert_eq!(batches.len(), 2);
         assert_eq!(batches[0].0, "t");
         assert_eq!(batches[0].1, 0);
@@ -3707,7 +3700,8 @@ mod tests {
     #[test]
     fn acknowledgement_batches_splits_on_gap() {
         let recs = [rec(0, 1), rec(0, 4)];
-        let batches = acknowledgement_batches(&recs, ACK_REJECT);
+        let typed: Vec<_> = recs.iter().cloned().map(|rec| (rec, ACK_REJECT)).collect();
+        let batches = acknowledgement_batches_typed(&typed);
         assert_eq!(batches[0].2.len(), 2);
         assert_eq!(batches[0].2[0].first_offset, 1);
         assert_eq!(batches[0].2[0].last_offset, 1);
