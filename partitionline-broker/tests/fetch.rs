@@ -123,6 +123,42 @@ fn string(b: &mut Vec<u8>, name: &str) {
     b.extend_from_slice(&(name.len() as i16).to_be_bytes());
     b.extend_from_slice(name.as_bytes());
 }
+fn list_offsets_request(parts: &[(i32, i64)]) -> Vec<u8> {
+    let mut b = header(2, 1);
+    b.extend_from_slice(&(-1i32).to_be_bytes());
+    b.extend_from_slice(&1i32.to_be_bytes());
+    string(&mut b, "alpha");
+    b.extend_from_slice(&(parts.len() as i32).to_be_bytes());
+    for &(index, timestamp) in parts {
+        b.extend_from_slice(&index.to_be_bytes());
+        b.extend_from_slice(&timestamp.to_be_bytes());
+    }
+    b
+}
+fn list_offset_results(response: &[u8]) -> Vec<(i32, i16, i64, i64)> {
+    let mut at = 4usize;
+    let topics = i32::from_be_bytes(response[at..at + 4].try_into().unwrap());
+    at += 4;
+    let mut out = Vec::new();
+    for _ in 0..topics {
+        let name = i16::from_be_bytes(response[at..at + 2].try_into().unwrap()) as usize;
+        at += 2 + name;
+        let parts = i32::from_be_bytes(response[at..at + 4].try_into().unwrap());
+        at += 4;
+        for _ in 0..parts {
+            let index = i32::from_be_bytes(response[at..at + 4].try_into().unwrap());
+            at += 4;
+            let error = i16::from_be_bytes(response[at..at + 2].try_into().unwrap());
+            at += 2;
+            let timestamp = i64::from_be_bytes(response[at..at + 8].try_into().unwrap());
+            at += 8;
+            let offset = i64::from_be_bytes(response[at..at + 8].try_into().unwrap());
+            at += 8;
+            out.push((index, error, timestamp, offset));
+        }
+    }
+    out
+}
 fn fetch_request(
     version: i16,
     offset: i64,
@@ -1379,6 +1415,24 @@ async fn malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate(
     assert_eq!(
         &records(&response, 6)[..104],
         tokio::task::spawn_blocking(move || read(&expected)).await??
+    );
+    router.shutdown().await?;
+    clean(root).await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn list_offsets_answers_earliest_and_latest_for_one_partition(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("list-both");
+    seed(root.clone(), true, false).await?;
+    let router = open(&root, common(), fetch::Limits::default()).await?;
+    let response = router
+        .respond(list_offsets_request(&[(0, -2), (0, -1)]))
+        .await?;
+    assert_eq!(
+        list_offset_results(&response),
+        vec![(0, 0, -1, 0), (0, 0, -1, 4)]
     );
     router.shutdown().await?;
     clean(root).await?;

@@ -436,18 +436,22 @@ fn selected<'a>(
     part: &Part,
     request: &Request<'_>,
     invalid: bool,
+    key: i16,
 ) -> Result<&'a crate::catalog::Topic, i16> {
-    if invalid
-        || topic.parts[..position]
-            .iter()
-            .any(|p| p.index == part.index)
+    // Fetch asks for one offset per partition. ListOffsets may ask for
+    // earliest and latest of the same partition in one request.
+    let repeated = topic.parts[..position]
+        .iter()
+        .any(|earlier| earlier.index == part.index)
         || topic.parts[position + 1..]
             .iter()
-            .any(|p| p.index == part.index)
+            .any(|later| later.index == part.index);
+    if invalid
+        || (key != 2 && repeated)
         || request
             .topics
             .iter()
-            .filter(|t| t.name == topic.name)
+            .filter(|other| other.name == topic.name)
             .count()
             != 1
     {
@@ -667,7 +671,7 @@ pub(crate) fn process(
         out.count(topic.parts.len())?;
         for (position, part) in topic.parts.iter().enumerate() {
             active()?;
-            let target = selected(catalog, topic, position, part, &request, invalid);
+            let target = selected(catalog, topic, position, part, &request, invalid, key);
             let (id, log_start, watermark, error) = match target {
                 Err(error) => (None, -1, -1, error),
                 Ok(target) => match (
