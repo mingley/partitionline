@@ -155,3 +155,64 @@ async fn share_join_topics_against_local_broker() {
     admin.close().await.expect("admin close");
     eprintln!("share live join_topics: assignment={names:?}");
 }
+
+#[tokio::test]
+#[ignore = "needs a live Kafka 4.1+ broker with share.version=1"]
+async fn share_join_matching_against_local_broker() {
+    if std::env::var("RUN_LIVE").ok().as_deref() != Some("1") {
+        eprintln!("set RUN_LIVE=1 to enable");
+        return;
+    }
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let suffix = std::process::id();
+    let keep = format!("pl-sjm-{suffix}-keep");
+    let skip = format!("pl-sjm-{suffix}-skip");
+    let mut admin = Admin::connect(bootstrap.clone())
+        .await
+        .expect("admin connect");
+    let created = admin
+        .create_topics(
+            &[NewTopic::new(&keep, 1, 1), NewTopic::new(&skip, 1, 1)],
+            30_000,
+            false,
+        )
+        .await
+        .expect("create matching topics");
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let group = format!("pl-share-live-match-{suffix}");
+    let keep_name = keep.clone();
+    let cfg = ConsumerConfig::bootstrap([bootstrap]).max_wait_ms(500);
+    let mut g = ShareGroup::join_matching(cfg, group, move |name: &str| name == keep_name)
+        .await
+        .expect("share join_matching");
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let names = loop {
+        let names: HashSet<String> = g.assignment().iter().map(|tp| tp.topic.clone()).collect();
+        if names.contains(&keep) {
+            break names;
+        }
+        let _recs = g.poll().await.expect("share poll");
+        assert!(
+            Instant::now() < deadline,
+            "share matching assignment {names:?} wanted {keep}"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    };
+    assert!(
+        !names.contains(&skip),
+        "share matching assigned skip topic {names:?}"
+    );
+    g.leave().await.expect("leave");
+    admin.close().await.expect("admin close");
+    eprintln!("share live join_matching: assignment={names:?}");
+}

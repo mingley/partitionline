@@ -362,8 +362,9 @@ Share groups (KIP-932) need Kafka **4.1+** with finalized
 On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
 removed upstream. Default `share.auto.offset.reset` is **latest** — produce
 while the share member is already polling. Live smoke:
-`tests/share_live.rs` (`RUN_LIVE=1` on a 4.1+ broker). `KAFKA_TOPIC` may be
-a comma-separated list (`ShareGroup::join_topics`).
+`tests/share_live.rs` (`RUN_LIVE=1` on a 4.1+ broker) covers join-then-produce,
+`join_topics`, and `join_matching`. `KAFKA_TOPIC` may be a comma-separated
+list (`ShareGroup::join_topics`).
 
 ## Exactly-once (transactions)
 
