@@ -357,8 +357,10 @@ impl Groups {
 
     /// Refresh one member's session clock.
     ///
-    /// The generation must be the one this member joined. A stale generation or
-    /// an unknown member does not move `last_seen_ms`.
+    /// A member who has joined the current generation must name that
+    /// generation. A member who is still in the group but has not joined the
+    /// new generation stays alive and is told the rebalance is in progress.
+    /// An unknown member does not move any clock.
     pub fn heartbeat(
         &mut self,
         group_id: &str,
@@ -372,18 +374,20 @@ impl Groups {
         let Some(group) = self.groups.get_mut(group_id) else {
             return Err(Error::UnknownMember);
         };
-        if generation != group.generation {
-            return Err(Error::IllegalGeneration);
-        }
         let Some(member) = group.members.get_mut(member_id) else {
             return Err(Error::UnknownMember);
         };
-        if member.joined_generation != generation {
-            return Err(Error::RebalanceInProgress);
+        if member.joined_generation == group.generation && generation != group.generation {
+            return Err(Error::IllegalGeneration);
         }
+        let stable = member.joined_generation == group.generation;
         member.last_seen_ms = now_ms;
         self.persist_all()?;
-        Ok(())
+        if stable {
+            Ok(())
+        } else {
+            Err(Error::RebalanceInProgress)
+        }
     }
 
     /// Remove one member and start a new generation.
@@ -884,6 +888,30 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
         assert_eq!(groups.expire(2_001).unwrap_or(99), 1);
+    }
+
+    #[test]
+    fn heartbeat_during_rebalance_keeps_the_member() {
+        let (mut groups, _) = open("rebalance-heartbeat");
+        let leader = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let _follower = groups
+            .join("orders", "", "range", 0, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 1_000),
+            Err(Error::RebalanceInProgress)
+        ));
+        assert_eq!(groups.expire(1_001).unwrap_or(99), 1);
+        assert!(matches!(
+            groups.heartbeat("orders", &leader.member_id, leader.generation, 0, 1_500),
+            Err(Error::RebalanceInProgress)
+        ));
+        assert!(matches!(
+            groups.heartbeat("orders", "gone", leader.generation, 0, 1_500),
+            Err(Error::UnknownMember)
+        ));
     }
 
     #[test]
