@@ -21,7 +21,7 @@ pub const UNKNOWN_MEMBER_ID: i16 = 25;
 /// Kafka `REBALANCE_IN_PROGRESS`.
 pub const REBALANCE_IN_PROGRESS: i16 = 27;
 /// Kafka `FENCED_INSTANCE_ID`.
-pub const FENCED_INSTANCE_ID: i16 = 78;
+pub const FENCED_INSTANCE_ID: i16 = 82;
 
 /// Why a lifecycle operation was refused.
 #[derive(Debug)]
@@ -193,7 +193,19 @@ impl Lifecycle {
                 return Ok(());
             }
         }
-        if self.members.len() >= self.limits.max_members && !self.members.contains_key(member_id) {
+        if let Some(existing) = self.members.get(member_id) {
+            let mismatch = match (existing.instance_id.as_deref(), instance_id) {
+                (Some(current), Some(requested)) => current != requested,
+                (Some(_), None) | (None, Some(_)) => true,
+                (None, None) => false,
+            };
+            return Err(if mismatch {
+                Error::FencedInstance
+            } else {
+                Error::InvalidRequest
+            });
+        }
+        if self.members.len() >= self.limits.max_members {
             return Err(Error::InvalidLimits);
         }
         if partitions.iter().any(|partition| *partition < 0) {
@@ -512,6 +524,16 @@ mod tests {
         let (mut life, _) = open("session");
         life.join("a", None, &[0, 1], 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            life.join("a", None, &[3], 10),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            life.join("a", Some("i-2"), &[3], 10),
+            Err(Error::FencedInstance)
+        ));
+        assert_eq!(Error::FencedInstance.code(), Some(FENCED_INSTANCE_ID));
+        assert_eq!(life.owned("a").map(|set| set.contains(&0)), Some(true));
         life.join("b", None, &[2], 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         life.heartbeat("a", 500)
