@@ -2504,6 +2504,14 @@ fn share_membership_lost(code: i16) -> bool {
 fn share_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
     if share_membership_lost(code) {
         ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+    } else if code == error::STALE_MEMBER_EPOCH {
+        // The coordinator's epoch, including 0. A negative response epoch
+        // cannot be applied, so the next heartbeat rejoins.
+        if response_epoch >= 0 {
+            response_epoch
+        } else {
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        }
     } else if response_epoch > 0 {
         response_epoch
     } else {
@@ -2711,6 +2719,12 @@ mod tests {
         );
         assert_eq!(share_heartbeat_epoch(0, 6, 4), 6);
         assert_eq!(share_heartbeat_epoch(0, 0, 4), 4);
+        assert_eq!(share_heartbeat_epoch(error::STALE_MEMBER_EPOCH, 2, 5), 2);
+        assert_eq!(share_heartbeat_epoch(error::STALE_MEMBER_EPOCH, 0, 5), 0);
+        assert_eq!(
+            share_heartbeat_epoch(error::STALE_MEMBER_EPOCH, -1, 5),
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
         assert_eq!(
             share_heartbeat_subscription(
                 ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
