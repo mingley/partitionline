@@ -938,15 +938,16 @@ pub(crate) fn process(
             }
             if error != 0 {
                 immediate = true;
-                let removed = out.bytes.len() - data_at;
-                record_bytes -= removed;
+                let removed = out.bytes.len().saturating_sub(data_at);
+                record_bytes = record_bytes.saturating_sub(removed);
                 out.bytes.truncate(part_start);
+                let (high_watermark, stable, start) = fetch_boundary(error, watermark, log_start);
                 out.i32(part.index)?;
                 out.i16(error)?;
-                out.i64(-1)?;
-                out.i64(-1)?;
+                out.i64(high_watermark)?;
+                out.i64(stable)?;
                 if version >= 5 {
-                    out.i64(-1)?;
+                    out.i64(start)?;
                 }
                 out.i32(0)?;
                 out.i32(0)?;
