@@ -1,0 +1,51 @@
+{
+  "task": "KL09-67",
+  "status": "incomplete",
+  "peer": "kafka-clients",
+  "library_release": "4.3.1",
+  "source_sha": "f74f6b76d6b6899c50950d57eb65ba5a748ed048",
+  "feeds_claims": false,
+  "suite_hold": "active",
+  "benchmark_report_exit": 1,
+  "note": "Five produce repetitions of kafka-clients 4.3.1 against a fresh nb-serve each run. The synthetic log was empty, so ListOffsets reported offsets assigned by accepted produces, and DescribeConfigs v4 returned min.insync.replicas=1. Fetch was not run: nb-serve still serves a synthetic log when that log is non-empty, and this produce command does not consume record ids. benchmark-report.py exits 1 on that missing receipt. librdkafka was not run. Runs were not interleaved with partitionline or franz-go. max.in.flight is 5. Not a fastest-client result.",
+  "cells": {
+    "nb-produce-bulk": {
+      "repetitions": 5,
+      "records_per_second": [
+        102339.97,
+        101495.92,
+        108905.86,
+        106392.1,
+        101581.05
+      ],
+      "median": 102339.97,
+      "acknowledged": 20000
+    },
+    "nb-produce-idem": {
+      "repetitions": 5,
+      "records_per_second": [
+        103644.11,
+        121193.85,
+        105861.71,
+        108246.47,
+        101953.8
+      ],
+      "median": 105861.71,
+      "acknowledged": 20000
+    }
+  },
+  "settings": {
+    "acks_bulk": 1,
+    "acks_idem": -1,
+    "idempotence_bulk": false,
+    "idempotence_idem": true,
+    "linger_ms": 5,
+    "batch_size_bytes": 1000000,
+    "max_in_flight": 5,
+    "payload_bytes": 100,
+    "partitions": 6,
+    "count": 20000,
+    "warmup": 0,
+    "compression": "none"
+  }
+}
