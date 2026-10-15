@@ -2019,8 +2019,7 @@ impl ShareGroup {
     /// does not update the next ShareFetch target for a sibling
     /// whose error is none and still requests Metadata. A
     /// ShareAcknowledge partition `INVALID_RECORD_STATE` with a usable
-    /// CurrentLeader
-    /// does not update the next ShareFetch target (Java
+    /// CurrentLeader does not update the next ShareFetch target (Java
     /// `updateLeaderInfoMap` omits that code). A ShareAcknowledge
     /// partition `INVALID_RECORD_STATE` with a usable CurrentLeader on
     /// one partition does not update the next ShareFetch target for a
