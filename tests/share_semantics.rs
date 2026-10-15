@@ -1830,13 +1830,12 @@ async fn share_acknowledge_error_message_reaches_commit_sync() {
     let calls = mock.share_ack_calls();
     let results = group.commit_sync().await.unwrap();
     assert_eq!(results.len(), 1);
-    match results[0].1.as_ref() {
-        Some(Error::Broker { code, message }) => {
-            assert_eq!(*code, error::INVALID_RECORD_STATE);
-            assert_eq!(message, "share acknowledge rejected by broker");
-        }
-        other => panic!("{other:?}"),
-    }
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::INVALID_RECORD_STATE));
+    assert_eq!(err.message(), "share acknowledge rejected by broker");
     assert_eq!(
         mock.share_ack_calls(),
         calls + 1,
