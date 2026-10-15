@@ -4242,6 +4242,8 @@ async fn spawn_slot_worker(
         group_scratch: ProduceGroupScratch::default(),
         ack_index: AckIndex::default(),
         ack_slots: Vec::new(),
+        ack_requested: HashMap::new(),
+        ack_seen: HashMap::new(),
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -4533,6 +4535,10 @@ struct Worker {
     ack_index: AckIndex,
     /// Reused response-slot list for the next Produce acknowledgement.
     ack_slots: Vec<Option<usize>>,
+    /// Partitions requested by the in-flight Produce. Inner sets are cleared per acknowledgement.
+    ack_requested: HashMap<Arc<str>, HashSet<i32>>,
+    /// Partitions already accepted in that acknowledgement.
+    ack_seen: HashMap<Arc<str>, HashSet<i32>>,
 }
 
 #[derive(Default)]
@@ -5539,6 +5545,8 @@ impl Worker {
             }
         }
         let by_uuid = &self.ack_index.by_uuid;
+        let requested = &mut self.ack_requested;
+        let seen = &mut self.ack_seen;
         let decoded =
             decode_produce_acks(&mut body, version).and_then(|(acks, endpoints, throttle)| {
                 if version >= 13 {
@@ -5554,24 +5562,32 @@ impl Worker {
                     if let Some((name, sent)) =
                         inf.topic_ids.first().filter(|_| inf.topic_ids.len() == 1)
                     {
-                        let mut requested = HashSet::new();
-                        for (topic, index, _) in &inf.groups {
+                        if let [(topic, partition, _)] = inf.groups.as_slice() {
                             if Arc::ptr_eq(topic, name) || topic.as_ref() == name.as_ref() {
-                                let _ = requested.insert(*index);
-                            }
-                        }
-                        let mut seen = HashSet::new();
-                        for ack in &acks {
-                            if *sent == [0; 16] || ack.topic_id == [0; 16] || ack.topic_id != *sent
-                            {
-                                return Err(absent());
-                            }
-                            if !requested.contains(&ack.partition) || !seen.insert(ack.partition) {
+                                sole_partition_acks(*partition, sent, &acks)?;
+                            } else if !acks.is_empty() {
                                 return Err(unsolicited());
+                            }
+                        } else {
+                            fill_ack_topics(&inf.groups, Some(name), requested);
+                            clear_ack_parts(seen);
+                            for ack in &acks {
+                                if *sent == [0; 16]
+                                    || ack.topic_id == [0; 16]
+                                    || ack.topic_id != *sent
+                                {
+                                    return Err(absent());
+                                }
+                                let known = requested
+                                    .get(name.as_ref())
+                                    .is_some_and(|parts| parts.contains(&ack.partition));
+                                if !known || !ack_partition_is_new(seen, name, ack.partition) {
+                                    return Err(unsolicited());
+                                }
                             }
                         }
                     } else {
-                        solicited_v13_acks(&inf.groups, &acks, by_uuid)?;
+                        solicited_v13_acks(&inf.groups, &acks, by_uuid, requested, seen)?;
                     }
                 }
                 Ok((acks, endpoints, throttle))
@@ -6537,23 +6553,85 @@ fn name_for_topic_id<'a>(
     index?.get(&id).map(|name| name.as_ref())
 }
 
+fn sole_partition_acks(partition: i32, sent: &[u8; 16], acks: &[ProduceAck]) -> Result<()> {
+    let mut matched = false;
+    for ack in acks {
+        if *sent == [0; 16] || ack.topic_id == [0; 16] || ack.topic_id != *sent {
+            return Err(Error::protocol(
+                "Produce v13 response UUID is absent from sent snapshot",
+            ));
+        }
+        if ack.partition != partition || matched {
+            return Err(Error::protocol(
+                "Produce v13 unsolicited or duplicate partition response",
+            ));
+        }
+        matched = true;
+    }
+    Ok(())
+}
+
+fn clear_ack_parts(parts: &mut HashMap<Arc<str>, HashSet<i32>>) {
+    for partitions in parts.values_mut() {
+        partitions.clear();
+    }
+}
+
+fn fill_ack_topics(
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    name: Option<&Arc<str>>,
+    requested: &mut HashMap<Arc<str>, HashSet<i32>>,
+) {
+    clear_ack_parts(requested);
+    for (topic, partition, _) in groups {
+        if let Some(name) = name {
+            if !Arc::ptr_eq(topic, name) && topic.as_ref() != name.as_ref() {
+                continue;
+            }
+        }
+        if let Some(parts) = requested.get_mut(topic.as_ref()) {
+            let _ = parts.insert(*partition);
+            continue;
+        }
+        let mut parts = HashSet::new();
+        let _ = parts.insert(*partition);
+        let _ = requested.insert(Arc::clone(topic), parts);
+    }
+}
+
+fn ack_partition_is_new(
+    seen: &mut HashMap<Arc<str>, HashSet<i32>>,
+    topic: &Arc<str>,
+    partition: i32,
+) -> bool {
+    if let Some(parts) = seen.get_mut(topic.as_ref()) {
+        return parts.insert(partition);
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = seen.insert(Arc::clone(topic), parts);
+    true
+}
+
 fn solicited_v13_acks(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     acks: &[ProduceAck],
     by_id: &HashMap<[u8; 16], Arc<str>>,
+    requested: &mut HashMap<Arc<str>, HashSet<i32>>,
+    seen: &mut HashMap<Arc<str>, HashSet<i32>>,
 ) -> Result<()> {
-    let mut requested = HashSet::new();
-    for (topic, partition, _) in groups {
-        let _ = requested.insert((topic.as_ref(), *partition));
-    }
-    let mut seen = HashSet::new();
+    fill_ack_topics(groups, None, requested);
+    clear_ack_parts(seen);
     for ack in acks {
-        let Some(name) = by_id.get(&ack.topic_id).map(|name| name.as_ref()) else {
+        let Some(name) = by_id.get(&ack.topic_id) else {
             return Err(Error::protocol(
                 "Produce v13 response UUID is absent from sent snapshot",
             ));
         };
-        if !requested.contains(&(name, ack.partition)) || !seen.insert((name, ack.partition)) {
+        let known = requested
+            .get(name.as_ref())
+            .is_some_and(|parts| parts.contains(&ack.partition));
+        if !known || !ack_partition_is_new(seen, name, ack.partition) {
             return Err(Error::protocol(
                 "Produce v13 unsolicited or duplicate partition response",
             ));
@@ -7483,6 +7561,50 @@ mod tests {
             name_for_topic_id(&shared_id, Some(&shared), [7; 16]),
             Some("orders")
         );
+    }
+
+    #[test]
+    fn produce_ack_partition_sets_are_reused() {
+        let orders = Arc::<str>::from("orders");
+        let payments = Arc::<str>::from("payments");
+        let sent = [4u8; 16];
+        let ack = |partition| ProduceAck {
+            topic: Bytes::new(),
+            topic_id: sent,
+            partition,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: -1,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        sole_partition_acks(0, &sent, &[ack(0)]).unwrap();
+        assert!(sole_partition_acks(0, &sent, &[ack(0), ack(0)]).is_err());
+        assert!(sole_partition_acks(0, &sent, &[ack(1)]).is_err());
+
+        let groups = vec![
+            (Arc::clone(&orders), 0, Vec::new()),
+            (Arc::clone(&orders), 1, Vec::new()),
+            (Arc::clone(&payments), 0, Vec::new()),
+        ];
+        let mut requested = HashMap::new();
+        fill_ack_topics(&groups, None, &mut requested);
+        let orders_capacity = requested
+            .get(orders.as_ref())
+            .map(HashSet::capacity)
+            .unwrap_or(0);
+        assert!(orders_capacity > 0);
+        let only_orders = vec![
+            (Arc::clone(&orders), 0, Vec::new()),
+            (Arc::clone(&orders), 1, Vec::new()),
+        ];
+        fill_ack_topics(&only_orders, Some(&orders), &mut requested);
+        let parts = requested.get(orders.as_ref()).unwrap();
+        assert!(parts.capacity() >= orders_capacity);
+        assert!(parts.contains(&0) && parts.contains(&1));
+        assert!(requested
+            .get(payments.as_ref())
+            .is_none_or(|parts| parts.is_empty()));
     }
 
     #[test]
