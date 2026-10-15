@@ -792,7 +792,10 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_OR_PARTITION` with CurrentLeader `leaderId != -1`
 /// and `leaderEpoch == -1` on one partition does not update the next
 /// ShareFetch target for a sibling whose error is none and still
-/// requests Metadata. A ShareAcknowledge
+/// requests Metadata. A ShareAcknowledge partition `UNKNOWN_TOPIC_ID`
+/// with CurrentLeader `leaderId != -1` and `leaderEpoch == -1` on one
+/// partition does not update the next ShareFetch target for a sibling
+/// whose error is none and still requests Metadata. A ShareAcknowledge
 /// partition `INVALID_RECORD_STATE` with a usable CurrentLeader does
 /// not update the next ShareFetch target (Java `updateLeaderInfoMap`
 /// omits that code). A ShareAcknowledge partition
@@ -2034,6 +2037,10 @@ impl ShareGroup {
     /// CurrentLeader `leaderId != -1` and `leaderEpoch == -1` on one
     /// partition does not update the next ShareFetch target for a
     /// sibling whose error is none and still requests Metadata. A
+    /// ShareAcknowledge partition `UNKNOWN_TOPIC_ID` with CurrentLeader
+    /// `leaderId != -1` and `leaderEpoch == -1` on one partition does
+    /// not update the next ShareFetch target for a sibling whose
+    /// error is none and still requests Metadata. A
     /// ShareAcknowledge partition `INVALID_RECORD_STATE` with a usable
     /// CurrentLeader does not update the next ShareFetch target (Java)
     /// `updateLeaderInfoMap` omits that code). A ShareAcknowledge
