@@ -2216,6 +2216,28 @@ impl ShareGroup {
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
         let mut prepared = Vec::new();
         for (node, mut tps) in nodes {
+            let epoch = self.session_epoch(node);
+            // Java maybeAddAcknowledgements: piggyback is refused on the
+            // initial ShareFetch (isNewSession). Those acks complete with
+            // NOT_LEADER_OR_FOLLOWER and are not sent. Leftover-only
+            // partitions are not added to that session, so the node is
+            // not contacted
+            // (testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange).
+            let piggyback = epoch > ShareRequestMetadata::INITIAL_EPOCH;
+            if !piggyback && !tps.is_empty() {
+                let error = Error::broker(
+                    error::NOT_LEADER_OR_FOLLOWER,
+                    "cannot piggyback acknowledgements on initial ShareFetch",
+                );
+                self.fail_node_share_fetch_acknowledgements(&tps, &error);
+                for (topic, part) in &tps {
+                    let _ = pending_acks.remove(&(topic.clone(), *part));
+                }
+                tps.retain(|(topic, part)| assigned_set.contains(&(topic.clone(), *part)));
+            }
+            if tps.is_empty() && epoch <= ShareRequestMetadata::INITIAL_EPOCH {
+                continue;
+            }
             let version = match self.node_share_version(node, SHARE_FETCH).await {
                 Ok(version) => version,
                 Err(_) if tps.is_empty() => {
@@ -2229,24 +2251,6 @@ impl ShareGroup {
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support record-limit acquisition"
                 )));
-            }
-            let epoch = self.session_epoch(node);
-            // Java maybeAddAcknowledgements: piggyback is refused on the
-            // initial ShareFetch (isNewSession). Those acks complete with
-            // NOT_LEADER_OR_FOLLOWER and are not sent. Leftover-only
-            // partitions are not added to that session
-            // (testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange).
-            let piggyback = epoch > ShareRequestMetadata::INITIAL_EPOCH;
-            if !piggyback && !tps.is_empty() {
-                let error = Error::broker(
-                    error::NOT_LEADER_OR_FOLLOWER,
-                    "cannot piggyback acknowledgements on initial ShareFetch",
-                );
-                self.fail_node_share_fetch_acknowledgements(&tps, &error);
-                for (topic, part) in &tps {
-                    let _ = pending_acks.remove(&(topic.clone(), *part));
-                }
-                tps.retain(|(topic, part)| assigned_set.contains(&(topic.clone(), *part)));
             }
             let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
             for (topic, part) in &tps {
