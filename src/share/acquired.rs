@@ -1,6 +1,56 @@
+use crate::error::{Error, Result};
 use crate::protocol::share::AcquiredRange;
 
-/// Lookup in sorted, nonoverlapping acquisition ranges validated by ShareFetch.
+/// Java `ShareCompletedFetch`: overlapping `AcquiredRecords` log an error
+/// and keep the first occurrence. Later ranges contribute only offsets
+/// that were not already assigned.
+pub(crate) fn keep_first_acquired(ranges: &[AcquiredRange]) -> Result<Vec<AcquiredRange>> {
+    let mut assigned: Vec<(i64, i64, i16)> = Vec::new();
+    for range in ranges {
+        if range.first_offset < 0
+            || range.last_offset < range.first_offset
+            || range.delivery_count <= 0
+        {
+            return Err(Error::protocol("invalid ShareFetch acquired range"));
+        }
+        let mut fragments = vec![(range.first_offset, range.last_offset)];
+        for &(start, end, _) in &assigned {
+            let mut next = Vec::new();
+            for (first, last) in fragments {
+                if last < start || first > end {
+                    next.push((first, last));
+                    continue;
+                }
+                if first < start {
+                    next.push((first, start - 1));
+                }
+                if last > end {
+                    next.push((end + 1, last));
+                }
+            }
+            fragments = next;
+            if fragments.is_empty() {
+                break;
+            }
+        }
+        for (first, last) in fragments {
+            assigned.push((first, last, range.delivery_count));
+        }
+    }
+    assigned.sort_unstable_by_key(|&(first, _, _)| first);
+    Ok(assigned
+        .into_iter()
+        .map(
+            |(first_offset, last_offset, delivery_count)| AcquiredRange {
+                first_offset,
+                last_offset,
+                delivery_count,
+            },
+        )
+        .collect())
+}
+
+/// Lookup in sorted, nonoverlapping acquisition ranges after keep-first merge.
 pub(crate) struct AcquisitionRanges<'a> {
     ranges: &'a [AcquiredRange],
     index: usize,
@@ -56,6 +106,70 @@ mod tests {
     use super::*;
 
     #[test]
+    #[test]
+    fn keep_first_acquired_retains_first_occurrence() {
+        let ranges = [
+            AcquiredRange {
+                first_offset: 0,
+                last_offset: 9,
+                delivery_count: 1,
+            },
+            AcquiredRange {
+                first_offset: 5,
+                last_offset: 14,
+                delivery_count: 2,
+            },
+        ];
+        let merged = keep_first_acquired(&ranges).unwrap();
+        assert_eq!(
+            merged,
+            vec![
+                AcquiredRange {
+                    first_offset: 0,
+                    last_offset: 9,
+                    delivery_count: 1,
+                },
+                AcquiredRange {
+                    first_offset: 10,
+                    last_offset: 14,
+                    delivery_count: 2,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn keep_first_acquired_uses_list_order() {
+        let ranges = [
+            AcquiredRange {
+                first_offset: 5,
+                last_offset: 14,
+                delivery_count: 2,
+            },
+            AcquiredRange {
+                first_offset: 0,
+                last_offset: 9,
+                delivery_count: 1,
+            },
+        ];
+        let merged = keep_first_acquired(&ranges).unwrap();
+        assert_eq!(
+            merged,
+            vec![
+                AcquiredRange {
+                    first_offset: 0,
+                    last_offset: 4,
+                    delivery_count: 1,
+                },
+                AcquiredRange {
+                    first_offset: 5,
+                    last_offset: 14,
+                    delivery_count: 2,
+                },
+            ]
+        );
+    }
+
     fn share_ranges_preserve_counts_gaps_and_rewinds() {
         for count in 0..=64 {
             let ranges: Vec<_> = (0..count)

@@ -2036,6 +2036,8 @@
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`ShareGroup::poll`] queues wire `ACK_GAP` for acquired offsets with no
 //! record and for control-record holes (Java `ShareCompletedFetch`).
+//! Overlapping ShareFetch `AcquiredRecords` keep the first occurrence
+//! (Java `testOverlappingAcquiredRecordsLogsErrorAndRetainsFirstOccurrence`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on

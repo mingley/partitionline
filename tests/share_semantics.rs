@@ -24,11 +24,9 @@ use partitionline::protocol::records::{
     ControlRecordType, EndTransactionMarker, Record, RecordBatch,
 };
 use partitionline::protocol::share::{
-    decode_share_fetch_response, decode_share_fetch_response_with_limit,
-    encode_share_fetch_error_with_message, encode_share_fetch_response,
-    encode_share_fetch_response_with_acquisition_lock_timeout,
-    encode_share_fetch_response_with_endpoints, AcquiredRange, ShareFetchedPartition,
-    ShareFetchedTopic,
+    decode_share_fetch_response_with_limit, encode_share_fetch_error_with_message,
+    encode_share_fetch_response, encode_share_fetch_response_with_endpoints, AcquiredRange,
+    ShareFetchedPartition, ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -2288,7 +2286,7 @@ async fn unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats(
 }
 
 #[tokio::test]
-async fn decoded_budget_and_overlapping_acquisitions_fail_before_delivery() {
+async fn decoded_budget_fails_before_delivery() {
     let fixture =
         include_bytes!("fixtures/protocol_oracles/share_v2/fetch_v2_acquired_subset_response.bin");
     assert!(
@@ -2299,29 +2297,46 @@ async fn decoded_budget_and_overlapping_acquisitions_fail_before_delivery() {
     // must fail the storage budget before allocating a topic vector.
     malicious[11] = 0xff;
     assert!(decode_share_fetch_response_with_limit(&mut malicious.freeze(), 2, 64).is_err());
-    let (mut topics, _, _, _, _, _) =
-        decode_share_fetch_response(&mut Bytes::copy_from_slice(fixture), 2).unwrap();
-    topics[0].partitions[0].acquired.push(AcquiredRange {
-        first_offset: 1,
-        last_offset: 1,
-        delivery_count: 3,
-    });
-    let mut overlap = BytesMut::new();
-    encode_share_fetch_response_with_acquisition_lock_timeout(&mut overlap, 2, &topics, 1200)
-        .unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_overlapping_acquired_keeps_first() {
     let mock = common::Mock::start().await;
     v2(&mock);
-    mock.set_topic_partitions("t", 4);
-    mock.recreate_topic_id("t", std::array::from_fn(|i| u8::try_from(i).unwrap()));
-    mock.inject_share_fetch_response_once(&overlap);
-    let mut group = ShareGroup::join(config(&mock), "overlap", "t")
+    let mut group = ShareGroup::join(config(&mock), "overlap-keep", "t")
         .await
         .unwrap();
-    assert!(matches!(
-        group.poll().await.unwrap_err(),
-        Error::Protocol(_)
-    ));
-    assert_eq!(group.metrics().records_fetched, 0);
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let values: Vec<&[u8]> = (0..15).map(|_| &b"x"[..]).collect();
+    let mut part = injected_share_records(&values, &[]);
+    part.acquired = vec![
+        AcquiredRange {
+            first_offset: 0,
+            last_offset: 9,
+            delivery_count: 1,
+        },
+        AcquiredRange {
+            first_offset: 5,
+            last_offset: 14,
+            delivery_count: 2,
+        },
+    ];
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let got = group.poll().await.unwrap();
+    let offsets: Vec<i64> = got.iter().map(|rec| rec.offset).collect();
+    assert_eq!(offsets, (0..15).collect::<Vec<_>>());
+    assert_eq!(
+        got[5].delivery_count, 1,
+        "Java keeps the first overlapping occurrence"
+    );
+    assert_eq!(got[10].delivery_count, 2);
+    group.accept(&got).await.unwrap();
     group.leave().await.unwrap();
 }
 

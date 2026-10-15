@@ -2526,23 +2526,9 @@ impl ShareGroup {
                         let error = Error::broker(part.acknowledge_error_code, detail);
                         self.fail_share_fetch_acknowledgements(&name, part.partition, &error);
                     }
-                    let mut acquired = part.acquired;
-                    acquired.sort_unstable_by_key(|range| range.first_offset);
-                    for range in &acquired {
-                        if range.first_offset < 0
-                            || range.last_offset < range.first_offset
-                            || range.delivery_count <= 0
-                        {
-                            return Err(Error::protocol("invalid ShareFetch acquired range"));
-                        }
-                    }
-                    if acquired.windows(2).any(|pair| {
-                        pair.first()
-                            .zip(pair.get(1))
-                            .is_some_and(|(a, b)| a.last_offset >= b.first_offset)
-                    }) {
-                        return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
-                    }
+                    // Java ShareCompletedFetch logs overlapping ranges and
+                    // keeps the first occurrence (testOverlappingAcquiredRecords).
+                    let acquired = acquired::keep_first_acquired(&part.acquired)?;
                     let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
                     let mut part_records = Vec::new();
                     let mut present_offsets = HashSet::new();
