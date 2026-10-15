@@ -3148,14 +3148,24 @@ impl Consumer {
         }
         let md = decode_metadata_response(&mut body.clone(), version)?;
         md.check()?;
-        let previous_epochs = self.cluster.leader_epochs.clone();
-        self.cluster.apply(&md, version);
-        for (topic, partition) in preferred_partitions_to_drop(
-            &self.preferred.entries(),
-            &previous_epochs,
-            &self.cluster.leader_epochs,
-        ) {
-            let _ = self.preferred.remove(&topic, partition);
+        if self.preferred.is_empty() {
+            self.cluster.apply(&md, version);
+        } else {
+            let watched: Vec<(String, i32, i32)> = self
+                .preferred
+                .entries()
+                .into_iter()
+                .map(|(topic, partition)| {
+                    let epoch = self.cluster.leader_epoch(&topic, partition);
+                    (topic, partition, epoch)
+                })
+                .collect();
+            self.cluster.apply(&md, version);
+            for (topic, partition, previous) in watched {
+                if self.cluster.leader_epoch(&topic, partition) != previous {
+                    let _ = self.preferred.remove(&topic, partition);
+                }
+            }
         }
         self.metadata = Some(md);
         self.refresh_topic_identities();
@@ -7069,6 +7079,7 @@ fn fetched_bytes(rec: &FetchedRecord) -> u64 {
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
+#[cfg(test)]
 fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> i32 {
     usize::try_from(partition)
         .ok()
@@ -7161,6 +7172,7 @@ fn fetch_target(preferred: Option<i32>, preferred_known: bool, leader: Option<i3
 }
 
 /// Preferred replicas belong to a leader epoch. Drop one when that epoch changes.
+#[cfg(test)]
 fn preferred_partitions_to_drop(
     preferred: &[(String, i32)],
     previous: &HashMap<String, Vec<i32>>,
