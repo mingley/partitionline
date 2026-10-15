@@ -1609,6 +1609,17 @@ impl<V> PartitionMap<V> {
         previous
     }
 
+    fn extend_topic(&mut self, topic: &str, parts: HashMap<i32, V>) {
+        if parts.is_empty() {
+            return;
+        }
+        if let Some(slot) = self.topics.get_mut(topic) {
+            slot.extend(parts);
+            return;
+        }
+        let _previous = self.topics.insert(topic.to_owned(), parts);
+    }
+
     fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
         let partitions = self.topics.get_mut(topic)?;
         let removed = partitions.remove(&partition);
@@ -5629,6 +5640,7 @@ impl Consumer {
             } else {
                 Some(seen_partitions.remove(name.as_ref()).unwrap_or_default())
             };
+            let mut topic_completed: HashMap<i32, ()> = HashMap::new();
             if *budget_reached {
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                     if topic_seen
@@ -5649,6 +5661,7 @@ impl Consumer {
                         );
                     }
                 }
+                completed.extend_topic(name.as_ref(), topic_completed);
                 if let Some(parts) = topic_seen {
                     if !parts.is_empty() {
                         let _ = seen_partitions.insert(Arc::clone(&name), parts);
@@ -6094,14 +6107,15 @@ impl Consumer {
                 if let Some(n) = next {
                     self.advance_indexed(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
-                    let _ = completed.insert(&name, part.partition, ());
+                    let _ = topic_completed.insert(part.partition, ());
                 } else if !*budget_reached {
-                    let _ = completed.insert(&name, part.partition, ());
+                    let _ = topic_completed.insert(part.partition, ());
                 }
                 if *budget_reached {
                     break;
                 }
             }
+            completed.extend_topic(name.as_ref(), topic_completed);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
                     let _ = seen_partitions.insert(name, parts);
