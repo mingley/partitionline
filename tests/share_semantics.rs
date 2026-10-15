@@ -3195,6 +3195,76 @@ async fn share_fetch_inconsistent_topic_id_skips_and_refreshes_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_topic_or_partition_skips_and_refreshes_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "unk-tp-skip", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![ShareFetchedPartition::partition_response(
+            0,
+            error::UNKNOWN_TOPIC_OR_PARTITION,
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testHandleFetchResponseError collects empty for UNKNOWN_TOPIC_OR_PARTITION"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert!(
+        mock.metadata_calls() > after_skip,
+        "Java testHandleFetchResponseError requests Metadata for UNKNOWN_TOPIC_OR_PARTITION"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_sole_not_leader_collects_empty() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "sole-no-leader", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(0, error::NOT_LEADER_OR_FOLLOWER);
+    failed.current_leader_id = -1;
+    failed.current_leader_epoch = -1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testFetchError collects empty for sole NOT_LEADER_OR_FOLLOWER"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert!(
+        mock.metadata_calls() > after_skip,
+        "sole NOT_LEADER without CurrentLeader still requests Metadata"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_current_leader_overrides_cached_metadata() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

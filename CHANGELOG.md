@@ -56,10 +56,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `testFatalErrorsAcknowledgementResponse`). Metadata is requested when
   that error has no usable CurrentLeader.
 
-- ShareFetch partition `INCONSISTENT_TOPIC_ID` skips without throwing
-  and requests Metadata on the next poll (Java
-  `testHandleFetchResponseError`). `UNKNOWN_LEADER_EPOCH` still skips
-  without Metadata.
+- ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
+  skip without throwing and request Metadata on the next poll (Java
+  `testHandleFetchResponseError`). A sole partition `NOT_LEADER_OR_FOLLOWER`
+  collects empty on that poll (Java `testFetchError`).
+  `UNKNOWN_LEADER_EPOCH` still skips without Metadata.
 
 - ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
   CurrentLeader skips that partition, still delivers siblings, and

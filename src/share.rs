@@ -1529,8 +1529,10 @@ impl ShareGroup {
     /// next ShareFetch without Metadata (Java
     /// `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
-    /// `INCONSISTENT_TOPIC_ID` skips and requests Metadata (Java
-    /// `testHandleFetchResponseError`). A ShareFetch topic id that is
+    /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` skip and
+    /// request Metadata (Java `testHandleFetchResponseError`). A sole
+    /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
+    /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
     /// not subscribed — is skipped and does not fail poll (Java
     /// `lookupTopicId` / `testShareFetchInvalidResponse`).
@@ -2456,7 +2458,6 @@ impl ShareGroup {
             HashMap::new()
         };
         let multi = prepared.len() > 1;
-        let mut first_retriable: Option<Error> = None;
         for PreparedShareFetch {
             node,
             version,
@@ -2576,7 +2577,6 @@ impl ShareGroup {
             let mut incoming_keys = HashSet::new();
             let mut seen_ack_tps = HashSet::new();
             let mut completed = Vec::new();
-            let mut node_retriable: Option<Error> = None;
             for topic in fetched {
                 // Java lookupTopicId: unknown topic id / partition is
                 // skipped (testShareFetchInvalidResponse). poll does not
@@ -2623,15 +2623,10 @@ impl ShareGroup {
                         // metadata update and do not throw. Sibling
                         // partitions stay collectable.
                         if share_fetch_partition_skipped(part.error_code) {
-                            // A usable CurrentLeader is a redirect, not a
-                            // failed fetch. Returning NOT_LEADER here would
-                            // make poll() refresh Metadata and drop the hint.
-                            if !applied_leader
-                                && node_retriable.is_none()
-                                && share_leader_retriable(&error)
-                            {
-                                node_retriable = Some(error);
-                            }
+                            // Java handleInitializeErrors / testFetchError:
+                            // skip codes do not throw. Returning a
+                            // retriable error here would make poll()
+                            // retry in-loop and deliver on this collect.
                             continue;
                         }
                         completed.push(ShareCompletedFetch::Error(error));
@@ -2850,14 +2845,6 @@ impl ShareGroup {
             }
             for item in completed {
                 self.pending_completed.push_back(item);
-            }
-            if first_retriable.is_none() {
-                first_retriable = node_retriable;
-            }
-        }
-        if let Some(error) = first_retriable {
-            if self.pending_completed.is_empty() {
-                return Err(error);
             }
         }
         self.collect_completed_fetches()

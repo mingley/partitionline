@@ -2069,9 +2069,11 @@
 //! `InvalidRecordStateException` / `INVALID_RESPONSE`).
 //! Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 //! refresh topic metadata (Java `metadata.requestUpdate`). Partition
-//! `INCONSISTENT_TOPIC_ID` skips without throwing and requests Metadata;
-//! `UNKNOWN_LEADER_EPOCH` skips without Metadata (Java
-//! `testHandleFetchResponseError`). Partition `FENCED_LEADER_EPOCH`
+//! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` skip without
+//! throwing and request Metadata; `UNKNOWN_LEADER_EPOCH` skips without
+//! Metadata (Java `testHandleFetchResponseError`). A sole partition
+//! `NOT_LEADER_OR_FOLLOWER` collects empty (Java `testFetchError`).
+//! Partition `FENCED_LEADER_EPOCH`
 //! without a usable CurrentLeader skips that partition, still delivers
 //! siblings, and requests Metadata (Java
 //! `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
