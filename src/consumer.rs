@@ -7497,10 +7497,10 @@ fn offset_for_leader_epoch_topics(
     last_fetched: &[i32],
     parts: &[(String, i32)],
 ) -> Vec<OffsetForLeaderTopic> {
-    let mut by_topic: HashMap<String, Vec<OffsetForLeaderPartition>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut epochs = crate::cluster::EpochList::new();
+    let mut groups: Vec<(String, Vec<OffsetForLeaderPartition>)> = Vec::new();
     for (index, (topic, partition)) in parts.iter().enumerate() {
-        let current = cluster.leader_epoch(topic, *partition);
+        let current = epochs.epoch(cluster, topic, *partition);
         // KIP-320: current_leader_epoch fences the leader. The epoch to resolve
         // is the one already fetched. An unknown fetch epoch keeps the current
         // epoch so a broker does not treat -1 as older than the log.
@@ -7510,17 +7510,15 @@ fn offset_for_leader_epoch_topics(
             .filter(|epoch| *epoch >= 0)
             .unwrap_or(current);
         let part = OffsetForLeaderPartition::new(*partition, current, looked_up);
-        if let Some(parts) = by_topic.get_mut(topic.as_str()) {
-            parts.push(part);
+        if let Some((_, stored)) = groups.iter_mut().find(|(name, _)| name == topic) {
+            stored.push(part);
         } else {
-            order.push(topic.clone());
-            let _ = by_topic.insert(topic.clone(), vec![part]);
+            groups.push((topic.clone(), vec![part]));
         }
     }
-    order
+    groups
         .into_iter()
-        .map(|name| {
-            let mut partitions = by_topic.remove(&name).unwrap_or_default();
+        .map(|(name, mut partitions)| {
             partitions.sort_by_key(|p| p.partition);
             OffsetForLeaderTopic::new(name, partitions)
         })
