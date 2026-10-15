@@ -1509,7 +1509,9 @@ impl ShareGroup {
     /// `KafkaException` and does not deliver the accompanying records
     /// (Java `testCorruptMessageError`). That is distinct from a CRC-failed
     /// batch (`error_code` 0), which REJECT-intersects acquired offsets
-    /// and continues later batches.
+    /// and continues later batches. A sole CRC-failed batch throws
+    /// once (`Record is corrupt`) and the next poll does not throw again
+    /// (Java `testInvalidDefaultRecordBatch` / `testParseInvalidRecordBatch`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);

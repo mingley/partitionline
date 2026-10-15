@@ -3466,6 +3466,56 @@ async fn share_fetch_crc_failure_rejects_unaligned_acquired() {
 }
 
 #[tokio::test]
+async fn share_fetch_sole_crc_failed_batch_throws_once() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "crc-cleared", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    inject_share_fetch_with_corrupt_batches(
+        &mock,
+        version,
+        vec![share_batch_at(0, 10)],
+        vec![AcquiredRange {
+            first_offset: 0,
+            last_offset: 9,
+            delivery_count: 1,
+        }],
+        &[0],
+    );
+    let err = group.poll().await.unwrap_err();
+    match &err {
+        Error::Protocol(message) => assert!(
+            message.contains("Record is corrupt"),
+            "Java testInvalidDefaultRecordBatch is CorruptRecordException, got {message}"
+        ),
+        other => panic!("sole CRC-failed batch must be protocol, not {other:?}"),
+    }
+    assert_eq!(
+        group.acquired_record_count(),
+        10,
+        "Java REJECT-intersects the acquired range of the sole corrupt batch"
+    );
+    let fetches = mock.share_fetch_calls();
+    let second = group.poll().await.unwrap();
+    assert!(
+        second.is_empty(),
+        "Java testParseInvalidRecordBatch next collect is empty, got {} records",
+        second.len()
+    );
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "consumed CRC error must not stay in the completed-fetch buffer"
+    );
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn share_fetch_headers_last_header_wins() {
     let mock = common::Mock::start().await;
     v2(&mock);
