@@ -135,6 +135,8 @@ pub struct Delivery {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Delivery {
@@ -149,6 +151,7 @@ impl Delivery {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut cursor = delivery.journal.base_offset();
         loop {
@@ -409,11 +412,14 @@ impl Delivery {
     }
 
     fn commit(&mut self, state: State) -> Result<(), Error> {
-        let payload = encode(&state)?;
-        if payload.len() > self.limits.journal.max_entry_bytes() {
+        encode_into(&state, &mut self.encoded)?;
+        if self.encoded.len() > self.limits.journal.max_entry_bytes() {
             return Err(Error::InvalidLimits);
         }
-        self.persist(&payload)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result?;
         self.state = state;
         Ok(())
     }
@@ -447,8 +453,15 @@ fn valid_member(member: &str) -> bool {
     !member.is_empty() && member.len() <= 249 && !member.chars().any(char::is_control)
 }
 
+#[cfg(test)]
 fn encode(state: &State) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(state, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(state: &State, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     let count = u32::try_from(state.records.len()).map_err(|_| Error::InvalidRequest)?;
     bytes.extend_from_slice(&count.to_be_bytes());
@@ -462,13 +475,13 @@ fn encode(state: &State) -> Result<Vec<u8>, Error> {
             Phase::Archived => bytes.push(4),
             Phase::Locked(lock) => {
                 bytes.push(5);
-                put_str(&mut bytes, &lock.member)?;
+                put_str(bytes, &lock.member)?;
                 bytes.extend_from_slice(&lock.deadline_ms.to_be_bytes());
                 bytes.extend_from_slice(&lock.leader_epoch.to_be_bytes());
             }
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<State, Error> {
@@ -715,6 +728,8 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{error:?}")),
             vec![1, 2]
         );
+        let encoded_capacity = delivery.encoded.capacity();
+        assert!(encoded_capacity > 0);
         let acked = delivery
             .acknowledge(
                 "alice",
@@ -736,6 +751,7 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(acked[0].error_code, ACK_OK);
+        assert!(delivery.encoded.capacity() >= encoded_capacity);
         assert_eq!(acked[1].error_code, INVALID_REQUEST);
         assert_eq!(acked[2].error_code, ACK_OK);
         assert_eq!(delivery.accepted(), vec![1]);
