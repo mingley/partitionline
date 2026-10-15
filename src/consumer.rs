@@ -2879,10 +2879,7 @@ impl Consumer {
     /// placed in the log and is not returned.
     pub fn fetch_cursor(&self, topic: &str, partition: i32) -> Result<i64> {
         let offset = self
-            .assigned
-            .iter()
-            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
-            .map(|(_, _, offset)| *offset)
+            .assigned_offset(topic, partition)
             .ok_or_else(reject_java_position_unassigned)?;
         defined_position(offset).ok_or_else(|| {
             Error::protocol(format!(
@@ -2977,6 +2974,11 @@ impl Consumer {
         })
     }
 
+    fn assigned_offset(&self, topic: &str, partition: i32) -> Option<i64> {
+        let slot = self.fetched_epoch_slot(topic, partition)?;
+        self.assigned.get(slot).map(|(_, _, offset)| *offset)
+    }
+
     pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
         let mut slot = if self.cursor_index.is_some() {
             self.cursor_slot(topic, partition)
@@ -3051,10 +3053,7 @@ impl Consumer {
     /// A position below zero is waiting to be placed in the log and is not returned.
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
         let fetch_offset = self
-            .assigned
-            .iter()
-            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
-            .map(|(_, _, o)| *o)
+            .assigned_offset(topic, partition)
             .ok_or_else(reject_java_position_unassigned)?;
         let position = self.delivered_position(topic, partition, fetch_offset);
         defined_position(position).ok_or_else(|| {
@@ -6844,10 +6843,7 @@ impl Consumer {
     ) -> Result<Option<i64>> {
         let tp = partition.into();
         let fetch_cursor = self
-            .assigned
-            .iter()
-            .find(|(t, p, _)| t.as_ref() == tp.topic.as_str() && *p == tp.partition)
-            .map(|(_, _, o)| *o)
+            .assigned_offset(&tp.topic, tp.partition)
             .ok_or_else(|| reject_java_no_current_assignment(&tp.topic, tp.partition))?;
         let pos = self.delivered_position(&tp.topic, tp.partition, fetch_cursor);
         let hw = self
