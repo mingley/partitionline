@@ -1621,26 +1621,27 @@ async fn acknowledgement_commit_callback_fires_per_partition_on_commit_async() {
         1,
         "Java testPendingCommitAsyncBeforeCommitSync sends without ShareFetch"
     );
-    let got = seen.lock();
-    assert_eq!(
-        got.len(),
-        2,
-        "Java testAcknowledgementCommitCallbackMultiplePartitionCommitAsync invokes once per partition, got {got:?}"
-    );
-    assert!(
-        got.iter().all(|(_, failed)| !*failed),
-        "successful partitions must pass a null exception, got {got:?}"
-    );
-    assert!(
-        got.iter().all(|(offsets, _)| offsets.len() == 1),
-        "each invocation is one topic-partition, got {got:?}"
-    );
-    let partitions: Vec<i32> = got.iter().map(|(offsets, _)| offsets[0].1).collect();
-    assert!(
-        partitions.contains(&0) && partitions.contains(&1),
-        "callback must cover both partitions, got {got:?}"
-    );
-    drop(got);
+    {
+        let got = seen.lock();
+        assert_eq!(
+            got.len(),
+            2,
+            "Java testAcknowledgementCommitCallbackMultiplePartitionCommitAsync invokes once per partition, got {got:?}"
+        );
+        assert!(
+            got.iter().all(|(_, failed)| !*failed),
+            "successful partitions must pass a null exception, got {got:?}"
+        );
+        assert!(
+            got.iter().all(|(offsets, _)| offsets.len() == 1),
+            "each invocation is one topic-partition, got {got:?}"
+        );
+        let partitions: Vec<i32> = got.iter().map(|(offsets, _)| offsets[0].1).collect();
+        assert!(
+            partitions.contains(&0) && partitions.contains(&1),
+            "callback must cover both partitions, got {got:?}"
+        );
+    }
     group.leave().await.unwrap();
 }
 
