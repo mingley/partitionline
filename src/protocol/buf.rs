@@ -150,6 +150,28 @@ pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     }
 }
 
+/// Copy `len` bytes out of `buf` without zero-filling the destination first.
+pub(crate) fn copy_exact<B: Buf>(buf: &mut B, len: usize) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    out.try_reserve_exact(len)
+        .map_err(|_| Error::protocol("buffer allocation failed"))?;
+    let mut filled = 0usize;
+    while filled < len {
+        let chunk = buf.chunk();
+        let take = chunk.len().min(len - filled);
+        if take == 0 {
+            return Err(Error::protocol(format!("need {len} bytes, have {filled}")));
+        }
+        let Some(piece) = chunk.get(..take) else {
+            return Err(Error::protocol(format!("need {len} bytes, have {filled}")));
+        };
+        out.extend_from_slice(piece);
+        buf.advance(take);
+        filled = filled.saturating_add(take);
+    }
+    Ok(out)
+}
+
 /// Encoded size of an unsigned varint (`u32` bits).
 ///
 /// `ceil(significant_bits / 7)`, with zero occupying one byte. This matches
@@ -707,8 +729,7 @@ pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>
     }
     let len = usize_from_i16(len)?;
     need(buf, len)?;
-    let mut bytes = vec![0u8; len];
-    buf.copy_to_slice(&mut bytes);
+    let bytes = copy_exact(buf, len)?;
     String::from_utf8(bytes)
         .map(Some)
         .map_err(|e| Error::protocol(e.to_string()))
@@ -737,8 +758,7 @@ pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
     }
     let len = usize_from_u32(n - 1)?;
     need(buf, len)?;
-    let mut bytes = vec![0u8; len];
-    buf.copy_to_slice(&mut bytes);
+    let bytes = copy_exact(buf, len)?;
     String::from_utf8(bytes)
         .map(Some)
         .map_err(|e| Error::protocol(e.to_string()))
@@ -963,9 +983,7 @@ pub fn get_tagged_fields<B: Buf>(buf: &mut B) -> Result<Vec<(u32, Bytes)>> {
         prev = Some(tag);
         let size = usize_from_u32(get_unsigned_varint(buf)?)?;
         need(buf, size)?;
-        let mut bytes = vec![0u8; size];
-        buf.copy_to_slice(&mut bytes);
-        out.push((tag, Bytes::from(bytes)));
+        out.push((tag, buf.copy_to_bytes(size)));
     }
     Ok(out)
 }
@@ -1167,6 +1185,14 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[test]
+    fn copy_exact_spans_chunks_without_a_zeroed_buffer() {
+        let mut chain = (&b"hel"[..]).chain(&b"lo"[..]);
+        let got = copy_exact(&mut chain, 5).unwrap();
+        assert_eq!(got, b"hello");
+        assert_eq!(chain.remaining(), 0);
+    }
 
     #[test]
     fn unsigned_varint_roundtrip() {

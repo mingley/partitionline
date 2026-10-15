@@ -3321,8 +3321,7 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         }
         let key_len_usize = buf::usize_from_i32(header_key_size)?;
         buf::need(&inner, key_len_usize)?;
-        let mut key_buf = vec![0u8; key_len_usize];
-        inner.copy_to_slice(&mut key_buf);
+        let key_buf = buf::copy_exact(&mut inner, key_len_usize)?;
         let key = String::from_utf8(key_buf).map_err(|e| Error::protocol(e.to_string()))?;
         let value = read_bytes_varint(&mut inner)?;
         headers.push(Header { key, value });
