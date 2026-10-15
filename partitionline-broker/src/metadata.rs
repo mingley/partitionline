@@ -33,7 +33,7 @@ use crate::{
     transport::Handler,
 };
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -1892,6 +1892,55 @@ fn create_validation(
     }
     Ok(partitions)
 }
+/// First copy of each key, and whether a later copy exists.
+///
+/// One item needs no map. A `None` key is ignored, so an invalid delete target
+/// does not hide a later valid one.
+fn mark_first_copies<T, K>(
+    items: &[T],
+    mut key: impl FnMut(&T) -> Option<K>,
+) -> Option<(Vec<bool>, Vec<bool>)>
+where
+    K: Eq + std::hash::Hash,
+{
+    if items.len() <= 1 {
+        return None;
+    }
+    let mut first = vec![false; items.len()];
+    let mut duplicated = vec![false; items.len()];
+    let mut owner: HashMap<K, usize> = HashMap::new();
+    for (index, item) in items.iter().enumerate() {
+        let Some(key) = key(item) else {
+            continue;
+        };
+        if let Some(earlier) = owner.get(&key).copied() {
+            if let Some(flag) = duplicated.get_mut(earlier) {
+                *flag = true;
+            }
+        } else {
+            if let Some(flag) = first.get_mut(index) {
+                *flag = true;
+            }
+            let _ = owner.insert(key, index);
+        }
+    }
+    Some((first, duplicated))
+}
+
+fn delete_identity<'a>(target: &Target<'a>) -> Option<DeleteKey<'a>> {
+    match (target.name, target.id == ZERO) {
+        (Some(name), true) => Some(DeleteKey::Name(name)),
+        (None, false) => Some(DeleteKey::Id(target.id)),
+        _ => None,
+    }
+}
+
+#[derive(Eq, PartialEq, Hash)]
+enum DeleteKey<'a> {
+    Name(&'a str),
+    Id([u8; 16]),
+}
+
 fn topic_names_collide(left: &str, right: &str) -> bool {
     let fold = |byte: u8| if byte == b'.' { b'_' } else { byte };
     left.len() == right.len()
@@ -1942,17 +1991,18 @@ fn create(
     if needed > config.max_response_bytes {
         return Err(Error::ResponseLimit);
     }
+    let copies = mark_first_copies(&request.topics, |topic| Some(topic.name));
     for (position, topic) in request.topics.iter().enumerate() {
         check_active(reply, stopping)?;
-        if request.topics[..position]
-            .iter()
-            .any(|other| other.name == topic.name)
+        if copies
+            .as_ref()
+            .is_some_and(|(first, _)| !first.get(position).copied().unwrap_or(false))
         {
             continue;
         }
-        let duplicate = request.topics[position + 1..]
-            .iter()
-            .any(|other| other.name == topic.name);
+        let duplicate = copies
+            .as_ref()
+            .is_some_and(|(_, duplicated)| duplicated.get(position).copied().unwrap_or(false));
         let error = if duplicate {
             api_error(42, "Duplicate topic name.")
         } else if request.topics[..position]
@@ -2044,6 +2094,7 @@ fn delete(
     if needed > config.max_response_bytes {
         return Err(Error::ResponseLimit);
     }
+    let copies = mark_first_copies(&request.topics, delete_identity);
     for (position, target) in request.topics.iter().enumerate() {
         check_active(reply, stopping)?;
         let neither = target.name.is_none() && target.id == ZERO;
@@ -2063,17 +2114,16 @@ fn delete(
             });
             continue;
         }
-        let same = |other: &Target<'_>| {
-            if target.name.is_some() {
-                other.name == target.name && other.id == ZERO
-            } else {
-                other.name.is_none() && other.id == target.id
-            }
-        };
-        if request.topics[..position].iter().any(same) {
+        if copies
+            .as_ref()
+            .is_some_and(|(first, _)| !first.get(position).copied().unwrap_or(false))
+        {
             continue;
         }
-        if request.topics[position + 1..].iter().any(same) {
+        if copies
+            .as_ref()
+            .is_some_and(|(_, duplicated)| duplicated.get(position).copied().unwrap_or(false))
+        {
             results.push(DeleteResult {
                 name: target.name,
                 id: target.id,
@@ -2192,6 +2242,44 @@ mod tests {
         assert!(!topic_names_collide("foo.bar", "foo.baz"));
         assert!(!topic_names_collide("a.b", "ab"));
         assert!(!topic_names_collide("foo.bar", "foo.bars"));
+    }
+
+    #[test]
+    fn the_first_copy_of_a_name_or_id_is_the_one_that_is_answered() {
+        let names = ["orders", "payments", "orders"];
+        let copies = mark_first_copies(&names, |name| Some(*name)).unwrap_or_else(|| {
+            panic!("two names");
+        });
+        assert_eq!(copies.0, vec![true, true, false]);
+        assert_eq!(copies.1, vec![true, false, false]);
+        assert!(mark_first_copies(&["orders"], |name: &&str| Some(*name)).is_none());
+        let targets = [
+            Target {
+                name: Some("orders"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: ZERO,
+            },
+            Target {
+                name: Some("orders"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: [2u8; 16],
+            },
+            Target {
+                name: None,
+                id: [2u8; 16],
+            },
+        ];
+        let copies = mark_first_copies(&targets, delete_identity).unwrap_or_else(|| {
+            panic!("several targets");
+        });
+        assert_eq!(copies.0, vec![true, false, false, true, false]);
+        assert_eq!(copies.1, vec![true, false, false, true, false]);
     }
 
     #[test]
