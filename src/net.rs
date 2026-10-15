@@ -265,6 +265,24 @@ fn stalled_write_read(read_buf: &BytesMut) -> (usize, Option<usize>) {
     (STALLED_WRITE_READ_CHUNK, None)
 }
 
+/// True when `buf` holds one full frame, or a length the framed reader will reject.
+fn inbound_satisfied(buf: &BytesMut) -> bool {
+    let Some(prefix) = buf.get(..4) else {
+        return false;
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return false;
+    };
+    let size = i32::from_be_bytes(raw);
+    if !(0..=MAX_FRAME).contains(&size) {
+        return true;
+    }
+    let Ok(size) = usize::try_from(size) else {
+        return true;
+    };
+    buf.len() >= 4usize.saturating_add(size)
+}
+
 /// rustls client settings. No OpenSSL.
 ///
 /// [`Debug`] never prints PEM bytes; the private key is always `<redacted>`
@@ -983,34 +1001,55 @@ impl BrokerConn {
 
     /// Wait until at least one response byte is buffered.
     ///
-    /// Cancellation leaves the socket open. A byte that arrives is kept in the
-    /// read buffer for the following framed read.
+    /// Bytes already queued on the socket are taken straight into the frame
+    /// buffer, up through one complete frame. Cancellation leaves the socket
+    /// open. The following framed read consumes what this call stored.
     pub(crate) async fn inbound_ready(&mut self) -> Result<()> {
         if self.is_closed() {
             return Err(Error::Closed);
         }
-        if !self.read_buf.is_empty() {
+        if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             return Ok(());
         }
         poll_fn(|cx| {
             if self.is_closed() {
                 return Poll::Ready(Err(Error::Closed));
             }
-            let mut tmp = [0u8; 1];
-            let mut buf = ReadBuf::new(&mut tmp);
-            match Pin::new(&mut self.stream).poll_read(cx, &mut buf) {
-                Poll::Pending => Poll::Pending,
-                Poll::Ready(Err(error)) => Poll::Ready(Err(Error::from(error))),
-                Poll::Ready(Ok(())) => {
-                    let filled = buf.filled();
-                    if !filled.is_empty() {
-                        self.read_buf.extend_from_slice(filled);
+            loop {
+                if inbound_satisfied(&self.read_buf) {
+                    return Poll::Ready(Ok(()));
+                }
+                let (budget, frame_end) = stalled_write_read(&self.read_buf);
+                if let Some(end) = frame_end {
+                    reserve_frame(&mut self.read_buf, end);
+                } else {
+                    self.read_buf.reserve(budget);
+                }
+                let polled = {
+                    let mut limited = (&mut self.read_buf).limit(budget);
+                    let mut read = std::pin::pin!(self.stream.read_buf(&mut limited));
+                    read.as_mut().poll(cx)
+                };
+                match polled {
+                    Poll::Pending => {
+                        return if self.read_buf.is_empty() {
+                            Poll::Pending
+                        } else {
+                            Poll::Ready(Ok(()))
+                        };
                     }
-                    Poll::Ready(Ok(()))
+                    Poll::Ready(Err(error)) => return Poll::Ready(Err(Error::from(error))),
+                    Poll::Ready(Ok(0)) => return Poll::Ready(Ok(())),
+                    Poll::Ready(Ok(_)) => {}
                 }
             }
         })
         .await
+    }
+
+    #[cfg(test)]
+    fn buffered_len(&self) -> usize {
+        self.read_buf.len()
     }
 
     async fn read_frame_deadline_internal(
@@ -2127,7 +2166,9 @@ mod tests {
     use super::*;
     use std::pin::Pin;
     use std::task::{Context, Poll};
-    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
+    use tokio::net::TcpListener;
 
     #[test]
     fn reserve_frame_grows_once_to_known_size() {
@@ -2253,6 +2294,48 @@ mod tests {
             .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
         assert!(read_buf.is_empty());
+    }
+
+    #[tokio::test]
+    async fn inbound_ready_keeps_a_queued_ack_frame() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let body = vec![9u8; 4096];
+        let mut frame = Vec::new();
+        let payload_len = 4 + body.len();
+        frame.extend_from_slice(&i32::try_from(payload_len).unwrap().to_be_bytes());
+        frame.extend_from_slice(&7i32.to_be_bytes());
+        frame.extend_from_slice(&body);
+        let queued = frame.clone();
+        let (wrote, wrote_rx) = tokio::sync::oneshot::channel();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            socket.write_all(&queued).await.unwrap();
+            let _ = wrote.send(());
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let mut conn = BrokerConn::connect(&addr, "ack", Duration::from_secs(2))
+            .await
+            .unwrap();
+        wrote_rx.await.unwrap();
+        conn.inbound_ready().await.unwrap();
+        assert!(
+            conn.buffered_len() >= frame.len(),
+            "queued ack was not taken into the frame buffer: {} of {}",
+            conn.buffered_len(),
+            frame.len()
+        );
+        let got = conn
+            .read_response(
+                crate::protocol::api_keys::API_VERSIONS,
+                0,
+                7,
+                Duration::from_secs(2),
+            )
+            .await
+            .unwrap();
+        assert_eq!(&got[..], &body[..]);
+        drop(server);
     }
 
     #[test]
