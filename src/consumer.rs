@@ -3219,6 +3219,10 @@ impl Consumer {
 
     /// Set the next fetch offset without a ListOffsets call.
     pub(crate) fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
+        if self.cursor_index.is_some() {
+            self.advance_indexed(topic, partition, next_offset);
+            return;
+        }
         if let Some(slot) = self
             .assigned
             .iter_mut()
@@ -4253,19 +4257,14 @@ impl Consumer {
     ) -> Result<Vec<(String, i32)>> {
         let mut seen = HashSet::new();
         let mut retry = Vec::new();
+        self.ensure_cursor_index();
         for t in topics {
             for p in &t.partitions {
                 let _ = seen.insert((t.topic.clone(), p.partition));
                 if p.error_code == 0 {
                     self.cluster
                         .set_leader_epoch(&t.topic, p.partition, p.leader_epoch);
-                    let assigned = self
-                        .assigned
-                        .iter()
-                        .find(|(name, part, _)| {
-                            name.as_ref() == t.topic.as_str() && *part == p.partition
-                        })
-                        .map(|(_, _, o)| *o);
+                    let assigned = self.cursor_at(&t.topic, p.partition);
                     if let Some(off) = assigned {
                         if let Some(next) = truncated_fetch_offset(off, p.end_offset) {
                             self.advance(&t.topic, p.partition, next);
