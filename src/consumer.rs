@@ -2045,6 +2045,7 @@ struct SessionPartition {
 
 type SessionParts = HashMap<i32, SessionPartition>;
 type ChangedFetch = HashMap<Arc<str>, ([u8; 16], Vec<FetchPartition>)>;
+type SessionIdNames = HashMap<[u8; 16], Arc<str>>;
 
 /// Position of each assigned partition in [`Consumer::assigned`].
 ///
@@ -2067,6 +2068,10 @@ struct BrokerFetchSession {
     stamp: u64,
     /// Reused incremental-request scratch. Drained into the request.
     changed: ChangedFetch,
+    /// Topic id to the stored topic name. Rebuilt when a partition is added,
+    /// removed, or given a new id.
+    id_names: SessionIdNames,
+    id_names_dirty: bool,
 }
 
 impl Default for BrokerFetchSession {
@@ -2078,6 +2083,8 @@ impl Default for BrokerFetchSession {
             awaiting_response: false,
             stamp: 0,
             changed: HashMap::new(),
+            id_names: HashMap::new(),
+            id_names_dirty: false,
         }
     }
 }
@@ -2172,22 +2179,17 @@ impl BrokerFetchSession {
         // Membership is the session map. The response set only catches duplicates.
         // A full response is complete when those unique members cover every
         // stored partition, so the stored set does not need its own copy.
-        let mut ids: HashMap<[u8; 16], &str> = HashMap::new();
-        if version >= 13 {
-            for (name, parts) in &self.partitions {
-                for stored in parts.values() {
-                    let _ = ids.insert(stored.id, name.as_ref());
-                }
-            }
-        }
-        let unique = session_response_is_unique(topics, version, &ids);
+        let unique = session_response_is_unique(topics, version, &self.id_names);
         let mut seen = HashSet::new();
         let mut count = 0usize;
         for topic in topics {
             let name = if version >= 13 {
-                ids.get(&topic.topic_id).copied().ok_or_else(|| {
-                    Error::protocol("Fetch session response has an unexpected topic ID")
-                })?
+                self.id_names
+                    .get(&topic.topic_id)
+                    .map(Arc::as_ref)
+                    .ok_or_else(|| {
+                        Error::protocol("Fetch session response has an unexpected topic ID")
+                    })?
             } else {
                 topic.topic.as_str()
             };
@@ -2261,6 +2263,9 @@ impl BrokerFetchSession {
                             stored.stamp = stamp;
                             continue;
                         }
+                        if stored.id != topic.topic_id {
+                            self.id_names_dirty = true;
+                        }
                         if !full {
                             if from_before && stored.id != topic.topic_id {
                                 replaced_here.push((stored.id, partition.partition));
@@ -2271,6 +2276,7 @@ impl BrokerFetchSession {
                         stored.data = partition.clone();
                         stored.stamp = stamp;
                     } else {
+                        self.id_names_dirty = true;
                         if !full {
                             changed_parts.push(partition.clone());
                         }
@@ -2302,11 +2308,13 @@ impl BrokerFetchSession {
             }
         }
         let mut dropped: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
+        let mut membership_changed = false;
         self.partitions.retain(|topic, parts| {
             parts.retain(|partition, stored| {
                 if stored.stamp == stamp {
                     return true;
                 }
+                membership_changed = true;
                 if !full {
                     dropped.push((Arc::clone(topic), stored.id, *partition));
                 }
@@ -2314,6 +2322,10 @@ impl BrokerFetchSession {
             });
             !parts.is_empty()
         });
+        if membership_changed {
+            self.id_names_dirty = true;
+        }
+        self.refresh_id_names();
         let mut forgotten: HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>> = HashMap::new();
         if !full {
             for (topic, id, partition) in replaced.into_iter().chain(dropped) {
@@ -2352,6 +2364,19 @@ impl BrokerFetchSession {
             topics,
             forgotten,
         }
+    }
+
+    fn refresh_id_names(&mut self) {
+        if !self.id_names_dirty {
+            return;
+        }
+        self.id_names.clear();
+        for (name, parts) in &self.partitions {
+            for stored in parts.values() {
+                let _ = self.id_names.insert(stored.id, Arc::clone(name));
+            }
+        }
+        self.id_names_dirty = false;
     }
 
     fn response(&mut self, body: &Bytes, version: i16) -> Result<()> {
@@ -7815,11 +7840,7 @@ fn drop_records_at_or_after(
     removed
 }
 
-fn session_response_is_unique(
-    topics: &[FetchedTopic],
-    version: i16,
-    ids: &HashMap<[u8; 16], &str>,
-) -> bool {
+fn session_response_is_unique(topics: &[FetchedTopic], version: i16, ids: &SessionIdNames) -> bool {
     if topics.len() <= 1 {
         return topics
             .first()
@@ -7856,10 +7877,10 @@ fn session_response_is_unique(
 fn session_topic_name<'a>(
     topic: &'a FetchedTopic,
     version: i16,
-    ids: &HashMap<[u8; 16], &'a str>,
+    ids: &'a SessionIdNames,
 ) -> Option<&'a str> {
     if version >= 13 {
-        ids.get(&topic.topic_id).copied()
+        ids.get(&topic.topic_id).map(Arc::as_ref)
     } else {
         Some(topic.topic.as_str())
     }
@@ -8932,6 +8953,27 @@ mod tests {
                 .map(|item| Arc::as_ptr(&item.topic)),
             Some(Arc::as_ptr(&topic.topic))
         );
+    }
+
+    #[test]
+    fn a_steady_fetch_session_keeps_the_topic_id_index() {
+        let topic = session_topic([1; 16], 4);
+        let mut session = BrokerFetchSession::default();
+        let _ = session.prepare(&[topic.as_plan()], 13);
+        let first = session
+            .id_names
+            .get(&[1; 16])
+            .cloned()
+            .unwrap_or_else(|| panic!("topic id"));
+        assert!(Arc::ptr_eq(&first, &topic.topic));
+        let _ = session.prepare(&[topic.as_plan()], 13);
+        let second = session
+            .id_names
+            .get(&[1; 16])
+            .cloned()
+            .unwrap_or_else(|| panic!("topic id"));
+        assert!(Arc::ptr_eq(&first, &second));
+        assert!(!session.id_names_dirty);
     }
 
     #[test]
