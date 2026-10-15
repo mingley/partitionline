@@ -12,6 +12,13 @@
 use crate::journal::{self, Journal};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
+use std::sync::Arc;
+
+/// Partition assignment shared by a stored member and a heartbeat response.
+///
+/// A changed heartbeat clones this pointer. The map is copied only when the
+/// assignment is rebuilt.
+pub type AssignmentMap = Arc<BTreeMap<String, Vec<i32>>>;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLSHR001";
 
@@ -59,7 +66,7 @@ pub struct HeartbeatResult {
     /// Heartbeat interval, in milliseconds.
     pub heartbeat_interval_ms: i32,
     /// New assignment, if it changed.
-    pub assignment: Option<BTreeMap<String, Vec<i32>>>,
+    pub assignment: Option<AssignmentMap>,
 }
 
 /// One described member.
@@ -70,7 +77,7 @@ pub struct MemberView {
     /// Current epoch.
     pub member_epoch: i32,
     /// Owned partitions.
-    pub assignment: BTreeMap<String, Vec<i32>>,
+    pub assignment: AssignmentMap,
 }
 
 /// Describe view for one share group.
@@ -168,7 +175,7 @@ struct Member {
     acked: bool,
     version: i16,
     topics: BTreeSet<String>,
-    assignment: BTreeMap<String, Vec<i32>>,
+    assignment: AssignmentMap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -291,7 +298,7 @@ impl Groups {
             members.push(MemberView {
                 member_id: member_id.clone(),
                 member_epoch: member.epoch,
-                assignment: member.assignment.clone(),
+                assignment: Arc::clone(&member.assignment),
             });
         }
         Some(Description {
@@ -375,7 +382,7 @@ impl Groups {
                 acked: true,
                 version: request.version,
                 topics,
-                assignment: BTreeMap::new(),
+                assignment: Arc::new(BTreeMap::new()),
             },
         );
         group.epoch = advance_epoch(group.epoch)?;
@@ -470,7 +477,7 @@ impl Groups {
             assignment_epoch,
             version,
             heartbeat_interval_ms: self.limits.heartbeat_interval_ms,
-            assignment: Some(BTreeMap::new()),
+            assignment: Some(Arc::new(BTreeMap::new())),
         };
         self.commit(next)?;
         Ok(result)
@@ -682,13 +689,13 @@ fn advance_epoch(epoch: i32) -> Result<i32, Error> {
 }
 
 fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Error> {
-    let previous: BTreeMap<String, BTreeMap<String, Vec<i32>>> = group
+    let previous: BTreeMap<String, AssignmentMap> = group
         .members
         .iter()
-        .map(|(id, member)| (id.clone(), member.assignment.clone()))
+        .map(|(id, member)| (id.clone(), Arc::clone(&member.assignment)))
         .collect();
     for member in group.members.values_mut() {
-        member.assignment.clear();
+        member.assignment = Arc::new(BTreeMap::new());
     }
     let names: BTreeSet<String> = group
         .members
@@ -709,7 +716,12 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Err
     }
     let mut changed = false;
     for (id, member) in &mut group.members {
-        if previous.get(id) != Some(&member.assignment) {
+        if let Some(prior) = previous
+            .get(id)
+            .filter(|prior| *prior == &member.assignment)
+        {
+            member.assignment = Arc::clone(prior);
+        } else {
             member.acked = false;
             changed = true;
         }
@@ -742,7 +754,7 @@ fn assign(group: &mut Group, topic: &str, count: i32, subscribers: &[String]) {
             next = next.saturating_add(1);
         }
         if let Some(member) = group.members.get_mut(member_id) {
-            member.assignment.insert(topic.to_owned(), owned);
+            let _ = Arc::make_mut(&mut member.assignment).insert(topic.to_owned(), owned);
         }
     }
 }
@@ -761,7 +773,7 @@ fn result_from(
         assignment_epoch: group.assignment_epoch,
         version: group.version,
         heartbeat_interval_ms: interval,
-        assignment: changed.then(|| member.assignment.clone()),
+        assignment: changed.then(|| Arc::clone(&member.assignment)),
     })
 }
 
@@ -876,7 +888,7 @@ fn encode(state: &State) -> Result<Vec<u8>, Error> {
                 &mut bytes,
                 u32::try_from(member.assignment.len()).map_err(|_| Error::InvalidRequest)?,
             )?;
-            for (topic, partitions) in &member.assignment {
+            for (topic, partitions) in member.assignment.iter() {
                 put_str(&mut bytes, topic)?;
                 put_u32(
                     &mut bytes,
@@ -956,7 +968,7 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
                         acked: acked_byte == 1,
                         version: member_version,
                         topics,
-                        assignment,
+                        assignment: Arc::new(assignment),
                     },
                 )
                 .is_some()
@@ -1002,7 +1014,7 @@ fn validate_decoded(state: &State) -> Result<(), Error> {
                     return Err(Error::InvalidRequest);
                 }
             }
-            for (topic, partitions) in &member.assignment {
+            for (topic, partitions) in member.assignment.iter() {
                 let Some(count) = member
                     .topics
                     .contains(topic)
@@ -1146,7 +1158,7 @@ mod tests {
                 acked: true,
                 version: 0,
                 topics: BTreeSet::new(),
-                assignment: BTreeMap::new(),
+                assignment: Arc::new(BTreeMap::new()),
             },
         );
         let mut stored = BTreeMap::new();
@@ -1186,7 +1198,7 @@ mod tests {
                 acked: true,
                 version: 0,
                 topics,
-                assignment,
+                assignment: Arc::new(assignment),
             },
         );
         let mut groups = BTreeMap::new();
@@ -1353,6 +1365,17 @@ mod tests {
                 .map(Vec::as_slice),
             Some(&[0, 1][..])
         );
+        let described = groups.describe("g").unwrap_or_else(|| panic!("describe"));
+        let stored = described
+            .members
+            .iter()
+            .find(|member| member.member_id == "alice")
+            .unwrap_or_else(|| panic!("alice"));
+        let shared = alice
+            .assignment
+            .as_ref()
+            .unwrap_or_else(|| panic!("assignment"));
+        assert!(Arc::ptr_eq(shared, &stored.assignment));
         let steady = groups
             .heartbeat(Heartbeat {
                 version: 1,
@@ -1390,7 +1413,7 @@ mod tests {
         assert_eq!(described.version, 1);
         let mut owned = Set::new();
         for member in &described.members {
-            for (topic, partitions) in &member.assignment {
+            for (topic, partitions) in member.assignment.iter() {
                 for partition in partitions {
                     assert!(owned.insert((topic.clone(), *partition)));
                 }
