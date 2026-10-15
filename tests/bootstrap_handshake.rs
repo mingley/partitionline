@@ -1,7 +1,10 @@
 //! A bootstrap that accepts TCP and then stalls must not hold startup.
 mod common;
 
-use partitionline::{error, Admin, AdminConfig, Error, Producer, ProducerConfig};
+use partitionline::{
+    error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, Error, Producer,
+    ProducerConfig,
+};
 use std::time::{Duration, Instant};
 
 async fn stall_listener() -> String {
@@ -96,4 +99,46 @@ async fn terminal_coordinator_errors_do_not_ask_the_next_bootstrap() {
     );
     assert_eq!(mock.find_coordinator_calls(), 1);
     assert_eq!(other.find_coordinator_calls(), 0);
+}
+
+async fn past_eighth(live: &str) -> Vec<String> {
+    let mut bootstrap = Vec::new();
+    for _ in 0..9 {
+        bootstrap.push(common::closed_tcp_addr().await);
+    }
+    bootstrap.push(live.to_string());
+    bootstrap
+}
+
+#[tokio::test]
+async fn startup_reaches_a_bootstrap_past_the_eighth() {
+    let mock = common::Mock::start().await;
+    let mut consumer_cfg = ConsumerConfig::bootstrap(past_eighth(&mock.addr).await);
+    consumer_cfg.connect_timeout = Duration::from_millis(200);
+    consumer_cfg.request_timeout = Duration::from_secs(2);
+    consumer_cfg.max_wait_ms = 10;
+    let consumer = Consumer::new(consumer_cfg).await.unwrap();
+    drop(consumer);
+
+    let mut admin_cfg = AdminConfig::bootstrap(past_eighth(&mock.addr).await);
+    admin_cfg.connect_timeout = Duration::from_millis(200);
+    admin_cfg.request_timeout = Duration::from_secs(2);
+    let admin = Admin::new(admin_cfg).await.unwrap();
+    drop(admin);
+
+    let mut producer_cfg = ProducerConfig::bootstrap(past_eighth(&mock.addr).await);
+    producer_cfg.connect_timeout = Duration::from_millis(200);
+    producer_cfg.request_timeout = Duration::from_secs(2);
+    producer_cfg.linger = Duration::ZERO;
+    let producer = Producer::new(producer_cfg).await.unwrap();
+    producer.close().await.unwrap();
+
+    let mut group_cfg = ConsumerConfig::bootstrap(past_eighth(&mock.addr).await);
+    group_cfg.connect_timeout = Duration::from_millis(200);
+    group_cfg.request_timeout = Duration::from_secs(2);
+    group_cfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(group_cfg, "past-eighth", "t")
+        .await
+        .unwrap();
+    group.close().await.unwrap();
 }

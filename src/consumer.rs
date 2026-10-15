@@ -2213,7 +2213,7 @@ impl Consumer {
             return Self::open_one_bootstrap(cfg, addr, deadline).await;
         }
         let mut inflight = tokio::task::JoinSet::new();
-        for addr in cfg.bootstrap.iter().take(8) {
+        for addr in &cfg.bootstrap {
             let cfg = cfg.clone();
             let addr = addr.clone();
             let _ = inflight

@@ -3614,7 +3614,7 @@ async fn discover_coord_raced(
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     type Handshake = (BrokerConn, i16, crate::protocol::api::ApiVersionsResponse);
     let mut inflight = tokio::task::JoinSet::<(usize, Result<Handshake>)>::new();
-    for (index, addr) in cfg.bootstrap.iter().take(8).enumerate() {
+    for (index, addr) in cfg.bootstrap.iter().enumerate() {
         let cfg = cfg.clone();
         let addr = addr.clone();
         let _ = inflight.spawn(async move {
