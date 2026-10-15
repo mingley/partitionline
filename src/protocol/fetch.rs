@@ -328,6 +328,46 @@ impl FetchTopic {
     }
 }
 
+pub(crate) trait FetchRequestTopic {
+    fn request_topic_name(&self) -> &str;
+    fn request_topic_id(&self) -> &[u8; 16];
+    fn request_partitions(&self) -> &[FetchPartition];
+}
+
+pub(crate) trait FetchForgottenTopic {
+    fn forgotten_name(&self) -> &str;
+    fn forgotten_id(&self) -> &[u8; 16];
+    fn forgotten_partitions(&self) -> &[i32];
+}
+
+impl FetchRequestTopic for FetchTopic {
+    fn request_topic_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn request_topic_id(&self) -> &[u8; 16] {
+        &self.topic_id
+    }
+
+    fn request_partitions(&self) -> &[FetchPartition] {
+        &self.partitions
+    }
+}
+
+impl FetchForgottenTopic for ForgottenTopic {
+    fn forgotten_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn forgotten_id(&self) -> &[u8; 16] {
+        &self.topic_id
+    }
+
+    fn forgotten_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
 /// One forgotten topic in a Fetch request (session increment).
 ///
 /// Java `FetchRequestData.ForgottenTopic`. [`encode_fetch_request_with_forgotten`]
@@ -1153,6 +1193,40 @@ pub fn encode_fetch_request_with_forgotten(
     session: FetchMetadata,
     forgotten: &[ForgottenTopic],
 ) -> crate::error::Result<()> {
+    encode_fetch_request_topics(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        session,
+        forgotten,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, and forgotten together"
+)]
+pub(crate) fn encode_fetch_request_topics<T, F>(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[T],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+    forgotten: &[F],
+) -> crate::error::Result<()>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
     encode_fetch_request_body(
         buf,
         version,
@@ -1206,7 +1280,7 @@ pub fn encode_fetch_request_with_replica_id(
         topics,
         rack_id,
         FetchMetadata::LEGACY,
-        &[],
+        &[] as &[ForgottenTopic],
         replica_id,
         CONSUMER_REPLICA_ID,
         -1,
@@ -1253,7 +1327,7 @@ pub fn encode_fetch_request_with_replica_state(
         topics,
         rack_id,
         FetchMetadata::LEGACY,
-        &[],
+        &[] as &[ForgottenTopic],
         untagged,
         state_id,
         state_epoch,
@@ -1301,7 +1375,7 @@ pub fn encode_fetch_request_with_cluster_id(
         topics,
         rack_id,
         FetchMetadata::LEGACY,
-        &[],
+        &[] as &[ForgottenTopic],
         untagged,
         state_id,
         state_epoch,
@@ -1348,7 +1422,7 @@ pub fn encode_fetch_request_with_replica_high_watermarks(
         topics,
         rack_id,
         FetchMetadata::LEGACY,
-        &[],
+        &[] as &[ForgottenTopic],
         untagged,
         state_id,
         state_epoch,
@@ -1361,30 +1435,34 @@ pub fn encode_fetch_request_with_replica_high_watermarks(
     clippy::too_many_arguments,
     reason = "shared complete Fetch request fields and optional replica sidecar"
 )]
-fn encode_fetch_request_body(
+fn encode_fetch_request_body<T, F>(
     buf: &mut BytesMut,
     version: i16,
     max_wait_ms: i32,
     min_bytes: i32,
     max_bytes: i32,
     isolation_level: i8,
-    topics: &[FetchTopic],
+    topics: &[T],
     rack_id: Option<&str>,
     session: FetchMetadata,
-    forgotten: &[ForgottenTopic],
+    forgotten: &[F],
     replica_id: i32,
     replica_state_replica_id: i32,
     replica_state_replica_epoch: i64,
     cluster_id: Option<&str>,
     high_watermarks: Option<&[Vec<i64>]>,
-) -> crate::error::Result<()> {
+) -> crate::error::Result<()>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
     let flexible = fetch_flexible(version)?;
     if let Some(values) = high_watermarks {
         if values.len() != topics.len()
             || values
                 .iter()
                 .zip(topics)
-                .any(|(values, topic)| values.len() != topic.partitions.len())
+                .any(|(values, topic)| values.len() != topic.request_partitions().len())
         {
             return Err(Error::protocol(
                 "Fetch HighWatermark sidecar shape does not match topics",
@@ -1407,9 +1485,15 @@ fn encode_fetch_request_body(
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for (topic_index, t) in topics.iter().enumerate() {
-        put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for (partition_index, p) in t.partitions.iter().enumerate() {
+        put_fetch_topic_identity(
+            buf,
+            version,
+            flexible,
+            t.request_topic_name(),
+            t.request_topic_id(),
+        )?;
+        buf::put_array_len(buf, flexible, Some(t.request_partitions().len()))?;
+        for (partition_index, p) in t.request_partitions().iter().enumerate() {
             buf.put_i32(p.partition);
             if version >= 9 {
                 buf.put_i32(p.current_leader_epoch);
@@ -1443,9 +1527,9 @@ fn encode_fetch_request_body(
     if version >= 7 {
         buf::put_array_len(buf, flexible, Some(forgotten.len()))?;
         for t in forgotten {
-            put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
-            buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-            for p in &t.partitions {
+            put_fetch_topic_identity(buf, version, flexible, t.forgotten_name(), t.forgotten_id())?;
+            buf::put_array_len(buf, flexible, Some(t.forgotten_partitions().len()))?;
+            for p in t.forgotten_partitions() {
                 buf.put_i32(*p);
             }
             if flexible {

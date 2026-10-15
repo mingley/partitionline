@@ -26,8 +26,9 @@ use crate::protocol::epoch::{
     OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response_raw, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
-    FetchTopic, FetchedTopic, ForgottenTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
+    decode_fetch_response_raw, encode_fetch_request_topics, FetchForgottenTopic, FetchMetadata,
+    FetchPartition, FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION,
+    INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
@@ -2021,7 +2022,7 @@ struct SessionPartition {
 }
 
 type SessionParts = HashMap<i32, SessionPartition>;
-type ChangedFetch = HashMap<String, ([u8; 16], Vec<FetchPartition>)>;
+type ChangedFetch = HashMap<Arc<str>, ([u8; 16], Vec<FetchPartition>)>;
 
 /// Position of each assigned partition in [`Consumer::assigned`].
 ///
@@ -2059,10 +2060,50 @@ impl Default for BrokerFetchSession {
     }
 }
 
+struct SessionFetchTopic {
+    topic: Arc<str>,
+    topic_id: [u8; 16],
+    partitions: Vec<FetchPartition>,
+}
+
+struct SessionForgottenTopic {
+    topic: Arc<str>,
+    topic_id: [u8; 16],
+    partitions: Vec<i32>,
+}
+
+impl FetchRequestTopic for SessionFetchTopic {
+    fn request_topic_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn request_topic_id(&self) -> &[u8; 16] {
+        &self.topic_id
+    }
+
+    fn request_partitions(&self) -> &[FetchPartition] {
+        &self.partitions
+    }
+}
+
+impl FetchForgottenTopic for SessionForgottenTopic {
+    fn forgotten_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn forgotten_id(&self) -> &[u8; 16] {
+        &self.topic_id
+    }
+
+    fn forgotten_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
 struct SessionFetchRequest {
     metadata: FetchMetadata,
-    topics: Vec<FetchTopic>,
-    forgotten: Vec<ForgottenTopic>,
+    topics: Vec<SessionFetchTopic>,
+    forgotten: Vec<SessionForgottenTopic>,
 }
 
 fn remember_forgotten(
@@ -2091,9 +2132,9 @@ struct PlannedFetch<'a> {
     partitions: &'a [FetchPartition],
 }
 
-fn planned_fetch_topic(planned: &PlannedFetch<'_>) -> FetchTopic {
-    FetchTopic {
-        topic: planned.topic.as_ref().to_owned(),
+fn planned_fetch_topic(planned: &PlannedFetch<'_>) -> SessionFetchTopic {
+    SessionFetchTopic {
+        topic: Arc::clone(planned.topic),
         topic_id: planned.topic_id,
         partitions: planned.partitions.to_vec(),
     }
@@ -2226,10 +2267,9 @@ impl BrokerFetchSession {
                 entry.0 = topic.topic_id;
                 entry.1.append(&mut changed_parts);
             } else if !changed_parts.is_empty() {
-                let _ = self.changed.insert(
-                    topic.topic.as_ref().to_owned(),
-                    (topic.topic_id, changed_parts),
-                );
+                let _ = self
+                    .changed
+                    .insert(Arc::clone(topic.topic), (topic.topic_id, changed_parts));
             }
             if !replaced_here.is_empty() {
                 if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_ref()) {
@@ -2263,7 +2303,7 @@ impl BrokerFetchSession {
         } else {
             self.changed
                 .drain()
-                .map(|(topic, (topic_id, partitions))| FetchTopic {
+                .map(|(topic, (topic_id, partitions))| SessionFetchTopic {
                     topic,
                     topic_id,
                     partitions,
@@ -2276,8 +2316,8 @@ impl BrokerFetchSession {
             .flat_map(|(topic, ids)| {
                 ids.into_iter().map(move |(topic_id, mut partitions)| {
                     partitions.sort_unstable();
-                    ForgottenTopic {
-                        topic: topic.as_ref().to_owned(),
+                    SessionForgottenTopic {
+                        topic: Arc::clone(&topic),
                         topic_id,
                         partitions,
                     }
@@ -2390,17 +2430,17 @@ async fn send_fetch_session_close(
             Err(Error::Wakeup)
         }
         result = conn.roundtrip(FETCH, version, |buf| {
-            encode_fetch_request_with_forgotten(
+            encode_fetch_request_topics(
                 buf,
                 version,
                 0,
                 1,
                 max_bytes,
                 isolation,
-                &[],
+                &[] as &[SessionFetchTopic],
                 rack.as_deref(),
                 metadata,
-                &[],
+                &[] as &[SessionForgottenTopic],
             )
         }, remaining) => {
             drop(result);
@@ -5421,7 +5461,7 @@ impl Consumer {
                         .or_default()
                         .prepare(&topics, fetch_version);
                     let encode = |buf: &mut bytes::BytesMut| {
-                        encode_fetch_request_with_forgotten(
+                        encode_fetch_request_topics(
                             buf,
                             fetch_version,
                             max_wait,
@@ -5501,7 +5541,7 @@ impl Consumer {
                         FETCH,
                         fetch_version,
                         |buf| {
-                            encode_fetch_request_with_forgotten(
+                            encode_fetch_request_topics(
                                 buf,
                                 fetch_version,
                                 max_wait,
@@ -8680,6 +8720,33 @@ mod tests {
         assert_eq!(dropped, vec![("t".into(), 1), ("u".into(), 0)]);
         let kept = preferred_partitions_to_drop(&[("t".into(), 0)], &previous, &current);
         assert!(kept.is_empty());
+    }
+
+    #[test]
+    fn a_fetch_session_reuses_the_topic_allocation() {
+        let topic = session_topic([1; 16], 4);
+        let mut session = BrokerFetchSession::default();
+        let legacy = session.prepare(&[topic.as_plan()], 4);
+        assert_eq!(
+            legacy.topics.first().map(|item| Arc::as_ptr(&item.topic)),
+            Some(Arc::as_ptr(&topic.topic))
+        );
+        let full = session.prepare(&[topic.as_plan()], 12);
+        assert_eq!(
+            full.topics.first().map(|item| Arc::as_ptr(&item.topic)),
+            Some(Arc::as_ptr(&topic.topic))
+        );
+        session.response(&session_header(0, 91), 12).unwrap();
+        let mut moved = session_topic([1; 16], 5);
+        moved.topic = Arc::clone(&topic.topic);
+        let incremental = session.prepare(&[moved.as_plan()], 12);
+        assert_eq!(
+            incremental
+                .topics
+                .first()
+                .map(|item| Arc::as_ptr(&item.topic)),
+            Some(Arc::as_ptr(&topic.topic))
+        );
     }
 
     #[test]
