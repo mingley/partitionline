@@ -58,6 +58,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   has no usable CurrentLeader. A successful ShareAcknowledge that omits
   a requested partition completes that partition with
   `INVALID_RECORD_STATE` (Java `testShareAcknowledgeInvalidResponse`).
+  Unrequested ShareAcknowledge partitions are skipped (Java
+  `lookupTopicId`).
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`

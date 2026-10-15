@@ -1740,7 +1740,8 @@ impl ShareGroup {
     /// Metadata is requested when that error has no usable CurrentLeader.
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
-    /// `testShareAcknowledgeInvalidResponse`).
+    /// `testShareAcknowledgeInvalidResponse`). Unrequested response
+    /// partitions are skipped (Java `lookupTopicId`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
