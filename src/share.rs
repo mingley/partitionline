@@ -657,7 +657,39 @@ struct PreparedShareFetch {
     node: i32,
     version: i16,
     by_id: BTreeMap<[u8; 16], Vec<i32>>,
-    request: BytesMut,
+    epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    acquire_mode: i8,
+    topics: Vec<ShareFetchTopic>,
+}
+
+fn encode_prepared_share_fetch(
+    buf: &mut BytesMut,
+    job: &PreparedShareFetch,
+    group_id: &str,
+    member_id: &str,
+) -> Result<()> {
+    encode_share_fetch_request_with_options(
+        buf,
+        job.version,
+        group_id,
+        member_id,
+        job.epoch,
+        job.max_wait_ms,
+        job.min_bytes,
+        job.max_bytes,
+        job.max_records,
+        &job.topics,
+        &[],
+        job.max_records,
+        ShareFetchRequestOptions {
+            acquire_mode: job.acquire_mode,
+            is_renew_ack: false,
+        },
+    )
 }
 
 struct ShareAssignmentUpdate {
@@ -1869,11 +1901,13 @@ impl ShareGroup {
             pending: std::mem::take(&mut self.inflight_share_nodes),
         };
         let timeout = deadline.saturating_duration_since(Instant::now());
+        let group_id = Arc::<str>::from(self.group_id.as_str());
+        let member_id = Arc::<str>::from(self.member_id.as_str());
         if !timeout.is_zero() {
             let Some(set) = inflight.set.as_mut() else {
                 return Err(Error::protocol("inflight share fetch set missing"));
             };
-            for job in prepared {
+            for mut job in prepared {
                 if inflight.pending.contains_key(&job.node) {
                     continue;
                 }
@@ -1882,12 +1916,14 @@ impl ShareGroup {
                 };
                 let node = job.node;
                 let version = job.version;
-                let request = job.request.clone();
+                let group_id = Arc::clone(&group_id);
+                let member_id = Arc::clone(&member_id);
+                let by_id = std::mem::take(&mut job.by_id);
                 let _ = inflight.pending.insert(
                     node,
                     InflightShareMeta {
                         version: job.version,
-                        by_id: job.by_id,
+                        by_id,
                     },
                 );
                 let _ = set.spawn(async move {
@@ -1896,10 +1932,7 @@ impl ShareGroup {
                         .roundtrip(
                             SHARE_FETCH,
                             version,
-                            |buf| {
-                                buf.extend_from_slice(&request);
-                                Ok(())
-                            },
+                            |buf| encode_prepared_share_fetch(buf, &job, &group_id, &member_id),
                             timeout,
                         )
                         .await;
@@ -2061,30 +2094,17 @@ impl ShareGroup {
                 .collect();
             let max_records =
                 i32::try_from(self.cfg.max_poll_records.unwrap_or(16).max(1)).unwrap_or(i32::MAX);
-            let mut request = BytesMut::new();
-            encode_share_fetch_request_with_options(
-                &mut request,
-                version,
-                &self.group_id,
-                &self.member_id,
-                epoch,
-                max_wait_ms,
-                self.cfg.min_bytes,
-                self.cfg.max_bytes,
-                max_records,
-                &topics,
-                &[],
-                max_records,
-                ShareFetchRequestOptions {
-                    acquire_mode: self.acquire_mode as i8,
-                    is_renew_ack: false,
-                },
-            )?;
             prepared.push(PreparedShareFetch {
                 node,
                 version,
                 by_id,
-                request,
+                epoch,
+                max_wait_ms,
+                min_bytes: self.cfg.min_bytes,
+                max_bytes: self.cfg.max_bytes,
+                max_records,
+                acquire_mode: self.acquire_mode as i8,
+                topics,
             });
         }
         let parked = self
@@ -2098,9 +2118,20 @@ impl ShareGroup {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
-            let body = self
-                .share_roundtrip(job.node, SHARE_FETCH, job.version, &job.request, timeout)
+            let mut peer = self
+                .share_conns
+                .remove(&job.node)
+                .ok_or_else(|| Error::protocol("missing share connection"))?;
+            let body = peer
+                .conn
+                .roundtrip(
+                    SHARE_FETCH,
+                    job.version,
+                    |buf| encode_prepared_share_fetch(buf, &job, &self.group_id, &self.member_id),
+                    timeout,
+                )
                 .await;
+            let _ = self.share_conns.insert(job.node, peer);
             vec![ReadyShareFetch {
                 node: job.node,
                 version: job.version,
