@@ -2781,6 +2781,38 @@ async fn share_fetch_partition_error_message_reaches_poll() {
 }
 
 #[tokio::test]
+async fn share_fetch_corrupt_message_throws_without_delivering_records() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "corrupt-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = injected_share_success(b"keep");
+    part.error_code = error::CORRUPT_MESSAGE;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let err = group.poll().await.unwrap_err();
+    assert_broker(err, error::CORRUPT_MESSAGE);
+    assert_eq!(
+        group.acquired_record_count(),
+        0,
+        "Java testCorruptMessageError throws KafkaException and does not deliver the batch"
+    );
+    let later = group.poll().await.unwrap();
+    assert!(
+        later.is_empty() || later[0].value.as_deref() != Some(&b"keep"[..]),
+        "CORRUPT_MESSAGE records must not surface on a later poll"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_unauthorized_topic_names_topics() {
     let mock = common::Mock::start().await;
     v2(&mock);

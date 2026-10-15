@@ -1505,7 +1505,11 @@ impl ShareGroup {
     /// in the completed-fetch buffer, otherwise on a later poll.
     /// `TOPIC_AUTHORIZATION_FAILED` is Java `TopicAuthorizationException`;
     /// [`Error::unauthorized_topics`] names the topic (Java
-    /// `testUnauthorizedTopic`).
+    /// `testUnauthorizedTopic`). Partition `CORRUPT_MESSAGE` is Java
+    /// `KafkaException` and does not deliver the accompanying records
+    /// (Java `testCorruptMessageError`). That is distinct from a CRC-failed
+    /// batch (`error_code` 0), which REJECT-intersects acquired offsets
+    /// and continues later batches.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
