@@ -374,6 +374,10 @@ impl Durability {
                 .map_err(|_| Error::InvalidLimits)?,
         ))
         .map_err(|_| Error::InvalidLimits)?;
+        if count == 0 {
+            return Err(Error::InvalidLimits);
+        }
+        let mut rows = Vec::new();
         for _ in 0..count {
             let offset = i64::from_be_bytes(
                 take(&mut rest, 8)?
@@ -393,12 +397,35 @@ impl Durability {
             if offset < 0 {
                 return Err(Error::InvalidLimits);
             }
-            self.ids.insert(offset, id);
-            self.committed.insert(id);
-            self.high_watermark = self.high_watermark.max(end);
+            rows.push((offset, id, end));
         }
         if !rest.is_empty() {
             return Err(Error::InvalidLimits);
+        }
+        for (index, (offset, id, _)) in rows.iter().enumerate() {
+            if let Some(existing) = self.ids.get(offset).copied() {
+                if existing != *id {
+                    return Err(Error::InvalidLimits);
+                }
+            } else if self.committed.contains(id) {
+                return Err(Error::InvalidLimits);
+            }
+            let conflict = rows
+                .iter()
+                .enumerate()
+                .any(|(other_index, (other, other_id, _))| {
+                    other_index != index
+                        && ((*other == *offset && other_id != id)
+                            || (*other != *offset && other_id == id))
+                });
+            if conflict {
+                return Err(Error::InvalidLimits);
+            }
+        }
+        for (offset, id, end) in rows {
+            self.ids.insert(offset, id);
+            self.committed.insert(id);
+            self.high_watermark = self.high_watermark.max(end);
         }
         Ok(())
     }
@@ -612,5 +639,24 @@ mod tests {
         assert!(!state.is_committed(9));
         assert_eq!(state.high_watermark(), 0);
         assert!(!state.ids.contains_key(&i64::MAX));
+    }
+
+    #[test]
+    fn a_replayed_commit_cannot_move_an_id_to_another_offset() {
+        let (mut state, _) = open("replay-commit", 1);
+        let first = encode_commit(&[(0, 4)]).unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .apply(&first)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .apply(&first)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 1);
+        assert!(state.is_committed(4));
+        let moved = encode_commit(&[(1, 4)]).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(state.apply(&moved), Err(Error::InvalidLimits)));
+        assert_eq!(state.ids.get(&0).copied(), Some(4));
+        assert!(!state.ids.contains_key(&1));
+        assert_eq!(state.high_watermark(), 1);
     }
 }
