@@ -826,7 +826,9 @@ pub enum ShareAcquireMode {
 /// target and still requests Metadata. A ShareFetch
 /// `KAFKA_STORAGE_ERROR` with a usable CurrentLeader on one partition
 /// does not update the next ShareFetch target for a sibling whose
-/// error is none.
+/// error is none. A ShareFetch `UNKNOWN_LEADER_EPOCH` with a usable
+/// CurrentLeader does not update the next ShareFetch target and does
+/// not request Metadata.
 /// `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`), including when
 /// a partition `ErrorMessage` is present. A skip-with-metadata code
@@ -1666,7 +1668,10 @@ impl ShareGroup {
     /// does not update the next ShareFetch target and still requests
     /// Metadata. A ShareFetch `KAFKA_STORAGE_ERROR` with a usable
     /// CurrentLeader on one partition does not update the next
-    /// ShareFetch target for a sibling whose error is none.
+    /// ShareFetch target for a sibling whose error is none. A
+    /// ShareFetch `UNKNOWN_LEADER_EPOCH` with a usable CurrentLeader
+    /// does not update the next ShareFetch target and does not
+    /// request Metadata.
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
@@ -5105,9 +5110,10 @@ mod tests {
         assert!(share_fetch_current_leader_usable(
             error::FENCED_LEADER_EPOCH
         ));
-        assert!(!share_fetch_current_leader_usable(
-            error::UNKNOWN_LEADER_EPOCH
-        ));
+        assert!(
+            !share_fetch_current_leader_usable(error::UNKNOWN_LEADER_EPOCH),
+            "Java handleShareFetchSuccess applies CurrentLeader only for NOT_LEADER / FENCED"
+        );
         assert!(
             !share_fetch_current_leader_usable(error::REPLICA_NOT_AVAILABLE),
             "Java handleShareFetchSuccess applies CurrentLeader only for NOT_LEADER / FENCED"
