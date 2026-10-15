@@ -106,7 +106,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[test]
     fn keep_first_acquired_retains_first_occurrence() {
         let ranges = [
             AcquiredRange {
@@ -170,6 +169,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn share_ranges_preserve_counts_gaps_and_rewinds() {
         for count in 0..=64 {
             let ranges: Vec<_> = (0..count)
