@@ -4632,7 +4632,7 @@ struct InFlight {
     // Snapshot of identities actually sent; latest metadata may describe a
     // recreated topic when an older response arrives.
     topic_ids: ProduceTopicIds,
-    groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
+    groups: ProduceGroups,
 }
 
 /// Topic ids carried with one Produce request.
@@ -5861,7 +5861,7 @@ impl Worker {
         }
     }
 
-    fn requeue(&mut self, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+    fn requeue(&mut self, groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>) {
         for (_, _, pendings) in groups {
             self.requeue_pendings(pendings);
         }
@@ -6200,15 +6200,12 @@ fn group_txn_offsets(
     topics
 }
 
-fn group_pending(
-    batch: Vec<Pending>,
-    scratch: &mut ProduceGroupScratch,
-) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> ProduceGroups {
     if batch.is_empty() {
-        return Vec::new();
+        return ProduceGroups::Empty;
     }
     let Some(first) = batch.first() else {
-        return Vec::new();
+        return ProduceGroups::Empty;
     };
     let topic0 = Arc::clone(&first.rec.topic);
     let part0 = first
@@ -6231,7 +6228,7 @@ fn group_pending(
         }
     }
     if one_partition && one_topic {
-        return vec![(topic0, part0, batch)];
+        return ProduceGroups::One((topic0, part0, batch));
     }
     if one_topic {
         let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
@@ -6248,10 +6245,12 @@ fn group_pending(
             let _ = scratch.partition_slots.insert(partition, slot);
             order.push((partition, vec![p]));
         }
-        return order
-            .into_iter()
-            .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
-            .collect();
+        return ProduceGroups::Many(
+            order
+                .into_iter()
+                .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
+                .collect(),
+        );
     }
     let buckets = &mut scratch.buckets;
     let mut order: Vec<Arc<str>> = Vec::new();
@@ -6289,7 +6288,97 @@ fn group_pending(
             out.push((Arc::clone(&topic), partition, pending));
         }
     }
-    out
+    ProduceGroups::from_vec(out)
+}
+
+/// Partition groups for one Produce request.
+///
+/// One partition stays inline. Several partitions own a vector.
+enum ProduceGroups {
+    Empty,
+    One((Arc<str>, i32, Vec<Pending>)),
+    Many(Vec<(Arc<str>, i32, Vec<Pending>)>),
+}
+
+impl ProduceGroups {
+    fn as_slice(&self) -> &[(Arc<str>, i32, Vec<Pending>)] {
+        match self {
+            Self::Empty => &[],
+            Self::One(group) => std::slice::from_ref(group),
+            Self::Many(groups) => groups,
+        }
+    }
+
+    fn as_mut_slice(&mut self) -> &mut [(Arc<str>, i32, Vec<Pending>)] {
+        match self {
+            Self::Empty => &mut [],
+            Self::One(group) => std::slice::from_mut(group),
+            Self::Many(groups) => groups,
+        }
+    }
+
+    fn from_vec(groups: Vec<(Arc<str>, i32, Vec<Pending>)>) -> Self {
+        match groups.len() {
+            0 => Self::Empty,
+            1 => match groups.into_iter().next() {
+                Some(group) => Self::One(group),
+                None => Self::Empty,
+            },
+            _ => Self::Many(groups),
+        }
+    }
+}
+
+impl std::ops::Deref for ProduceGroups {
+    type Target = [(Arc<str>, i32, Vec<Pending>)];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl std::ops::DerefMut for ProduceGroups {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
+
+impl IntoIterator for ProduceGroups {
+    type Item = (Arc<str>, i32, Vec<Pending>);
+    type IntoIter = ProduceGroupsIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Empty => ProduceGroupsIntoIter {
+                one: None,
+                many: Vec::new().into_iter(),
+            },
+            Self::One(group) => ProduceGroupsIntoIter {
+                one: Some(group),
+                many: Vec::new().into_iter(),
+            },
+            Self::Many(groups) => ProduceGroupsIntoIter {
+                one: None,
+                many: groups.into_iter(),
+            },
+        }
+    }
+}
+
+struct ProduceGroupsIntoIter {
+    one: Option<(Arc<str>, i32, Vec<Pending>)>,
+    many: std::vec::IntoIter<(Arc<str>, i32, Vec<Pending>)>,
+}
+
+impl Iterator for ProduceGroupsIntoIter {
+    type Item = (Arc<str>, i32, Vec<Pending>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(group) = self.one.take() {
+            return Some(group);
+        }
+        self.many.next()
+    }
 }
 
 #[cfg(test)]
@@ -7045,7 +7134,10 @@ fn encode_pendings(
     )
 }
 
-fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+fn complete_acks0(
+    shared: &Shared,
+    groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
+) {
     let mut ack_tracker = None;
     for (topic, part, pendings) in groups {
         shared.retire_sticky(&pendings, false);
@@ -7110,7 +7202,11 @@ fn fail_inflight(shared: &Shared, in_flight: &mut VecDeque<InFlight>, err: Error
     }
 }
 
-fn fail_groups(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err: Error) {
+fn fail_groups(
+    shared: &Shared,
+    groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
+    err: Error,
+) {
     for (_, _, pendings) in groups {
         fail_pendings(shared, pendings, clone_err(&err));
     }
@@ -7471,6 +7567,17 @@ mod tests {
             .iter()
             .all(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
         assert!(scratch.buckets.is_empty());
+
+        let one = group_pending(
+            vec![queued("orders", Some(0)), queued("orders", Some(0))],
+            &mut scratch,
+        );
+        assert!(matches!(one, ProduceGroups::One(_)));
+        assert_eq!(one.len(), 1);
+        assert_eq!(
+            one.first().map(|(_, part, pending)| (*part, pending.len())),
+            Some((0, 2))
+        );
     }
 
     #[test]
