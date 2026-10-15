@@ -1156,6 +1156,48 @@ async fn explicit_commit_async_does_not_send_until_poll() {
 }
 
 #[tokio::test]
+async fn explicit_commit_async_then_commit_sync_sends_without_poll() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(2);
+    let mut group = ShareGroup::join(cfg, "async-then-sync", "t").await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    group.accept(&recs[..1]).await.unwrap();
+    group.commit_async();
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "commit_async stays local until commit_sync"
+    );
+    assert!(!mock.share_accepted("async-then-sync", "t", 0, recs[0].offset));
+    group.accept(&recs[1..]).await.unwrap();
+    let fetches = mock.share_fetch_calls();
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 2);
+    assert!(
+        results.iter().all(|(_, error)| error.is_none()),
+        "Java commitSync after commitAsync completes both batches: {results:?}"
+    );
+    assert!(
+        mock.share_accepted("async-then-sync", "t", 0, recs[0].offset),
+        "Java testPendingCommitAsyncBeforeCommitSync sends the async batch"
+    );
+    assert!(
+        mock.share_accepted("async-then-sync", "t", 0, recs[1].offset),
+        "the later commitSync batch must also ACCEPT"
+    );
+    assert!(mock.share_ack_calls() >= 1);
+    assert_eq!(
+        mock.share_fetch_calls(),
+        fetches,
+        "commit_sync must not ShareFetch"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_commit_sync_returns_empty_optional() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first")]).await;

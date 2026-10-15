@@ -1700,6 +1700,8 @@ impl ShareGroup {
     /// Broker per-partition failures stay in the map ([`Ok`]). Overall
     /// timeout / protocol / closed failures still return [`Err`]. Pending
     /// is completed for partitions that received a response.
+    /// A prior [`Self::commit_async`] that has not been polled yet is
+    /// flushed here (Java `testPendingCommitAsyncBeforeCommitSync`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
@@ -1737,7 +1739,9 @@ impl ShareGroup {
     /// a standalone ShareAcknowledge (then fetches). After
     /// [`Self::subscribe`], that flush still acknowledges the previous
     /// topic and the following ShareFetch is only the new assignment
-    /// (Java `testCommitAsyncWithSubscriptionChange`). [`Self::leave`],
+    /// (Java `testCommitAsyncWithSubscriptionChange`).
+    /// [`Self::commit_sync`] flushes that snapshot without waiting for
+    /// poll (Java `testPendingCommitAsyncBeforeCommitSync`). [`Self::leave`],
     /// [`Self::close`], and [`Self::unsubscribe`] also flush those queued
     /// acknowledgements (Java `testAcknowledgeOnCloseWithPendingCommitAsync`).
     /// Implicit last-poll records that were never committed are released
