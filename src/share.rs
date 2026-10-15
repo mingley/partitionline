@@ -1512,8 +1512,18 @@ impl ShareGroup {
         &mut self,
         tps: &[(String, i32)],
     ) -> Result<HashMap<i32, Vec<(String, i32)>>> {
+        let deadline = crate::consumer::offset_lookup_deadline(self.cfg.request_timeout)?;
+        let mut refreshed = HashSet::new();
         for (topic, _) in tps {
-            self.consumer.ensure_topic_metadata(topic).await?;
+            if !refreshed.insert(topic.as_str()) {
+                continue;
+            }
+            self.consumer
+                .ensure_topic_metadata_timeout(
+                    topic,
+                    crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?;
         }
         let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
         for (topic, p) in tps {

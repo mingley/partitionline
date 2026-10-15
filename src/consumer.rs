@@ -2893,11 +2893,6 @@ impl Consumer {
         }
     }
 
-    pub(crate) async fn ensure_topic_metadata(&mut self, topic: &str) -> Result<()> {
-        self.ensure_topic_metadata_timeout(topic, self.cfg.request_timeout)
-            .await
-    }
-
     pub(crate) async fn ensure_topic_metadata_timeout(
         &mut self,
         topic: &str,
@@ -4061,7 +4056,12 @@ impl Consumer {
             if !need_offsets.is_empty() {
                 for (topic, partition, timestamp) in need_offsets {
                     let offset = self
-                        .list_offsets(topic.clone(), partition, timestamp)
+                        .list_offsets_timeout(
+                            topic.clone(),
+                            partition,
+                            timestamp,
+                            remaining_offset_timeout(deadline, Instant::now()),
+                        )
                         .await?;
                     let Some(offset) = reset_position(offset) else {
                         return Err(Error::protocol(format!(
