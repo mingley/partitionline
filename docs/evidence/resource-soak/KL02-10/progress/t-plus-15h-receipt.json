@@ -1,0 +1,144 @@
+{
+  "captured_utc": "2026-10-15T02:18:27.340443+00:00",
+  "driver_pid": 901849,
+  "child_pid": 901851,
+  "attempt_status": "running",
+  "kafka_listen": "127.0.0.1:9092",
+  "first_hour_median_rss_bytes": 11759616,
+  "first_hour_samples": 69861,
+  "second_hour": {
+    "complete": true,
+    "samples": 69859,
+    "min_rss_bytes": 7569408,
+    "median_rss_bytes": 10891264,
+    "max_rss_bytes": 11812864
+  },
+  "third_hour": {
+    "complete": true,
+    "samples": 69836,
+    "min_rss_bytes": 7036928,
+    "median_rss_bytes": 7237632,
+    "max_rss_bytes": 7630848
+  },
+  "fourth_hour": {
+    "complete": true,
+    "samples": 69863,
+    "min_rss_bytes": 7016448,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7102464
+  },
+  "fifth_hour": {
+    "complete": true,
+    "samples": 69931,
+    "min_rss_bytes": 7020544,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7020544
+  },
+  "sixth_hour": {
+    "complete": true,
+    "samples": 69861,
+    "min_rss_bytes": 7020544,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 8437760
+  },
+  "seventh_hour": {
+    "complete": true,
+    "samples": 69816,
+    "min_rss_bytes": 6815744,
+    "median_rss_bytes": 6889472,
+    "max_rss_bytes": 8437760
+  },
+  "eighth_hour": {
+    "complete": true,
+    "samples": 69850,
+    "min_rss_bytes": 6586368,
+    "median_rss_bytes": 6844416,
+    "max_rss_bytes": 7282688
+  },
+  "ninth_hour": {
+    "complete": true,
+    "samples": 69877,
+    "min_rss_bytes": 6782976,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 7282688
+  },
+  "tenth_hour": {
+    "complete": true,
+    "samples": 69857,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "eleventh_hour": {
+    "complete": true,
+    "samples": 69904,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "twelfth_hour": {
+    "complete": true,
+    "samples": 69923,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "thirteenth_hour": {
+    "complete": true,
+    "samples": 69939,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "fourteenth_hour": {
+    "complete": true,
+    "samples": 69950,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6791168
+  },
+  "fifteenth_hour": {
+    "complete": true,
+    "samples": 69947,
+    "min_rss_bytes": 6791168,
+    "median_rss_bytes": 6791168,
+    "max_rss_bytes": 6791168
+  },
+  "rss_bytes": {
+    "min": 6586368,
+    "median": 6844416,
+    "max": 11812864,
+    "latest": 6791168
+  },
+  "last_sample": {
+    "kind": "sample",
+    "utc_ms": 1792030707303,
+    "elapsed_ms": 54377701,
+    "offered": 87004321,
+    "accepted": 17127785,
+    "completed": 17127769,
+    "failed": 69876536,
+    "ambiguous": 16,
+    "pending": 0,
+    "producer_queue_bytes": 0,
+    "consumer_buffered_bytes": 512,
+    "application_decoded_bytes": 256,
+    "delivered": 2074338,
+    "delivered_bytes": 531030528,
+    "fetch_errors": 0,
+    "runtime_tasks": 5,
+    "peer_connections": 0,
+    "final": false
+  },
+  "last_host": {
+    "utc": "2026-10-15T02:18:23.391020+00:00",
+    "monotonic_ns": 97958645806917,
+    "pid": 901851,
+    "rss_bytes": 6791168,
+    "threads": 3,
+    "socket_fds": 7
+  },
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "launched_job_is_not_a_pass": true
+}
