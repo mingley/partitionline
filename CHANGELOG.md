@@ -84,7 +84,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   / `KAFKA_STORAGE_ERROR` skip without throwing and request Metadata on
   the next poll; siblings still deliver (Java `handleInitializeErrors`).
   Top-level `UNKNOWN_TOPIC_ID` still fails that poll and still
-  refreshes the topic id when `ErrorMessage` is set (Java
+  refreshes the topic id when `ErrorMessage` is set or empty (Java
   `testUnknownTopicIdError` / `handleShareFetchSuccess`). Top-level
   `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
   including when `ErrorMessage` is set or empty (Java

@@ -1555,7 +1555,8 @@ impl ShareGroup {
     /// siblings still deliver (Java `handleInitializeErrors` /
     /// `ShareFetchCollector.collect`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll and refreshes
-    /// the topic id, including when `ErrorMessage` is set. Top-level
+    /// the topic id, including when `ErrorMessage` is set or empty.
+    /// Top-level
     /// `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
     /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for

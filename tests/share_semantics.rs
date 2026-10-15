@@ -5865,6 +5865,53 @@ async fn share_fetch_top_level_unknown_topic_id_message_still_refreshes_topic_id
 }
 
 #[tokio::test]
+async fn share_fetch_top_level_unknown_topic_id_empty_message_still_refreshes_topic_id() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    // Mock `topic_name_for_id` falls back to "t" for an unknown id. Topic
+    // "u" makes a stale ShareFetch id resolve to the wrong name until
+    // metadata refresh replaces the join id.
+    mock.set_topic_partitions("u", 1);
+    produce_topic(&mock, "u", &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    let mut group = ShareGroup::join(cfg, "fetch-unk-tid-top-empty", "u")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].topic, "u");
+    group.accept(&first).await.unwrap();
+    group.commit().await.unwrap();
+    let stale = mock.topic_id("u");
+    mock.set_topic_id("u", [0xAB; 16]);
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::UNKNOWN_TOPIC_ID,
+        Some(""),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::UNKNOWN_TOPIC_ID);
+            assert_eq!(message, "ShareFetch");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_ne!(mock.topic_id("u"), stale, "broker topic id must change");
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].topic, "u");
+    assert_eq!(second[0].value.as_deref(), Some(&b"second"[..]));
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);
