@@ -3001,7 +3001,10 @@ fn try_plain_record(buf: &mut Bytes, base_offset: i64, base_timestamp: i64) -> O
     if chunk.len() < body_end {
         return None;
     }
-    let _attributes = *chunk.get(index)?;
+    let attributes = *chunk.get(index)?;
+    if attributes != 0 {
+        return None;
+    }
     index = index.saturating_add(1);
     let (timestamp_delta, next) = read_short_zigzag_i64(chunk, index)?;
     index = next;
@@ -3095,7 +3098,10 @@ fn try_plain_short_key(
     if chunk.len() < body_end {
         return None;
     }
-    let _attributes = *chunk.get(index)?;
+    let attributes = *chunk.get(index)?;
+    if attributes != 0 {
+        return None;
+    }
     index = index.saturating_add(1);
     let (timestamp_delta, next) = read_short_zigzag_i64(chunk, index)?;
     index = next;
@@ -3203,7 +3209,12 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
         )));
     }
     let mut inner = buf.copy_to_bytes(len_usize);
-    let _attributes = buf::get_i8(&mut inner)?;
+    let attributes = buf::get_i8(&mut inner)?;
+    if attributes != 0 {
+        return Err(Error::protocol(format!(
+            "Unexpected attributes in DefaultRecord: {attributes}"
+        )));
+    }
     let timestamp_delta = buf::get_varlong(&mut inner)?;
     let offset_delta = buf::get_varint(&mut inner)?;
     let key = read_bytes_varint(&mut inner)?;
@@ -4602,6 +4613,34 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn decode_record_rejects_nonzero_attributes() {
+        let mut encoded = BytesMut::new();
+        assert!(encode_record(
+            &mut encoded,
+            &EncodeRecord {
+                timestamp: 0,
+                key: None,
+                value: None,
+                headers: &[],
+            },
+            0,
+            0,
+        )
+        .is_ok());
+        let bytes = encoded.to_vec();
+        assert_eq!(bytes.get(1).copied(), Some(0));
+        let mut good = Bytes::from(bytes.clone());
+        assert!(decode_record_from_bytes(&mut good, 0, 0).is_ok());
+        let mut flipped = bytes;
+        if let Some(slot) = flipped.get_mut(1) {
+            *slot = 1;
+        }
+        let mut bad = Bytes::from(flipped.clone());
+        assert!(decode_record_from_bytes(&mut bad, 0, 0).is_err());
+        assert!(try_plain_short_key(&mut Bytes::from(flipped), 0, 0).is_none());
     }
 
     #[test]
