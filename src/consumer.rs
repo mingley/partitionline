@@ -1896,6 +1896,9 @@ pub struct Consumer {
     /// [`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`]. A fetch copies this
     /// list and writes it back by slot, without hashing the topic name.
     fetched_epochs: Vec<i32>,
+    /// Offsets and epochs captured at the start of a fetch, reused across polls.
+    /// Restored together when the fetch fails after moving a cursor.
+    fetch_rollback: Vec<(i64, i32)>,
     preferred: PartitionMap<i32>,
     paused: PartitionMap<()>,
     pending: PendingRecords,
@@ -2579,6 +2582,7 @@ impl Consumer {
             cursor_slots: None,
             assigned_topic_ids: HashMap::new(),
             fetched_epochs: Vec::new(),
+            fetch_rollback: Vec::new(),
             preferred: PartitionMap::new(),
             paused: PartitionMap::new(),
             pending: PendingRecords::new(),
@@ -4688,8 +4692,24 @@ impl Consumer {
         let deadline = started + self.cfg.request_timeout;
         let poll_deadline =
             started + Duration::from_millis(u64::try_from(max_wait_ms).unwrap_or(0));
+        let epoch_len = self.capture_fetch_rollback();
+        match self
+            .fetch_assigned_inner(deadline, poll_deadline, max_wait_ms)
+            .await
+        {
+            Ok(records) => Ok(records),
+            Err(error) => {
+                self.restore_fetch_rollback(epoch_len);
+                Err(error)
+            }
+        }
+    }
+
+    fn capture_fetch_rollback(&mut self) -> usize {
         let epoch_len = self.fetched_epochs.len();
-        let mut initial = Vec::with_capacity(self.assigned.len().max(epoch_len));
+        self.fetch_rollback.clear();
+        self.fetch_rollback
+            .reserve(self.assigned.len().max(epoch_len));
         for slot in 0..self.assigned.len() {
             let offset = self
                 .assigned
@@ -4701,30 +4721,29 @@ impl Consumer {
                 .get(slot)
                 .copied()
                 .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
-            initial.push((offset, epoch));
+            self.fetch_rollback.push((offset, epoch));
         }
         if epoch_len > self.assigned.len() {
             for epoch in self.fetched_epochs.iter().skip(self.assigned.len()) {
-                initial.push((0, *epoch));
+                self.fetch_rollback.push((0, *epoch));
             }
         }
-        match self
-            .fetch_assigned_inner(deadline, poll_deadline, max_wait_ms)
-            .await
-        {
-            Ok(records) => Ok(records),
-            Err(error) => {
-                for (slot, (offset, _)) in initial.iter().enumerate() {
-                    if let Some(entry) = self.assigned.get_mut(slot) {
-                        entry.2 = *offset;
-                    }
-                }
-                self.fetched_epochs.clear();
-                self.fetched_epochs
-                    .extend(initial.iter().take(epoch_len).map(|(_, epoch)| *epoch));
-                Err(error)
+        epoch_len
+    }
+
+    fn restore_fetch_rollback(&mut self, epoch_len: usize) {
+        for (slot, (offset, _)) in self.fetch_rollback.iter().enumerate() {
+            if let Some(entry) = self.assigned.get_mut(slot) {
+                entry.2 = *offset;
             }
         }
+        self.fetched_epochs.clear();
+        self.fetched_epochs.extend(
+            self.fetch_rollback
+                .iter()
+                .take(epoch_len)
+                .map(|(_, epoch)| *epoch),
+        );
     }
 
     async fn fetch_assigned_inner(
