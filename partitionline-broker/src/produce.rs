@@ -485,9 +485,6 @@ impl Store {
     pub(crate) fn max_partitions(&self) -> usize {
         self.config.max_partitions
     }
-    pub(crate) fn record_limits(&self) -> records::Limits {
-        self.config.record_limits
-    }
     /// Log start and high watermark from one open-partition lookup.
     pub(crate) fn log_bounds(&self, id: TopicId, index: i32) -> Result<(i64, i64), i16> {
         match self

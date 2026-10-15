@@ -646,21 +646,16 @@ fn stored_records(
     payload: &[u8],
     first_offset: u64,
     record_count: u32,
-    limits: records::Limits,
 ) -> Result<(records::ReadSummary<'_>, i64), Error> {
     let first = i64::try_from(first_offset).map_err(|_| Error::StoredRecords)?;
     let next = first
         .checked_add(i64::from(record_count))
         .filter(|next| *next > first)
         .ok_or(Error::StoredRecords)?;
-    let checked = records::frame_stored(payload, limits)
-        .or_else(|_| records::validate_read(payload, limits))
-        .map_err(|_| Error::StoredRecords)?;
-    if checked.first_offset().is_some_and(|offset| offset < first)
-        || checked.next_offset().is_some_and(|offset| offset > next)
-    {
-        return Err(Error::StoredRecords);
-    }
+    // `read_into` already matched this entry and poisoned the partition if the
+    // bytes were not the assigned batches. Project those batches directly.
+    let records = usize::try_from(record_count).map_err(|_| Error::StoredRecords)?;
+    let checked = records::trust_stored(payload, first, next, records);
     Ok((checked, next))
 }
 
@@ -799,7 +794,6 @@ pub(crate) fn process(
                                     payload,
                                     loaded.first_offset,
                                     loaded.record_count,
-                                    store.record_limits(),
                                 )?;
                                 for batch in checked.batches() {
                                     active()?;
@@ -906,12 +900,8 @@ pub(crate) fn process(
                                 .bytes
                                 .get(payload_at..payload_end)
                                 .ok_or(Error::StoredRecords)?;
-                            let (checked, next) = stored_records(
-                                payload,
-                                loaded.first_offset,
-                                loaded.record_count,
-                                store.record_limits(),
-                            )?;
+                            let (checked, next) =
+                                stored_records(payload, loaded.first_offset, loaded.record_count)?;
                             entry_next = next;
                             let mut at = 0usize;
                             for batch in checked.batches() {

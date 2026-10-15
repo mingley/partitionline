@@ -321,6 +321,23 @@ impl<'a> ReadSummary<'a> {
     }
 }
 
+/// Batch view of bytes a fetch already checked.
+///
+/// [`framed_assignment`] or [`validate_read`] has accepted `bytes`. Iteration
+/// still reads headers. This does not walk them again before that.
+pub(crate) fn trust_stored(bytes: &[u8], first: i64, next: i64, records: usize) -> ReadSummary<'_> {
+    ReadSummary {
+        validated: Validated {
+            bytes,
+            batches: 0,
+            records,
+            headers: 0,
+        },
+        first: Some(first),
+        next: Some(next),
+    }
+}
+
 /// Borrowed ordinary record, retaining its original logical offset and fields.
 #[derive(Debug, Clone, Copy)]
 pub struct Record<'a> {
@@ -1267,8 +1284,8 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, validate, validate_batch, validate_read, Error, Invalid, Limits,
-        SKIP_PLAIN,
+        framed_assignment, trust_stored, validate, validate_batch, validate_read, Error, Invalid,
+        Limits, SKIP_PLAIN,
     };
 
     fn put_i32(out: &mut Vec<u8>, n: i32) {
@@ -1504,6 +1521,18 @@ mod tests {
         assert_eq!(framed.batch_count(), checked.batch_count());
         assert_eq!(framed.first_offset(), 0);
         assert_eq!(framed.next_offset(), 4);
+        let trusted = trust_stored(&bytes, 0, 4, framed.record_count());
+        let trusted_batches: Vec<_> = trusted
+            .batches()
+            .map(|batch| batch.unwrap().base_offset)
+            .collect();
+        let checked_batches: Vec<_> = checked
+            .batches()
+            .map(|batch| batch.unwrap().base_offset)
+            .collect();
+        assert_eq!(trusted_batches, checked_batches);
+        assert_eq!(trusted.first_offset(), Some(0));
+        assert_eq!(trusted.next_offset(), Some(4));
         let mut gapped = bytes.clone();
         gapped.extend_from_slice(&bytes);
         assert!(framed_assignment(&gapped, Limits::default()).is_err());
