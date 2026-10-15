@@ -1662,9 +1662,9 @@ async fn share_acknowledge_fenced_current_leader_overrides_cached_metadata() {
         .unwrap();
     let first = group.poll().await.unwrap();
     assert_eq!(first.len(), 1);
+    assert_eq!(first[0].value.as_deref(), Some(&b"first"[..]));
     assert_eq!(mock.last_share_fetch_node(), Some(1));
-    produce(&mock, &[(0, b"later")]).await;
-    let after_produce = mock.metadata_calls();
+    let after_fetch = mock.metadata_calls();
     let seen = Arc::new(Mutex::new(Vec::new()));
     let seen_cb = seen.clone();
     group.set_acknowledgement_commit_callback(move |_, exception| {
@@ -1729,13 +1729,20 @@ async fn share_acknowledge_fenced_current_leader_overrides_cached_metadata() {
     );
     assert_eq!(
         mock.metadata_calls(),
-        after_produce,
+        after_fetch,
         "usable ShareAcknowledge CurrentLeader must skip Metadata"
     );
     mock.set_partition_leader("t", 0, 2);
-    let later = group.poll().await.unwrap();
-    assert_eq!(later.len(), 1);
-    assert_eq!(later[0].value.as_deref(), Some(&b"later"[..]));
+    let moved = group.poll().await.unwrap();
+    assert_eq!(moved.len(), 1);
+    assert_eq!(
+        (
+            moved[0].partition,
+            moved[0].offset,
+            moved[0].value.as_deref()
+        ),
+        (0, 0, Some(&b"first"[..]))
+    );
     assert_eq!(
         mock.last_share_fetch_node(),
         Some(2),
@@ -1743,7 +1750,7 @@ async fn share_acknowledge_fenced_current_leader_overrides_cached_metadata() {
     );
     assert_eq!(
         mock.metadata_calls(),
-        after_produce,
+        after_fetch,
         "usable ShareAcknowledge CurrentLeader must skip Metadata"
     );
     group.leave().await.unwrap();
