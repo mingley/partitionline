@@ -225,6 +225,17 @@ pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
     }
 }
 
+/// After a frame consumes the read buffer, keep room for another of the same size.
+///
+/// [`BytesMut::split_to`] leaves no spare capacity when the frame filled the
+/// allocation. The next read would otherwise start at the small default and
+/// copy the prefix into a new buffer once the length is known.
+pub(crate) fn restore_read_capacity(buf: &mut BytesMut, frame_len: usize) {
+    if buf.capacity() == 0 && frame_len > 0 {
+        reserve_frame(buf, frame_len);
+    }
+}
+
 /// Bytes pulled into `read_buf` on one stalled-write read when the next
 /// frame length is not known yet. A known short frame is filled directly.
 const STALLED_WRITE_READ_CHUNK: usize = 8 * 1024;
@@ -1087,6 +1098,7 @@ impl BrokerConn {
                 if self.read_buf.len() >= total {
                     let mut frame = self.read_buf.split_to(total);
                     drop(frame.split_to(4));
+                    restore_read_capacity(&mut self.read_buf, total);
                     if let Some(ref mut g) = guard {
                         g.complete();
                     }
@@ -2179,6 +2191,31 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    #[test]
+    fn a_full_frame_split_reserves_the_next_read() {
+        let mut buf = BytesMut::new();
+        assert_eq!(buf.capacity(), 0);
+        restore_read_capacity(&mut buf, 32);
+        assert!(buf.capacity() >= 32);
+        let kept = buf.capacity();
+        restore_read_capacity(&mut buf, 32);
+        assert_eq!(buf.capacity(), kept);
+
+        let mut filled = BytesMut::with_capacity(8);
+        filled.extend_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let taken = filled.len();
+        let frame = filled.split_to(taken);
+        let spare = filled.capacity();
+        restore_read_capacity(&mut filled, taken);
+        if spare == 0 {
+            assert!(filled.capacity() >= taken);
+        } else {
+            assert_eq!(filled.capacity(), spare);
+        }
+        assert!(filled.is_empty());
+        drop(frame);
+    }
 
     #[test]
     fn reserve_frame_grows_once_to_known_size() {
