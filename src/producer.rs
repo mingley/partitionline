@@ -2943,7 +2943,7 @@ impl Producer {
         }
         let grouped = {
             let cluster = self.inner.shared.cluster.lock();
-            group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))
+            group_txn_offsets(&offsets, &cluster)
         };
         let mut attempt = 0u32;
         loop {
@@ -6021,13 +6021,14 @@ fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
 
 fn group_txn_offsets(
     offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
-    epoch_of: impl Fn(&str, i32) -> i32,
+    cluster: &crate::cluster::Cluster,
 ) -> Vec<TxnOffsetTopic> {
     let mut topics: Vec<TxnOffsetTopic> = Vec::new();
+    let mut epochs = crate::cluster::EpochList::new();
     for (tp, md) in offsets {
         let leader_epoch = md
             .leader_epoch
-            .unwrap_or_else(|| epoch_of(&tp.topic, tp.partition));
+            .unwrap_or_else(|| epochs.epoch(cluster, &tp.topic, tp.partition));
         let partition = TxnOffsetPartition {
             partition: tp.partition,
             offset: md.offset,

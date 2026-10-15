@@ -1599,10 +1599,11 @@ impl ConsumerGroup {
             return Err(Error::Wakeup);
         }
         let started = Instant::now();
+        let mut epochs = crate::cluster::EpochList::new();
         let items =
             crate::offsets::collect_bounded_commits(offsets.into_iter().map(|(tp, offset)| {
                 let tp = tp.into();
-                let epoch = self.consumer.leader_epoch(&tp.topic, tp.partition);
+                let epoch = epochs.epoch(self.consumer.cluster(), &tp.topic, tp.partition);
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),

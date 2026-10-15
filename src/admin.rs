@@ -14441,13 +14441,14 @@ fn list_offset_topic_requests(
 ) -> Vec<ListOffsetsTopicRequest> {
     let mut order: Vec<String> = Vec::new();
     let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
+    let mut epochs = crate::cluster::EpochList::new();
     for &i in idxs {
         let Some((tp, ts)) = queries.get(i) else {
             continue;
         };
         let part = ListOffsetsPartitionRequest {
             partition: tp.partition,
-            current_leader_epoch: cluster.leader_epoch(&tp.topic, tp.partition),
+            current_leader_epoch: epochs.epoch(cluster, &tp.topic, tp.partition),
             timestamp: *ts,
         };
         remember_topic_group(&mut order, &mut by_topic, &tp.topic, part);

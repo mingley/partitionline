@@ -2867,6 +2867,10 @@ impl Consumer {
         &self.assigned
     }
 
+    pub(crate) fn cluster(&self) -> &crate::cluster::Cluster {
+        &self.cluster
+    }
+
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
         self.cluster.leader_epoch(topic, partition)
     }
@@ -7214,13 +7218,7 @@ fn cached_leader(leaders: &[i32], partition: i32) -> Option<i32> {
 }
 
 fn cached_epoch(epochs: &[i32], partition: i32) -> i32 {
-    let Ok(idx) = usize::try_from(partition) else {
-        return crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
-    };
-    epochs
-        .get(idx)
-        .copied()
-        .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
+    crate::cluster::partition_epoch(epochs, partition)
 }
 
 /// Topic names in assignment order, once each.

@@ -398,14 +398,7 @@ impl Cluster {
     /// Last Metadata `leader_epoch` for `topic`/`partition`, or
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
-        let Ok(idx) = usize::try_from(partition) else {
-            return RecordBatch::NO_PARTITION_LEADER_EPOCH;
-        };
-        self.leader_epochs
-            .get(topic)
-            .and_then(|v| v.get(idx))
-            .copied()
-            .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
+        partition_epoch(self.leader_epochs_of(topic), partition)
     }
 
     /// Store `epoch` when it is unknown or at least the cached leader epoch.
@@ -569,11 +562,72 @@ impl Cluster {
     }
 }
 
+/// Leader epoch at `partition`, or the unknown-epoch sentinel.
+pub(crate) fn partition_epoch(epochs: &[i32], partition: i32) -> i32 {
+    let Ok(idx) = usize::try_from(partition) else {
+        return RecordBatch::NO_PARTITION_LEADER_EPOCH;
+    };
+    epochs
+        .get(idx)
+        .copied()
+        .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
+}
+
+/// Leader epochs for the topic currently being read.
+///
+/// A run of partitions for one topic copies that epoch list once. The next
+/// topic replaces it. A missing topic leaves the unknown-epoch sentinel.
+pub(crate) struct EpochList {
+    topic: String,
+    epochs: Vec<i32>,
+}
+
+impl EpochList {
+    pub(crate) fn new() -> Self {
+        Self {
+            topic: String::new(),
+            epochs: Vec::new(),
+        }
+    }
+
+    pub(crate) fn epoch(&mut self, cluster: &Cluster, topic: &str, partition: i32) -> i32 {
+        if self.topic != topic {
+            self.epochs.clear();
+            self.epochs
+                .extend_from_slice(cluster.leader_epochs_of(topic));
+            self.topic.clear();
+            self.topic.push_str(topic);
+        }
+        partition_epoch(&self.epochs, partition)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::error;
     use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[test]
+    fn an_epoch_list_loads_each_topic_once() {
+        let mut cluster = Cluster::default();
+        cluster.set_leader_epoch("orders", 0, 4);
+        cluster.set_leader_epoch("orders", 1, 5);
+        cluster.set_leader_epoch("payments", 0, 9);
+        let mut epochs = EpochList::new();
+        assert_eq!(epochs.epoch(&cluster, "orders", 0), 4);
+        assert_eq!(epochs.epoch(&cluster, "orders", 1), 5);
+        assert_eq!(
+            epochs.epoch(&cluster, "orders", 3),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(epochs.epoch(&cluster, "payments", 0), 9);
+        assert_eq!(
+            epochs.epoch(&cluster, "missing", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(epochs.epoch(&cluster, "orders", 1), 5);
+    }
 
     #[test]
     fn apply_stores_controller_id() {
