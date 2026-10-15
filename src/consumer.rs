@@ -1,6 +1,5 @@
 //! Fetch client with manual partition assignment.
 
-use std::collections::hash_map::Entry;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Deref;
@@ -7010,12 +7009,11 @@ fn offset_for_leader_epoch_topics(
             .filter(|epoch| *epoch >= 0)
             .unwrap_or(current);
         let part = OffsetForLeaderPartition::new(*partition, current, looked_up);
-        match by_topic.entry(topic.clone()) {
-            Entry::Vacant(v) => {
-                order.push(topic.clone());
-                let _ = v.insert(vec![part]);
-            }
-            Entry::Occupied(mut o) => o.get_mut().push(part),
+        if let Some(parts) = by_topic.get_mut(topic.as_str()) {
+            parts.push(part);
+        } else {
+            order.push(topic.clone());
+            let _ = by_topic.insert(topic.clone(), vec![part]);
         }
     }
     order
@@ -7123,7 +7121,7 @@ fn reroute_unreachable_preferred<T>(
     by_leader: &mut HashMap<i32, HashMap<T, Vec<FetchPartition>>>,
 ) -> bool
 where
-    T: std::hash::Hash + Eq + Clone + AsRef<str>,
+    T: std::hash::Hash + Eq + Clone + AsRef<str> + std::borrow::Borrow<str>,
 {
     if !is_preferred_only_target(preferred, cluster, node, by_leader) {
         return false;
@@ -7139,12 +7137,12 @@ where
             if leader != node {
                 let _removed = preferred.remove(topic.as_ref(), part.partition);
             }
-            by_leader
-                .entry(leader)
-                .or_default()
-                .entry(topic.clone())
-                .or_default()
-                .push(part);
+            let topics = by_leader.entry(leader).or_default();
+            if let Some(slot) = topics.get_mut(topic.as_ref()) {
+                slot.push(part);
+            } else {
+                let _ = topics.insert(topic.clone(), vec![part]);
+            }
         }
     }
     true
