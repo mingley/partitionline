@@ -54,7 +54,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` complete without retry
   (`commit_sync` map; Java `testFatalErrorsAcknowledgementResponse` plus
-  ownership-lost topic-id codes). Metadata is requested when that error
+  ownership-lost topic-id codes), including when `ErrorMessage` is
+  empty. Metadata is requested when that error
   has no usable CurrentLeader. A successful ShareAcknowledge that omits
   a requested partition completes that partition with
   `INVALID_RECORD_STATE` (Java `testShareAcknowledgeInvalidResponse`).

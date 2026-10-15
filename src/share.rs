@@ -1764,7 +1764,7 @@ impl ShareGroup {
     /// `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` is not retried even
     /// when those codes are otherwise retriable; the map completes (Java
     /// `testFatalErrorsAcknowledgementResponse` plus ownership-lost
-    /// topic-id codes).
+    /// topic-id codes), including when `ErrorMessage` is empty.
     /// Metadata is requested when that error has no usable CurrentLeader.
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
