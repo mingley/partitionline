@@ -795,7 +795,11 @@ pub enum ShareAcquireMode {
 /// / `FENCED_LEADER_EPOCH` with a usable CurrentLeader (`leaderId != -1`
 /// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch
 /// target without a Metadata refresh (Java `handleShareFetchSuccess` /
-/// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
+/// KIP-951). A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a
+/// usable CurrentLeader does not update the next ShareFetch target
+/// (Java `handleShareFetchSuccess` applies CurrentLeader only for
+/// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH`) and still
+/// requests Metadata. `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`), including when
 /// a partition `ErrorMessage` is present. A skip-with-metadata code
 /// such as `NOT_LEADER_OR_FOLLOWER` / `INCONSISTENT_TOPIC_ID` /
@@ -1602,6 +1606,11 @@ impl ShareGroup {
     /// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH` redirects the
     /// next ShareFetch without Metadata (Java
     /// `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
+    /// A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a usable
+    /// CurrentLeader does not update the next ShareFetch target (Java
+    /// `handleShareFetchSuccess` applies CurrentLeader only for
+    /// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH`) and still
+    /// requests Metadata.
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
@@ -5046,6 +5055,10 @@ mod tests {
         assert!(!share_fetch_current_leader_usable(
             error::REPLICA_NOT_AVAILABLE
         ));
+        assert!(
+            !share_fetch_current_leader_usable(error::INCONSISTENT_TOPIC_ID),
+            "Java handleShareFetchSuccess applies CurrentLeader only for NOT_LEADER / FENCED"
+        );
         assert!(share_ack_current_leader_usable(
             error::NOT_LEADER_OR_FOLLOWER
         ));

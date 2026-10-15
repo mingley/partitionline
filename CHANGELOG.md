@@ -180,6 +180,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   A usable CurrentLeader plus NodeEndpoints redirects the next
   ShareFetch without a Metadata refresh (Java
   `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
+  A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a usable
+  CurrentLeader does not update the next ShareFetch target (Java
+  `handleShareFetchSuccess` applies CurrentLeader only for
+  `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH`) and still
+  requests Metadata.
 
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
