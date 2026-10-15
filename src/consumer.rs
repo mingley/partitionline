@@ -3069,13 +3069,20 @@ impl Consumer {
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }
-        let mut seen = HashSet::new();
-        for (topic, partition, offset) in starts {
-            require_partition(*partition)?;
-            require_fetch_offset(*offset)?;
-            Topic::validate(topic)?;
-            if !seen.insert((topic.clone(), *partition)) {
-                return Err(Error::protocol("duplicate assigned partition"));
+        let mut topics = Vec::new();
+        {
+            let mut named = HashSet::new();
+            let mut seen = HashSet::new();
+            for (topic, partition, offset) in starts {
+                require_partition(*partition)?;
+                require_fetch_offset(*offset)?;
+                Topic::validate(topic)?;
+                if named.insert(topic.as_str()) {
+                    topics.push(topic.clone());
+                }
+                if !seen.insert((topic.clone(), *partition)) {
+                    return Err(Error::protocol("duplicate assigned partition"));
+                }
             }
         }
         let old_ids = std::mem::take(&mut self.assigned_topic_ids);
@@ -3094,13 +3101,6 @@ impl Consumer {
             self.retained_bytes = 0;
             self.buffered_bytes = 0;
             return Ok(());
-        }
-        let mut topics: Vec<String> = Vec::new();
-        for (topic, _, _) in starts {
-            Topic::validate(topic)?;
-            if !topics.iter().any(|t| t == topic) {
-                topics.push(topic.clone());
-            }
         }
         if let Err(error) = self.refresh_metadata(Some(&topics)).await {
             self.assigned = previous_assigned;
@@ -3148,17 +3148,18 @@ impl Consumer {
     }
 
     fn capture_assigned_topic_ids(&mut self) {
+        let mut names = HashSet::new();
+        let mut live = HashSet::new();
+        for (topic, partition, _) in &self.assigned {
+            let _ = names.insert(topic.as_ref());
+            let _ = live.insert((topic.as_ref(), *partition));
+        }
         self.assigned_topic_ids.retain(|topic, parts| {
-            parts.retain(|partition, _| {
-                self.assigned.iter().any(|(assigned, part, _)| {
-                    assigned.as_ref() == topic.as_ref() && part == partition
-                })
-            });
+            if !names.contains(topic.as_ref()) {
+                return false;
+            }
+            parts.retain(|partition, _| live.contains(&(topic.as_ref(), *partition)));
             !parts.is_empty()
-                && self
-                    .assigned
-                    .iter()
-                    .any(|(assigned, _, _)| assigned.as_ref() == topic.as_ref())
         });
         let captured: Vec<(Arc<str>, i32, [u8; 16])> = self
             .assigned
