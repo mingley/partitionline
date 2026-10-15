@@ -4084,6 +4084,7 @@ async fn spawn_slot_worker(
         shared: shared.clone(),
         write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
         pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
+        pending_estimate: 0,
         in_flight: VecDeque::new(),
         fail: None,
         compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
@@ -4360,6 +4361,9 @@ struct Worker {
     shared: Arc<Shared>,
     write_buf: BytesMut,
     pending: Vec<Pending>,
+    /// Sum of [`estimate`] for `pending`. Steady-state batching reads this
+    /// instead of scanning the queue.
+    pending_estimate: usize,
     in_flight: VecDeque<InFlight>,
     fail: Option<Error>,
     compress_scratch: CompressScratch,
@@ -4459,7 +4463,55 @@ impl Worker {
 
     fn pull_ready(&mut self) {
         while let Ok(p) = self.data.try_recv() {
-            self.pending.push(p);
+            self.push_pending(p);
+        }
+    }
+
+    fn push_pending(&mut self, pending: Pending) {
+        self.pending_estimate = self.pending_estimate.saturating_add(estimate(&pending));
+        self.pending.push(pending);
+    }
+
+    fn account_pending_from(&mut self, from: usize) {
+        if let Some(added) = self.pending.get(from..) {
+            for pending in added {
+                self.pending_estimate = self.pending_estimate.saturating_add(estimate(pending));
+            }
+        }
+    }
+
+    fn take_all_pending(&mut self) -> Vec<Pending> {
+        self.pending_estimate = 0;
+        std::mem::take(&mut self.pending)
+    }
+
+    fn queued_batch_ready(&self) -> bool {
+        if let Some(first) = self.pending.first() {
+            if let Some(base) = first.batch_base_seq {
+                let count = self
+                    .pending
+                    .iter()
+                    .take_while(|pending| pending.batch_base_seq == Some(base))
+                    .count();
+                return count >= first.batch_len;
+            }
+        }
+        self.pending.len() >= self.shared.cfg.batch_records
+            || self.pending_estimate >= self.shared.cfg.produce_batch_bytes()
+    }
+
+    fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
+        let batch: Vec<Pending> = self.pending.drain(..n).collect();
+        for pending in &batch {
+            self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
+        }
+        batch
+    }
+
+    fn recompute_pending_estimate(&mut self) {
+        self.pending_estimate = 0;
+        for pending in &self.pending {
+            self.pending_estimate = self.pending_estimate.saturating_add(estimate(pending));
         }
     }
 
@@ -4502,6 +4554,7 @@ impl Worker {
             }
         }
         self.pending = retained;
+        self.recompute_pending_estimate();
         drop(policy);
         if !displaced.is_empty() {
             self.requeue_pendings(displaced);
@@ -4543,7 +4596,12 @@ impl Worker {
                     let cancelled = policy.cancelled(tag);
                     policy.drain(tag, &cluster);
                     if tag.id == 0 {
-                        return vec![self.pending.remove(0)];
+                        let Some(pending) = self.pending.drain(..1).next() else {
+                            return Vec::new();
+                        };
+                        self.pending_estimate =
+                            self.pending_estimate.saturating_sub(estimate(&pending));
+                        return vec![pending];
                     }
                     let mut batch = Vec::with_capacity(count);
                     let mut retained = Vec::with_capacity(self.pending.len().saturating_sub(count));
@@ -4555,6 +4613,7 @@ impl Worker {
                         }
                     }
                     self.pending = retained;
+                    self.recompute_pending_estimate();
                     if cancelled {
                         drop(policy);
                         drop(cluster);
@@ -4575,7 +4634,10 @@ impl Worker {
                     deadline.saturating_duration_since(Instant::now())
                 });
             tokio::select! {
-                n = self.data.recv_many(&mut self.pending, shared.cfg.batch_records.max(1)) => { if n == 0 { return Vec::new(); } }
+                n = self.data.recv_many(&mut self.pending, shared.cfg.batch_records.max(1)) => {
+                    if n == 0 { return Vec::new(); }
+                    self.account_pending_from(self.pending.len().saturating_sub(n));
+                }
                 _ = notified => {}
                 _ = tokio::time::sleep(rest.min(Duration::from_millis(10))) => {}
             }
@@ -4614,6 +4676,7 @@ impl Worker {
             }
         }
         if !expired.is_empty() {
+            self.recompute_pending_estimate();
             fail_pendings(&self.shared, expired, Error::Timeout);
         }
     }
@@ -4661,12 +4724,7 @@ impl Worker {
         }
         // Zero linger is ready as soon as a record is queued. Checking it
         // first skips a size scan of the whole pending queue.
-        self.linger_expired(linger_start)
-            || batch_ready(
-                &self.pending,
-                self.shared.cfg.batch_records,
-                self.shared.cfg.produce_batch_bytes(),
-            )
+        self.linger_expired(linger_start) || self.queued_batch_ready()
     }
 
     async fn run(mut self) {
@@ -4754,6 +4812,7 @@ impl Worker {
                 biased;
                 _ = wake_shared.cache_nudge.notified(), if wake_shared.sticky.is_some() => {}
                 n = self.data.recv_many(&mut self.pending, room) => {
+                    self.account_pending_from(self.pending.len().saturating_sub(n));
                     if n == 0 {
                         self.pull_ready();
                         self.drain_inflight().await;
@@ -4834,7 +4893,7 @@ impl Worker {
         }
         if self.conn.is_closed() {
             remove_node_nudge_live(&self.shared, self.node_id);
-            let pending = std::mem::take(&mut self.pending);
+            let pending = self.take_all_pending();
             self.requeue_pendings(pending);
             while let Some(remaining) = self.in_flight.pop_front() {
                 self.requeue(remaining.groups);
@@ -4850,13 +4909,13 @@ impl Worker {
                     let e = Error::Unsupported(format!(
                         "broker at {addr} does not support usable Produce v3-13"
                     ));
-                    let pending = std::mem::take(&mut self.pending);
+                    let pending = self.take_all_pending();
                     fail_pendings(&self.shared, pending, clone_err(&e));
                     self.note_fail(e.clone());
                     return Err(e);
                 }
                 Err(e) => {
-                    let pending = std::mem::take(&mut self.pending);
+                    let pending = self.take_all_pending();
                     if e.is_retriable() {
                         let _ = self.shared.nodes.lock().remove(&self.node_id);
                         self.requeue_pendings(pending);
@@ -4876,7 +4935,7 @@ impl Worker {
                 self.shared.cfg.batch_records,
                 self.shared.cfg.produce_batch_bytes(),
             );
-            self.pending.drain(..n).collect()
+            self.drain_pending(n)
         };
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
@@ -5101,7 +5160,7 @@ impl Worker {
                 while let Some(remaining) = self.in_flight.pop_front() {
                     self.requeue(remaining.groups);
                 }
-                let pending = std::mem::take(&mut self.pending);
+                let pending = self.take_all_pending();
                 self.requeue_pendings(pending);
                 return Ok(());
             }
@@ -5172,7 +5231,7 @@ impl Worker {
                         while let Some(remaining) = self.in_flight.pop_front() {
                             self.requeue(remaining.groups);
                         }
-                        let pending = std::mem::take(&mut self.pending);
+                        let pending = self.take_all_pending();
                         self.requeue_pendings(pending);
                         return Ok(());
                     }
@@ -5740,32 +5799,6 @@ fn group_pending(
     buckets.drain().map(|((t, p), v)| (t, p, v)).collect()
 }
 
-fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool {
-    if let Some(first) = pending.first() {
-        if let Some(base) = first.batch_base_seq {
-            let count = pending
-                .iter()
-                .take_while(|p| p.batch_base_seq == Some(base))
-                .count();
-            return count >= first.batch_len;
-        }
-    }
-    if pending.len() >= rec_limit {
-        return true;
-    }
-    // Readiness only: per-record upper bounds without group overhead (see
-    // `estimate`). Firing early is harmless — `take_count` enforces the
-    // strict bound including one batch overhead per partition group.
-    let mut bytes = 0usize;
-    for p in pending {
-        bytes = bytes.saturating_add(estimate(p));
-        if bytes >= byte_limit {
-            return true;
-        }
-    }
-    false
-}
-
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
     let group_overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
     if let Some(first) = pending.first() {
@@ -5835,9 +5868,9 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
 /// Uses the same [`record_size_upper_bound`] (key, value, headers,
 /// `MAX_RECORD_OVERHEAD`) as the queue-time oversize check, so packing
 /// sees what the encoder will write. `take_count` adds one
-/// [`RecordBatch::RECORD_BATCH_OVERHEAD`] per partition group using its
-/// existing group map; `batch_ready` omits group overhead (readiness only —
-/// the take enforces the bound). Overflow fails closed to `usize::MAX`
+/// [`RecordBatch::RECORD_BATCH_OVERHEAD`] per partition group. The running
+/// queue total used for readiness omits that overhead; firing early is
+/// harmless because the take enforces the bound. Overflow fails closed to `usize::MAX`
 /// (record travels alone); queue-time rejection makes it unreachable.
 fn estimate(p: &Pending) -> usize {
     let key = p.rec.key.as_deref();
