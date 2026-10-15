@@ -4087,6 +4087,7 @@ async fn spawn_slot_worker(
         in_flight: VecDeque::new(),
         fail: None,
         compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
+        group_scratch: ProduceGroupScratch::default(),
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -4362,6 +4363,15 @@ struct Worker {
     in_flight: VecDeque<InFlight>,
     fail: Option<Error>,
     compress_scratch: CompressScratch,
+    /// Reused partition map and topic index for the next Produce body.
+    group_scratch: ProduceGroupScratch,
+}
+
+#[derive(Default)]
+struct ProduceGroupScratch {
+    buckets: HashMap<(Arc<str>, i32), Vec<Pending>>,
+    topics: Vec<usize>,
+    parts: Vec<usize>,
 }
 
 struct InFlight {
@@ -4863,7 +4873,7 @@ impl Worker {
             .min()
             .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
         let now = now_ms();
-        let mut groups = group_pending(batch);
+        let mut groups = group_pending(batch, &mut self.group_scratch.buckets);
         if groups.is_empty() {
             return Ok(());
         }
@@ -5013,6 +5023,7 @@ impl Worker {
             producer_epoch,
             transactional_id,
             &mut self.compress_scratch,
+            &mut self.group_scratch,
         ) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
             fail_groups(&self.shared, groups, clone_err(&e));
@@ -5678,7 +5689,10 @@ fn group_txn_offsets(
     topics
 }
 
-fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+fn group_pending(
+    batch: Vec<Pending>,
+    buckets: &mut HashMap<(Arc<str>, i32), Vec<Pending>>,
+) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     if batch.is_empty() {
         return Vec::new();
     }
@@ -5696,9 +5710,8 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     if homogeneous {
         return vec![(topic0, part0, batch)];
     }
-    let mut assigned: HashMap<(Arc<str>, i32), Vec<Pending>> = HashMap::new();
     for p in batch {
-        assigned
+        buckets
             .entry((
                 p.rec.topic.clone(),
                 p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION),
@@ -5706,7 +5719,8 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
             .or_default()
             .push(p);
     }
-    assigned.into_iter().map(|((t, p), v)| (t, p, v)).collect()
+    // `drain` keeps the map's allocation for the next batch.
+    buckets.drain().map(|((t, p), v)| (t, p, v)).collect()
 }
 
 fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool {
@@ -5871,6 +5885,7 @@ fn encode_produce_body(
     producer_epoch: i16,
     transactional_id: Option<&str>,
     scratch: &mut CompressScratch,
+    groups_scratch: &mut ProduceGroupScratch,
 ) -> Result<()> {
     if version < 7 && compression.id() == 4 {
         return Err(Error::Unsupported(
@@ -5888,14 +5903,26 @@ fn encode_produce_body(
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
-    let mut topics: Vec<&Arc<str>> = Vec::new();
-    for (t, _, _) in groups {
-        if !topics.iter().any(|x| x.as_ref() == t.as_ref()) {
-            topics.push(t);
+    groups_scratch.topics.clear();
+    for (index, (topic, _, _)) in groups.iter().enumerate() {
+        let seen = groups_scratch.topics.iter().any(|prev| {
+            groups
+                .get(*prev)
+                .is_some_and(|(name, _, _)| name.as_ref() == topic.as_ref())
+        });
+        if !seen {
+            groups_scratch.topics.push(index);
         }
     }
-    crate::protocol::buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for topic in topics {
+    crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.topics.len()))?;
+    let topic_count = groups_scratch.topics.len();
+    for topic_slot in 0..topic_count {
+        let Some(group_at) = groups_scratch.topics.get(topic_slot).copied() else {
+            continue;
+        };
+        let Some((topic, _, _)) = groups.get(group_at) else {
+            continue;
+        };
         if version >= 13 {
             let id = topic_ids
                 .iter()
@@ -5909,14 +5936,18 @@ fn encode_produce_body(
         } else {
             crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
         }
-        let idxs: Vec<usize> = groups
-            .iter()
-            .enumerate()
-            .filter(|(_, (t, _, _))| t.as_ref() == topic.as_ref())
-            .map(|(i, _)| i)
-            .collect();
-        crate::protocol::buf::put_array_len(buf, flexible, Some(idxs.len()))?;
-        for i in idxs {
+        groups_scratch.parts.clear();
+        for (index, (name, _, _)) in groups.iter().enumerate() {
+            if name.as_ref() == topic.as_ref() {
+                groups_scratch.parts.push(index);
+            }
+        }
+        crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.parts.len()))?;
+        let part_count = groups_scratch.parts.len();
+        for part_slot in 0..part_count {
+            let Some(i) = groups_scratch.parts.get(part_slot).copied() else {
+                continue;
+            };
             let Some((_, partition, pendings)) = groups.get(i) else {
                 continue;
             };
