@@ -358,7 +358,7 @@ impl Store {
         id: TopicId,
         index: i32,
         bytes: &mut [u8],
-    ) -> Result<partition::Stage, i16> {
+    ) -> Result<(partition::Stage, Option<i64>), i16> {
         self.stage_in_place_inner(id, index, bytes, false)
     }
     fn stage_in_place_grouped(
@@ -366,7 +366,7 @@ impl Store {
         id: TopicId,
         index: i32,
         bytes: &mut [u8],
-    ) -> Result<partition::Stage, i16> {
+    ) -> Result<(partition::Stage, Option<i64>), i16> {
         self.stage_in_place_inner(id, index, bytes, true)
     }
     fn stage_in_place_inner(
@@ -375,7 +375,7 @@ impl Store {
         index: i32,
         bytes: &mut [u8],
         grouped: bool,
-    ) -> Result<partition::Stage, i16> {
+    ) -> Result<(partition::Stage, Option<i64>), i16> {
         let position = self.slot(id, index)?;
         let partition = &mut self.slots[position].partition;
         let poisoned = partition.is_poisoned();
@@ -385,7 +385,9 @@ impl Store {
             partition.stage_in_place(bytes)
         };
         self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
-        result.map_err(storage_error)
+        let staged = result.map_err(storage_error)?;
+        let log_start = (!partition.is_poisoned()).then(|| partition.log_start_offset());
+        Ok((staged, log_start))
     }
     fn commit_staged(
         &mut self,
@@ -470,9 +472,6 @@ impl Store {
     }
     pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
         self.log_bounds(id, index).map(|(_, watermark)| watermark)
-    }
-    pub(crate) fn log_start(&self, id: TopicId, index: i32) -> Result<i64, i16> {
-        self.log_bounds(id, index).map(|(start, _)| start)
     }
     pub(crate) fn delete_records(
         &mut self,
@@ -1058,16 +1057,21 @@ struct PendingSync {
     file: std::fs::File,
     batch_count: usize,
     failed: bool,
+    /// Log start read while the partition was staged. `None` means the log
+    /// was poisoned and the append must not be acknowledged.
+    log_start: Option<i64>,
 }
-fn note_append(part: &mut ResultPart, id: TopicId, result: partition::Append, store: &mut Store) {
+fn note_append(part: &mut ResultPart, result: partition::Append, log_start: Option<i64>) {
     // The request timer is checked before mutation. A finished single-node
     // append already met acks, so hiding its offset would make the producer
     // retry a durable batch.
-    part.base = result.base_offset;
-    match store.log_start(id, part.index) {
-        Ok(log_start) => part.log_start = log_start,
-        Err(error) => {
-            part.error = error;
+    match log_start {
+        Some(log_start) => {
+            part.base = result.base_offset;
+            part.log_start = log_start;
+        }
+        None => {
+            part.error = 56;
             part.base = -1;
         }
     }
@@ -1267,7 +1271,7 @@ fn finish_captured(
             continue;
         }
         match store.commit_staged(sync.id, sync.index, sync.batch_count) {
-            Ok(result) => note_append(part, sync.id, result, store),
+            Ok(result) => note_append(part, result, sync.log_start),
             Err(error) => {
                 part.error = error;
                 part.base = -1;
@@ -1520,18 +1524,21 @@ fn process_inner(
                         Err(87)
                     };
                     match staged {
-                        Ok(partition::Stage::Done(result)) => {
-                            note_append(part, id, result, store);
+                        Ok((partition::Stage::Done(result), log_start)) => {
+                            note_append(part, result, log_start);
                         }
-                        Ok(partition::Stage::Sync(staged)) => pending_sync.push(PendingSync {
-                            topic_at,
-                            part_at,
-                            id,
-                            index: part.index,
-                            file: staged.file,
-                            batch_count: staged.batch_count,
-                            failed: false,
-                        }),
+                        Ok((partition::Stage::Sync(staged), log_start)) => {
+                            pending_sync.push(PendingSync {
+                                topic_at,
+                                part_at,
+                                id,
+                                index: part.index,
+                                file: staged.file,
+                                batch_count: staged.batch_count,
+                                failed: false,
+                                log_start,
+                            })
+                        }
                         Err(error) => part.error = error,
                     }
                 } else {
@@ -1567,7 +1574,7 @@ fn process_inner(
             continue;
         }
         match store.commit_staged(item.id, item.index, item.batch_count) {
-            Ok(result) => note_append(part, item.id, result, store),
+            Ok(result) => note_append(part, result, item.log_start),
             Err(error) => {
                 part.error = error;
                 part.base = -1;
@@ -1723,7 +1730,6 @@ impl Writer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalog::{Catalog, TopicId};
 
     fn part(index: i32) -> Part {
         Part { index, bytes: None }
@@ -1741,22 +1747,6 @@ mod tests {
 
     #[test]
     fn finished_append_keeps_its_offset_after_the_request_timer() {
-        let root = std::env::temp_dir().join(format!(
-            "pl-produce-timer-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("clock")
-                .as_nanos()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(&root).expect("scratch");
-        let (catalog, _) = Catalog::open(
-            root.join("catalog.journal"),
-            metadata::Config::new(0, "127.0.0.1".into(), 1, "timer".into()).catalog_limits,
-        )
-        .expect("catalog");
-        let mut store = Store::open(Config::new(root.join("partitions")), &catalog).expect("store");
         let mut part = ResultPart {
             index: 0,
             error: 0,
@@ -1767,14 +1757,13 @@ mod tests {
         };
         note_append(
             &mut part,
-            TopicId::new([9; 16]).expect("id"),
             partition::Append {
                 base_offset: 7,
                 next_offset: 8,
                 record_count: 1,
                 batch_count: 1,
             },
-            &mut store,
+            Some(0),
         );
         // The timer elapsed before this observation. The offset is already assigned.
         let expired = Instant::now()
@@ -1784,6 +1773,5 @@ mod tests {
         assert_eq!(part.error, 0);
         assert_eq!(part.base, 7);
         assert_eq!(part.log_start, 0);
-        let _ = fs::remove_dir_all(&root);
     }
 }
