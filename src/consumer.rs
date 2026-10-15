@@ -2172,6 +2172,67 @@ impl Consumer {
     }
 
     /// Connect using only the time still left on `deadline`.
+    async fn open_one_bootstrap(
+        cfg: &ConsumerConfig,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(startup_remaining(deadline)?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
+                .await?;
+        sasl::apply_api_keys(&mut conn, &resp.api_keys);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            startup_remaining(deadline)?,
+        )
+        .await?;
+        Ok((conn, resp))
+    }
+
+    async fn open_bootstrap(
+        cfg: &ConsumerConfig,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+        if cfg.bootstrap.len() <= 1 {
+            let addr = cfg
+                .bootstrap
+                .first()
+                .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
+            return Self::open_one_bootstrap(cfg, addr, deadline).await;
+        }
+        let mut inflight = tokio::task::JoinSet::new();
+        for addr in cfg.bootstrap.iter().take(8) {
+            let cfg = cfg.clone();
+            let addr = addr.clone();
+            let _ = inflight
+                .spawn(async move { Consumer::open_one_bootstrap(&cfg, &addr, deadline).await });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
+            }
+        }
+        Err(last)
+    }
+
     pub(crate) async fn connect_within(cfg: ConsumerConfig, deadline: Instant) -> Result<Self> {
         crate::net::Deadline::from_std(deadline)
             .run(Self::new_until(cfg, deadline))
@@ -2218,32 +2279,11 @@ impl Consumer {
             ));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let connect_timeout = cfg.connect_timeout.min(startup_remaining(deadline)?);
-        let mut conn = BrokerConn::connect_tls_any(
-            &cfg.bootstrap,
-            &cfg.client_id,
-            connect_timeout,
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
-                .await?;
-        sasl::apply_api_keys(&mut conn, &resp.api_keys);
+        let (mut conn, resp) = Self::open_bootstrap(&cfg, deadline).await?;
         let mut versions = HashMap::new();
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
         }
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            startup_remaining(deadline)?,
-        )
-        .await?;
         // Best-effort: each leader connection negotiates its own Fetch
         // version in `open_node_conn`; the fetch path fails per-peer when a
         // leader cannot speak Fetch v4-18 (KL03-22, mirrors KL03-11).

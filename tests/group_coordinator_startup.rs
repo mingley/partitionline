@@ -12,6 +12,35 @@ fn config(mock: &common::Mock) -> ConsumerConfig {
 }
 
 #[tokio::test]
+async fn a_slow_bootstrap_does_not_hold_a_reachable_coordinator() {
+    let mock = common::Mock::start().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let stall = listener.local_addr().unwrap();
+    drop(tokio::spawn(async move {
+        loop {
+            let Ok((socket, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            drop(socket);
+        }
+    }));
+    let mut cfg = config(&mock);
+    cfg.bootstrap.insert(0, stall.to_string());
+    cfg.connect_timeout = Duration::from_millis(200);
+    let started = Instant::now();
+    let group = ConsumerGroup::join(cfg, "raced-bootstrap", "t")
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(500),
+        "discovery waited for the stalled bootstrap: {elapsed:?}"
+    );
+    group.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn startup_recovers_after_more_than_three_typed_coordinator_failures() {
     for kip848 in [false, true] {
         let mock = common::Mock::start().await;

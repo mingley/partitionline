@@ -3585,52 +3585,234 @@ async fn discover_coord_once(
     deadline: Instant,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let deadline = crate::net::Deadline::from_std(deadline);
+    if cfg.bootstrap.len() > 1 {
+        return discover_coord_raced(cfg, group_id, key_type, deadline).await;
+    }
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
-        let bounded = bounded_coord_config(cfg, deadline)?;
-        let (mut hop, version, versions) = match open_coord_with_find_version(&bounded, addr).await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                last = e;
-                continue;
+        match probe_bootstrap(cfg, addr, group_id, key_type, deadline).await {
+            Ok(found) => return Ok(found),
+            Err(error) => {
+                let fatal = error
+                    .broker_code()
+                    .is_some_and(|code| !error::coordinator_retriable(code));
+                last = error;
+                if fatal {
+                    return Err(last);
+                }
             }
-        };
-        let body = match hop
-            .roundtrip(
-                FIND_COORDINATOR,
-                version,
-                |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-                deadline.remaining()?,
-            )
-            .await
-        {
-            Ok(b) => b,
-            Err(e) => {
-                last = e;
-                continue;
-            }
-        };
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
-            .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
-        if err != 0 {
-            last = Error::broker(err, "FindCoordinator");
-            if !error::coordinator_retriable(err) {
-                return Err(last);
-            }
-            continue;
         }
-        let Some(coord_addr) = crate::cluster::dial_address(&host, port) else {
-            return Err(Error::protocol("invalid coordinator address"));
-        };
-        if coord_addr == hop.addr() {
-            return Ok((hop, versions));
-        }
-        let bounded = bounded_coord_config(cfg, deadline)?;
-        let (conn, _, versions) = open_coord_with_find_version(&bounded, &coord_addr).await?;
-        return Ok((conn, versions));
     }
     Err(last)
+}
+
+async fn discover_coord_raced(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    deadline: crate::net::Deadline,
+) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+    type Handshake = (BrokerConn, i16, crate::protocol::api::ApiVersionsResponse);
+    let mut inflight = tokio::task::JoinSet::<(usize, Result<Handshake>)>::new();
+    for (index, addr) in cfg.bootstrap.iter().take(8).enumerate() {
+        let cfg = cfg.clone();
+        let addr = addr.clone();
+        let _ = inflight.spawn(async move {
+            let result = match bounded_coord_config(&cfg, deadline) {
+                Ok(bounded) => open_coord_with_find_version(&bounded, &addr).await,
+                Err(error) => Err(error),
+            };
+            (index, result)
+        });
+    }
+    let mut ready: Vec<Option<Result<Handshake>>> = Vec::new();
+    ready.resize_with(inflight.len(), || None);
+    let mut last = Error::protocol("find coordinator failed");
+    while !inflight.is_empty() {
+        if deadline.remaining().is_err() {
+            inflight.abort_all();
+            return Err(Error::Timeout);
+        }
+        let rest = deadline.remaining().unwrap_or(Duration::ZERO);
+        let joined = tokio::select! {
+            joined = inflight.join_next() => joined,
+            _ = tokio::time::sleep(rest) => {
+                inflight.abort_all();
+                return Err(Error::Timeout);
+            }
+        };
+        let Some(Ok((index, result))) = joined else {
+            break;
+        };
+        if let Some(slot) = ready.get_mut(index) {
+            *slot = Some(result);
+        }
+        // A fast terminal error on an earlier bootstrap must be observed
+        // before a later broker is asked. Handshakes that finish together
+        // are gathered before that choice.
+        let gather = deadline
+            .remaining()
+            .unwrap_or(Duration::ZERO)
+            .min(Duration::from_millis(5));
+        let gather_done = tokio::time::sleep(gather);
+        tokio::pin!(gather_done);
+        loop {
+            tokio::select! {
+                biased;
+                joined = inflight.join_next(), if !inflight.is_empty() => {
+                    if let Some(Ok((index, result))) = joined {
+                        if let Some(slot) = ready.get_mut(index) {
+                            *slot = Some(result);
+                        }
+                    }
+                }
+                _ = &mut gather_done => break,
+            }
+        }
+        let mut cursor = 0usize;
+        while cursor < ready.len() {
+            match ready.get(cursor).and_then(|slot| slot.as_ref()) {
+                None => {
+                    let later =
+                        ready
+                            .iter()
+                            .enumerate()
+                            .skip(cursor + 1)
+                            .find_map(|(index, slot)| match slot {
+                                Some(Ok(_)) => Some(index),
+                                _ => None,
+                            });
+                    let Some(index) = later else {
+                        break;
+                    };
+                    match ask_ready_coordinator(
+                        cfg, group_id, key_type, deadline, &mut ready, index,
+                    )
+                    .await
+                    {
+                        CoordAsk::Found(found) => {
+                            inflight.abort_all();
+                            return Ok(*found);
+                        }
+                        CoordAsk::Fatal(error) => {
+                            inflight.abort_all();
+                            return Err(error);
+                        }
+                        CoordAsk::Retry(error) => last = error,
+                    }
+                    break;
+                }
+                Some(_) => {
+                    match ask_ready_coordinator(
+                        cfg, group_id, key_type, deadline, &mut ready, cursor,
+                    )
+                    .await
+                    {
+                        CoordAsk::Found(found) => {
+                            inflight.abort_all();
+                            return Ok(*found);
+                        }
+                        CoordAsk::Fatal(error) => {
+                            inflight.abort_all();
+                            return Err(error);
+                        }
+                        CoordAsk::Retry(error) => {
+                            last = error;
+                            cursor = cursor.saturating_add(1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    inflight.abort_all();
+    if deadline.remaining().is_err() {
+        return Err(Error::Timeout);
+    }
+    Err(last)
+}
+
+type CoordHandshake = (BrokerConn, i16, crate::protocol::api::ApiVersionsResponse);
+
+enum CoordAsk {
+    Found(Box<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>),
+    Fatal(Error),
+    Retry(Error),
+}
+
+async fn ask_ready_coordinator(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    deadline: crate::net::Deadline,
+    ready: &mut [Option<Result<CoordHandshake>>],
+    index: usize,
+) -> CoordAsk {
+    let Some(slot) = ready.get_mut(index).and_then(Option::take) else {
+        return CoordAsk::Retry(Error::protocol("missing coordinator handshake"));
+    };
+    let (hop, version, versions) = match slot {
+        Ok(handshake) => handshake,
+        Err(error) => return CoordAsk::Retry(error),
+    };
+    let asked =
+        find_coordinator_on(cfg, hop, version, versions, group_id, key_type, deadline).await;
+    match asked {
+        Ok(found) => CoordAsk::Found(Box::new(found)),
+        Err(error)
+            if error
+                .broker_code()
+                .is_some_and(|code| !error::coordinator_retriable(code)) =>
+        {
+            CoordAsk::Fatal(error)
+        }
+        Err(error) => CoordAsk::Retry(error),
+    }
+}
+
+async fn probe_bootstrap(
+    cfg: &ConsumerConfig,
+    addr: &str,
+    group_id: &str,
+    key_type: i8,
+    deadline: crate::net::Deadline,
+) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+    let bounded = bounded_coord_config(cfg, deadline)?;
+    let (hop, version, versions) = open_coord_with_find_version(&bounded, addr).await?;
+    find_coordinator_on(cfg, hop, version, versions, group_id, key_type, deadline).await
+}
+
+async fn find_coordinator_on(
+    cfg: &ConsumerConfig,
+    mut hop: BrokerConn,
+    version: i16,
+    versions: crate::protocol::api::ApiVersionsResponse,
+    group_id: &str,
+    key_type: i8,
+    deadline: crate::net::Deadline,
+) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+    let body = hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
+            deadline.remaining()?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
+        .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    let Some(coord_addr) = crate::cluster::dial_address(&host, port) else {
+        return Err(Error::protocol("invalid coordinator address"));
+    };
+    if coord_addr == hop.addr() {
+        return Ok((hop, versions));
+    }
+    let bounded = bounded_coord_config(cfg, deadline)?;
+    let (conn, _, versions) = open_coord_with_find_version(&bounded, &coord_addr).await?;
+    Ok((conn, versions))
 }
 
 pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
