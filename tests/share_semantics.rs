@@ -915,6 +915,46 @@ async fn implicit_piggyback_ack_error_message_reaches_callback() {
 }
 
 #[tokio::test]
+async fn implicit_piggyback_fetch_timeout_completes_acks() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.request_timeout = Duration::from_millis(60);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "fail-acks", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    mock.delay_share_reply_once(SHARE_FETCH, Duration::from_millis(180));
+    assert!(
+        matches!(group.poll().await.unwrap_err(), Error::Timeout),
+        "ShareFetch must obey request_timeout"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((None, "timeout".into()))],
+        "Java handleShareFetchFailure completes piggybacked acks"
+    );
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    assert!(
+        !mock.share_accepted("fail-acks", "t", 0, first_off),
+        "timed-out piggyback must not count as ACCEPT"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_session_error_completes_acks() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;

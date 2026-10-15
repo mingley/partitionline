@@ -674,7 +674,9 @@ pub enum ShareAcquireMode {
 /// `ShareConsumeRequestManager`); the callback message is
 /// `AcknowledgeErrorMessage` when the broker sends one. A top-level
 /// ShareFetch error completes in-flight piggybacked acknowledgements
-/// with that code (Java `handleResponse` false). Piggyback is refused
+/// with that code (Java `handleResponse` false). A ShareFetch
+/// transport / timeout / decode failure completes those acknowledgements
+/// the same way (Java `handleShareFetchFailure`). Piggyback is refused
 /// on the initial share session (Java `maybeAddAcknowledgements`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
@@ -1890,6 +1892,13 @@ impl ShareGroup {
         self.consumer.drop_node(node);
     }
 
+    /// Java `handleShareFetchFailure`: complete in-flight piggybacked
+    /// acknowledgements, then drop the share session.
+    fn fail_share_fetch_request(&mut self, node: i32, ack_tps: &[(String, i32)], error: &Error) {
+        self.fail_node_share_fetch_acknowledgements(ack_tps, error);
+        self.reset_node_session(node);
+    }
+
     async fn refresh_assigned_metadata(&mut self) -> Result<()> {
         let topics = self.topics.clone();
         for t in &topics {
@@ -2253,12 +2262,13 @@ impl ShareGroup {
                 match overlapped.remove(&node) {
                     Some(Ok(body)) => body,
                     Some(Err(error)) => {
-                        self.reset_node_session(node);
+                        self.fail_share_fetch_request(node, &ack_tps, &error);
                         return Err(error);
                     }
                     None => {
-                        self.reset_node_session(node);
-                        return Err(Error::protocol("missing overlapped ShareFetch response"));
+                        let error = Error::protocol("missing overlapped ShareFetch response");
+                        self.fail_share_fetch_request(node, &ack_tps, &error);
+                        return Err(error);
                     }
                 }
             } else {
@@ -2268,7 +2278,7 @@ impl ShareGroup {
                 {
                     Ok(body) => body,
                     Err(error) => {
-                        self.reset_node_session(node);
+                        self.fail_share_fetch_request(node, &ack_tps, &error);
                         return Err(error);
                     }
                 }
@@ -2278,14 +2288,15 @@ impl ShareGroup {
                 match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
                     Ok(reply) => reply,
                     Err(error) => {
-                        self.reset_node_session(node);
+                        self.fail_share_fetch_request(node, &ack_tps, &error);
                         return Err(error);
                     }
                 };
             self.remember_share_endpoints(&endpoints);
             if !body.is_empty() {
-                self.reset_node_session(node);
-                return Err(Error::protocol("trailing ShareFetch response bytes"));
+                let error = Error::protocol("trailing ShareFetch response bytes");
+                self.fail_share_fetch_request(node, &ack_tps, &error);
+                return Err(error);
             }
             if error_code != 0 {
                 let error = share_partition_broker_error(
