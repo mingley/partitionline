@@ -633,6 +633,68 @@ async fn share_fetch_subscription_change_sends_old_acks_to_previous_leader() {
 }
 
 #[tokio::test]
+async fn share_fetch_subscription_change_without_leftover_acks_skips_old_leader() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    admin.close().await.unwrap();
+    mock.set_partition_leader("u", 0, 2);
+    produce(&mock, &[(0, b"old")]).await;
+    produce_topic(&mock, "u", &[(0, b"new")]).await;
+    let mut group = ShareGroup::join(config(&mock), "sub-empty", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first[0].topic, "t");
+    group.accept(&first).await.unwrap();
+    group.commit().await.unwrap();
+    let history_before = mock.share_fetch_history();
+    let acks = mock.share_ack_calls();
+    group.subscribe(["u"]).await.unwrap();
+    assert!(
+        group.assignment().iter().all(|tp| tp.topic == "u"),
+        "subscribe must assign u, got {:?}",
+        group.assignment()
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "subscribe must not send leftover acks"
+    );
+    let second = group.poll().await.unwrap();
+    let extra: Vec<i32> = mock
+        .share_fetch_history()
+        .into_iter()
+        .skip(history_before.len())
+        .map(|(node, _)| node)
+        .collect();
+    assert_eq!(
+        extra,
+        vec![2],
+        "Java testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements fetches only the new leader"
+    );
+    assert_eq!(second[0].topic, "u");
+    assert_eq!(second[0].value.as_deref(), Some(&b"new"[..]));
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_commit_flushes_without_waiting_for_next_poll() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;

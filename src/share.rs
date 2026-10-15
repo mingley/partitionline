@@ -691,7 +691,11 @@ pub enum ShareAcquireMode {
 /// invalidate topic metadata so the next poll uses the refreshed id
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
-/// shrinks or a topic id is replaced. Standalone ShareAcknowledge
+/// shrinks or a topic id is replaced on a node this poll still
+/// contacts (remaining assigned partitions or leftover acknowledgements).
+/// Abandoned leftover sessions without acks are not fetched (Java
+/// `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
+/// Standalone ShareAcknowledge
 /// fails locally with `NOT_LEADER_OR_FOLLOWER` when Metadata already
 /// shows a different leader than the fetch node (Java
 /// `isLeaderKnownToHaveChanged` /
@@ -1474,7 +1478,9 @@ impl ShareGroup {
     /// After [`Self::subscribe`] replaces the topic list, leftover
     /// acknowledgements for a previous topic still piggyback on that
     /// topic's leader while the new assignment is fetched (Java
-    /// `testShareFetchWithSubscriptionChangeMultipleNodes`).
+    /// `testShareFetchWithSubscriptionChangeMultipleNodes`). With no
+    /// leftover acks, only the new leader is fetched (Java
+    /// `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
     /// A partition-level error (Java `ShareFetchCollector.collect` /
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
@@ -2170,20 +2176,12 @@ impl ShareGroup {
                 fetch_tps.push((rec.topic.clone(), rec.partition));
             }
         }
-        let mut by_leader = self.leaders_of(&fetch_tps).await?;
-        let leftover: Vec<i32> = self
-            .session_partitions
-            .iter()
-            .filter(|(node, parts)| {
-                !by_leader.contains_key(node)
-                    && self.session_epoch(**node) > ShareRequestMetadata::INITIAL_EPOCH
-                    && !parts.is_empty()
-            })
-            .map(|(node, _)| *node)
-            .collect();
-        for node in leftover {
-            let _ = by_leader.insert(node, Vec::new());
-        }
+        let by_leader = self.leaders_of(&fetch_tps).await?;
+        // Java ShareConsumeRequestManager.sendFetches only builds a
+        // ShareFetch for nodes in the current assignment or leftover
+        // acknowledgements (handlerMap). Abandoned sessions without
+        // acks stay idle until the next fetch to that node or close
+        // (testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements).
         let assigned_set: HashSet<(String, i32)> = assigned.into_iter().collect();
         let mut pending_acks = self.pending_fetch_acknowledgements();
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
@@ -2847,8 +2845,10 @@ impl ShareGroup {
     /// `testCommitAsyncWithSubscriptionChange`). When the new topic is
     /// led by a different broker, that poll piggybacks leftover acks on
     /// the previous leader and ShareFetches the new topic on its leader
-    /// (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). After
-    /// [`Self::unsubscribe`], this starts a new heartbeat loop.
+    /// (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). With
+    /// no leftover acks, only the new leader is fetched (Java
+    /// `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
+    /// After [`Self::unsubscribe`], this starts a new heartbeat loop.
     pub async fn subscribe(
         &mut self,
         topics: impl IntoIterator<Item = impl Into<String>>,

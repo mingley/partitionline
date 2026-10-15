@@ -2075,7 +2075,8 @@
 //! Renew is sent immediately).
 //! Incremental ShareFetch forgotten topics follow Java
 //! `ShareSessionHandler.newShareFetchBuilder` (assignment shrink and
-//! topic-id replacement). [`ShareAcquireMode::RecordLimit`] fetches
+//! topic-id replacement on a node this poll still contacts).
+//! [`ShareAcquireMode::RecordLimit`] fetches
 //! records from one leader per poll (Java `canSkipIfRequestEmpty`).
 //! An unrequested ShareFetch topic id or partition is skipped (Java
 //! `lookupTopicId`). [`ShareGroup::subscribe`] keeps open share
@@ -2084,7 +2085,9 @@
 //! `testShareFetchWithSubscriptionChange`). When the new topic is led
 //! by a different broker, the next poll piggybacks those leftover acks
 //! on the previous leader and ShareFetches the new topic on its leader
-//! (Java `testShareFetchWithSubscriptionChangeMultipleNodes`).
+//! (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). With no
+//! leftover acks, only the new leader is fetched (Java
+//! `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] flush those leftover
 //! acks without sending another ShareFetch (Java
 //! `testCloseWithSubscriptionChange`).
