@@ -336,12 +336,35 @@ impl OffsetClient {
         member: bool,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
-        let mut last = Error::Timeout;
+        if self.cfg.bootstrap.len() <= 1 {
+            let mut last = Error::Timeout;
+            for address in &self.cfg.bootstrap {
+                match self.open(address, api, ids, member, deadline).await {
+                    Ok(conn) => return Ok(conn),
+                    Err(err) if retryable(&err) => last = err,
+                    Err(err) => return Err(err),
+                }
+            }
+            return Err(last);
+        }
+        let mut inflight = tokio::task::JoinSet::new();
         for address in &self.cfg.bootstrap {
-            match self.open(address, api, ids, member, deadline).await {
-                Ok(conn) => return Ok(conn),
-                Err(err) if retryable(&err) => last = err,
-                Err(err) => return Err(err),
+            let cfg = self.cfg.clone();
+            let stats = self.stats.clone();
+            let address = address.clone();
+            let _ = inflight.spawn(async move {
+                open_offset_socket(&cfg, stats.as_ref(), &address, api, ids, member, deadline).await
+            });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("offset bootstrap: {error}")),
             }
         }
         Err(last)

@@ -2,10 +2,11 @@
 mod common;
 
 use partitionline::protocol::api_keys::OFFSET_FETCH;
+use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
     error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup,
-    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, OffsetSpec, Producer,
-    ProducerConfig,
+    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, OffsetClient,
+    OffsetOptions, OffsetSpec, Producer, ProducerConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -382,4 +383,40 @@ async fn list_group_offsets_coordinator_dials_overlap() {
     );
     assert!(mock.api_versions_versions().len() >= before + 2);
     assert_eq!(listed.len(), 2, "{listed:?}");
+}
+
+#[tokio::test]
+async fn offset_client_uses_the_first_bootstrap_that_finishes() {
+    let mock = common::Mock::start().await;
+    let stall = stall_listener().await;
+    let mut cfg = AdminConfig::bootstrap([stall, mock.addr.clone()]);
+    cfg.connect_timeout = Duration::from_millis(200);
+    cfg.request_timeout = Duration::from_secs(2);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let started = Instant::now();
+    let fetched = client
+        .fetch(
+            &OffsetFetchRequestData {
+                groups: vec![OffsetFetchGroupData {
+                    group_id: "g".into(),
+                    member_id: None,
+                    member_epoch: -1,
+                    topics: None,
+                }],
+                require_stable: false,
+            },
+            &OffsetOptions {
+                topic_ids: false,
+                timeout: Some(Duration::from_secs(2)),
+                ..OffsetOptions::default()
+            },
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(500),
+        "offset client waited for the stalled bootstrap: {elapsed:?}"
+    );
+    assert_eq!(fetched.groups.len(), 1);
 }
