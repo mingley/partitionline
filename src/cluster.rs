@@ -136,6 +136,14 @@ impl Cluster {
                 }
             }
             if max_idx < 0 {
+                // A successful image with no usable partition is the topic's
+                // current shape. An earlier copy in this same response already
+                // accepted partitions, so an empty later copy must not drop them.
+                if !repeated {
+                    let _removed = self.leaders.remove(name);
+                    let _removed = self.leader_epochs.remove(name);
+                    let _removed = self.topic_fetched_at.remove(name);
+                }
                 continue;
             }
             let new_len = match usize::try_from(max_idx.saturating_add(1)) {
@@ -794,6 +802,60 @@ mod tests {
             13,
         );
         assert!(cluster.leader("t", 0).is_err());
+    }
+
+    #[test]
+    fn an_empty_partition_list_drops_the_cached_leader() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        let leader = PartitionMetadata {
+            error_code: 0,
+            partition_index: 0,
+            leader_id: 1,
+            leader_epoch: 4,
+            replica_nodes: vec![1],
+            isr_nodes: vec![1],
+            offline_replicas: Vec::new(),
+        };
+        let mut image = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [1u8; 16],
+                is_internal: false,
+                partitions: vec![leader.clone()],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        cluster.apply(&image, 13);
+        assert_eq!(cluster.leader("t", 0).ok().map(|leader| leader.0), Some(1));
+        image.topics[0].partitions.clear();
+        cluster.apply(&image, 13);
+        assert!(cluster.leader("t", 0).is_err());
+        assert!(cluster.leaders.get("t").is_none());
+        image.topics[0].partitions.push(leader);
+        image.topics.push(TopicMetadata {
+            error_code: 0,
+            name: Some("t".into()),
+            topic_id: [1u8; 16],
+            is_internal: false,
+            partitions: Vec::new(),
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        });
+        cluster.apply(&image, 13);
+        assert_eq!(cluster.leader("t", 0).ok().map(|leader| leader.0), Some(1));
     }
 
     #[test]
