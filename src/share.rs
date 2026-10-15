@@ -1557,7 +1557,7 @@ impl ShareGroup {
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll and refreshes
     /// the topic id, including when `ErrorMessage` is set. Top-level
     /// `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
