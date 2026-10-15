@@ -12041,9 +12041,16 @@ impl Admin {
         }
         let mut errors: HashMap<TopicPartitionReplica, i16> = HashMap::new();
         for (broker_id, dirs) in group_alter_replica_log_dirs(&assignment) {
-            self.ensure_broker(broker_id).await?;
+            let deadline = Instant::now()
+                .checked_add(timeout)
+                .ok_or_else(|| Error::protocol("AlterReplicaLogDirs deadline overflow"))?;
+            self.ensure_broker(broker_id, deadline).await?;
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(Error::Timeout);
+            }
             let resp = self
-                .alter_replica_log_dirs_on(broker_id, dirs, timeout)
+                .alter_replica_log_dirs_on(broker_id, dirs, remaining)
                 .await?;
             for (replica, _) in assignment.iter().filter(|(r, _)| r.broker_id == broker_id) {
                 let code = alter_replica_partition_error(
@@ -12244,70 +12251,67 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("DescribeLogDirs deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            if let Some(node) = node {
-                self.ensure_broker(node).await?;
+        if let Some(node) = node {
+            self.ensure_broker(node, deadline).await?;
+        }
+        let request = DescribeLogDirsRequest::new(topics);
+        let mut attempt = 0;
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
             }
-            let request = DescribeLogDirsRequest::new(topics);
-            let mut attempt = 0;
-            loop {
-                let result = async {
-                    if let Some(node) = node {
-                        self.connect_node_until(node, deadline).await?;
-                    } else {
-                        self.ensure_bootstrap(deadline).await?;
-                    }
-                    let conn = if let Some(node) = node {
-                        self.conns
-                            .get_mut(&node)
-                            .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?
-                    } else {
-                        &mut self.conn
-                    };
-                    let capabilities = crate::protocol::api::negotiate_api_versions(
-                        conn,
+            let result = async {
+                if let Some(node) = node {
+                    self.connect_node_until(node, deadline).await?;
+                } else {
+                    self.ensure_bootstrap(deadline).await?;
+                }
+                let conn = if let Some(node) = node {
+                    self.conns
+                        .get_mut(&node)
+                        .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?
+                } else {
+                    &mut self.conn
+                };
+                let capabilities = crate::protocol::api::negotiate_api_versions(
+                    conn,
+                    deadline.saturating_duration_since(Instant::now()),
+                )
+                .await?;
+                let version = capabilities
+                    .api_keys
+                    .iter()
+                    .find(|api| api.api_key == DESCRIBE_LOG_DIRS)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 1, 5))
+                    .ok_or_else(|| {
+                        Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
+                    })?;
+                let body = conn
+                    .roundtrip(
+                        DESCRIBE_LOG_DIRS,
+                        version,
+                        |output| encode_describe_log_dirs_request(output, version, &request),
                         deadline.saturating_duration_since(Instant::now()),
                     )
                     .await?;
-                    let version = capabilities
-                        .api_keys
-                        .iter()
-                        .find(|api| api.api_key == DESCRIBE_LOG_DIRS)
-                        .and_then(|api| pick_version(api.min_version, api.max_version, 1, 5))
-                        .ok_or_else(|| {
-                            Error::Unsupported(
-                                "broker does not support DescribeLogDirs v1-5".into(),
-                            )
-                        })?;
-                    let body = conn
-                        .roundtrip(
-                            DESCRIBE_LOG_DIRS,
-                            version,
-                            |output| encode_describe_log_dirs_request(output, version, &request),
-                            deadline.saturating_duration_since(Instant::now()),
-                        )
-                        .await?;
-                    let mut cursor = body.as_ref();
-                    let response = decode_describe_log_dirs_response(&mut cursor, version)?;
-                    if !cursor.is_empty() {
-                        return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
-                    }
-                    Ok(response)
+                let mut cursor = body.as_ref();
+                let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                if !cursor.is_empty() {
+                    return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
                 }
-                .await;
-                match result {
-                    Err(error) if node.is_some() && error.is_retriable() => {
-                        if let Some(node) = node {
-                            let _ = self.conns.remove(&node);
-                        }
-                        self.wait_retry(&mut attempt, deadline).await?;
-                    }
-                    other => return other,
-                }
+                Ok(response)
             }
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+            .await;
+            match result {
+                Err(error) if node.is_some() && error.is_retriable() => {
+                    if let Some(node) = node {
+                        let _ = self.conns.remove(&node);
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                other => return other,
+            }
+        }
     }
 
     async fn alter_replica_log_dirs_on(
@@ -12350,9 +12354,9 @@ impl Admin {
         }
     }
 
-    async fn ensure_broker(&mut self, node: i32) -> Result<()> {
+    async fn ensure_broker(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if !self.cluster.brokers.contains_key(&node) {
-            self.refresh_metadata(None).await?;
+            self.refresh_metadata_until(None, deadline).await?;
         }
         if self.cluster.brokers.contains_key(&node) {
             Ok(())
