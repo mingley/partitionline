@@ -4142,7 +4142,9 @@ impl Consumer {
                 let recovery = self.recover_leader_epochs(&fenced, deadline).await;
                 for (topic, partition) in &fenced {
                     if let Ok(cursor) = self.fetch_cursor(topic, *partition) {
-                        drop_records_at_or_after(&mut out, topic, *partition, cursor);
+                        out_bytes = out_bytes.saturating_sub(drop_records_at_or_after(
+                            &mut out, topic, *partition, cursor,
+                        ));
                     }
                 }
                 match recovery {
@@ -6280,10 +6282,18 @@ fn drop_records_at_or_after(
     topic: &str,
     partition: i32,
     cursor: i64,
-) {
+) -> usize {
+    let mut removed = 0usize;
     records.retain(|record| {
-        record.topic.as_str() != topic || record.partition != partition || record.offset < cursor
+        let keep = record.topic.as_str() != topic
+            || record.partition != partition
+            || record.offset < cursor;
+        if !keep {
+            removed = removed.saturating_add(record_bytes(record));
+        }
+        keep
     });
+    removed
 }
 
 fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
@@ -6833,7 +6843,9 @@ mod tests {
             fetched_at("t", 0, 4),
             fetched_at("u", 0, 4),
         ];
-        drop_records_at_or_after(&mut records, "t", 0, 4);
+        let dropped = records.get(1).map(record_bytes);
+        let removed = drop_records_at_or_after(&mut records, "t", 0, 4);
+        assert_eq!(Some(removed), dropped);
         let kept: Vec<_> = records
             .iter()
             .map(|record| (record.topic.as_str(), record.offset))
