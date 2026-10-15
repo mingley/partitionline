@@ -88,7 +88,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FENCED_LEADER_EPOCH` without CurrentLeader /
   `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE` /
   `KAFKA_STORAGE_ERROR` still skip and still request Metadata when
-  `ErrorMessage` is set.   A sibling `INCONSISTENT_TOPIC_ID` /
+  `ErrorMessage` is set.   A sibling `NOT_LEADER_OR_FOLLOWER` /
+  `INCONSISTENT_TOPIC_ID` /
   `UNKNOWN_TOPIC_OR_PARTITION` / partition `UNKNOWN_TOPIC_ID` /
   `FENCED_LEADER_EPOCH` without CurrentLeader /
   `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE` /
