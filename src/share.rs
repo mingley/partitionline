@@ -1262,6 +1262,10 @@ impl ShareGroup {
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
     /// subscribed to any topics.`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
+        self.poll_with_wait(self.cfg.max_wait_ms).await
+    }
+
+    async fn poll_with_wait(&mut self, max_wait_ms: i32) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -1293,7 +1297,7 @@ impl ShareGroup {
         self.ensure_assignment(deadline).await?;
         let mut attempt = 0u32;
         loop {
-            let recs = match self.poll_leaders(deadline).await {
+            let recs = match self.poll_leaders(deadline, max_wait_ms).await {
                 Ok(recs) => recs,
                 // Records already acquired stay delivered when a later leader
                 // runs out of time.
@@ -1771,7 +1775,11 @@ impl ShareGroup {
         Ok(ready)
     }
 
-    async fn poll_leaders(&mut self, deadline: Instant) -> Result<Vec<ShareRecord>> {
+    async fn poll_leaders(
+        &mut self,
+        deadline: Instant,
+        max_wait_ms: i32,
+    ) -> Result<Vec<ShareRecord>> {
         self.refresh_share_topic_ids();
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
@@ -1847,7 +1855,7 @@ impl ShareGroup {
                 &self.group_id,
                 &self.member_id,
                 epoch,
-                self.cfg.max_wait_ms,
+                max_wait_ms,
                 self.cfg.min_bytes,
                 self.cfg.max_bytes,
                 max_records,
@@ -2109,14 +2117,12 @@ impl ShareGroup {
 
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
-    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards. Not subscribed
-    /// is the same Java `IllegalStateException` as [`Self::poll`].
+    /// A cancelled one-shot future leaves [`ConsumerConfig::max_wait_ms`]
+    /// intact. Not subscribed is the same Java `IllegalStateException` as
+    /// [`Self::poll`].
     pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<ShareRecords> {
-        let prev = self.cfg.max_wait_ms;
-        self.cfg.max_wait_ms = crate::consumer::duration_millis_i32(timeout);
-        let out = self.poll().await;
-        self.cfg.max_wait_ms = prev;
-        out
+        self.poll_with_wait(crate::consumer::duration_millis_i32(timeout))
+            .await
     }
 
     /// Leave the share group and drop the subscription (Java `unsubscribe`).

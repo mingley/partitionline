@@ -612,6 +612,46 @@ async fn fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition() 
 }
 
 #[tokio::test]
+async fn cancelled_share_poll_timeout_keeps_the_configured_wait() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"kept")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_wait_ms = 500;
+    let mut group = ShareGroup::join(cfg, "wait-kept", "t").await.unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 1);
+    assert_eq!(mock.last_share_fetch_max_wait_ms(), Some(500));
+    group.accept(&acquired).await.unwrap();
+    mock.delay_share_reply_once(SHARE_FETCH, Duration::from_millis(400));
+    let before = mock.share_fetch_calls();
+    let request_sent = async {
+        while mock.share_fetch_calls() == before {
+            tokio::task::yield_now().await;
+        }
+    };
+    tokio::select! {
+        biased;
+        _ = request_sent => {}
+        _ = tokio::time::sleep(Duration::from_secs(1)) => {
+            panic!("cancelled poll did not send ShareFetch");
+        }
+        result = group.poll_timeout(Duration::from_millis(40)) => {
+            panic!("one-shot poll finished before cancellation: {result:?}");
+        }
+    }
+    assert_eq!(mock.last_share_fetch_max_wait_ms(), Some(40));
+    let next = group.poll().await.unwrap();
+    assert!(next.is_empty());
+    assert_eq!(
+        mock.last_share_fetch_max_wait_ms(),
+        Some(500),
+        "cancelling poll_timeout must not replace the configured wait"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);

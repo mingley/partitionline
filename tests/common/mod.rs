@@ -629,6 +629,7 @@ struct State {
     last_share_fetch_max_records: Option<i32>,
     last_share_fetch_batch_size: Option<i32>,
     last_share_fetch_max_bytes: Option<i32>,
+    last_share_fetch_max_wait_ms: Option<i32>,
     last_share_fetch_version: Option<i16>,
     last_share_ack_epoch: Option<i32>,
     last_share_ack_version: Option<i16>,
@@ -1105,6 +1106,7 @@ fn new_state(
         last_share_fetch_max_records: None,
         last_share_fetch_batch_size: None,
         last_share_fetch_max_bytes: None,
+        last_share_fetch_max_wait_ms: None,
         last_share_fetch_version: None,
         last_share_ack_epoch: None,
         last_share_ack_version: None,
@@ -3529,6 +3531,10 @@ impl Mock {
 
     pub fn last_share_fetch_max_bytes(&self) -> Option<i32> {
         self.state.lock().last_share_fetch_max_bytes
+    }
+
+    pub fn last_share_fetch_max_wait_ms(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_max_wait_ms
     }
 
     pub fn last_share_fetch_version(&self) -> Option<i16> {
@@ -7651,13 +7657,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     topics,
                     _,
                     batch_size,
-                    _,
+                    max_wait_ms,
                     _,
                     max_bytes,
                     options,
                 ) = decode_share_fetch_request_with_options(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_fetch_version = Some(version);
+                st.last_share_fetch_max_wait_ms = Some(max_wait_ms);
                 st.last_share_acquire_mode = options.acquire_mode;
                 st.share_fetch_versions_by_node.insert(node_id, version);
                 let tps: Vec<(String, i32)> = topics
