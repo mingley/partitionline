@@ -156,7 +156,7 @@ struct Part {
 }
 struct Topic<'a> {
     name: &'a str,
-    parts: Vec<Part>,
+    parts: List<Part>,
 }
 struct Request<'a> {
     replica: i32,
@@ -164,7 +164,76 @@ struct Request<'a> {
     minimum: i32,
     maximum: i32,
     isolation: u8,
-    topics: Vec<Topic<'a>>,
+    topics: List<Topic<'a>>,
+}
+
+/// One fetch slot stays inline. Several slots own a vector.
+enum List<T> {
+    Empty,
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> List<T> {
+    fn as_slice(&self) -> &[T] {
+        match self {
+            Self::Empty => &[],
+            Self::One(item) => std::slice::from_ref(item),
+            Self::Many(items) => items,
+        }
+    }
+
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        match self {
+            Self::Empty => &mut [],
+            Self::One(item) => std::slice::from_mut(item),
+            Self::Many(items) => items,
+        }
+    }
+
+    fn push(&mut self, item: T) {
+        match self {
+            Self::Many(items) => items.push(item),
+            Self::Empty => *self = Self::One(item),
+            Self::One(_) => {
+                let Self::One(first) = std::mem::replace(self, Self::Empty) else {
+                    return;
+                };
+                *self = Self::Many(vec![first, item]);
+            }
+        }
+    }
+}
+
+impl<T> std::ops::Deref for List<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for List<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a List<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+fn exact_list<T>(count: usize) -> Result<List<T>, Error> {
+    if count <= 1 {
+        Ok(List::Empty)
+    } else {
+        Ok(List::Many(reserved(count)?))
+    }
 }
 fn reserved<T>(count: usize) -> Result<Vec<T>, Error> {
     let mut value = Vec::new();
@@ -193,7 +262,7 @@ fn parse<'a>(
         0
     };
     let count = reader.count(common.max_topics, 6)?;
-    let mut topics = reserved(count)?;
+    let mut topics = exact_list(count)?;
     let mut total = 0usize;
     for _ in 0..count {
         let name = reader.string()?;
@@ -211,7 +280,7 @@ fn parse<'a>(
         if total > maximum_parts {
             return Err(Error::RequestCount);
         }
-        let mut parts = reserved(count)?;
+        let mut parts = exact_list(count)?;
         for _ in 0..count {
             let index = reader.i32()?;
             let offset = reader.i64()?;
@@ -630,6 +699,22 @@ mod tests {
             offset: 0,
             maximum: 0,
         }
+    }
+
+    #[test]
+    fn a_single_fetch_slot_stays_inline() {
+        let mut parts = super::exact_list(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(parts, super::List::Empty));
+        parts.push(part(0));
+        assert!(matches!(parts, super::List::One(_)));
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts.first().map(|part| part.index), Some(0));
+        let mut many = super::exact_list(2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(many, super::List::Many(_)));
+        many.push(part(0));
+        many.push(part(1));
+        assert_eq!(many.len(), 2);
+        assert!(matches!(many, super::List::Many(_)));
     }
 
     #[test]
