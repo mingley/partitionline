@@ -13,7 +13,7 @@
 //! StreamsGroupHeartbeat or StreamsGroupDescribe RPC.
 
 use crate::journal::{self, Journal};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLSTR001";
@@ -713,41 +713,83 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
             let member_id = take_str(&mut bytes)?;
             let member_epoch = take_i32(&mut bytes)?;
             let last_seen_ms = take_u64(&mut bytes)?;
-            let acked = take_u8(&mut bytes)? == 1;
+            let acked_byte = take_u8(&mut bytes)?;
             let endpoint_epoch = take_i32(&mut bytes)?;
-            let instance = if take_u8(&mut bytes)? == 1 {
+            let instance_flag = take_u8(&mut bytes)?;
+            if acked_byte > 1 || instance_flag > 1 {
+                return Err(Error::InvalidRequest);
+            }
+            let instance = if instance_flag == 1 {
                 Some(take_str(&mut bytes)?)
             } else {
                 None
             };
-            members.insert(
-                member_id,
-                Member {
-                    epoch: member_epoch,
-                    last_seen_ms,
-                    acked,
-                    instance,
-                    endpoint_epoch,
-                    active: take_ids(&mut bytes)?,
-                    standby: take_ids(&mut bytes)?,
-                },
-            );
+            if members
+                .insert(
+                    member_id,
+                    Member {
+                        epoch: member_epoch,
+                        last_seen_ms,
+                        acked: acked_byte == 1,
+                        instance,
+                        endpoint_epoch,
+                        active: take_ids(&mut bytes)?,
+                        standby: take_ids(&mut bytes)?,
+                    },
+                )
+                .is_some()
+            {
+                return Err(Error::InvalidRequest);
+            }
         }
-        state.groups.insert(
-            name,
-            Group {
-                epoch,
-                assignment_epoch,
-                topology_epoch,
-                task_count,
-                members,
-            },
-        );
+        let group = Group {
+            epoch,
+            assignment_epoch,
+            topology_epoch,
+            task_count,
+            members,
+        };
+        validate_recovered(&name, &group)?;
+        if state.groups.insert(name, group).is_some() {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
     }
     Ok(state)
+}
+
+fn validate_recovered(name: &str, group: &Group) -> Result<(), Error> {
+    if !valid_name(name)
+        || group.members.is_empty()
+        || group.topology_epoch < 0
+        || group.task_count < 1
+    {
+        return Err(Error::InvalidRequest);
+    }
+    let mut active = BTreeSet::new();
+    for (member_id, member) in &group.members {
+        if !valid_name(member_id) || member.instance.as_ref().is_some_and(|id| !valid_name(id)) {
+            return Err(Error::InvalidRequest);
+        }
+        let mut owned = BTreeSet::new();
+        for task in &member.active {
+            if *task < 0
+                || *task >= group.task_count
+                || !active.insert(*task)
+                || !owned.insert(*task)
+            {
+                return Err(Error::InvalidRequest);
+            }
+        }
+        for task in &member.standby {
+            if *task < 0 || *task >= group.task_count || owned.contains(task) {
+                return Err(Error::InvalidRequest);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -784,7 +826,11 @@ fn take_ids(input: &mut &[u8]) -> Result<Vec<i32>, Error> {
     let count = take_u32(input)?;
     let mut ids = Vec::new();
     for _ in 0..count {
-        ids.push(take_i32(input)?);
+        let id = take_i32(input)?;
+        if id < 0 || ids.contains(&id) {
+            return Err(Error::InvalidRequest);
+        }
+        ids.push(id);
     }
     Ok(ids)
 }
@@ -845,6 +891,37 @@ mod tests {
             topology_epoch: Some(3),
             task_count: Some(4),
         }
+    }
+
+    #[test]
+    fn a_task_past_the_count_is_not_recovered() {
+        let mut members = std::collections::BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                epoch: 0,
+                last_seen_ms: 0,
+                acked: true,
+                instance: None,
+                endpoint_epoch: 0,
+                active: vec![1],
+                standby: Vec::new(),
+            },
+        );
+        let mut groups = std::collections::BTreeMap::new();
+        groups.insert(
+            "g".to_owned(),
+            Group {
+                epoch: 0,
+                assignment_epoch: 0,
+                topology_epoch: 1,
+                task_count: 1,
+                members,
+            },
+        );
+        let state = State { groups };
+        let encoded = encode(&state).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
