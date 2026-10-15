@@ -123,7 +123,7 @@ impl MarkerLog {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                log.entries.push(decode(&entry.payload)?);
+                replay_payload(&mut log, &entry.payload)?;
                 log.stored = log.stored.saturating_add(1);
                 offset = entry
                     .first_offset
@@ -354,18 +354,40 @@ fn decode(mut bytes: &[u8]) -> Result<Entry, Error> {
             epoch,
             id: take_u64(&mut bytes)?,
         },
-        KIND_MARKER => Entry::Marker {
-            offset,
-            producer_id,
-            epoch,
-            commit: take_u8(&mut bytes)? == 1,
-        },
+        KIND_MARKER => {
+            let flag = take_u8(&mut bytes)?;
+            if flag > 1 {
+                return Err(Error::InvalidRequest);
+            }
+            Entry::Marker {
+                offset,
+                producer_id,
+                epoch,
+                commit: flag == 1,
+            }
+        }
         _ => return Err(Error::InvalidRequest),
     };
-    if !bytes.is_empty() {
+    if !bytes.is_empty() || offset < 0 || producer_id <= 0 || epoch < 0 {
         return Err(Error::InvalidRequest);
     }
     Ok(entry)
+}
+
+fn replay_payload(log: &mut MarkerLog, payload: &[u8]) -> Result<(), Error> {
+    let decoded = decode(payload)?;
+    let expected = i64::try_from(log.entries.len()).map_err(|_| Error::InvalidRequest)?;
+    if entry_offset(&decoded) != expected {
+        return Err(Error::InvalidRequest);
+    }
+    log.entries.push(decoded);
+    Ok(())
+}
+
+fn entry_offset(entry: &Entry) -> i64 {
+    match entry {
+        Entry::Data { offset, .. } | Entry::Marker { offset, .. } => *offset,
+    }
 }
 
 fn take<'a>(input: &mut &'a [u8], len: usize) -> Result<&'a [u8], Error> {
@@ -418,6 +440,23 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-marker-{name}-{nanos}"));
         let log = MarkerLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn a_gapped_marker_offset_is_not_recovered() {
+        let (mut log, _) = open("gap");
+        let entry = Entry::Data {
+            offset: 4,
+            producer_id: 7,
+            epoch: 0,
+            id: 1,
+        };
+        let encoded = encode(&entry).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            replay_payload(&mut log, &encoded),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(log.log_end_offset(), 0);
     }
 
     #[test]

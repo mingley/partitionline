@@ -540,17 +540,63 @@ fn decode(mut bytes: &[u8]) -> Result<Row, Error> {
                 offset,
             }
         }
-        KIND_MARKER => Row::Marker {
-            producer_id,
-            epoch,
-            commit: take_u8(&mut bytes)? == 1,
-        },
+        KIND_MARKER => {
+            let flag = take_u8(&mut bytes)?;
+            if flag > 1 {
+                return Err(Error::InvalidRequest);
+            }
+            Row::Marker {
+                producer_id,
+                epoch,
+                commit: flag == 1,
+            }
+        }
         _ => return Err(Error::InvalidRequest),
     };
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
     }
+    validate_row(&row)?;
     Ok(row)
+}
+
+fn validate_row(row: &Row) -> Result<(), Error> {
+    let (producer_id, epoch) = match row {
+        Row::Data {
+            producer_id, epoch, ..
+        }
+        | Row::Offset {
+            producer_id, epoch, ..
+        }
+        | Row::Marker {
+            producer_id, epoch, ..
+        } => (*producer_id, *epoch),
+    };
+    if producer_id <= 0 || epoch < 0 {
+        return Err(Error::InvalidRequest);
+    }
+    if let Row::Offset {
+        group,
+        member,
+        generation,
+        topic,
+        partition,
+        offset,
+        ..
+    } = row
+    {
+        if group.is_empty()
+            || member.is_empty()
+            || member.len() > 249
+            || catalog::validate_topic_name(topic).is_err()
+            || *partition < 0
+            || *offset < 0
+            || *generation < 0
+        {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    Ok(())
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -646,6 +692,22 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-txno-{name}-{nanos}"));
         let log = TxnOffsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn a_negative_staged_partition_is_not_recovered() {
+        let row = Row::Offset {
+            producer_id: 4,
+            epoch: 0,
+            group: "orders".to_owned(),
+            member: "m-1".to_owned(),
+            generation: 1,
+            topic: "orders".to_owned(),
+            partition: -1,
+            offset: 0,
+        };
+        let encoded = encode(&row).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
