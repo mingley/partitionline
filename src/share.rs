@@ -1105,9 +1105,13 @@ impl ShareGroup {
             self.pending_delivery.clear();
             return;
         }
-        self.acquisitions.retain(|(topic, part, _), _| {
-            self.assigned.iter().any(|(t, p)| t == topic && p == part)
-        });
+        let still_assigned: HashSet<(&str, i32)> = self
+            .assigned
+            .iter()
+            .map(|(topic, partition)| (topic.as_str(), *partition))
+            .collect();
+        self.acquisitions
+            .retain(|(topic, part, _), _| still_assigned.contains(&(topic.as_str(), *part)));
         self.pending_delivery.retain(|r| {
             self.acquisitions
                 .contains_key(&(r.topic.clone(), r.partition, r.offset))
@@ -1121,11 +1125,15 @@ impl ShareGroup {
     fn refresh_share_topic_ids(&mut self) {
         let metadata = self.consumer.topic_name_ids();
         let mut names: Vec<String> = self.topic_ids.keys().cloned().collect();
+        let known: HashSet<&str> = names.iter().map(String::as_str).collect();
+        let mut added = HashSet::new();
+        let mut extra = Vec::new();
         for (topic, _) in &self.assigned {
-            if !names.iter().any(|name| name == topic) {
-                names.push(topic.clone());
+            if !known.contains(topic.as_str()) && added.insert(topic.as_str()) {
+                extra.push(topic.clone());
             }
         }
+        names.extend(extra);
         for topic in names {
             let stored = self.topic_ids.get(&topic).copied();
             let next = metadata.get(&topic).copied();
