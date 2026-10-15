@@ -24,6 +24,7 @@
 //! behavior. Application authorization, application storage, broker readiness and
 //! broader production qualification have separate contracts.
 
+use bytes::BufMut;
 use std::{
     future::Future,
     io::{self, IoSlice},
@@ -713,6 +714,25 @@ fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
     }
 }
 
+async fn read_exact_spare<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    payload: &mut Vec<u8>,
+    length: usize,
+) -> Result<(), Exit> {
+    payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
+    let mut limited = (&mut *payload).limit(length);
+    while limited.get_ref().len() < length {
+        let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
+        if n == 0 {
+            return Err(read_error(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "frame body closed",
+            )));
+        }
+    }
+    Ok(())
+}
+
 async fn read_frame<S: AsyncRead + Unpin>(
     socket: &mut S,
     config: Config,
@@ -732,10 +752,10 @@ async fn read_frame<S: AsyncRead + Unpin>(
             return Err(Exit::InvalidLength);
         }
         // No allocation based on the peer's length occurs before this check.
+        // The body is filled directly into spare capacity so a large request
+        // is not zeroed and then overwritten.
         let mut payload = new_frame();
-        payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
-        payload.resize(length, 0);
-        let _ = socket.read_exact(&mut payload).await.map_err(read_error)?;
+        read_exact_spare(&mut *socket, &mut payload, length).await?;
         Ok(payload)
     })
     .await
