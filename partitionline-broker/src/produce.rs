@@ -867,19 +867,36 @@ enum ProduceTopicKey<'a> {
     Name(Option<&'a [u8]>),
 }
 
-fn partition_copy_state(parts: &[Part], index: usize) -> (bool, bool) {
-    let Some(part) = parts.get(index) else {
-        return (false, false);
-    };
-    let mut first = true;
-    let mut duplicated = false;
-    for (other_at, other) in parts.iter().enumerate() {
-        if other_at == index || other.index != part.index {
-            continue;
+fn short_partition_copies(parts: &[Part]) -> ([bool; 16], [bool; 16]) {
+    let mut first = [false; 16];
+    let mut duplicated = [false; 16];
+    let mut indexes = [0i32; 16];
+    let mut filled = [false; 16];
+    for (index, part) in parts.iter().enumerate().take(16) {
+        let mut matched = None;
+        for prior in 0..index {
+            let same = filled.get(prior).copied().unwrap_or(false)
+                && indexes.get(prior).copied() == Some(part.index);
+            if same {
+                matched = Some(prior);
+                break;
+            }
         }
-        duplicated = true;
-        if other_at < index {
-            first = false;
+        if let Some(earlier) = matched {
+            if let Some(flag) = duplicated.get_mut(earlier) {
+                *flag = true;
+            }
+            if let Some(flag) = duplicated.get_mut(index) {
+                *flag = true;
+            }
+        } else if let Some(flag) = first.get_mut(index) {
+            *flag = true;
+        }
+        if let Some(slot) = indexes.get_mut(index) {
+            *slot = part.index;
+        }
+        if let Some(flag) = filled.get_mut(index) {
+            *flag = true;
         }
     }
     (first, duplicated)
@@ -896,22 +913,39 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     true
 }
 
-fn topic_copy_state(topics: &[Topic], version: i16, body: &[u8], index: usize) -> (bool, bool) {
-    let Some(topic) = topics.get(index) else {
-        return (false, false);
-    };
-    let key = produce_topic_key(version, topic, body);
-    let mut first = true;
-    let mut duplicated = false;
-    for (other_at, other) in topics.iter().enumerate() {
-        if other_at == index {
-            continue;
-        }
-        if produce_topic_key(version, other, body) == key {
-            duplicated = true;
-            if other_at < index {
-                first = false;
+fn short_topic_copies<'a>(
+    topics: &'a [Topic],
+    version: i16,
+    body: &'a [u8],
+) -> ([bool; 16], [bool; 16]) {
+    let mut first = [false; 16];
+    let mut duplicated = [false; 16];
+    let mut keys: [Option<ProduceTopicKey<'a>>; 16] = std::array::from_fn(|_| None);
+    for (index, topic) in topics.iter().enumerate().take(16) {
+        let key = produce_topic_key(version, topic, body);
+        let mut matched = None;
+        for prior in 0..index {
+            let same = keys
+                .get(prior)
+                .and_then(Option::as_ref)
+                .is_some_and(|prior_key| prior_key == &key);
+            if same {
+                matched = Some(prior);
+                break;
             }
+        }
+        if let Some(earlier) = matched {
+            if let Some(flag) = duplicated.get_mut(earlier) {
+                *flag = true;
+            }
+            if let Some(flag) = duplicated.get_mut(index) {
+                *flag = true;
+            }
+        } else if let Some(flag) = first.get_mut(index) {
+            *flag = true;
+        }
+        if let Some(slot) = keys.get_mut(index) {
+            *slot = Some(key);
         }
     }
     (first, duplicated)
@@ -1481,6 +1515,11 @@ fn process_inner(
     let lone_topic = parsed.topics.len() <= 1;
     // A short produce is scanned per topic. A longer one records the first copy.
     let scan_topics = !lone_topic && parsed.topics.len() <= 16;
+    let (short_first, short_duplicated) = if scan_topics {
+        short_topic_copies(&parsed.topics, version, body)
+    } else {
+        ([false; 16], [false; 16])
+    };
     let mut topic_first = Vec::new();
     let mut topic_duplicated = Vec::new();
     if !lone_topic && !scan_topics {
@@ -1512,7 +1551,13 @@ fn process_inner(
         let (is_first, duplicate_topic) = if lone_topic {
             (true, false)
         } else if scan_topics {
-            topic_copy_state(&parsed.topics, version, body, topic_position)
+            (
+                short_first.get(topic_position).copied().unwrap_or(false),
+                short_duplicated
+                    .get(topic_position)
+                    .copied()
+                    .unwrap_or(false),
+            )
         } else {
             (
                 topic_first.get(topic_position).copied().unwrap_or(false),
@@ -1529,6 +1574,11 @@ fn process_inner(
         // Strictly increasing indexes cannot repeat, including a single partition.
         let unique_parts = strictly_increasing_indexes(&topic.partitions);
         let scan_parts = !unique_parts && topic.partitions.len() <= 16;
+        let (short_part_first, short_part_duplicated) = if scan_parts {
+            short_partition_copies(&topic.partitions)
+        } else {
+            ([false; 16], [false; 16])
+        };
         let mut part_first = Vec::new();
         let mut part_duplicated = Vec::new();
         if !unique_parts && !scan_parts {
@@ -1552,7 +1602,13 @@ fn process_inner(
             let (is_part_first, duplicate_part) = if unique_parts {
                 (true, false)
             } else if scan_parts {
-                partition_copy_state(&topic.partitions, position)
+                (
+                    short_part_first.get(position).copied().unwrap_or(false),
+                    short_part_duplicated
+                        .get(position)
+                        .copied()
+                        .unwrap_or(false),
+                )
             } else {
                 (
                     part_first.get(position).copied().unwrap_or(false),
@@ -1924,9 +1980,25 @@ mod tests {
                 partitions: Vec::new(),
             },
         ];
-        assert_eq!(topic_copy_state(&topics, 9, body, 0), (true, true));
-        assert_eq!(topic_copy_state(&topics, 9, body, 1), (true, false));
-        assert_eq!(topic_copy_state(&topics, 9, body, 2), (false, true));
+        let (first, duplicated) = short_topic_copies(&topics, 9, body);
+        assert_eq!(
+            (
+                first.first().copied(),
+                duplicated.first().copied(),
+                first.get(1).copied(),
+                duplicated.get(1).copied(),
+                first.get(2).copied(),
+                duplicated.get(2).copied()
+            ),
+            (
+                Some(true),
+                Some(true),
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(true)
+            )
+        );
         let payments_key = produce_topic_key(9, &payments, body);
         assert!(matches!(
             payments_key,
@@ -1956,9 +2028,25 @@ mod tests {
         assert!(!strictly_increasing_indexes(&[part(1), part(0)]));
         assert!(!strictly_increasing_indexes(&[part(0), part(2), part(2)]));
         let mixed = [part(1), part(0), part(1)];
-        assert_eq!(partition_copy_state(&mixed, 0), (true, true));
-        assert_eq!(partition_copy_state(&mixed, 1), (true, false));
-        assert_eq!(partition_copy_state(&mixed, 2), (false, true));
+        let (first, duplicated) = short_partition_copies(&mixed);
+        assert_eq!(
+            (
+                first.first().copied(),
+                duplicated.first().copied(),
+                first.get(1).copied(),
+                duplicated.get(1).copied(),
+                first.get(2).copied(),
+                duplicated.get(2).copied()
+            ),
+            (
+                Some(true),
+                Some(true),
+                Some(true),
+                Some(false),
+                Some(false),
+                Some(true)
+            )
+        );
     }
 
     #[test]
