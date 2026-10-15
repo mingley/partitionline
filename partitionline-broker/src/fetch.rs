@@ -15,6 +15,7 @@
 //! it cannot become a false timestamp miss or silently skip retained records.
 
 use crate::{catalog::Catalog, journal, metadata, partition, produce, protocol, records};
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 /// Explicit composed ordinary read/write advertisement; not the Produce-only one.
@@ -402,32 +403,34 @@ fn fixed_size(request: &Request<'_>, key: i16, version: i16) -> Result<usize, Er
         },
     )
 }
+fn repeated_partition_indexes(parts: &[Part]) -> HashSet<i32> {
+    if parts.len() < 2 {
+        return HashSet::new();
+    }
+    let mut counts: HashMap<i32, usize> = HashMap::new();
+    let mut repeated = HashSet::new();
+    for part in parts {
+        let count = counts.entry(part.index).or_insert(0);
+        *count = count.saturating_add(1);
+        if *count > 1 {
+            let _ = repeated.insert(part.index);
+        }
+    }
+    repeated
+}
+
 fn selected<'a>(
     catalog: &'a Catalog,
     topic: &Topic<'_>,
-    position: usize,
     part: &Part,
-    request: &Request<'_>,
+    repeated: bool,
+    sole_topic: bool,
     invalid: bool,
     key: i16,
 ) -> Result<&'a crate::catalog::Topic, i16> {
     // Fetch asks for one offset per partition. ListOffsets may ask for
     // earliest and latest of the same partition in one request.
-    let repeated = topic.parts[..position]
-        .iter()
-        .any(|earlier| earlier.index == part.index)
-        || topic.parts[position + 1..]
-            .iter()
-            .any(|later| later.index == part.index);
-    if invalid
-        || (key != 2 && repeated)
-        || request
-            .topics
-            .iter()
-            .filter(|other| other.name == topic.name)
-            .count()
-            != 1
-    {
+    if invalid || (key != 2 && repeated) || !sole_topic {
         return Err(42);
     }
     let target = catalog.by_name(topic.name).ok_or(3i16)?;
@@ -669,12 +672,31 @@ pub(crate) fn process(
         out.i32(0)?;
     }
     out.count(request.topics.len())?;
+    let mut topic_copies: HashMap<&str, usize> = HashMap::new();
+    for topic in &request.topics {
+        let count = topic_copies.entry(topic.name).or_insert(0);
+        *count = count.saturating_add(1);
+    }
     for topic in &request.topics {
         out.string(topic.name)?;
         out.count(topic.parts.len())?;
-        for (position, part) in topic.parts.iter().enumerate() {
+        let sole_topic = topic_copies.get(topic.name).copied() == Some(1);
+        let repeated_partitions = if key == 2 {
+            HashSet::new()
+        } else {
+            repeated_partition_indexes(&topic.parts)
+        };
+        for part in &topic.parts {
             active()?;
-            let target = selected(catalog, topic, position, part, &request, invalid, key);
+            let target = selected(
+                catalog,
+                topic,
+                part,
+                repeated_partitions.contains(&part.index),
+                sole_topic,
+                invalid,
+                key,
+            );
             let (id, log_start, watermark, error) = match target {
                 Err(error) => (None, -1, -1, error),
                 Ok(target) => match (
