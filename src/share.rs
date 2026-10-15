@@ -1643,7 +1643,10 @@ impl ShareGroup {
     ///
     /// Flushes implicit last-poll ACCEPT and queued
     /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] without
-    /// waiting for the next [`Self::poll`] or [`Self::leave`].
+    /// waiting for the next [`Self::poll`] or [`Self::leave`]. Leftover
+    /// acknowledgements for a previous topic still flush after
+    /// [`Self::subscribe`] and no ShareFetch is sent (Java
+    /// `testCommitSyncWithSubscriptionChange`).
     pub async fn commit(&mut self) -> Result<()> {
         self.flush_pending_acknowledgements().await
     }
@@ -1703,7 +1706,10 @@ impl ShareGroup {
     /// Marks implicit last-poll records as ACCEPT immediately (Java
     /// `acknowledgeBatchIfImplicitAcknowledgement`) but does not send
     /// now. The next [`Self::poll`] flushes pending acknowledgements as
-    /// a standalone ShareAcknowledge (then fetches). [`Self::leave`],
+    /// a standalone ShareAcknowledge (then fetches). After
+    /// [`Self::subscribe`], that flush still acknowledges the previous
+    /// topic and the following ShareFetch is only the new assignment
+    /// (Java `testCommitAsyncWithSubscriptionChange`). [`Self::leave`],
     /// [`Self::close`], and [`Self::unsubscribe`] also flush those queued
     /// acknowledgements. Implicit last-poll records that were never
     /// committed are released without ACCEPT on leave. Same callback as

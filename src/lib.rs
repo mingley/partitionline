@@ -2088,6 +2088,11 @@
 //! (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). With no
 //! leftover acks, only the new leader is fetched (Java
 //! `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
+//! [`ShareGroup::commit`] flushes leftover acks without ShareFetch (Java
+//! `testCommitSyncWithSubscriptionChange`). [`ShareGroup::commit_async`]
+//! still waits for the next poll, which then standalone-acks the previous
+//! topic before fetching the new assignment (Java
+//! `testCommitAsyncWithSubscriptionChange`).
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] flush those leftover
 //! acks without sending another ShareFetch (Java
 //! `testCloseWithSubscriptionChange`).
