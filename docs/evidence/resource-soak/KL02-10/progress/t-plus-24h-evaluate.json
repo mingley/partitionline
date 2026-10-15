@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "directory": "/tmp/kl02-10-soak",
+  "mode": "controlled",
+  "elapsed_ms": 86400042.977187,
+  "startup_ms": 60000,
+  "window_ms": 3600000,
+  "target_pct": 10.0,
+  "first_hour_median_rss_bytes": 11759616,
+  "final_hour_median_rss_bytes": 6791168,
+  "first_hour_samples": 69861,
+  "final_hour_samples": 70034,
+  "drift_pct": -42.250087077673285,
+  "passed": false,
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "rss_bound_claimed": false
+}

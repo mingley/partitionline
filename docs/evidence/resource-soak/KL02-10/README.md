@@ -202,6 +202,21 @@ RSS is 6.48 MiB over 69 998 host samples (`fetch_errors=0`). Latest
 RSS at capture was 6.48 MiB. Workload `ambiguous` stayed 16. Still
 not a 24 h pass.
 
+T+24h is recorded in
+[progress/t-plus-24h.json](progress/t-plus-24h.json) and
+[progress/t-plus-24h-evaluate.json](progress/t-plus-24h-evaluate.json).
+The controlled job finished `--duration-ms 86400000` at host elapsed
+86 400.043 s (child 901851 / driver 901849, exit 0). The named
+twenty-fourth hour `[startup+1380 min, startup+1440 min)` is 60 s
+short of that window because duration is 24 h of load, not
+startup+24 h; median RSS is 6.48 MiB over 68 867 host samples
+(`fetch_errors=0`). Latest host RSS at exit was 6.78 MiB (shutdown
+sample). Workload `ambiguous` stayed 16. `--progress` keeps
+`passed=false` / `complete_24h=false`. The RSS-drift checker without
+`--progress` compares first-hour median 11.22 MiB to final-hour
+median 6.48 MiB (`drift_pct=-42.25`, `passed=false`). This is not a
+24 h pass and is not production qualification.
+
 Live progress (never a 24 h pass):
 
 ```sh
