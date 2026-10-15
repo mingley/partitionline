@@ -472,17 +472,36 @@ impl Coordinator {
                     return Err(Error::InvalidRequest);
                 }
                 let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
-                txn.state = State::Ongoing;
-                txn.partitions.clear();
+                match txn.state {
+                    State::Ongoing => {}
+                    State::Empty | State::CompleteCommit | State::CompleteAbort => {
+                        txn.state = State::Ongoing;
+                        txn.partitions.clear();
+                    }
+                    State::PrepareCommit | State::PrepareAbort => {
+                        return Err(Error::InvalidState);
+                    }
+                }
             }
             KIND_ADD => {
                 let id = take_str(&mut rest)?;
                 let topic = take_str(&mut rest)?;
                 let partition = take_i32(&mut rest)?;
-                if !rest.is_empty() {
+                if !rest.is_empty()
+                    || catalog::validate_topic_name(&topic).is_err()
+                    || partition < 0
+                {
                     return Err(Error::InvalidRequest);
                 }
                 let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
+                if txn.state != State::Ongoing {
+                    return Err(Error::InvalidState);
+                }
+                if txn.partitions.len() >= 64
+                    && !txn.partitions.contains(&(topic.clone(), partition))
+                {
+                    return Err(Error::InvalidRequest);
+                }
                 txn.partitions.insert((topic, partition));
             }
             KIND_PREPARE => {
@@ -492,11 +511,16 @@ impl Coordinator {
                     return Err(Error::InvalidRequest);
                 }
                 let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
-                txn.state = if commit {
+                let prepared = if commit {
                     State::PrepareCommit
                 } else {
                     State::PrepareAbort
                 };
+                match txn.state {
+                    State::Ongoing => txn.state = prepared,
+                    state if state == prepared => {}
+                    _ => return Err(Error::InvalidState),
+                }
             }
             KIND_FINISH => {
                 let id = take_str(&mut rest)?;
@@ -505,11 +529,17 @@ impl Coordinator {
                     return Err(Error::InvalidRequest);
                 }
                 let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
-                txn.state = if commit {
+                let completed = if commit {
                     State::CompleteCommit
                 } else {
                     State::CompleteAbort
                 };
+                match txn.state {
+                    State::PrepareCommit if commit => txn.state = completed,
+                    State::PrepareAbort if !commit => txn.state = completed,
+                    state if state == completed => {}
+                    _ => return Err(Error::InvalidState),
+                }
             }
             _ => return Err(Error::InvalidRequest),
         }
@@ -771,6 +801,55 @@ mod tests {
                 .finish("orders-txn", producer, epoch, 0)
                 .unwrap_or_else(|error| panic!("{error:?}")),
             Outcome::Completed { commit: true }
+        );
+    }
+
+    #[test]
+    fn a_replayed_add_cannot_change_a_prepared_transaction() {
+        let (mut coordinator, _) = open("replay-add");
+        let (producer, epoch) = coordinator
+            .init("orders-txn", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .begin("orders-txn", producer, epoch, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .add_partition("orders-txn", producer, epoch, 0, "orders", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let again =
+            encode_add("orders-txn", "orders", 0).unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .apply(&again)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let negative =
+            encode_add("orders-txn", "orders", -1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.apply(&negative),
+            Err(Error::InvalidRequest)
+        ));
+        let illegal =
+            encode_add("orders-txn", "bad name", 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.apply(&illegal),
+            Err(Error::InvalidRequest)
+        ));
+        coordinator
+            .end("orders-txn", producer, epoch, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let late =
+            encode_add("orders-txn", "orders", 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(coordinator.apply(&late), Err(Error::InvalidState)));
+        let flip = encode_finish("orders-txn", false).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(coordinator.apply(&flip), Err(Error::InvalidState)));
+        assert_eq!(coordinator.state("orders-txn"), Some(State::PrepareCommit));
+        let stored = coordinator
+            .transactions
+            .get("orders-txn")
+            .map(|txn| txn.partitions.clone())
+            .unwrap_or_default();
+        assert_eq!(
+            stored,
+            std::collections::BTreeSet::from([("orders".to_owned(), 0)])
         );
     }
 
