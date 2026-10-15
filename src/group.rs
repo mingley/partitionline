@@ -1563,13 +1563,13 @@ impl ConsumerGroup {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
-        let offsets = self.assigned_commit_offsets();
-        let positions = offsets
-            .iter()
-            .map(|(tp, md)| (tp.clone(), md.offset))
-            .collect();
-        self.commit_with_metadata_timeout(offsets, timeout.saturating_sub(started.elapsed()))
+        let offsets = crate::offsets::collect_bounded_commits(self.assigned_commit_offsets())?;
+        self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
+        let positions = offsets
+            .into_iter()
+            .map(|(tp, md)| (tp, md.offset))
+            .collect();
         self.record_delivered_positions(positions);
         self.last_auto_commit = Instant::now();
         Ok(())
@@ -1645,6 +1645,24 @@ impl ConsumerGroup {
         self.commit_metadata_offsets(offsets, timeout).await
     }
 
+    async fn commit_prepared_offsets(
+        &mut self,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        timeout: Duration,
+    ) -> Result<()> {
+        let topics = group_offset_topics(offsets);
+        if topics.is_empty() {
+            return Ok(());
+        }
+        let result = if self.coord.offset_commit_version == 10 {
+            self.commit_offsets_v10(offsets, timeout, None).await
+        } else {
+            self.commit_classic(offsets, &topics, timeout).await
+        };
+        self.note_commit(result.is_ok());
+        result
+    }
+
     async fn commit_metadata_offsets(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
@@ -1652,19 +1670,8 @@ impl ConsumerGroup {
     ) -> Result<()> {
         let started = Instant::now();
         let offsets = crate::offsets::collect_bounded_commits(offsets)?;
-        let topics = group_offset_topics(&offsets);
-        if topics.is_empty() {
-            return Ok(());
-        }
-        let result = if self.coord.offset_commit_version == 10 {
-            self.commit_offsets_v10(&offsets, timeout.saturating_sub(started.elapsed()), None)
-                .await
-        } else {
-            self.commit_classic(&offsets, &topics, timeout.saturating_sub(started.elapsed()))
-                .await
-        };
-        self.note_commit(result.is_ok());
-        result
+        self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
+            .await
     }
 
     async fn commit_classic(
