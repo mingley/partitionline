@@ -3090,6 +3090,7 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
         // The one-node leader is the bootstrap socket, which is not stored in
         // `conns`. Resetting its fetch session on every poll forces a full
         // partition list. Keep the session while that socket stays live.
@@ -3098,7 +3099,7 @@ impl Consumer {
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
                     session.reset();
                 }
-                let (conn, versions) = self.open_node_conn(&addr).await?;
+                let (conn, versions) = self.open_node_conn_until(&addr, deadline).await?;
                 self.versions = versions
                     .api_keys
                     .into_iter()
@@ -3111,7 +3112,6 @@ impl Consumer {
         if let Some(session) = self.fetch_sessions.get_mut(&node) {
             session.reset();
         }
-        let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
@@ -3121,7 +3121,7 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            match self.open_node_conn(&addr).await {
+            match self.open_node_conn_until(&addr, deadline).await {
                 Ok((conn, versions)) => {
                     let _ = self.reconnect_fails.remove(&node);
                     self.remember_opened_conn(node, conn, &versions);
@@ -3141,16 +3141,21 @@ impl Consumer {
         }
     }
 
-    async fn open_node_conn(&self, addr: &str) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    /// Dial, negotiate, and authenticate inside `deadline`.
+    async fn open_node_conn_until(
+        &self,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
         let mut conn = BrokerConn::connect_tls(
             addr,
             &self.cfg.client_id,
-            self.cfg.connect_timeout,
+            self.cfg.connect_timeout.min(startup_remaining(deadline)?),
             self.cfg.tls.as_ref(),
         )
         .await?;
         let versions_resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
+            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
                 .await?;
         if let Some(fv) = versions_resp
             .api_version(FETCH)
@@ -3166,7 +3171,7 @@ impl Consumer {
             self.cfg.sasl_scram_sha512.as_ref(),
             self.cfg.sasl_oauthbearer.as_deref(),
             self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.request_timeout,
+            startup_remaining(deadline)?,
         )
         .await?;
         Ok((conn, versions_resp))
@@ -3198,7 +3203,8 @@ impl Consumer {
         if let Some(session) = self.fetch_sessions.get_mut(&node) {
             session.reset();
         }
-        match self.open_node_conn(&addr).await {
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        match self.open_node_conn_until(&addr, deadline).await {
             Ok((conn, versions)) => {
                 let _ = self.reconnect_fails.remove(&node);
                 self.remember_opened_conn(node, conn, &versions);
@@ -3651,9 +3657,10 @@ impl Consumer {
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
-            let (conn, versions) = self.open_node_conn(&addr).await?;
+            let (conn, versions) = self.open_node_conn_until(&addr, deadline).await?;
             self.versions = versions
                 .api_keys
                 .into_iter()
@@ -3663,8 +3670,13 @@ impl Consumer {
             // The new socket does not own the previous connection's fetch session.
             self.reset_fetch_sessions_using_bootstrap();
         }
-        let id = crate::admin::fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16])
-            .await?;
+        let id = crate::admin::fetch_client_instance_id(
+            &mut self.conn,
+            version,
+            startup_remaining(deadline)?,
+            [0; 16],
+        )
+        .await?;
         self.client_instance_id = Some(id);
         Ok(crate::Uuid::from_bytes(id))
     }
