@@ -151,6 +151,21 @@ impl Cluster {
                 }
                 continue;
             }
+            // A refresh that names the same leaders, epochs, and topic id
+            // only moves the freshness stamp. Building the image again would
+            // rewrite every partition slot. A newer CurrentLeader epoch, a
+            // recreated topic id, or a second copy of the topic in this
+            // response still takes the full merge below.
+            let repeated = seen_topics.contains(name.as_str());
+            if !repeated && self.topic_image_unchanged(name, t, version, retain_epochs) {
+                if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
+                    *slot = Instant::now();
+                } else {
+                    let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+                }
+                let _inserted = seen_topics.insert(name.as_str());
+                continue;
+            }
             // A new topic id is a deleted-and-recreated topic. Its epochs
             // start over, so the previous generation's leader must not stick.
             let cached_topic_id = self
@@ -163,7 +178,6 @@ impl Cluster {
                 (Some(cached), Some(incoming)) => cached != incoming,
                 _ => false,
             };
-            let repeated = seen_topics.contains(name.as_str());
             if recreated {
                 let _removed = self.leaders.remove(name);
                 let _removed = self.leader_epochs.remove(name);
@@ -351,6 +365,60 @@ impl Cluster {
             let _inserted = seen_topics.insert(name.as_str());
             self.decided_scratch = decided;
         }
+    }
+
+    /// True when applying `topic` would leave leaders, epochs, and the topic
+    /// id as they are.
+    ///
+    /// The caller still refreshes [`Self::topic_fetched_at`]. Partitions must
+    /// be listed in index order with no holes: a gap, a duplicate, or an
+    /// error falls through to the full merge. An epoch newer than this image
+    /// (from [`Self::apply_current_leader`]) does not match.
+    fn topic_image_unchanged(
+        &self,
+        name: &str,
+        topic: &crate::protocol::api::TopicMetadata,
+        version: i16,
+        retain_epochs: bool,
+    ) -> bool {
+        let id_stable = if version >= 10 && topic.topic_id != [0; 16] {
+            self.topic_ids.get(name).copied() == Some(topic.topic_id)
+        } else {
+            !self.topic_ids.contains_key(name)
+        };
+        if !id_stable {
+            return false;
+        }
+        let Some(leaders) = self.leaders.get(name) else {
+            return false;
+        };
+        let Some(epochs) = self.leader_epochs.get(name) else {
+            return false;
+        };
+        if leaders.is_empty()
+            || leaders.len() != epochs.len()
+            || leaders.len() != topic.partitions.len()
+        {
+            return false;
+        }
+        topic.partitions.iter().enumerate().all(|(idx, partition)| {
+            let Ok(index) = i32::try_from(idx) else {
+                return false;
+            };
+            if partition.error_code != 0
+                || partition.partition_index != index
+                || !(0..MAX_CACHED_PARTITIONS).contains(&partition.partition_index)
+            {
+                return false;
+            }
+            let expected_epoch = if retain_epochs {
+                partition.leader_epoch
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
+            leaders.get(idx).copied() == Some(partition.leader_id)
+                && epochs.get(idx).copied() == Some(expected_epoch)
+        })
     }
 
     /// Drop cached leaders for `topic` so the next lookup refetches Metadata.
@@ -938,6 +1006,91 @@ mod tests {
         );
         cluster.invalidate_topic("t");
         assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn an_unchanged_metadata_image_refreshes_without_dropping_a_newer_epoch() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        use std::time::Duration;
+
+        let image = |epoch: i32, leader: i32| MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [9u8; 16],
+                is_internal: false,
+                partitions: vec![
+                    PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: leader,
+                        leader_epoch: epoch,
+                        replica_nodes: vec![leader],
+                        isr_nodes: vec![leader],
+                        offline_replicas: Vec::new(),
+                    },
+                    PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 1,
+                        leader_id: leader,
+                        leader_epoch: epoch,
+                        replica_nodes: vec![leader],
+                        isr_nodes: vec![leader],
+                        offline_replicas: Vec::new(),
+                    },
+                ],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        let md = image(4, 1);
+        cluster.apply(&md, 13);
+        let stamped = cluster
+            .topic_fetched_at
+            .get_mut("t")
+            .expect("first apply stamps the topic");
+        *stamped = Instant::now() - Duration::from_secs(60);
+        assert!(!cluster.topic_fresh("t", Duration::from_secs(30)));
+        cluster.apply(&md, 13);
+        assert!(cluster.topic_fresh("t", Duration::from_secs(30)));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader("t", 1).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 4);
+        assert_eq!(cluster.leader_epoch("t", 1), 4);
+        assert_eq!(cluster.topic_ids.get("t").copied(), Some([9u8; 16]));
+        assert!(cluster.apply_current_leader("t", 0, 2, 9));
+        cluster.apply(&md, 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 9);
+        assert_eq!(cluster.leader("t", 1).unwrap().0, 1);
+        assert!(cluster.apply_current_leader("t", 4, 1, 11));
+        assert_eq!(cluster.partition_count("t"), Some(5));
+        cluster.apply(&md, 13);
+        assert_eq!(cluster.partition_count("t"), Some(2));
+        assert!(cluster.leader("t", 4).is_err());
+        cluster.apply(&image(10, 2), 13);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 10);
+        assert_eq!(cluster.leader_epoch("t", 1), 10);
     }
 
     #[test]
