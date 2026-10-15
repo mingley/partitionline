@@ -113,8 +113,8 @@ impl StreamsClient {
                 && !conn.idle_expired(self.cfg.connection.connections_max_idle))
             .then_some(conn)
         });
-        let (response, conn) = deadline
-            .run(self.heartbeat_until(request, &body, deadline, cached))
+        let (response, conn) = self
+            .heartbeat_until(request, &body, deadline, cached)
             .await?;
         let group = request.group_id.clone();
         deadline.check_expired()?;

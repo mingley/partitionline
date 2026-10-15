@@ -2832,9 +2832,7 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<()> {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
-        crate::net::Deadline::from_std(deadline)
-            .run(self.refresh_metadata_until(topics, deadline))
-            .await
+        self.refresh_metadata_until(topics, deadline).await
     }
 
     async fn refresh_metadata_until(

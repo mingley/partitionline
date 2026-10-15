@@ -158,9 +158,7 @@ impl OffsetClient {
         if request.topics.is_empty() {
             return Ok(OffsetCommitResponseData::default());
         }
-        deadline
-            .run(self.commit_until(request, options, deadline))
-            .await
+        self.commit_until(request, options, deadline).await
     }
 
     /// Fetch one or more groups, preserving null/all-topic versus empty topic
@@ -183,9 +181,7 @@ impl OffsetClient {
         if request.groups.is_empty() {
             return Ok(OffsetFetchResponseData::default());
         }
-        deadline
-            .run(self.fetch_until(request, options, deadline))
-            .await
+        self.fetch_until(request, options, deadline).await
     }
 
     async fn backoff(&self, err: &Error, attempt: u32, deadline: Deadline) -> Result<()> {

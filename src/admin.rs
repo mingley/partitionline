@@ -7935,12 +7935,7 @@ impl Admin {
         timeout: Duration,
     ) -> Result<MetadataResponse> {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
-        crate::net::Deadline::from_std(deadline)
-            .run(self.fetch_metadata_request_until(
-                topics,
-                include_topic_authorized_operations,
-                deadline,
-            ))
+        self.fetch_metadata_request_until(topics, include_topic_authorized_operations, deadline)
             .await
     }
 
@@ -9601,8 +9596,8 @@ impl Admin {
             .get(&OFFSET_FETCH)
             .is_some_and(|range| range.min_version <= 10 && range.max_version >= 10)
         {
-            return deadline
-                .run(self.fetch_named_groups_v10(&jobs, require_stable, deadline))
+            return self
+                .fetch_named_groups_v10(&jobs, require_stable, deadline)
                 .await;
         }
         deadline
@@ -9794,13 +9789,8 @@ impl Admin {
         {
             let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
             let deadline = crate::net::Deadline::from_std(target);
-            return deadline
-                .run(self.fetch_named_offsets_v10(
-                    group_id,
-                    topics.as_deref(),
-                    require_stable,
-                    deadline,
-                ))
+            return self
+                .fetch_named_offsets_v10(group_id, topics.as_deref(), require_stable, deadline)
                 .await;
         }
         let client_min = if topics.is_none() { 2 } else { 1 };
@@ -9930,8 +9920,8 @@ impl Admin {
         {
             let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
             let deadline = crate::net::Deadline::from_std(target);
-            return deadline
-                .run(self.commit_named_offsets_v10(group_id, &offsets, deadline))
+            return self
+                .commit_named_offsets_v10(group_id, &offsets, deadline)
                 .await;
         }
         let topics = crate::group::group_offset_topics(&offsets);

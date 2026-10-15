@@ -113,9 +113,7 @@ impl Admin {
             positions.push(index);
         }
         deadline.check_expired()?;
-        let unique = deadline
-            .run(self.describe_streams_until(&ids, options, deadline))
-            .await?;
+        let unique = self.describe_streams_until(&ids, options, deadline).await?;
         let references = positions
             .iter()
             .filter_map(|&index| {
