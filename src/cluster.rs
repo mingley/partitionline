@@ -67,6 +67,8 @@ pub(crate) struct Cluster {
     pub(crate) controller_id: Option<i32>,
     /// When each topic's leaders were last applied from Metadata.
     topic_fetched_at: HashMap<String, Instant>,
+    /// Reused per-partition marks for the topic currently being applied.
+    decided_scratch: Vec<bool>,
 }
 
 impl Cluster {
@@ -181,7 +183,9 @@ impl Cluster {
             } else if epochs.len() > len {
                 epochs.truncate(len);
             }
-            let mut decided = vec![false; len];
+            let mut decided = std::mem::take(&mut self.decided_scratch);
+            decided.clear();
+            decided.resize(len, false);
             if repeated {
                 for slot in decided.iter_mut().take(old_leaders_len.min(len)) {
                     *slot = true;
@@ -300,6 +304,7 @@ impl Cluster {
                 let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
             }
             let _inserted = seen_topics.insert(name.as_str());
+            self.decided_scratch = decided;
         }
     }
 
