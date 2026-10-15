@@ -308,8 +308,9 @@ impl Writer {
         {
             return Err(Error::ResponseLimit);
         }
+        // Geometric growth: partition headers continue after record bytes.
         self.bytes
-            .try_reserve_exact(value.len())
+            .try_reserve(value.len())
             .map_err(|_| Error::Allocation)?;
         self.bytes.extend_from_slice(value);
         Ok(())
@@ -542,6 +543,18 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    #[test]
+    fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
+        let mut writer = super::Writer::new(4, 10_000).unwrap();
+        writer.i32(1).unwrap();
+        for value in 2..40 {
+            writer.i32(value).unwrap();
+        }
+        assert_eq!(writer.bytes.len(), 39 * 4);
+        assert_eq!(&writer.bytes[..4], &1i32.to_be_bytes());
+        assert_eq!(&writer.bytes[38 * 4..], &39i32.to_be_bytes());
+    }
 
     #[test]
     fn a_batch_that_crosses_the_high_watermark_is_not_fetched() {
