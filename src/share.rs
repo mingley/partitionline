@@ -755,7 +755,10 @@ pub enum ShareAcquireMode {
 /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
 /// `UNKNOWN_TOPIC_ID` with a usable CurrentLeader on one partition
 /// updates that partition's next ShareFetch target and does not
-/// retarget a sibling whose error is none.
+/// retarget a sibling whose error is none. A ShareAcknowledge
+/// partition `INVALID_RECORD_STATE` with a usable CurrentLeader does
+/// not update the next ShareFetch target (Java `updateLeaderInfoMap`
+/// omits that code).
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
@@ -1823,7 +1826,10 @@ impl ShareGroup {
     /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` with a usable CurrentLeader on one partition
     /// updates that partition's next ShareFetch target and does not
-    /// retarget a sibling whose error is none.
+    /// retarget a sibling whose error is none. A ShareAcknowledge
+    /// partition `INVALID_RECORD_STATE` with a usable CurrentLeader
+    /// does not update the next ShareFetch target (Java
+    /// `updateLeaderInfoMap` omits that code).
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
     /// `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
@@ -5039,6 +5045,10 @@ mod tests {
         assert!(
             !share_ack_current_leader_usable(error::INCONSISTENT_TOPIC_ID),
             "Java updateLeaderInfoMap omits INCONSISTENT_TOPIC_ID"
+        );
+        assert!(
+            !share_ack_current_leader_usable(error::INVALID_RECORD_STATE),
+            "Java updateLeaderInfoMap omits INVALID_RECORD_STATE"
         );
         assert!(!share_ack_current_leader_usable(
             error::UNKNOWN_LEADER_EPOCH

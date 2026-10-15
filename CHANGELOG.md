@@ -70,7 +70,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
   CurrentLeader on one partition updates that partition's next
   ShareFetch target and does not retarget a sibling whose error is
-  none. A successful
+  none. A ShareAcknowledge partition `INVALID_RECORD_STATE` with a
+  usable CurrentLeader does not update the next ShareFetch target
+  (Java `updateLeaderInfoMap` omits that code). A successful
   ShareAcknowledge that omits a requested partition completes that
   partition with `INVALID_RECORD_STATE` (Java
   `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
