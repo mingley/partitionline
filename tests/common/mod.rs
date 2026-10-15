@@ -8380,40 +8380,40 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_consumer_group_describe_n = ids.len();
                 st.consumer_group_describe_calls =
                     st.consumer_group_describe_calls.saturating_add(1);
-                if st.coord_node != node_id {
-                    st.consumer_group_describe_not_coordinator =
-                        st.consumer_group_describe_not_coordinator.saturating_add(1);
-                    // Per-group 16 only. Do not invent a member store,
-                    // a 41 path, or a 6 path.
-                    let results: Vec<DescribedConsumerGroup> = ids
-                        .into_iter()
-                        .map(|group_id| {
-                            DescribedConsumerGroup::new(group_id, error::NOT_COORDINATOR)
-                        })
-                        .collect();
-                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
-                } else {
-                    st.last_consumer_group_describe_node = Some(node_id);
-                    let results: Vec<DescribedConsumerGroup> = ids
-                        .into_iter()
-                        .map(|group_id| {
-                            let code = st
-                                .consumer_group_describe_errors
-                                .get(&group_id)
-                                .copied()
-                                .unwrap_or(0);
-                            let mut g = DescribedConsumerGroup::new(group_id, code);
-                            if code == 0 {
-                                g.group_state = "Stable".into();
-                                g.group_epoch = 1;
-                                g.assignment_epoch = 1;
-                                g.assignor_name = "uniform".into();
+                let mut saw_foreign = false;
+                let results: Vec<DescribedConsumerGroup> = ids
+                    .into_iter()
+                    .map(|group_id| {
+                        let owner = st
+                            .group_coord_overrides
+                            .get(&group_id)
+                            .copied()
+                            .unwrap_or(st.coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.consumer_group_describe_not_coordinator =
+                                    st.consumer_group_describe_not_coordinator.saturating_add(1);
+                                saw_foreign = true;
                             }
-                            g
-                        })
-                        .collect();
-                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
-                }
+                            return DescribedConsumerGroup::new(group_id, error::NOT_COORDINATOR);
+                        }
+                        st.last_consumer_group_describe_node = Some(node_id);
+                        let code = st
+                            .consumer_group_describe_errors
+                            .get(&group_id)
+                            .copied()
+                            .unwrap_or(0);
+                        let mut g = DescribedConsumerGroup::new(group_id, code);
+                        if code == 0 {
+                            g.group_state = "Stable".into();
+                            g.group_epoch = 1;
+                            g.assignment_epoch = 1;
+                            g.assignor_name = "uniform".into();
+                        }
+                        g
+                    })
+                    .collect();
+                encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
             }
             DESCRIBE_GROUPS => {
                 let version = header.api_version;
@@ -8493,24 +8493,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_delete_groups_version = Some(version);
                 st.last_delete_groups_n = ids.len();
                 st.delete_groups_calls = st.delete_groups_calls.saturating_add(1);
-                if st.coord_node != node_id {
-                    st.delete_groups_not_coordinator =
-                        st.delete_groups_not_coordinator.saturating_add(1);
-                    // Per-group 16 only. Do not invent a group store,
-                    // a 41 path, or a 6 path.
-                    let results: Vec<DeletableGroupResult> = ids
-                        .into_iter()
-                        .map(|group_id| DeletableGroupResult::new(group_id, error::NOT_COORDINATOR))
-                        .collect();
-                    encode_delete_groups_response(&mut body, version, &results).unwrap();
-                } else {
-                    st.last_delete_groups_node = Some(node_id);
-                    let results: Vec<DeletableGroupResult> = ids
-                        .into_iter()
-                        .map(|group_id| DeletableGroupResult::new(group_id, 0))
-                        .collect();
-                    encode_delete_groups_response(&mut body, version, &results).unwrap();
-                }
+                let mut saw_foreign = false;
+                let results: Vec<DeletableGroupResult> = ids
+                    .into_iter()
+                    .map(|group_id| {
+                        let owner = st
+                            .group_coord_overrides
+                            .get(&group_id)
+                            .copied()
+                            .unwrap_or(st.coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.delete_groups_not_coordinator =
+                                    st.delete_groups_not_coordinator.saturating_add(1);
+                                saw_foreign = true;
+                            }
+                            return DeletableGroupResult::new(group_id, error::NOT_COORDINATOR);
+                        }
+                        st.last_delete_groups_node = Some(node_id);
+                        DeletableGroupResult::new(group_id, 0)
+                    })
+                    .collect();
+                encode_delete_groups_response(&mut body, version, &results).unwrap();
             }
             SHARE_GROUP_DESCRIBE => {
                 let version = header.api_version;
