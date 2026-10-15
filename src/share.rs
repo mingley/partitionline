@@ -736,8 +736,9 @@ pub enum ShareAcquireMode {
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`), including when
 /// a partition `ErrorMessage` is present. A skip-with-metadata code
-/// such as `NOT_LEADER_OR_FOLLOWER` still skips and still requests
-/// Metadata when `ErrorMessage` is set (Java `testFetchError`). A throwable
+/// such as `NOT_LEADER_OR_FOLLOWER` / `INCONSISTENT_TOPIC_ID` still skips
+/// and still requests Metadata when `ErrorMessage` is set (Java
+/// `testFetchError` / `handleInitializeErrors`). A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
 /// `Errors.forCode.exception(errorMessage)`); empty uses
 /// `ShareFetch {topic}-{partition}`. A top-level ShareFetch
@@ -1540,7 +1541,8 @@ impl ShareGroup {
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
     /// `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip and request
-    /// Metadata; siblings still deliver (Java `handleInitializeErrors`).
+    /// Metadata, including when a partition `ErrorMessage` is set;
+    /// siblings still deliver (Java `handleInitializeErrors`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
