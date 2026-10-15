@@ -401,6 +401,19 @@ fn fixed_size(request: &Request<'_>, key: i16, version: i16) -> Result<usize, Er
         },
     )
 }
+fn name_repeats<'a>(names: impl IntoIterator<Item = &'a str>, name: &str) -> bool {
+    let mut seen = false;
+    for candidate in names {
+        if candidate == name {
+            if seen {
+                return true;
+            }
+            seen = true;
+        }
+    }
+    false
+}
+
 fn repeated_partition_indexes(parts: &[Part]) -> HashSet<i32> {
     if parts.len() < 2 {
         return HashSet::new();
@@ -578,6 +591,20 @@ mod tests {
     }
 
     #[test]
+    fn a_short_topic_list_finds_a_repeated_name_without_a_count_map() {
+        assert!(!super::name_repeats(["orders", "payments"], "orders"));
+        assert!(super::name_repeats(
+            ["orders", "payments", "orders"],
+            "orders"
+        ));
+        assert!(!super::name_repeats(
+            ["orders", "payments", "orders"],
+            "payments"
+        ));
+        assert!(!super::name_repeats(["orders"], "orders"));
+    }
+
+    #[test]
     fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
         let mut writer = super::Writer::new(4, 10_000).unwrap();
         writer.i32(1).unwrap();
@@ -697,10 +724,12 @@ pub(crate) fn process(
         out.i32(0)?;
     }
     out.count(request.topics.len())?;
-    // One topic cannot be repeated, so the name map is only for a multi-topic request.
+    // One topic cannot be repeated. A short list is scanned per topic so a
+    // normal fetch does not allocate a name map. Longer lists use the map.
     let one_topic = request.topics.len() <= 1;
+    let scan_names = !one_topic && request.topics.len() <= 16;
     let mut topic_copies: HashMap<&str, usize> = HashMap::new();
-    if !one_topic {
+    if !one_topic && !scan_names {
         for topic in &request.topics {
             let count = topic_copies.entry(topic.name).or_insert(0);
             *count = count.saturating_add(1);
@@ -709,7 +738,12 @@ pub(crate) fn process(
     for topic in &request.topics {
         out.string(topic.name)?;
         out.count(topic.parts.len())?;
-        let sole_topic = one_topic || topic_copies.get(topic.name).copied() == Some(1);
+        let sole_topic = one_topic
+            || if scan_names {
+                !name_repeats(request.topics.iter().map(|topic| topic.name), topic.name)
+            } else {
+                topic_copies.get(topic.name).copied() == Some(1)
+            };
         // A repeated or invalid topic is rejected before the catalog. Every
         // partition of a live topic shares that one lookup.
         let named = if invalid || !sole_topic {
