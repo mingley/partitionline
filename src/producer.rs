@@ -5962,11 +5962,33 @@ fn group_pending(
         .rec
         .partition
         .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+    let same_topic =
+        |topic: &Arc<str>| Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref();
     let homogeneous = batch
         .iter()
-        .all(|p| p.rec.partition == Some(part0) && p.rec.topic.as_ref() == topic0.as_ref());
+        .all(|p| p.rec.partition == Some(part0) && same_topic(&p.rec.topic));
     if homogeneous {
         return vec![(topic0, part0, batch)];
+    }
+    if batch.iter().all(|p| same_topic(&p.rec.topic)) {
+        let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
+        let mut slot_of: HashMap<i32, usize> = HashMap::new();
+        for p in batch {
+            let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            if let Some(&slot) = slot_of.get(&partition) {
+                if let Some((_, pending)) = order.get_mut(slot) {
+                    pending.push(p);
+                }
+            } else {
+                let slot = order.len();
+                let _ = slot_of.insert(partition, slot);
+                order.push((partition, vec![p]));
+            }
+        }
+        return order
+            .into_iter()
+            .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
+            .collect();
     }
     let mut order: Vec<Arc<str>> = Vec::new();
     for p in batch {
@@ -6688,6 +6710,27 @@ mod tests {
         split[1].batch_base_seq = Some(2);
         assert_eq!(take_count(&split, 10, usize::MAX), 1);
         assert_eq!(take_count(&[], 10, usize::MAX), 0);
+    }
+
+    #[test]
+    fn one_topic_produce_groups_share_its_allocation() {
+        let mut buckets = ProduceBuckets::default();
+        let mut batch = vec![
+            queued("orders", Some(1)),
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+        ];
+        let orders = Arc::clone(&batch[0].rec.topic);
+        batch[1].rec.topic = Arc::clone(&orders);
+        batch[2].rec.topic = Arc::<str>::from("orders");
+        let groups = group_pending(batch, &mut buckets);
+        assert_eq!(groups.len(), 2);
+        assert_eq!((groups[0].1, groups[0].2.len()), (1, 2));
+        assert_eq!((groups[1].1, groups[1].2.len()), (0, 1));
+        assert!(groups
+            .iter()
+            .all(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
+        assert!(buckets.is_empty());
     }
 
     #[test]
