@@ -800,6 +800,19 @@ fn same_topic_list(names: &[&str], owned: &BTreeSet<String>) -> bool {
     if names.len() != owned.len() {
         return false;
     }
+    if names.len() <= 8 {
+        return small_topic_list(names, owned);
+    }
+    let mut seen = HashSet::with_capacity(names.len());
+    for name in names {
+        if !seen.insert(*name) {
+            return false;
+        }
+    }
+    owned.iter().all(|stored| seen.contains(stored.as_str()))
+}
+
+fn small_topic_list(names: &[&str], owned: &BTreeSet<String>) -> bool {
     let mut matched = 0usize;
     for stored in owned {
         let mut hits = 0usize;
@@ -1180,6 +1193,26 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn a_topic_list_matches_in_any_order() {
+        let short: Set<String> = ["orders", "payments"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert!(same_topic_list(&["payments", "orders"], &short));
+        assert!(!same_topic_list(&["orders", "orders"], &short));
+        let owned: Set<String> = ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let names = ["i", "h", "g", "f", "e", "d", "c", "b", "a"];
+        assert!(same_topic_list(&names, &owned));
+        let mut repeated = names;
+        repeated[0] = "a";
+        assert!(!same_topic_list(&repeated, &owned));
+        assert!(!same_topic_list(&["a", "b"], &owned));
     }
 
     #[test]
