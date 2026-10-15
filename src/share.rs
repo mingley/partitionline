@@ -814,7 +814,9 @@ pub enum ShareAcquireMode {
 /// does not update the next ShareFetch target for a sibling whose
 /// error is none. A ShareFetch `REPLICA_NOT_AVAILABLE` with a usable
 /// CurrentLeader does not update the next ShareFetch target and still
-/// requests Metadata.
+/// requests Metadata. A ShareFetch `REPLICA_NOT_AVAILABLE` with a
+/// usable CurrentLeader on one partition does not update the next
+/// ShareFetch target for a sibling whose error is none.
 /// `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`), including when
 /// a partition `ErrorMessage` is present. A skip-with-metadata code
@@ -1642,7 +1644,9 @@ impl ShareGroup {
     /// ShareFetch target for a sibling whose error is none. A
     /// ShareFetch `REPLICA_NOT_AVAILABLE` with a usable CurrentLeader
     /// does not update the next ShareFetch target and still requests
-    /// Metadata.
+    /// Metadata. A ShareFetch `REPLICA_NOT_AVAILABLE` with a usable
+    /// CurrentLeader on one partition does not update the next
+    /// ShareFetch target for a sibling whose error is none.
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
