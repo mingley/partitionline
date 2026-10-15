@@ -3379,46 +3379,57 @@ fn position_is_committable(offset: i64) -> bool {
 pub(crate) fn group_offset_topics(
     items: &[(TopicPartition, OffsetAndMetadata)],
 ) -> Vec<OffsetTopic> {
-    let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
+    let mut by_topic: HashMap<String, (HashSet<i32>, Vec<OffsetPartition>)> = HashMap::new();
     for (tp, md) in items {
-        if by_topic
-            .get(tp.topic.as_str())
-            .is_some_and(|parts| parts.iter().any(|part| part.partition == tp.partition))
-        {
+        if let Some((seen, parts)) = by_topic.get_mut(tp.topic.as_str()) {
+            if !seen.insert(tp.partition) {
+                continue;
+            }
+            parts.push(OffsetPartition {
+                partition: tp.partition,
+                offset: md.offset,
+                leader_epoch: md.wire_epoch(),
+                metadata: md.metadata.clone(),
+            });
             continue;
         }
-        let partition = OffsetPartition {
-            partition: tp.partition,
-            offset: md.offset,
-            leader_epoch: md.wire_epoch(),
-            metadata: md.metadata.clone(),
-        };
-        if let Some(parts) = by_topic.get_mut(tp.topic.as_str()) {
-            parts.push(partition);
-        } else {
-            let _ = by_topic.insert(tp.topic.clone(), vec![partition]);
-        }
+        let mut seen = HashSet::new();
+        let _ = seen.insert(tp.partition);
+        let _ = by_topic.insert(
+            tp.topic.clone(),
+            (
+                seen,
+                vec![OffsetPartition {
+                    partition: tp.partition,
+                    offset: md.offset,
+                    leader_epoch: md.wire_epoch(),
+                    metadata: md.metadata.clone(),
+                }],
+            ),
+        );
     }
     by_topic
         .into_iter()
-        .map(|(topic, partitions)| OffsetTopic { topic, partitions })
+        .map(|(topic, (_, partitions))| OffsetTopic { topic, partitions })
         .collect()
 }
 
 pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
-    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut by_topic: HashMap<String, (HashSet<i32>, Vec<i32>)> = HashMap::new();
     for (topic, part) in wanted {
-        if let Some(parts) = by_topic.get_mut(topic.as_str()) {
-            if !parts.contains(part) {
+        if let Some((seen, parts)) = by_topic.get_mut(topic.as_str()) {
+            if seen.insert(*part) {
                 parts.push(*part);
             }
         } else {
-            let _ = by_topic.insert(topic.clone(), vec![*part]);
+            let mut seen = HashSet::new();
+            let _ = seen.insert(*part);
+            let _ = by_topic.insert(topic.clone(), (seen, vec![*part]));
         }
     }
     by_topic
         .into_iter()
-        .map(|(topic, partitions)| OffsetFetchTopic { topic, partitions })
+        .map(|(topic, (_, partitions))| OffsetFetchTopic { topic, partitions })
         .collect()
 }
 
