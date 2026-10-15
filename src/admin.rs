@@ -5,7 +5,7 @@
 //! transaction methods retry on coordinator errors.
 
 use std::cmp::Ordering;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -3341,6 +3341,59 @@ async fn dial_admin_socket(
     )
     .await?;
     Ok(AdminOffsetConn::new(conn, &versions_resp))
+}
+
+struct LeaderList {
+    topic: String,
+    leaders: Vec<i32>,
+    present: bool,
+}
+
+impl LeaderList {
+    fn new() -> Self {
+        Self {
+            topic: String::new(),
+            leaders: Vec::new(),
+            present: false,
+        }
+    }
+
+    fn node(&mut self, cluster: &Cluster, topic: &str, partition: i32) -> Result<i32> {
+        if self.topic != topic {
+            self.leaders.clear();
+            self.present = false;
+            if let Some(leaders) = cluster.leaders.get(topic) {
+                self.leaders.clone_from(leaders);
+                self.present = true;
+            }
+            self.topic.clear();
+            self.topic.push_str(topic);
+        }
+        if !self.present {
+            return Err(Error::UnknownTopic(topic.to_string()));
+        }
+        let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
+            topic: topic.to_string(),
+            partition,
+        })?;
+        let node = self
+            .leaders
+            .get(idx)
+            .copied()
+            .filter(|&id| id >= 0)
+            .ok_or_else(|| Error::NoLeader {
+                topic: topic.to_string(),
+                partition,
+            })?;
+        if cluster.brokers.contains_key(&node) {
+            Ok(node)
+        } else {
+            Err(Error::NoLeader {
+                topic: topic.to_string(),
+                partition,
+            })
+        }
+    }
 }
 
 impl Admin {
@@ -8366,12 +8419,16 @@ impl Admin {
                 break;
             }
             let mut need: Vec<String> = Vec::new();
+            let mut seen_topics = HashSet::new();
+            let mut leaders = LeaderList::new();
             for &i in &pending {
                 let Some((tp, _)) = records.get(i) else {
                     continue;
                 };
-                if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
-                    && !need.iter().any(|t| t == &tp.topic)
+                if leaders
+                    .node(&self.cluster, &tp.topic, tp.partition)
+                    .is_err()
+                    && seen_topics.insert(tp.topic.as_str())
                 {
                     need.push(tp.topic.clone());
                 }
@@ -8381,11 +8438,12 @@ impl Admin {
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
+            let mut leaders = LeaderList::new();
             for &i in &pending {
                 let (tp, _) = records
                     .get(i)
                     .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
-                let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
+                let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
                 match by_node.entry(node) {
                     std::collections::hash_map::Entry::Vacant(slot) => {
                         nodes.push(node);
@@ -8714,12 +8772,16 @@ impl Admin {
                 break;
             }
             let mut need: Vec<String> = Vec::new();
+            let mut seen_topics = HashSet::new();
+            let mut leaders = LeaderList::new();
             for &i in &pending {
                 let Some((tp, _)) = queries.get(i) else {
                     continue;
                 };
-                if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
-                    && !need.iter().any(|t| t == &tp.topic)
+                if leaders
+                    .node(&self.cluster, &tp.topic, tp.partition)
+                    .is_err()
+                    && seen_topics.insert(tp.topic.as_str())
                 {
                     need.push(tp.topic.clone());
                 }
@@ -8729,11 +8791,12 @@ impl Admin {
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
+            let mut leaders = LeaderList::new();
             for &i in &pending {
                 let (tp, _) = queries
                     .get(i)
                     .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
-                let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
+                let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
                 match by_node.entry(node) {
                     std::collections::hash_map::Entry::Vacant(slot) => {
                         nodes.push(node);
@@ -9289,12 +9352,16 @@ impl Admin {
             }
             if !pin_broker {
                 let mut need: Vec<String> = Vec::new();
+                let mut seen_topics = HashSet::new();
+                let mut leaders = LeaderList::new();
                 for &i in &pending {
                     let Some(tp) = partitions.get(i) else {
                         continue;
                     };
-                    if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
-                        && !need.iter().any(|t| t == &tp.topic)
+                    if leaders
+                        .node(&self.cluster, &tp.topic, tp.partition)
+                        .is_err()
+                        && seen_topics.insert(tp.topic.as_str())
                     {
                         need.push(tp.topic.clone());
                     }
@@ -9309,11 +9376,12 @@ impl Admin {
                 let _prev = by_node.insert(id, pending.clone());
                 nodes.push(id);
             } else {
+                let mut leaders = LeaderList::new();
                 for &i in &pending {
                     let tp = partitions
                         .get(i)
                         .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
-                    let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
+                    let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
                     match by_node.entry(node) {
                         std::collections::hash_map::Entry::Vacant(slot) => {
                             nodes.push(node);
